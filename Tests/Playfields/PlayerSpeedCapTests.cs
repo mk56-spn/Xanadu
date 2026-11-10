@@ -1,12 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Playfields;
@@ -33,15 +31,15 @@ public sealed class PlayerSpeedCapTests
     [Test]
     public void SidewaysSpeedIsCappedBothWays()
     {
-        Assert.That(PlayerSpeedCapSystem.Capped(new NVector2(Max * 2, 0)).X, Is.EqualTo(Max));
-        Assert.That(PlayerSpeedCapSystem.Capped(new NVector2(-Max * 2, 0)).X, Is.EqualTo(-Max));
+        Assert.That(PlayerSpeedCapSystem.Capped(new Vector2(Max * 2, 0)).X, Is.EqualTo(Max));
+        Assert.That(PlayerSpeedCapSystem.Capped(new Vector2(-Max * 2, 0)).X, Is.EqualTo(-Max));
     }
 
     [Test]
     public void OnlyFallingIsCappedVertically()
     {
-        Assert.That(PlayerSpeedCapSystem.Capped(new NVector2(0, Max * 2)).Y, Is.EqualTo(Max));
-        Assert.That(PlayerSpeedCapSystem.Capped(new NVector2(0, -Max * 2)).Y, Is.EqualTo(-Max * 2));
+        Assert.That(PlayerSpeedCapSystem.Capped(new Vector2(0, Max * 2)).Y, Is.EqualTo(Max));
+        Assert.That(PlayerSpeedCapSystem.Capped(new Vector2(0, -Max * 2)).Y, Is.EqualTo(-Max * 2));
     }
 
     [Test]

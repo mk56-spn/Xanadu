@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using System;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Audio;
@@ -33,7 +32,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
     public PlayfieldSystemGroup(
         EntityStore entities,
         IRectCanvas canvas,
-        Rid parentCanvas,
+        Handle parentCanvas,
         ITrackAudio audio,
         KeybindSettings keybinds,
         IKeyboardState keyboard,
@@ -52,20 +51,20 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 
         // The fading copies a character leaves on a hit: before the characters,
         // so the live art always draws over them.
-        _ghosts = new CanvasItemHandle(_playfield.Rid, 0);
+        _ghosts = new CanvasItemHandle(_playfield.Handle, 0);
 
         // Character rig art: a child of the playfield, so it draws over the field.
-        _characters = new CanvasItemHandle(_playfield.Rid, 0);
+        _characters = new CanvasItemHandle(_playfield.Handle, 0);
 
         // Particle bursts: after the characters, so they draw over the rig.
-        _particleCanvas = new CanvasItemHandle(_playfield.Rid, 0);
+        _particleCanvas = new CanvasItemHandle(_playfield.Handle, 0);
         _particles = HostPlatform.Particles is { } server
-            ? new CanvasParticleEmitter(_particleCanvas.Rid, server)
+            ? new CanvasParticleEmitter(_particleCanvas.Handle, server)
             : new SilentParticleEmitter();
 
         // The F6 hitbox outlines: after the art, so the rig cannot hide them,
         // but still inside the playfield's layer so the HUD stays on top.
-        _hitboxes = new CanvasItemHandle(_playfield.Rid, 0, visible: false);
+        _hitboxes = new CanvasItemHandle(_playfield.Handle, 0, visible: false);
 
         _hudOverlay = new CanvasItemHandle(parentCanvas, 950);
 
@@ -103,7 +102,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             pointer ?? new NullPointerInputSource(),
             keyboard,
             hudLayout ?? new HudLayoutSettings(persist: false),
-            _hudOverlay.Rid));
+            _hudOverlay.Handle));
         Add(new ContactCounterSystem());
         Add(new PlayerSmoothingSystem());
         Add(new PlayerPathRecordSystem());
@@ -117,26 +116,26 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new CharacterAttackSystem());
             Add(new CharacterRigAnimateSystem());
             Add(new CharacterRigDrawSystem(
-                () => new SvgAttachmentVisuals(_characters.Rid),
+                () => new SvgAttachmentVisuals(_characters.Handle),
                 new CharacterRigGhosts(
-                    _ghosts.Rid,
+                    _ghosts.Handle,
                     root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false })));
         }
 
         Add(new DivaNotesSystem(entities));
-        Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Rid, passes, toPixels));
+        Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Handle, passes, toPixels));
         if (hitboxToggle is not null)
         {
             Add(new PlayfieldHitboxOverlaySystem(
                 entities,
                 canvas,
-                _hitboxes.Rid,
+                _hitboxes.Handle,
                 hitboxToggle));
         }
     }
 
     /// <summary>The playfield layer, which the editor also draws into.</summary>
-    public Rid Playfield => _playfield.Rid;
+    public Handle Playfield => _playfield.Handle;
 
     public void Dispose()
     {

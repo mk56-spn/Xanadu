@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
@@ -74,7 +73,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     public XanaduSystemRoot(
         EntityStore entities,
-        Rid parentCanvas,
+        Handle parentCanvas,
         IPointerInputSource pointerInput,
         SceneDirector sceneDirector,
         Vector2 viewportSize,

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Layering;
 using Xanadu.Rendering;

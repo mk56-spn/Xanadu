@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using FreeTypeSharp;
-using Godot;
 using MoonWorks.Graphics;
 using Texture = MoonWorks.Graphics.Texture;
 using Xanadu.Storage;

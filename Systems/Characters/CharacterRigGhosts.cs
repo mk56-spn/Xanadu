@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Animation;
 using Xanadu.Ecs;
@@ -17,7 +16,7 @@ namespace Xanadu.Systems.Characters;
 /// </summary>
 /// <param name="layer">The canvas item the copies hang from, drawn under the live characters.</param>
 /// <param name="createVisuals">Makes the art for one copy under the given canvas item.</param>
-public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> createVisuals)
+public sealed class CharacterRigGhosts(Handle layer, Func<Handle, IAttachmentVisuals> createVisuals)
 {
     /// <summary>The most copies on screen at once; past it the oldest is reused.</summary>
     public const int MaxCopies = 8;
@@ -117,7 +116,7 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
 
         if (copy is null)
         {
-            Rid root = CanvasServer.Current.CreateItem();
+            Handle root = CanvasServer.Current.CreateItem();
             CanvasServer.Current.SetParent(root, layer);
             CanvasServer.Current.SetCanvasGroup(root, GroupMargin, fitEmpty: false, GroupMargin);
             copy = new Copy(root, createVisuals(root));
@@ -170,9 +169,9 @@ public sealed class CharacterRigGhosts(Rid layer, Func<Rid, IAttachmentVisuals> 
     private static void SetAlpha(Copy copy, float alpha) =>
         CanvasServer.Current.SetModulate(copy.Root, new Color(1f, 1f, 1f, alpha));
 
-    private sealed class Copy(Rid root, IAttachmentVisuals visuals)
+    private sealed class Copy(Handle root, IAttachmentVisuals visuals)
     {
-        public Rid Root { get; } = root;
+        public Handle Root { get; } = root;
         public IAttachmentVisuals Visuals { get; } = visuals;
         public XafPackage? Package { get; set; }
         public long Order { get; set; }

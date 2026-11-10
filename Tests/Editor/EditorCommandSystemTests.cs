@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Tests.Support;
 using Xanadu.Ecs;
@@ -50,13 +49,13 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void RotatingTurnsASpikeInPlaceAsOneUndoStep()
     {
         _editor.AddComponent(new EditorPlacement());
-        Entity spike = CreateSelected(new Spike(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+        Entity spike = CreateSelected(new Spike(new Vector2(100, 100), new Vector2(50, 50)));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
 
         Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(90f));
-        Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(100, 100)));
+        Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Vector2(100, 100)));
         Assert.That(_editor.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(90f));
 
         _commands.Enqueue(EditorCommand.Undo());
@@ -70,7 +69,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void OneWayCyclesThroughEverySideAndUndoesInOneStep()
     {
-        Entity block = CreateSelected(new Block(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+        Entity block = CreateSelected(new Block(new Vector2(100, 100), new Vector2(50, 50)));
 
         foreach (BlockOneWay expected in new[]
                  {
@@ -96,8 +95,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void RotatingAndFlippingTurnAOneWaySide()
     {
         Entity block = CreateSelected(new Block(
-            new Godot.Vector2(100, 100),
-            new Godot.Vector2(50, 50),
+            new Vector2(100, 100),
+            new Vector2(50, 50),
             oneWay: BlockOneWay.Up));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
@@ -129,11 +128,11 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     {
         Entity left = EditorItems.Create(Store, new Note(
             0,
-            new Godot.Vector2(200, 300),
+            new Vector2(200, 300),
             kind: NoteKind.Dash));
         Entity right = EditorItems.Create(Store, new Spike(
-            new Godot.Vector2(350, 300),
-            new Godot.Vector2(50, 50),
+            new Vector2(350, 300),
+            new Vector2(50, 50),
             90f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { left, right });
 
@@ -174,8 +173,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         foreach (var corner in new[] { (100, 100), (150, 100), (100, 150), (150, 150) })
         {
             blocks.Add(EditorItems.Create(Store, new Block(
-                new Godot.Vector2(corner.Item1, corner.Item2),
-                new Godot.Vector2(50, 50))));
+                new Vector2(corner.Item1, corner.Item2),
+                new Vector2(50, 50))));
         }
 
         _editor.GetComponent<NoteSelection>().SetMany(blocks);
@@ -196,8 +195,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
             _editor.GetComponent<NoteSelection>().AllNotes.Select(item => item.GetComponent<Block>().Position),
             Is.EquivalentTo(new[]
             {
-                new Godot.Vector2(150, 150), new Godot.Vector2(200, 150),
-                new Godot.Vector2(150, 200), new Godot.Vector2(200, 200),
+                new Vector2(150, 150), new Vector2(200, 150),
+                new Vector2(150, 200), new Vector2(200, 200),
             }));
     }
 
@@ -218,11 +217,11 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void CopyAndPasteCarriesBlocksAndSpikesOneCellAlong()
     {
         Entity block = EditorItems.Create(Store, new Block(
-            new Godot.Vector2(100, 100),
-            new Godot.Vector2(100, 50)));
+            new Vector2(100, 100),
+            new Vector2(100, 50)));
         Entity spike = EditorItems.Create(Store, new Spike(
-            new Godot.Vector2(300, 300),
-            new Godot.Vector2(50, 50),
+            new Vector2(300, 300),
+            new Vector2(50, 50),
             180f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { block, spike });
 
@@ -235,8 +234,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         var selected = _editor.GetComponent<NoteSelection>().AllNotes;
         Entity pastedBlock = selected.First(item => item.HasComponent<Block>());
         Entity pastedSpike = selected.First(item => item.HasComponent<Spike>());
-        Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Godot.Vector2(150, 150)));
-        Assert.That(pastedSpike.GetComponent<Spike>().Position, Is.EqualTo(new Godot.Vector2(350, 350)));
+        Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Vector2(150, 150)));
+        Assert.That(pastedSpike.GetComponent<Spike>().Position, Is.EqualTo(new Vector2(350, 350)));
         Assert.That(pastedSpike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(180f));
 
         _commands.Enqueue(EditorCommand.PasteSelection());
@@ -244,7 +243,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(
             Store.Query<Spike>().ToEntityList().Select(item => item.GetComponent<Spike>().Position),
-            Does.Contain(new Godot.Vector2(400, 400)),
+            Does.Contain(new Vector2(400, 400)),
             "pasting again steps further instead of stacking");
 
         _commands.Enqueue(EditorCommand.Undo());
@@ -257,8 +256,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void PastingLandsOnTheSnapNearestThePlayheadAndKeepsTheSpacing()
     {
-        Entity first = EditorItems.Create(Store, new Note(5_000, new Godot.Vector2(100, 100)));
-        Entity second = EditorItems.Create(Store, new Note(5_250, new Godot.Vector2(200, 100)));
+        Entity first = EditorItems.Create(Store, new Note(5_000, new Vector2(100, 100)));
+        Entity second = EditorItems.Create(Store, new Note(5_250, new Vector2(200, 100)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();
         playhead.DurationMs = 20_000;
@@ -280,8 +279,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void PastingGeometryWithNotesLeavesTheNoteTimingAlone()
     {
-        Entity note = EditorItems.Create(Store, new Note(5_000, new Godot.Vector2(100, 100)));
-        Entity block = EditorItems.Create(Store, new Block(new Godot.Vector2(100, 100), new Godot.Vector2(50, 50)));
+        Entity note = EditorItems.Create(Store, new Note(5_000, new Vector2(100, 100)));
+        Entity block = EditorItems.Create(Store, new Block(new Vector2(100, 100), new Vector2(50, 50)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { note, block });
         _editor.GetComponent<Playhead>().TimeMs = 8_000;
         _editor.GetComponent<Playhead>().DurationMs = 10_000;

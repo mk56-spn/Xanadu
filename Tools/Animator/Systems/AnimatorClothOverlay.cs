@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -15,7 +14,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// colliders as capsule outlines. Brighter while a pick mode waits for clicks, so it is clear what
 /// a click will do. Nothing is drawn in preview mode.
 /// </summary>
-public sealed class AnimatorClothOverlay(IRectCanvas canvas, Rid target)
+public sealed class AnimatorClothOverlay(IRectCanvas canvas, Handle target)
 {
     private static readonly Color Grid = new(Palette.TextMuted, 0.35f);
     private static readonly Color Free = new(Palette.TextMuted, 0.8f);

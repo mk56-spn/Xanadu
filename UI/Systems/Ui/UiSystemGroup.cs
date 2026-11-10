@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Groups;
 using Xanadu.Ecs;
@@ -13,7 +12,7 @@ public sealed class UiSystemGroup : SystemGroup
 {
     public UiSystemGroup(
         EntityStore entities,
-        Rid parentCanvas,
+        Handle parentCanvas,
         IRectCanvas canvas,
         IPointerInputSource pointer,
         IOverlayToggleSource? debugToggle = null,

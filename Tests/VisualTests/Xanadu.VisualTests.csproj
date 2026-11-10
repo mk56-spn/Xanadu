@@ -20,4 +20,5 @@
     <ProjectReference Include="../../Xanadu.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
+  <Import Project="../../Core/Maths/Maths.props" />
 </Project>

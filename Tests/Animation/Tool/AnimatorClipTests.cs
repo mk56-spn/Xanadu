@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
@@ -442,7 +441,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
         Session.GetComponent<AnimatorSelection>().KeyTime = 1f;
         Ui.ClipName.AddTag<TextFieldFocused>();
 
-        Keyboard.Press(Godot.Key.Delete);
+        Keyboard.Press(Key.Delete);
         Frame(2);
 
         Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head")), Has.Count.EqualTo(3));

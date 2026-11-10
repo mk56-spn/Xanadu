@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Ecs;
 
 namespace Xanadu.Editor;

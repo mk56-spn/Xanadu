@@ -1,5 +1,4 @@
 using System.Linq;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Items;
 using Xanadu.Levels;

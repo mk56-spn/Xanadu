@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Ecs;
@@ -8,5 +7,5 @@ public sealed class CanvasServerRidFactory(bool loadsAssets = false) : IVisualRi
 {
     public bool LoadsAssets => loadsAssets;
 
-    public Rid CreateCanvasItem() => CanvasServer.Current.CreateItem();
+    public Handle CreateCanvasItem() => CanvasServer.Current.CreateItem();
 }

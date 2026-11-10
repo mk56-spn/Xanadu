@@ -1,9 +1,7 @@
 using Box2DSharp.Dynamics;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Tests.Physics;
 
@@ -29,7 +27,7 @@ public sealed class OneWayBlockTests
         return top;
     }
 
-    private static Body Player(Box2DPhysicsWorld physics, Vector2 center, NVector2 velocity)
+    private static Body Player(Box2DPhysicsWorld physics, Vector2 center, Vector2 velocity)
     {
         Body body = physics.CreateDynamicBox(center, PlayerSize);
         body.SetLinearVelocity(velocity);
@@ -45,7 +43,7 @@ public sealed class OneWayBlockTests
     {
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(BlockCenter, BlockSize, oneWay: BlockOneWay.Up);
-        Body player = Player(physics, new Vector2(500, 300), NVector2.Zero);
+        Body player = Player(physics, new Vector2(500, 300), Vector2.Zero);
 
         Run(physics, player, 1f);
 
@@ -57,7 +55,7 @@ public sealed class OneWayBlockTests
     {
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(BlockCenter, BlockSize, oneWay: BlockOneWay.Up);
-        Body player = Player(physics, new Vector2(500, 200), new NVector2(0, 100f));
+        Body player = Player(physics, new Vector2(500, 200), new Vector2(0, 100f));
 
         Run(physics, player, 1f);
 
@@ -69,7 +67,7 @@ public sealed class OneWayBlockTests
     {
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(BlockCenter, BlockSize, oneWay: BlockOneWay.Up);
-        Body player = Player(physics, new Vector2(500, 620), new NVector2(0, -11f));
+        Body player = Player(physics, new Vector2(500, 620), new Vector2(0, -11f));
 
         float top = Run(physics, player, 3f);
 
@@ -82,7 +80,7 @@ public sealed class OneWayBlockTests
     {
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(BlockCenter, BlockSize);
-        Body player = Player(physics, new Vector2(500, 620), new NVector2(0, -11f));
+        Body player = Player(physics, new Vector2(500, 620), new Vector2(0, -11f));
 
         float top = Run(physics, player, 0.5f);
 
@@ -93,9 +91,9 @@ public sealed class OneWayBlockTests
     public void PlayerWalksThroughTheSideOfAnUpBlock()
     {
         using var physics = new Box2DPhysicsWorld();
-        physics.World.Gravity = NVector2.Zero;
+        physics.World.Gravity = Vector2.Zero;
         physics.CreateStaticBox(BlockCenter, BlockSize, oneWay: BlockOneWay.Up);
-        Body player = Player(physics, new Vector2(200, 500), new NVector2(10f, 0));
+        Body player = Player(physics, new Vector2(200, 500), new Vector2(10f, 0));
 
         Run(physics, player, 1f);
 
@@ -107,7 +105,7 @@ public sealed class OneWayBlockTests
     {
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(BlockCenter, BlockSize, oneWay: BlockOneWay.Up);
-        Body player = Player(physics, new Vector2(500, 500), NVector2.Zero);
+        Body player = Player(physics, new Vector2(500, 500), Vector2.Zero);
 
         Run(physics, player, 0.5f);
 
@@ -131,10 +129,10 @@ public sealed class OneWayBlockTests
     private static float Travel(BlockOneWay side, Vector2 direction)
     {
         using var physics = new Box2DPhysicsWorld();
-        physics.World.Gravity = NVector2.Zero;
+        physics.World.Gravity = Vector2.Zero;
         physics.CreateStaticBox(BlockCenter, new Vector2(100, 100), oneWay: side);
         Body player = physics.CreateDynamicBox(BlockCenter - direction * 200f, new Vector2(40, 40));
-        player.SetLinearVelocity(new NVector2(direction.X, direction.Y) * 8f);
+        player.SetLinearVelocity(new Vector2(direction.X, direction.Y) * 8f);
 
         Run(physics, player, 1f);
 

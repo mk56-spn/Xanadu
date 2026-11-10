@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Systems.Shaders;
 using Texture = MoonWorks.Graphics.Texture;
 
@@ -21,9 +20,9 @@ internal sealed class HostPassSurfaces(CanvasTree tree, CanvasRenderer renderer)
     {
         if (!_surfaces.TryGetValue(layer, out Surface? surface))
         {
-            Rid canvas = tree.CreateItem();
+            Handle canvas = tree.CreateItem();
             Texture target = renderer.CreateTarget($"layer {layer}");
-            Rid texture = tree.MintRid();
+            Handle texture = tree.MintRid();
             renderer.Textures[texture.Id] = target;
             renderer.AddOffscreen(tree.Item(canvas)!, target);
             surface = new Surface(canvas, texture, target);
@@ -57,10 +56,10 @@ internal sealed class HostPassSurfaces(CanvasTree tree, CanvasRenderer renderer)
         surface.Target.Dispose();
     }
 
-    private sealed class Surface(Rid canvas, Rid texture, Texture target) : IPassSurface
+    private sealed class Surface(Handle canvas, Handle texture, Texture target) : IPassSurface
     {
-        public Rid Canvas { get; } = canvas;
-        public Rid TextureId { get; } = texture;
+        public Handle Canvas { get; } = canvas;
+        public Handle TextureId { get; } = texture;
         public Texture Target { get; } = target;
 
         // The surface is always frame-sized: content keeps its coordinates.

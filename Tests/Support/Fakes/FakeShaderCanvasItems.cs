@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Rendering;
 using Xanadu.Systems.Shaders;
 
@@ -13,7 +12,7 @@ public sealed class FakeShaderCanvasItems : IShaderCanvasItems
 {
     private ulong _next = 1_000;
 
-    public Rid CreateItem(Rid parent) => TestRid.Make(_next++);
+    public Handle CreateItem(Handle parent) => TestRid.Make(_next++);
 
-    public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend) { }
+    public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend) { }
 }

@@ -19,8 +19,8 @@ public sealed class DashTrailSystemTests : EcsSystemTest
     {
         Entity trail = Store.CreateEntity();
         trail.AddComponent(new DashTrail(
-            new Godot.Vector2(0, 0),
-            new Godot.Vector2(100, 100),
+            new Vector2(0, 0),
+            new Vector2(100, 100),
             lifetime: 0.1f));
 
         Frame(1, 0.05f);

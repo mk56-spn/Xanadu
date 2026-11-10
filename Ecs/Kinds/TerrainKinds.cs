@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
@@ -53,7 +52,7 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Block;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawBlock(canvas, rid, entity, view, selected, playing);
 
     protected override int Compare(in Block a, in Block b)
@@ -143,7 +142,7 @@ public sealed class SpikeItemKind : ItemKind<Spike, SpikeDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Spike;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawSpike(canvas, rid, entity, view, selected);
 
     protected override int Compare(in Spike a, in Spike b)
@@ -226,7 +225,7 @@ public sealed class FrictionBarItemKind : ItemKind<FrictionBar, FrictionBarDocum
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.FrictionBar;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawFrictionBar(canvas, rid, entity, view, selected);
 
     protected override int Compare(in FrictionBar a, in FrictionBar b)

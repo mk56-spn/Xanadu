@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Systems.Input;
 
 namespace Xanadu.Tests.VisualTests;

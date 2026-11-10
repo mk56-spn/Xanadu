@@ -1,12 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs.Ui;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -59,9 +57,9 @@ public sealed class GroundModeSystem(
             }
 
             bool held = entity.TryGetComponent(out MoveKey key) && keyboard.IsPressed(keybinds.Get(key.Key));
-            NVector2 velocity = body.Body.LinearVelocity;
+            Vector2 velocity = body.Body.LinearVelocity;
             if (!held && velocity.X != 0f)
-                body.Body.SetLinearVelocity(new NVector2(0f, velocity.Y));
+                body.Body.SetLinearVelocity(new Vector2(0f, velocity.Y));
         });
     }
 }

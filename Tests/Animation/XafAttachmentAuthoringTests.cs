@@ -10,8 +10,8 @@ public sealed class XafAttachmentAuthoringTests
     private static XafPackage Package()
     {
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        XafRigAuthoring.AddBone(package, 0, "arm", new Godot.Vector2(0, -50));
-        XafRigAuthoring.AddBone(package, 1, "forearm", new Godot.Vector2(0, 30));
+        XafRigAuthoring.AddBone(package, 0, "arm", new Vector2(0, -50));
+        XafRigAuthoring.AddBone(package, 1, "forearm", new Vector2(0, 30));
         package.Attachments.Add(new XafAttachment { SvgPath = "res://a.svg", Group = "arm", BoneId = "arm" });
         return package;
     }

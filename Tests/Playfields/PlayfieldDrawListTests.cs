@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -182,28 +181,28 @@ public sealed class PlayfieldDrawListTests
     {
         public List<string> Log { get; } = new();
 
-        public void BeginLayer(int layer, Rid? target = null) => Log.Add("layer " + layer);
+        public void BeginLayer(int layer, Handle? target = null) => Log.Add("layer " + layer);
 
         public void EndLayers() => Log.Add("end");
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) { }
+        public void Clear(Handle canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
             if (Log.Count == 0 || Log[^1] != "rect")
                 Log.Add("rect");
         }
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
     }
 }

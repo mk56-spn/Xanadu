@@ -1,10 +1,8 @@
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Tests.Physics;
 
@@ -66,9 +64,9 @@ public sealed class PlayerTuckTests
     [Test]
     public void TheOneWayCheckUsesTheRaisedBox()
     {
-        var surface = new OneWaySurface(BlockOneWay.Up, new NVector2(2f, 0.5f));
+        var surface = new OneWaySurface(BlockOneWay.Up, new Vector2(2f, 0.5f));
         // Raised bottom at 4.5 m: the full box would reach 4.9 m, inside the block whose top is 4.5 m.
-        var mover = new OneWayMover(new NVector2(0.3f, 0.7f), new NVector2(0, -0.2f));
-        Assert.That(OneWayContacts.Collides(surface, new NVector2(0, 5f), mover, new NVector2(0, 4f)), Is.True);
+        var mover = new OneWayMover(new Vector2(0.3f, 0.7f), new Vector2(0, -0.2f));
+        Assert.That(OneWayContacts.Collides(surface, new Vector2(0, 5f), mover, new Vector2(0, 4f)), Is.True);
     }
 }

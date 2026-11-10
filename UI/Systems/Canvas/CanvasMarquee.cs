@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Canvas;
@@ -10,13 +9,13 @@ public static class CanvasMarquee
     public static readonly Color BorderColor = new(0.45f, 0.7f, 1f, 0.9f);
 
     /// <summary>Draws the box while it is active.</summary>
-    public static void Draw(IRectCanvas canvas, Rid rid, in UiMarqueeBox box)
+    public static void Draw(IRectCanvas canvas, Handle rid, in UiMarqueeBox box)
     {
         if (box.Active)
             Draw(canvas, rid, box.Bounds);
     }
 
-    public static void Draw(IRectCanvas canvas, Rid rid, Rect2 bounds)
+    public static void Draw(IRectCanvas canvas, Handle rid, Rect2 bounds)
     {
         canvas.DrawRect(rid, bounds, FillColor);
 

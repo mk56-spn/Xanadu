@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Levels;
@@ -157,28 +156,28 @@ public sealed class PlayfieldShaderRoutingTests
             Blends.Add(blend);
         }
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) { }
+        public void Clear(Handle canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Mark();
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Mark();
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => Mark();
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Mark();
 
-        public void DrawPolyline(Rid canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
             Mark();
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => Mark();
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Mark();
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => Mark();
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Mark();
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) => Mark();
+        public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) => Mark();
 
         private void Mark()
         {

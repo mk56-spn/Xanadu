@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Items;
 using Xanadu.Levels;
 using Xanadu.Systems.Canvas;
@@ -148,7 +147,7 @@ public sealed class MineItemKind : ItemKind<Mine, MineDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Mine;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawMine(canvas, rid, entity, view, frame.Playhead);
 
     protected override int Compare(in Mine a, in Mine b) =>
@@ -206,7 +205,7 @@ public sealed class StartPointItemKind : ItemKind<StartPoint, StartPointDocument
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.StartPoint;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawStartPoint(canvas, rid, entity, view, selected);
 
     /// <summary>A start point keeps its groups on itself too, so a play launch can offset the spawn.</summary>

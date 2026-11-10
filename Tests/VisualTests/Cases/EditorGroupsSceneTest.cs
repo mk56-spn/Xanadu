@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Ecs;
 using Xanadu.Rendering;

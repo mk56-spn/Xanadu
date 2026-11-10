@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -21,7 +20,7 @@ public static partial class PlayfieldRenderer
     private const float DesignRadius = 36f;
 
     /// <summary>A keynote: a filled ring around a dark core.</summary>
-    private static void DrawHitShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color)
+    private static void DrawHitShape(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         DrawRing(canvas, rid, center, radius, color, k);
@@ -30,7 +29,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>A neutral action note: a hollow ring around a dark core, so it reads as having no colour of its own.</summary>
-    private static void DrawNeutralShape(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color)
+    private static void DrawNeutralShape(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         canvas.DrawCircleOutline(rid, center, radius - 2f * k, color, 6f * k);
@@ -42,7 +41,7 @@ public static partial class PlayfieldRenderer
     /// A Contact barrier: a ring with one row of pips per bar it asks of, each
     /// in its bar's colour, one pip per point of cost.
     /// </summary>
-    private static void DrawBarrierShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
+    private static void DrawBarrierShape(IRectCanvas canvas, Handle rid, Note note, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         canvas.DrawCircle(rid, center, radius, Tinted(NoteCoreColor, color.A));
@@ -70,7 +69,7 @@ public static partial class PlayfieldRenderer
     /// A momentum note: the frame around a dark hexagon, with one pip per step
     /// of strength. It shows no way: the player picks it.
     /// </summary>
-    private static void DrawMomentumShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
+    private static void DrawMomentumShape(IRectCanvas canvas, Handle rid, Note note, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         Color edge = Tinted(NoteEdgeColor, color.A);
@@ -92,7 +91,7 @@ public static partial class PlayfieldRenderer
     /// A dash note: a hollow frame with four triangles pointing in, where the
     /// player vanishes, and one pip per dash length.
     /// </summary>
-    private static void DrawDashShape(IRectCanvas canvas, Rid rid, Note note, Vector2 center, float radius, Color color)
+    private static void DrawDashShape(IRectCanvas canvas, Handle rid, Note note, Vector2 center, float radius, Color color)
     {
         float k = radius / DesignRadius;
         if (note.Diagonal)
@@ -115,7 +114,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>A row of small dots, one per step of strength, centred under <paramref name="center"/>.</summary>
-    private static void DrawPips(IRectCanvas canvas, Rid rid, Vector2 center, float k, int count, Color color)
+    private static void DrawPips(IRectCanvas canvas, Handle rid, Vector2 center, float k, int count, Color color)
     {
         float gap = 9f * k;
         float start = -(count - 1) * gap / 2;
@@ -138,7 +137,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>The filled frame a solid note sits in: a ring, or a rhombus for a diagonal note.</summary>
-    private static void DrawFrame(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color, float k, bool diagonal)
+    private static void DrawFrame(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color, float k, bool diagonal)
     {
         if (!diagonal)
         {
@@ -152,7 +151,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>The filled ring every solid note sits in.</summary>
-    private static void DrawRing(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color, float k)
+    private static void DrawRing(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color, float k)
     {
         canvas.DrawCircle(rid, center, radius, color);
         canvas.DrawCircleOutline(rid, center, radius, Tinted(NoteEdgeColor, color.A), 4f * k);

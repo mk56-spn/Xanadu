@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -47,7 +46,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         });
     }
 
-    private void DrawWheel(UiWheel wheel, Rectangle rect, Rid canvas)
+    private void DrawWheel(UiWheel wheel, Rectangle rect, Handle canvas)
     {
         float radius = Mathf.Min(rect.Bounds.Size.X, rect.Bounds.Size.Y) / 2;
         if (radius <= 1 || wheel.Labels is not { Length: > 0 })
@@ -88,7 +87,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
     }
 
     private void DrawWedge(
-        Rid canvas,
+        Handle canvas,
         float radius,
         float step,
         int index,
@@ -120,7 +119,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
     }
 
     private void DrawWedgeLabel(
-        Rid canvas,
+        Handle canvas,
         UiWheel wheel,
         float radius,
         float step,
@@ -151,7 +150,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
             label.Length <= 2 ? 16 : 12);
     }
 
-    private void DrawHubLabel(Rid canvas, UiWheel wheel, float hub)
+    private void DrawHubLabel(Handle canvas, UiWheel wheel, float hub)
     {
         if (wheel.Selected < 0 ||
             wheel.Selected >= wheel.Labels.Length)

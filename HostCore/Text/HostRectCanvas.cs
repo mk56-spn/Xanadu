@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
 using Xanadu.Systems.Canvas;
@@ -24,38 +23,38 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     private readonly List<HostText.Placed> _placed = new();
     private HostShapeGlow? _shapeGlow;
 
-    public void DrawShapeGlow(Rid canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow) =>
+    public void DrawShapeGlow(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow) =>
         (_shapeGlow ??= new HostShapeGlow(Server)).Draw(canvas, points, closed, filled, strokeWidth, glow);
 
-    public override void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawText(Handle canvas, Rect2 bounds, string text, Color color) =>
         Draw(canvas, bounds, text, color, FontSize, TextAlign.Center, FontKind.Regular);
 
-    public override void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
         Draw(canvas, bounds, text, color, FontSize, TextAlign.Left, FontKind.Regular);
 
-    public override void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public override void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) =>
         Draw(canvas, bounds, text, color, FontSize, TextAlign.Right, FontKind.Regular);
 
-    public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         Draw(canvas, bounds, text, color, fontSize, TextAlign.Center, FontKind.Regular);
 
-    public void DrawTextStyledLeft(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyledLeft(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         Draw(canvas, bounds, text, color, fontSize, TextAlign.Left, FontKind.Regular);
 
-    public void DrawTextStyledRight(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyledRight(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         Draw(canvas, bounds, text, color, fontSize, TextAlign.Right, FontKind.Regular);
 
-    public void DrawTextWeighted(Rid canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold) =>
+    public void DrawTextWeighted(Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold) =>
         Draw(canvas, bounds, text, color, fontSize, align, bold ? FontKind.Bold : FontKind.Regular);
 
-    public void DrawTextMono(Rid canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align) =>
+    public void DrawTextMono(Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align) =>
         Draw(canvas, bounds, text, color, fontSize, align, FontKind.Mono);
 
-    public void DrawTextOutline(Rid canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold, int size) =>
+    public void DrawTextOutline(Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold, int size) =>
         Draw(canvas, bounds, text, color, fontSize, align, bold ? FontKind.Bold : FontKind.Regular, outline: size);
 
     public void DrawTextGlow(
-        Rid canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold,
+        Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold,
         TextGlow glow, TextOutline? outline = null)
     {
         if (string.IsNullOrEmpty(text))
@@ -70,7 +69,7 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
         Emit(canvas, text, kind, fontSize, origin, color);
     }
 
-    public void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize)
+    public void DrawTextTurned(Handle canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize)
     {
         if (degrees == 0f)
         {
@@ -86,7 +85,7 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     }
 
     /// <summary>Reads bottom to top, as the Godot canvas drew it: turned a quarter anticlockwise from the bottom-left corner.</summary>
-    public void DrawTextVertical(Rid canvas, Rect2 bounds, string text, Color color, int fontSize)
+    public void DrawTextVertical(Handle canvas, Rect2 bounds, string text, Color color, int fontSize)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -97,7 +96,7 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     }
 
     private void Draw(
-        Rid canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, FontKind kind, float outline = 0)
+        Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, FontKind kind, float outline = 0)
     {
         if (string.IsNullOrEmpty(text))
             return;
@@ -121,7 +120,7 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     }
 
     private void Emit(
-        Rid canvas, string s, FontKind kind, int fontSize, Vector2 origin, Color color,
+        Handle canvas, string s, FontKind kind, int fontSize, Vector2 origin, Color color,
         float outline = 0, float glowRadius = 0, float glowIntensity = 1)
     {
         text.Place(s, kind, fontSize, origin, _placed, outline, glowRadius, glowIntensity);

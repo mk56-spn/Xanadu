@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -14,7 +13,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// fade drawn as its weight curve, and a playhead. Over it, the blend on
 /// screen right now, as each clip's share of the pose.
 /// </summary>
-public sealed class AnimatorFlowOverlay(IRectCanvas canvas, Rid target)
+public sealed class AnimatorFlowOverlay(IRectCanvas canvas, Handle target)
 {
     public const float Height = 52f;
     private const float Inset = 16f;

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 #nullable enable
 
-namespace Godot
+namespace Xanadu.Maths
 {
     /// <summary>
     /// 2×3 matrix (2 rows, 3 columns) used for 2D linear transformations.
@@ -323,14 +323,16 @@ namespace Godot
             return copy;
         }
 
+        // Straight field reads: Godot's this[column, row] form goes through two indexer
+        // switches per term, and every canvas vertex comes through here.
         private readonly real_t Tdotx(Vector2 with)
         {
-            return (this[0, 0] * with[0]) + (this[1, 0] * with[1]);
+            return (X.X * with.X) + (Y.X * with.Y);
         }
 
         private readonly real_t Tdoty(Vector2 with)
         {
-            return (this[0, 1] * with[0]) + (this[1, 1] * with[1]);
+            return (X.Y * with.X) + (Y.Y * with.Y);
         }
 
         /// <summary>

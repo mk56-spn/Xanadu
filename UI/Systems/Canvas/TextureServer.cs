@@ -1,5 +1,4 @@
 using System;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -13,13 +12,13 @@ public interface ITextureServer
     /// A texture from straight-alpha RGBA8 <paramref name="pixels"/>, rows top
     /// first; with <paramref name="mipmaps"/> it filters smoothly when drawn small.
     /// </summary>
-    Rid Create(int width, int height, byte[] pixels, bool mipmaps);
+    Handle Create(int width, int height, byte[] pixels, bool mipmaps);
 
     /// <summary>An image file (a <c>res://</c> path), loaded once and kept; the default id when it can't be read.</summary>
-    Rid Load(string path);
+    Handle Load(string path);
 
     /// <summary>Frees a texture made by <see cref="Create"/>.</summary>
-    void Free(Rid texture);
+    void Free(Handle texture);
 }
 
 /// <summary>The running host's <see cref="ITextureServer"/>; one that keeps nothing until a host calls <see cref="Use"/>.</summary>
@@ -33,9 +32,9 @@ public static class TextureServer
 /// <summary>Makes no textures: every id is the default one, which draws as plain colour.</summary>
 public sealed class HeadlessTextureServer : ITextureServer
 {
-    public Rid Create(int width, int height, byte[] pixels, bool mipmaps) => default;
+    public Handle Create(int width, int height, byte[] pixels, bool mipmaps) => default;
 
-    public Rid Load(string path) => default;
+    public Handle Load(string path) => default;
 
-    public void Free(Rid texture) { }
+    public void Free(Handle texture) { }
 }

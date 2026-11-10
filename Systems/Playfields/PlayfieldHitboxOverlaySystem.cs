@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
@@ -17,13 +16,13 @@ public sealed class PlayfieldHitboxOverlaySystem : QuerySystem<PlayfieldView>
 {
     private readonly EntityStore _entities;
     private readonly IRectCanvas _canvas;
-    private readonly Rid _overlay;
+    private readonly Handle _overlay;
     private readonly OverlayLatch _latch;
 
     public PlayfieldHitboxOverlaySystem(
         EntityStore entities,
         IRectCanvas canvas,
-        Rid overlay,
+        Handle overlay,
         IOverlayToggleSource toggle)
     {
         _entities = entities;

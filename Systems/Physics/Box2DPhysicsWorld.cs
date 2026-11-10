@@ -2,9 +2,7 @@ using System;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using Box2DSharp.Dynamics.Contacts;
-using Godot;
 using Xanadu.Ecs;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Systems.Physics;
 
@@ -45,7 +43,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
 
     public Box2DPhysicsWorld()
     {
-        _world = new World(new NVector2(0f, DefaultGravity));
+        _world = new World(new Vector2(0f, DefaultGravity));
         _world.SetContactListener(new OneWayContacts());
     }
 
@@ -111,7 +109,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
     {
         float width = sizePixels.X / PixelsPerMeter;
         float height = (sizePixels.Y - liftPixels) / PixelsPerMeter;
-        var offset = new NVector2(0f, -liftPixels / 2 / PixelsPerMeter);
+        var offset = new Vector2(0f, -liftPixels / 2 / PixelsPerMeter);
 
         var shape = new PolygonShape();
         shape.SetAsBox(width / 2, height / 2, offset, 0f);
@@ -122,7 +120,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
             Density = mass / MathF.Max(0.0001f, width * height),
             Friction = friction,
             Restitution = 0f,
-            UserData = new OneWayMover(new NVector2(width / 2, height / 2), offset),
+            UserData = new OneWayMover(new Vector2(width / 2, height / 2), offset),
         };
 
         body.CreateFixture(fixtureDef);
@@ -158,7 +156,7 @@ public sealed class Box2DPhysicsWorld : IDisposable
                 ? null
                 : new OneWaySurface(
                     oneWay,
-                    new NVector2(sizePixels.X / PixelsPerMeter / 2, sizePixels.Y / PixelsPerMeter / 2)),
+                    new Vector2(sizePixels.X / PixelsPerMeter / 2, sizePixels.Y / PixelsPerMeter / 2)),
         };
 
         body.CreateFixture(fixtureDef);
@@ -192,10 +190,10 @@ public sealed class Box2DPhysicsWorld : IDisposable
         }
     }
 
-    public static NVector2 ToPhysics(Vector2 screenPosition) =>
+    public static Vector2 ToPhysics(Vector2 screenPosition) =>
         new(screenPosition.X / PixelsPerMeter, screenPosition.Y / PixelsPerMeter);
 
-    public static Vector2 ToScreen(NVector2 physicsPosition) =>
+    public static Vector2 ToScreen(Vector2 physicsPosition) =>
         new(physicsPosition.X * PixelsPerMeter, physicsPosition.Y * PixelsPerMeter);
 
     // Box2DSharp keeps a body's gravity scale internal once the body exists.

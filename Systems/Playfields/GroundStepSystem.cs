@@ -3,7 +3,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -54,11 +53,11 @@ public sealed class GroundStepSystem : QuerySystem<GroundStep, PhysicsBody, Posi
             float delta = wanted - step.Moved;
             step.Moved = wanted;
 
-            NVector2 at = body.Body.GetPosition();
+            Vector2 at = body.Body.GetPosition();
             body.Body.SetTransform(
-                new NVector2(at.X + delta / Box2DPhysicsWorld.PixelsPerMeter, at.Y),
+                new Vector2(at.X + delta / Box2DPhysicsWorld.PixelsPerMeter, at.Y),
                 body.Body.GetAngle());
-            body.Body.SetLinearVelocity(new NVector2(0f, body.Body.LinearVelocity.Y));
+            body.Body.SetLinearVelocity(new Vector2(0f, body.Body.LinearVelocity.Y));
             position.Value = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
 
             if (t >= 1f && step.Moved == step.Target)
@@ -90,7 +89,7 @@ public sealed class GroundStepSystem : QuerySystem<GroundStep, PhysicsBody, Posi
             return;
         }
 
-        Godot.Vector2 centre = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
+        Vector2 centre = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
         if (!PlayerGround.TryStanding(player, view, playfield, centre, out _))
             return;
 

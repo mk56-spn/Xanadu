@@ -96,7 +96,7 @@ public struct EditorDialogs() : IComponent
     public Entity ColorHint;
     public Entity ColorPicker;
     public EditorColorTarget ColorTarget;
-    public Godot.Color ColorShown;
+    public Color ColorShown;
 
     /// <summary>The dialog of a kind, or null when the editor has none.</summary>
     public static Entity Find(EntityStore store, EditorDialogKind kind)

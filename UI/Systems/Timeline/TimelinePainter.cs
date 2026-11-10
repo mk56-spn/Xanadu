@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Systems.Canvas;
 
 namespace Xanadu.Timeline;
@@ -34,7 +33,7 @@ public readonly record struct TimelineRulerLook(
 /// and eased spans. Each tool still draws its own rows, labels and extras
 /// around these; all of them place through a <see cref="TimelineAxis"/>.
 /// </summary>
-public readonly struct TimelinePainter(IRectCanvas canvas, Rid target)
+public readonly struct TimelinePainter(IRectCanvas canvas, Handle target)
 {
     /// <summary>The key marker's size, so keys and pins look the same in every timeline.</summary>
     public const float KeyRadius = 6f;

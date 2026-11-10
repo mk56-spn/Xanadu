@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Levels;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
@@ -118,7 +117,7 @@ public abstract class ItemKind
     public abstract void AddDrawEntries(EntityStore entities, List<PlayfieldDrawEntry> into);
 
     /// <summary>Draws one item, in editor and play.</summary>
-    public virtual void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) { }
+    public virtual void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) { }
 
     // --- copies -------------------------------------------------------------
 

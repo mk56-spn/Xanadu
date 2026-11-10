@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 

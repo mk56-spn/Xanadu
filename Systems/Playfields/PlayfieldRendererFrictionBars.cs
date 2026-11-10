@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -13,7 +12,7 @@ public static partial class PlayfieldRenderer
     public static readonly Color FrictionBarColor = Palette.Warning;
 
     /// <summary>One friction bar as a plain orange bar; a selected one gets an accent edge.</summary>
-    public static void DrawFrictionBar(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, bool selected)
+    public static void DrawFrictionBar(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, bool selected)
     {
         FrictionBar bar = entity.GetComponent<FrictionBar>();
         if (bar.Height <= 0)

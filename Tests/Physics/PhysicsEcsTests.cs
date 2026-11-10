@@ -1,11 +1,9 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Physics;
@@ -27,7 +25,7 @@ public sealed class PhysicsEcsTests
             new Position(new Vector2(200, 300)),
             new Character(1f),
             new PhysicsBody(body),
-            new Momentum(new NVector2(2f, 0f)),
+            new Momentum(new Vector2(2f, 0f)),
             Tags.Get<ApplyMomentum>());
 
         root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));

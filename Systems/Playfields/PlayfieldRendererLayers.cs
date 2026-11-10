@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
@@ -47,7 +46,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawLayers(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         in PlayfieldItemFrame frame,
         Action? drawWedge)
@@ -150,7 +149,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     private static void DrawBufferedGroup(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         int group,
         int first,
@@ -216,7 +215,7 @@ public static partial class PlayfieldRenderer
         if (frame.Layers is not null && frame.Layers.TryGetValue(layer, out LevelLayer? settings))
             pass = settings;
 
-        Rid? target = null;
+        Handle? target = null;
         if (pass?.Pass == LayerPassKind.SelfContained && frame.Passes is not null)
         {
             surface = frame.Passes.For(layer, frame.View.ScreenSize);
@@ -237,7 +236,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     private static void FinishPassLayer(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         in PlayfieldItemFrame frame,
         LevelLayer? pass,
         IPassSurface? surface)
@@ -260,10 +259,10 @@ public static partial class PlayfieldRenderer
     /// <summary>The full-screen pass quad, with the layer's keyed instance values written.</summary>
     private static void DrawLayerPass(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         in PlayfieldItemFrame frame,
         LevelLayer pass,
-        Rid texture,
+        Handle texture,
         bool selfContained)
     {
         if (!selfContained && pass.PassShader == 0)
@@ -296,7 +295,7 @@ public static partial class PlayfieldRenderer
 
     private static void DrawEntry(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         PlayfieldDrawEntry entry,
         in PlayfieldItemFrame frame,

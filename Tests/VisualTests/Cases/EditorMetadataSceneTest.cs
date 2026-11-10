@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Position = Xanadu.Ecs.Position;
 using Xanadu.Editor;

@@ -33,10 +33,10 @@ public static class PlacementCollision
     }
 
     /// <summary>Whether a block may go in <paramref name="box"/>: always, unless collision is on and one is there.</summary>
-    public static bool BlockFits(EntityStore store, Godot.Rect2 box) =>
+    public static bool BlockFits(EntityStore store, Rect2 box) =>
         !IsOn(store) || GridPlacement.IsBlockSpaceFree(store, box);
 
     /// <inheritdoc cref="BlockFits"/>
-    public static bool SpikeFits(EntityStore store, Godot.Rect2 box) =>
+    public static bool SpikeFits(EntityStore store, Rect2 box) =>
         !IsOn(store) || GridPlacement.IsSpikeSpaceFree(store, box);
 }

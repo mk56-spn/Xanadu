@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using Godot;
 using Xanadu.Particles;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Shaders;
@@ -11,7 +10,7 @@ namespace Xanadu.Systems.Particles;
 public interface IParticleFlow : IDisposable
 {
     /// <summary>The canvas item the particles draw in, for a host that orders it among its own.</summary>
-    Rid Item { get; }
+    Handle Item { get; }
 
     /// <summary>Places the emitter by a whole transform and tints what it throws from now on.</summary>
     void Place(Transform2D transform, Color tint, Vector2 area = default, Vector2 heading = default);
@@ -38,7 +37,7 @@ public sealed class ParticleStream : IParticleFlow
     private bool _on;
     private float _owed;
 
-    public ParticleStream(IParticleServer server, Rid parent, XpfParticle effect)
+    public ParticleStream(IParticleServer server, Handle parent, XpfParticle effect)
     {
         _server = server;
         _effect = effect;
@@ -46,7 +45,7 @@ public sealed class ParticleStream : IParticleFlow
         CanvasServer.Current.SetParent(Item, parent);
     }
 
-    public Rid Item { get; }
+    public Handle Item { get; }
 
     public void Place(Transform2D transform, Color tint, Vector2 area = default, Vector2 heading = default)
     {

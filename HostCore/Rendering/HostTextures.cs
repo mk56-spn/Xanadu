@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using Godot;
 using MoonWorks.Graphics;
 using Xanadu.Storage;
 using Xanadu.Systems.Canvas;
@@ -17,26 +16,26 @@ namespace Xanadu.Host.Rendering;
 /// </summary>
 internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, CanvasRenderer renderer) : ITextureServer
 {
-    private readonly Dictionary<string, Rid> _loaded = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Handle> _loaded = new(StringComparer.Ordinal);
 
-    public Rid Create(int width, int height, byte[] pixels, bool mipmaps)
+    public Handle Create(int width, int height, byte[] pixels, bool mipmaps)
     {
         if (width <= 0 || height <= 0 || pixels.Length < width * height * 4)
             return default;
 
-        Rid rid = tree.MintRid();
+        Handle rid = tree.MintRid();
         renderer.Textures[rid.Id] = Upload(width, height, pixels, mipmaps);
         return rid;
     }
 
-    public unsafe Rid Load(string path)
+    public unsafe Handle Load(string path)
     {
         if (path.Length == 0)
             return default;
-        if (_loaded.TryGetValue(path, out Rid known))
+        if (_loaded.TryGetValue(path, out Handle known))
             return known;
 
-        Rid rid = default;
+        Handle rid = default;
         string file = GamePaths.Globalize(path);
         if (File.Exists(file) && file.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
         {
@@ -69,7 +68,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
         return rid;
     }
 
-    public void Free(Rid texture)
+    public void Free(Handle texture)
     {
         if (renderer.Textures.Remove(texture.Id, out Texture? gpu))
             gpu.Dispose();

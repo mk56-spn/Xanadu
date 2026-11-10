@@ -1,5 +1,4 @@
 using System;
-using Godot;
 
 namespace Xanadu.Particles;
 
@@ -211,5 +210,5 @@ public interface IParticleServer
     /// particles drawn by canvas item <paramref name="item"/>; note glyphs
     /// show cells of <paramref name="strip"/>, which has <paramref name="cells"/> cells.
     /// </summary>
-    void Emit(Rid item, XpfParticle effect, ReadOnlySpan<ParticleSeed> seeds, Rid strip = default, int cells = 1);
+    void Emit(Handle item, XpfParticle effect, ReadOnlySpan<ParticleSeed> seeds, Handle strip = default, int cells = 1);
 }

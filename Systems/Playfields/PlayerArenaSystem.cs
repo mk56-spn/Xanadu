@@ -1,10 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -33,7 +31,7 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
                 playfield.Height * view.Scale);
 
             Vector2 half = player.Size / 2;
-            NVector2 physicsPosition = body.Body.GetPosition();
+            Vector2 physicsPosition = body.Body.GetPosition();
             Vector2 screen = Box2DPhysicsWorld.ToScreen(physicsPosition);
 
             if (screen.X < fieldTopLeft.X)
@@ -51,14 +49,14 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
                 body.Body.GetAngle());
 
             // Only motion into a limit stops there, so a launch can leave it.
-            NVector2 velocity = body.Body.LinearVelocity;
+            Vector2 velocity = body.Body.LinearVelocity;
             bool onFloor = screen.Y >= fieldTopLeft.Y + fieldSize.Y - half.Y - 0.5f &&
                            velocity.Y >= 0f;
             bool onCeiling = screen.Y <= fieldTopLeft.Y + half.Y + 0.5f &&
                              velocity.Y <= 0f;
             if (onFloor || onCeiling)
             {
-                body.Body.SetLinearVelocity(new NVector2(
+                body.Body.SetLinearVelocity(new Vector2(
                     onFloor && PlayerFriction.IsOn(entity) ? AfterFriction(velocity.X, delta) : velocity.X,
                     0f));
             }

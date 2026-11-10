@@ -1,12 +1,10 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Playfields;
@@ -36,7 +34,7 @@ public sealed class PlayerArenaFrictionTests
     private Body Player(float y, float speed)
     {
         Body body = _physics.CreateDynamicBox(new Vector2(500, y), new Vector2(30, 100));
-        body.SetLinearVelocity(new NVector2(speed, 0f));
+        body.SetLinearVelocity(new Vector2(speed, 0f));
         _store.CreateEntity(
             new Player(new Vector2(30, 100)),
             new Position(new Vector2(500, y)),
@@ -56,7 +54,7 @@ public sealed class PlayerArenaFrictionTests
     public void AnUpwardLaunchLeavesTheFloor()
     {
         Body body = Player(Floor, 0f);
-        body.SetLinearVelocity(new NVector2(3f, -10f));
+        body.SetLinearVelocity(new Vector2(3f, -10f));
 
         Run(1, 1f / 60f);
 
@@ -78,7 +76,7 @@ public sealed class PlayerArenaFrictionTests
     public void TheFloorStopsAFall()
     {
         Body body = Player(Floor, 0f);
-        body.SetLinearVelocity(new NVector2(0f, 10f));
+        body.SetLinearVelocity(new Vector2(0f, 10f));
 
         Run(1, 1f / 60f);
 
@@ -89,13 +87,13 @@ public sealed class PlayerArenaFrictionTests
     public void TheCeilingStopsARiseButLetsADownwardPushThrough()
     {
         Body body = Player(50f, 0f);
-        body.SetLinearVelocity(new NVector2(0f, -10f));
+        body.SetLinearVelocity(new Vector2(0f, -10f));
 
         Run(1, 1f / 60f);
 
         Assert.That(body.LinearVelocity.Y, Is.Zero);
 
-        body.SetLinearVelocity(new NVector2(0f, 10f));
+        body.SetLinearVelocity(new Vector2(0f, 10f));
 
         Run(1, 1f / 60f);
 
@@ -144,7 +142,7 @@ public sealed class PlayerArenaFrictionTests
         for (int i = 0; i < 120; i++)
             _physics.Step(Box2DPhysicsWorld.FixedTimeStep);
 
-        onBlock.SetLinearVelocity(new NVector2(5f, 0f));
+        onBlock.SetLinearVelocity(new Vector2(5f, 0f));
         for (int i = 0; i < 120; i++)
             _physics.Step(Box2DPhysicsWorld.FixedTimeStep);
 

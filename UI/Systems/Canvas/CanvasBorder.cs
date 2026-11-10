@@ -1,4 +1,3 @@
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -8,7 +7,7 @@ public static class CanvasBorder
     /// <summary>Draws a border of <paramref name="width"/> just inside <paramref name="bounds"/>; its sides do not overlap, so a see-through colour stays even at the corners.</summary>
     public static void DrawBorder(
         this IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Rect2 bounds,
         Color color,
         float width)

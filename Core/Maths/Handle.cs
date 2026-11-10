@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 #nullable enable
 
-namespace Godot
+namespace Xanadu.Maths
 {
     /// <summary>
     /// The RID type is used to access a low-level resource by its unique ID.
@@ -18,11 +18,11 @@ namespace Godot
     /// such as <see cref="Texture"/> or <see cref="Mesh"/>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct Rid : IEquatable<Rid>
+    public readonly struct Handle : IEquatable<Handle>
     {
         private readonly ulong _id; // Default is 0
 
-        public Rid(ulong id)
+        public Handle(ulong id)
         {
             _id = id;
         }
@@ -35,30 +35,30 @@ namespace Godot
         public ulong Id => _id;
 
         /// <summary>
-        /// Returns <see langword="true"/> if the <see cref="Rid"/> is not <c>0</c>.
+        /// Returns <see langword="true"/> if the <see cref="Handle"/> is not <c>0</c>.
         /// </summary>
         /// <returns>Whether or not the ID is valid.</returns>
         public bool IsValid => _id != 0;
 
         /// <summary>
-        /// Returns <see langword="true"/> if both <see cref="Rid"/>s are equal,
+        /// Returns <see langword="true"/> if both <see cref="Handle"/>s are equal,
         /// which means they both refer to the same low-level resource.
         /// </summary>
         /// <param name="left">The left RID.</param>
         /// <param name="right">The right RID.</param>
         /// <returns>Whether or not the RIDs are equal.</returns>
-        public static bool operator ==(Rid left, Rid right)
+        public static bool operator ==(Handle left, Handle right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Returns <see langword="true"/> if the <see cref="Rid"/>s are not equal.
+        /// Returns <see langword="true"/> if the <see cref="Handle"/>s are not equal.
         /// </summary>
         /// <param name="left">The left RID.</param>
         /// <param name="right">The right RID.</param>
         /// <returns>Whether or not the RIDs are equal.</returns>
-        public static bool operator !=(Rid left, Rid right)
+        public static bool operator !=(Handle left, Handle right)
         {
             return !left.Equals(right);
         }
@@ -70,7 +70,7 @@ namespace Godot
         /// <returns>Whether or not the color and the other object are equal.</returns>
         public override readonly bool Equals([NotNullWhen(true)] object? obj)
         {
-            return obj is Rid other && Equals(other);
+            return obj is Handle other && Equals(other);
         }
 
         /// <summary>
@@ -78,13 +78,13 @@ namespace Godot
         /// </summary>
         /// <param name="other">The other RID.</param>
         /// <returns>Whether or not the RIDs are equal.</returns>
-        public readonly bool Equals(Rid other)
+        public readonly bool Equals(Handle other)
         {
             return _id == other.Id;
         }
 
         /// <summary>
-        /// Serves as the hash function for <see cref="Rid"/>.
+        /// Serves as the hash function for <see cref="Handle"/>.
         /// </summary>
         /// <returns>A hash code for this RID.</returns>
         public override readonly int GetHashCode()
@@ -93,9 +93,9 @@ namespace Godot
         }
 
         /// <summary>
-        /// Converts this <see cref="Rid"/> to a string.
+        /// Converts this <see cref="Handle"/> to a string.
         /// </summary>
-        /// <returns>A string representation of this Rid.</returns>
-        public override readonly string ToString() => $"RID({Id.ToString(null, CultureInfo.InvariantCulture)})";
+        /// <returns>A string representation of this Handle.</returns>
+        public override readonly string ToString() => $"Handle({Id.ToString(null, CultureInfo.InvariantCulture)})";
     }
 }

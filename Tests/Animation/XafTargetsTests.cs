@@ -1,4 +1,3 @@
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Timeline;

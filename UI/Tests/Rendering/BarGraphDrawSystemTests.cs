@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -88,7 +87,7 @@ public sealed class BarGraphDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new UiBarGraph(anchor, count, barWidth, 50, Colors.White, Colors.Red),
             new Drawable(0),
-            new VisualRid(new Rid()));
+            new VisualRid(new Handle()));
 
     private sealed class RecordingCanvas : IRectCanvas
     {
@@ -96,27 +95,27 @@ public sealed class BarGraphDrawSystemTests : EcsSystemTest
 
         public List<Vector2[]> Polygons { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas)
+        public void Clear(Handle canvas)
         {
             Rects.Clear();
             Polygons.Clear();
         }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
             Polygons.Add(points.ToArray());
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
     }
 }

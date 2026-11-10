@@ -1,10 +1,8 @@
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Scenes;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.VisualTests;
@@ -72,7 +70,7 @@ public sealed class EditorPreviewPathSceneTest : SceneTest
     {
         var body = Play().GetComponent<PhysicsBody>().Body;
         if (++_launches % 25 == 1)
-            body.SetLinearVelocity(new NVector2(_launches < 100 ? 4f : -4f, -7f));
+            body.SetLinearVelocity(new Vector2(_launches < 100 ? 4f : -4f, -7f));
         return _launches > 150;
     }
 

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Audio;
@@ -111,33 +110,33 @@ public sealed class TimelineDrawSystemTests
 
         public List<LineCall> Lines { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas)
+        public void Clear(Handle canvas)
         {
             Rects.Clear();
             Texts.Clear();
             Lines.Clear();
         }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
 
         public void DrawLine(
-            Rid canvas,
+            Handle canvas,
             Vector2 from,
             Vector2 to,
             Color color,
             float width) =>
             Lines.Add(new LineCall(from, to, color, width));
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
             Texts.Add(text);
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct LineCall(
             Vector2 From,

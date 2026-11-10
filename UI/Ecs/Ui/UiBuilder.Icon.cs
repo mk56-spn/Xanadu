@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
@@ -15,17 +14,17 @@ public static class UiIcons
     /// Loads nothing until a running host installs <see cref="FromResources"/>:
     /// unit tests have no texture server to load into.
     /// </summary>
-    public static Func<string, Rid> Loader { get; set; } = _ => default;
+    public static Func<string, Handle> Loader { get; set; } = _ => default;
 
     /// <summary>The icon's texture id; an invalid one when there is no icon.</summary>
-    public static Rid Load(string? path) =>
+    public static Handle Load(string? path) =>
         string.IsNullOrEmpty(path) ? default : Loader(path);
 
     /// <summary>
     /// The running host's textures (<see cref="Xanadu.Systems.Canvas.TextureServer"/>);
     /// a missing file gives no icon rather than an error.
     /// </summary>
-    public static Rid FromResources(string path) =>
+    public static Handle FromResources(string path) =>
         System.IO.File.Exists(Xanadu.Storage.GamePaths.Globalize(path))
             ? Xanadu.Systems.Canvas.TextureServer.Current.Load(path)
             : default;
@@ -50,7 +49,7 @@ public sealed partial class UiBuilder
         int fontSize = UiTheme.FontSize)
     {
         Color normal = color ?? UiTheme.Button;
-        Rid texture = UiIcons.Load(iconPath);
+        Handle texture = UiIcons.Load(iconPath);
 
         Container(Vector2.Zero, size, color: normal, takesInput: true);
         Entity button = Current;

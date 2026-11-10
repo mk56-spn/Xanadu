@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
@@ -13,7 +12,7 @@ namespace Xanadu.Tests.Shaders;
 [TestFixture]
 public sealed class ShaderRoutingCanvasTests
 {
-    private static readonly Rid Root = TestRid.Make(1);
+    private static readonly Handle Root = TestRid.Make(1);
 
     private RecordingCanvas _inner = null!;
     private FakeItems _items = null!;
@@ -49,7 +48,7 @@ public sealed class ShaderRoutingCanvasTests
         Draw(slot: 1);
 
         // Plain, shaded, then plain again must land in items that stack in that order.
-        List<Rid> order = _inner.Draws.Select(d => d.Item).ToList();
+        List<Handle> order = _inner.Draws.Select(d => d.Item).ToList();
         Assert.That(order[0], Is.EqualTo(Root));
         Assert.That(order[1], Is.EqualTo(_items.Created[0]));
         Assert.That(order[2], Is.EqualTo(_items.Created[1]));
@@ -184,7 +183,7 @@ public sealed class ShaderRoutingCanvasTests
     {
         Draw(slot: 1);
         Draw(slot: 0);
-        List<Rid> firstFrame = _items.Created.ToList();
+        List<Handle> firstFrame = _items.Created.ToList();
 
         _inner.Calls.Clear();
         _canvas.Clear(Root);
@@ -207,7 +206,7 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void OtherCanvasItemsPassStraightThrough()
     {
-        Rid other = TestRid.Make(99);
+        Handle other = TestRid.Make(99);
         _canvas.SelectShader(3);
 
         _canvas.DrawRect(other, new Rect2(), Colors.Red);
@@ -241,7 +240,7 @@ public sealed class ShaderRoutingCanvasTests
         _canvas.BeginLayer(-1);
         _canvas.DrawRect(Root, new Rect2(), Colors.Red);
 
-        Assert.That(_canvas.TryGetLayerItem(-1, out Rid layer), Is.True);
+        Assert.That(_canvas.TryGetLayerItem(-1, out Handle layer), Is.True);
         Assert.That(_items.Parents[layer], Is.EqualTo(Root));
         Assert.That(_inner.Draws.Single().Item, Is.EqualTo(layer));
     }
@@ -254,8 +253,8 @@ public sealed class ShaderRoutingCanvasTests
         Draw(slot: 3);
         Draw(slot: 0);
 
-        _canvas.TryGetLayerItem(2, out Rid layer);
-        List<Rid> order = _inner.Draws.Select(d => d.Item).ToList();
+        _canvas.TryGetLayerItem(2, out Handle layer);
+        List<Handle> order = _inner.Draws.Select(d => d.Item).ToList();
         Assert.That(order[0], Is.EqualTo(layer));
         Assert.That(_items.Parents[order[1]], Is.EqualTo(layer));
         Assert.That(_items.Parents[order[2]], Is.EqualTo(layer));
@@ -273,10 +272,10 @@ public sealed class ShaderRoutingCanvasTests
         _canvas.EndLayers();
         Draw(slot: 1);                  // same slot as the first run, but over the layers
 
-        _canvas.TryGetLayerItem(-1, out Rid back);
-        _canvas.TryGetLayerItem(1, out Rid front);
-        Rid under = _inner.Draws[0].Item;
-        Rid over = _inner.Draws[^1].Item;
+        _canvas.TryGetLayerItem(-1, out Handle back);
+        _canvas.TryGetLayerItem(1, out Handle front);
+        Handle under = _inner.Draws[0].Item;
+        Handle over = _inner.Draws[^1].Item;
 
         Assert.That(over, Is.Not.EqualTo(under), "the root's earlier run sits under the layers");
         Assert.That(_items.Parents[over], Is.EqualTo(Root));
@@ -298,8 +297,8 @@ public sealed class ShaderRoutingCanvasTests
         _canvas.BeginLayer(1);
         Draw(slot: 0);
 
-        _canvas.TryGetLayerItem(-1, out Rid back);
-        _canvas.TryGetLayerItem(1, out Rid front);
+        _canvas.TryGetLayerItem(-1, out Handle back);
+        _canvas.TryGetLayerItem(1, out Handle front);
         Assert.That(_items.Created.IndexOf(back), Is.GreaterThan(_items.Created.IndexOf(front)));
         Assert.That(_items.DrawIndex[back], Is.LessThan(_items.DrawIndex[front]));
     }
@@ -309,14 +308,14 @@ public sealed class ShaderRoutingCanvasTests
     {
         _canvas.BeginLayer(-1);
         Draw(slot: 2);
-        _canvas.TryGetLayerItem(-1, out Rid layer);
-        Rid run = _inner.Draws.Single().Item;
+        _canvas.TryGetLayerItem(-1, out Handle layer);
+        Handle run = _inner.Draws.Single().Item;
         int made = _items.Created.Count;
 
         _inner.Calls.Clear();
         _canvas.Clear(Root);
 
-        List<Rid> cleared = _inner.Calls.Where(c => c.Op == "Clear").Select(c => c.Item).ToList();
+        List<Handle> cleared = _inner.Calls.Where(c => c.Op == "Clear").Select(c => c.Item).ToList();
         Assert.That(cleared, Does.Contain(layer));
         Assert.That(cleared, Does.Contain(run));
 
@@ -331,12 +330,12 @@ public sealed class ShaderRoutingCanvasTests
     {
         _canvas.SelectShader(1);
         _canvas.DrawRect(Root, new Rect2(), Colors.Red);
-        Rid before = _items.Created.Single();
+        Handle before = _items.Created.Single();
 
         _canvas.CopyScreen(new Rect2(10, 20, 30, 40));
 
         Assert.That(_items.Copies, Has.Count.EqualTo(1));
-        Rid copy = _items.Copies[0].Item;
+        Handle copy = _items.Copies[0].Item;
         Assert.That(_items.Copies[0].Rect, Is.EqualTo(new Rect2(10, 20, 30, 40)));
         Assert.That(copy, Is.Not.EqualTo(before), "the copy is its own canvas item");
 
@@ -363,7 +362,7 @@ public sealed class ShaderRoutingCanvasTests
     public void AnUnusedRectCopyStopsCopyingNextFrame()
     {
         _canvas.CopyScreen(new Rect2(10, 20, 30, 40));
-        Rid copy = _items.Copies.Single().Item;
+        Handle copy = _items.Copies.Single().Item;
 
         _canvas.Clear(Root);
 
@@ -378,35 +377,35 @@ public sealed class ShaderRoutingCanvasTests
 
     private sealed class FakeItems : IShaderCanvasItems
     {
-        public List<Rid> Created { get; } = new();
+        public List<Handle> Created { get; } = new();
         public List<int> Materials { get; } = new();
         public List<string> CommonMaterials { get; } = new();
         public List<BlendMode> Blends { get; } = new();
-        public List<(Rid Item, string Param, Vector4 Value, int Size)> InstanceValues { get; } = new();
-        public List<(Rid Item, Rect2 Rect)> Copies { get; } = new();
-        public List<Rid> Disabled { get; } = new();
+        public List<(Handle Item, string Param, Vector4 Value, int Size)> InstanceValues { get; } = new();
+        public List<(Handle Item, Rect2 Rect)> Copies { get; } = new();
+        public List<Handle> Disabled { get; } = new();
 
-        public void SetInstanceUniform(Rid item, string param, Vector4 value, int size) =>
+        public void SetInstanceUniform(Handle item, string param, Vector4 value, int size) =>
             InstanceValues.Add((item, param, value, size));
 
-        public void CopyRectangle(Rid item, Rect2 pixelRect) => Copies.Add((item, pixelRect));
+        public void CopyRectangle(Handle item, Rect2 pixelRect) => Copies.Add((item, pixelRect));
 
-        public void DisableCopy(Rid item) => Disabled.Add(item);
+        public void DisableCopy(Handle item) => Disabled.Add(item);
 
-        public Dictionary<Rid, Rid> Parents { get; } = new();
-        public Dictionary<Rid, int> DrawIndex { get; } = new();
+        public Dictionary<Handle, Handle> Parents { get; } = new();
+        public Dictionary<Handle, int> DrawIndex { get; } = new();
 
-        public Rid CreateItem(Rid parent)
+        public Handle CreateItem(Handle parent)
         {
-            Rid item = TestRid.Make((ulong)(100 + Created.Count));
+            Handle item = TestRid.Make((ulong)(100 + Created.Count));
             Created.Add(item);
             Parents[item] = parent;
             return item;
         }
 
-        public void SetDrawIndex(Rid item, int index) => DrawIndex[item] = index;
+        public void SetDrawIndex(Handle item, int index) => DrawIndex[item] = index;
 
-        public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
+        public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend)
         {
             Materials.Add(slot);
             CommonMaterials.Add(commonPath);
@@ -417,7 +416,7 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void ASelfContainedLayersSurfaceMovesWithTheRoot()
     {
-        Rid surface = TestRid.Make(500);
+        Handle surface = TestRid.Make(500);
         var shift = new Transform2D(0f, new Vector2(-1400, -3700));
 
         _canvas.SetTransform(Root, shift);
@@ -442,36 +441,36 @@ public sealed class ShaderRoutingCanvasTests
 
     private sealed class RecordingCanvas : IRectCanvas
     {
-        public List<(string Op, Rid Item)> Calls { get; } = new();
+        public List<(string Op, Handle Item)> Calls { get; } = new();
 
-        public List<(string Op, Rid Item)> Draws => Calls.Where(c => c.Op != "Clear").ToList();
+        public List<(string Op, Handle Item)> Draws => Calls.Where(c => c.Op != "Clear").ToList();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public Dictionary<Rid, Transform2D> Transforms { get; } = new();
+        public Dictionary<Handle, Transform2D> Transforms { get; } = new();
 
-        public void SetTransform(Rid canvas, Transform2D transform) => Transforms[canvas] = transform;
+        public void SetTransform(Handle canvas, Transform2D transform) => Transforms[canvas] = transform;
 
-        public void Clear(Rid canvas) => Calls.Add(("Clear", canvas));
+        public void Clear(Handle canvas) => Calls.Add(("Clear", canvas));
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
 
-        public void DrawPolyline(Rid canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
             Calls.Add(("Polyline", canvas));
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
 
-        public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+        public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Calls.Add(("TextStyled", canvas));
     }
 }

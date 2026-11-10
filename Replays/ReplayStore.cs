@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using Godot;
 
 namespace Xanadu.Replays;
 

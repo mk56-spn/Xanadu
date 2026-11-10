@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
@@ -16,7 +15,7 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
     public static UiDebugOverlayGroup Attach(
         SystemGroup root,
         IRectCanvas canvas,
-        Rid parentCanvas,
+        Handle parentCanvas,
         IOverlayToggleSource? toggle = null,
         int zIndex = 1001)
     {
@@ -31,14 +30,14 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
 
     public UiDebugOverlayGroup(
         IRectCanvas canvas,
-        Rid parentCanvas,
+        Handle parentCanvas,
         IOverlayToggleSource? toggle = null,
         int zIndex = 1001) : base("UiDebugOverlay")
     {
         _overlay = new CanvasItemHandle(parentCanvas, zIndex, visible: false);
         toggle ??= new KeyOverlayToggleSource(DebugKeys.UiTree);
 
-        Add(new DebugElementOverlaySystem(canvas, _overlay.Rid, toggle));
+        Add(new DebugElementOverlaySystem(canvas, _overlay.Handle, toggle));
         Add(new UiTreeOverlaySystem(toggle));
     }
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;

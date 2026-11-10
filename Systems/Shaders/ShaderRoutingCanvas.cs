@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
@@ -11,38 +10,38 @@ namespace Xanadu.Systems.Shaders;
 /// <summary>Makes and styles the canvas items shaded draws go to.</summary>
 public interface IShaderCanvasItems
 {
-    Rid CreateItem(Rid parent);
+    Handle CreateItem(Handle parent);
 
     /// <summary>
     /// Gives an item the material of a shader slot, or of a common shader by
     /// path when one is given (it takes priority over the slot), or none when
     /// both are empty, with the blend mode asked for.
     /// </summary>
-    void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend);
+    void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend);
 
     /// <summary>Sets one instance uniform on a run item.</summary>
-    void SetInstanceUniform(Rid item, string param, Vector4 value, int size) { }
+    void SetInstanceUniform(Handle item, string param, Vector4 value, int size) { }
 
     /// <summary>Makes a run item copy the whole screen to the back buffer before it draws.</summary>
-    void CopyScreen(Rid item) { }
+    void CopyScreen(Handle item) { }
 
     /// <summary>Makes an item copy the given render-target rect into the back buffer before it draws.</summary>
-    void CopyRectangle(Rid item, Rect2 pixelRect) { }
+    void CopyRectangle(Handle item, Rect2 pixelRect) { }
 
     /// <summary>Stops an item copying the back buffer at all.</summary>
-    void DisableCopy(Rid item) { }
+    void DisableCopy(Handle item) { }
 
     /// <summary>Puts an item under another canvas item.</summary>
-    void Reparent(Rid item, Rid parent) { }
+    void Reparent(Handle item, Handle parent) { }
 
     /// <summary>Makes an item render its children as one grouped image (a CanvasGroup).</summary>
-    void SetCanvasGroup(Rid item) { }
+    void SetCanvasGroup(Handle item) { }
 
     /// <summary>Multiplies what an item draws by a colour.</summary>
-    void SetModulate(Rid item, Color color) { }
+    void SetModulate(Handle item, Color color) { }
 
     /// <summary>Where an item stacks among its siblings: higher draws in front.</summary>
-    void SetDrawIndex(Rid item, int index) { }
+    void SetDrawIndex(Handle item, int index) { }
 }
 
 /// <summary>
@@ -63,7 +62,7 @@ public interface IShaderCanvasItems
 /// draws where it was begun (docs/render-architecture.md §5.1).
 /// </para>
 /// </remarks>
-public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanvasItems items, Func<Rect2, Rect2>? toPixels = null) : IRectCanvas
+public sealed class ShaderRoutingCanvas(IRectCanvas inner, Handle root, IShaderCanvasItems items, Func<Rect2, Rect2>? toPixels = null) : IRectCanvas
 {
     /// <summary>Turns a canvas rect into render-target pixels; identity when no viewport is known.</summary>
     private readonly Func<Rect2, Rect2> _toPixels = toPixels ?? (static rect => rect);
@@ -99,7 +98,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     }
 
     /// <summary>The container item of a layer begun at least once, for tests and tools.</summary>
-    public bool TryGetLayerItem(int layer, out Rid item)
+    public bool TryGetLayerItem(int layer, out Handle item)
     {
         bool found = _layers.TryGetValue(layer, out Surface? surface);
         item = found ? surface!.Item : default;
@@ -208,7 +207,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         _bufferValues.Clear();
     }
 
-    public void BeginLayer(int layer, Rid? target = null)
+    public void BeginLayer(int layer, Handle? target = null)
     {
         // A self-contained layer draws straight into its own viewport's canvas
         // item; every other layer gets a container item under the root.
@@ -235,7 +234,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
 
     public void EndLayers() => _current = _root;
 
-    public void Clear(Rid canvas)
+    public void Clear(Handle canvas)
     {
         inner.Clear(canvas);
         if (canvas != root)
@@ -275,7 +274,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     }
 
     /// <summary>The item a draw aimed at <paramref name="canvas"/> should land in.</summary>
-    private Rid Route(Rid canvas)
+    private Handle Route(Handle canvas)
     {
         if (canvas != root)
             return canvas;
@@ -338,23 +337,23 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
     }
 
     /// <summary>One item draws are routed into, the root or a layer's container, with its runs.</summary>
-    private sealed class Surface(Rid item, Rid parent, bool external, bool group = false)
+    private sealed class Surface(Handle item, Handle parent, bool external, bool group = false)
     {
-        public readonly Rid Item = item;
-        public Rid Parent = parent;
+        public readonly Handle Item = item;
+        public Handle Parent = parent;
         public readonly bool External = external;
         public readonly bool Group = group;
         public readonly List<Surface> Groups = new();
         public int GroupUsed;
         public readonly List<Surface> Copies = new();
         public int CopiesUsed;
-        public readonly List<Rid> Pool = new();
+        public readonly List<Handle> Pool = new();
         public int Used;
         public int RunSlot = -1;
         public string RunCommonPath = "";
         public BlendMode RunBlend = BlendMode.Mix;
         public int RunSource = -1;
-        public Rid Run;
+        public Handle Run;
         public int AppliedStamp = -1;
         public bool HasRun;
 
@@ -365,7 +364,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         {
             if (clearItem)
                 canvas.Clear(Item);
-            foreach (Rid run in Pool)
+            foreach (Handle run in Pool)
                 canvas.Clear(run);
 
             foreach (Surface group in Groups)
@@ -383,14 +382,14 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         }
     }
 
-    public void SetVisible(Rid canvas, bool visible) => inner.SetVisible(canvas, visible);
+    public void SetVisible(Handle canvas, bool visible) => inner.SetVisible(canvas, visible);
 
     /// <summary>
     /// The root's transform also goes on every self-contained layer's surface,
     /// whose content would otherwise sit unshifted (by the camera) in a surface
     /// only a screen in size, and fall off it.
     /// </summary>
-    public void SetTransform(Rid canvas, Transform2D transform)
+    public void SetTransform(Handle canvas, Transform2D transform)
     {
         inner.SetTransform(canvas, transform);
         if (canvas != root)
@@ -412,32 +411,32 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         return new Rect2(a, Vector2.Zero).Expand(b);
     }
 
-    public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
+    public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
         inner.DrawRect(Route(canvas), bounds, color);
 
-    public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
+    public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) =>
         inner.DrawTexture(Route(canvas), bounds, texture);
 
-    public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
+    public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
         inner.DrawCircle(Route(canvas), center, radius, color);
 
-    public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) =>
+    public void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal) =>
         inner.DrawGradientRect(Route(canvas), bounds, start, end, horizontal);
 
-    public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
+    public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
         inner.DrawPolygon(Route(canvas), points, color);
 
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) =>
+    public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) =>
         inner.DrawTriangles(Route(canvas), points, colors);
 
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
+    public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
         inner.DrawTriangles(Route(canvas), points, colors, uvs);
 
-    public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color) =>
+    public void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color) =>
         inner.DrawRectOutlines(Route(canvas), rects, color);
 
     public void DrawPolyline(
-        Rid canvas,
+        Handle canvas,
         ReadOnlySpan<Vector2> points,
         Color color,
         float width,
@@ -445,7 +444,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawPolyline(Route(canvas), points, color, width, antialiased);
 
     public void DrawCircleOutline(
-        Rid canvas,
+        Handle canvas,
         Vector2 center,
         float radius,
         Color color,
@@ -453,35 +452,35 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         int segments = 40) =>
         inner.DrawCircleOutline(Route(canvas), center, radius, color, width, segments);
 
-    public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
+    public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
         inner.DrawLine(Route(canvas), from, to, color, width);
 
-    public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) =>
         inner.DrawText(Route(canvas), bounds, text, color);
 
-    public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         inner.DrawTextStyled(Route(canvas), bounds, text, color, fontSize);
 
-    public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
         inner.DrawTextLeft(Route(canvas), bounds, text, color);
 
-    public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) =>
+    public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) =>
         inner.DrawTextRight(Route(canvas), bounds, text, color);
 
-    public void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
+    public void DrawTextTurned(Handle canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
         inner.DrawTextTurned(Route(canvas), bounds, degrees, text, color, fontSize);
 
-    public void DrawTextVertical(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextVertical(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         inner.DrawTextVertical(Route(canvas), bounds, text, color, fontSize);
 
-    public void DrawTextStyledLeft(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyledLeft(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         inner.DrawTextStyledLeft(Route(canvas), bounds, text, color, fontSize);
 
-    public void DrawTextStyledRight(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+    public void DrawTextStyledRight(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
         inner.DrawTextStyledRight(Route(canvas), bounds, text, color, fontSize);
 
     public void DrawTextWeighted(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -491,7 +490,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawTextWeighted(Route(canvas), bounds, text, color, fontSize, align, bold);
 
     public void DrawTextMono(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -500,7 +499,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawTextMono(Route(canvas), bounds, text, color, fontSize, align);
 
     public void DrawTextGlow(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -512,7 +511,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawTextGlow(Route(canvas), bounds, text, color, fontSize, align, bold, glow, outline);
 
     public void DrawShapeGlow(
-        Rid canvas,
+        Handle canvas,
         ReadOnlySpan<Vector2> points,
         bool closed,
         bool filled,
@@ -521,7 +520,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Rid root, IShaderCanv
         inner.DrawShapeGlow(Route(canvas), points, closed, filled, strokeWidth, glow);
 
     public void DrawTextOutline(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -547,14 +546,14 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
     /// <summary>A level slot's material with a blend; set each frame from the level being drawn.</summary>
     public Func<int, BlendMode, CanvasMaterial?> SlotMaterialOf { get; set; } = static (_, _) => null;
 
-    public Rid CreateItem(Rid parent)
+    public Handle CreateItem(Handle parent)
     {
-        Rid item = CanvasServer.Current.CreateItem();
+        Handle item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(item, parent);
         return item;
     }
 
-    public virtual void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend)
+    public virtual void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend)
     {
         if (commonPath.Length == 0 && slot != 0 && SlotMaterialOf(slot, blend) is { } slotMaterial)
         {
@@ -578,28 +577,28 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
         CanvasServer.Current.SetMaterial(item, material);
     }
 
-    public void SetInstanceUniform(Rid item, string param, Vector4 value, int size) =>
+    public void SetInstanceUniform(Handle item, string param, Vector4 value, int size) =>
         CanvasServer.Current.SetInstanceValue(item, param, value);
 
     // The host copies the whole target whenever a screen reader needs a fresh
     // copy (docs/moonworks-port.md step 6), so a region is copied whole.
-    public void CopyScreen(Rid item) => CanvasServer.Current.SetCopyScreen(item, true);
+    public void CopyScreen(Handle item) => CanvasServer.Current.SetCopyScreen(item, true);
 
-    public void CopyRectangle(Rid item, Rect2 pixelRect) => CanvasServer.Current.SetCopyScreen(item, true);
+    public void CopyRectangle(Handle item, Rect2 pixelRect) => CanvasServer.Current.SetCopyScreen(item, true);
 
-    public void DisableCopy(Rid item) => CanvasServer.Current.SetCopyScreen(item, false);
+    public void DisableCopy(Handle item) => CanvasServer.Current.SetCopyScreen(item, false);
 
     // The C# defaults of CanvasItemSetCanvasGroupMode are not the CanvasGroup
     // node's (clear margin 5, fit empty false, fit margin 0): with fit_empty
     // off the cull never makes the group's own draw command, so the group's
     // self modulate is ignored and a faded buffer renders fully opaque. Pass
     // the node's values explicitly.
-    public void SetCanvasGroup(Rid item) =>
+    public void SetCanvasGroup(Handle item) =>
         CanvasServer.Current.SetCanvasGroup(item, clearMargin: 10f, fitEmpty: true, fitMargin: 10f);
 
-    public void SetModulate(Rid item, Color color) => CanvasServer.Current.SetSelfModulate(item, color);
+    public void SetModulate(Handle item, Color color) => CanvasServer.Current.SetSelfModulate(item, color);
 
-    public void Reparent(Rid item, Rid parent) => CanvasServer.Current.SetParent(item, parent);
+    public void Reparent(Handle item, Handle parent) => CanvasServer.Current.SetParent(item, parent);
 
-    public void SetDrawIndex(Rid item, int index) => CanvasServer.Current.SetDrawIndex(item, index);
+    public void SetDrawIndex(Handle item, int index) => CanvasServer.Current.SetDrawIndex(item, index);
 }

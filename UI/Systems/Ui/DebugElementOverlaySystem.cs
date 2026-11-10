@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
@@ -17,11 +16,11 @@ namespace Xanadu.Ui.Systems.Ui;
 public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
 {
     private readonly IRectCanvas _canvas;
-    private readonly Rid _overlay;
+    private readonly Handle _overlay;
     private readonly OverlayLatch _latch;
     private readonly RetainedCanvasDraw _draw;
 
-    public DebugElementOverlaySystem(IRectCanvas canvas, Rid overlay, IOverlayToggleSource toggle)
+    public DebugElementOverlaySystem(IRectCanvas canvas, Handle overlay, IOverlayToggleSource toggle)
     {
         _canvas = canvas;
         _overlay = overlay;

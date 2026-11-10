@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
 using Xanadu.Systems.Canvas;
@@ -20,9 +19,9 @@ namespace Xanadu.Host.Text;
 /// </summary>
 internal sealed class HostShapeGlow(ICanvasServer server)
 {
-    private sealed class Baked(Rid texture, Vector2 offset, Vector2 size)
+    private sealed class Baked(Handle texture, Vector2 offset, Vector2 size)
     {
-        public readonly Rid Texture = texture;
+        public readonly Handle Texture = texture;
 
         /// <summary>Where the texture's corner sits from the shape's floored top-left point.</summary>
         public readonly Vector2 Offset = offset;
@@ -34,9 +33,9 @@ internal sealed class HostShapeGlow(ICanvasServer server)
     private readonly Dictionary<string, Baked> _baked = new();
 
     /// <summary>The bake each canvas item draws now, so one no item uses is freed.</summary>
-    private readonly Dictionary<Rid, string> _drawing = new();
+    private readonly Dictionary<Handle, string> _drawing = new();
 
-    public void Draw(Rid canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow)
+    public void Draw(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow)
     {
         if (points.Length < 2 && !(filled && points.Length >= 3))
             return;
@@ -70,7 +69,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
             baked.Texture);
     }
 
-    private void Use(Rid canvas, string key, Baked baked)
+    private void Use(Handle canvas, string key, Baked baked)
     {
         if (_drawing.TryGetValue(canvas, out string? old))
         {
@@ -148,7 +147,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
             pixels[i * 4 + 3] = alpha[i];
         }
 
-        Rid texture = TextureServer.Current.Create(w, h, pixels, mipmaps: false);
+        Handle texture = TextureServer.Current.Create(w, h, pixels, mipmaps: false);
         return new Baked(texture, origin - anchor, new Vector2(w, h));
     }
 

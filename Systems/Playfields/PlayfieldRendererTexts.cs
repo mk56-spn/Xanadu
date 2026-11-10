@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -19,7 +18,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawLevelText(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         bool selected)

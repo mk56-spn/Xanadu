@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -14,7 +13,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// where the path turns sharper than <see cref="AnimatorMotionPaths.SharpDegrees"/>.
 /// Paths are rebuilt only when the clip, the rig or the bones change.
 /// </summary>
-public sealed class AnimatorMotionPathOverlay(IRectCanvas canvas, Rid target)
+public sealed class AnimatorMotionPathOverlay(IRectCanvas canvas, Handle target)
 {
     private static readonly Color Start = new(Palette.Info, 0.25f);
     private static readonly Color End = new(Palette.Cyan, 0.9f);

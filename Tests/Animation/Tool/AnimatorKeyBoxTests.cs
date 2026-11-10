@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
@@ -337,7 +336,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     {
         SelectTorsoAndHead();
 
-        Keyboard.Press(Godot.Key.Delete);
+        Keyboard.Press(Key.Delete);
         Frame(3);
 
         Assert.That(Times(TorsoTrack), Is.EqualTo(new[] { 1.5f }));
@@ -351,7 +350,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     public void DeletingAGroupIsOneUndoStep()
     {
         SelectTorsoAndHead();
-        Keyboard.Press(Godot.Key.Delete);
+        Keyboard.Press(Key.Delete);
         Frame(3);
         Keyboard.Clear();
         Frame();

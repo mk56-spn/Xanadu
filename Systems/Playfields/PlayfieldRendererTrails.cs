@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -10,7 +9,7 @@ namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    public static void DrawDashTrail(IRectCanvas canvas, Rid rid, Entity entity)
+    public static void DrawDashTrail(IRectCanvas canvas, Handle rid, Entity entity)
     {
         DashTrail trail = entity.GetComponent<DashTrail>();
         float t = Math.Clamp(
@@ -26,7 +25,7 @@ public static partial class PlayfieldRenderer
             Math.Max(1f, 6f * (1f - t)));
     }
 
-    public static void DrawHitTrail(IRectCanvas canvas, Rid rid, Entity entity)
+    public static void DrawHitTrail(IRectCanvas canvas, Handle rid, Entity entity)
     {
         HitTrail trail = entity.GetComponent<HitTrail>();
         float t = Math.Clamp(

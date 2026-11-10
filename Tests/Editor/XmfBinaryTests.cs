@@ -19,8 +19,8 @@ public sealed class XmfBinaryTests
         var polygon = new XifPrimitive
         {
             Kind = XifPrimitive.PolygonKind,
-            Points = { new Godot.Vector2(0, 0), new Godot.Vector2(10, 0), new Godot.Vector2(5, 8) },
-            Fill = new Godot.Color(1f, 0.5f, 0f, 0.75f),
+            Points = { new Vector2(0, 0), new Vector2(10, 0), new Vector2(5, 8) },
+            Fill = new Color(1f, 0.5f, 0f, 0.75f),
         };
         var source = new LevelDocument();
         source.Notes.Add(new NoteDocument { Item = new Xif { Primitives = { polygon } } });
@@ -56,7 +56,7 @@ public sealed class XmfBinaryTests
         });
         byte[] plain = XmfBinary.Write(source);
 
-        source.Notes[0].Item.Primitives[0].Fill = new Godot.Color(1f, 0f, 0f);
+        source.Notes[0].Item.Primitives[0].Fill = new Color(1f, 0f, 0f);
         byte[] tinted = XmfBinary.Write(source);
 
         // One byte per note of strength, then one point count and four fill floats per primitive.

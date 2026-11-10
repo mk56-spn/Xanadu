@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -37,11 +36,11 @@ public sealed class GlyphAtlas(
     /// <summary>Whether the strip has mipmaps, for drawing it smaller than its cells.</summary>
     public bool Mipmaps { get; } = mipmaps;
 
-    private Rid? _textureId;
+    private Handle? _textureId;
 
     /// <summary>
     /// The strip as a canvas texture id, for <see cref="CanvasMaterial.SetTexture"/>,
     /// built once by the host; the default id where nothing draws (tests).
     /// </summary>
-    public Rid TextureId => _textureId ??= HostPlatform.GlyphStrip is { } build ? build(this) : default;
+    public Handle TextureId => _textureId ??= HostPlatform.GlyphStrip is { } build ? build(this) : default;
 }

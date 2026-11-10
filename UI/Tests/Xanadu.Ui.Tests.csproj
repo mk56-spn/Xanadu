@@ -21,4 +21,5 @@
     <Compile Include="../../Tests/Support/EcsSystemTest.cs" Link="Support/EcsSystemTest.cs" />
     <Compile Include="../../Tests/Support/Fakes/FakeVisualRidFactory.cs" Link="Support/FakeVisualRidFactory.cs" />
   </ItemGroup>
+  <Import Project="../../Core/Maths/Maths.props" />
 </Project>

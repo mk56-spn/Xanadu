@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
@@ -33,7 +32,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         Query.ForEachEntity((ref _, ref drawable, ref visual, ref position, entity) =>
         {
             int requested = drawable.ZIndex;
-            if (!TryGetOwnLayerCanvas(entity, out Rid layerCanvas) &&
+            if (!TryGetOwnLayerCanvas(entity, out Handle layerCanvas) &&
                 !TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
             {
                 Xanadu.Diagnostics.GameLog.Error(
@@ -50,7 +49,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             }
 
             Entity parent = entity.Parent;
-            Rid parentCanvas = layerCanvas;
+            Handle parentCanvas = layerCanvas;
 
             if (!parent.IsNull &&
                 parent.HasComponent<UiContainer>() &&
@@ -107,7 +106,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
     /// The layer this entity hangs under in the tree. Two layers can share a z
     /// index, and fading one must not reach what belongs to the other.
     /// </summary>
-    private static bool TryGetOwnLayerCanvas(Entity entity, out Rid canvas)
+    private static bool TryGetOwnLayerCanvas(Entity entity, out Handle canvas)
     {
         for (Entity node = entity.Parent; !node.IsNull; node = node.Parent)
         {
@@ -122,9 +121,9 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         return false;
     }
 
-    private bool TryGetLayerCanvas(EntityStore store, int zIndex, out Rid canvas)
+    private bool TryGetLayerCanvas(EntityStore store, int zIndex, out Handle canvas)
     {
-        Rid result = default;
+        Handle result = default;
         bool found = false;
 
         LayerQuery(store, zIndex).ForEachEntity((ref visual, ref _, _) =>

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 #nullable enable
 
-namespace Godot
+namespace Xanadu.Maths
 {
     /// <summary>
     /// A color represented by red, green, blue, and alpha (RGBA) components.

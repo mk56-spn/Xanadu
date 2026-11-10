@@ -42,10 +42,10 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
 
             if (shape.Stroke.A > 0 && shape.StrokeWidth > 0)
             {
-                ReadOnlySpan<Godot.Vector2> outline = shape.Points;
+                ReadOnlySpan<Vector2> outline = shape.Points;
                 if (shape.Closed)
                 {
-                    var closed = new Godot.Vector2[outline.Length + 1];
+                    var closed = new Vector2[outline.Length + 1];
                     outline.CopyTo(closed);
                     closed[^1] = outline[0];
                     outline = closed;

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Levels;
@@ -15,7 +14,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Draws the keyframe timeline: ruler, track rows, key diamonds and the playhead.</summary>
-public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Rid target)
+public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Color RulerBackground = Palette.SurfaceInset;

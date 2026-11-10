@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Canvas;
 
@@ -15,11 +14,11 @@ public sealed class AudioSystemGroup : SystemGroup, IDisposable
         ITrackAudio audio,
         ITrackClock clock,
         IRectCanvas canvas,
-        Rid parentCanvas) : base("Audio")
+        Handle parentCanvas) : base("Audio")
     {
         _timeline = new CanvasItemHandle(parentCanvas, 900);
         Add(new TrackPlaybackSystem(audio, clock));
-        Add(new TimelineDrawSystem(canvas, _timeline.Rid));
+        Add(new TimelineDrawSystem(canvas, _timeline.Handle));
     }
 
     public void Dispose() => _timeline.Dispose();

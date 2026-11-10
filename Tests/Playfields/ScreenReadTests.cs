@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Editor;
@@ -23,7 +22,7 @@ public sealed class ScreenReadTests
     private static readonly PlayfieldView View = new(Vector2.Zero, 1f, new Vector2(800, 600));
     private static readonly Playfield Field = new(1000, 1000);
     private static readonly Playhead Head = new(0, 120, 0, false);
-    private static readonly Rid Main = TestRid.Make(1);
+    private static readonly Handle Main = TestRid.Make(1);
 
     [Test]
     public void TheDrawListSortsARegionByItsLayerAndZ()
@@ -72,7 +71,7 @@ public sealed class ScreenReadTests
         Assert.That(items.Copies[0].Rect, Is.EqualTo(new Rect2(200, 100, 300, 200)));
         int copyAt = items.Created.IndexOf(items.Copies[0].Item);
         Assert.That(copyAt, Is.GreaterThanOrEqualTo(0));
-        Rid afterItem = canvas.Draws.Last().Item;
+        Handle afterItem = canvas.Draws.Last().Item;
         int afterAt = items.Created.IndexOf(afterItem);
         Assert.That(afterAt, Is.GreaterThan(copyAt), "the draw after the copy lands after it");
     }
@@ -234,50 +233,50 @@ public sealed class ScreenReadTests
 
     private sealed class RecordingItems : IShaderCanvasItems
     {
-        public List<Rid> Created { get; } = new();
-        public List<(Rid Item, Rect2 Rect)> Copies { get; } = new();
+        public List<Handle> Created { get; } = new();
+        public List<(Handle Item, Rect2 Rect)> Copies { get; } = new();
 
-        public Rid CreateItem(Rid parent)
+        public Handle CreateItem(Handle parent)
         {
-            Rid item = TestRid.Make((ulong)(100 + Created.Count));
+            Handle item = TestRid.Make((ulong)(100 + Created.Count));
             Created.Add(item);
             return item;
         }
 
-        public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend) { }
+        public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend) { }
 
-        public void CopyRectangle(Rid item, Rect2 pixelRect) => Copies.Add((item, pixelRect));
+        public void CopyRectangle(Handle item, Rect2 pixelRect) => Copies.Add((item, pixelRect));
 
-        public void DisableCopy(Rid item) { }
+        public void DisableCopy(Handle item) { }
     }
 
     private sealed class RecordingCanvas : IRectCanvas
     {
-        public List<(string Op, Rid Item)> Calls { get; } = new();
+        public List<(string Op, Handle Item)> Calls { get; } = new();
 
-        public List<(string Op, Rid Item)> Draws => Calls.Where(call => call.Op != "Clear").ToList();
+        public List<(string Op, Handle Item)> Draws => Calls.Where(call => call.Op != "Clear").ToList();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) => Calls.Add(("Clear", canvas));
+        public void Clear(Handle canvas) => Calls.Add(("Clear", canvas));
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
 
-        public void DrawPolyline(Rid canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
             Calls.Add(("Polyline", canvas));
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
     }
 }

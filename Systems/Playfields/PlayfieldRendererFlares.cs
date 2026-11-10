@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
@@ -28,7 +27,7 @@ public static partial class PlayfieldRenderer
     /// colour with self modulate and group fades applied. A selected flare
     /// gets an accent box.
     /// </summary>
-    public static void DrawFlare(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, bool selected)
+    public static void DrawFlare(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, bool selected)
     {
         LevelFlare flare = entity.GetComponent<LevelFlare>();
         DrawFlareLight(canvas, rid, flare, view, GroupColor.For(entity, flare.Color), ItemBlend.Of(entity));
@@ -43,7 +42,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawFlareLight(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         LevelFlare flare,
         PlayfieldView view,
         Color tint,

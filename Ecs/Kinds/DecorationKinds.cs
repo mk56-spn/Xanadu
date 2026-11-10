@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Editor;
 using Xanadu.Items;
 using Xanadu.Levels;
@@ -48,7 +47,7 @@ public sealed class TextItemKind : ItemKind<LevelText, TextDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Text;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawLevelText(canvas, rid, entity, view, selected);
 
     protected override int Compare(in LevelText a, in LevelText b)
@@ -132,7 +131,7 @@ public sealed class GrassItemKind : ItemKind<GrassPatch, GrassDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Grass;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawGrass(canvas, rid, entity, view, frame.Seconds, selected);
 
     protected override int Compare(in GrassPatch a, in GrassPatch b)
@@ -219,7 +218,7 @@ public sealed class FlareItemKind : ItemKind<LevelFlare, FlareDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Flare;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawFlare(canvas, rid, entity, view, selected);
 
     protected override int Compare(in LevelFlare a, in LevelFlare b)
@@ -290,7 +289,7 @@ public sealed class PolygonItemKind : ItemKind<LevelPolygon, PolygonDocument>
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Polygon;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawPolygon(canvas, rid, entity, view, selected);
 
     protected override LevelPolygon Detach(LevelPolygon value) =>
@@ -361,7 +360,7 @@ public sealed class ScreenReadItemKind : ItemKind<ScreenReadRegion, ScreenReadDo
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.ScreenRead;
 
-    public override void Draw(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
+    public override void Draw(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, in PlayfieldItemFrame frame, bool selected, bool playing) =>
         PlayfieldRenderer.DrawScreenRead(canvas, entity, view);
 
     protected override int Compare(in ScreenReadRegion a, in ScreenReadRegion b)

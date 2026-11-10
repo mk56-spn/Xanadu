@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using Godot;
 using Slangc.NET;
 
 namespace Xanadu.Host.Rendering;

@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using Godot;
 using MoonWorks.Graphics;
+using Color = Xanadu.Maths.Color;
 using Xanadu.Particles;
 using Buffer = MoonWorks.Graphics.Buffer;
-using Color = Godot.Color;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
 
@@ -203,7 +202,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     /// <summary>Fields stepped in the last frame, for the debug line.</summary>
     public int LastLiveFields { get; private set; }
 
-    public void Emit(Rid item, XpfParticle effect, ReadOnlySpan<ParticleSeed> seeds, Rid strip = default, int cells = 1)
+    public void Emit(Handle item, XpfParticle effect, ReadOnlySpan<ParticleSeed> seeds, Handle strip = default, int cells = 1)
     {
         if (seeds.IsEmpty || _tree.Item(item) is not { } canvasItem)
             return;

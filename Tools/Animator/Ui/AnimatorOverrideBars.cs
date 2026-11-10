@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -17,7 +16,7 @@ public static class AnimatorOverrideBars
     /// <summary>The narrowest a bar is drawn, so even a very short override shows and can be grabbed.</summary>
     private const float MinWidth = GripWidth * 2 + 4f;
 
-    public static void Draw(IRectCanvas canvas, Rid target, AnimatorTimelineModel model, XafLimbTarget? selected)
+    public static void Draw(IRectCanvas canvas, Handle target, AnimatorTimelineModel model, XafLimbTarget? selected)
     {
         for (int screenRow = 0; screenRow < model.LastRow - model.FirstRow; screenRow++)
         {
@@ -36,7 +35,7 @@ public static class AnimatorOverrideBars
 
     private static void DrawBar(
         IRectCanvas canvas,
-        Rid target,
+        Handle target,
         AnimatorTimelineModel model,
         Rect2 row,
         XafLimbTarget item,

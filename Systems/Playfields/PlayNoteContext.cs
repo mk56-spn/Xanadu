@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Characters;
@@ -8,7 +7,6 @@ using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Xanadu.Theme;
 using Position = Xanadu.Ecs.Position;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Systems.Playfields;
 

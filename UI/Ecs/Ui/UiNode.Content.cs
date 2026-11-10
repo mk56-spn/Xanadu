@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -108,7 +107,7 @@ public readonly partial struct UiNode
     }
 
     /// <summary>An image drawable backed by a texture id.</summary>
-    public UiNode Image(Rid texture, Vector2 size)
+    public UiNode Image(Handle texture, Vector2 size)
     {
         UiBuilder builder = BeginChildren();
         Entity created = builder.ImageEntity(

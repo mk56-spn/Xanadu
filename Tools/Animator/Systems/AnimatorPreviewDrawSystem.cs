@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Tools.Animator.Commands;
@@ -12,7 +11,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// <summary>Draws the skeleton, Verlet chains, onion-skin ghosts, selection markers and SVG attachments.</summary>
 public sealed class AnimatorPreviewDrawSystem(
     IRectCanvas canvas,
-    Rid target,
+    Handle target,
     IAttachmentVisuals visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Color BoneColor = Palette.Accent;

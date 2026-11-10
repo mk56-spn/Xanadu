@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -174,23 +173,23 @@ public sealed class PlayfieldDrawSystemTests
 
         public List<CircleCall> Circles { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) { }
+        public void Clear(Handle canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
             Rects.Add(bounds);
             RectCalls.Add(new RectCall(bounds, color));
         }
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
             Circles.Add(new CircleCall(center, radius, color));
 
         public void DrawCircleOutline(
-            Rid canvas,
+            Handle canvas,
             Vector2 center,
             float radius,
             Color color,
@@ -198,18 +197,18 @@ public sealed class PlayfieldDrawSystemTests
             Circles.Add(new CircleCall(center, radius, color));
 
         public void DrawLine(
-            Rid canvas,
+            Handle canvas,
             Vector2 from,
             Vector2 to,
             Color color,
             float width) =>
             Lines.Add(new LineCall(from, to, color));
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct RectCall(Rect2 Bounds, Color Color);
 

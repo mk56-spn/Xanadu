@@ -1,6 +1,5 @@
 using Position = Xanadu.Ecs.Position;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Scoring;

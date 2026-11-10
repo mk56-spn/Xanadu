@@ -1,4 +1,3 @@
-using Godot;
 using NUnit.Framework;
 using Xanadu.Systems.Canvas;
 
@@ -12,14 +11,14 @@ public sealed class RetainedCanvasDrawTests
         public int Clears;
         public int Rects;
         public int Texts;
-        public void SetVisible(Rid canvas, bool visible) { }
-        public void SetTransform(Rid canvas, Transform2D transform) { }
-        public void Clear(Rid canvas) => Clears++;
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Rects++;
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) => Texts++;
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) => Texts++;
+        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void Clear(Handle canvas) => Clears++;
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Rects++;
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Texts++;
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Texts++;
     }
 
     private readonly Rect2 _box = new(0, 0, 10, 10);

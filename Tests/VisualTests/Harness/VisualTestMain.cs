@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using MoonWorks.Input;
 using Xanadu.Ecs;
 using Xanadu.Host;
@@ -37,7 +36,7 @@ internal sealed class VisualTestMain : HostApp
     private ScriptedKeyboardState? _keyboard;
     private VisualTestContext? _context;
 
-    private Rid _testHost;
+    private Handle _testHost;
     private VisualTestSidebar? _sidebar;
     private Vector2 _paneSize;
 

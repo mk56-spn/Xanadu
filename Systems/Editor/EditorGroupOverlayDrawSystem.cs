@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Rendering;
@@ -22,9 +21,9 @@ public sealed class EditorGroupOverlayDrawSystem :
     QuerySystem<EditorGroupState, LevelGroups, PlayfieldView>
 {
     private readonly IRectCanvas _canvas;
-    private readonly Rid _overlay;
+    private readonly Handle _overlay;
 
-    public EditorGroupOverlayDrawSystem(IRectCanvas canvas, Rid overlay)
+    public EditorGroupOverlayDrawSystem(IRectCanvas canvas, Handle overlay)
     {
         _canvas = canvas;
         _overlay = overlay;

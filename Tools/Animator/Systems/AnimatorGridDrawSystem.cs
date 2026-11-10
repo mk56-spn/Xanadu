@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -11,7 +10,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// skeleton origin. Redraws only when the preview panel moves or resizes, or
 /// when the shared <see cref="ViewportGrid"/> switch changes.
 /// </summary>
-public sealed class AnimatorGridDrawSystem(IRectCanvas canvas, Rid target)
+public sealed class AnimatorGridDrawSystem(IRectCanvas canvas, Handle target)
     : QuerySystem<AnimatorUi>
 {
     /// <summary>Grid spacing in skeleton units (one unit is one pixel).</summary>

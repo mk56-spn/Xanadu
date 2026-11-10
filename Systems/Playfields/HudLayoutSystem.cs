@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -18,7 +17,7 @@ public sealed class HudLayoutSystem(
     IPointerInputSource pointer,
     IKeyboardState keyboard,
     HudLayoutSettings settings,
-    Rid overlay = default) : QuerySystem<HudLayout, PlayfieldView>
+    Handle overlay = default) : QuerySystem<HudLayout, PlayfieldView>
 {
     private readonly UiDragController _drag = new();
     private bool _wasEditPressed;

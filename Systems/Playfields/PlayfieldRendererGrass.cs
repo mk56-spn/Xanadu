@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -19,7 +18,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawGrass(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         float seconds,
@@ -45,7 +44,7 @@ public static partial class PlayfieldRenderer
     /// <summary>One patch's blades, multiplied by <paramref name="modulate"/>, then faded by <paramref name="group"/>.</summary>
     public static void DrawGrassPatch(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         GrassPatch patch,
         PlayfieldView view,
         float seconds,
@@ -78,7 +77,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>Outlines a turned box on screen, for a selected item that is not upright.</summary>
-    public static void DrawTurnedBorder(IRectCanvas canvas, Rid rid, Rect2 box, float degrees, PlayfieldView view)
+    public static void DrawTurnedBorder(IRectCanvas canvas, Handle rid, Rect2 box, float degrees, PlayfieldView view)
     {
         Vector2[] corners = TurnedBox.Corners(box, degrees);
         var screen = new Vector2[corners.Length + 1];

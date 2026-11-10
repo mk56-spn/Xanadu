@@ -1,10 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Playfields;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Physics;
@@ -39,7 +37,7 @@ public sealed class PlayerTuckSystem : QuerySystem<Player, PhysicsBody, PlayerTu
             {
                 centre.Y = standingY;
                 body.Body.SetTransform(Box2DPhysicsWorld.ToPhysics(centre), body.Body.GetAngle());
-                body.Body.SetLinearVelocity(new NVector2(body.Body.LinearVelocity.X, 0f));
+                body.Body.SetLinearVelocity(new Vector2(body.Body.LinearVelocity.X, 0f));
                 position.Value = centre;
                 buffer.AddTag<Moved>(entity.Id);
             }

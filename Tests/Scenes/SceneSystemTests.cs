@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
@@ -1083,7 +1082,7 @@ public sealed partial class SceneSystemTests
 
         play.GetComponent<PlaySession>().SkipRequested = false;
         _scenes.Keybinds.BeginCapture(KeybindAction.Action2);
-        _scenes.Keybinds.TryCapture(Godot.Key.Enter);
+        _scenes.Keybinds.TryCapture(Key.Enter);
         _scenes.TryForward();
         Assert.That(play.GetComponent<PlaySession>().SkipRequested, Is.False);
     }

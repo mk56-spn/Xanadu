@@ -11,4 +11,5 @@
   <ItemGroup>
     <Compile Remove="Tests/**/*.cs" />
   </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
 </Project>

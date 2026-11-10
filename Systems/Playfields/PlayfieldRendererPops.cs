@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -24,7 +23,7 @@ public static partial class PlayfieldRenderer
     /// the note's own shape swelling and fading out, and a thick shockwave
     /// that races out from its edge and thins as it goes.
     /// </summary>
-    public static void DrawNotePop(IRectCanvas canvas, Rid rid, Entity entity)
+    public static void DrawNotePop(IRectCanvas canvas, Handle rid, Entity entity)
     {
         NotePop pop = entity.GetComponent<NotePop>();
         float t = Math.Clamp(pop.Age / Math.Max(0.01f, pop.Lifetime), 0f, 1f);

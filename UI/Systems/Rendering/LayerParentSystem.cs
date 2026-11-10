@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
@@ -13,9 +12,9 @@ namespace Xanadu.Systems.Rendering;
 /// </summary>
 public sealed class LayerParentSystem : QuerySystem<VisualRid, Layer>
 {
-    private readonly Rid _parentCanvas;
+    private readonly Handle _parentCanvas;
 
-    public LayerParentSystem(Rid parentCanvas)
+    public LayerParentSystem(Handle parentCanvas)
     {
         _parentCanvas = parentCanvas;
         Filter.AllTags(Tags.Get<Uninitialised>());

@@ -33,7 +33,8 @@ Update this block at the end of every session, including partial progress.
   (`dotnet run --project Tests/VisualTests`, `run-visual-tests.sh`), and all
   61 pass.
 - **Step 11 is done (2026-11-10):** Godot is gone. Nothing in the repo
-  builds against it, and its structs live in `Core/Godot/`.
+  builds against it. Vectors are `System.Numerics`; the other maths types
+  live in `Core/Maths/` (P8).
 - **Next:** nothing left for parity apart from playing a level by hand
   (step 2). Everything else is under "Later", with no hurry.
 - **Committed:** everything so far.
@@ -72,7 +73,7 @@ Agreed with the user. Don't revisit them without asking.
 | P5 | **MoonWorks is vendored from source**, pinned to a commit (it is not on NuGet; that is upstream's choice). Patch it locally when needed; zlib allows that. **Never send AI-written PRs upstream**: their `AGENTS.md` forbids it. Using and patching it locally is fine. |
 | P6 | **Native libs come from Moonside's bundle**, not the OS: `https://moonside.games/files/moonlibs.tar.gz` (SDL3, FAudio, IRO, Wellspring, dav1dfile). The system only has SDL3 and FAudio; IRO (images) and Wellspring (fonts) are **not** installed. *Changed in step 1:* the bundle is ~60 MB, so it is fetched (with a SHA-256 check) into gitignored `External/moonlibs/`, not committed. See `External/README.md`. |
 | P7 | **Shaders are written in [Slang](https://shader-slang.org)** (HLSL syntax plus real modules: `import`, `public`/internal, interfaces, generics), compiled to SPIR-V **at runtime** through the `Slangc.NET` NuGet package (MIT; ships the native compiler for linux/win/osx, x64 and arm64; API: `SlangCompiler.Compile(slangc args)`). Runtime compile is needed for player shaders. *Changed 2026-11-09 from "GLSL via libshaderc":* the user plans to ship shader libraries to players, and GLSL's text-pasting `#include` (guards, leaking helpers, name clashes) is what made the legacy library painful (`~/Documents/Xanadus/Shaders`). If `Slangc.NET` is abandoned, call `libslang` directly or run `slangc` at build time. The spike now uses Slang end to end (the GLSL path is deleted). |
-| P8 | **Godot math structs** (`Vector2`, `Rect2`, `Color`, …) stay as they are at first: `GodotSharp.dll` loads fine without the engine as long as only plain structs are touched (the tests prove it). At the end, copy them into Core under the same names (MIT licence), so ~460 files don't change. |
+| P8 | **Godot math structs** (`Vector2`, `Rect2`, `Color`, …) stay as they are at first: `GodotSharp.dll` loads fine without the engine as long as only plain structs are touched (the tests prove it). At the end, copy them into Core under the same names (MIT licence), so ~460 files don't change. *Changed 2026-11-10:* vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). `Color`, `Rect2`, `Rect2I`, `Transform2D`, the `I` vectors and `Mathf` have no BCL equivalent and stay as our own types in namespace `Xanadu.Maths`; `Quaternion` and `Basis` were unused and are gone; `Rid` is `Handle`. |
 | P9 | **Order of work: get the playfield playable first**, then text and UI, then the look (shaders, groups, buffers), then particles, then the tools. |
 | P10 | **No mesh shaders** (SDL_GPU doesn't expose them). GPU-made geometry = compute into a storage buffer + vertex pulling + `DrawPrimitivesIndirect`. |
 | P11 | **Shaders are exposed to players as slots, not whole shaders** (§2a). Each item or group gets a **vertex** slot, a **fragment** slot (a chain of effects), a **blend** dropdown and, later, a **state** slot. Each slot has a built-in default, a library of ready-made choices, or player code that fulfils a **versioned contract** checked by the compiler. |
@@ -631,16 +632,20 @@ How it landed (2026-11-09):
 - **Screen reads:** `xanadu.stage` gained `screenTexture` (host sampler 1) and
   `sampleScreen(uv, lod)`. That moves effect textures to sampler 2 and up;
   `note_background` was renumbered.
-  - **When the screen is copied:** before a batch whose SPIR-V really samples
-    the screen copy, or whose item called `SetCopyScreen`, the pass ends, the
-    target is blitted into a mipmapped screen texture, mips are generated, and
-    the pass resumes. This happens only if something was drawn since the last
-    copy.
+  - **When the screen is copied:** as in Godot, before the first batch in a
+    pass whose SPIR-V really samples the screen copy; later screen reads share
+    that copy. An item that called `SetCopyScreen` (Godot's BackBufferCopy)
+    copies again, if something was drawn since. The pass ends, the target is
+    blitted into the screen texture, and the pass resumes.
+  - **Screen mips:** `ScreenMips` builds levels 1–6 through a 13-tap
+    Gaussian-like filter (`HostCore/Shaders/screen_mips.slang`), as Godot
+    built its screen mips. SDL's mipmap generation halves with a 2×2 box, and
+    the frost read blocky.
   - **Why the SPIR-V is scanned:** reflection lists every declared global,
     used or not. `CompiledShader.ReadsScreen` scans the SPIR-V for a variable
     bound at set 2, binding 1.
-  - Frosted glass is ported (`Ui/frosted_glass.slang`). Song select makes 7
-    copies a frame.
+  - Frosted glass is ported (`Ui/frosted_glass.slang`). Song select makes 1
+    copy a frame.
 - **Self-contained layers:**
   - `HostPassSurfaces` gives each layer a parentless canvas item, drawn into its
     own frame-sized texture before the frame. `IPassSurface.Texture` (a Godot
@@ -872,6 +877,21 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
     so anything made here pastes into a level. The lab sets
     `uniform float2 mouse` (0..1 on the stage) and `uniform float2 resolution`.
   - There's no F2 tuner in the lab yet: it lives in the game assembly.
+- **Blend lab** (the BLEND tab, 2026-11-10): two overlapping quads over a
+  backdrop, each with the whole fixed-function blend open (ops and factors for
+  colour and alpha apart, write mask, blend constant), presets and the
+  equation as text. It draws through `CanvasMaterial.Custom` (a
+  `Core/Rendering/CustomBlend`), which overrides `Blend`; `CanvasPipelines`
+  keys pipelines by it, and the renderer sets the blend constant per draw.
+- **Depth + stencil lab** (the DEPTH + STENCIL tab, 2026-11-10): three quads
+  drawn into the lab's own colour and depth-stencil target
+  (`Tools/Labs/Shaders/depth_lab.slang`, vertex-pulled, no vertex buffer).
+  Each writes its own depth per pixel through `SV_Depth` and discards outside
+  its shape. Depth test, write and compare, colour write, and stencil
+  reference, compare and ops are all open, with scene presets and depth and
+  stencil views. Stages that render on their own get `ILabStage.Render`, called
+  from `HostApp.RenderOffscreen` before the canvas draws, and show the result
+  through `LabContext.Show`. Panel rows for both labs live in `LabPanel`.
 - `HostPointer.Position` reads the pointer without touching the press latch.
 
 ### Step 11: Delete Godot
@@ -889,7 +909,7 @@ Host core and Xanadu Labs (2026-11-09, ahead of step 10 at the user's request):
     game folder itself when no host sets roots. `LocalizedText` returns the
     English fallback (no translations exist yet).
 - [x] Copy Godot's math structs into Core (P8) and drop `GodotSharp`
-  (2026-11-10). `Core/Godot/` holds Godot 4.4-stable's `Vector2/3/4` (and
+  (2026-11-10). `Core/Godot/` (now `Core/Maths/`) held Godot 4.4-stable's `Vector2/3/4` (and
   the `I` forms), `Rect2`, `Rect2I`, `Color`, `Colors`, `Transform2D`,
   `Basis`, `Quaternion`, `Mathf`, `MathfEx` and `Rid` under their own names
   (MIT; its README lists the small changes), plus `Key`, `KeyModifierMask`,

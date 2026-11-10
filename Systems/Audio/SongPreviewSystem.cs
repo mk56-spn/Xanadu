@@ -200,7 +200,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
             _energy[i] = MathF.Max(groups[i] * EnergyGain, _energy[i] - FallRate * delta);
 
         _reactive = Math.Clamp(_reactive + (live ? 1 : -1) * ReactiveRate * delta, 0f, 1f);
-        var energy = new Godot.Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
+        var energy = new Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
         foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().ToEntityList())
         {
             Xanadu.Systems.Canvas.CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;

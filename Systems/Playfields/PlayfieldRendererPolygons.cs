@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Items;
 using Xanadu.Systems.Canvas;
@@ -20,7 +19,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawPolygon(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         bool selected)
@@ -63,7 +62,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>A closed outline, traced.</summary>
-    public static void DrawOutline(IRectCanvas canvas, Rid rid, ReadOnlySpan<Vector2> outline, Color color)
+    public static void DrawOutline(IRectCanvas canvas, Handle rid, ReadOnlySpan<Vector2> outline, Color color)
     {
         if (outline.Length < 2)
             return;

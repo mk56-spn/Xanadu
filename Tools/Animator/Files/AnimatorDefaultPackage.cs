@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Animation;
 
 namespace Xanadu.Tools.Animator.Files;

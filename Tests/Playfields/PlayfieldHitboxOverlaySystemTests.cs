@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -124,26 +123,26 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
 
         public List<(Rect2 Bounds, Color Color)> Rects { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) => Visible = visible;
+        public void SetVisible(Handle canvas, bool visible) => Visible = visible;
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) => Rects.Clear();
+        public void Clear(Handle canvas) => Rects.Clear();
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
             Rects.Add((bounds, color));
 
         public void DrawLine(
-            Rid canvas,
+            Handle canvas,
             Vector2 from,
             Vector2 to,
             Color color,
             float width) { }
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
     }
 }

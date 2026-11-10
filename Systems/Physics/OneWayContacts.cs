@@ -2,18 +2,17 @@ using Box2DSharp.Collision.Collider;
 using Box2DSharp.Dynamics;
 using Box2DSharp.Dynamics.Contacts;
 using Xanadu.Ecs;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Systems.Physics;
 
 /// <summary>Marks a block's fixture as colliding on one side only.</summary>
-public sealed record OneWaySurface(BlockOneWay Side, NVector2 HalfSize);
+public sealed record OneWaySurface(BlockOneWay Side, Vector2 HalfSize);
 
 /// <summary>
 /// Marks a fixture as a box that one-way blocks can let through. The box's
 /// centre sits <paramref name="Offset"/> from its body's position, in metres.
 /// </summary>
-public sealed record OneWayMover(NVector2 HalfSize, NVector2 Offset = default);
+public sealed record OneWayMover(Vector2 HalfSize, Vector2 Offset = default);
 
 /// <summary>
 /// Switches off a contact with a one-way block unless the player is entirely on
@@ -56,11 +55,11 @@ public sealed class OneWayContacts : IContactListener
     /// <summary>Whether the mover is outside the surface's colliding side. Physics coordinates are y-down.</summary>
     public static bool Collides(
         OneWaySurface surface,
-        NVector2 surfaceCenter,
+        Vector2 surfaceCenter,
         OneWayMover mover,
-        NVector2 moverCenter)
+        Vector2 moverCenter)
     {
-        NVector2 gap = surface.HalfSize + mover.HalfSize - new NVector2(SurfaceTolerance);
+        Vector2 gap = surface.HalfSize + mover.HalfSize - new Vector2(SurfaceTolerance);
         moverCenter += mover.Offset;
         return surface.Side switch
         {

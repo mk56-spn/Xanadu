@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Timeline;
 
 namespace Xanadu.Animation;

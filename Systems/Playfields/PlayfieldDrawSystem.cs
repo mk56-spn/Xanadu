@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -19,7 +18,7 @@ public sealed class PlayfieldDrawSystem :
 
     /// <summary>The engine-free shader items, when this draws on a host other than Godot.</summary>
     private readonly ServerShaderCanvasItems? _serverItems;
-    private readonly Rid _playfield;
+    private readonly Handle _playfield;
     private readonly IPassSurfaces? _passes;
 
     /// <summary>The clock grass sways by; it keeps running through pauses.</summary>
@@ -28,7 +27,7 @@ public sealed class PlayfieldDrawSystem :
     public PlayfieldDrawSystem(
         EntityStore entities,
         IRectCanvas canvas,
-        Rid playfield,
+        Handle playfield,
         IPassSurfaces? passes = null,
         Func<Rect2, Rect2>? toPixels = null,
         IShaderCanvasItems? shaderItems = null)

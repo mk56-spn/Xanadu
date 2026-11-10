@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Animation;
 
 namespace Xanadu.Tools.Animator;

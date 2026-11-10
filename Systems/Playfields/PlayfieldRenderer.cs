@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -50,7 +49,7 @@ public static partial class PlayfieldRenderer
 
     public static void DrawPlay(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         EntityStore entities,
         PlayfieldView view,
         Playfield playfield,
@@ -120,7 +119,7 @@ public static partial class PlayfieldRenderer
     /// colour surrounds it, in the level's frame colour if it sets one. The field
     /// and its border line are drawn over its inner edge.
     /// </summary>
-    public static void DrawFieldFrame(IRectCanvas canvas, Rid rid, Rect2 field, float scale, Color? color = null)
+    public static void DrawFieldFrame(IRectCanvas canvas, Handle rid, Rect2 field, float scale, Color? color = null)
     {
         float width = FramePixels(scale);
         canvas.DrawBorder(rid, field.Grow(width), color ?? FrameColor, width);
@@ -128,7 +127,7 @@ public static partial class PlayfieldRenderer
 
     public static void DrawField(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Rect2 field,
         float borderWidth = 1,
         Color? background = null,
@@ -147,7 +146,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawGrid(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Playfield playfield,
         Rect2 field,
         Rect2? visible = null)
@@ -160,7 +159,7 @@ public static partial class PlayfieldRenderer
     /// <summary>The field's width marks along its bottom edge, which stay with the grid off.</summary>
     public static void DrawFieldLabels(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Playfield playfield,
         Rect2 field)
     {
@@ -191,7 +190,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawOuterGrid(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Playfield playfield,
         Rect2 field,
         Rect2 area)
@@ -217,7 +216,7 @@ public static partial class PlayfieldRenderer
 
     private static void DrawLeftText(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         string text,
         float x,
         float y,

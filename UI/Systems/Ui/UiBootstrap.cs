@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Groups;
 
@@ -10,7 +9,7 @@ public static class UiBootstrap
 {
     public static void AttachInitialization(
         SystemGroup root,
-        Rid parentCanvas) =>
+        Handle parentCanvas) =>
         root.Add(new InitializationSystemGroup(parentCanvas));
 
     public static void AttachPresentation(

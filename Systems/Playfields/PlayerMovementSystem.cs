@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 
@@ -168,9 +166,9 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         Vector2 origin = DashOrigin(player, view, playerScreen, noteScreen);
         Vector2 target = DashTarget(view.ScreenToPlayfield(origin), heading, movement.DashStrength);
 
-        NVector2 velocity = new(body.Body.LinearVelocity.X, 0f);
+        Vector2 velocity = new(body.Body.LinearVelocity.X, 0f);
         float late = (judgedTime - movement.TimeMs) / 1000f;
-        NVector2 shift = velocity * late;
+        Vector2 shift = velocity * late;
 
         Vector2 targetScreen = view.PlayfieldToScreen(target) + Box2DPhysicsWorld.ToScreen(shift);
         body.Body.SetTransform(
@@ -205,10 +203,10 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
     /// The velocity a momentum note imposes: its speed along the heading, on
     /// both axes. It replaces whatever the body had, so notes never stack.
     /// </summary>
-    public static NVector2 MomentumVelocity(Note note, DashDirection heading)
+    public static Vector2 MomentumVelocity(Note note, DashDirection heading)
     {
         Vector2 direction = DashDirectionVector(heading) * MomentumSpeed(note);
-        return new NVector2(direction.X, direction.Y);
+        return new Vector2(direction.X, direction.Y);
     }
 
     /// <summary>The speed, in metres per second, a momentum note gives.</summary>

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -8,7 +7,7 @@ namespace Xanadu.Systems.Canvas;
 /// drawn on them, so a view can describe itself every frame between
 /// <see cref="Begin"/> and <see cref="End"/> and sends nothing while it looks the same.
 /// </summary>
-public sealed class RetainedCanvasDraw(IRectCanvas canvas, Rid target)
+public sealed class RetainedCanvasDraw(IRectCanvas canvas, Handle target)
 {
     private enum Kind
     {

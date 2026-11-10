@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Particles;
 using Xanadu.Systems.Shaders;
 
@@ -10,7 +9,7 @@ namespace Xanadu.Systems.Particles;
 /// <see cref="IParticleServer"/>: each burst becomes seeds that live in one
 /// canvas item, so bursts overlap without cutting each other off.
 /// </summary>
-public sealed class CanvasParticleEmitter(Rid canvas, IParticleServer server) : IParticleEmitter
+public sealed class CanvasParticleEmitter(Handle canvas, IParticleServer server) : IParticleEmitter
 {
     private readonly Random _random = new();
     private readonly ParticleSeed[] _seeds = new ParticleSeed[XpfParticle.MaxAmount];

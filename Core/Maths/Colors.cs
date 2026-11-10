@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Godot
+namespace Xanadu.Maths
 {
     /// <summary>
     /// This class contains color constants created from standardized color names.

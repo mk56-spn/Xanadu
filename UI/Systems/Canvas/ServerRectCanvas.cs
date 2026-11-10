@@ -1,5 +1,4 @@
 using System;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -13,37 +12,37 @@ public class ServerRectCanvas : IRectCanvas
 {
     protected static ICanvasServer Server => CanvasServer.Current;
 
-    public virtual void Clear(Rid canvas) => Server.Clear(canvas);
+    public virtual void Clear(Handle canvas) => Server.Clear(canvas);
 
-    public virtual void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
+    public virtual void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-    public virtual void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+    public virtual void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-    public virtual void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+    public virtual void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-    public void SetVisible(Rid canvas, bool visible) =>
+    public void SetVisible(Handle canvas, bool visible) =>
         Server.SetVisible(canvas, visible);
 
-    public void SetTransform(Rid canvas, Transform2D transform) =>
+    public void SetTransform(Handle canvas, Transform2D transform) =>
         Server.SetTransform(canvas, transform);
 
-    public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) =>
+    public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) =>
         Server.AddTextureRect(canvas, bounds, texture);
 
-    public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
+    public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
         Server.AddRect(canvas, bounds, color);
 
     public void DrawCircle(
-        Rid canvas,
+        Handle canvas,
         Vector2 center,
         float radius,
         Color color) =>
         Server.AddCircle(canvas, center, radius, color);
 
-    public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) =>
+    public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
         Server.AddLine(canvas, from, to, color, width, true);
 
-    public void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal)
+    public void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal)
     {
         Vector2 topRight = new(bounds.End.X, bounds.Position.Y);
         Vector2 bottomLeft = new(bounds.Position.X, bounds.End.Y);
@@ -55,7 +54,7 @@ public class ServerRectCanvas : IRectCanvas
                 : new[] { start, start, end, end });
     }
 
-    public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
+    public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color)
     {
         if (points.Length < 3)
             return;
@@ -66,7 +65,7 @@ public class ServerRectCanvas : IRectCanvas
         Server.AddPolygon(canvas, vertices, colors);
     }
 
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors)
+    public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors)
     {
         int count = points.Length - points.Length % 3;
         if (count < 3 || colors.Length < count)
@@ -79,7 +78,7 @@ public class ServerRectCanvas : IRectCanvas
             canvas, indices, points[..count].ToArray(), colors[..count].ToArray());
     }
 
-    public void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs)
+    public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs)
     {
         int count = points.Length - points.Length % 3;
         if (count < 3 || colors.Length < count || uvs.Length < count)
@@ -92,7 +91,7 @@ public class ServerRectCanvas : IRectCanvas
             canvas, indices, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray());
     }
 
-    public void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
+    public void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         if (rects.IsEmpty)
             return;
@@ -118,7 +117,7 @@ public class ServerRectCanvas : IRectCanvas
     }
 
     public void DrawPolyline(
-        Rid canvas,
+        Handle canvas,
         ReadOnlySpan<Vector2> points,
         Color color,
         float width,

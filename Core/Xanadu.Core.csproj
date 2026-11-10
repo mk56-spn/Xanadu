@@ -10,4 +10,5 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.148.0" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
+  <Import Project="Maths/Maths.props" />
 </Project>

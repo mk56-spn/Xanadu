@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Items;
 using Xanadu.Layering;
@@ -20,7 +19,7 @@ namespace Xanadu.Animation;
 /// no layer can reach past the canvas to whatever is drawn above it. Without this
 /// a layer is a z index relative to the canvas, as the game's characters use.
 /// </param>
-public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers = false) : IAttachmentVisuals
+public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLayers = false) : IAttachmentVisuals
 {
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
@@ -49,7 +48,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
                 // Higher layers draw in front; equal layers keep the attachment order.
                 // Only the attachment's own art shows until a pose says otherwise.
-                Rid item = CreateItem(texture!, size, attachment.ZOrder, AnimatorDrawOrder.Attachment(i));
+                Handle item = CreateItem(texture!, size, attachment.ZOrder, AnimatorDrawOrder.Attachment(i));
                 CanvasServer.Current.SetVisible(item, art == 0);
                 _visuals.Add(new Visual(i, art, item, texture!, new Rect2(-size / 2, size)));
             }
@@ -65,7 +64,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         for (int i = 0; i < package.Cloths.Count; i++)
         {
             XafCloth cloth = package.Cloths[i];
-            Rid item = CanvasServer.Current.CreateItem();
+            Handle item = CanvasServer.Current.CreateItem();
             CanvasServer.Current.SetParent(item, canvas);
             SetLayer(item, cloth.ZOrder, AnimatorDrawOrder.Cloth(i));
             _cloths.Add(new ClothVisual(i, item));
@@ -146,7 +145,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
             // Segments can be added or removed while editing, so the pieces follow the points.
             while (visual.Items.Count < segments)
             {
-                Rid piece = CreateItem(
+                Handle piece = CreateItem(
                     visual.Texture,
                     visual.Size,
                     visual.Layer,
@@ -183,7 +182,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
                 visual.Layer,
                 AnimatorDrawOrder.Chain(visual.Index, 0)));
 
-        Rid item = visual.Items[0];
+        Handle item = visual.Items[0];
         CanvasServer.Current.Clear(item);
         CanvasServer.Current.SetTransform(item, Transform2D.Identity);
         (Vector2[] vertices, Vector2[] uvs, int[] triangles) = XafChainArt.Sheet(points, chain.Width);
@@ -261,7 +260,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
         foreach (ChainVisual chain in _chains)
         {
-            foreach (Rid item in chain.Items)
+            foreach (Handle item in chain.Items)
                 CanvasServer.Current.Free(item);
             chain.Texture.Dispose();
         }
@@ -292,7 +291,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         if (triangles.Length == 0)
             return null;
 
-        Rid texture = primitive.Ref.Length > 0 ? TextureServer.Current.Load(primitive.Ref) : default;
+        Handle texture = primitive.Ref.Length > 0 ? TextureServer.Current.Load(primitive.Ref) : default;
         var bounds = new Rect2(points[0], Vector2.Zero);
         foreach (Vector2 point in points)
             bounds = bounds.Expand(point);
@@ -307,7 +306,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         var colors = new Color[points.Length];
         Array.Fill(colors, primitive.Fill);
 
-        Rid canvasItem = CanvasServer.Current.CreateItem();
+        Handle canvasItem = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(canvasItem, canvas);
         SetLayer(canvasItem, layer, order);
         CanvasServer.Current.SetVisible(canvasItem, false);
@@ -359,14 +358,14 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         return new ArtTexture(TextureServer.Current.Create(image.Width, image.Height, image.Pixels, mipmaps: true), image);
     }
 
-    private Rid CreateArtItem()
+    private Handle CreateArtItem()
     {
-        Rid item = CanvasServer.Current.CreateItem();
+        Handle item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(item, canvas);
         return item;
     }
 
-    private void SetLayer(Rid item, int layer, int order)
+    private void SetLayer(Handle item, int layer, int order)
     {
         layer = DrawOrder.ClampLayer(layer);
         if (containLayers)
@@ -379,16 +378,16 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
         CanvasServer.Current.SetDrawIndex(item, order);
     }
 
-    private Rid CreateItem(ArtTexture texture, Vector2 size, int layer, int order = 0)
+    private Handle CreateItem(ArtTexture texture, Vector2 size, int layer, int order = 0)
     {
-        Rid item = CreateArtItem();
+        Handle item = CreateArtItem();
         SetLayer(item, layer, order);
         CanvasServer.Current.AddTextureRect(item, new Rect2(-size / 2, size), texture.Id);
         return item;
     }
 
     /// <summary>A rasterised SVG group: its texture, and its pixels for reading coverage.</summary>
-    private sealed record ArtTexture(Rid Id, RasterImage Image)
+    private sealed record ArtTexture(Handle Id, RasterImage Image)
     {
         public void Dispose() => TextureServer.Current.Free(Id);
     }
@@ -397,7 +396,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     /// One art option of one attachment; <see cref="Mesh"/> is set once it has been
     /// drawn as a mesh, and <see cref="Layer"/> holds the layer it was last given.
     /// </summary>
-    private sealed record Visual(int Index, int Art, Rid Item, ArtTexture Texture, Rect2 Bounds)
+    private sealed record Visual(int Index, int Art, Handle Item, ArtTexture Texture, Rect2 Bounds)
     {
         public int? Layer { get; set; }
 
@@ -408,7 +407,7 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     }
 
     /// <summary>One polygon of an effect; its texture is held by the texture server.</summary>
-    private sealed record EffectVisual(int Index, Rid Item)
+    private sealed record EffectVisual(int Index, Handle Item)
     {
         /// <summary>The alpha the pose last gave it, which presence keeps when it shades the effect.</summary>
         public float Alpha { get; set; }
@@ -419,10 +418,10 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
     /// on, and a canvas item per segment.
     /// </summary>
     /// <summary>One cloth's canvas item, redrawn every frame, and the grid its triangles were built for.</summary>
-    private sealed class ClothVisual(int index, Rid item)
+    private sealed class ClothVisual(int index, Handle item)
     {
         public int Index { get; } = index;
-        public Rid Item { get; } = item;
+        public Handle Item { get; } = item;
         public int Columns { get; set; }
         public int Rows { get; set; }
         public int[] Triangles { get; set; } = Array.Empty<int>();
@@ -430,6 +429,6 @@ public sealed partial class SvgAttachmentVisuals(Rid canvas, bool containLayers 
 
     private sealed record ChainVisual(int Index, ArtTexture Texture, Vector2 Size, int Layer)
     {
-        public List<Rid> Items { get; } = new();
+        public List<Handle> Items { get; } = new();
     }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
@@ -160,44 +159,44 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
 
         public List<TextCall> Texts { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) => Clears++;
+        public void Clear(Handle canvas) => Clears++;
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) { }
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) { }
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
             Circles.Add(center);
 
         public void DrawPolygon(
-            Rid canvas,
+            Handle canvas,
             ReadOnlySpan<Vector2> points,
             Color color) =>
             Polygons.Add(new WedgeCall(points.ToArray(), color));
 
         public void DrawLine(
-            Rid canvas,
+            Handle canvas,
             Vector2 from,
             Vector2 to,
             Color color,
             float width) { }
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) =>
             Texts.Add(new TextCall(bounds, text, color));
 
         public void DrawTextStyled(
-            Rid canvas,
+            Handle canvas,
             Rect2 bounds,
             string text,
             Color color,
             int fontSize) =>
             Texts.Add(new TextCall(bounds, text, color));
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
         public readonly record struct WedgeCall(Vector2[] Points, Color Color);
 

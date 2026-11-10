@@ -19,4 +19,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Xanadu.VisualTests" />
   </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
 </Project>

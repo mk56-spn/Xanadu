@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -12,7 +11,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// seen, and while bones are being picked for it rings the ones that bend it.
 /// Nothing is drawn in preview mode.
 /// </summary>
-public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Rid target)
+public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Handle target)
 {
     private static readonly Color Wire = new(Palette.Cyan, 0.45f);
     private static readonly Color Bending = Palette.Warning;

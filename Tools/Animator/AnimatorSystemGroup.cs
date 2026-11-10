@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Animation;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
@@ -15,9 +14,9 @@ public sealed class AnimatorSystemGroup : SystemGroup
 {
     public AnimatorSystemGroup(
         IRectCanvas canvas,
-        Rid gridCanvas,
-        Rid previewCanvas,
-        Rid timelineCanvas,
+        Handle gridCanvas,
+        Handle previewCanvas,
+        Handle timelineCanvas,
         IAttachmentVisuals attachments,
         IVisualRidFactory visuals,
         IAnimatorSvgCatalog svgCatalog,

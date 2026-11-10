@@ -3,7 +3,6 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;

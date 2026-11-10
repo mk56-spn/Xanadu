@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Timeline;
 using Xanadu.Systems.Canvas;
@@ -40,7 +39,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     private static readonly Color DriftZeroColor = new(0.35f, 0.42f, 0.55f, 0.9f);
 
     private readonly IRectCanvas _canvas;
-    private readonly Rid _timeline;
+    private readonly Handle _timeline;
     private readonly List<DriftSample> _drift = new();
 
     private long _lastTrackMs = -1;
@@ -49,7 +48,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     private long _driftSum;
     private int _driftCount;
 
-    public TimelineDrawSystem(IRectCanvas canvas, Rid timeline)
+    public TimelineDrawSystem(IRectCanvas canvas, Handle timeline)
     {
         _canvas = canvas;
         _timeline = timeline;

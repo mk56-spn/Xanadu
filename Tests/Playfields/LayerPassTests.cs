@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
@@ -23,7 +22,7 @@ public sealed class LayerPassTests
     private static readonly PlayfieldView View = new(Vector2.Zero, 1f, new Vector2(800, 600));
     private static readonly Playfield Field = new(1000, 1000);
     private static readonly Playhead Head = new(0, 120, 0, false);
-    private static readonly Rid Main = TestRid.Make(1);
+    private static readonly Handle Main = TestRid.Make(1);
 
     private static EntityStore Level(LevelLayers layers)
     {
@@ -137,10 +136,10 @@ public sealed class LayerPassTests
 
         public sealed class FakeSurface : IPassSurface
         {
-            public Rid Canvas { get; } = TestRid.Make(77);
+            public Handle Canvas { get; } = TestRid.Make(77);
             public int TextureReads { get; private set; }
 
-            public Rid TextureId
+            public Handle TextureId
             {
                 get
                 {
@@ -225,8 +224,8 @@ public sealed class LayerPassTests
 
         Draw(new PassCanvas(), store, table, surfaces, items, BufferedGroupZero());
 
-        Rid grouped = items.Grouped.Single();
-        Rid parent = items.Parents.Single(pair => pair.Item == grouped).Parent;
+        Handle grouped = items.Grouped.Single();
+        Handle parent = items.Parents.Single(pair => pair.Item == grouped).Parent;
         Assert.That(parent, Is.Not.EqualTo(surfaces.Fake.Canvas), "layer -1's buffer is not inside layer -2's self-contained viewport");
     }
 
@@ -265,44 +264,44 @@ public sealed class LayerPassTests
     {
         private int _next = 100;
 
-        public List<(Rid Item, Rid Parent)> Parents { get; } = new();
+        public List<(Handle Item, Handle Parent)> Parents { get; } = new();
         public List<(int Slot, BlendMode Blend)> Materials { get; } = new();
         public List<(string Param, Vector4 Value, int Size)> Values { get; } = new();
-        public List<Rid> Copies { get; } = new();
+        public List<Handle> Copies { get; } = new();
 
-        public Rid CreateItem(Rid parent)
+        public Handle CreateItem(Handle parent)
         {
-            Rid item = TestRid.Make((ulong)_next++);
+            Handle item = TestRid.Make((ulong)_next++);
             Parents.Add((item, parent));
             return item;
         }
 
-        public void SetMaterial(Rid item, int slot, string commonPath, BlendMode blend) =>
+        public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend) =>
             Materials.Add((slot, blend));
 
-        public void SetInstanceUniform(Rid item, string param, Vector4 value, int size) =>
+        public void SetInstanceUniform(Handle item, string param, Vector4 value, int size) =>
             Values.Add((param, value, size));
 
-        public void CopyScreen(Rid item) => Copies.Add(item);
+        public void CopyScreen(Handle item) => Copies.Add(item);
 
-        public List<Rid> Grouped { get; } = new();
-        public List<(Rid Item, Color Color)> Modulates { get; } = new();
+        public List<Handle> Grouped { get; } = new();
+        public List<(Handle Item, Color Color)> Modulates { get; } = new();
 
-        public void SetCanvasGroup(Rid item) => Grouped.Add(item);
+        public void SetCanvasGroup(Handle item) => Grouped.Add(item);
 
-        public void SetModulate(Rid item, Color color) => Modulates.Add((item, color));
+        public void SetModulate(Handle item, Color color) => Modulates.Add((item, color));
     }
 
     private sealed class PassCanvas : IRectCanvas
     {
-        public List<(int Layer, Rid? Target)> LayerTargets { get; } = new();
-        public List<Rid> DrawCanvases { get; } = new();
+        public List<(int Layer, Handle? Target)> LayerTargets { get; } = new();
+        public List<Handle> DrawCanvases { get; } = new();
         public List<(int Slot, BlendMode Blend)> Selections { get; } = new();
         public List<(string Param, Vector4 Value, int Size)> Values { get; } = new();
         public List<string> Calls { get; } = new();
         public int Composites { get; private set; }
 
-        public void BeginLayer(int layer, Rid? target = null) => LayerTargets.Add((layer, target));
+        public void BeginLayer(int layer, Handle? target = null) => LayerTargets.Add((layer, target));
 
         public void CopyScreen() => Calls.Add("copy");
 
@@ -312,40 +311,40 @@ public sealed class LayerPassTests
 
         public void SetShaderValue(string param, Vector4 value, int size) => Values.Add((param, value, size));
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) { }
+        public void Clear(Handle canvas) { }
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) => Mark(canvas, "rect");
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Mark(canvas, "rect");
 
-        public void DrawTexture(Rid canvas, Rect2 bounds, Rid texture)
+        public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture)
         {
             Composites++;
             Mark(canvas, "texture");
         }
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) => Mark(canvas, "circle");
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Mark(canvas, "circle");
 
-        public void DrawPolygon(Rid canvas, System.ReadOnlySpan<Vector2> points, Color color) => Mark(canvas, "polygon");
+        public void DrawPolygon(Handle canvas, System.ReadOnlySpan<Vector2> points, Color color) => Mark(canvas, "polygon");
 
         public void DrawPolyline(
-            Rid canvas,
+            Handle canvas,
             System.ReadOnlySpan<Vector2> points,
             Color color,
             float width,
             bool antialiased = true) => Mark(canvas, "polyline");
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) => Mark(canvas, "line");
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Mark(canvas, "line");
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text");
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text");
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text-left");
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text-left");
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text-right");
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Mark(canvas, "text-right");
 
-        private void Mark(Rid canvas, string call)
+        private void Mark(Handle canvas, string call)
         {
             DrawCanvases.Add(canvas);
             Calls.Add(call);

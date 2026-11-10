@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 

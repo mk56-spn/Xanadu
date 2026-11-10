@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -18,7 +17,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawSpike(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Entity entity,
         PlayfieldView view,
         bool selected)
@@ -54,7 +53,7 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static void DrawSpikeBody(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         SpikeTriangle triangle,
         float outlineWidth,
         Color fill,

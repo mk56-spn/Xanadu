@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Canvas;
@@ -10,7 +9,7 @@ namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    public static void DrawTransport(IRectCanvas canvas, Rid rid, Rect2 field, Playhead playhead)
+    public static void DrawTransport(IRectCanvas canvas, Handle rid, Rect2 field, Playhead playhead)
     {
         float barY = field.End.Y + 10;
         var bar = new Rect2(field.Position.X, barY, field.Size.X, 8);

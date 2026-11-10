@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Godot;
 using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 
@@ -33,31 +32,31 @@ internal sealed class CanvasTree : ICanvasServer
         Root = Make();
     }
 
-    /// <summary>Hands out an id the game sees as a Godot <see cref="Rid"/>; textures share the same id space.</summary>
-    public Rid MintRid() => ToRid(_nextId++);
+    /// <summary>Hands out an id the game sees as a Godot <see cref="Handle"/>; textures share the same id space.</summary>
+    public Handle MintRid() => ToRid(_nextId++);
 
-    public static Rid ToRid(ulong id) => new(id);
+    public static Handle ToRid(ulong id) => new(id);
 
-    public Rid RootRid => ToRid(Root.Id);
+    public Handle RootRid => ToRid(Root.Id);
 
     public int Count => _items.Count;
 
     private CanvasItem Make()
     {
-        Rid rid = MintRid();
+        Handle rid = MintRid();
         var item = new CanvasItem(rid.Id);
         _items.Add(item.Id, item);
         return item;
     }
 
-    private CanvasItem? Find(Rid rid) => _items.GetValueOrDefault(rid.Id);
+    private CanvasItem? Find(Handle rid) => _items.GetValueOrDefault(rid.Id);
 
     /// <summary>The item behind an id, for the host's own use (offscreen roots).</summary>
-    public CanvasItem? Item(Rid rid) => Find(rid);
+    public CanvasItem? Item(Handle rid) => Find(rid);
 
-    public Rid CreateItem() => ToRid(Make().Id);
+    public Handle CreateItem() => ToRid(Make().Id);
 
-    public void Free(Rid rid)
+    public void Free(Handle rid)
     {
         if (!_items.Remove(rid.Id, out CanvasItem? item))
             return;
@@ -76,7 +75,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Parent = null;
     }
 
-    public void SetParent(Rid rid, Rid parentRid)
+    public void SetParent(Handle rid, Handle parentRid)
     {
         if (Find(rid) is not { } item)
             return;
@@ -91,13 +90,13 @@ internal sealed class CanvasTree : ICanvasServer
         parent.ChildrenSorted = false;
     }
 
-    public void SetZIndex(Rid rid, int z)
+    public void SetZIndex(Handle rid, int z)
     {
         if (Find(rid) is { } item)
             item.Z = Math.Clamp(z, -4096, 4096);
     }
 
-    public void SetDrawIndex(Rid rid, int index)
+    public void SetDrawIndex(Handle rid, int index)
     {
         if (Find(rid) is not { } item || item.DrawIndex == index)
             return;
@@ -107,31 +106,31 @@ internal sealed class CanvasTree : ICanvasServer
             parent.ChildrenSorted = false;
     }
 
-    public void SetVisible(Rid rid, bool visible)
+    public void SetVisible(Handle rid, bool visible)
     {
         if (Find(rid) is { } item)
             item.Visible = visible;
     }
 
-    public void SetTransform(Rid rid, Transform2D transform)
+    public void SetTransform(Handle rid, Transform2D transform)
     {
         if (Find(rid) is { } item)
             item.Transform = transform;
     }
 
-    public void SetModulate(Rid rid, Color color)
+    public void SetModulate(Handle rid, Color color)
     {
         if (Find(rid) is { } item)
             item.Modulate = color;
     }
 
-    public void SetSelfModulate(Rid rid, Color color)
+    public void SetSelfModulate(Handle rid, Color color)
     {
         if (Find(rid) is { } item)
             item.SelfModulate = color;
     }
 
-    public void SetCustomRect(Rid rid, bool use, Rect2 rect)
+    public void SetCustomRect(Handle rid, bool use, Rect2 rect)
     {
         if (Find(rid) is not { } item)
             return;
@@ -140,20 +139,20 @@ internal sealed class CanvasTree : ICanvasServer
         item.CustomRect = rect;
     }
 
-    public void SetClip(Rid rid, bool clip)
+    public void SetClip(Handle rid, bool clip)
     {
         if (Find(rid) is { } item)
             item.Clip = clip;
     }
 
-    public void SetMaterial(Rid rid, CanvasMaterial? material)
+    public void SetMaterial(Handle rid, CanvasMaterial? material)
     {
         if (Find(rid) is { } item)
             item.Material = material;
     }
 
     /// <summary>One per-item value over the material's (Godot's instance uniforms).</summary>
-    public void SetInstanceValue(Rid rid, string name, Vector4 value)
+    public void SetInstanceValue(Handle rid, string name, Vector4 value)
     {
         if (Find(rid) is not { } item)
             return;
@@ -167,25 +166,25 @@ internal sealed class CanvasTree : ICanvasServer
     /// as one quad with the item's material and modulate (step 6). The margins
     /// are Godot's; the host always fits the image to what was drawn.
     /// </summary>
-    public void SetCanvasGroup(Rid rid, float clearMargin, bool fitEmpty, float fitMargin)
+    public void SetCanvasGroup(Handle rid, float clearMargin, bool fitEmpty, float fitMargin)
     {
         if (Find(rid) is { } item)
             item.Group = true;
     }
 
-    public void SetCopyScreen(Rid rid, bool copy)
+    public void SetCopyScreen(Handle rid, bool copy)
     {
         if (Find(rid) is { } item)
             item.CopyScreen = copy;
     }
 
-    public void Clear(Rid rid)
+    public void Clear(Handle rid)
     {
         if (Find(rid) is { } item)
             item.ClearCommands();
     }
 
-    public void AddRect(Rid rid, Rect2 rect, Color color)
+    public void AddRect(Handle rid, Rect2 rect, Color color)
     {
         if (Find(rid) is not { } item)
             return;
@@ -194,7 +193,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Quad(a, new Vector2(c.X, a.Y), c, new Vector2(a.X, c.Y), color, default);
     }
 
-    public void AddCircle(Rid rid, Vector2 center, float radius, Color color)
+    public void AddCircle(Handle rid, Vector2 center, float radius, Color color)
     {
         if (Find(rid) is not { } item || radius <= 0)
             return;
@@ -210,13 +209,13 @@ internal sealed class CanvasTree : ICanvasServer
         }
     }
 
-    public void AddLine(Rid rid, Vector2 from, Vector2 to, Color color, float width, bool antialiased)
+    public void AddLine(Handle rid, Vector2 from, Vector2 to, Color color, float width, bool antialiased)
     {
         if (Find(rid) is { } item)
             item.Segment(from, to, color, color, width);
     }
 
-    public void AddPolyline(Rid rid, Vector2[] points, Color[] colors, float width, bool antialiased)
+    public void AddPolyline(Handle rid, Vector2[] points, Color[] colors, float width, bool antialiased)
     {
         if (Find(rid) is not { } item || points.Length < 2 || colors.Length == 0)
             return;
@@ -224,7 +223,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Strip(points, colors, width);
     }
 
-    public void AddMultiline(Rid rid, Vector2[] points, Color[] colors, float width)
+    public void AddMultiline(Handle rid, Vector2[] points, Color[] colors, float width)
     {
         if (Find(rid) is not { } item || colors.Length == 0)
             return;
@@ -236,7 +235,7 @@ internal sealed class CanvasTree : ICanvasServer
         }
     }
 
-    public void AddPolygon(Rid rid, Vector2[] points, Color[] colors, Vector2[]? uvs = null)
+    public void AddPolygon(Handle rid, Vector2[] points, Color[] colors, Vector2[]? uvs = null)
     {
         if (Find(rid) is not { } item || points.Length < 3 || colors.Length == 0)
             return;
@@ -253,7 +252,7 @@ internal sealed class CanvasTree : ICanvasServer
         }
     }
 
-    public void AddTriangleArray(Rid rid, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Rid texture = default)
+    public void AddTriangleArray(Handle rid, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Handle texture = default)
     {
         if (Find(rid) is not { } item || colors.Length == 0)
             return;
@@ -272,7 +271,7 @@ internal sealed class CanvasTree : ICanvasServer
         }
     }
 
-    public void AddTextureRect(Rid rid, Rect2 rect, Rid texture)
+    public void AddTextureRect(Handle rid, Rect2 rect, Handle texture)
     {
         if (Find(rid) is not { } item)
             return;
@@ -281,7 +280,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Quad(a, new Vector2(c.X, a.Y), c, new Vector2(a.X, c.Y), Colors.White, texture.Id);
     }
 
-    public void AddSetTransform(Rid rid, Transform2D transform)
+    public void AddSetTransform(Handle rid, Transform2D transform)
     {
         if (Find(rid) is { } item)
             item.CommandTransform = transform;

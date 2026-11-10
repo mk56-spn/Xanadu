@@ -11,10 +11,10 @@ public struct ShaderParam(string uniform, int channel, float defaultValue) : ICo
 }
 
 /// <summary>Binds a tuner colour picker to a colour uniform.</summary>
-public struct ShaderColorParam(string uniform, Godot.Color defaultValue) : IComponent
+public struct ShaderColorParam(string uniform, Color defaultValue) : IComponent
 {
     public string Uniform = uniform;
-    public Godot.Color Default = defaultValue;
+    public Color Default = defaultValue;
 }
 
 public enum ShaderTunerAction

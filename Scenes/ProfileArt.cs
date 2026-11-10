@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Systems.Canvas;
 using Xanadu.Ecs;
 using Xanadu.Profiles;

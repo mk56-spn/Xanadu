@@ -52,9 +52,9 @@ public sealed class XafAuthoringTests
             0.5f,
             new XafTransform
             {
-                Translation = new Godot.Vector2(4, 5),
+                Translation = new Vector2(4, 5),
                 Rotation = 0.25f,
-                Scale = new Godot.Vector2(2, 3),
+                Scale = new Vector2(2, 3),
             });
 
         Assert.That(clip.Channels, Has.Count.EqualTo(5));

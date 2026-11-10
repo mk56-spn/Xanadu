@@ -1,6 +1,5 @@
 using System.Globalization;
 using Friflo.Engine.ECS;
-using Godot;
 
 namespace Xanadu.Ecs;
 

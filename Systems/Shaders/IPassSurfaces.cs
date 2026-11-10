@@ -1,4 +1,3 @@
-using Godot;
 
 namespace Xanadu.Systems.Shaders;
 
@@ -24,10 +23,10 @@ public interface IPassSurfaces
 public interface IPassSurface
 {
     /// <summary>The canvas item the layer's content draws into.</summary>
-    Rid Canvas { get; }
+    Handle Canvas { get; }
 
     /// <summary>The texture to composite, premultiplied, as a canvas texture id; default when unavailable.</summary>
-    Rid TextureId { get; }
+    Handle TextureId { get; }
 
     /// <summary>Resizes to the view; the content stays in the same coordinates.</summary>
     void Resize(Vector2 size);

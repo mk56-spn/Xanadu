@@ -2,10 +2,8 @@ using System;
 using System.Linq;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Systems.Physics;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Tests.Physics;
 
@@ -24,7 +22,7 @@ public sealed class Box2DPhysicsWorldTests
             mass: 1f,
             friction: 0.15f);
 
-        body.ApplyLinearImpulseToCenter(new NVector2(3f, -4f), true);
+        body.ApplyLinearImpulseToCenter(new Vector2(3f, -4f), true);
 
         for (int i = 0; i < 240; i++)
             physics.Step(Box2DPhysicsWorld.FixedTimeStep);

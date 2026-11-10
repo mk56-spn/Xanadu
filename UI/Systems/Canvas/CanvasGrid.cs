@@ -1,4 +1,3 @@
-using Godot;
 using Xanadu.Theme;
 
 namespace Xanadu.Systems.Canvas;
@@ -19,7 +18,7 @@ public static class CanvasGrid
     /// <summary>Draws grid lines across <paramref name="bounds"/>, in the given colours or the grid's own.</summary>
     public static void Draw(
         IRectCanvas canvas,
-        Rid rid,
+        Handle rid,
         Rect2 bounds,
         Vector2 cell,
         Vector2 axis,

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Particles;
 using Xanadu.Systems.Particles;
 

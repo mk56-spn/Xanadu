@@ -1,5 +1,4 @@
 using System;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -15,21 +14,21 @@ public sealed class CanvasItemHandle : IDisposable
     /// <param name="parent">The canvas item this layer is parented to.</param>
     /// <param name="zIndex">Draw order among siblings.</param>
     /// <param name="visible">Whether the layer starts visible.</param>
-    public CanvasItemHandle(Rid parent, int zIndex, bool visible = true)
+    public CanvasItemHandle(Handle parent, int zIndex, bool visible = true)
     {
-        Rid = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(Rid, parent);
-        CanvasServer.Current.SetZIndex(Rid, zIndex);
+        Handle = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(Handle, parent);
+        CanvasServer.Current.SetZIndex(Handle, zIndex);
         if (!visible)
-            CanvasServer.Current.SetVisible(Rid, false);
+            CanvasServer.Current.SetVisible(Handle, false);
     }
 
-    public Rid Rid { get; }
+    public Handle Handle { get; }
 
     public void SetVisible(bool visible)
     {
         if (!_released)
-            CanvasServer.Current.SetVisible(Rid, visible);
+            CanvasServer.Current.SetVisible(Handle, visible);
     }
 
     public void Dispose()
@@ -38,6 +37,6 @@ public sealed class CanvasItemHandle : IDisposable
             return;
 
         _released = true;
-        CanvasServer.Current.Free(Rid);
+        CanvasServer.Current.Free(Handle);
     }
 }

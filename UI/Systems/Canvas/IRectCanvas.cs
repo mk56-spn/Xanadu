@@ -1,5 +1,4 @@
 using System;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Ui.Ecs.Ui;
@@ -47,7 +46,7 @@ public interface IRectCanvas
     /// <paramref name="target"/> is the canvas item to put the container under,
     /// for a self-contained layer's own viewport; null is the canvas itself.
     /// </summary>
-    void BeginLayer(int layer, Rid? target = null) { }
+    void BeginLayer(int layer, Handle? target = null) { }
 
     /// <summary>
     /// Makes the next shaded run copy the whole screen to the back buffer just
@@ -83,42 +82,42 @@ public interface IRectCanvas
     /// </summary>
     Rect2 ToLocal(Rect2 screen) => screen;
 
-    void SetVisible(Rid canvas, bool visible);
+    void SetVisible(Handle canvas, bool visible);
 
-    void SetTransform(Rid canvas, Transform2D transform);
+    void SetTransform(Handle canvas, Transform2D transform);
 
-    void Clear(Rid canvas);
+    void Clear(Handle canvas);
 
-    void DrawRect(Rid canvas, Rect2 bounds, Color color);
+    void DrawRect(Handle canvas, Rect2 bounds, Color color);
 
     /// <summary>Draws a texture, by its canvas texture id, into a rectangle.</summary>
-    void DrawTexture(Rid canvas, Rect2 bounds, Rid texture) { }
+    void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) { }
 
     /// <summary>Draws a filled circle.</summary>
-    void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) { }
+    void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) { }
 
     /// <summary>Fills a convex polygon.</summary>
-    void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) { }
+    void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) { }
 
     /// <summary>
     /// Fills a batch of triangles in one draw: every three points are one
     /// triangle, and each point has its own colour, blended across the face.
     /// </summary>
-    void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) { }
+    void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors) { }
 
     /// <summary>
     /// The same, with a UV per point for the shader drawing them to read;
     /// canvases without shaders draw the triangles as they would without.
     /// </summary>
-    void DrawTriangles(Rid canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
+    void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
         DrawTriangles(canvas, points, colors);
 
     /// <summary>Fills a rectangle with a smooth ramp between two colours, along its width or its height.</summary>
-    void DrawGradientRect(Rid canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
+    void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
 
     /// <summary>Draws a connected polyline.</summary>
     void DrawPolyline(
-        Rid canvas,
+        Handle canvas,
         ReadOnlySpan<Vector2> points,
         Color color,
         float width,
@@ -129,7 +128,7 @@ public interface IRectCanvas
     }
 
     /// <summary>Draws many one-pixel rectangle outlines of one colour, as one batch where the canvas can.</summary>
-    void DrawRectOutlines(Rid canvas, ReadOnlySpan<Rect2> rects, Color color)
+    void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         foreach (Rect2 rect in rects)
         {
@@ -144,7 +143,7 @@ public interface IRectCanvas
 
     /// <summary>Draws an outlined circle as one connected polyline.</summary>
     void DrawCircleOutline(
-        Rid canvas,
+        Handle canvas,
         Vector2 center,
         float radius,
         Color color,
@@ -166,34 +165,34 @@ public interface IRectCanvas
         DrawPolyline(canvas, points, color, width);
     }
 
-    void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width);
+    void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width);
 
-    void DrawText(Rid canvas, Rect2 bounds, string text, Color color);
+    void DrawText(Handle canvas, Rect2 bounds, string text, Color color);
 
     /// <summary>Draws centered text with an explicit font size.</summary>
     void DrawTextStyled(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
         int fontSize) =>
         DrawText(canvas, bounds, text, color);
 
-    void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color);
+    void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color);
 
-    void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color);
+    void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color);
 
     /// <summary>
     /// Draws text centred in <paramref name="bounds"/>, the whole box turned
     /// about its centre by <paramref name="degrees"/> clockwise. Canvases that
     /// cannot turn text draw it upright.
     /// </summary>
-    void DrawTextTurned(Rid canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
+    void DrawTextTurned(Handle canvas, Rect2 bounds, float degrees, string text, Color color, int fontSize) =>
         DrawTextStyled(canvas, bounds, text, color, fontSize);
 
     /// <summary>Draws vertically oriented text.</summary>
     void DrawTextVertical(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -220,7 +219,7 @@ public interface IRectCanvas
 
     /// <summary>Draws left-aligned text with an explicit font size.</summary>
     void DrawTextStyledLeft(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -229,7 +228,7 @@ public interface IRectCanvas
 
     /// <summary>Draws right-aligned text with an explicit font size.</summary>
     void DrawTextStyledRight(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -241,7 +240,7 @@ public interface IRectCanvas
     /// no bold face draw it at regular weight.
     /// </summary>
     void DrawTextWeighted(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -268,7 +267,7 @@ public interface IRectCanvas
     /// regular face.
     /// </summary>
     void DrawTextMono(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -281,7 +280,7 @@ public interface IRectCanvas
     /// text without the glow.
     /// </summary>
     void DrawTextGlow(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,
@@ -301,7 +300,7 @@ public interface IRectCanvas
     /// Draws a glow behind a shape's outline. Canvases that cannot blur draw nothing.
     /// </summary>
     void DrawShapeGlow(
-        Rid canvas,
+        Handle canvas,
         ReadOnlySpan<Vector2> points,
         bool closed,
         bool filled,
@@ -312,7 +311,7 @@ public interface IRectCanvas
 
     /// <summary>Draws just the outline of text; canvases that cannot outline draw nothing.</summary>
     void DrawTextOutline(
-        Rid canvas,
+        Handle canvas,
         Rect2 bounds,
         string text,
         Color color,

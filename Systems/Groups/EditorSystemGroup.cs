@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
@@ -24,8 +23,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         EditorCommandBus commands,
         IPointerInputSource pointerInput,
         IRectCanvas canvas,
-        Rid playfieldCanvas,
-        Rid parentCanvas,
+        Handle playfieldCanvas,
+        Handle parentCanvas,
         ITrackAudio metronomeAudio,
         EditorHistory history,
         IWheelSource? wheel = null,
@@ -60,7 +59,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorLayerInspectorSystem(history));
         Add(new EditorAlignSystem(history));
         Add(new EditorLayersPanelSystem(history));
-        Add(new EditorGroupOverlayDrawSystem(canvas, _groupOverlay.Rid));
+        Add(new EditorGroupOverlayDrawSystem(canvas, _groupOverlay.Handle));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorBlockSizeSystem(entities));
         Add(new EditorToolGroupSystem(entities));

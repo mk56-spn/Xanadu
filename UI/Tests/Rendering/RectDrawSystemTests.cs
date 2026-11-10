@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
@@ -46,7 +45,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            new VisualRid(new Rid()),
+            new VisualRid(new Handle()),
             new FillColor(Colors.Red),
             new UiContainer(StackDirection.Vertical, skew: skew),
             Tags.Get<Dirty>());
@@ -68,7 +67,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            new VisualRid(new Rid()),
+            new VisualRid(new Handle()),
             new FillColor(Colors.Red),
             new UiChamfer(12),
             Tags.Get<Dirty>());
@@ -91,7 +90,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            new VisualRid(new Rid()),
+            new VisualRid(new Handle()),
             new FillColor(Colors.Red),
             new UiDiamond(),
             Tags.Get<Dirty>());
@@ -175,7 +174,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
 
     private sealed class RecordingRectCanvas : IRectCanvas
     {
-        public List<Rid> Clears { get; } = new();
+        public List<Handle> Clears { get; } = new();
 
         public List<DrawCall> Draws { get; } = new();
 
@@ -183,29 +182,29 @@ public sealed class RectDrawSystemTests : EcsSystemTest
 
         public List<TextCall> TextDraws { get; } = new();
 
-        public void SetVisible(Rid canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible) { }
 
-        public void SetTransform(Rid canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
 
-        public void Clear(Rid canvas) => Clears.Add(canvas);
+        public void Clear(Handle canvas) => Clears.Add(canvas);
 
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color) =>
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
             Draws.Add(new DrawCall(canvas, bounds, color));
 
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color) =>
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
             Polygons.Add(points.ToArray());
 
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) =>
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) =>
             TextDraws.Add(new TextCall(canvas, bounds, text, color));
 
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
 
-        public readonly record struct DrawCall(Rid Canvas, Rect2 Bounds, Color Color);
+        public readonly record struct DrawCall(Handle Canvas, Rect2 Bounds, Color Color);
 
-        public readonly record struct TextCall(Rid Canvas, Rect2 Bounds, string Text, Color Color);
+        public readonly record struct TextCall(Handle Canvas, Rect2 Bounds, string Text, Color Color);
     }
 }

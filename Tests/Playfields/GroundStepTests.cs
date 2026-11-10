@@ -1,12 +1,10 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using NVector2 = System.Numerics.Vector2;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tests.Playfields;
@@ -37,7 +35,7 @@ public sealed class GroundStepTests
     private void Player(float y, float verticalSpeed = 0f)
     {
         Body body = _physics.CreateDynamicBox(new Vector2(500, y), new Vector2(30, 100));
-        body.SetLinearVelocity(new NVector2(0f, verticalSpeed));
+        body.SetLinearVelocity(new Vector2(0f, verticalSpeed));
         _player = _store.CreateEntity(
             new Player(new Vector2(30, 100)),
             new Position(new Vector2(500, y)),

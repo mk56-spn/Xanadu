@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using System.Collections.Generic;
 using Xanadu.Editor;
@@ -13,7 +12,7 @@ public sealed record VisualTestContext(
     EntityStore Entities,
     XanaduSystemRoot Systems,
     Vector2 Screen,
-    Rid Host,
+    Handle Host,
     ScriptedPointerInputSource Pointer,
     ScriptedKeyboardState Keyboard)
 {

@@ -61,7 +61,7 @@ public sealed class ProfileTintSceneTest : SceneTest
             var view = Context.Entities.Query<ProfileEditView>().ToEntityList()[0]
                 .GetComponent<ProfileEditView>();
             view.Name.GetComponent<TextField>().Value = "Crimson";
-            view.Picker.GetComponent<UiColorPicker>().Color = new Godot.Color(1f, 0.3f, 0.4f);
+            view.Picker.GetComponent<UiColorPicker>().Color = new Color(1f, 0.3f, 0.4f);
         });
         AddWaitStep("let the edit apply", 3);
         AddStep("go back", () => Context.Scenes.TryBack());

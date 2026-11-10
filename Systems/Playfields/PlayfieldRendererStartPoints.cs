@@ -1,6 +1,5 @@
 using System;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 
@@ -13,7 +12,7 @@ public static partial class PlayfieldRenderer
     public static float StartPointRadius(PlayfieldView view) => NoteSize * view.Scale / 2f;
 
     /// <summary>A start point's ring and "S", at <paramref name="radius"/> around <paramref name="center"/>.</summary>
-    public static void DrawStartPointBody(IRectCanvas canvas, Rid rid, Vector2 center, float radius, Color color)
+    public static void DrawStartPointBody(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
     {
         canvas.DrawCircleOutline(rid, center, radius, color, 2f);
         int fontSize = Math.Max(1, (int)MathF.Round(radius * 0.9f));
@@ -22,7 +21,7 @@ public static partial class PlayfieldRenderer
     }
 
     /// <summary>One start point, ringed when selected and badged when grouped, the way a note is.</summary>
-    public static void DrawStartPoint(IRectCanvas canvas, Rid rid, Entity entity, PlayfieldView view, bool selected)
+    public static void DrawStartPoint(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, bool selected)
     {
         StartPoint start = entity.GetComponent<StartPoint>();
         Vector2 center = view.PlayfieldToScreen(start.Position);

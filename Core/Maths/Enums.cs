@@ -1,6 +1,6 @@
 // Enums from GodotSharp 4.8.0-dev.7 (MIT), generated from its metadata: the
 // key codes the game binds and the few enums the copied structs use.
-namespace Godot;
+namespace Xanadu.Maths;
 
 public enum Side : long
 {

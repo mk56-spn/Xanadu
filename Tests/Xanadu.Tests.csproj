@@ -26,4 +26,5 @@
     <ProjectReference Include="VisualTests/Xanadu.VisualTests.csproj" />
     <ProjectReference Include="../Tools/Animator/Xanadu.AnimatorTool.csproj" />
   </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
 </Project>

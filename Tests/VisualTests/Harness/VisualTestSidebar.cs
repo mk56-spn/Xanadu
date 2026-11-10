@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
@@ -81,7 +80,7 @@ public sealed class VisualTestSidebar : IDisposable
     private int _detailFocus = -1;
 
     public VisualTestSidebar(
-        Rid canvas,
+        Handle canvas,
         IPointerInputSource pointer,
         IWheelSource wheel,
         IKeyboardState keyboard,

@@ -23,4 +23,5 @@
     <Content Include="agents.md" />
     <InternalsVisibleTo Include="Xanadu.Tests" />
   </ItemGroup>
+  <Import Project="Core/Maths/Maths.props" />
 </Project>

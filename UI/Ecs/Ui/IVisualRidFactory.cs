@@ -1,11 +1,10 @@
-using Godot;
 
 namespace Xanadu.Ecs;
 
 /// <summary>Creates canvas items for UI entities.</summary>
 public interface IVisualRidFactory
 {
-    Rid CreateCanvasItem();
+    Handle CreateCanvasItem();
 
     /// <summary>
     /// Whether scenes should load shader materials and textures for what this

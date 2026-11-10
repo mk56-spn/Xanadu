@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Godot;
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
@@ -418,7 +417,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         /// <summary>Fill colours of the filled polygons (bone shapes) drawn this frame.</summary>
         public List<Color> PolygonColors { get; } = new();
 
-        public void Clear(Rid canvas)
+        public void Clear(Handle canvas)
         {
             LastFrameCircles = new List<float>();
             Texts.Clear();
@@ -427,16 +426,16 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
             PolygonColors.Clear();
         }
 
-        public void DrawCircle(Rid canvas, Vector2 center, float radius, Color color) =>
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
             LastFrameCircles.Add(radius);
 
-        public void DrawTextStyled(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+        public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Texts.Add(text);
 
-        public void DrawTextStyledLeft(Rid canvas, Rect2 bounds, string text, Color color, int fontSize) =>
+        public void DrawTextStyledLeft(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Texts.Add(text);
 
-        public void DrawPolygon(Rid canvas, ReadOnlySpan<Vector2> points, Color color)
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color)
         {
             PolygonColors.Add(color);
 
@@ -445,15 +444,15 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
                 Diamonds.Add(points[1].X - points[0].X);
         }
 
-        public void SetVisible(Rid canvas, bool visible) { }
-        public void SetTransform(Rid canvas, Transform2D transform) { }
-        public void DrawRect(Rid canvas, Rect2 bounds, Color color)
+        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
             RectSizes.Add(bounds.Size);
         }
-        public void DrawLine(Rid canvas, Vector2 from, Vector2 to, Color color, float width) { }
-        public void DrawText(Rid canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Rid canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextRight(Rid canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
     }
 }

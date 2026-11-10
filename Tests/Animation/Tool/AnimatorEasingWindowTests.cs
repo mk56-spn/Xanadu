@@ -74,8 +74,8 @@ public sealed class AnimatorEasingWindowTests : AnimatorToolTest
         Click(Ui.EasingButton);
         Frame(2);
 
-        Godot.Rect2 picker = AnimatorGeometry.PanelArea(Ui.EasePicker);
-        Godot.Rect2 button = AnimatorGeometry.PanelArea(Ui.EasingButton);
+        Rect2 picker = AnimatorGeometry.PanelArea(Ui.EasePicker);
+        Rect2 button = AnimatorGeometry.PanelArea(Ui.EasingButton);
         Assert.That(picker.End.Y, Is.LessThanOrEqualTo(button.Position.Y));
         Assert.That(picker.Position.Y, Is.GreaterThanOrEqualTo(0f));
         Assert.That(picker.End.X, Is.LessThanOrEqualTo(Screen.X));

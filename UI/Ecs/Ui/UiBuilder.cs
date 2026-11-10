@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -344,7 +343,7 @@ public sealed partial class UiBuilder
     public Entity ImageEntity(
         Vector2 position,
         Vector2 size,
-        Rid texture)
+        Handle texture)
     {
         RequireLayer();
 

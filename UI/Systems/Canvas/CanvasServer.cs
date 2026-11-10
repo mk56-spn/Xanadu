@@ -1,5 +1,4 @@
 using System;
-using Godot;
 
 namespace Xanadu.Systems.Canvas;
 
@@ -12,77 +11,77 @@ namespace Xanadu.Systems.Canvas;
 /// </summary>
 public interface ICanvasServer
 {
-    Rid CreateItem();
+    Handle CreateItem();
 
-    void Free(Rid item);
+    void Free(Handle item);
 
-    void SetParent(Rid item, Rid parent);
+    void SetParent(Handle item, Handle parent);
 
     /// <summary>Draw layer, relative to the parent's: higher draws over lower across the whole tree.</summary>
-    void SetZIndex(Rid item, int z);
+    void SetZIndex(Handle item, int z);
 
     /// <summary>Order among siblings: higher draws later.</summary>
-    void SetDrawIndex(Rid item, int index);
+    void SetDrawIndex(Handle item, int index);
 
-    void SetVisible(Rid item, bool visible);
+    void SetVisible(Handle item, bool visible);
 
-    void SetTransform(Rid item, Transform2D transform);
+    void SetTransform(Handle item, Transform2D transform);
 
     /// <summary>Multiplies the item and its children.</summary>
-    void SetModulate(Rid item, Color color);
+    void SetModulate(Handle item, Color color);
 
     /// <summary>Multiplies the item's own draws only.</summary>
-    void SetSelfModulate(Rid item, Color color);
+    void SetSelfModulate(Handle item, Color color);
 
     /// <summary>The item's own rect, which <see cref="SetClip"/> clips children to.</summary>
-    void SetCustomRect(Rid item, bool use, Rect2 rect);
+    void SetCustomRect(Handle item, bool use, Rect2 rect);
 
-    void SetClip(Rid item, bool clip);
+    void SetClip(Handle item, bool clip);
 
     /// <summary>
     /// What the item's own draws are shaded and blended with; null for the
     /// plain canvas shader. Values changed on the material later are picked up
     /// when the item next draws.
     /// </summary>
-    void SetMaterial(Rid item, CanvasMaterial? material);
+    void SetMaterial(Handle item, CanvasMaterial? material);
 
     /// <summary>One value for this item only, over its material's (Godot's instance uniforms).</summary>
-    void SetInstanceValue(Rid item, string name, Vector4 value);
+    void SetInstanceValue(Handle item, string name, Vector4 value);
 
     /// <summary>
     /// Refreshes the screen copy (what screen-reading shaders sample) just
     /// before the item draws: Godot's copy-to-back-buffer. Hosts that copy
     /// whenever a screen reader needs it may treat this as a hint.
     /// </summary>
-    void SetCopyScreen(Rid item, bool copy);
+    void SetCopyScreen(Handle item, bool copy);
 
     /// <summary>Draws the item's children into one image composited as a whole (a CanvasGroup).</summary>
-    void SetCanvasGroup(Rid item, float clearMargin, bool fitEmpty, float fitMargin);
+    void SetCanvasGroup(Handle item, float clearMargin, bool fitEmpty, float fitMargin);
 
-    void Clear(Rid item);
+    void Clear(Handle item);
 
-    void AddRect(Rid item, Rect2 rect, Color color);
+    void AddRect(Handle item, Rect2 rect, Color color);
 
-    void AddCircle(Rid item, Vector2 center, float radius, Color color);
+    void AddCircle(Handle item, Vector2 center, float radius, Color color);
 
-    void AddLine(Rid item, Vector2 from, Vector2 to, Color color, float width, bool antialiased);
+    void AddLine(Handle item, Vector2 from, Vector2 to, Color color, float width, bool antialiased);
 
-    void AddPolyline(Rid item, Vector2[] points, Color[] colors, float width, bool antialiased);
+    void AddPolyline(Handle item, Vector2[] points, Color[] colors, float width, bool antialiased);
 
     /// <summary>Separate segments, two points each; one colour for all or one per segment. Width below 0 is a plain one-pixel line.</summary>
-    void AddMultiline(Rid item, Vector2[] points, Color[] colors, float width);
+    void AddMultiline(Handle item, Vector2[] points, Color[] colors, float width);
 
     /// <summary>A convex or concave polygon; one colour for all or one per point.</summary>
-    void AddPolygon(Rid item, Vector2[] points, Color[] colors, Vector2[]? uvs = null);
+    void AddPolygon(Handle item, Vector2[] points, Color[] colors, Vector2[]? uvs = null);
 
     /// <summary>Indexed triangles, optionally textured by <paramref name="texture"/> (a texture id from the same server).</summary>
-    void AddTriangleArray(Rid item, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Rid texture = default);
+    void AddTriangleArray(Handle item, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Handle texture = default);
 
     /// <summary>A texture stretched over a rect.</summary>
-    void AddTextureRect(Rid item, Rect2 rect, Rid texture);
+    void AddTextureRect(Handle item, Rect2 rect, Handle texture);
 
     /// <summary>Transforms the item's later commands until the next one.</summary>
-    void AddSetTransform(Rid item, Transform2D transform);
+    void AddSetTransform(Handle item, Transform2D transform);
 }
 
 /// <summary>
@@ -102,30 +101,30 @@ public sealed class HeadlessCanvasServer : ICanvasServer
 {
     private ulong _nextId = 1;
 
-    public Rid CreateItem() => new(_nextId++);
+    public Handle CreateItem() => new(_nextId++);
 
-    public void Free(Rid item) { }
-    public void SetParent(Rid item, Rid parent) { }
-    public void SetZIndex(Rid item, int z) { }
-    public void SetDrawIndex(Rid item, int index) { }
-    public void SetVisible(Rid item, bool visible) { }
-    public void SetTransform(Rid item, Transform2D transform) { }
-    public void SetModulate(Rid item, Color color) { }
-    public void SetSelfModulate(Rid item, Color color) { }
-    public void SetCustomRect(Rid item, bool use, Rect2 rect) { }
-    public void SetClip(Rid item, bool clip) { }
-    public void SetMaterial(Rid item, CanvasMaterial? material) { }
-    public void SetInstanceValue(Rid item, string name, Vector4 value) { }
-    public void SetCopyScreen(Rid item, bool copy) { }
-    public void SetCanvasGroup(Rid item, float clearMargin, bool fitEmpty, float fitMargin) { }
-    public void Clear(Rid item) { }
-    public void AddRect(Rid item, Rect2 rect, Color color) { }
-    public void AddCircle(Rid item, Vector2 center, float radius, Color color) { }
-    public void AddLine(Rid item, Vector2 from, Vector2 to, Color color, float width, bool antialiased) { }
-    public void AddPolyline(Rid item, Vector2[] points, Color[] colors, float width, bool antialiased) { }
-    public void AddMultiline(Rid item, Vector2[] points, Color[] colors, float width) { }
-    public void AddPolygon(Rid item, Vector2[] points, Color[] colors, Vector2[]? uvs = null) { }
-    public void AddTriangleArray(Rid item, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Rid texture = default) { }
-    public void AddTextureRect(Rid item, Rect2 rect, Rid texture) { }
-    public void AddSetTransform(Rid item, Transform2D transform) { }
+    public void Free(Handle item) { }
+    public void SetParent(Handle item, Handle parent) { }
+    public void SetZIndex(Handle item, int z) { }
+    public void SetDrawIndex(Handle item, int index) { }
+    public void SetVisible(Handle item, bool visible) { }
+    public void SetTransform(Handle item, Transform2D transform) { }
+    public void SetModulate(Handle item, Color color) { }
+    public void SetSelfModulate(Handle item, Color color) { }
+    public void SetCustomRect(Handle item, bool use, Rect2 rect) { }
+    public void SetClip(Handle item, bool clip) { }
+    public void SetMaterial(Handle item, CanvasMaterial? material) { }
+    public void SetInstanceValue(Handle item, string name, Vector4 value) { }
+    public void SetCopyScreen(Handle item, bool copy) { }
+    public void SetCanvasGroup(Handle item, float clearMargin, bool fitEmpty, float fitMargin) { }
+    public void Clear(Handle item) { }
+    public void AddRect(Handle item, Rect2 rect, Color color) { }
+    public void AddCircle(Handle item, Vector2 center, float radius, Color color) { }
+    public void AddLine(Handle item, Vector2 from, Vector2 to, Color color, float width, bool antialiased) { }
+    public void AddPolyline(Handle item, Vector2[] points, Color[] colors, float width, bool antialiased) { }
+    public void AddMultiline(Handle item, Vector2[] points, Color[] colors, float width) { }
+    public void AddPolygon(Handle item, Vector2[] points, Color[] colors, Vector2[]? uvs = null) { }
+    public void AddTriangleArray(Handle item, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Handle texture = default) { }
+    public void AddTextureRect(Handle item, Rect2 rect, Handle texture) { }
+    public void AddSetTransform(Handle item, Transform2D transform) { }
 }

@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
-using NVector2 = System.Numerics.Vector2;
 
 namespace Xanadu.Systems.Physics;
 
@@ -16,17 +15,17 @@ public sealed class PlayerSpeedCapSystem : QuerySystem<Player, PhysicsBody>
     {
         Query.ForEachEntity((ref _, ref body, _) =>
         {
-            NVector2 velocity = body.Body.LinearVelocity;
-            NVector2 capped = Capped(velocity);
+            Vector2 velocity = body.Body.LinearVelocity;
+            Vector2 capped = Capped(velocity);
             if (capped != velocity)
                 body.Body.SetLinearVelocity(capped);
         });
     }
 
-    public static NVector2 Capped(NVector2 velocity)
+    public static Vector2 Capped(Vector2 velocity)
     {
         float max = Box2DPhysicsWorld.MaxSpeed;
-        return new NVector2(
+        return new Vector2(
             Math.Clamp(velocity.X, -max, max),
             Math.Min(velocity.Y, max));
     }

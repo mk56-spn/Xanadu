@@ -1,0 +1,10 @@
+<Project>
+  <!-- Every project sees System.Numerics' vectors under their plain names and
+       Core's own maths types (Color, Rect2, Transform2D, Mathf…) without a using. -->
+  <ItemGroup>
+    <Using Include="System.Numerics.Vector2" Alias="Vector2" />
+    <Using Include="System.Numerics.Vector3" Alias="Vector3" />
+    <Using Include="System.Numerics.Vector4" Alias="Vector4" />
+    <Using Include="Xanadu.Maths" />
+  </ItemGroup>
+</Project>
