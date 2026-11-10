@@ -53,6 +53,9 @@ internal sealed class ShaderEditor : ILabExperiment
 
         private const float RepeatDelay = 0.4f, RepeatEvery = 0.033f;
 
+        /// <summary>A second click on the same place within this long selects the word.</summary>
+        private const float DoubleClick = 0.4f;
+
         private static readonly KeyCode[] Repeating =
         [
             KeyCode.Left, KeyCode.Right, KeyCode.Up, KeyCode.Down, KeyCode.Backspace, KeyCode.Delete,
@@ -85,6 +88,13 @@ internal sealed class ShaderEditor : ILabExperiment
         private float _sinceEdit;
         private float _sinceCaretMove;
         private bool _wasHeld;
+
+        /// <summary>A press that began in the code: holding it drags the selection.</summary>
+        private bool _dragging;
+
+        private float _lastClick = -1;
+        private (int Line, int Column) _lastClickAt = (-1, -1);
+        private bool _shift;
         private bool _everCompiled;
         private Vector2 _pointer;
         private string _status = "compiling…";
@@ -135,6 +145,7 @@ internal sealed class ShaderEditor : ILabExperiment
         {
             int version = _buffer.Version;
             (int line, int column) caret = (_buffer.Line, _buffer.Column);
+            _shift = frame.Inputs is { } held && (held.Keyboard.IsDown(KeyCode.LeftShift) || held.Keyboard.IsDown(KeyCode.RightShift));
             if (frame.Inputs is { } inputs)
                 Edit(inputs, frame);
             Point(frame);
@@ -181,9 +192,19 @@ internal sealed class ShaderEditor : ILabExperiment
         {
             Keyboard keys = inputs.Keyboard;
             bool ctrl = keys.IsDown(KeyCode.LeftControl) || keys.IsDown(KeyCode.RightControl);
+            bool shift = _shift;
 
             if (frame.Typed.Length > 0 && !ctrl)
                 _buffer.Insert(frame.Typed);
+            if (ctrl && keys.IsPressed(KeyCode.A))
+                _buffer.SelectAll();
+            if (ctrl && (keys.IsPressed(KeyCode.C) || keys.IsPressed(KeyCode.X)) && _buffer.HasSelection)
+            {
+                SDL3.SDL.SDL_SetClipboardText(_buffer.SelectedText);
+                if (keys.IsPressed(KeyCode.X))
+                    _buffer.DeleteSelection();
+            }
+
             if (ctrl && keys.IsPressed(KeyCode.V) && SDL3.SDL.SDL_GetClipboardText() is { Length: > 0 } clip)
                 _buffer.Insert(clip);
 
@@ -194,7 +215,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 if (!Fires(keys, key, frame.Delta))
                     continue;
                 // While the list is open its keys choose and take, not move the caret.
-                if (_popup.Open && key is KeyCode.Up or KeyCode.Down or KeyCode.Return or KeyCode.Tab)
+                if (_popup.Open && !shift && key is KeyCode.Up or KeyCode.Down or KeyCode.Return or KeyCode.Tab)
                 {
                     if (key == KeyCode.Up)
                         _popup.Move(-1);
@@ -205,25 +226,26 @@ internal sealed class ShaderEditor : ILabExperiment
                     continue;
                 }
 
-                Press(key);
+                Press(key, shift);
             }
 
             if (keys.IsPressed(KeyCode.Home))
-                _buffer.Home();
+                _buffer.Home(shift);
             if (keys.IsPressed(KeyCode.End))
-                _buffer.End();
+                _buffer.End(shift);
         }
 
-        private void Press(KeyCode key)
+        /// <summary>A key's edit or move; with Shift held, moves extend the selection.</summary>
+        private void Press(KeyCode key, bool shift)
         {
             switch (key)
             {
-                case KeyCode.Left: _buffer.MoveColumn(-1); break;
-                case KeyCode.Right: _buffer.MoveColumn(1); break;
-                case KeyCode.Up: _buffer.MoveLine(-1); break;
-                case KeyCode.Down: _buffer.MoveLine(1); break;
-                case KeyCode.PageUp: _buffer.MoveLine(-_view.VisibleRows); break;
-                case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleRows); break;
+                case KeyCode.Left: _buffer.MoveColumn(-1, shift); break;
+                case KeyCode.Right: _buffer.MoveColumn(1, shift); break;
+                case KeyCode.Up: _buffer.MoveLine(-1, shift); break;
+                case KeyCode.Down: _buffer.MoveLine(1, shift); break;
+                case KeyCode.PageUp: _buffer.MoveLine(-_view.VisibleRows, shift); break;
+                case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleRows, shift); break;
                 case KeyCode.Backspace: _buffer.Backspace(); break;
                 case KeyCode.Delete: _buffer.Delete(); break;
                 case KeyCode.Return: _buffer.NewLine(); break;
@@ -264,13 +286,27 @@ internal sealed class ShaderEditor : ILabExperiment
 
             bool pressed = frame.Held && !_wasHeld;
             _wasHeld = frame.Held;
+            if (!frame.Held)
+                _dragging = false;
             if (pressed && !_popup.Click(_buffer, frame.Mouse))
             {
                 if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
-                    _buffer.Place(hit.Line, hit.Column);
+                {
+                    bool twice = frame.Time - _lastClick < DoubleClick && _lastClickAt == hit;
+                    if (twice)
+                        _buffer.SelectWord(hit.Line, hit.Column);
+                    else
+                        _buffer.Place(hit.Line, hit.Column, extend: _shift);
+                    // A third click starts over rather than reselecting the word.
+                    _lastClick = twice ? -1 : frame.Time;
+                    _lastClickAt = hit;
+                    _dragging = !twice;
+                }
                 else if (_chrome.ProblemAt(frame.Mouse) is { } problem)
                     _buffer.Place(problem.Line - 1, problem.Column - 1);
             }
+            else if (_dragging && _view.Hit(_buffer, _hints, frame.Mouse, dragging: true) is { } to && to != (_buffer.Line, _buffer.Column))
+                _buffer.Place(to.Line, to.Column, extend: true);
 
             if (frame.Inputs is { } inputs && inputs.Mouse.Wheel != 0 && _view.Area.HasPoint(frame.Mouse))
                 _view.Scroll = Math.Clamp(_view.Scroll - inputs.Mouse.Wheel * 3, 0, Math.Max(0, _buffer.Lines.Count - 1));

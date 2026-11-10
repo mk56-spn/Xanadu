@@ -381,8 +381,9 @@ host fills; tests leave the headless defaults.
     (`blend.Mode.`); a name's type comes from a light scan of the code
     (`ItemInput i`, `Canvas c = …`, `let b = Box(…)`). Up/Down, Tab/Enter,
     Esc, click. No calls in the chain, no inference past that.
-    It claims the keyboard through `HostTextInput.Claimed`. No selection,
-    undo or horizontal scroll yet.
+    Shift+moves, drag, Shift+click and double-click select; Ctrl+A/C/X/V
+    go through the SDL clipboard. It claims the keyboard through
+    `HostTextInput.Claimed`. No undo or horizontal scroll yet.
   - **Particles:** bursts every library effect once a second.
   - **Blend:** two quads with the whole fixed-function blend open
     (`CanvasMaterial.Custom`); the renderer sets the blend constant per draw.

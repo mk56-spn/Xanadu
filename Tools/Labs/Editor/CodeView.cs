@@ -11,7 +11,7 @@ namespace Xanadu.Labs.Editor;
 /// <summary>
 /// Draws a <see cref="CodeBuffer"/> in the monospaced face: line numbers, the
 /// caret's line, inlay hints as small pills, and Slang's problems (the line
-/// tinted, the word underlined, the message on a row of its own under the
+/// tinted, the word underlined, the selection behind the text, the message on a row of its own under the
 /// line, so it is never cut off by a long line). Also turns a click into a line
 /// and column, stepping over hints. Redrawn whole every frame; text shaping is
 /// cached, and only the visible rows are drawn.
@@ -52,6 +52,7 @@ internal sealed class CodeView
     private static readonly Color HintText = new("#93a4cf");
     private static readonly Color HintPill = new(0.55f, 0.65f, 0.95f, 0.10f);
     private static readonly Color CaretLine = new(1, 1, 1, 0.04f);
+    private static readonly Color SelectionFill = new(0.35f, 0.55f, 1f, 0.30f);
     private static readonly Color ErrorLine = new(0.94f, 0.27f, 0.27f, 0.12f);
     private static readonly Color WarningLine = new(0.98f, 0.75f, 0.14f, 0.10f);
 
@@ -118,6 +119,9 @@ internal sealed class CodeView
             else if (index == buffer.Line)
                 _canvas.DrawRect(_item, new Rect2(Area.Position.X, y, Area.Size.X, LineHeight), CaretLine);
 
+            if (buffer.HasSelection)
+                DrawSelection(buffer, index, lineHints, y);
+
             _canvas.DrawTextMono(
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
@@ -146,11 +150,24 @@ internal sealed class CodeView
         }
     }
 
-    /// <summary>The line and column under a point (a message row gives its problem's place), or null outside the code.</summary>
-    public (int Line, int Column)? Hit(CodeBuffer buffer, SlangHints hints, Vector2 point)
+    /// <summary>
+    /// The line and column under a point (a message row gives its problem's place), or null outside the code.
+    /// While dragging a selection a point outside still counts: above or below the code it gives the line
+    /// just past the edge, so holding it there scrolls.
+    /// </summary>
+    public (int Line, int Column)? Hit(CodeBuffer buffer, SlangHints hints, Vector2 point, bool dragging = false)
     {
-        if (!Area.HasPoint(point) || _rows.Count == 0)
+        if (_rows.Count == 0 || (!dragging && !Area.HasPoint(point)))
             return null;
+
+        if (dragging)
+        {
+            int edge = point.Y < Area.Position.Y ? Math.Max(0, _rows[0].Line - 1)
+                : point.Y >= Area.End.Y ? Math.Min(buffer.Lines.Count - 1, _rows[^1].Line + 1)
+                : -1;
+            if (edge >= 0)
+                return (edge, Column(buffer, hints, edge, point.X));
+        }
 
         (float Top, int Line, int? ProblemColumn) row = _rows[^1];
         foreach (var candidate in _rows)
@@ -162,11 +179,39 @@ internal sealed class CodeView
             }
         }
 
-        if (row.ProblemColumn is { } column)
+        if (row.ProblemColumn is { } column && !dragging)
             return (row.Line, Math.Max(0, column - 1));
 
-        int visual = Math.Max(0, (int)MathF.Round((point.X - TextLeft) / _charWidth));
-        return (row.Line, LogicalColumn(hints.For(buffer.Lines[row.Line]), visual, buffer.Lines[row.Line].Length));
+        return (row.Line, Column(buffer, hints, row.Line, point.X));
+    }
+
+    private int Column(CodeBuffer buffer, SlangHints hints, int line, float x)
+    {
+        int visual = Math.Max(0, (int)MathF.Round((x - TextLeft) / _charWidth));
+        return LogicalColumn(hints.For(buffer.Lines[line]), visual, buffer.Lines[line].Length);
+    }
+
+    /// <summary>The selected part of one line; a line the selection runs past shows one more column for its line break.</summary>
+    private void DrawSelection(CodeBuffer buffer, int index, List<InlayHint> hints, float y)
+    {
+        var (start, end) = buffer.Selection;
+        if (index < start.Line || index > end.Line)
+            return;
+
+        int from = index == start.Line ? start.Column : 0;
+        int to = index == end.Line ? end.Column : buffer.Lines[index].Length;
+        float x0 = TextLeft + VisualColumn(hints, from) * _charWidth;
+        // The end stops before a hint sitting right at it, so the hint isn't taken into the selection.
+        int visualEnd = to;
+        foreach (InlayHint hint in hints)
+        {
+            if (hint.Column < to)
+                visualEnd += hint.Label.Length + 1;
+        }
+
+        float x1 = TextLeft + visualEnd * _charWidth + (index < end.Line ? _charWidth : 0);
+        if (x1 > x0)
+            _canvas.DrawRect(_item, new Rect2(x0, y, x1 - x0, LineHeight), SelectionFill);
     }
 
     private static int RowsFrom(int first, int last, IReadOnlyList<SlangProblem> problems)
