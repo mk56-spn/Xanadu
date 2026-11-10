@@ -3,7 +3,7 @@
 // Uniforms, then
 //     float4 shade(ItemInput i)
 // returning the pixel's colour. `import xanadu;` brings the whole library:
-// shapes (Box, Circle, … with .turn .move .repeat .fill .glow …), and under
+// shapes (Box, Circle, … with .rotate .move .repeat .fill .glow …), and under
 // their own names color., ease., blend., gradient., pattern.
 // ItemInput gives you uv (0..1 across the stage), centred and halfSize (pixels
 // from the stage's centre, y down), time, screenUv and more (see
@@ -25,7 +25,7 @@ float4 shade(ItemInput i)
 
     // Eight rounded boxes in a ring round the pointer, the ring turning one way
     // and each box the other; a breathing circle's outline around them.
-    let petals = Box(float2(56), 10).turn(-time * speed * 2).repeat(8, 160).turn(time * speed);
+    let petals = Box(float2(56), 10).rotate(-time * speed * 2).repeat(8, 160).rotate(time * speed);
     let ring = Circle(160 + 20 * sin(time * 2)).onion(2);
 
     float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, ease.inOutSine(i.uv.y));

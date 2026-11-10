@@ -1,10 +1,10 @@
 // xanadu.shape: 2D shapes as values. Make one, change it, then draw it:
 //
-//     let petal = Box(float2(28.0), 10.0).repeat(8.0, 160.0).turn(time);
+//     let petal = Box(float2(28.0), 10.0).repeat(8.0, 160.0).rotate(time);
 //     float a = petal.fill(i.centred);
 //
 // Every shape has distance(p) (signed: negative inside), and through the
-// extension below: turn, move, scale, repeat, onion, or, and, minus, smooth,
+// extension below: rotate, move, scale, repeat, onion, or, and, minus, smooth,
 // fill, stroke and glow. Sizes are full widths and heights, in the units of p
 // (pixels when p is ItemInput.centred), so Box(i.canvas.size) fills the quad.
 // Round shapes take a radius. Most distances are Inigo Quilez's
@@ -212,7 +212,7 @@ public struct Moon : IShape
 
 // ---- Changes: each wraps a shape and is a shape itself ----------------------
 
-public struct Turned<S : IShape> : IShape
+public struct Rotated<S : IShape> : IShape
 {
     public S shape;
     public float angle;
@@ -304,8 +304,8 @@ public struct SmoothUnion<A : IShape, B : IShape> : IShape
 
 public extension<S : IShape> S
 {
-    /// Turned by `angle` radians round its centre.
-    public Turned<S> turn(float angle) { Turned<S> r; r.shape = this; r.angle = angle; return r; }
+    /// Rotated by `angle` radians round its centre, clockwise (y down).
+    public Rotated<S> rotate(float angle) { Rotated<S> r; r.shape = this; r.angle = angle; return r; }
 
     /// Moved by `offset`.
     public Moved<S> move(float2 offset) { Moved<S> r; r.shape = this; r.offset = offset; return r; }

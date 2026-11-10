@@ -263,7 +263,7 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
-  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.turn` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
+  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.rotate` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
   | `xanadu.color` | `color.hsv`, `color.hue`, `color.over`, and the X11/web colours as `color.gold`, `color.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
@@ -273,7 +273,7 @@ host fills; tests leave the headless defaults.
   | `xanadu` | re-exports all of the above, plus the stage |
 
   ```slang
-  let petals = Box(float2(56), 10).repeat(8, 160).turn(time);
+  let petals = Box(float2(56), 10).repeat(8, 160).rotate(time);
   float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill(i.centred));
   ```
 
