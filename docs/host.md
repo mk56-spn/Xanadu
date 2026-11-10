@@ -349,10 +349,14 @@ host fills; tests leave the headless defaults.
     pastes into a level. Sets `mouse` and `resolution`.
   - **Shader editor** (tab 1; the start of the in-game shader editor): a
     level slot typed in the lab (`Tools/Labs/Editor/`: `CodeBuffer` text and
-    caret, `CodeView` drawing, `SlangProblems`, `SlangHints`), compiled 0.3 s
-    after typing stops and drawn beside it, saved to the git-ignored
-    `Playground/editor.slang`. Linting is Slang's own errors: the line tinted,
-    the word underlined, the message after the code and in the panel.
+    caret, `CodeView` drawing, `EditorChrome` round it, `SlangProblems`,
+    `SlangHints`), compiled 0.3 s after typing stops, saved to the git-ignored
+    `Playground/editor.slang` (started from `editor.template.slang`). It uses
+    the whole body (`ILabExperiment.FullWidth`, no side panel): code left with
+    a status bar under it, a 16:9 preview top right (the playfield's shape;
+    the pointer counts only over it), problems and a key guide under that.
+    Linting is Slang's own errors: the line tinted, the word underlined, the
+    message on a row under the line, listed under the preview (a click jumps).
     Inlay hints show library parameter names (`Box(size: …, radius: …)`)
     without them being in the text; they come from the library's `public`
     signatures, matched by name and argument count (no hint when ambiguous).

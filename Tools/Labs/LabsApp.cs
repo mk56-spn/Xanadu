@@ -23,7 +23,7 @@ internal sealed class LabsApp : HostApp
 {
     private const float Margin = UiMetrics.Space.Xl;
     private const float PanelWidth = 640;
-    private const float TabWidth = 240;
+    private const float MaxTabWidth = 240;
 
     /// <summary>Stages draw above the ECS layer they sit on.</summary>
     private const int StageZ = UiLayers.Base + 1;
@@ -33,7 +33,11 @@ internal sealed class LabsApp : HostApp
     private readonly VisualRidRelease _visuals;
     private readonly ILabExperiment[] _experiments;
     private Entity _strip;
+    private Entity _frame;
     private Rect2 _area;
+
+    /// <summary>The panel's and the stage's room together, for experiments that lay out their own (<see cref="ILabExperiment.FullWidth"/>).</summary>
+    private Rect2 _fullArea;
     private int _shown = -1;
     private ILabStage? _stage;
     private Handle _stageItem;
@@ -78,17 +82,27 @@ internal sealed class LabsApp : HostApp
         var body = new Rect2(Margin, bodyTop, PanelWidth, stage.Height - bodyTop - Margin);
         float stageLeft = body.End.X + Margin;
         _area = new Rect2(stageLeft, bodyTop, stage.Width - stageLeft - Margin, body.Size.Y);
+        _fullArea = new Rect2(Margin, bodyTop, stage.Width - Margin * 2, body.Size.Y);
+        // Every tab fits on the strip, however many experiments there are.
+        float gap = UiMetrics.Space.Sm;
+        float tabWidth = MathF.Min(MaxTabWidth, (stage.Width - Margin * 2 - gap * (_experiments.Length - 1)) / _experiments.Length);
 
         UiNode strip = ui.Row().Gap(UiMetrics.Space.Sm).AnchorLeft().At(new Vector2(Margin, tabsY));
         _strip = strip;
         var buttons = new Entity[_experiments.Length];
         var bodies = new Entity[_experiments.Length];
-        ui.Rect(Palette.SurfaceDeep).Box(_area).Border(Palette.BorderStrong);
+        _frame = ui.Rect(Palette.SurfaceDeep).Box(_area).Border(Palette.BorderStrong);
 
         for (int i = 0; i < _experiments.Length; i++)
         {
             ILabExperiment experiment = _experiments[i];
-            buttons[i] = strip.Button(experiment.Name, UiType.Label).Size(TabWidth, UiMetrics.Control.Lg);
+            buttons[i] = strip.Button(experiment.Name, UiType.Label).Size(tabWidth, UiMetrics.Control.Lg);
+            if (experiment.FullWidth)
+            {
+                // Nothing to show beside the stage: an empty body keeps the tabs' bookkeeping.
+                bodies[i] = ui.Column().At(body.GetCenter()).Hidden();
+                continue;
+            }
 
             UiNode panel = ui.Panel().Size(body.Size).At(body.GetCenter()).Hidden();
             panel.Text(experiment.Name, UiType.Section, Palette.Accent);
@@ -131,8 +145,10 @@ internal sealed class LabsApp : HostApp
             new LabContext(
                 Renderer.Pipelines, GraphicsDevice, ShowTexture, id => Renderer.Textures.Remove(id.Id),
                 Text, claimed => TextInput.Claimed = claimed),
-            _stageItem, _area);
+            _stageItem, _experiments[selected].FullWidth ? _fullArea : _area);
         _shown = selected;
+        // A full-width experiment draws its own frame.
+        UiLayout.SetHidden(_frame, _experiments[selected].FullWidth);
     }
 
     private Handle ShowTexture(MoonWorks.Graphics.Texture texture)

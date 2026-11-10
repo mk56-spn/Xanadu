@@ -10,15 +10,17 @@ namespace Xanadu.Labs.Editor;
 
 /// <summary>
 /// Draws a <see cref="CodeBuffer"/> in the monospaced face: line numbers, the
-/// caret's line, inlay hints, and Slang's problems (the line tinted, the word
-/// underlined, the message after the code). Also turns a click into a line and
-/// column, stepping over hints. Redrawn whole every frame; text shaping is
-/// cached, and only the visible lines are drawn.
+/// caret's line, inlay hints as small pills, and Slang's problems (the line
+/// tinted, the word underlined, the message on a row of its own under the
+/// line, so it is never cut off by a long line). Also turns a click into a line
+/// and column, stepping over hints. Redrawn whole every frame; text shaping is
+/// cached, and only the visible rows are drawn.
 /// </summary>
 internal sealed class CodeView
 {
     public const int FontSize = 14;
     public const float LineHeight = 20;
+    private const int HintSize = 11;
     private const float Gutter = 44;
     private const float Inset = 10;
 
@@ -29,7 +31,8 @@ internal sealed class CodeView
     private static readonly Color GutterText = new("#4a5578");
     private static readonly Color Code = new("#d8def0");
     private static readonly Color Comment = new("#6b7a99");
-    private static readonly Color Hint = new("#5d6b8f");
+    private static readonly Color HintText = new("#93a4cf");
+    private static readonly Color HintPill = new(0.55f, 0.65f, 0.95f, 0.10f);
     private static readonly Color CaretLine = new(1, 1, 1, 0.04f);
     private static readonly Color ErrorLine = new(0.94f, 0.27f, 0.27f, 0.12f);
     private static readonly Color WarningLine = new(0.98f, 0.75f, 0.14f, 0.10f);
@@ -37,6 +40,9 @@ internal sealed class CodeView
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
     private readonly float _charWidth;
+
+    /// <summary>What each drawn row shows, top to bottom: its top, its line, and the problem column for a message row.</summary>
+    private readonly List<(float Top, int Line, int? ProblemColumn)> _rows = new();
 
     public CodeView(IRectCanvas canvas, Handle item, Rect2 area, HostText text)
     {
@@ -53,32 +59,38 @@ internal sealed class CodeView
     /// <summary>The first line shown.</summary>
     public int Scroll { get; set; }
 
-    public int VisibleLines => (int)((Area.Size.Y - Inset * 2) / LineHeight);
+    /// <summary>Rows that fit: a line takes one, a problem's message one more.</summary>
+    public int VisibleRows => (int)((Area.Size.Y - Inset * 2) / LineHeight);
 
     private float TextLeft => Area.Position.X + Gutter + Inset;
 
-    /// <summary>Scrolls just enough to keep a line in view.</summary>
-    public void Reveal(int line)
+    /// <summary>Scrolls just enough to keep a line, and its message if it has one, in view.</summary>
+    public void Reveal(int line, IReadOnlyList<SlangProblem> problems)
     {
         if (line < Scroll)
+        {
             Scroll = line;
-        else if (line >= Scroll + VisibleLines)
-            Scroll = line - VisibleLines + 1;
+            return;
+        }
+
+        while (Scroll < line && RowsFrom(Scroll, line, problems) > VisibleRows)
+            Scroll++;
     }
 
     public void Draw(CodeBuffer buffer, SlangHints hints, IReadOnlyList<SlangProblem> problems, bool caretOn)
     {
         _canvas.Clear(_item);
         _canvas.DrawRect(_item, Area, Background);
+        _rows.Clear();
 
-        int last = Math.Min(buffer.Lines.Count, Scroll + VisibleLines);
-        for (int index = Scroll; index < last; index++)
+        float bottom = Area.End.Y - Inset;
+        float y = Area.Position.Y + Inset;
+        for (int index = Scroll; index < buffer.Lines.Count && y + LineHeight <= bottom; index++)
         {
-            float y = Area.Position.Y + Inset + (index - Scroll) * LineHeight;
             string line = buffer.Lines[index];
             List<InlayHint> lineHints = hints.For(line);
-
             SlangProblem? problem = FirstProblem(problems, index + 1);
+
             if (problem is { } shown)
                 _canvas.DrawRect(_item, new Rect2(Area.Position.X, y, Area.Size.X, LineHeight), shown.Warning ? WarningLine : ErrorLine);
             else if (index == buffer.Line)
@@ -87,31 +99,65 @@ internal sealed class CodeView
             _canvas.DrawTextMono(
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
-            int width = DrawLine(line, lineHints, y);
-
-            if (problem is { } p)
-                DrawProblem(line, lineHints, p, y, width);
+            DrawLine(line, lineHints, y);
             if (index == buffer.Line && caretOn)
             {
                 float x = TextLeft + VisualColumn(lineHints, buffer.Column) * _charWidth;
                 _canvas.DrawRect(_item, new Rect2(x - 1, y + 2, 2, LineHeight - 4), Palette.Accent);
             }
+
+            _rows.Add((y, index, null));
+            y += LineHeight;
+
+            if (problem is { } p)
+            {
+                Underline(line, lineHints, p, y - LineHeight);
+                if (y + LineHeight <= bottom)
+                {
+                    DrawMessage(line, p, y);
+                    _rows.Add((y, index, p.Column));
+                    y += LineHeight;
+                }
+            }
         }
     }
 
-    /// <summary>The line and column under a point, or null outside the code.</summary>
+    /// <summary>The line and column under a point (a message row gives its problem's place), or null outside the code.</summary>
     public (int Line, int Column)? Hit(CodeBuffer buffer, SlangHints hints, Vector2 point)
     {
-        if (!Area.HasPoint(point))
+        if (!Area.HasPoint(point) || _rows.Count == 0)
             return null;
 
-        int line = Math.Clamp(Scroll + (int)((point.Y - Area.Position.Y - Inset) / LineHeight), 0, buffer.Lines.Count - 1);
+        (float Top, int Line, int? ProblemColumn) row = _rows[^1];
+        foreach (var candidate in _rows)
+        {
+            if (point.Y < candidate.Top + LineHeight)
+            {
+                row = candidate;
+                break;
+            }
+        }
+
+        if (row.ProblemColumn is { } column)
+            return (row.Line, Math.Max(0, column - 1));
+
         int visual = Math.Max(0, (int)MathF.Round((point.X - TextLeft) / _charWidth));
-        return (line, LogicalColumn(hints.For(buffer.Lines[line]), visual, buffer.Lines[line].Length));
+        return (row.Line, LogicalColumn(hints.For(buffer.Lines[row.Line]), visual, buffer.Lines[row.Line].Length));
     }
 
-    /// <summary>Draws a line's code and hints; returns how many columns it took.</summary>
-    private int DrawLine(string line, List<InlayHint> hints, float y)
+    private static int RowsFrom(int first, int last, IReadOnlyList<SlangProblem> problems)
+    {
+        int rows = last - first + 1;
+        foreach (SlangProblem problem in problems)
+        {
+            if (problem.Line - 1 >= first && problem.Line - 1 <= last)
+                rows++;
+        }
+
+        return rows;
+    }
+
+    private void DrawLine(string line, List<InlayHint> hints, float y)
     {
         int visual = 0, logical = 0;
         int comment = line.IndexOf("//", StringComparison.Ordinal);
@@ -120,12 +166,23 @@ internal sealed class CodeView
             DrawCode(line, logical, hint.Column, comment, visual, y);
             visual += hint.Column - logical;
             logical = hint.Column;
-            DrawAt(hint.Label, visual, y, Hint);
+            DrawHint(hint.Label, visual, y);
             visual += hint.Label.Length + 1;
         }
 
         DrawCode(line, logical, line.Length, comment, visual, y);
-        return visual + line.Length - logical;
+    }
+
+    /// <summary>A hint in a smaller face on a faint pill, so it can't be read as code or a comment.</summary>
+    private void DrawHint(string label, int visualColumn, float y)
+    {
+        // The hint has label + 1 columns of room; its smaller text sits centred in a pill a little narrower.
+        float room = (label.Length + 1) * _charWidth;
+        float textWidth = label.Length * _charWidth * HintSize / FontSize;
+        float pill = textWidth + 8;
+        float x = TextLeft + visualColumn * _charWidth + (room - pill) / 2 - _charWidth / 2;
+        _canvas.DrawRect(_item, new Rect2(x, y + 3, pill, LineHeight - 6), HintPill);
+        _canvas.DrawTextMono(_item, new Rect2(x + 4 - TextPadding, y, textWidth + TextPadding * 2 + 8, LineHeight), label, HintText, HintSize, TextAlign.Left);
     }
 
     /// <summary>Code from one column to another, the part from <paramref name="comment"/> on dimmed.</summary>
@@ -153,20 +210,27 @@ internal sealed class CodeView
         _canvas.DrawTextMono(_item, new Rect2(x, y, text.Length * _charWidth + TextPadding * 2 + 8, LineHeight), text, colour, FontSize, TextAlign.Left);
     }
 
-    /// <summary>The word at the problem underlined, and its message after the code.</summary>
-    private void DrawProblem(string line, List<InlayHint> hints, SlangProblem problem, float y, int width)
+    /// <summary>The word at the problem underlined.</summary>
+    private void Underline(string line, List<InlayHint> hints, SlangProblem problem, float y)
     {
-        Color colour = problem.Warning ? Palette.Warning : Palette.DangerBright;
         int start = Math.Clamp(problem.Column - 1, 0, line.Length);
         int end = start;
         while (end < line.Length && (char.IsLetterOrDigit(line[end]) || line[end] == '_'))
             end++;
         end = Math.Max(end, start + 1);
         float x0 = TextLeft + VisualColumn(hints, start) * _charWidth;
-        float x1 = x0 + (end - start) * _charWidth;
-        _canvas.DrawRect(_item, new Rect2(x0, y + LineHeight - 3, x1 - x0, 2), colour);
-        DrawAt("← " + problem.Message, width + 3, y, colour);
+        _canvas.DrawRect(_item, new Rect2(x0, y + LineHeight - 3, (end - start) * _charWidth, 2), Colour(problem));
     }
+
+    /// <summary>The message on its own row, lined up under the line's code, with a mark pointing up at it.</summary>
+    private void DrawMessage(string line, SlangProblem problem, float y)
+    {
+        int indent = line.Length - line.TrimStart(' ').Length;
+        _canvas.DrawRect(_item, new Rect2(Area.Position.X, y, Area.Size.X, LineHeight), problem.Warning ? WarningLine : ErrorLine);
+        DrawAt("└ " + problem.Message, indent, y, Colour(problem));
+    }
+
+    private static Color Colour(SlangProblem problem) => problem.Warning ? Palette.Warning : Palette.DangerBright;
 
     private static SlangProblem? FirstProblem(IReadOnlyList<SlangProblem> problems, int line)
     {

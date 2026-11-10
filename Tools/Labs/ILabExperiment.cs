@@ -42,6 +42,9 @@ internal interface ILabExperiment
     /// <summary>The tab label.</summary>
     string Name { get; }
 
+    /// <summary>True to drop the side panel and lay out the whole body (stage and panel room) itself.</summary>
+    bool FullWidth => false;
+
     /// <summary>Short lines shown at the top of the side panel.</summary>
     string[] Notes { get; }
 

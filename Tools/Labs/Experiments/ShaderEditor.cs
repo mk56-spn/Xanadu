@@ -25,54 +25,17 @@ namespace Xanadu.Labs.Experiments;
 internal sealed class ShaderEditor : ILabExperiment
 {
     private const string WorkingCopy = "res://Tools/Labs/Playground/editor.slang";
-    private const string Template = "res://Tools/Labs/Playground/playground.template.slang";
+    private const string Template = "res://Tools/Labs/Playground/editor.template.slang";
     private const string Label = "editor";
-    private const int ProblemLines = 14;
-    private const float ProblemWidth = 590;
-
-    private Entity _status;
-    private readonly Entity[] _problems = new Entity[ProblemLines];
 
     public string Name => "SHADER EDITOR";
 
-    public string[] Notes =>
-    [
-        "Type on the left; it compiles as you go and draws on",
-        "the right. A level shader slot: uniforms and",
-        "float4 shade(ItemInput i); import xanadu.",
-        "Faded names in calls are hints, not code.",
-        "Arrows, Home/End, PgUp/PgDn, Tab, Ctrl+V, wheel.",
-        .. LabShaderValues.Notes,
-    ];
+    /// <summary>The editor lays out the whole body itself; its help sits under the problem list.</summary>
+    public bool FullWidth => true;
 
-    public void BuildPanel(UiNode panel)
-    {
-        _status = panel.Text("waiting for the first compile…", UiType.Small, Palette.TextMuted);
-        UiNode column = panel.Column().Cross(StackCrossAlignment.Start).Width(ProblemWidth);
-        for (int i = 0; i < ProblemLines; i++)
-            _problems[i] = column.Text("", UiType.Caption, Palette.DangerBright, TextAlign.Left).Mono().Width(ProblemWidth);
-    }
+    public string[] Notes => [];
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
-
-    private void Show(string status, Color colour, IReadOnlyList<SlangProblem> problems)
-    {
-        UiText.Set(_status, status);
-        UiText.SetColor(_status, colour);
-        for (int i = 0; i < ProblemLines; i++)
-        {
-            string line = "";
-            if (i < problems.Count)
-            {
-                SlangProblem problem = problems[i];
-                line = (problem.Line > 0 ? $"{problem.Line,4}: " : "      ") + problem.Message;
-                if (line.Length > 78)
-                    line = line[..77] + "…";
-            }
-
-            UiText.Set(_problems[i], line);
-        }
-    }
+    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area);
 
     private static string WorkingFile()
     {
@@ -95,8 +58,14 @@ internal sealed class ShaderEditor : ILabExperiment
             KeyCode.Return, KeyCode.PageUp, KeyCode.PageDown, KeyCode.Tab,
         ];
 
-        private readonly ShaderEditor _owner;
+        private const float Gap = 12;
+        private const float StatusHeight = 32;
+
+        /// <summary>The right-hand column's width: the preview at 16:9 on top, problems and help under it.</summary>
+        private const float SideWidth = 720;
+
         private readonly LabContext _context;
+        private readonly EditorChrome _chrome;
         private readonly Handle _codeItem;
         private readonly Handle _previewItem;
         private readonly Rect2 _preview;
@@ -112,20 +81,31 @@ internal sealed class ShaderEditor : ILabExperiment
         private float _sinceEdit;
         private float _sinceCaretMove;
         private bool _wasHeld;
+        private bool _everCompiled;
+        private Vector2 _pointer;
+        private string _status = "compiling…";
+        private Color _statusColour = Palette.TextMuted;
         private Task<(int Version, string Source, string[] Params, string? Error, long Ms)>? _compiling;
 
-        public Stage(ShaderEditor owner, LabContext context, Handle parent, Rect2 area)
+        public Stage(LabContext context, Handle parent, Rect2 area)
         {
-            _owner = owner;
             _context = context;
-            float split = MathF.Round(area.Size.X * 0.64f);
-            var codeArea = new Rect2(area.Position, new Vector2(split, area.Size.Y));
-            _preview = new Rect2(area.Position.X + split + 8, area.Position.Y, area.Size.X - split - 8, area.Size.Y);
+            float codeWidth = area.Size.X - SideWidth - Gap;
+            var codeArea = new Rect2(area.Position, new Vector2(codeWidth, area.Size.Y - StatusHeight));
+            var bar = new Rect2(area.Position.X, codeArea.End.Y, codeWidth, StatusHeight);
+            float sideLeft = codeArea.End.X + Gap;
+            // The game's playfield is 16:9, so the preview is too: a shader looks here as it will there.
+            _preview = new Rect2(sideLeft, area.Position.Y, SideWidth, MathF.Round(SideWidth * 9f / 16f));
+            var side = new Rect2(sideLeft, _preview.End.Y + Gap, SideWidth, area.End.Y - _preview.End.Y - Gap);
+            _pointer = _preview.GetCenter();
 
             _codeItem = Child(parent);
             _previewItem = Child(parent);
-            CanvasServer.Current.AddRect(_previewItem, _preview, Colors.White);
-            _view = new CodeView(HostPlatform.NewCanvas(), _codeItem, codeArea, context.Text);
+            Handle chromeItem = Child(parent);
+            CanvasServer.Current.AddRect(_previewItem, _preview, new Color("#0b1020"));
+            IRectCanvas canvas = HostPlatform.NewCanvas();
+            _view = new CodeView(canvas, _codeItem, codeArea, context.Text);
+            _chrome = new EditorChrome(canvas, chromeItem, bar, _preview, side);
             _hints = SlangHints.FromLibrary(Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu"));
 
             _file = WorkingFile();
@@ -155,7 +135,7 @@ internal sealed class ShaderEditor : ILabExperiment
             if (_buffer.Version != version || caret != (_buffer.Line, _buffer.Column))
             {
                 _sinceCaretMove = 0;
-                _view.Reveal(_buffer.Line);
+                _view.Reveal(_buffer.Line, _shownProblems);
             }
             else
                 _sinceCaretMove += frame.Delta;
@@ -164,12 +144,20 @@ internal sealed class ShaderEditor : ILabExperiment
             if (_compiling is null && _compiledVersion != _buffer.Version && _sinceEdit >= Settle)
                 Compile();
 
+            // The pointer counts only over the preview; elsewhere the shader keeps where it last was (the middle at first).
+            if (_preview.HasPoint(frame.Mouse))
+                _pointer = frame.Mouse;
             if (_material is not null)
-                LabShaderValues.Apply(_material, _wanted, _preview, frame.Mouse, frame.Time);
+                LabShaderValues.Apply(_material, _wanted, _preview, _pointer, frame.Time);
 
             // Solid while typing or moving, blinking once still.
             bool caretOn = _sinceCaretMove < 0.5f || (int)(_sinceCaretMove * 2) % 2 == 0;
             _view.Draw(_buffer, _hints, _shownProblems, caretOn);
+            _chrome.Draw(new EditorState(
+                _buffer.Line, _buffer.Column, _status, _statusColour,
+                PreviewStale: _shownProblems.Count > 0 || !_everCompiled,
+                PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
+                _shownProblems));
         }
 
         private void Edit(Inputs inputs, in LabFrame frame)
@@ -202,8 +190,8 @@ internal sealed class ShaderEditor : ILabExperiment
                 case KeyCode.Right: _buffer.MoveColumn(1); break;
                 case KeyCode.Up: _buffer.MoveLine(-1); break;
                 case KeyCode.Down: _buffer.MoveLine(1); break;
-                case KeyCode.PageUp: _buffer.MoveLine(-_view.VisibleLines); break;
-                case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleLines); break;
+                case KeyCode.PageUp: _buffer.MoveLine(-_view.VisibleRows); break;
+                case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleRows); break;
                 case KeyCode.Backspace: _buffer.Backspace(); break;
                 case KeyCode.Delete: _buffer.Delete(); break;
                 case KeyCode.Return: _buffer.NewLine(); break;
@@ -235,8 +223,13 @@ internal sealed class ShaderEditor : ILabExperiment
 
         private void Point(in LabFrame frame)
         {
-            if (frame.Held && !_wasHeld && _view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
-                _buffer.Place(hit.Line, hit.Column);
+            if (frame.Held && !_wasHeld)
+            {
+                if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
+                    _buffer.Place(hit.Line, hit.Column);
+                else if (_chrome.ProblemAt(frame.Mouse) is { } problem)
+                    _buffer.Place(problem.Line - 1, problem.Column - 1);
+            }
             _wasHeld = frame.Held;
 
             if (frame.Inputs is { } inputs && inputs.Mouse.Wheel != 0 && _view.Area.HasPoint(frame.Mouse))
@@ -257,7 +250,8 @@ internal sealed class ShaderEditor : ILabExperiment
                 // Saving is a convenience; the compile goes ahead.
             }
 
-            _owner.Show("compiling…", Palette.TextMuted, _shownProblems);
+            if (!_everCompiled)
+                (_status, _statusColour) = ("compiling…", Palette.TextMuted);
             _compiling = Task.Run(() =>
             {
                 var clock = Stopwatch.StartNew();
@@ -285,9 +279,7 @@ internal sealed class ShaderEditor : ILabExperiment
             {
                 _shownProblems = SlangProblems.Parse(error, Label);
                 int count = _shownProblems.Count;
-                _owner.Show(
-                    $"{count} problem{(count == 1 ? "" : "s")} · the preview shows the last version that compiled",
-                    Palette.Danger, _shownProblems);
+                (_status, _statusColour) = ($"{count} problem{(count == 1 ? "" : "s")}", Palette.DangerBright);
                 return;
             }
 
@@ -298,7 +290,8 @@ internal sealed class ShaderEditor : ILabExperiment
             _wanted = LabShaderValues.Wanted(declared);
             if (previous is not null)
                 _context.Pipelines.Forget(previous);
-            _owner.Show($"compiled in {ms} ms{LabShaderValues.Describe(_wanted)}", Palette.Success, _shownProblems);
+            _everCompiled = true;
+            (_status, _statusColour) = ($"compiled in {ms} ms{LabShaderValues.Describe(_wanted)}", Palette.Success);
         }
 
         public void Dispose()
