@@ -42,6 +42,9 @@ internal static class SlangSyntax
         "__init", "__exported",
     ];
 
+    /// <summary>Slang's own types (and the stage's), which completion offers too.</summary>
+    public static IReadOnlySet<string> BuiltInTypes => Types;
+
     private static readonly HashSet<string> Types =
     [
         "void", "bool", "int", "uint", "half", "float", "double",

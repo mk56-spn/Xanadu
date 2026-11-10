@@ -132,7 +132,8 @@ internal sealed class ShaderEditor : ILabExperiment
             _hints = SlangHints.FromLibrary(library);
             _completions = SlangCompletions.FromSources(
                 Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [],
-                Xanadu.Rendering.ShaderConstants.Library);
+                Xanadu.Rendering.ShaderConstants.Library,
+                LabShaderValues.All.Select(value => (value.Name, value.Type)));
             // Made last, so the list draws over the code and everything round it.
             _popup = new CompletionPopup(canvas, Child(parent), codeArea);
 

@@ -14,19 +14,29 @@ internal enum CompletionKind
     Constant,
     Type,
     EnumValue,
+    Keyword,
+    Namespace,
+    Variable,
 }
 
-/// <summary>One thing that can follow a dot: its name, what it is, a short signature or type, and a colour for colour constants.</summary>
+/// <summary>One thing completion offers: its name, what it is, a short signature or type, and a colour for colour constants.</summary>
 internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null);
 
 /// <summary>
-/// Primitive completion after a dot, from the shader library's own source:
+/// Primitive completion from the shader library's own source. After a dot:
 /// a namespace's members (<c>colours.</c>), a struct's fields, properties and
 /// methods (<c>i.canvas.</c>), the shape methods every <c>IShape</c> gets, and
 /// enum values (<c>blend.Mode.</c>). What a name before the dot is comes from
 /// a light scan of the code being edited: <c>ItemInput i</c>,
 /// <c>Canvas c = …</c>, <c>let b = Box(…)</c>. No calls in the chain, no
 /// overloads, no inference beyond that.
+/// <para>
+/// While typing a word: the code's own names (uniforms, locals, functions),
+/// what the host provides, Slang's types, keywords and common intrinsics, and
+/// the library's top-level names (shapes, <c>colour</c>, <c>rotate</c>, the
+/// namespaces). Not where a new name is being given (<c>float4 |</c>,
+/// <c>let |</c>), and not once the word typed is already one of them.
+/// </para>
 /// </summary>
 internal sealed partial class SlangCompletions
 {
@@ -66,20 +76,81 @@ internal sealed partial class SlangCompletions
     [GeneratedRegex(@"\blet\s+(\w+)\s*=\s*([A-Z]\w*)\s*\(")]
     private static partial Regex LetConstructed();
 
-    public static SlangCompletions FromSources(IEnumerable<string> sources, ShaderConstants constants)
+    [GeneratedRegex(@"(?<![\w.])([A-Za-z_]\w*)$")]
+    private static partial Regex WordAtEnd();
+
+    [GeneratedRegex(@"\.\s*\w*$")]
+    private static partial Regex AfterDot();
+
+    [GeneratedRegex(@"\b([A-Za-z_]\w*)\s+$")]
+    private static partial Regex WordBeforeSpace();
+
+    [GeneratedRegex(@"\b([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*([=;,)(])")]
+    private static partial Regex Declared();
+
+    [GeneratedRegex(@"\b(?:let|var)\s+([A-Za-z_]\w*)")]
+    private static partial Regex LetName();
+
+    [GeneratedRegex(@"public\s+typealias\s+(\w+)\s*=\s*(\w+)")]
+    private static partial Regex TypeAlias();
+
+    [GeneratedRegex(@"public\s+namespace\s+(\w+)")]
+    private static partial Regex NamespaceName();
+
+    [GeneratedRegex(@"public\s+struct\s+(\w+)\s*(<?)[^{]*\{")]
+    private static partial Regex StructName();
+
+    /// <summary>The library's top-level names that are host plumbing, not for effects.</summary>
+    private static readonly HashSet<string> Hidden = ["VERSION", "canvasOf", "input", "shading"];
+
+    /// <summary>Keywords worth offering in an effect body.</summary>
+    private static readonly string[] Keywords =
+    [
+        "if", "else", "for", "while", "return", "break", "continue", "discard", "let", "var", "const",
+        "static", "uniform", "in", "out", "inout", "struct", "import", "true", "false",
+    ];
+
+    /// <summary>Slang's common intrinsics, with their usual parameters.</summary>
+    private static readonly (string Name, string Detail)[] Intrinsics =
+    [
+        ("abs", "(x)"), ("acos", "(x)"), ("asin", "(x)"), ("atan", "(x)"), ("atan2", "(y, x)"), ("ceil", "(x)"),
+        ("clamp", "(x, min, max)"), ("cos", "(x)"), ("cross", "(a, b)"), ("ddx", "(x)"), ("ddy", "(x)"),
+        ("degrees", "(radians)"), ("distance", "(a, b)"), ("dot", "(a, b)"), ("exp", "(x)"), ("exp2", "(x)"),
+        ("floor", "(x)"), ("fmod", "(x, y)"), ("frac", "(x)"), ("fwidth", "(x)"), ("length", "(v)"),
+        ("lerp", "(a, b, t)"), ("log", "(x)"), ("log2", "(x)"), ("max", "(a, b)"), ("min", "(a, b)"),
+        ("mul", "(a, b)"), ("normalize", "(v)"), ("pow", "(x, y)"), ("radians", "(degrees)"),
+        ("reflect", "(i, n)"), ("round", "(x)"), ("rsqrt", "(x)"), ("saturate", "(x)"), ("sign", "(x)"),
+        ("sin", "(x)"), ("smoothstep", "(edge0, edge1, x)"), ("sqrt", "(x)"), ("step", "(edge, x)"),
+        ("tan", "(x)"), ("tanh", "(x)"), ("trunc", "(x)"),
+    ];
+
+    /// <summary>The library's top-level names: free functions and constants, structs, aliases, namespaces.</summary>
+    private readonly List<Completion> _globals = new();
+
+    /// <summary>Names the host declares for the code (the lab's time, mousePos, …).</summary>
+    private readonly List<Completion> _provided = new();
+
+    /// <summary>Every type name a declaration can start with: Slang's, the library's structs and aliases.</summary>
+    private readonly HashSet<string> _typeNames = new(SlangSyntax.BuiltInTypes, StringComparer.Ordinal);
+
+    /// <param name="provided">Names the host declares for the code, with their types.</param>
+    public static SlangCompletions FromSources(
+        IEnumerable<string> sources, ShaderConstants constants, IEnumerable<(string Name, string Type)>? provided = null)
     {
         var completions = new SlangCompletions();
         foreach (string source in sources)
             completions.Read(Regex.Replace(Regex.Replace(source, @"/\*.*?\*/", " ", RegexOptions.Singleline), @"//[^\n]*", ""), constants);
+        foreach ((string name, string type) in provided ?? [])
+            completions._provided.Add(new Completion(name, CompletionKind.Variable, type + " · provided"));
         foreach (List<Completion> members in completions._scopes.Values)
             members.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return completions;
     }
 
     /// <summary>
-    /// What may follow the dot just before the caret, filtered by what is typed
-    /// after it; null when the caret isn't after a dot whose left side is known.
-    /// <paramref name="start"/> is the column where the typed part begins.
+    /// What may follow the dot just before the caret, or complete the word
+    /// being typed, filtered by what is typed; null when there is nothing to
+    /// offer. <paramref name="start"/> is the column where the typed part begins.
     /// </summary>
     public List<Completion>? At(string beforeCaret, IReadOnlyList<string> code, out int start)
     {
@@ -87,6 +158,9 @@ internal sealed partial class SlangCompletions
         int comment = beforeCaret.IndexOf("//", StringComparison.Ordinal);
         if (comment >= 0)
             return null;
+        // After a dot only members make sense, known or not.
+        if (!AfterDot().IsMatch(beforeCaret))
+            return Words(beforeCaret, code, out start);
         Match match = DotChain().Match(beforeCaret);
         if (!match.Success)
             return null;
@@ -107,6 +181,80 @@ internal sealed partial class SlangCompletions
         List<Completion> found = starting.Concat(containing).ToList();
         // Nothing left to offer once the typed name is complete and the only match.
         return found.Count == 0 || (found.Count == 1 && found[0].Name == typed) ? null : found;
+    }
+
+    /// <summary>Completions for the word before the caret, or null where none fit.</summary>
+    private List<Completion>? Words(string beforeCaret, IReadOnlyList<string> code, out int start)
+    {
+        start = 0;
+        Match word = WordAtEnd().Match(beforeCaret);
+        if (!word.Success)
+            return null;
+
+        // A new name is being given: after a type, let or var, nothing here can be it.
+        Match before = WordBeforeSpace().Match(beforeCaret[..word.Index]);
+        if (before.Success && (_typeNames.Contains(before.Groups[1].Value)
+                               || before.Groups[1].Value is "let" or "var" or "struct" or "namespace" or "module" or "import"))
+            return null;
+
+        string typed = word.Groups[1].Value;
+        start = word.Index;
+        var all = new List<Completion>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        void Offer(Completion completion)
+        {
+            if (seen.Add(completion.Name))
+                all.Add(completion);
+        }
+
+        foreach (Completion own in CodeNames(code))
+            Offer(own);
+        foreach (Completion provided in _provided)
+            Offer(provided);
+        foreach (Completion global in _globals)
+            Offer(global);
+        foreach (string type in SlangSyntax.BuiltInTypes)
+            Offer(new Completion(type, CompletionKind.Type, "type"));
+        foreach ((string name, string detail) in Intrinsics)
+            Offer(new Completion(name, CompletionKind.Function, detail));
+        foreach (string keyword in Keywords)
+            Offer(new Completion(keyword, CompletionKind.Keyword, "keyword"));
+
+        // Typed out already: nothing to finish, and Enter must stay a new line.
+        if (seen.Contains(typed))
+            return null;
+
+        // The code's and the host's names first, then the rest, each alphabetically.
+        static int Rank(Completion c) => c.Kind == CompletionKind.Variable ? 0 : 1;
+        var starting = all.Where(c => c.Name.StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(Rank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase);
+        // One or two letters inside a name match too much; three are worth it.
+        IEnumerable<Completion> containing = typed.Length < 3 ? [] : all.Where(c => !c.Name.StartsWith(typed, StringComparison.OrdinalIgnoreCase)
+                                                             && c.Name.Contains(typed, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(Rank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase);
+        List<Completion> found = starting.Concat(containing).ToList();
+        return found.Count == 0 ? null : found;
+    }
+
+    /// <summary>The names the code declares: uniforms, locals and parameters by their type, let and var, and functions.</summary>
+    private IEnumerable<Completion> CodeNames(IReadOnlyList<string> code)
+    {
+        foreach (string line in code)
+        {
+            int comment = line.IndexOf("//", StringComparison.Ordinal);
+            string text = comment >= 0 ? line[..comment] : line;
+            foreach (Match match in Declared().Matches(text))
+            {
+                string type = match.Groups[1].Value;
+                if (!_typeNames.Contains(type))
+                    continue;
+                bool function = match.Groups[3].Value == "(";
+                yield return new Completion(match.Groups[2].Value, function ? CompletionKind.Function : CompletionKind.Variable, function ? "→ " + type : type);
+            }
+
+            foreach (Match match in LetName().Matches(text))
+                yield return new Completion(match.Groups[1].Value, CompletionKind.Variable, "let");
+        }
     }
 
     /// <summary>The scope a dotted chain ends in: a namespace, then nested scopes or fields; or a variable's type, then fields.</summary>
@@ -162,6 +310,7 @@ internal sealed partial class SlangCompletions
 
     private void Read(string source, ShaderConstants constants)
     {
+        ReadGlobals(source);
         var spans = new List<(int Start, int End, string Scope, string Kind)>();
         foreach (Match match in Opener().Matches(source))
         {
@@ -242,6 +391,57 @@ internal sealed partial class SlangCompletions
             Add(scope, new Completion(
                 match.Groups[2].Value, inNamespace ? CompletionKind.Function : CompletionKind.Method,
                 $"({parameters}) → {match.Groups[1].Value.Trim()}"));
+        }
+    }
+
+    /// <summary>The top-level names of one library file: what a word can complete to.</summary>
+    private void ReadGlobals(string source)
+    {
+        foreach (Match match in TypeAlias().Matches(source))
+        {
+            _typeNames.Add(match.Groups[1].Value);
+            _globals.Add(new Completion(match.Groups[1].Value, CompletionKind.Type, match.Groups[2].Value));
+        }
+
+        foreach (Match match in NamespaceName().Matches(source))
+            _globals.Add(new Completion(match.Groups[1].Value, CompletionKind.Namespace, "namespace"));
+
+        // Only what sits outside every brace is top level.
+        int depth = 0;
+        var top = new bool[source.Length + 1];
+        for (int i = 0; i < source.Length; i++)
+        {
+            top[i] = depth == 0;
+            if (source[i] == '{')
+                depth++;
+            else if (source[i] == '}')
+                depth = Math.Max(0, depth - 1);
+        }
+
+        foreach (Match match in StructName().Matches(source))
+        {
+            string name = match.Groups[1].Value;
+            _typeNames.Add(name);
+            // Generic structs (Rotated<S>, Union<A, B>) are what the shape changes return, never written out.
+            if (!top[match.Index] || name.EndsWith("Attribute", StringComparison.Ordinal) || match.Groups[2].Value == "<")
+                continue;
+            Match init = Regex.Match(source[match.Index..Close(source, match.Index + match.Length - 1)], @"public\s+__init\s*\(([^)]*)\)");
+            _globals.Add(new Completion(name, CompletionKind.Type, init.Success ? "(" + Regex.Replace(init.Groups[1].Value.Trim(), @"\s+", " ") + ")" : "struct"));
+        }
+
+        foreach (Match match in Constant().Matches(source))
+        {
+            if (top[match.Index] && !Hidden.Contains(match.Groups[2].Value))
+                _globals.Add(new Completion(match.Groups[2].Value, CompletionKind.Constant, match.Groups[1].Value));
+        }
+
+        foreach (Match match in Method().Matches(source))
+        {
+            string name = match.Groups[2].Value;
+            if (!top[match.Index] || Hidden.Contains(name) || _globals.Exists(g => g.Name == name))
+                continue;
+            string parameters = Regex.Replace(match.Groups[3].Value.Trim(), @"\s+", " ");
+            _globals.Add(new Completion(name, CompletionKind.Function, $"({parameters}) → {match.Groups[1].Value.Trim()}"));
         }
     }
 

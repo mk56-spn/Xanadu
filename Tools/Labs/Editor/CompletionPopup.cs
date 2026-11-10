@@ -9,7 +9,7 @@ namespace Xanadu.Labs.Editor;
 
 /// <summary>
 /// The completion list under the caret. It opens when typing leaves the caret
-/// after a dot it has something for, narrows as you type, and closes when the
+/// after a dot or in a word it has something for, narrows as you type, and closes when the
 /// caret leaves that spot or on Esc (until the spot changes). Up/Down choose,
 /// Tab/Enter or a click take the choice.
 /// </summary>
@@ -82,14 +82,19 @@ internal sealed class CompletionPopup
         _dismissed = (buffer.Line, Start);
     }
 
-    /// <summary>Takes the chosen entry: the typed part becomes its name, and a function gets its opening bracket.</summary>
+    /// <summary>Takes the chosen entry: the typed part becomes its name, a function gets its opening bracket and a namespace its dot.</summary>
     public void Accept(CodeBuffer buffer)
     {
         if (!Open)
             return;
         Completion choice = _items[_selected];
-        bool call = choice.Kind is CompletionKind.Function or CompletionKind.Method;
-        buffer.Replace(Start, buffer.Column, choice.Name + (call ? "(" : ""));
+        string after = choice.Kind switch
+        {
+            CompletionKind.Function or CompletionKind.Method => "(",
+            CompletionKind.Namespace => ".",
+            _ => "",
+        };
+        buffer.Replace(Start, buffer.Column, choice.Name + after);
         Open = false;
     }
 
@@ -160,6 +165,9 @@ internal sealed class CompletionPopup
         CompletionKind.Function => "ƒ",
         CompletionKind.Constant => "c",
         CompletionKind.Type => "T",
+        CompletionKind.Keyword => "k",
+        CompletionKind.Namespace => "n",
+        CompletionKind.Variable => "v",
         _ => "e",
     };
 

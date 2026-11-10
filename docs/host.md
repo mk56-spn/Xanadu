@@ -380,7 +380,13 @@ host fills; tests leave the headless defaults.
     methods (`i.canvas.`), the shape methods every `IShape` gets, enum values
     (`blend.Mode.`); a name's type comes from a light scan of the code
     (`ItemInput i`, `Canvas c = …`, `let b = Box(…)`). Up/Down, Tab/Enter,
-    Esc, click. No calls in the chain, no inference past that.
+    Esc, click. No calls in the chain, no inference past that. While typing
+    a word it offers the code's own names first (uniforms, locals, functions
+    and the lab's provided values), then Slang's types, keywords and common
+    intrinsics and the library's top-level names (shapes, `colour`, `rotate`,
+    namespaces, which take their dot). It stays shut where a new name is being
+    given (`float4 |`, `let |`) and once the word is already a whole name, so
+    Enter there is still a new line.
     Shift+moves, drag, Shift+click and double-click select; Ctrl+A/C/X/V
     go through the SDL clipboard. It claims the keyboard through
     `HostTextInput.Claimed`. Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z undo and redo
