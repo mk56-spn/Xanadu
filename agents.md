@@ -128,7 +128,9 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 
 - **Build:** `dotnet build` on each project touched.
 - **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
-  `docs/moonworks-port.md` §6 lists the failures that are already known.
+  `docs/host.md` §7 lists the failures that are already known.
+- **Perf:** `./run-autopsy.sh game|editor|labs|animator` records a launch and
+  opens the frame autopsy (`docs/host.md` §5.10).
 
 ### Screenshots
 
@@ -164,8 +166,8 @@ scratchpad, never into `Assets/`.
 
 ## See also
 
-- `docs/moonworks-port.md` — how the game moved off Godot onto MoonWorks: the
-  decisions, the renderer, and what is left for later.
+- `docs/host.md` — the MoonWorks host: decisions, renderer, shaders, tools,
+  perf tooling (GPU times, Autopsy) and what is left for later.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
 - `docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
   migration settled on, and its open questions. This is the house style.

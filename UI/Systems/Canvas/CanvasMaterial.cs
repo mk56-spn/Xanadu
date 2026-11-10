@@ -11,7 +11,7 @@ public readonly record struct MaterialParam(string Name, int Channels, bool IsIn
 
 /// <summary>
 /// What a canvas item draws with when it isn't the plain canvas shader: a
-/// shader (a Slang effect by <c>res://</c> path, docs/moonworks-port.md step 5),
+/// shader (a Slang effect by <c>res://</c> path, docs/host.md §5.5),
 /// a blend mode, and named values and textures the shader reads. Engine-free,
 /// so scenes build and tune materials without Godot; the host compiles the
 /// shader and packs the values by name (fields of its <c>Params</c> block).

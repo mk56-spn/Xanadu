@@ -22,7 +22,7 @@ public sealed class ShaderSlot
 
     /// <summary>
     /// The engine-free materials for this slot, one per blend mode used, made
-    /// from <see cref="MaterialSource"/> (docs/moonworks-port.md step 5).
+    /// from <see cref="MaterialSource"/> (docs/host.md §5.5).
     /// </summary>
     public readonly Dictionary<BlendMode, Xanadu.Systems.Canvas.CanvasMaterial> Materials = new();
 

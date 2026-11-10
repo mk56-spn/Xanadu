@@ -338,7 +338,7 @@ screen size.
 | Editor warning popup | layer node, column, three rects |
 | Offset wizard | ECS panel; `OffsetWizardSystem` owns the click track, taps and save |
 | Song-select menu | right-click menu + delete confirmation; no native menu |
-| Add-song picker | ECS button in song timing; Main opens the FileDialog and imports |
+| Add-song picker | ECS button in song timing; the host opens SDL's file dialog and imports |
 
 Cleanup finished: `SceneUi`'s construction helpers (`Background`, `Panel`,
 `Label`, `Button`, `ButtonEntity`, `CarouselButton`, `ScrollView`, `Text`,

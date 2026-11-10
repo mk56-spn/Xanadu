@@ -14,7 +14,7 @@ public readonly record struct InstanceUniform(string Name, int Channels, Vector4
 
 /// <summary>
 /// Reads the keyable settings out of a level shader's Slang source
-/// (docs/render-architecture.md §5.3, step 8; docs/moonworks-port.md step 5):
+/// (docs/render-architecture.md §5.3, step 8; docs/host.md §5.5):
 /// global uniforms tagged <c>[Instance]</c>, such as
 /// <c>[Instance] [Default(0.5)] uniform float strength;</c>. Those are what a
 /// group's item-shader track can key; an untagged <c>uniform</c> stays a tuned

@@ -23,7 +23,7 @@ namespace Xanadu.Host;
 internal sealed record HostWindowOptions(uint Width, uint Height, string? ShotPath, int ShotFrame);
 
 /// <summary>
-/// What every MoonWorks exe shares (docs/moonworks-port.md): the window, the
+/// What every MoonWorks exe shares (docs/host.md): the window, the
 /// 1920×1080 frame drawn by the host's canvas renderer and blitted to the
 /// window, fonts, keyboard, pointer and text input, the shader library, vsync,
 /// F12 screenshots and <c>--shot</c>. The game and the tools derive from it and

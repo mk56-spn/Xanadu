@@ -5,7 +5,7 @@ namespace Xanadu.Levels;
 
 /// <summary>
 /// The cheap checks a level's shader source must pass before it is kept: a Slang
-/// fragment effect against <c>xanadu.stage</c> (docs/moonworks-port.md §2a) that
+/// fragment effect against <c>xanadu.stage</c> (docs/host.md §3) that
 /// defines <c>float4 shade(ItemInput i)</c>. Whether it really compiles is only
 /// known when the host builds it; a broken one draws plain and logs Slang's error.
 /// </summary>

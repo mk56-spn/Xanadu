@@ -97,7 +97,7 @@ internal static class SlangShaders
         Path.Combine(Path.GetTempPath(), $"xanadu-slang-{System.Environment.ProcessId}");
 
     /// <summary>
-    /// Compiles a level shader's effect body (docs/moonworks-port.md step 5):
+    /// Compiles a level shader's effect body (docs/host.md §5.5):
     /// its <c>import</c> lines are hoisted, the rest goes in a namespace of its
     /// own, and a generated entry point runs <c>input(v)</c> then its
     /// <c>shade</c>. <c>#line</c> keeps Slang's errors on the author's lines,

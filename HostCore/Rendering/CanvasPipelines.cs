@@ -22,7 +22,7 @@ internal sealed class CanvasEffect(Shader shader, CompiledShader compiled) : IDi
 
 /// <summary>
 /// The canvas's pipelines: the standard vertex stage with each fragment effect,
-/// one per blend mode used (docs/moonworks-port.md §2a: blend is pipeline state,
+/// one per blend mode used (docs/host.md §3: blend is pipeline state,
 /// not shader code). Effects compile the first time they are drawn and are kept;
 /// one that fails to compile logs its error once and draws plain.
 /// </summary>

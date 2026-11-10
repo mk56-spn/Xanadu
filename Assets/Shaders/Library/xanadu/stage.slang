@@ -1,4 +1,4 @@
-// xanadu.stage, contract version 1 (docs/moonworks-port.md §2a).
+// xanadu.stage, contract version 1 (docs/host.md §3).
 //
 // What the host's vertex stage hands every fragment effect, and the resources
 // every effect can read. Only ever add to it: effects written against v1 must

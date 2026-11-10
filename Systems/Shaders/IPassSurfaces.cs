@@ -3,7 +3,7 @@ namespace Xanadu.Systems.Shaders;
 
 /// <summary>
 /// The offscreen surfaces self-contained layers draw into
-/// (docs/render-architecture.md §5.6): an offscreen target per layer, made when the
+/// (docs/render-architecture.md §5.4): an offscreen target per layer, made when the
 /// layer's pass is turned on and freed when it is turned off, so a plain layer
 /// costs nothing.
 /// </summary>

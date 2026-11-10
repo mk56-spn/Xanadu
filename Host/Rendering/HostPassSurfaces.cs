@@ -7,7 +7,7 @@ namespace Xanadu.Host.Rendering;
 
 /// <summary>
 /// Self-contained layers' surfaces in the host (docs/render-architecture.md
-/// §5.6, docs/moonworks-port.md step 6): a parentless canvas item drawn into a
+/// §5.4, docs/host.md §5.3): a parentless canvas item drawn into a
 /// frame-sized texture before the frame, made when a layer's pass turns on and
 /// freed when it turns off. The texture is premultiplied, as Godot's
 /// SubViewport's was.

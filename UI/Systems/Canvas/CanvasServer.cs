@@ -7,7 +7,7 @@ namespace Xanadu.Systems.Canvas;
 /// transform, order, visibility, clip and colour, each holding a list of draw
 /// commands until it is cleared. The calls began as the subset of Godot's
 /// <c>RenderingServer</c> the game used; the MoonWorks host renders the tree
-/// (docs/moonworks-port.md step 2).
+/// (docs/host.md §5.2).
 /// </summary>
 public interface ICanvasServer
 {

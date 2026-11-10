@@ -6,8 +6,8 @@ using Xanadu.Systems.Canvas;
 namespace Xanadu.Systems.Shaders;
 
 /// <summary>
-/// A level's shader slots as engine-free materials (docs/moonworks-port.md
-/// step 5): one <see cref="CanvasMaterial"/> per slot and blend, made from the
+/// A level's shader slots as engine-free materials (docs/host.md
+/// §5.5): one <see cref="CanvasMaterial"/> per slot and blend, made from the
 /// slot's Slang source, carrying the slot's tuned values. The host compiles and
 /// caches the effect by its source.
 /// </summary>

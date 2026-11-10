@@ -1,6 +1,6 @@
 # External
 
-Third-party code vendored into the repo. See `docs/moonworks-port.md`.
+Third-party code vendored into the repo. See `docs/host.md`.
 
 ## MoonWorks
 

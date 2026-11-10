@@ -114,7 +114,7 @@ internal sealed class ParticleField : IDisposable
 }
 
 /// <summary>
-/// The host's <see cref="IParticleServer"/> (docs/moonworks-port.md step 7):
+/// The host's <see cref="IParticleServer"/> (docs/host.md §5.6):
 /// bursts land in the <see cref="ParticleField"/> of the canvas item they were
 /// emitted into; once a frame every live field is uploaded and stepped by a
 /// compute shader, and the <see cref="CanvasRenderer"/> draws each one as an

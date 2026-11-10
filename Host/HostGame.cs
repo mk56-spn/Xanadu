@@ -20,8 +20,8 @@ namespace Xanadu.Host;
 
 /// <summary>
 /// The game on the MoonWorks host: builds the game's ECS world on
-/// <see cref="HostApp"/>'s canvas, keyboard and pointer, and does what the
-/// Godot <c>Main</c> did around it (docs/moonworks-port.md steps 2 and 4).
+/// <see cref="HostApp"/>'s canvas, keyboard and pointer, plus what sits around
+/// it: scene changes, the add-song dialog, the editor overlay (docs/host.md §5.8).
 /// </summary>
 internal sealed class HostGame : HostApp
 {

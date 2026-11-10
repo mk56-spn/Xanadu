@@ -17,7 +17,7 @@ public sealed record RasterImage(int Width, int Height, byte[] Pixels)
 }
 
 /// <summary>
-/// Rasterises SVG without the engine (docs/moonworks-port.md step 8), through
+/// Rasterises SVG without the engine (docs/host.md §5.7), through
 /// Svg.Skia: the document's own size times a scale, as Godot's
 /// <c>Image.LoadSvgFromString</c> sized it.
 /// </summary>

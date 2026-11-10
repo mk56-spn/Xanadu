@@ -1,11 +1,9 @@
 # Render architecture: layers, groups, shaders, buffers
 
-Status: **done**: steps 0–12 landed (updated 2026-11-06).
-Hand-off for the rest: `docs/handoff-render.md`.
-This is the hand-off doc for layering in the level editor and play, sharing a
-core with the animator's layering. Each step below is meant to stand alone, so
-work can stop after any of them with the build green. Tick the box when a step
-lands and add a line under it noting anything that changed from the plan.
+Status: **built** (2026-11-06; on the MoonWorks host since 2026-11-10).
+Layering in the level editor and play, sharing a core with the animator's
+layering: the decisions, the model, how it maps onto the host renderer
+(`docs/host.md` §5.3), and design notes for each part as it was built.
 
 Pre-alpha: **no migration**. Bump the file format version and break old levels
 freely unless keeping them working is trivial.
@@ -26,9 +24,9 @@ These were agreed with the user. Don't revisit them without asking.
 | D5 | **Colour:** group colour effects fade over the item's own colour, and the latest to start wins (today's `GroupModulation.TryColor`). |
 | D6 | **Alpha:** each group works out its own alpha (latest wins *inside* the group), and the alphas of all the item's groups **multiply**. A colour effect in one group can never undo a fade in another. |
 | D7 | Two separate shader concepts: **(a) per-item shaders** applied while an item draws, and **(b) a layer pass**: a full-screen quad over a layer, off unless used. |
-| D8 | A layer pass is **either/or**: a layer picks *background reader* (reads everything drawn so far, Godot `CanvasLayer`/screen-texture style) **or** *self-contained reader* (reads only that layer's own content), or none. Never both on one layer. A self-contained layer renders into its **own SubViewport** (decided 2026-11-05), not a CanvasGroup. |
+| D8 | A layer pass is **either/or**: a layer picks *background reader* (reads everything drawn so far) **or** *self-contained reader* (reads only that layer's own content), or none. Never both on one layer. A self-contained layer renders into its **own offscreen target**, not a buffered group (§5.4). |
 | D9 | A layer pass is a **draw boundary**: at that point the screen read is guaranteed up to date. |
-| D10 | **Shaders may read the screen.** A placeable **screen-read region** (Godot's `BackBufferCopy`) refreshes the back buffer for its rect, so screen-reading draws after it see current pixels. Without one, a screen read sees the snapshot from the last boundary. |
+| D10 | **Shaders may read the screen.** A placeable **screen-read region** forces a fresh screen copy where it sits in the draw order. *Since the host (2026-11-10):* the renderer refreshes the copy whenever a read would otherwise be stale, so reads are always current and regions are no longer needed for correctness; they are kept as forced copies. |
 | D11 | **Shaders are keyable.** Layer shader settings are keyed on the layer's own track. Item shader settings are keyed through **groups**: a group owns an item-shader track, and each item picks a **shader source**, either *own* (its static shader, fixed settings) or **one** of its groups. It can only be one, because an item draws with a single material. |
 | D12 | **Buffered groups** (optional, per group): the group's members on one layer draw into an offscreen buffer, which is then drawn into the layer as one image. That gives a uniform fade with no darkening where members overlap. |
 | D13 | A buffered group sits at the **lowest z of its members** on that layer. |
@@ -70,7 +68,7 @@ field background and frame (FieldShader)
 
 for each layer that has items, back → front (lowest number first),
 with the player wedge (D1a) drawn between the last negative layer and the first positive one:
-    if pass == self-contained: the layer draws into its own SubViewport (everything below goes there)
+    if pass == self-contained: the layer draws into its own offscreen target (everything below goes there)
 
     for each slot in the layer, in z order (ties by list order):
         plain item       → draw (§4) into the current target
@@ -80,7 +78,7 @@ with the player wedge (D1a) drawn between the last negative layer and the first 
                               draw the buffer into the layer with
                                  G buffer tint × G buffer alpha, G buffer shader, G buffer blend
 
-    if pass == self-contained: full-screen quad samples the viewport's texture through the pass
+    if pass == self-contained: full-screen quad samples the target's texture through the pass
                                shader, reading only this layer → composite onto the screen
     if pass == background reader: refresh the back buffer (boundary) → full-screen quad with the
                                pass shader, reading everything drawn so far → it becomes the screen
@@ -101,17 +99,17 @@ self modulate (static colour)
 
 ---
 
-## 5. How it maps onto Godot (4.8-dev, `Godot.NET.Sdk/4.8.0-dev.7`)
+## 5. How it maps onto the host
 
-Checked against the GodotSharp 4.8.0-dev.7 API docs. Anything marked
-**spike** still needs proving in step 0.
+The renderer itself is described in `docs/host.md` §5.3; this is how layering
+uses it. (Until 2026-11-10 this mapped onto Godot's RenderingServer; the old
+version is in git history.)
 
 ### 5.1 Canvas item tree
 
-Ordering comes from the **tree order** of canvas items under the playfield
-root, not from `z_index`. `z_index` jumps out of `CanvasGroup` parents and
-would break buffers. Each layer and the wedge is its own child item, so
-reordering layers is reordering siblings.
+Order comes from the **tree order** of canvas items under the playfield root,
+kept by draw index; nothing inside a layer uses z. Each layer and the wedge is
+its own child item, so reordering layers is reordering siblings.
 
 ```
 playfield root
@@ -127,130 +125,64 @@ editor overlays             separate root, above everything
 ### 5.2 One layer
 
 ```
-layer container
-│   pass == self-contained → the container lives in the layer's own SubViewport
-│     (its own canvas, transparent clear, same size and camera transform as the
-│     playfield). Its slot in the main tree holds one full-screen quad that
-│     samples the viewport texture through the pass shader.
-├─ draw runs                 ShaderRoutingCanvas output, issued in (z, list) order
-├─ buffered group G          child item in CanvasGroup mode, at G's lowest member z
-│   └─ G's member runs       material = buffer shader + buffer tint/alpha, blend via render_mode
-├─ screen-read region        child item with CanvasItemSetCopyToBackbuffer(rect), at its z;
-│                            rect in render-target pixels (step 0, panel E)
+layer container             (self-contained → a parentless item drawn into the layer's own target)
+├─ draw runs                ShaderRoutingCanvas output, issued in (z, list) order
+├─ buffered group G         a canvas-group item at G's lowest member z
+│   └─ G's member runs      drawn into G's image; composited with the buffer shader,
+│                           buffer tint × alpha and buffer blend
+├─ screen-read region       an item that forces a fresh screen copy before what follows
 └─ …
-pass == background reader → a sibling item right after the container:
-    CanvasItemSetCopyToBackbuffer(item, true, new Rect2()) (an empty rect = full copy)
-    + a full-screen quad with the pass shader
-    (the copy happens just before it draws, which is the boundary of D9)
+background reader → after the container: a fresh screen copy, then a
+    full-screen quad with the pass shader reading it (the boundary of D9)
 ```
 
-- **Runs.** `ShaderRoutingCanvas` already starts a new child item when the
-  shader changes. The run key becomes **(shader slot, blend, shader-source
-  group)**, so items following different groups never share a run.
-- **CanvasGroup facts from the docs.** Its children draw as one object into the
-  back buffer. A custom material overrides the built-in shader, so the buffer
-  shader wrapper must repeat the built-in un-premultiply step
-  (`c.rgb /= c.a; COLOR *= c;`). Children that use `clip_children` don't work
-  inside one.
-- **No nesting.** Because self-contained layers are viewports, a buffered
-  group is never a CanvasGroup inside another CanvasGroup (§5.6).
-- **Confirmed (step 0):** a screen read inside a buffered group's CanvasGroup
-  reads the image from before the group (Q4). Inside a self-contained layer's
-  viewport, `screen_texture` is that viewport's own content so far.
-- **Confirmed (step 0):** `z_index` escapes CanvasGroups, so nothing inside a
-  layer uses it.
-- **Rect copies:** `CanvasItemSetCopyToBackbuffer` takes its rect in
-  **render-target pixels** (`GetViewport().GetFinalTransform() *
-  GetGlobalTransformWithCanvas() * localRect`), not local space, and `BackBufferCopy`'s Rect mode is wrong under
-  stretch for that reason. Screen-read regions compute the pixel rect
-  themselves every frame (it moves with the camera and editor zoom). Don't use
-  the `BackBufferCopy` node.
+- **Runs.** `ShaderRoutingCanvas` starts a new child item whenever the shader
+  changes; the run key is **(shader slot, blend, shader-source group)**, so
+  items following different groups never share a run.
+- **Buffered groups** render into a pooled frame-sized texture and composite
+  back as one premultiplied quad (`docs/host.md` §5.3). `xanadu.stage` hands
+  effects straight colour, so any slot shader works as a buffer shader.
+- **Screen reads** inside a buffered group sample the group's own image so far,
+  not the screen behind it (Godot read the image from before the group). Rare
+  in levels; revisit if one needs it.
 
-### 5.3 Instance uniforms (2D has them now)
+### 5.3 Instance values
 
-`RenderingServer.CanvasItemSetInstanceShaderParameter(item, name, value)`
-sets an `instance uniform` per canvas item. This changes the plan:
+One compiled material per (shader slot, blend), not per group. A group's keyed
+item-shader values are written as **instance values** on the runs that follow
+that group, once per frame; the same goes for a layer pass quad and a buffered
+group's composite. Two layers using the same blur share a material.
 
-- **One compiled material per (shader slot, blend)**, not per group. A group's
-  keyed item-shader values are written as instance parameters on the runs
-  that follow that group, once per frame.
-- The same goes for a layer pass quad and a buffered group's buffer shader. Each
-  is one item with its own instance values, so two layers using the same blur
-  share a material.
-- Level shaders mark their keyable settings as `instance uniform`, and plain
-  `uniform`s stay as tuned constants (`ShaderDocument.Params`). The editor's
-  key track lists only the instance uniforms.
-- **Limit (confirmed by the user, 2026-11-05):** up to 16 instance uniforms
-  per shader, each at most `vec4` in size (so scalars, vec2–vec4 and colours
-  are fine). That's plenty if values are packed (16 × vec4 = 64 floats). The
-  editor packs each keyable setting into a component slot, so a shader with
-  more than 16 scalar settings still fits. For anything larger, an instance
-  uniform holds an **index into a data texture** that stores the rest (one
-  texture for each level or group track, one row per group or item).
+- A level shader marks its keyable settings `[Instance]` (`docs/host.md` §5.5);
+  plain uniforms stay tuned constants. The editor's key track lists only the
+  `[Instance]` ones.
+- Values are up to `float4` each. The host packs them into the effect's
+  uniform buffer per batch, so there is no 16-value limit as in Godot; an
+  item with instance values is a batch of its own.
 
-### 5.4 DrawableTexture2D (new in 4.8)
+### 5.4 Self-contained layers have their own target (decided)
 
-A GPU texture changed by **blit** calls: `BlitRect(rect, source texture,
-modulate, mip, material)`, `BlitRectMulti` (up to 4 sources into up to 4
-targets of the same size and format), `GenerateMipmaps`. The material is a
-`texture_blit` shader. Formats: RGBA8, RGBA8 sRGB, RGBA half, RGBA float.
+If a self-contained layer were a buffered group, a buffered group on it would
+nest. Instead each self-contained layer draws into its **own offscreen
+target** (`HostPassSurfaces`):
 
-What it is good for here:
-- **Keeping things between frames.** A drawable keeps its contents until you
-  blit over it. That allows feedback effects such as trails, echoes, ink that
-  stays and smearing, which canvas items can't do because they redraw every
-  frame (Q6).
-- **Cheap wide blur** via `GenerateMipmaps` plus sampling a lower mip.
-- **Several outputs at once** (`BlitRectMulti`), e.g. one pass writing colour and
-  a mask.
-
-What it does **not** do: canvas draw calls can't target it. Its inputs are
-textures, so layer content would first have to come from a CanvasGroup or a
-SubViewport (a self-contained layer's viewport texture is the natural input
-for a later feedback pass). So it **doesn't replace** CanvasGroup (buffered groups) or SubViewport
-(self-contained layers). It's an extra stage on top of them, if feedback passes
-are wanted.
-
-### 5.5 Blend modes and the rest
-
-- Custom shaders get `render_mode blend_add` / `blend_mul` / … injected into
-  the source for each variant, made the first time a (slot, blend) pair is
-  needed. Plain (unshaded) items use a `CanvasItemMaterial` with that blend.
-- Existing pieces to build on, not duplicate: `ShaderDocument` (slot, name,
-  source, params), the per-item `Shader` slot, `PlayerShader`, `FieldShader`,
-  `CommonShaderMaterials`, `ShaderRoutingCanvas`, `GodotShaderCanvasItems`.
-- The animator: `SvgAttachmentVisuals.SetLayer` uses
-  `CanvasItemSetZIndex`/`CanvasItemSetDrawIndex`, or the banded
-  `DrawOrder.Banded` (was `ArtDrawOrder.Of`) when layers are contained. If characters become buffered
-  (step 12), the contained/banded path is the one to keep, because z_index
-  escapes CanvasGroups.
-
-### 5.6 Self-contained layers are SubViewports (decided)
-
-If a self-contained layer were a CanvasGroup, a buffered group on it would be
-a CanvasGroup inside a CanvasGroup. Both work through the one screen back
-buffer, so the inner group could overwrite what the outer group had drawn, or
-take the outer group's pixels for its own. To avoid that, a self-contained
-layer renders into its **own SubViewport**:
-
-- Buffered groups inside it are ordinary, un-nested CanvasGroups inside that
-  viewport.
-- `screen_texture` inside it means "this layer so far", which is what
+- Buffered groups inside it are ordinary, un-nested groups inside that target.
+- A screen read inside it means "this layer so far", which is what
   self-contained should mean.
 - The layer's slot in the main tree holds one full-screen quad that samples the
-  viewport's texture through the pass shader (with the pass's instance
-  uniforms), drawn with the layer's composite.
-- The viewport follows the playfield: the same size (it resizes with the
-  window or editor view), the same camera and canvas transform, a transparent
-  clear, and an update mode that renders every frame while the layer is
-  self-contained. Make it when the pass is turned on and free it when the pass
-  is turned off, so a layer without one costs nothing (D7).
-- **Confirmed (step 0):** the viewport's pixels are **premultiplied**, so the
-  composite (pass shader or plain) uses `render_mode blend_premul_alpha`. No
-  frame of lag. Size the viewport in screen pixels (panel size × screen
-  scale), scale its canvas transform by the screen scale, put the camera / editor
-  zoom and pan on the content, and scale the composite back by 1 / screen scale;
-  it then lines up exactly with the main canvas.
+  target through the pass shader (with the pass's instance values), drawn with
+  the premultiplied blend.
+- The target follows the playfield: `ShaderRoutingCanvas` puts the root's
+  (camera) transform on the surface, and the quad covers the screen in the
+  root's own coordinates. Made when the pass is turned on and freed when it is
+  turned off, so a layer without one costs nothing (D7).
+
+### 5.5 Blend modes
+
+Blend is pipeline state: one compiled effect, a pipeline per blend, made on
+first use (`CanvasPipelines`). Plain items use the plain canvas effect at that
+blend. The animator's contained path (`DrawOrder.Banded`) is the one to build
+a buffered character on (step 12).
 
 ## 6. Shared core with the animator
 
@@ -279,42 +211,19 @@ The shared core (built in step 1 under `Core/Layering/`):
 
 ---
 
-## 7. Steps
+## 7. How each part was built
 
-Every step: it builds, the relevant tests pass, and visual checks are one
-screenshot. ECS rules from `agents.md` apply throughout. Data files use the
-versioned binary formats (`Levels/XmfBinary.cs` and friends), never JSON. UI
-uses theme-role variants and stepper rows.
+Each part as it was planned and then built, with the design choices made on
+the way. Code comments cite these by step number. Written while Godot was the
+engine: where the drawing side has moved to the host, §5 and `docs/host.md`
+are current. Data files use the versioned binary formats (`Levels/XmfBinary.cs`
+and friends), never JSON.
 
-### Step 0: Spike the Godot primitives  ☑
-Make a throwaway scene or test case that proves each item in §5: a
-CanvasGroup with three overlapping rects fading uniformly, children with mixed
-z inside a group, `CanvasItemSetCopyToBackbuffer` giving a fresh screen read
-mid-frame, a self-contained layer as a SubViewport with a composite quad (the
-§5.6 spike points), and
-a `blend_add` variant of a level shader, an `instance uniform` on a
-2D shader set through `CanvasItemSetInstanceShaderParameter` (limit already confirmed, §5.3),
-and what `screen_texture` reads inside a CanvasGroup (Q4).
-Done when: every assumption in §5 is confirmed or this doc is updated with the
-real approach.
+Step 0 was a spike of the Godot primitives (CanvasGroup fades, z escaping
+groups, back-buffer copies, SubViewports, blend variants, instance uniforms);
+its results shaped §5 and are in git history.
 
-**Done 2026-11-05.** The lab tab `RENDER SPIKE` (`Tools/Lab/Experiments/RenderSpike/`,
-`./run-lab.sh -- --tab=11 --shot=screenshots/render-spike.png`) has one panel
-per assumption. Results (all at 1920×1080 design size drawn into a 1600×900
-window, i.e. under `canvas_items` stretch like the game):
-
-| Panel | Question | Result |
-|---|---|---|
-| A | CanvasGroup fades uniformly | **Yes.** Overlaps measure the same as single boxes (137,80,25 both); plain translucent boxes darken where they overlap. |
-| B | `z_index` inside a CanvasGroup | **Escapes the group.** The z 1 child draws on top at full strength, outside the group's fade. Order inside groups must come from tree order (§5.1 already says so). |
-| C | Screen read inside a buffered group (Q4) | **Sees the image from before the group**, as wanted: wavy stripes, none of the group's own orange member. |
-| D | Full back-buffer copy between members | **Harmless.** The group's buffer survives, and members still read the image from before the group. So a screen-read region inside a buffered group does nothing for its members. |
-| E | Fresh screen read mid-frame | Without a copy, a later screen read is **stale**. A full copy (`BackBufferCopy` Viewport mode, or `CanvasItemSetCopyToBackbuffer(item, true, new Rect2())`) makes it **fresh**. **Rect copies take render-target pixels, not the item's local space** (contrary to the docs): `BackBufferCopy` Rect mode and local or canvas-space rects all came out stale. `GetViewport().GetFinalTransform() * GetGlobalTransformWithCanvas() * localRect` works. |
-| F | Self-contained layer as a SubViewport | **Works.** No frame of lag, and fast zoom/pan stays aligned with outlines drawn in the main canvas when the viewport is sized in screen pixels, its canvas transform is scaled by the screen scale and the composite is scaled back down. The viewport's pixels are **premultiplied**: compositing with a straight-alpha shader darkens them (172 vs 236). With `render_mode blend_premul_alpha` on the pass shader it matches the direct draw exactly. A screen read inside the viewport sees only that layer. A CanvasGroup inside the viewport fades uniformly. |
-| G | Blend variants by injecting `render_mode` | **Works** for `blend_mix`, `blend_add`, `blend_mul`. |
-| H | 2D instance uniforms | **Works.** Three items sharing one `ShaderMaterial` each show their own `instance uniform` set via `RenderingServer.CanvasItemSetInstanceShaderParameter`. |
-
-### Step 1: Shared ordering core  ☑
+### Step 1: Shared ordering core
 - Add `DrawOrder` and the shared layer limits (±200, Q5); move `ArtDrawOrder`
   and the animator's ±4096 onto them.
 - Pull the row list and move forward/back out of `AnimatorLayerCommands` into
@@ -340,11 +249,9 @@ window, i.e. under `canvas_items` stretch like the game):
   sorts and moves through `DrawStack`, and only sets a layer that actually
   changed (setting a keyed layer adds a key).
 - Tests: `Tests/Layering/DrawOrderTests.cs` (moved from `ArtDrawOrderTests`),
-  `Tests/Layering/DrawStackTests.cs`. The Layering and Animation suites pass
-  apart from 7 `AnimatorDrawTests` (bone kites), which fail the same way on
-  the commit before this step.
+  `Tests/Layering/DrawStackTests.cs`.
 
-### Step 2: Layer and z on every level item  ☑
+### Step 2: Layer and z on every level item
 - Add `Layer` and `Z` to every item component (`Ecs/Components/PlayfieldComponents.cs`,
   `GrassComponents.cs`, …), their documents (`Levels/LevelDocument.cs`), the
   mappers, and the XMF binary (bump the version, no migration).
@@ -393,12 +300,10 @@ window, i.e. under `canvas_items` stretch like the game):
 - Tests: `Tests/Editor/ItemLayerTests.cs` (defaults, placing on top, paste
   order, layer 0 and clamping, mapper both ways, map and mapset round trips,
   no chunk when unused, undo of a layer change, paste through the commands).
-  Full suite: 1229 pass. The only failures are the 7 `AnimatorDrawTests`
-  that were failing before step 1.
 - Not done yet: z ties (e.g. older files where everything is z 0, or different
   kinds on one layer) need a deterministic tiebreak in step 3's sort.
 
-### Step 3: Sorted drawing  ☑
+### Step 3: Sorted drawing
 - Replace the fixed kind order in `PlayfieldRenderer.Draw` (polygons → blocks
   → spikes → grass → texts → notes → …) with gather → sort → draw. Each kind's
   existing draw code becomes "draw one item".
@@ -461,11 +366,10 @@ window, i.e. under `canvas_items` stretch like the game):
   `EndLayers` go to a fresh run over every layer. Nothing uses `z_index`.
 - Tests: `Tests/Playfields/PlayfieldDrawListTests.cs` (sort, kind tiebreak,
   defaults, guides, lanes, effects, wedge position) and new layer cases in
-  `Tests/Shaders/ShaderRoutingCanvasTests.cs`. The full suite passes apart
-  from the 7 `AnimatorDrawTests` that were failing before step 1. Visual test
+  `Tests/Shaders/ShaderRoutingCanvasTests.cs`. Visual test
   `play-layers` (`PlayLayersSceneTest`) → `screenshots/play-layers.png`.
 
-### Step 3a: Live editor, no separate preview  ☑
+### Step 3a: Live editor, no separate preview
 - The editor draws group effects (moves, colours, and later shaders and
   buffers) at the playhead in the main view, using the same code as play (D18b).
 - Effects are applied **at draw time** and never written into the item
@@ -569,7 +473,7 @@ window, i.e. under `canvas_items` stretch like the game):
   `editor-groups` now checks the live view at 5 s →
   `screenshots/editor-groups-live.png`; `play-groups` reads shown positions.
 
-### Step 4: Editor layering UI  ☑
+### Step 4: Editor layering UI
 - Item inspector: layer and z as stepper rows.
 - Layers panel: the layers in use, front first, with the player wedge as a
   fixed row in the list that can't be moved; add a layer in front of or
@@ -629,8 +533,7 @@ window, i.e. under `canvas_items` stretch like the game):
   no room, beside the wedge, range end, stepping over 0, moving within a layer
   and as a selection, the move command's undo, both steppers, hide, lock
   against clicks and boxes, solo, SEL, + FRONT with undo and NAME, the wedge
-  row). The full suite passes apart from the 7 `AnimatorDrawTests` that were
-  failing before step 1. Visual test `editor-layers` (`EditorLayersSceneTest`)
+  row). Visual test `editor-layers` (`EditorLayersSceneTest`)
   → `screenshots/editor-layers.png`.
 
 **Follow-up 2026-11-06.** LAYER steps each selected item from its own layer
@@ -640,7 +543,7 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
 (`DeleteLayer`, empty layers only), each one undo step. Rows show `[BG]` or
 `[SELF]` for a layer with a pass.
 
-### Step 5: Layer table in the level  ☑
+### Step 5: Layer table in the level
 - `LevelLayer` entries (number, name, pass kind, pass shader slot, keyed pass
   settings) in `LevelDocument` and the XMF binary.
 - Only layers with settings are stored.
@@ -685,11 +588,10 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
   no chunk when unused, mapset round trip per variant and through
   `ToLevelDocument`, mapper both ways, bad entries dropped, blank names, undo
   of a rename, an insert moving the table and undo moving it back), plus undo
-  of a NAME rename in `EditorLayersTests`. The full suite passes apart from
-  the 7 `AnimatorDrawTests` that were failing before step 1. `editor-layers`
+  of a NAME rename in `EditorLayersTests`. `editor-layers`
   still passes.
 
-### Step 6: Alpha rule  ☑
+### Step 6: Alpha rule
 - Change `GroupModulation.TryColor` so RGB keeps the latest-wins crossfade and
   alpha is worked out per group (latest wins inside it) and then multiplied
   across groups (D6).
@@ -712,15 +614,13 @@ effect's first frame the group is still where the fade out left it.
   a later opaque colour in another group, a group fading out then in (hidden at
   the end of the fade, half way back at the midpoint, visible at the end), two
   groups' alphas multiplying, and a group with no colour effect leaving the
-  alpha alone. Every test namespace passes on its own; only the 7
-  `AnimatorDrawTests` that were failing before step 1 fail (a single full run
-  aborts in the host — see step 8's note).
+  alpha alone.
 
-### Step 7: Static blend modes  ☑
+### Step 7: Static blend modes
 - A `BlendMode` enum (mix, add, sub, mul, premultiplied?) on every item and in
   the binary.
 - Shader variant cache keyed by (shader slot, blend), built on first use; plain
-  items use a `CanvasItemMaterial` for each blend.
+  items use the plain material at each blend.
 - Inspector row for the blend mode.
 - Check: one screenshot of add/multiply items over a background.
 
@@ -738,12 +638,9 @@ inspector.
 - **Drawing:** `IRectCanvas.SelectShader` / `SelectCommonShader` take the blend
   with the shader, so the existing trailing `SelectShader(0)` resets both. The
   routing canvas puts the blend in the run key, so items with different blends
-  never share a run. Plain draws get a `CanvasItemMaterial` per blend
-  (`PlainBlendMaterials`); a level shader gets one variant per blend, compiled
-  first use and cached on its slot (cleared when the source changes); common
-  shaders get the same, by injecting `render_mode` into their source
-  (`ShaderBlendVariants`, which merges into an existing `render_mode` line and
-  keeps its other modes). Every item draw passes its own blend: notes, blocks,
+  never share a run. *On the host* the blend is pipeline state: one compiled
+  effect, a pipeline per blend, made on first use (`CanvasPipelines`; under
+  Godot it was a `render_mode` injected into each shader variant). Every item draw passes its own blend: notes, blocks,
   spikes, grass, texts, mines, polygons and start points. Glows and non-item
   effects stay on mix; layer and pass shaders come in step 9.
 - **Editor:** BLEND is a third stepper row in the sidebar under LAYER and Z
@@ -755,11 +652,9 @@ inspector.
   `Tests/Shaders/ShaderBlendTests.cs` for the injection and the material mapping.
   Visual test `play-blends` (`PlayBlendsSceneTest`): three pairs of overlapping
   blocks on mix, add and multiply over one background →
-  `screenshots/play-blends.png`. Every test namespace passes on its own; only
-  the 7 `AnimatorDrawTests` that were failing before step 1 fail (a single full
-  run aborts in the host — see step 8's note).
+  `screenshots/play-blends.png`.
 
-### Step 8: Group item-shader track and the item shader source  ☑
+### Step 8: Group item-shader track and the item shader source
 - A group gains an item-shader track: shader slot plus keyed uniform values over
   time. Keys use the shared timeline (the animator and editor timelines share
   behaviour through one group).
@@ -769,8 +664,8 @@ inspector.
 - One material per (slot, blend). The group's keyed values are written each
   frame as instance uniforms on the runs that follow it (§5.3). Runs are
   keyed by (slot, blend, source group).
-- Only a shader's `instance uniform`s are keyable; plain uniforms stay tuned
-  constants.
+- Only a shader's instance values (`[Instance]` uniforms in Slang) are
+  keyable; plain uniforms stay tuned constants.
 - Editor: the group panel gets the shader track; the item inspector gets a
   "shader from" picker (own, or the item's groups).
 - Tests: fallback rules; evaluating keyed values; members that follow the same
@@ -799,18 +694,16 @@ inspector.
   every item draw, writing the evaluated values as the run's instance
   uniforms.
 - **Runs:** the routing canvas keys runs by (shader slot, blend, source
-  group); the values are written once per run-selection per frame through
-  `RenderingServer.CanvasItemSetInstanceShaderParameter`
-  (`IShaderCanvasItems.SetInstanceUniform`), so one material serves every
+  group); the values are written once per run-selection per frame as the run's
+  instance values (`IShaderCanvasItems.SetInstanceUniform`), so one material serves every
   group. Nodes' `SelectShader` gained `sourceGroup`, and `SetShaderValue` adds
   a value for the run picked next.
-- **Only instance uniforms are keyable:** `ShaderSourceUniforms` reads the
-  `instance uniform` declarations out of a slot's source (comments stripped,
-  precision qualifiers handled), and that list is what the editor keys. Plain
+- **Only instance values are keyable:** `ShaderSourceUniforms` reads the
+  `[Instance]` uniform declarations out of a slot's source (comments stripped), and that list is what the editor keys. Plain
   uniforms stay the slot's tuned constants.
 - **Editor, group panel:** a third toolbar row — `SHADER n · k KEYS`, `SHD`
   (cycles the slot; changing it clears the keys), `PARAM` (cycles the declared
-  instance uniforms), `CH i/n` (the component the buttons change), `−` / `+`
+  instance values), `CH i/n` (the component the buttons change), `−` / `+`
   (change that component at the snapped playhead and write a key there,
   replacing one at the same moment) and `CLEAR` (drops that uniform's keys).
   It is display-only when the group has no track; a slot with no instance
@@ -831,11 +724,6 @@ inspector.
   (per-source runs, shared run, instance values, an item keeping its own shader
   when the group is not in its mask). `editor-groups` now also steps a shader
   slot and keys a tint, so the panel's track is exercised by the visual harness.
-- Suite: every test namespace passes on its own except the 7 `AnimatorDrawTests`
-  (bone kites) that were failing before step 1. A single full run still aborts
-  in the test host after about 1245 of ~1800 tests in this sandbox; running the
-  namespaces separately completes them all, so the crash is a test-host
-  problem rather than a failing test.
 
 **Follow-up 2026-11-06 (sources).** Leaving a group puts an item whose
 shader came from it back on its own. The inspector's SHADER stepper offers
@@ -843,7 +731,7 @@ only groups with a shader track and names it (`SHADER G3 BLUR`).
 
 **Follow-up 2026-11-06 (review fixes).**
 - An unkeyed setting holds the shader's declared default
-  (`instance uniform float x = 1.0;` → `InstanceUniform.Default`), not zero,
+  (`[Instance] [Default(1)] uniform float x;` → `InstanceUniform.Default`), not zero,
   so a first key starts from it (`ShaderKeyTrack.ValueAt(..., unkeyed)`).
 - **Key lane.** The group panel has a lane under the effect rows showing the
   selected setting's keys as pins with ease bands. A press on a pin selects
@@ -860,13 +748,13 @@ only groups with a shader track and names it (`SHADER G3 BLUR`).
   is now PARAM · CH · − value + · CLEAR, like the group panel's.
 - Not done: the layers panel's pass track still has no timeline of its own.
 
-### Step 9: Layer passes  ☑
+### Step 9: Layer passes
 - Pass kind on a layer: none / background reader / self-contained (D8).
 - Background reader: a back-buffer refresh after the layer's last item, then a
   full-screen quad with the pass shader reading the screen.
-- Self-contained: the layer's items draw into the layer's own SubViewport
-  (§5.6). A full-screen quad in the layer's slot samples its texture through
-  the pass shader. The viewport is made when the pass is turned on and freed
+- Self-contained: the layer's items draw into the layer's own target
+  (§5.4). A full-screen quad in the layer's slot samples its texture through
+  the pass shader. The target is made when the pass is turned on and freed
   when it's turned off.
 - Pass settings are keyed on the layer's own track (shared timeline).
 - Off unless used: a layer with no pass costs nothing extra.
@@ -877,29 +765,28 @@ only groups with a shader track and names it (`SHADER G3 BLUR`).
 **Done 2026-11-05.** No new level data was needed: step 5 had already put the
 pass kind, pass shader and keyed pass settings in the layer table, its document
 and the XMF `LayerTable` chunk.
-- **Surfaces:** `IPassSurfaces` / `IPassSurface`
-  (`Systems/Shaders/GodotPassSurfaces.cs`) hands out one SubViewport per
-  self-contained layer, with an always-updating, transparent, 3D-disabled
-  viewport sized to the view, and frees it when the pass stops being
-  self-contained (and when the editor is left). `XanaduSystemRoot` makes one
-  service for play and one for the editor, so a layer number means different
-  surfaces in each; `Main` and the visual harness hand it their node.
+- **Surfaces:** `IPassSurfaces` / `IPassSurface` hand out one surface per
+  self-contained layer and free it when the pass stops being self-contained
+  (and when the editor is left). On the host that is `HostPassSurfaces`: a
+  parentless canvas item drawn into its own frame-sized texture
+  (`IPassSurface.TextureId`). `XanaduSystemRoot` makes one service for play and
+  one for the editor, so a layer number means different surfaces in each.
 - **Canvas:** `IRectCanvas.BeginLayer(layer, target)` puts a layer's container
   under a given canvas item, and `CopyScreen()` makes the next shaded run ask
   for a full back-buffer copy just before it draws. `ShaderRoutingCanvas` draws
-  a self-contained layer's items straight into its viewport canvas (with their
+  a self-contained layer's items straight into its surface's item (with their
   shader runs as children), and `IShaderCanvasItems` gained `CopyScreen` and
   `Reparent`.
 - **Drawing:** `PlayfieldRenderer.DrawLayers` starts and finishes each layer's
-  pass around its items. A self-contained layer composites its viewport texture
+  pass around its items. A self-contained layer composites its surface texture
   as a full-screen quad with the pass shader and `BlendMode.Premultiplied` (the
-  §5.6 premultiplied composite; a pass with no shader still composites that
+  §5.4 premultiplied composite; a pass with no shader still composites that
   way). A background reader calls `CopyScreen()` and draws a white full-screen
-  quad through the pass shader, sampling `hint_screen_texture`. Both write the
+  quad through the pass shader, sampling the screen (`sampleScreen`). Both write the
   layer's `PassKeys` as instance uniforms at the playhead with
   `ShaderKeyTrack.Evaluate`. The quad is drawn after `EndLayers()`, so it stacks
   exactly where the layer sat; a layer with no pass does neither and makes no
-  viewport.
+  surface.
 - **Editor:** the layers panel has a pass row: `PASS NONE/BG/SELF` cycles the
   current layer's kind, `SHD n` cycles the pass shader slot, and a second row
   keys that shader's instance uniforms (`PARAM`, `CH i/n`, `−` / `+` at the
@@ -916,10 +803,8 @@ and the XMF `LayerTable` chunk.
   (`PlayPassDistortSceneTest`, a background-reader wave over the field and a
   sharp layer in front → `screenshots/play-pass-distort.png`). `play-layers`,
   `play-groups`, `play-blends`, `editor-layers` and `editor-groups` still pass.
-- Every test namespace passes on its own apart from the 7 `AnimatorDrawTests`
-  (the full-run host abort is described in step 8's note).
 
-### Step 10: Buffered groups  ☑
+### Step 10: Buffered groups
 - A group gains `Buffered`, plus buffer tint, buffer alpha, buffer shader slot
   with its own keyed settings, and buffer blend (D14). The buffer shader is
   separate from the item-shader track.
@@ -933,7 +818,7 @@ and the XMF `LayerTable` chunk.
   layer, giving a member a second group, pasting or duplicating into a broken
   state. Check this in one place (a validator the command layer calls) so new
   commands can't skip it. Buffering never switches itself off.
-- Drawing: a CanvasGroup at the lowest member z on the layer (D13); members draw
+- Drawing: a canvas-group item at the lowest member z on the layer (D13); members draw
   into it in their own z order; group colour still applies per item (D14).
 - Tests: the ban rules; slot placement. Check: one screenshot of overlapping
   members fading uniformly next to the same group unbuffered.
@@ -961,8 +846,7 @@ screenshot landed; settings UI and edit guards still to do):
 - Drawing: `IRectCanvas.BeginBuffer(shader, blend, tint, alpha)` /
   `EndBuffer()`, and `ShaderRoutingCanvas` keeps a pool of grouped canvas items
   under its current layer. A grouped item is made with
-  `RenderingServer.CanvasItemSetCanvasGroupMode(..., Transparent)` and
-  `CanvasItemSetSelfModulate(item, tint × alpha)`, its material is the buffer
+  `SetCanvasGroup` and self modulate tint × alpha, its material is the buffer
   shader at the buffer blend, and its keyed values are written when the buffer
   ends. Buffered members never draw into the grouped item directly: a plain
   member still gets a child run, so the buffer shader applies to the composite
@@ -986,14 +870,6 @@ screenshot landed; settings UI and edit guards still to do):
   paste/duplicate) that refuse edits breaking a locked buffer.
 
 **Done 2026-11-06.** The buffer settings row and the lock's edit guards are in.
-- **Composite tint and alpha.** `CanvasItemSetCanvasGroupMode`'s C# defaults
-  are `clearMargin: 5, fitEmpty: false, fitMargin: 0`, not the `CanvasGroup`
-  node's (`10, true, 10`). With `fitEmpty` off the cull never makes the group's
-  own draw command, so the group's self modulate was ignored and the buffer
-  alpha rendered fully opaque. `GodotShaderCanvasItems.SetCanvasGroup` now
-  passes the node's values and `SetModulate` (self modulate) applies to the
-  composite. `play-buffered-group` now shows the buffered group at 50% with its
-  overlaps keeping one colour.
 - **Buffer settings row.** The shader row's `TRACK ITEM/BUFFER` button switches
   the slot, uniform, key and clear buttons between the group's item-shader
   track and its buffer track. `TINT`, `A−`/`A+` and `BLEND` edit the buffer's
@@ -1041,12 +917,12 @@ screenshot landed; settings UI and edit guards still to do):
 
 **Follow-up 2026-11-06 (review fixes).** A buffered group is drawn after
 its layer has begun and after the player wedge, so a group that opens its
-layer no longer lands in the previous layer (or its pass viewport), and one on
+layer no longer lands in the previous layer (or its pass surface), and one on
 layer +1 no longer draws behind the player. Each layer's slice of a group is
 its own buffer, so members a file left on another layer still draw instead of
 vanishing.
 
-### Step 11: Screen-read regions  ☑
+### Step 11: Screen-read regions
 - A new placeable item: a rect with a layer and z. When reached in draw order it
   refreshes the back buffer for its rect (D10).
 - Editor: a tool for it (in a tool-strip flyout), drawn as an outline in the
@@ -1067,12 +943,10 @@ vanishing.
 - **Canvas.** `ShaderRoutingCanvas.CopyScreen(Rect2)` keeps a pool of copy
   items on the current layer, puts each after the draws already made and starts
   a fresh run for the draws after it, so the boundary is in the right place.
-  `GodotShaderCanvasItems.CopyRectangle` sets
-  `CanvasItemSetCopyToBackbuffer(item, true, pixels)`. The rect is scaled to
-  render-target pixels with the viewport's `GetFinalTransform()`, threaded from
-  the scene host through the system groups (`XanaduSystemRoot` → groups → draw
-  systems). Inside a self-contained layer's own viewport, the region copies the
-  whole viewport buffer instead (simplest, and always in range). Unused copy
+  On the host a copy item calls `SetCopyScreen`, and the renderer copies the
+  whole target (a rect copy is a screen copy). The rect is still scaled to
+  render-target pixels (threaded through the system groups) for hosts that copy
+  rects. Unused copy
   items are disabled each frame, so a removed or hidden region cannot fire the
   last frame's copy again.
 - **Editor.** The tool lives in the `Text and screen reads` flyout (a lone tool
@@ -1103,7 +977,7 @@ when each region also stores its group mask, so 2.6 files still read. A new
 region starts at the default size or a third of the view, whichever is
 smaller, so it fits where it's placed.
 
-### Step 12: Animator on the shared render path  ☑
+### Step 12: Animator on the shared render path
 - Attachments, cloth, chains and effects are sorted through `DrawOrder`.
 - Optional: draw the whole character as a buffered group for uniform fades,
   using the step 10 code.
@@ -1117,7 +991,7 @@ smaller, so it fits where it's placed.
   `SvgAttachmentVisuals` cannot disagree. When layers are contained
   (`containLayers`, used by ghosts and the animator tool) the item gets the
   banded `DrawOrder.Banded` index at the canvas's own z, which is what a
-  CanvasGroup needs; otherwise the layer stays a relative `z_index` with the
+  buffered group needs; otherwise the layer stays a relative `z_index` with the
   same order as its draw index.
 - **What changed in drawing.** Attachments used to keep order 0 and rely on
   tree order; they now carry their list index. Cloth, chain segments and effect
@@ -1126,12 +1000,10 @@ smaller, so it fits where it's placed.
   ordered by their creation count).
 - Tests: `Tests/Animation/AnimatorDrawOrderTests` (attachment list order, the
   cloth/chain/effect bands, a later layer always winning, band clamping, and the
-  panel's row order matching the canvas order). The animator suites are green
-  apart from the same 7 pre-existing `AnimatorDrawTests` bone-kite failures
-  noted in step 8; the layer-panel, cloth, chain and effect tests pass.
+  panel's row order matching the canvas order).
 - **Not built (optional in the plan):** wrapping a whole character in a
   buffered group for a uniform fade. The contained path is already the one to
-  build it on, since `z_index` escapes a CanvasGroup; the step 10 buffer code is
+  build it on, since z escapes a buffered group; the step 10 buffer code is
   level-side (`IRectCanvas.BeginBuffer`), so the animator would need a small
   buffered-art wrapper of its own.
 
@@ -1145,9 +1017,9 @@ smaller, so it fits where it's placed.
   firm up.
 - ~~Q3. Breaking a buffered-group rule after the fact.~~ Settled: buffering is
   a lock (D16a).
-- ~~Q4. Screen reads inside a buffered group.~~ Settled (step 0, panels C and D):
-  members read the image from before the group, as wanted, even with a full
-  back-buffer copy between them. No lock needed.
+- ~~Q4. Screen reads inside a buffered group.~~ Settled under Godot (members
+  read the image from before the group). On the host they read the group's own
+  image so far (§5.2); revisit if a level needs the old behaviour.
 - ~~Q5. Layer number range.~~ Settled: **±200**, one shared limit (−200…−1
   and 1…200 in levels, no 0). The animator's `XafAttachment.MinLayer` /
   `MaxLayer` (±4096) move onto the shared limit in step 1; no migration.
@@ -1158,10 +1030,10 @@ smaller, so it fits where it's placed.
 - ~~Q10. Default layer for new items.~~ Settled: sensible defaults for each kind (step 2 table).
 - ~~Q11. Editing items that groups have moved.~~ Settled: pick where they're shown,
   edits are relative to the placed position, and moved items are marked (step 3a).
-- ~~Q12. Nesting buffers.~~ Settled: self-contained layers are SubViewports
-  (§5.6), so CanvasGroups never nest.
+- ~~Q12. Nesting buffers.~~ Settled: self-contained layers have their own
+  targets (§5.4), so buffered groups never nest.
 
 ## 9. Not now
 
-Parallax (D18), feedback passes with DrawableTexture2D (§5.4, Q6), keyable blend modes (D17), passes or buffering on the player wedge, performance warnings and budgets
+Parallax (D18), feedback passes (Q6: a texture kept between frames, for trails, echoes and smearing), keyable blend modes (D17), passes or buffering on the player wedge, performance warnings and budgets
 (D19), lifting the buffered-group bans (D15/D16), nested buffered groups.

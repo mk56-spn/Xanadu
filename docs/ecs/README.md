@@ -70,6 +70,14 @@ In this repo `Friflo.Engine.ECS.Boost` is already referenced, so
 `[Query]` source generator) is not referenced yet; it is an analyzer-only
 package reference.
 
+**Every-frame queries:** `store.Query<T>()` builds a fresh query each call
+(matched against every archetype, allocating). For queries that run every
+frame use `store.Cached<T>()` / `store.Cached<T1, T2>()`, one kept query per
+store, and `store.ToggleOn<TTag>(none, hidden)` to read a tagged `Toggle`
+([QueryCache.cs](../../UI/Ecs/QueryCache.cs)). The cached query is shared:
+never add filters (`WithDisabled`, `AllTags`) to it; keep a filtered query of
+your own instead. Find hot ones with the frame autopsy (`docs/host.md` §5.10).
+
 ## Rules that bite
 
 - **Structural changes inside `Query.ForEachEntity` throw

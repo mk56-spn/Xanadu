@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The generic Xanadu.Ui feature demo on MoonWorks (docs/moonworks-port.md step 10):
+    The generic Xanadu.Ui feature demo on MoonWorks (docs/host.md §5.9):
     a plain exe on HostCore that needs only the UI and Core assemblies.
   -->
   <PropertyGroup>
