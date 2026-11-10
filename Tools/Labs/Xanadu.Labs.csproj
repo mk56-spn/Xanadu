@@ -17,4 +17,8 @@
     <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Shaders" />
+  </ItemGroup>
+  <Import Project="../../Core/Maths/Maths.props" />
 </Project>

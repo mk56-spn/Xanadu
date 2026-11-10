@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Godot;
 using Xanadu.Particles;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
@@ -26,7 +25,7 @@ internal sealed class ParticleBursts : ILabExperiment
 
     private static List<XpfParticle> Effects() => ParticleLibrary.Shared.Particles;
 
-    public ILabStage CreateStage(LabContext context, Rid parent, Rect2 area) => new Stage(parent, area);
+    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(parent, area);
 
     private sealed class Stage : ILabStage
     {
@@ -34,13 +33,13 @@ internal sealed class ParticleBursts : ILabExperiment
 
         private static readonly GlyphAtlas Notes = new(["♪", "♫"], cellSize: 64, mipmaps: true);
 
-        private readonly Rid _item;
+        private readonly Handle _item;
         private readonly Rect2 _area;
         private readonly Random _random = new(7);
         private readonly ParticleSeed[] _seeds = new ParticleSeed[XpfParticle.MaxAmount];
         private float _next;
 
-        public Stage(Rid parent, Rect2 area)
+        public Stage(Handle parent, Rect2 area)
         {
             _area = area;
             _item = CanvasServer.Current.CreateItem();

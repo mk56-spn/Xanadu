@@ -1,18 +1,32 @@
-using Godot;
 using Xanadu.Ecs;
 
 namespace Xanadu.Labs;
 
-/// <summary>What the host lends a stage when it is made.</summary>
-internal sealed record LabContext(Xanadu.Host.Rendering.CanvasPipelines Pipelines);
+/// <summary>
+/// What the host lends a stage when it is made: the canvas pipelines, and for
+/// stages that render on their own, the GPU and a way to show a texture on the
+/// canvas (<see cref="Show"/> mints its id; <see cref="Hide"/> forgets it).
+/// </summary>
+internal sealed record LabContext(
+    Xanadu.Host.Rendering.CanvasPipelines Pipelines,
+    MoonWorks.Graphics.GraphicsDevice Device,
+    System.Func<MoonWorks.Graphics.Texture, Handle> Show,
+    System.Action<Handle> Hide);
 
-/// <summary>What a stage is handed each frame: the time, and the pointer in design pixels.</summary>
-internal readonly record struct LabFrame(float Delta, float Time, Vector2 Mouse);
+/// <summary>
+/// What a stage is handed each frame: the time, the pointer in design pixels,
+/// whether its left button is down, and the raw MoonWorks input for stages that
+/// want the other buttons, the wheel or keys.
+/// </summary>
+internal readonly record struct LabFrame(float Delta, float Time, Vector2 Mouse, bool Held, MoonWorks.Input.Inputs? Inputs = null);
 
 /// <summary>One open experiment's drawing. It is made when its tab opens and disposed when another does.</summary>
 internal interface ILabStage : System.IDisposable
 {
     void Update(in LabFrame frame);
+
+    /// <summary>Records the stage's own GPU passes, before the canvas draws (for stages that render offscreen).</summary>
+    void Render(MoonWorks.Graphics.CommandBuffer commands) { }
 }
 
 /// <summary>
@@ -32,7 +46,7 @@ internal interface ILabExperiment
     void BuildPanel(UiNode panel) { }
 
     /// <summary>Builds the drawing under <paramref name="parent"/>, laid out inside <paramref name="area"/> (design pixels).</summary>
-    ILabStage CreateStage(LabContext context, Rid parent, Rect2 area);
+    ILabStage CreateStage(LabContext context, Handle parent, Rect2 area);
 }
 
 /// <summary>Every experiment the lab shows, one tab each, in tab order.</summary>
@@ -42,5 +56,12 @@ internal static class LabExperiments
     [
         new Experiments.ShaderPlayground(options.Shader),
         new Experiments.ParticleBursts(),
+        new Experiments.BlendLab(),
+        new Experiments.DepthLab(),
+        new Experiments.RadianceLab(),
+        new Experiments.TransparencyLab(),
+        new Experiments.PointerHistoryLab(),
+        new Experiments.IndirectDrawLab(),
+        new Experiments.RtsLab(),
     ];
 }

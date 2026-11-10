@@ -298,6 +298,12 @@ public class GraphicsDevice : IDisposable
 	}
 
 	/// <summary>
+	/// Xanadu: whether a texture of this format, type and usage can be made on this device.
+	/// </summary>
+	public bool SupportsTextureFormat(TextureFormat format, TextureType type, TextureUsageFlags usage) =>
+		SDL.SDL_GPUTextureSupportsFormat(Handle, format, type, usage);
+
+	/// <summary>
 	/// Prepares a window so that frames can be presented to it.
 	/// </summary>
 	public bool ClaimWindow(Window window) {

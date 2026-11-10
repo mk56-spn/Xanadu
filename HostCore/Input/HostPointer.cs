@@ -1,4 +1,3 @@
-using Godot;
 using MoonWorks.Input;
 using Xanadu.Systems.Input;
 
@@ -47,6 +46,9 @@ internal sealed class HostPointer(Mouse mouse, IKeyboardState keyboard) : IBlock
     }
 
     public void EndFrame() => _latch.EndFrame();
+
+    /// <summary>Whether the left button is down right now, without touching the press latch.</summary>
+    public bool LeftDown => mouse.LeftButton.IsDown;
 
     public PointerInput Read() => _latch.Sample(
         new Vector2(mouse.X * Scale.X, mouse.Y * Scale.Y),

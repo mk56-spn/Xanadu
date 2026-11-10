@@ -5,6 +5,8 @@ using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering;
 using Xanadu.Storage;
+using BlendFactor = MoonWorks.Graphics.BlendFactor;
+using BlendOp = MoonWorks.Graphics.BlendOp;
 using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Host.Rendering;
@@ -35,7 +37,7 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly Shader _vertex;
     private readonly CanvasEffect _plain;
     private readonly Dictionary<string, CanvasEffect?> _effects = new();
-    private readonly Dictionary<(CanvasEffect, BlendMode), GraphicsPipeline> _pipelines = new();
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?), GraphicsPipeline> _pipelines = new();
 
     public CanvasPipelines(GraphicsDevice device, TextureFormat format)
     {
@@ -133,7 +135,7 @@ internal sealed class CanvasPipelines : IDisposable
         if (material.Source is not { } source || !_effects.Remove("source:" + source, out CanvasEffect? effect) || effect is null)
             return;
 
-        foreach (((CanvasEffect Effect, BlendMode Blend) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
+        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
         {
             if (key.Effect != effect)
                 continue;
@@ -146,7 +148,7 @@ internal sealed class CanvasPipelines : IDisposable
 
     /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
     public void Warm(Xanadu.Systems.Canvas.CanvasMaterial material) =>
-        Pipeline(Effect(material), material.Blend);
+        Pipeline(Effect(material), material);
 
     /// <summary>
     /// Compiles every shipped effect (each <c>.slang</c> under <c>Assets/Shaders</c>
@@ -167,9 +169,15 @@ internal sealed class CanvasPipelines : IDisposable
         }
     }
 
-    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend)
+    /// <summary>The pipeline for an effect drawn with a material's blend: its custom one when it has it, else its mode.</summary>
+    public GraphicsPipeline Pipeline(CanvasEffect effect, Xanadu.Systems.Canvas.CanvasMaterial? material) =>
+        material?.Custom is { } custom
+            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey)
+            : Pipeline(effect, material?.Blend ?? BlendMode.Mix);
+
+    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null)
     {
-        if (_pipelines.TryGetValue((effect, blend), out GraphicsPipeline? pipeline))
+        if (_pipelines.TryGetValue((effect, blend, custom), out GraphicsPipeline? pipeline))
             return pipeline;
 
         pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
@@ -183,10 +191,10 @@ internal sealed class CanvasPipelines : IDisposable
             DepthStencilState = DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
             {
-                ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = Blend(blend) }],
+                ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = custom is { } state ? Blend(state) : Blend(blend) }],
             },
         });
-        _pipelines[(effect, blend)] = pipeline;
+        _pipelines[(effect, blend, custom)] = pipeline;
         return pipeline;
     }
 
@@ -199,6 +207,20 @@ internal sealed class CanvasPipelines : IDisposable
         BlendMode.Premultiplied => State(BlendOp.Add, BlendFactor.One, BlendFactor.OneMinusSrcAlpha, BlendFactor.One, BlendFactor.OneMinusSrcAlpha),
         // Mix: colour by source alpha, alpha accumulated as coverage.
         _ => State(BlendOp.Add, BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha, BlendFactor.One, BlendFactor.OneMinusSrcAlpha),
+    };
+
+    /// <summary>A custom blend as it is: Core's enums carry SDL_GPU's numbers.</summary>
+    internal static ColorTargetBlendState Blend(CustomBlend blend) => new()
+    {
+        EnableBlend = blend.Enabled,
+        ColorBlendOp = (BlendOp)blend.ColorOp,
+        AlphaBlendOp = (BlendOp)blend.AlphaOp,
+        SrcColorBlendFactor = (BlendFactor)blend.SrcColor,
+        DstColorBlendFactor = (BlendFactor)blend.DstColor,
+        SrcAlphaBlendFactor = (BlendFactor)blend.SrcAlpha,
+        DstAlphaBlendFactor = (BlendFactor)blend.DstAlpha,
+        EnableColorWriteMask = true,
+        ColorWriteMask = (ColorComponentFlags)blend.Write,
     };
 
     private static ColorTargetBlendState State(BlendOp op, BlendFactor src, BlendFactor dst, BlendFactor srcAlpha, BlendFactor dstAlpha) => new()

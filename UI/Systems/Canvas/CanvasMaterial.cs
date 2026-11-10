@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Godot;
 using Xanadu.Rendering;
 
 namespace Xanadu.Systems.Canvas;
@@ -24,7 +23,7 @@ public readonly record struct MaterialParam(string Name, int Channels, bool IsIn
 public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mix, string? instance = null)
 {
     private readonly Dictionary<string, Vector4> _values = new();
-    private readonly Dictionary<string, Rid> _textures = new();
+    private readonly Dictionary<string, Handle> _textures = new();
 
     /// <summary>
     /// The effect's path, such as <c>res://Assets/Shaders/note_background.slang</c>;
@@ -46,6 +45,12 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
 
     public BlendMode Blend { get; } = blend;
 
+    /// <summary>
+    /// The full fixed-function blend, overriding <see cref="Blend"/> when set
+    /// (Labs' blend lab). Fixed for the material's life: make a new material to change it.
+    /// </summary>
+    public CustomBlend? Custom { get; init; }
+
     /// <summary>A name for this use of the shader (such as "background"), so the tuner can tell uses apart.</summary>
     public string? Instance { get; } = instance;
 
@@ -55,7 +60,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     public IReadOnlyDictionary<string, Vector4> Values => _values;
 
     /// <summary>Textures by the name of the sampler that reads them; ids from the canvas server.</summary>
-    public IReadOnlyDictionary<string, Rid> Textures => _textures;
+    public IReadOnlyDictionary<string, Handle> Textures => _textures;
 
     public void Set(string name, Vector4 value)
     {
@@ -76,9 +81,9 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
 
     public void Set(string name, Color value) => Set(name, new Vector4(value.R, value.G, value.B, value.A));
 
-    public void SetTexture(string name, Rid texture)
+    public void SetTexture(string name, Handle texture)
     {
-        if (_textures.TryGetValue(name, out Rid old) && old == texture)
+        if (_textures.TryGetValue(name, out Handle old) && old == texture)
             return;
 
         _textures[name] = texture;

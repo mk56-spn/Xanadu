@@ -1,7 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Godot;
 using Xanadu.Ecs;
 using Xanadu.Host;
 using Xanadu.Systems;
@@ -31,17 +30,20 @@ internal sealed class LabsApp : HostApp
 
     private readonly SystemRoot _root;
     private readonly DebugSystemGroup _debug;
+    private readonly VisualRidRelease _visuals;
     private readonly ILabExperiment[] _experiments;
     private Entity _strip;
     private Rect2 _area;
     private int _shown = -1;
     private ILabStage? _stage;
-    private Rid _stageItem;
+    private Handle _stageItem;
 
     public LabsApp(LabsOptions options) : base("Xanadu Labs",
         new HostWindowOptions(options.WindowWidth, options.WindowHeight, options.ShotPath, options.ShotFrame))
     {
         _root = new SystemRoot(Entities);
+        // Deleted UI (F1 and F4 rebuild theirs each time they open) has to take its canvas items with it.
+        _visuals = new VisualRidRelease(Entities);
         _root.Add(new UiSystemGroup(
             Entities,
             Canvas.RootRid,
@@ -103,7 +105,7 @@ internal sealed class LabsApp : HostApp
     {
         _root.Update(new UpdateTick(delta, time));
         ShowSelected();
-        _stage?.Update(new LabFrame(delta, time, Pointer.Position));
+        _stage?.Update(new LabFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs));
     }
 
     /// <summary>
@@ -123,13 +125,27 @@ internal sealed class LabsApp : HostApp
         _stageItem = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(_stageItem, Canvas.RootRid);
         CanvasServer.Current.SetZIndex(_stageItem, StageZ);
-        _stage = _experiments[selected].CreateStage(new LabContext(Renderer.Pipelines), _stageItem, _area);
+        _stage = _experiments[selected].CreateStage(
+            new LabContext(Renderer.Pipelines, GraphicsDevice, ShowTexture, id => Renderer.Textures.Remove(id.Id)),
+            _stageItem, _area);
         _shown = selected;
     }
+
+    private Handle ShowTexture(MoonWorks.Graphics.Texture texture)
+    {
+        Handle id = Canvas.MintRid();
+        Renderer.Textures[id.Id] = texture;
+        return id;
+    }
+
+    protected override Friflo.Engine.ECS.Systems.SystemRoot Systems => _root;
+
+    protected override void RenderOffscreen(MoonWorks.Graphics.CommandBuffer commands) => _stage?.Render(commands);
 
     protected override void Shutdown()
     {
         _stage?.Dispose();
         _debug.Dispose();
+        _visuals.Dispose();
     }
 }

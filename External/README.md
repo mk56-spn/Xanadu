@@ -15,7 +15,9 @@ binding files `MoonWorks.csproj` compiles (`lib/*/`).
   AI-generated *contributions to their repo*; that is all it covers. Using and
   patching this copy locally is fine.
 
-Local changes: none yet.
+Local changes:
+
+- `GraphicsDevice.SupportsTextureFormat` exposes `SDL_GPUTextureSupportsFormat` (Labs' depth lab, 2026-11-10).
 
 ## moonlibs (native libraries, not in git)
 
