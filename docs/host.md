@@ -263,7 +263,7 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
-  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.rotate` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
+  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.rotate` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt` `.at`, and `.fill` `.stroke` `.glow`. With no point, `.fill()` `.stroke(width)` `.glow(reach)` draw from the quad's centre (the pixel `input()` keeps in `stage.shading`, at `canvas.centred`); `.at(anchor.topLeft)` and the other `anchor.` points (`top`, `bottom`, `left`, `right`, the four corners, or any fraction of the size) centre the shape on that point of the quad instead |
   | `xanadu.color` | `color.hsv`, `color.hue`, `color.over`, and the X11/web colours as `color.gold`, `color.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
@@ -274,7 +274,7 @@ host fills; tests leave the headless defaults.
 
   ```slang
   let petals = Box(float2(56), 10).repeat(8, 160).rotate(time);
-  float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill(i.centred));
+  float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill());
   ```
 
   Slang has no named arguments; the shader editor shows parameter names as

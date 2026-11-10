@@ -162,6 +162,10 @@ public Canvas canvasOf(ItemVaryings v)
     return c;
 }
 
+/// The pixel being shaded: input() keeps it here, so shapes can default to it
+/// (`circle.fill()` is `circle.fill(i.canvas.centred)`).
+public static ItemInput shading;
+
 public ItemInput input(ItemVaryings v)
 {
     ItemInput i;
@@ -177,6 +181,7 @@ public ItemInput input(ItemVaryings v)
                                   span.y > 1e-6 ? fwidth(v.local.y) / span.y : 0.0));
     i.centred = (v.uv - 0.5) * 2.0 * i.halfSize;
     i.canvas = canvasOf(v);
+    shading = i;
     return i;
 }
 

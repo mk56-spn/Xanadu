@@ -1,16 +1,34 @@
 // xanadu.shape: 2D shapes as values. Make one, change it, then draw it:
 //
 //     let petal = Box(float2(28.0), 10.0).repeat(8.0, 160.0).rotate(time);
-//     float a = petal.fill(i.centred);
+//     float a = petal.fill();
 //
 // Every shape has distance(p) (signed: negative inside), and through the
 // extension below: rotate, move, scale, repeat, onion, or, and, minus, smooth,
-// fill, stroke and glow. Sizes are full widths and heights, in the units of p
-// (pixels when p is ItemInput.centred), so Box(i.canvas.size) fills the quad.
+// at, fill, stroke and glow. fill, stroke and glow draw at the quad's centre
+// unless given a point: with none they use the pixel being shaded
+// (i.canvas.centred). at(anchor.topLeft) and the like put the shape's centre
+// on a corner or side of the quad instead. Sizes are full widths and heights,
+// in the units of p (pixels by default), so Box(i.canvas.size) fills the quad.
 // Round shapes take a radius. Most distances are Inigo Quilez's
 // (iquilezles.org/articles/distfunctions2d).
 module shape;
 import xanadu.math;
+import xanadu.stage;
+
+/// Points of the quad for at(): from the centre, as fractions of its size (y down).
+public namespace anchor
+{
+    public static const float2 centre = float2(0.0, 0.0);
+    public static const float2 top = float2(0.0, -0.5);
+    public static const float2 bottom = float2(0.0, 0.5);
+    public static const float2 left = float2(-0.5, 0.0);
+    public static const float2 right = float2(0.5, 0.0);
+    public static const float2 topLeft = float2(-0.5, -0.5);
+    public static const float2 topRight = float2(0.5, -0.5);
+    public static const float2 bottomLeft = float2(-0.5, 0.5);
+    public static const float2 bottomRight = float2(0.5, 0.5);
+}
 
 public interface IShape
 {
@@ -236,6 +254,15 @@ public struct Scaled<S : IShape> : IShape
     public float distance(float2 p) { return shape.distance(p / factor) * factor; }
 }
 
+/// Centred on a point of the quad: `place` is a fraction of its size from the centre (see anchor).
+public struct Anchored<S : IShape> : IShape
+{
+    public S shape;
+    public float2 place;
+
+    public float distance(float2 p) { return shape.distance(p - place * shading.canvas.size); }
+}
+
 /// `count` copies round the centre, each `radius` out and facing outwards.
 public struct Repeated<S : IShape> : IShape
 {
@@ -310,6 +337,9 @@ public extension<S : IShape> S
     /// Moved by `offset`.
     public Moved<S> move(float2 offset) { Moved<S> r; r.shape = this; r.offset = offset; return r; }
 
+    /// Centred on a point of the quad instead of its middle: anchor.topLeft, anchor.right, … or any fraction of its size.
+    public Anchored<S> at(float2 place) { Anchored<S> r; r.shape = this; r.place = place; return r; }
+
     /// Made `factor` times bigger round its centre.
     public Scaled<S> scale(float factor) { Scaled<S> r; r.shape = this; r.factor = factor; return r; }
 
@@ -348,4 +378,13 @@ public extension<S : IShape> S
     {
         return pow(1.0 - saturate(abs(distance(p)) / reach), falloff);
     }
+
+    /// fill at the pixel being shaded, from the quad's centre.
+    public float fill(float soft = 1.0) { return fill(shading.canvas.centred, soft); }
+
+    /// stroke at the pixel being shaded, from the quad's centre.
+    public float stroke(float width, float soft = 1.0) { return stroke(shading.canvas.centred, width, soft); }
+
+    /// glow at the pixel being shaded, from the quad's centre.
+    public float glow(float reach, float falloff = 1.0) { return glow(shading.canvas.centred, reach, falloff); }
 }
