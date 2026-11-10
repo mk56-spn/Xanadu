@@ -35,6 +35,41 @@ public namespace anchor
     public static const float2 bottomRight = float2(0.5, 0.5);
 }
 
+/// Plain signed distances (negative inside), for when you build one yourself
+/// (in a loop, from a formula) rather than from shapes: the same drawing and
+/// joining the shapes have.
+///
+///     float d = 1e5;
+///     for (int b = 0; b < 7; b++) d = sdf.melt(d, ball[b].distance(p), 40);
+///     float a = sdf.fill(d) + sdf.glow(d, 60, 2);
+public namespace sdf
+{
+    /// 1 inside, 0 outside, the edge smoothed over `soft` units.
+    public float fill(float d, float soft = 1.0) { return 1.0 - smoothstep(-soft * 0.5, soft * 0.5, d); }
+
+    /// 1 on a line `width` wide along the edge, 0 elsewhere.
+    public float stroke(float d, float width, float soft = 1.0)
+    {
+        return 1.0 - smoothstep(width * 0.5 - soft * 0.5, width * 0.5 + soft * 0.5, abs(d));
+    }
+
+    /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
+    public float glow(float d, float reach, float falloff = 1.0) { return pow(1.0 - saturate(abs(d) / reach), falloff); }
+
+    /// Both together, melted over `blend` units: a smooth min (Quilez's polynomial smin).
+    public float melt(float a, float b, float blend)
+    {
+        float h = saturate(0.5 + 0.5 * (b - a) / max(blend, 1e-5));
+        return lerp(b, a, h) - blend * h * (1.0 - h);
+    }
+
+    /// Only where both are, the edge rounded over `blend` units: a smooth max.
+    public float meltAnd(float a, float b, float blend) { return -melt(-a, -b, blend); }
+
+    /// `a` with `b` cut out, the cut rounded over `blend` units.
+    public float meltMinus(float a, float b, float blend) { return -melt(-a, b, blend); }
+}
+
 /// Where a shape sits: moved by offset, turned by angle (radians, clockwise, y
 /// down) and sized by scale, each round its own centre.
 public struct Placement
@@ -181,7 +216,11 @@ public struct Arc : IShape
 
     public float local(float2 p)
     {
-        float2 n = float2(sin(gap), cos(gap));
+        // Quilez's ring shows an arc of half angle `shown` centred below; flipped
+        // and opened to everything but the gap, the gap faces down.
+        float shown = PI - gap;
+        float2 n = float2(sin(shown), cos(shown));
+        p.y = -p.y;
         p.x = abs(p.x);
         p = float2(n.y * p.x - n.x * p.y, n.x * p.x + n.y * p.y);
         return max(abs(length(p) - radius) - thickness * 0.5,
@@ -346,9 +385,7 @@ public struct SmoothUnion<A : IShape, B : IShape> : IShape
 
     public float local(float2 p)
     {
-        float da = a.distance(p), db = b.distance(p);
-        float h = saturate(0.5 + 0.5 * (db - da) / max(blend, 1e-5));
-        return lerp(db, da, h) - blend * h * (1.0 - h);
+        return sdf.melt(a.distance(p), b.distance(p), blend);
     }
 }
 
@@ -406,22 +443,13 @@ public extension<S : IShape> S
     public SmoothUnion<S, T> melt<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
-    public float fill(float2 p, float soft = 1.0)
-    {
-        return 1.0 - smoothstep(-soft * 0.5, soft * 0.5, distance(p));
-    }
+    public float fill(float2 p, float soft = 1.0) { return sdf.fill(distance(p), soft); }
 
     /// 1 on a line `width` wide along the edge, 0 elsewhere.
-    public float stroke(float2 p, float width, float soft = 1.0)
-    {
-        return 1.0 - smoothstep(width * 0.5 - soft * 0.5, width * 0.5 + soft * 0.5, abs(distance(p)));
-    }
+    public float stroke(float2 p, float width, float soft = 1.0) { return sdf.stroke(distance(p), width, soft); }
 
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
-    public float glow(float2 p, float reach, float falloff = 1.0)
-    {
-        return pow(1.0 - saturate(abs(distance(p)) / reach), falloff);
-    }
+    public float glow(float2 p, float reach, float falloff = 1.0) { return sdf.glow(distance(p), reach, falloff); }
 
     /// fill at the pixel being shaded, from the quad's centre.
     public float fill(float soft = 1.0) { return fill(shading.canvas.centred, soft); }

@@ -6,12 +6,6 @@ import xanadu;
 
 static const int Layers = 5;
 
-// A random point in 0..1 for a cell: the library only has a one-number random.
-float2 random2(float2 cell)
-{
-    return float2(random(cell), random(cell + 17.31));
-}
-
 float4 shade(ItemInput i)
 {
     float2 p = i.canvas.centred;

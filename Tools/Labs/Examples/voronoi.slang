@@ -5,11 +5,6 @@ import xanadu;
 [Default(110)] uniform float cellSize;
 [Default(0.5)] uniform float speed;
 
-float2 random2(float2 cell)
-{
-    return float2(random(cell), random(cell + 17.31));
-}
-
 float4 shade(ItemInput i)
 {
     float2 q = i.canvas.centred / cellSize;
