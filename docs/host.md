@@ -56,7 +56,10 @@ The rest is under "Later" (§6).
 - **The contract** is the Slang module `xanadu.stage`
   (`Assets/Shaders/Library/xanadu/stage.slang`), **versioned** (v1). Only ever
   add to it. It defines `ItemVaryings`, `ItemInput` (uv, colour, vertex colour,
-  local position, screen UV, pixel, time, `halfSize`, `centred`), `input(v)`,
+  local position, screen UV, pixel, time, `halfSize`, `centred`, and
+  `canvas`: the quad being drawn as it lands on the target, in pixels: `size`,
+  `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `aspect`,
+  `uvAt(pixel)`; worked out from uv derivatives, exact for any 0..1 quad), `input(v)`,
   `sampleItem`, `sampleScreen(uv, lod)` and `[Default(...)]`.
 - **Bindings:** the host owns sampler 0 (the item's texture), sampler 1 (the
   screen copy) and uniform buffer 0 (the frame). An effect's own textures

@@ -68,6 +68,41 @@ public struct Frame
 [[vk::binding(1, 2)]] public Sampler2D screenTexture;
 [[vk::binding(0, 3)]] public ConstantBuffer<Frame> frame;
 
+/// The quad being drawn, as it lands on the target, in target pixels (y down).
+/// Worked out from how uv changes from pixel to pixel, so it is exact for any
+/// rect or quad whose uv runs 0..1 across it, turned or sheared, and the same
+/// for every pixel of it; meaningless where uv doesn't run across the shape.
+public struct Canvas
+{
+    /// Its width and height: the lengths of its two sides.
+    public float2 size;
+    /// Its centre.
+    public float2 position;
+    /// The corner where uv is (0, 0).
+    public float2 corner;
+    /// How far its width side is turned from the target's x axis, in radians, clockwise (y down).
+    public float rotation;
+    /// How far its height side leans from square, as a slope: 0 for a rect, 1 for 45°.
+    public float shear;
+    /// Its width side as a vector: where uv's x runs from 0 to 1.
+    public float2 xAxis;
+    /// Its height side as a vector: where uv's y runs from 0 to 1.
+    public float2 yAxis;
+
+    /// Width over height.
+    public property float aspect { get { return size.y > 0.0 ? size.x / size.y : 0.0; } }
+
+    /// Where on the quad (as uv) a target pixel falls.
+    public float2 uvAt(float2 pixel)
+    {
+        float2 d = pixel - corner;
+        float det = xAxis.x * yAxis.y - yAxis.x * xAxis.y;
+        if (abs(det) < 1e-9)
+            return float2(0.0);
+        return float2(d.x * yAxis.y - d.y * yAxis.x, xAxis.x * d.y - xAxis.y * d.x) / det;
+    }
+};
+
 /// What a fragment effect sees for its pixel.
 public struct ItemInput
 {
@@ -91,7 +126,36 @@ public struct ItemInput
     public float2 halfSize;
     /// The pixel's position from the shape's centre in item units, y down (the legacy PIXEL_UV).
     public float2 centred;
+    /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
+    public Canvas canvas;
 };
+
+/// The quad under a pixel: uv's change per target pixel, inverted, gives the
+/// quad's sides in pixels, and walking back from this pixel by its uv gives the corner.
+public Canvas canvasOf(ItemVaryings v)
+{
+    Canvas c;
+    float2 perX = ddx(v.uv), perY = ddy(v.uv);
+    float det = perX.x * perY.y - perY.x * perX.y;
+    if (abs(det) < 1e-12)
+    {
+        c.size = float2(0.0); c.position = v.position.xy; c.corner = v.position.xy;
+        c.rotation = 0.0; c.shear = 0.0; c.xAxis = float2(0.0); c.yAxis = float2(0.0);
+        return c;
+    }
+
+    c.xAxis = float2(perY.y, -perX.y) / det;
+    c.yAxis = float2(-perY.x, perX.x) / det;
+    c.size = float2(length(c.xAxis), length(c.yAxis));
+    c.corner = v.position.xy - c.xAxis * v.uv.x - c.yAxis * v.uv.y;
+    c.position = c.corner + 0.5 * (c.xAxis + c.yAxis);
+    c.rotation = atan2(c.xAxis.y, c.xAxis.x);
+    float2 along = c.xAxis / max(c.size.x, 1e-9);
+    float2 across = float2(-along.y, along.x);
+    float upright = dot(c.yAxis, across);
+    c.shear = abs(upright) > 1e-9 ? dot(c.yAxis, along) / upright : 0.0;
+    return c;
+}
 
 public ItemInput input(ItemVaryings v)
 {
@@ -107,6 +171,7 @@ public ItemInput input(ItemVaryings v)
     i.halfSize = 0.5 * abs(float2(span.x > 1e-6 ? fwidth(v.local.x) / span.x : 0.0,
                                   span.y > 1e-6 ? fwidth(v.local.y) / span.y : 0.0));
     i.centred = (v.uv - 0.5) * 2.0 * i.halfSize;
+    i.canvas = canvasOf(v);
     return i;
 }
 
