@@ -297,8 +297,10 @@ internal sealed class ShaderEditor : ILabExperiment
                 var clock = Stopwatch.StartNew();
                 try
                 {
-                    CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source);
-                    return (version, source, compiled.Params, (string?)null, clock.ElapsedMilliseconds);
+                    // What the lab provides is declared for the code that uses it; the file keeps what was typed.
+                    string full = LabShaderValues.Declare(source);
+                    CompiledShader compiled = SlangShaders.CompileEffectBody(Label, full);
+                    return (version, full, compiled.Params, (string?)null, clock.ElapsedMilliseconds);
                 }
                 catch (Exception exception)
                 {

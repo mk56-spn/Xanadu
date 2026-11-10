@@ -1,15 +1,12 @@
 // A Xanadu shader: shade() returns each pixel's colour. Faded names in calls are hints.
 import xanadu;
 
-uniform float time;
-uniform float2 centre;
-
 [Default(40)] uniform float melt;
 [Default(color.gold)] uniform float4 tint;
 
 float4 shade(ItemInput i)
 {
-    float2 p = i.centred - centre;
+    float2 p = i.centred - mousePos;
     let box = Box(float2(160), 16).move(float2(140, 0));
     let blob = Circle(120 + 20 * sin(time * 2)).melt(box, melt);
 

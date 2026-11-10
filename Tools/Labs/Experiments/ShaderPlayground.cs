@@ -165,7 +165,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
                 var clock = Stopwatch.StartNew();
                 try
                 {
-                    CompiledShader compiled = SlangShaders.CompileEffectBody(Name, source);
+                    CompiledShader compiled = SlangShaders.CompileEffectBody(Name, LabShaderValues.Declare(source));
                     string[] names = Array.ConvertAll(compiled.Params, param => param.Name);
                     return (source, names, (string?)null, clock.ElapsedMilliseconds);
                 }
@@ -194,7 +194,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
 
             // The renderer compiles it again for itself, from the disk cache this compile just filled.
             CanvasMaterial previous = _material!;
-            _material = CanvasMaterial.FromSource(Name, source);
+            _material = CanvasMaterial.FromSource(Name, LabShaderValues.Declare(source));
             CanvasServer.Current.SetMaterial(_item, _material);
             _wanted = LabShaderValues.Wanted(declared);
             if (previous is not null)
