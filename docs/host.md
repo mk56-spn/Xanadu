@@ -277,6 +277,15 @@ host fills; tests leave the headless defaults.
   Slang has no named arguments; the shader editor shows parameter names as
   inlay hints instead.
 
+- **Named defaults:** `[Default(color.gold)]` or `[Default(PI, 2)]` work.
+  Slang attributes take only literals, so `ShaderConstants` (Core, loaded by
+  the host from the library's `public static const`s) swaps names for their
+  numbers in `SlangShaders.Wrap`, and `ShaderSourceUniforms` reads them the
+  same way. Slang's own messages then quote the numbers.
+- **Style:** `docs/shader-style.md` collects the house style as numbered
+  rules (whole numbers without `.0`, whole-number division, …) for the
+  shader editor to warn about later. None are checked yet.
+
 ### 5.6 Particles
 
 - **Spawn maths is shared and tested:** `Core/Particles/ParticleSpawn.cs` turns

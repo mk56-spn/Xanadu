@@ -64,18 +64,13 @@ public static partial class ShaderSourceUniforms
         return uniforms;
     }
 
-    /// <summary>Up to four comma-separated numbers; anything that isn't a number reads as zero.</summary>
+    /// <summary>Up to four numbers or library names (<c>color.gold</c>, <see cref="ShaderConstants"/>); anything else reads as zero.</summary>
     private static Vector4 Default(string text)
     {
-        string[] parts = text.Split(',');
-        float[] values = new float[4];
-        for (int i = 0; i < parts.Length && i < 4; i++)
-        {
-            if (!float.TryParse(parts[i].Trim().TrimEnd('f', 'F'), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
-                return Vector4.Zero;
-        }
-
-        return new Vector4(values[0], values[1], values[2], values[3]);
+        if (ShaderConstants.Library.Numbers(text) is not { } numbers)
+            return Vector4.Zero;
+        float At(int i) => i < numbers.Length ? numbers[i] : 0f;
+        return new Vector4(At(0), At(1), At(2), At(3));
     }
 
     private static int Channels(string type) => type switch

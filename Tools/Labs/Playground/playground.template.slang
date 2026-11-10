@@ -25,12 +25,12 @@ float4 shade(ItemInput i)
 
     // Eight rounded boxes in a ring round the pointer, the ring turning one way
     // and each box the other; a breathing circle's outline around them.
-    let petals = Box(float2(28.0), 10.0).turn(-time * speed * 2.0).repeat(8.0, 160.0).turn(time * speed);
-    let ring = Circle(160.0 + 20.0 * sin(time * 2.0)).onion(2.0);
+    let petals = Box(float2(28), 10).turn(-time * speed * 2).repeat(8, 160).turn(time * speed);
+    let ring = Circle(160 + 20 * sin(time * 2)).onion(2);
 
     float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, ease.inOutSine(i.uv.y));
-    float3 hue = color.hsv(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1.0);
+    float3 hue = color.hsv(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1);
     float3 colour = lerp(sky, hue, petals.fill(p, 1.5));
-    colour += color.gold.rgb * ring.glow(p, 12.0, 3.0) * 0.6;
-    return float4(colour, 1.0);
+    colour += color.gold.rgb * ring.glow(p, 12, 3) * 0.6;
+    return float4(colour, 1);
 }

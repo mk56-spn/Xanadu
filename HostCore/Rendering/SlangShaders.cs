@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Slangc.NET;
+using Xanadu.Rendering;
 
 namespace Xanadu.Host.Rendering;
 
@@ -84,6 +85,12 @@ internal static class SlangShaders
     /// <summary>Where <c>import xanadu.*</c> resolves; set by the host once it knows the game folder.</summary>
     public static string? LibraryPath { get; set; }
 
+    /// <summary>The library's named constants, read from its modules (for <c>[Default(color.gold)]</c>).</summary>
+    public static ShaderConstants LoadConstants() =>
+        LibraryPath is { } library && Directory.Exists(library)
+            ? ShaderConstants.FromSources(Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText))
+            : new ShaderConstants();
+
     /// <summary>
     /// Where compiled shaders are kept between runs (SPIR-V plus reflection),
     /// keyed by a hash of the source, the entry, the flags, every library module
@@ -135,12 +142,14 @@ internal static class SlangShaders
         }
 
         string label = name.Replace("\"", "'");
+        // Slang's attributes take only literals: a library name in a [Default] becomes its numbers.
+        string code = ShaderConstants.Library.ExpandDefaults(body.ToString());
         return $$"""
             import xanadu.stage;
             {{imports}}
             namespace effect0 {
             #line 1 "{{label}}"
-            {{body}}
+            {{code}}
             }
             #line 1 "{{label}} (wrapper)"
             [shader("fragment")]
