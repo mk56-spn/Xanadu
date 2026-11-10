@@ -28,7 +28,7 @@ public sealed partial class ShaderConstants
     [GeneratedRegex(@"namespace\s+(\w+)\s*\{")]
     private static partial Regex Namespace();
 
-    [GeneratedRegex(@"public\s+static\s+const\s+(?:float[234]?|int[234]?)\s+(\w+)\s*=\s*([^;]+);")]
+    [GeneratedRegex(@"public\s+static\s+const\s+(?:float[234]?|int[234]?|colour)\s+(\w+)\s*=\s*([^;]+);")]
     private static partial Regex Constant();
 
     [GeneratedRegex(@"\[\s*Default\s*\(((?:[^()]|\([^()]*\))*)\)\s*\]")]

@@ -78,7 +78,7 @@ internal static class SpirvScan
 /// <summary>
 /// Slang to SPIR-V at runtime through Slangc.NET, one entry point at a time,
 /// with the shipped library (<c>Assets/Shaders/Library</c>: <c>xanadu.stage</c>,
-/// <c>xanadu.color</c>, …) on the import path. The SPIR-V entry is named <c>main</c>.
+/// <c>xanadu.colour</c>, …) on the import path. The SPIR-V entry is named <c>main</c>.
 /// </summary>
 internal static class SlangShaders
 {

@@ -4,7 +4,7 @@
 //     float4 shade(ItemInput i)
 // returning the pixel's colour. `import xanadu;` brings the whole library:
 // shapes (Box, Circle, … with .rotate .move .repeat .fill .glow …), and under
-// their own names color., ease., blend., gradient., pattern.
+// their own names colours., ease., blend., gradient., pattern.
 // ItemInput gives you uv (0..1 across the stage), centred and halfSize (pixels
 // from the stage's centre, y down), time, screenUv and more (see
 // Assets/Shaders/Library/xanadu/stage.slang).
@@ -26,9 +26,9 @@ float4 shade(ItemInput i)
     let petals = Box(float2(56), 10).rotate(-time * speed * 2).repeat(8, 160).rotate(time * speed);
     let ring = Circle(160 + 20 * sin(time * 2)).onion(2);
 
-    float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, ease.inOutSine(i.uv.y));
-    float3 hue = color.hsv(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1);
-    float3 colour = lerp(sky, hue, petals.fill(p, 1.5));
-    colour += color.gold.rgb * ring.glow(p, 12, 3) * 0.6;
-    return float4(colour, 1);
+    colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, ease.inOutSine(i.uv.y));
+    colour hue = colours.hsv(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1);
+    colour shaded = lerp(sky, hue, petals.fill(p, 1.5));
+    shaded.rgb += colours.gold.rgb * ring.glow(p, 12, 3) * 0.6;
+    return shaded;
 }

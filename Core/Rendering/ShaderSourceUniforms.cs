@@ -24,7 +24,7 @@ public readonly record struct InstanceUniform(string Name, int Channels, Vector4
 public static partial class ShaderSourceUniforms
 {
     [GeneratedRegex(
-        @"((?:\[\s*\w+\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*\]\s*)+)uniform\s+(float|int|uint|float2|float3|float4)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
+        @"((?:\[\s*\w+\s*(?:\((?:[^()]|\([^()]*\))*\))?\s*\]\s*)+)uniform\s+(float|int|uint|float2|float3|float4|colour)\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
         RegexOptions.Singleline)]
     private static partial Regex Declared();
 
@@ -77,7 +77,7 @@ public static partial class ShaderSourceUniforms
     {
         "float2" => 2,
         "float3" => 3,
-        "float4" => 4,
+        "float4" or "colour" => 4,
         _ => 1,
     };
 }

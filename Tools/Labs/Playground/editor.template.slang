@@ -2,7 +2,7 @@
 import xanadu;
 
 [Default(40)] uniform float melt;
-[Default(color.gold)] uniform float4 tint;
+[Default(colours.gold)] uniform colour tint;
 
 float4 shade(ItemInput i)
 {
@@ -10,7 +10,6 @@ float4 shade(ItemInput i)
     let box = Box(float2(160), 16).move(float2(140, 0));
     let blob = Circle(120 + 20 * sin(time * 2)).melt(box, melt);
 
-    float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, i.uv.y);
-    float3 colour = lerp(sky, tint.rgb, blob.fill(p, 2));
-    return float4(colour, 1);
+    colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);
+    return lerp(sky, tint, blob.fill(p, 2));
 }

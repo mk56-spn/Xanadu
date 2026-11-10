@@ -264,7 +264,7 @@ host fills; tests leave the headless defaults.
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
   | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.rotate` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt` `.at`, and `.fill` `.stroke` `.glow`. With no point, `.fill()` `.stroke(width)` `.glow(reach)` draw from the quad's centre (the pixel `input()` keeps in `stage.shading`, at `canvas.centred`); `.at(anchor.topLeft)` and the other `anchor.` points (`top`, `bottom`, `left`, `right`, the four corners, or any fraction of the size) centre the shape on that point of the quad instead |
-  | `xanadu.color` | `color.hsv`, `color.hue`, `color.over`, and the X11/web colours as `color.gold`, `color.midnightBlue`, … |
+  | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
   | `xanadu.pattern` | `pattern.columns`, `.rows`, `.checker`, `.checkerSplit`, `.tile` (→ `Tile`) |
@@ -274,13 +274,13 @@ host fills; tests leave the headless defaults.
 
   ```slang
   let petals = Box(float2(56), 10).repeat(8, 160).rotate(time);
-  float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill());
+  colour c = lerp(colours.midnightBlue, colours.gold, petals.fill());
   ```
 
   Slang has no named arguments; the shader editor shows parameter names as
   inlay hints instead.
 
-- **Named defaults:** `[Default(color.gold)]` or `[Default(PI, 2)]` work.
+- **Named defaults:** `[Default(colours.gold)]` or `[Default(PI, 2)]` work.
   Slang attributes take only literals, so `ShaderConstants` (Core, loaded by
   the host from the library's `public static const`s) swaps names for their
   numbers in `SlangShaders.Wrap`, and `ShaderSourceUniforms` reads them the
@@ -376,7 +376,7 @@ host fills; tests leave the headless defaults.
     without them being in the text; they come from the library's `public`
     signatures, matched by name and argument count (no hint when ambiguous).
     Completion after a dot (`SlangCompletions`, `CompletionPopup`): a
-    namespace's members (`color.` with swatches), a struct's fields and
+    namespace's members (`colours.` with swatches), a struct's fields and
     methods (`i.canvas.`), the shape methods every `IShape` gets, enum values
     (`blend.Mode.`); a name's type comes from a light scan of the code
     (`ItemInput i`, `Canvas c = …`, `let b = Box(…)`). Up/Down, Tab/Enter,

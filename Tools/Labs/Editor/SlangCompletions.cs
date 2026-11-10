@@ -21,7 +21,7 @@ internal readonly record struct Completion(string Name, CompletionKind Kind, str
 
 /// <summary>
 /// Primitive completion after a dot, from the shader library's own source:
-/// a namespace's members (<c>color.</c>), a struct's fields, properties and
+/// a namespace's members (<c>colours.</c>), a struct's fields, properties and
 /// methods (<c>i.canvas.</c>), the shape methods every <c>IShape</c> gets, and
 /// enum values (<c>blend.Mode.</c>). What a name before the dot is comes from
 /// a light scan of the code being edited: <c>ItemInput i</c>,
@@ -212,7 +212,7 @@ internal sealed partial class SlangCompletions
                 continue;
             string name = match.Groups[2].Value;
             Vector4? swatch = null;
-            if (match.Groups[1].Value is "float3" or "float4" && constants.TryGet(scope + "." + name, out float[] values) && values.Length >= 3)
+            if (match.Groups[1].Value is "float3" or "float4" or "colour" && constants.TryGet(scope + "." + name, out float[] values) && values.Length >= 3)
                 swatch = new Vector4(values[0], values[1], values[2], values.Length > 3 ? values[3] : 1);
             Add(scope, new Completion(name, CompletionKind.Constant, match.Groups[1].Value, swatch));
         }
