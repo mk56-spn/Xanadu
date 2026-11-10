@@ -357,6 +357,9 @@ host fills; tests leave the headless defaults.
     the pointer counts only over it), problems and a key guide under that.
     Linting is Slang's own errors: the line tinted, the word underlined, the
     message on a row under the line, listed under the preview (a click jumps).
+    Under the problems, a slider per declared value and channel
+    (`EditorTuning`), except the ones the lab fills; ranges are guessed as the
+    F2 tuner does (`Core/Rendering/UniformRanges`), tuning survives recompiles.
     Inlay hints show library parameter names (`Box(size: …, radius: …)`)
     without them being in the text; they come from the library's `public`
     signatures, matched by name and argument count (no hint when ambiguous).

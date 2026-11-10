@@ -32,14 +32,8 @@ public sealed record ShaderUniform(string Name, UniformKind Kind, float Min, flo
 public static class ShaderUniforms
 {
     /// <summary>Slider range for a uniform with no hint, around its current value.</summary>
-    public static (float Min, float Max) GuessRange(UniformKind kind, float reference)
-    {
-        if (kind == UniformKind.Color)
-            return (0, 1);
-
-        float span = Mathf.Max(1f, Mathf.Abs(reference) * 4f);
-        return (reference < 0 ? -span : 0, span);
-    }
+    public static (float Min, float Max) GuessRange(UniformKind kind, float reference) =>
+        Xanadu.Rendering.UniformRanges.Guess(kind == UniformKind.Color, reference);
 
     /// <summary>
     /// The tunable values of an engine-free material, from the host's
@@ -71,10 +65,7 @@ public static class ShaderUniforms
         return uniforms;
     }
 
-    private static bool IsColourName(string name) =>
-        name.Contains("color", System.StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("colour", System.StringComparison.OrdinalIgnoreCase) ||
-        name.Contains("tint", System.StringComparison.OrdinalIgnoreCase);
+    private static bool IsColourName(string name) => Xanadu.Rendering.UniformRanges.IsColourName(name);
 
     /// <summary>The value an engine-free material's shader declares for a value.</summary>
     public static float[] Default(Xanadu.Systems.Canvas.CanvasMaterial material, ShaderUniform uniform)

@@ -66,6 +66,7 @@ internal sealed class ShaderEditor : ILabExperiment
 
         private readonly LabContext _context;
         private readonly EditorChrome _chrome;
+        private readonly EditorTuning _tuning;
         private readonly Handle _codeItem;
         private readonly Handle _previewItem;
         private readonly Rect2 _preview;
@@ -85,7 +86,7 @@ internal sealed class ShaderEditor : ILabExperiment
         private Vector2 _pointer;
         private string _status = "compiling…";
         private Color _statusColour = Palette.TextMuted;
-        private Task<(int Version, string Source, string[] Params, string? Error, long Ms)>? _compiling;
+        private Task<(int Version, string Source, ShaderParam[] Params, string? Error, long Ms)>? _compiling;
 
         public Stage(LabContext context, Handle parent, Rect2 area)
         {
@@ -106,6 +107,7 @@ internal sealed class ShaderEditor : ILabExperiment
             IRectCanvas canvas = HostPlatform.NewCanvas();
             _view = new CodeView(canvas, _codeItem, codeArea, context.Text);
             _chrome = new EditorChrome(canvas, chromeItem, bar, _preview, side);
+            _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea, Array.ConvertAll(LabShaderValues.All, value => value.Name));
             _hints = SlangHints.FromLibrary(Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu"));
 
             _file = WorkingFile();
@@ -148,7 +150,10 @@ internal sealed class ShaderEditor : ILabExperiment
             if (_preview.HasPoint(frame.Mouse))
                 _pointer = frame.Mouse;
             if (_material is not null)
+            {
                 LabShaderValues.Apply(_material, _wanted, _preview, _pointer, frame.Time);
+                _tuning.Apply(_material);
+            }
 
             // Solid while typing or moving, blinking once still.
             bool caretOn = _sinceCaretMove < 0.5f || (int)(_sinceCaretMove * 2) % 2 == 0;
@@ -158,6 +163,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 PreviewStale: _shownProblems.Count > 0 || !_everCompiled,
                 PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
                 _shownProblems));
+            _tuning.Draw();
         }
 
         private void Edit(Inputs inputs, in LabFrame frame)
@@ -223,6 +229,13 @@ internal sealed class ShaderEditor : ILabExperiment
 
         private void Point(in LabFrame frame)
         {
+            // A held slider takes the pointer from everything else.
+            if (_tuning.Point(frame.Mouse, frame.Held, frame.Held && !_wasHeld))
+            {
+                _wasHeld = frame.Held;
+                return;
+            }
+
             if (frame.Held && !_wasHeld)
             {
                 if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
@@ -258,11 +271,11 @@ internal sealed class ShaderEditor : ILabExperiment
                 try
                 {
                     CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source);
-                    return (version, source, Array.ConvertAll(compiled.Params, param => param.Name), (string?)null, clock.ElapsedMilliseconds);
+                    return (version, source, compiled.Params, (string?)null, clock.ElapsedMilliseconds);
                 }
                 catch (Exception exception)
                 {
-                    return (version, source, Array.Empty<string>(), exception.Message, clock.ElapsedMilliseconds);
+                    return (version, source, Array.Empty<ShaderParam>(), exception.Message, clock.ElapsedMilliseconds);
                 }
             });
         }
@@ -273,7 +286,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 return;
 
             _compiling = null;
-            (int version, string source, string[] declared, string? error, long ms) = done.Result;
+            (int version, string source, ShaderParam[] declared, string? error, long ms) = done.Result;
             _compiledVersion = version;
             if (error is not null)
             {
@@ -287,7 +300,8 @@ internal sealed class ShaderEditor : ILabExperiment
             CanvasMaterial? previous = _material;
             _material = CanvasMaterial.FromSource(Label, source);
             CanvasServer.Current.SetMaterial(_previewItem, _material);
-            _wanted = LabShaderValues.Wanted(declared);
+            _wanted = LabShaderValues.Wanted(Array.ConvertAll(declared, param => param.Name));
+            _tuning.Use(declared);
             if (previous is not null)
                 _context.Pipelines.Forget(previous);
             _everCompiled = true;

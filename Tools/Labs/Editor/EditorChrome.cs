@@ -23,6 +23,9 @@ internal sealed class EditorChrome
     private const float Pad = 12;
     private const float Row = 22;
 
+    /// <summary>Problems shown at most; the rest of the column is for tuning values.</summary>
+    private const int ProblemRows = 6;
+
     private static readonly Color Bar = new("#111830");
     private static readonly Color Column = new("#0e1428");
     private static readonly Color Badge = new(0.04f, 0.06f, 0.13f, 0.85f);
@@ -48,7 +51,13 @@ internal sealed class EditorChrome
         _bar = bar;
         _preview = preview;
         _side = side;
+        float tuningTop = side.Position.Y + Pad + Row + 4 + ProblemRows * Row + Pad;
+        float helpTop = side.End.Y - Pad - Help.Length * Row;
+        TuningArea = new Rect2(side.Position.X + Pad, tuningTop, side.Size.X - Pad * 2, helpTop - Pad - tuningTop);
     }
+
+    /// <summary>Where the value sliders go: between the problems and the key guide.</summary>
+    public Rect2 TuningArea { get; }
 
     public void Draw(in EditorState state)
     {
@@ -73,11 +82,12 @@ internal sealed class EditorChrome
 
         _problemRows.Clear();
         float helpTop = _side.End.Y - Pad - Help.Length * Row;
+        float problemsEnd = y + ProblemRows * Row;
         if (state.Problems.Count == 0)
             _canvas.DrawTextStyledLeft(_item, new Rect2(_side.Position.X + Pad, y, _side.Size.X, Row), "none", Palette.TextMuted, 14);
         foreach (SlangProblem problem in state.Problems)
         {
-            if (y + Row > helpTop - Pad)
+            if (y + Row > problemsEnd)
                 break;
             var box = new Rect2(_side.Position.X + 4, y, _side.Size.X - 8, Row);
             string where = problem.Line > 0 ? $"{problem.Line,4}" : "    ";
