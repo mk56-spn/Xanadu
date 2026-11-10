@@ -7,7 +7,7 @@ import xanadu;
 float4 shade(ItemInput i)
 {
     float2 p = i.centred - mousePos;
-    let box = Box(float2(160), 16).move(float2(140, 0));
+    let box = Box(float2(160), 16).moved(float2(140, 0));
     let blob = Circle(120 + 20 * sin(time * 2)).melt(box, melt);
 
     colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);

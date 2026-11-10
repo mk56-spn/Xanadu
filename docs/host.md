@@ -263,7 +263,7 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
-  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Line` (a to b, round ends), `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.rotate` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt` `.at`, and `.fill` `.stroke` `.glow`. With no point, `.fill()` `.stroke(width)` `.glow(reach)` draw from the quad's centre (the pixel `input()` keeps in `stage.shading`, at `canvas.centred`); `.at(anchor.topLeft)` and the other `anchor.` points (`top`, `bottom`, `left`, `right`, the four corners, or any fraction of the size) centre the shape on that point of the quad instead |
+  | `xanadu.shape` | `IShape` (`local(p)`, the distance before placing, and a `placement`); `Circle`, `Line` (a to b, round ends), `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`. Every shape carries a `Placement` (offset, angle clockwise, scale, all round its own centre, so order doesn't matter): `.rotate` `.move` `.scale` `.anchor` change it in place (`c.rotate(time);`), `.rotated` `.moved` `.scaled` `.anchored` give a changed copy for chains. `anchor(anchor.topLeft)` and the other `anchor.` points (`top`, `bottom`, `left`, `right`, the four corners, or any fraction of the size) move it by that point of the quad. `.repeat` `.onion` `.or` `.and` `.minus` `.melt` build new shapes; `.distance(p)`, `.fill` `.stroke` `.glow` draw, from the quad's centre unless given a point (`input()` keeps the pixel in `stage.shading`, at `canvas.centred`) |
   | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
@@ -273,7 +273,7 @@ host fills; tests leave the headless defaults.
   | `xanadu` | re-exports all of the above, plus the stage |
 
   ```slang
-  let petals = Box(float2(56), 10).repeat(8, 160).rotate(time);
+  let petals = Box(float2(56), 10).repeat(8, 160).rotated(time);
   colour c = lerp(colours.midnightBlue, colours.gold, petals.fill());
   ```
 

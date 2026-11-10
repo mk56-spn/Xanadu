@@ -1,22 +1,27 @@
-// xanadu.shape: 2D shapes as values. Make one, change it, then draw it:
+// xanadu.shape: 2D shapes as values. Make one, place it, then draw it:
 //
-//     let petal = Box(float2(28.0), 10.0).repeat(8.0, 160.0).rotate(time);
-//     float a = petal.fill();
+//     Circle c = Circle(30);
+//     c.rotate(time);                  // changes c
+//     c.move(float2(40, 0));
+//     let petals = Box(float2(28), 10).rotated(time).repeat(8, 160);   // copies, for chains
+//     float a = petals.fill() + c.stroke(2);
 //
-// Every shape has distance(p) (signed: negative inside), and through the
-// extension below: rotate, move, scale, repeat, onion, or, and, minus, smooth,
-// at, fill, stroke and glow. fill, stroke and glow draw at the quad's centre
-// unless given a point: with none they use the pixel being shaded
-// (i.canvas.centred). at(anchor.topLeft) and the like put the shape's centre
-// on a corner or side of the quad instead. Sizes are full widths and heights,
-// in the units of p (pixels by default), so Box(i.canvas.size) fills the quad.
-// Round shapes take a radius. Most distances are Inigo Quilez's
-// (iquilezles.org/articles/distfunctions2d).
+// Every shape carries its placement: rotate, move, scale and anchor change it
+// in place; rotated, moved, scaled and anchored give a changed copy. All of
+// them work round the shape's own centre, so their order doesn't matter.
+// anchor(anchor.topLeft) and the like move it by a point of the quad (a
+// corner, a side, or any fraction of its size). repeat, onion, or, and,
+// minus and melt build new shapes from it; fill, stroke and glow draw it,
+// from the quad's centre unless given a point (the pixel being shaded, at
+// i.canvas.centred). distance(p) is the signed distance (negative inside).
+// Sizes are full widths and heights, in the units of p (pixels by default),
+// so Box(i.canvas.size) fills the quad. Round shapes take a radius. Most
+// distances are Inigo Quilez's (iquilezles.org/articles/distfunctions2d).
 module shape;
 import xanadu.math;
 import xanadu.stage;
 
-/// Points of the quad for at(): from the centre, as fractions of its size (y down).
+/// Points of the quad for anchor(): from the centre, as fractions of its size (y down).
 public namespace anchor
 {
     public static const float2 centre = float2(0.0, 0.0);
@@ -30,33 +35,54 @@ public namespace anchor
     public static const float2 bottomRight = float2(0.5, 0.5);
 }
 
+/// Where a shape sits: moved by offset, turned by angle (radians, clockwise, y
+/// down) and sized by scale, each round its own centre.
+public struct Placement
+{
+    public float2 offset = float2(0.0);
+    public float angle = 0.0;
+    public float scale = 1.0;
+
+    /// A point in the shape's own space, before it was placed.
+    public float2 toLocal(float2 p)
+    {
+        // math's rotate turns anticlockwise on a y-down screen, so this undoes a clockwise turn.
+        return rotate(p - offset, angle) / scale;
+    }
+}
+
 public interface IShape
 {
-    /// Signed distance from p to the edge: negative inside, positive outside.
-    public float distance(float2 p);
+    /// Signed distance from p in the shape's own space, before its placement: negative inside.
+    public float local(float2 p);
+
+    /// Where it sits; rotate, move, scale and anchor change it.
+    public property Placement placement { get; set; }
 }
 
 // ---- Shapes ----------------------------------------------------------------
 
 public struct Circle : IShape
 {
+    public Placement placement = Placement();
     public float radius;
 
     public __init(float radius) { this.radius = radius; }
 
-    public float distance(float2 p) { return length(p) - radius; }
+    public float local(float2 p) { return length(p) - radius; }
 }
 
 /// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to stroke or glow.
 public struct Line : IShape
 {
+    public Placement placement = Placement();
     public float2 a;
     public float2 b;
     public float width;
 
     public __init(float2 a, float2 b, float width = 0.0) { this.a = a; this.b = b; this.width = width; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float2 pa = p - a, ba = b - a;
         float h = saturate(dot(pa, ba) / max(dot(ba, ba), 1e-9));
@@ -67,12 +93,13 @@ public struct Line : IShape
 /// A box `size` wide and high, its corners rounded by `radius`.
 public struct Box : IShape
 {
+    public Placement placement = Placement();
     public float2 size;
     public float radius;
 
     public __init(float2 size, float radius = 0.0) { this.size = size; this.radius = radius; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float2 q = abs(p) - size * 0.5 + radius;
         return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
@@ -82,12 +109,13 @@ public struct Box : IShape
 /// A box `size` wide and high with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
 public struct CornerBox : IShape
 {
+    public Placement placement = Placement();
     public float2 size;
     public float4 corners;
 
     public __init(float2 size, float4 corners) { this.size = size; this.corners = corners; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float4 r = corners;
         r.xy = (p.x > 0.0) ? r.xy : r.zw;
@@ -100,12 +128,13 @@ public struct CornerBox : IShape
 /// A box `size` wide and high with its corners cut off at 45° by `chamfer`.
 public struct ChamferBox : IShape
 {
+    public Placement placement = Placement();
     public float2 size;
     public float chamfer;
 
     public __init(float2 size, float chamfer) { this.size = size; this.chamfer = chamfer; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         p = abs(p) - size * 0.5;
         p = (p.y > p.x) ? p.yx : p.xy;
@@ -122,12 +151,13 @@ public struct ChamferBox : IShape
 /// A plus sign `size.x` across (end to end) with arms `size.y` thick, `radius` rounding it.
 public struct Cross : IShape
 {
+    public Placement placement = Placement();
     public float2 size;
     public float radius;
 
     public __init(float2 size, float radius = 0.0) { this.size = size; this.radius = radius; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float2 half = size * 0.5;
         p = abs(p);
@@ -142,13 +172,14 @@ public struct Cross : IShape
 /// A ring `thickness` wide with a gap: `gap` is the gap's half angle in radians (0 for a full ring), facing down.
 public struct Arc : IShape
 {
+    public Placement placement = Placement();
     public float radius;
     public float thickness;
     public float gap;
 
     public __init(float radius, float thickness, float gap = 0.0) { this.radius = radius; this.thickness = thickness; this.gap = gap; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float2 n = float2(sin(gap), cos(gap));
         p.x = abs(p.x);
@@ -161,11 +192,12 @@ public struct Arc : IShape
 /// An equilateral triangle pointing up, `radius` from its centre to each side's middle × √3.
 public struct Triangle : IShape
 {
+    public Placement placement = Placement();
     public float radius;
 
     public __init(float radius) { this.radius = radius; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         const float k = sqrt(3.0);
         float r = radius;
@@ -182,13 +214,14 @@ public struct Triangle : IShape
 /// A slanted box `width` wide and `height` high, its top shifted right by `skew`.
 public struct Parallelogram : IShape
 {
+    public Placement placement = Placement();
     public float width;
     public float height;
     public float skew;
 
     public __init(float width, float height, float skew) { this.width = width; this.height = height; this.skew = skew; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float wi = width * 0.5, he = height * 0.5;
         float2 e = float2(skew, he);
@@ -209,11 +242,12 @@ public struct Parallelogram : IShape
 /// A six-pointed star.
 public struct Star6 : IShape
 {
+    public Placement placement = Placement();
     public float radius;
 
     public __init(float radius) { this.radius = radius; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         const float4 k = float4(-0.5, 0.8660254038, 0.5773502692, 1.7320508076);
         p = abs(p);
@@ -227,13 +261,14 @@ public struct Star6 : IShape
 /// A crescent: a circle of `radius` with a bite of radius `bite` taken from `offset` to its right.
 public struct Moon : IShape
 {
+    public Placement placement = Placement();
     public float radius;
     public float bite;
     public float offset;
 
     public __init(float radius, float bite, float offset) { this.radius = radius; this.bite = bite; this.offset = offset; }
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float d = offset, ra = radius, rb = bite;
         p.y = abs(p.y);
@@ -247,47 +282,15 @@ public struct Moon : IShape
 
 // ---- Changes: each wraps a shape and is a shape itself ----------------------
 
-public struct Rotated<S : IShape> : IShape
-{
-    public S shape;
-    public float angle;
-
-    public float distance(float2 p) { return shape.distance(rotate(p, -angle)); }
-}
-
-public struct Moved<S : IShape> : IShape
-{
-    public S shape;
-    public float2 offset;
-
-    public float distance(float2 p) { return shape.distance(p - offset); }
-}
-
-public struct Scaled<S : IShape> : IShape
-{
-    public S shape;
-    public float factor;
-
-    public float distance(float2 p) { return shape.distance(p / factor) * factor; }
-}
-
-/// Centred on a point of the quad: `place` is a fraction of its size from the centre (see anchor).
-public struct Anchored<S : IShape> : IShape
-{
-    public S shape;
-    public float2 place;
-
-    public float distance(float2 p) { return shape.distance(p - place * shading.canvas.size); }
-}
-
 /// `count` copies round the centre, each `radius` out and facing outwards.
 public struct Repeated<S : IShape> : IShape
 {
+    public Placement placement = Placement();
     public S shape;
     public float count;
     public float radius;
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float slice = TAU / count;
         float angle = mod(atan2(p.y, p.x), slice) - slice * 0.5;
@@ -299,44 +302,49 @@ public struct Repeated<S : IShape> : IShape
 /// A shell `thickness` wide around the shape's edge.
 public struct Onion<S : IShape> : IShape
 {
+    public Placement placement = Placement();
     public S shape;
     public float thickness;
 
-    public float distance(float2 p) { return abs(shape.distance(p)) - thickness; }
+    public float local(float2 p) { return abs(shape.distance(p)) - thickness; }
 }
 
 public struct Union<A : IShape, B : IShape> : IShape
 {
+    public Placement placement = Placement();
     public A a;
     public B b;
 
-    public float distance(float2 p) { return min(a.distance(p), b.distance(p)); }
+    public float local(float2 p) { return min(a.distance(p), b.distance(p)); }
 }
 
 public struct Intersection<A : IShape, B : IShape> : IShape
 {
+    public Placement placement = Placement();
     public A a;
     public B b;
 
-    public float distance(float2 p) { return max(a.distance(p), b.distance(p)); }
+    public float local(float2 p) { return max(a.distance(p), b.distance(p)); }
 }
 
 public struct Difference<A : IShape, B : IShape> : IShape
 {
+    public Placement placement = Placement();
     public A a;
     public B b;
 
-    public float distance(float2 p) { return max(a.distance(p), -b.distance(p)); }
+    public float local(float2 p) { return max(a.distance(p), -b.distance(p)); }
 }
 
 /// Two shapes melted together over `blend` units.
 public struct SmoothUnion<A : IShape, B : IShape> : IShape
 {
+    public Placement placement = Placement();
     public A a;
     public B b;
     public float blend;
 
-    public float distance(float2 p)
+    public float local(float2 p)
     {
         float da = a.distance(p), db = b.distance(p);
         float h = saturate(0.5 + 0.5 * (db - da) / max(blend, 1e-5));
@@ -348,35 +356,54 @@ public struct SmoothUnion<A : IShape, B : IShape> : IShape
 
 public extension<S : IShape> S
 {
-    /// Rotated by `angle` radians round its centre, clockwise (y down).
-    public Rotated<S> rotate(float angle) { Rotated<S> r; r.shape = this; r.angle = angle; return r; }
+    /// The signed distance from p to its edge, placed: negative inside, positive outside.
+    public float distance(float2 p)
+    {
+        Placement at = placement;
+        return local(at.toLocal(p)) * at.scale;
+    }
 
-    /// Moved by `offset`.
-    public Moved<S> move(float2 offset) { Moved<S> r; r.shape = this; r.offset = offset; return r; }
+    /// Turns it by `angle` radians round its centre, clockwise (y down).
+    [mutating] public void rotate(float angle) { placement.angle += angle; }
 
-    /// Centred on a point of the quad instead of its middle: anchor.topLeft, anchor.right, … or any fraction of its size.
-    public Anchored<S> at(float2 place) { Anchored<S> r; r.shape = this; r.place = place; return r; }
+    /// Moves it by `offset`.
+    [mutating] public void move(float2 offset) { placement.offset += offset; }
 
-    /// Made `factor` times bigger round its centre.
-    public Scaled<S> scale(float factor) { Scaled<S> r; r.shape = this; r.factor = factor; return r; }
+    /// Makes it `factor` times bigger round its centre.
+    [mutating] public void scale(float factor) { placement.scale *= factor; }
+
+    /// Moves it by a point of the quad: anchor.topLeft, anchor.right, … or any fraction of its size from the centre.
+    [mutating] public void anchor(float2 place) { placement.offset += place * shading.canvas.size; }
+
+    /// A copy turned by `angle` radians round its centre, clockwise (y down).
+    public S rotated(float angle) { S r = this; r.rotate(angle); return r; }
+
+    /// A copy moved by `offset`.
+    public S moved(float2 offset) { S r = this; r.move(offset); return r; }
+
+    /// A copy `factor` times bigger round its centre.
+    public S scaled(float factor) { S r = this; r.scale(factor); return r; }
+
+    /// A copy moved by a point of the quad: anchor.topLeft, anchor.right, … or any fraction of its size from the centre.
+    public S anchored(float2 place) { S r = this; r.anchor(place); return r; }
 
     /// `count` copies in a circle, each `radius` out from the centre.
-    public Repeated<S> repeat(float count, float radius) { Repeated<S> r; r.shape = this; r.count = count; r.radius = radius; return r; }
+    public Repeated<S> repeat(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }
 
     /// Just a shell `thickness` wide round its edge.
-    public Onion<S> onion(float thickness) { Onion<S> r; r.shape = this; r.thickness = thickness; return r; }
+    public Onion<S> onion(float thickness) { Onion<S> r; r.placement = Placement(); r.shape = this; r.thickness = thickness; return r; }
 
     /// This shape and `other` together.
-    public Union<S, T> or<T : IShape>(T other) { Union<S, T> r; r.a = this; r.b = other; return r; }
+    public Union<S, T> or<T : IShape>(T other) { Union<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
 
     /// Only where this shape and `other` overlap.
-    public Intersection<S, T> and<T : IShape>(T other) { Intersection<S, T> r; r.a = this; r.b = other; return r; }
+    public Intersection<S, T> and<T : IShape>(T other) { Intersection<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
 
     /// This shape with `other` cut out of it.
-    public Difference<S, T> minus<T : IShape>(T other) { Difference<S, T> r; r.a = this; r.b = other; return r; }
+    public Difference<S, T> minus<T : IShape>(T other) { Difference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
 
     /// This shape and `other` melted together over `blend` units.
-    public SmoothUnion<S, T> melt<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.a = this; r.b = other; r.blend = blend; return r; }
+    public SmoothUnion<S, T> melt<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
     public float fill(float2 p, float soft = 1.0)

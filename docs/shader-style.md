@@ -32,11 +32,11 @@ Numbers with a real fraction keep it (`0.5`, `1.25`).
 
 ```slang
 // flagged
-let box = Box(float2(80.0), 16.0).move(float2(140.0, 0.0));
+let box = Box(float2(80.0), 16.0).moved(float2(140.0, 0.0));
 return float4(colour, 1.0);
 
 // fine
-let box = Box(float2(80), 16).move(float2(140, 0));
+let box = Box(float2(80), 16).moved(float2(140, 0));
 return float4(colour, 1);
 ```
 
