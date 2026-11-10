@@ -9,6 +9,11 @@ internal enum TokenKind
     Plain,
     Keyword,
     Type,
+
+    /// <summary>The width digits of a vector or matrix type (<c>float</c><b>3</b>, <c>float</c><b>4x4</b>), brighter as it grows.</summary>
+    Width2,
+    Width3,
+    Width4,
     LibraryType,
     Namespace,
     Function,
@@ -103,7 +108,16 @@ internal static class SlangSyntax
                 while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
                     i++;
                 string word = line[start..i];
-                tokens.Add(new Token(start, i, Classify(word, line, i, libraryTypes, namespaces)));
+                TokenKind kind = Classify(word, line, i, libraryTypes, namespaces);
+                int digits = kind == TokenKind.Type ? WidthStart(word) : -1;
+                if (digits > 0)
+                {
+                    // float4: "float" as a type, "4" stepped by width, so 2, 3 and 4 tell apart at a glance.
+                    tokens.Add(new Token(start, start + digits, TokenKind.Type));
+                    tokens.Add(new Token(start + digits, i, Width(word[digits])));
+                }
+                else
+                    tokens.Add(new Token(start, i, kind));
                 continue;
             }
 
@@ -112,6 +126,22 @@ internal static class SlangSyntax
 
         return tokens;
     }
+
+    /// <summary>Where a vector or matrix type's width starts (5 in <c>float4</c>), or -1 for a type without one.</summary>
+    private static int WidthStart(string type)
+    {
+        int digits = type.Length;
+        while (digits > 0 && (char.IsDigit(type[digits - 1]) || type[digits - 1] == 'x'))
+            digits--;
+        return digits > 0 && digits < type.Length && char.IsDigit(type[digits]) ? digits : -1;
+    }
+
+    private static TokenKind Width(char first) => first switch
+    {
+        '2' => TokenKind.Width2,
+        '3' => TokenKind.Width3,
+        _ => TokenKind.Width4,
+    };
 
     private static TokenKind Classify(string word, string line, int end, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces)
     {

@@ -37,6 +37,10 @@ internal sealed class CodeView
         [TokenKind.Plain] = Code,
         [TokenKind.Keyword] = new("#c792ea"),
         [TokenKind.Type] = new("#7fb8e6"),
+        // Same blue, brighter as the width grows.
+        [TokenKind.Width2] = new("#a3cdf2"),
+        [TokenKind.Width3] = new("#c4e0fa"),
+        [TokenKind.Width4] = new("#eaf5ff"),
         [TokenKind.LibraryType] = new("#ffcb6b"),
         [TokenKind.Namespace] = new("#89ddcb"),
         [TokenKind.Function] = new("#82aaff"),
