@@ -14,6 +14,12 @@ public interface ITextureServer
     /// </summary>
     Handle Create(int width, int height, byte[] pixels, bool mipmaps);
 
+    /// <summary>
+    /// A texture of plain numbers, four 32-bit floats a texel from <paramref name="values"/>,
+    /// rows top first, no mipmaps: data a shader reads texel by texel (<c>Load</c>), never filtered.
+    /// </summary>
+    Handle CreateFloat(int width, int height, float[] values);
+
     /// <summary>An image file (a <c>res://</c> path), loaded once and kept; the default id when it can't be read.</summary>
     Handle Load(string path);
 
@@ -33,6 +39,8 @@ public static class TextureServer
 public sealed class HeadlessTextureServer : ITextureServer
 {
     public Handle Create(int width, int height, byte[] pixels, bool mipmaps) => default;
+
+    public Handle CreateFloat(int width, int height, float[] values) => default;
 
     public Handle Load(string path) => default;
 

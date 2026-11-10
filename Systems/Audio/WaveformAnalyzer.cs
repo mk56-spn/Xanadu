@@ -48,6 +48,9 @@ public sealed class WaveformData
 
     public float[] Levels(WaveformBand band) => _levels[(int)band];
 
+    /// <summary>The band's running sum: entry i is the sum of the first i levels, <see cref="Steps"/> + 1 entries.</summary>
+    public double[] RunningSums(WaveformBand band) => _running[(int)band];
+
     /// <summary>
     /// The band's average level from one time to another, counting partly covered
     /// steps by how much is covered, so the result slides smoothly with the times.

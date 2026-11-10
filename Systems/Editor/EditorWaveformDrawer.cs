@@ -1,14 +1,21 @@
 using System;
 using Xanadu.Ecs;
 using Xanadu.Systems.Audio;
+using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>The song on the timeline: its bass, middle and highs overlaid around a centre line.</summary>
+/// <summary>
+/// The song on the timeline: its bass, middle and highs overlaid around a centre line.
+/// One quad over the ruler whose shader (<see cref="Shader"/>) works out every
+/// column; the bands' running sums go up to the GPU once per song.
+/// </summary>
 public sealed class EditorWaveformDrawer(EditorDrawSurface surface)
 {
+    public const string Shader = "res://Assets/Shaders/Editor/waveform.slang";
+
     private const float ColumnWidth = 2f;
     private const float Margin = 4f;
 
@@ -16,56 +23,62 @@ public sealed class EditorWaveformDrawer(EditorDrawSurface surface)
     private const float MidScale = 0.62f;
     private const float HighScale = 0.34f;
 
+    /// <summary>Texels a row of the sums texture, inside any GPU's smallest texture limit.</summary>
+    private const int RowTexels = 4096;
+
+    private WaveformData? _uploaded;
+    private Handle _sums;
+
     public void Draw(Rect2 ruler, WaveformPreview preview, long windowStart, long windowEnd)
     {
-        if (preview.Data is not { DurationMs: > 0 } data)
+        if (preview.Data is not { DurationMs: > 0, Steps: > 0 } data || windowEnd <= windowStart)
             return;
 
-        float centerY = ruler.Position.Y + ruler.Size.Y / 2;
-        float maxHeight = ruler.Size.Y / 2f - Margin;
-        double msPerColumn = (windowEnd - windowStart) * ColumnWidth / (double)ruler.Size.X;
+        Handle sums = Sums(data);
+        if (sums.Id == 0)
+            return;
 
         // Columns sit on fixed multiples of time, so the shape holds still as the window scrolls past it.
-        long firstColumn = (long)Math.Floor(windowStart / msPerColumn);
-        long lastColumn = (long)Math.Ceiling(windowEnd / msPerColumn);
-        var window = new TimeWindow(windowStart, windowEnd);
-        Span<(float Level, Color Color)> bands = stackalloc (float, Color)[3];
-
-        for (long column = firstColumn; column < lastColumn; column++)
-        {
-            double start = column * msPerColumn;
-            double end = start + msPerColumn;
-            float x0 = window.XForTime(ruler, start);
-            float x1 = window.XForTime(ruler, end);
-            if (x1 <= x0)
-                continue;
-
-            // Drawn ahead of its clock, so a hit shows where a chart would place it.
-            double audioStart = start + ChartTiming.AudioLagMs;
-            double audioEnd = end + ChartTiming.AudioLagMs;
-            bands[0] = (data.Average(WaveformBand.Low, audioStart, audioEnd), Palette.WaveLow);
-            bands[1] = (data.Average(WaveformBand.Mid, audioStart, audioEnd) * MidScale, Palette.WaveMid);
-            bands[2] = (data.Average(WaveformBand.High, audioStart, audioEnd) * HighScale, Palette.WaveHigh);
-
-            // Tallest first, so a shorter band is never hidden behind a taller one.
-            if (bands[0].Level < bands[1].Level)
-                (bands[0], bands[1]) = (bands[1], bands[0]);
-            if (bands[1].Level < bands[2].Level)
-                (bands[1], bands[2]) = (bands[2], bands[1]);
-            if (bands[0].Level < bands[1].Level)
-                (bands[0], bands[1]) = (bands[1], bands[0]);
-
-            foreach ((float level, Color color) in bands)
-            {
-                float half = level * maxHeight;
-                if (half < 0.5f)
-                    continue;
-
-                surface.Canvas.DrawRect(
-                    surface.Target,
-                    new Rect2(x0, centerY - half, x1 - x0, half * 2f),
-                    color);
-            }
-        }
+        double msPerColumn = (windowEnd - windowStart) * ColumnWidth / (double)ruler.Size.X;
+        IRectCanvas canvas = surface.Canvas;
+        canvas.SelectCommonShader(Shader);
+        canvas.NewRun();
+        // Drawn ahead of its clock, so a hit shows where a chart would place it.
+        canvas.SetShaderValue("wave_window", new Vector4(windowStart, windowEnd, (float)msPerColumn, (float)ChartTiming.AudioLagMs), 4);
+        canvas.SetShaderValue("wave_data", new Vector4((float)data.Steps / data.DurationMs, data.Steps, RowTexels, 0), 4);
+        canvas.SetShaderValue("wave_box", new Vector4(ruler.Size.Y, ruler.Size.Y / 2f - Margin, MidScale, HighScale), 4);
+        canvas.SetShaderValue("wave_low", AsVector(Palette.WaveLow), 4);
+        canvas.SetShaderValue("wave_mid", AsVector(Palette.WaveMid), 4);
+        canvas.SetShaderValue("wave_high", AsVector(Palette.WaveHigh), 4);
+        canvas.DrawTexture(surface.Target, ruler, sums);
+        canvas.SelectCommonShader("");
     }
+
+    /// <summary>The song's running sums on the GPU, made when the song changes.</summary>
+    private Handle Sums(WaveformData data)
+    {
+        if (ReferenceEquals(data, _uploaded))
+            return _sums;
+
+        if (_sums.Id != 0)
+            TextureServer.Current.Free(_sums);
+
+        double[] low = data.RunningSums(WaveformBand.Low);
+        double[] mid = data.RunningSums(WaveformBand.Mid);
+        double[] high = data.RunningSums(WaveformBand.High);
+        int rows = (low.Length + RowTexels - 1) / RowTexels;
+        var values = new float[rows * RowTexels * 4];
+        for (int i = 0; i < low.Length; i++)
+        {
+            values[i * 4] = (float)low[i];
+            values[i * 4 + 1] = (float)mid[i];
+            values[i * 4 + 2] = (float)high[i];
+        }
+
+        _sums = TextureServer.Current.CreateFloat(RowTexels, rows, values);
+        _uploaded = data;
+        return _sums;
+    }
+
+    private static Vector4 AsVector(Color color) => new(color.R, color.G, color.B, color.A);
 }

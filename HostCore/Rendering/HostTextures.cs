@@ -24,7 +24,19 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
             return default;
 
         Handle rid = tree.MintRid();
-        renderer.Textures[rid.Id] = Upload(width, height, pixels, mipmaps);
+        renderer.Textures[rid.Id] = Upload(width, height, pixels.AsSpan(0, width * height * 4), TextureFormat.R8G8B8A8Unorm, 4, mipmaps);
+        return rid;
+    }
+
+    public Handle CreateFloat(int width, int height, float[] values)
+    {
+        if (width <= 0 || height <= 0 || values.Length < width * height * 4)
+            return default;
+
+        Handle rid = tree.MintRid();
+        renderer.Textures[rid.Id] = Upload(
+            width, height, System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan(0, width * height * 4)),
+            TextureFormat.R32G32B32A32Float, 16, mipmaps: false);
         return rid;
     }
 
@@ -74,14 +86,17 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
             gpu.Dispose();
     }
 
-    private Texture Upload(int width, int height, byte[] pixels, bool mipmaps)
+    private Texture Upload(int width, int height, ReadOnlySpan<byte> pixels, TextureFormat format, int texelBytes, bool mipmaps)
     {
         uint levels = mipmaps ? (uint)Math.Floor(Math.Log2(Math.Max(width, height))) + 1 : 1;
-        Texture texture = Texture.Create2D(device, "image", (uint)width, (uint)height, TextureFormat.R8G8B8A8Unorm,
-            TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget, levels);
+        // Images stay colour targets as they always were (mipmaps blit); plain float data is only ever read.
+        TextureUsageFlags usage = format == TextureFormat.R8G8B8A8Unorm
+            ? TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget
+            : TextureUsageFlags.Sampler;
+        Texture texture = Texture.Create2D(device, "image", (uint)width, (uint)height, format, usage, levels);
 
-        using var transfer = TransferBuffer.Create<byte>(device, TransferBufferUsage.Upload, (uint)(width * height * 4));
-        pixels.AsSpan(0, width * height * 4).CopyTo(transfer.Map<byte>(false));
+        using var transfer = TransferBuffer.Create<byte>(device, TransferBufferUsage.Upload, (uint)(width * height * texelBytes));
+        pixels.CopyTo(transfer.Map<byte>(false));
         transfer.Unmap();
         CommandBuffer commands = device.AcquireCommandBuffer();
         CopyPass copy = commands.BeginCopyPass();

@@ -76,33 +76,49 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     [Test]
-    public void EachBandOfTheSongIsDrawnCentredInsideTheRuler()
+    public void TheSongIsOneShadedQuadOverTheRulerReadingItsRunningSums()
     {
         var data = new WaveformData(
-            new[] { 1f, 1f }, new[] { 1f, 1f }, new[] { 1f, 1f }, durationMs: 4_000);
-
-        (RecordingCanvas canvas, Rect2 ruler) = DrawTimeline(4_000, 1f, data);
-
-        foreach (Color band in new[] { Palette.WaveLow, Palette.WaveMid, Palette.WaveHigh })
+            new[] { 1f, 0.5f }, new[] { 1f, 1f }, new[] { 1f, 1f }, durationMs: 4_000);
+        var textures = new FloatTextures();
+        TextureServer.Use(textures);
+        try
         {
-            var columns = canvas.RectCalls.FindAll(call => call.Color == band);
-            Assert.That(columns, Is.Not.Empty);
-            foreach (RecordingCanvas.RectCall column in columns)
-            {
-                Assert.That(ruler.Encloses(column.Bounds), Is.True);
-                Assert.That(column.Bounds.GetCenter().Y, Is.EqualTo(ruler.GetCenter().Y).Within(0.01f));
-            }
+            (RecordingCanvas canvas, Rect2 ruler) = DrawTimeline(4_000, 1f, data);
+
+            Assert.That(canvas.TextureCalls, Has.Count.EqualTo(1));
+            Assert.That(canvas.TextureCalls[0].Bounds, Is.EqualTo(ruler));
+            Assert.That(canvas.TextureCalls[0].Texture, Is.EqualTo(textures.Made));
+            Assert.That(canvas.RectCalls.Exists(call => call.Color == Palette.WaveLow), Is.False);
+
+            // Sum i of the low band is the first i levels added up: 0, 1, 1.5.
+            Assert.That(textures.Values[0], Is.EqualTo(0f));
+            Assert.That(textures.Values[4], Is.EqualTo(1f));
+            Assert.That(textures.Values[8], Is.EqualTo(1.5f));
+        }
+        finally
+        {
+            TextureServer.Use(new HeadlessTextureServer());
         }
     }
 
-    [Test]
-    public void SilenceDrawsNoBands()
+    private sealed class FloatTextures : ITextureServer
     {
-        var data = new WaveformData(new float[2], new float[2], new float[2], durationMs: 4_000);
+        public Handle Made { get; } = new(77);
 
-        (RecordingCanvas canvas, _) = DrawTimeline(4_000, 1f, data);
+        public float[] Values { get; private set; } = [];
 
-        Assert.That(canvas.RectCalls.Exists(call => call.Color == Palette.WaveLow), Is.False);
+        public Handle Create(int width, int height, byte[] pixels, bool mipmaps) => default;
+
+        public Handle CreateFloat(int width, int height, float[] values)
+        {
+            Values = values;
+            return Made;
+        }
+
+        public Handle Load(string path) => default;
+
+        public void Free(Handle texture) { }
     }
 
     [Test]
@@ -615,6 +631,10 @@ public sealed class EditorPlayfieldDrawSystemTests
         public List<string> Texts { get; } = new();
 
         public List<LineCall> Lines { get; } = new();
+
+        public List<(Rect2 Bounds, Handle Texture)> TextureCalls { get; } = new();
+
+        public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) => TextureCalls.Add((bounds, texture));
 
         public void SetVisible(Handle canvas, bool visible) { }
 
