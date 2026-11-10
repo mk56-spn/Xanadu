@@ -18,7 +18,7 @@ public float2 rotate(float2 p, float angle)
 }
 
 /// A repeatable pseudo-random number in 0..1 for a 2D seed.
-public float rand(float2 co)
+public float random(float2 co)
 {
     return frac(sin(dot(co, float2(12.9898, 78.233))) * 43758.5453);
 }

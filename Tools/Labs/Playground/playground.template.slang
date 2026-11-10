@@ -3,7 +3,8 @@
 // It's written like a level's shader slot: uniforms, then
 //     float4 shade(ItemInput i)
 // returning the pixel's colour. `import xanadu;` brings the whole library:
-// sdf shapes, easings, colours, blend modes, patterns, gradients, curves.
+// shapes (Box, Circle, … with .turn .move .repeat .fill .glow …), and under
+// their own names color., ease., blend., gradient., pattern.
 // ItemInput gives you uv (0..1 across the stage), centred and halfSize (pixels
 // from the stage's centre, y down), time, screenUv and more (see
 // Assets/Shaders/Library/xanadu/stage.slang).
@@ -20,15 +21,16 @@ uniform float time;          // seconds
 
 float4 shade(ItemInput i)
 {
-    // A ring of rounded boxes turning round the pointer, over a slow gradient.
-    float2 p = rotate(i.centred - centre, time * speed);
-    float2 cell = opRepPolar(p, 8.0) - float2(160.0, 0.0);
-    float box = sdRoundedBox(rotate(cell, -time * speed * 2.0), float2(28.0), float4(10.0));
-    float ring = opOnion(sdCircle(i.centred - centre, 160.0 + 20.0 * sin(time * 2.0)), 2.0);
+    float2 p = i.centred - centre;
 
-    float3 sky = lerp(MIDNIGHT_BLUE.rgb, DARK_SLATE_BLUE.rgb, inOutSine(i.uv.y));
-    float3 colour = sky;
-    colour = lerp(colour, hsvToRgb(float3(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1.0)), sdfAlpha(box, 1.5));
-    colour += GOLD.rgb * outerGlowSDF(-abs(ring), 12.0, 1.0, 3.0) * 0.6;
+    // Eight rounded boxes in a ring round the pointer, the ring turning one way
+    // and each box the other; a breathing circle's outline around them.
+    let petals = Box(float2(28.0), 10.0).turn(-time * speed * 2.0).repeat(8.0, 160.0).turn(time * speed);
+    let ring = Circle(160.0 + 20.0 * sin(time * 2.0)).onion(2.0);
+
+    float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, ease.inOutSine(i.uv.y));
+    float3 hue = color.hsv(frac(time * 0.05 + i.uv.x * 0.3), 0.7, 1.0);
+    float3 colour = lerp(sky, hue, petals.fill(p, 1.5));
+    colour += color.gold.rgb * ring.glow(p, 12.0, 3.0) * 0.6;
     return float4(colour, 1.0);
 }

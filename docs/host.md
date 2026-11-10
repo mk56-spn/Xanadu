@@ -252,24 +252,30 @@ host fills; tests leave the headless defaults.
 - **F2 tuner:** reads the compiled effect's values through
   `HostPlatform.DescribeMaterial`. A four-channel value named like a colour or
   tint gets a colour picker; slider ranges are guessed (no `[Range]` yet).
-- **Shipped library** (`Assets/Shaders/Library`), ported from the legacy GLSL
-  includes with their function names:
+- **Shipped library** (`Assets/Shaders/Library`), struct-based since
+  2026-11-10 (no compatibility with the legacy GLSL names). Shapes are values:
+  make one, change it, draw it. Everything that isn't a type lives under its
+  own namespace, so a shader editor's global names stay few.
 
   | Module | Contents |
   |---|---|
-  | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `rand` |
-  | `xanadu.sdf` | circle, cross, ring, box, rounded box, chamfer box, equilateral triangle, parallelogram, hexagram, moon; `opRepPolar`, `opOnion`; `sdfAlpha`, `renderSDF`, `renderSDFWithOutline`, `outerGlowSDF`; `sdShape` by id |
-  | `xanadu.easing` | all 31 Penner easings and `getEasing` |
-  | `xanadu.colour` | `hsvToRgb`, `hueCycle`, `blendOverAlpha`, X11/web colours |
-  | `xanadu.blend` | 12 in-shader blend modes, `blendMode`, `alphaOver`, `blendOver` |
-  | `xanadu.pattern` | line, checker, recursive checker, `tileUvWithId` |
-  | `xanadu.gradient` | `gradientT`: linear, radial, conical, square |
-  | `xanadu.curve` | cubic Bézier and its tangent |
+  | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
+  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.turn` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
+  | `xanadu.color` | `color.hsv`, `color.hue`, `color.over`, and the X11/web colours as `color.gold`, `color.midnightBlue`, … |
+  | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
+  | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
+  | `xanadu.pattern` | `pattern.columns`, `.rows`, `.checker`, `.checkerSplit`, `.tile` (→ `Tile`) |
+  | `xanadu.gradient` | `gradient.linear`, `.radial`, `.conical`, `.square` |
+  | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
   | `xanadu` | re-exports all of the above, plus the stage |
 
-  Left behind from the legacy library: `curve_node` (unfinished), the global
-  colours texture (`getColour`, `getSecondaryColour` and its `index_2` bug),
-  and `Perspective`, which becomes the first vertex modifier.
+  ```slang
+  let petals = Box(float2(28.0), 10.0).repeat(8.0, 160.0).turn(time);
+  float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill(i.centred));
+  ```
+
+  Slang has no named arguments; the shader editor shows parameter names as
+  inlay hints instead.
 
 ### 5.6 Particles
 

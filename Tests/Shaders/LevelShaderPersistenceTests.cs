@@ -173,7 +173,7 @@ public sealed class LevelShaderPersistenceTests
 
     [TestCase("float4 shade(ItemInput i) { return i.colour; }", true)]
     [TestCase("// my glow\n/* block */\nuniform float speed;\nfloat4 shade( ItemInput i ) { return i.colour * speed; }", true)]
-    [TestCase("import xanadu.colour;\nfloat4  shade(ItemInput input) { return input.colour; }", true)]
+    [TestCase("import xanadu.color;\nfloat4  shade(ItemInput input) { return input.colour; }", true)]
     [TestCase("shader_type canvas_item;\nvoid fragment(){}", false)]
     [TestCase("shader_type canvas_item;\nfloat4 shade(ItemInput i) { return i.colour; }", false)]
     [TestCase("float4 colourise(ItemInput i) { return i.colour; }", false)]

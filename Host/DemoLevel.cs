@@ -78,8 +78,7 @@ internal static class DemoLevel
                 {
                     float band = 0.5 + 0.5 * sin(i.uv.y * 18.0 - i.time * speed * TAU);
                     float3 colour = lerp(i.colour.rgb, tint.rgb, band * 0.35);
-                    float frame = sdRoundedBox(i.centred, i.halfSize - 40.0, float4(32.0));
-                    float edge = 1.0 - smoothstep(0.0, 2.0, abs(frame) - 3.0);
+                    float edge = Box(i.halfSize - 40.0, 32.0).stroke(i.centred, 6.0, 2.0);
                     return float4(lerp(colour, float3(1.0, 0.8, 0.3), edge), i.colour.a);
                 }
                 """,
