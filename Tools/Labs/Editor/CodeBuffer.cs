@@ -172,6 +172,18 @@ internal sealed class CodeBuffer
         _wantedColumn = Column;
     }
 
+    /// <summary>Replaces columns [from, to) of the caret's line with text and puts the caret after it (a completion).</summary>
+    public void Replace(int from, int to, string text)
+    {
+        string line = _lines[Line];
+        from = Math.Clamp(from, 0, line.Length);
+        to = Math.Clamp(to, from, line.Length);
+        _lines[Line] = line[..from] + text + line[to..];
+        Column = from + text.Length;
+        _wantedColumn = Column;
+        Version++;
+    }
+
     /// <summary>Puts the caret at a line and column, clamped to the text.</summary>
     public void Place(int line, int column)
     {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using MoonWorks.Input;
@@ -73,6 +74,8 @@ internal sealed class ShaderEditor : ILabExperiment
         private readonly CodeView _view;
         private readonly CodeBuffer _buffer = new();
         private readonly SlangHints _hints;
+        private readonly SlangCompletions _completions;
+        private readonly CompletionPopup _popup;
         private readonly string _file;
         private readonly Dictionary<KeyCode, float> _held = new();
         private List<SlangProblem> _shownProblems = [];
@@ -108,7 +111,13 @@ internal sealed class ShaderEditor : ILabExperiment
             _view = new CodeView(canvas, _codeItem, codeArea, context.Text);
             _chrome = new EditorChrome(canvas, chromeItem, bar, _preview, side);
             _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea, Array.ConvertAll(LabShaderValues.All, value => value.Name));
-            _hints = SlangHints.FromLibrary(Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu"));
+            string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
+            _hints = SlangHints.FromLibrary(library);
+            _completions = SlangCompletions.FromSources(
+                Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [],
+                Xanadu.Rendering.ShaderConstants.Library);
+            // Made last, so the list draws over the code and everything round it.
+            _popup = new CompletionPopup(canvas, Child(parent), codeArea);
 
             _file = WorkingFile();
             _buffer.Load(File.ReadAllText(_file));
@@ -130,6 +139,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 Edit(inputs, frame);
             Point(frame);
 
+            _popup.Follow(_buffer, _completions, edited: _buffer.Version != version);
             if (_buffer.Version != version)
                 _sinceEdit = 0;
             else
@@ -164,6 +174,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
                 _shownProblems));
             _tuning.Draw();
+            _popup.Draw(_view.CaretRect);
         }
 
         private void Edit(Inputs inputs, in LabFrame frame)
@@ -176,10 +187,25 @@ internal sealed class ShaderEditor : ILabExperiment
             if (ctrl && keys.IsPressed(KeyCode.V) && SDL3.SDL.SDL_GetClipboardText() is { Length: > 0 } clip)
                 _buffer.Insert(clip);
 
+            if (_popup.Open && keys.IsPressed(KeyCode.Escape))
+                _popup.Dismiss(_buffer);
             foreach (KeyCode key in Repeating)
             {
-                if (Fires(keys, key, frame.Delta))
-                    Press(key);
+                if (!Fires(keys, key, frame.Delta))
+                    continue;
+                // While the list is open its keys choose and take, not move the caret.
+                if (_popup.Open && key is KeyCode.Up or KeyCode.Down or KeyCode.Return or KeyCode.Tab)
+                {
+                    if (key == KeyCode.Up)
+                        _popup.Move(-1);
+                    else if (key == KeyCode.Down)
+                        _popup.Move(1);
+                    else
+                        _popup.Accept(_buffer);
+                    continue;
+                }
+
+                Press(key);
             }
 
             if (keys.IsPressed(KeyCode.Home))
@@ -236,14 +262,15 @@ internal sealed class ShaderEditor : ILabExperiment
                 return;
             }
 
-            if (frame.Held && !_wasHeld)
+            bool pressed = frame.Held && !_wasHeld;
+            _wasHeld = frame.Held;
+            if (pressed && !_popup.Click(_buffer, frame.Mouse))
             {
                 if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
                     _buffer.Place(hit.Line, hit.Column);
                 else if (_chrome.ProblemAt(frame.Mouse) is { } problem)
                     _buffer.Place(problem.Line - 1, problem.Column - 1);
             }
-            _wasHeld = frame.Held;
 
             if (frame.Inputs is { } inputs && inputs.Mouse.Wheel != 0 && _view.Area.HasPoint(frame.Mouse))
                 _view.Scroll = Math.Clamp(_view.Scroll - inputs.Mouse.Wheel * 3, 0, Math.Max(0, _buffer.Lines.Count - 1));

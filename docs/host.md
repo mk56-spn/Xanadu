@@ -375,6 +375,12 @@ host fills; tests leave the headless defaults.
     Inlay hints show library parameter names (`Box(size: …, radius: …)`)
     without them being in the text; they come from the library's `public`
     signatures, matched by name and argument count (no hint when ambiguous).
+    Completion after a dot (`SlangCompletions`, `CompletionPopup`): a
+    namespace's members (`color.` with swatches), a struct's fields and
+    methods (`i.canvas.`), the shape methods every `IShape` gets, enum values
+    (`blend.Mode.`); a name's type comes from a light scan of the code
+    (`ItemInput i`, `Canvas c = …`, `let b = Box(…)`). Up/Down, Tab/Enter,
+    Esc, click. No calls in the chain, no inference past that.
     It claims the keyboard through `HostTextInput.Claimed`. No selection,
     undo or horizontal scroll yet.
   - **Particles:** bursts every library effect once a second.

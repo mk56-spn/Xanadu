@@ -74,6 +74,9 @@ internal sealed class CodeView
 
     public Rect2 Area { get; }
 
+    /// <summary>Where the caret was drawn last frame (blinking or not); null when its line is scrolled away.</summary>
+    public Rect2? CaretRect { get; private set; }
+
     /// <summary>The first line shown.</summary>
     public int Scroll { get; set; }
 
@@ -100,6 +103,7 @@ internal sealed class CodeView
         _canvas.Clear(_item);
         _canvas.DrawRect(_item, Area, Background);
         _rows.Clear();
+        CaretRect = null;
 
         float bottom = Area.End.Y - Inset;
         float y = Area.Position.Y + Inset;
@@ -118,10 +122,12 @@ internal sealed class CodeView
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
             DrawLine(line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces), y);
-            if (index == buffer.Line && caretOn)
+            if (index == buffer.Line)
             {
                 float x = TextLeft + VisualColumn(lineHints, buffer.Column) * _charWidth;
-                _canvas.DrawRect(_item, new Rect2(x - 1, y + 2, 2, LineHeight - 4), Palette.Accent);
+                CaretRect = new Rect2(x - 1, y, 2, LineHeight);
+                if (caretOn)
+                    _canvas.DrawRect(_item, new Rect2(x - 1, y + 2, 2, LineHeight - 4), Palette.Accent);
             }
 
             _rows.Add((y, index, null));
