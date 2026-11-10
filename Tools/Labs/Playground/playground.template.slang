@@ -25,7 +25,7 @@ float4 shade(ItemInput i)
 
     // Eight rounded boxes in a ring round the pointer, the ring turning one way
     // and each box the other; a breathing circle's outline around them.
-    let petals = Box(float2(28), 10).turn(-time * speed * 2).repeat(8, 160).turn(time * speed);
+    let petals = Box(float2(56), 10).turn(-time * speed * 2).repeat(8, 160).turn(time * speed);
     let ring = Circle(160 + 20 * sin(time * 2)).onion(2);
 
     float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, ease.inOutSine(i.uv.y));

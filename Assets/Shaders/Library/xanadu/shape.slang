@@ -5,8 +5,9 @@
 //
 // Every shape has distance(p) (signed: negative inside), and through the
 // extension below: turn, move, scale, repeat, onion, or, and, minus, smooth,
-// fill, stroke and glow. Sizes are half sizes, in the units of p (pixels when
-// p is ItemInput.centred). Most distances are Inigo Quilez's
+// fill, stroke and glow. Sizes are full widths and heights, in the units of p
+// (pixels when p is ItemInput.centred), so Box(i.canvas.size) fills the quad.
+// Round shapes take a radius. Most distances are Inigo Quilez's
 // (iquilezles.org/articles/distfunctions2d).
 module shape;
 import xanadu.math;
@@ -28,7 +29,7 @@ public struct Circle : IShape
     public float distance(float2 p) { return length(p) - radius; }
 }
 
-/// A box of half size `size`, its corners rounded by `radius`.
+/// A box `size` wide and high, its corners rounded by `radius`.
 public struct Box : IShape
 {
     public float2 size;
@@ -38,12 +39,12 @@ public struct Box : IShape
 
     public float distance(float2 p)
     {
-        float2 q = abs(p) - size + radius;
+        float2 q = abs(p) - size * 0.5 + radius;
         return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
     }
 }
 
-/// A box with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
+/// A box `size` wide and high with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
 public struct CornerBox : IShape
 {
     public float2 size;
@@ -56,12 +57,12 @@ public struct CornerBox : IShape
         float4 r = corners;
         r.xy = (p.x > 0.0) ? r.xy : r.zw;
         r.x = (p.y > 0.0) ? r.x : r.y;
-        float2 q = abs(p) - size + r.x;
+        float2 q = abs(p) - size * 0.5 + r.x;
         return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
     }
 }
 
-/// A box with its corners cut off at 45° by `chamfer`.
+/// A box `size` wide and high with its corners cut off at 45° by `chamfer`.
 public struct ChamferBox : IShape
 {
     public float2 size;
@@ -71,7 +72,7 @@ public struct ChamferBox : IShape
 
     public float distance(float2 p)
     {
-        p = abs(p) - size;
+        p = abs(p) - size * 0.5;
         p = (p.y > p.x) ? p.yx : p.xy;
         p.y += chamfer;
         const float k = 1.0 - sqrt(2.0);
@@ -83,7 +84,7 @@ public struct ChamferBox : IShape
     }
 }
 
-/// A plus sign: `size` is each arm's half length and half width, `radius` rounds it.
+/// A plus sign `size.x` across (end to end) with arms `size.y` thick, `radius` rounding it.
 public struct Cross : IShape
 {
     public float2 size;
@@ -93,11 +94,12 @@ public struct Cross : IShape
 
     public float distance(float2 p)
     {
+        float2 half = size * 0.5;
         p = abs(p);
         p = (p.y > p.x) ? p.yx : p.xy;
-        float2 q = p - size;
+        float2 q = p - half;
         float k = max(q.y, q.x);
-        float2 w = (k > 0.0) ? q : float2(size.y - p.x, -k);
+        float2 w = (k > 0.0) ? q : float2(half.y - p.x, -k);
         return sign(k) * length(max(w, 0.0)) + radius;
     }
 }
@@ -142,7 +144,7 @@ public struct Triangle : IShape
     }
 }
 
-/// A slanted box: half `width` and `height`, its top shifted right by `skew`.
+/// A slanted box `width` wide and `height` high, its top shifted right by `skew`.
 public struct Parallelogram : IShape
 {
     public float width;
@@ -153,17 +155,18 @@ public struct Parallelogram : IShape
 
     public float distance(float2 p)
     {
-        float2 e = float2(skew, height);
+        float wi = width * 0.5, he = height * 0.5;
+        float2 e = float2(skew, he);
         p.y = -p.y;
         p = (p.y < 0.0) ? -p : p;
         float2 w = p - e;
-        w.x -= clamp(w.x, -width, width);
+        w.x -= clamp(w.x, -wi, wi);
         float2 d = float2(dot(w, w), -w.y);
         float s = p.x * e.y - p.y * e.x;
         p = (s < 0.0) ? -p : p;
-        float2 v = p - float2(width, 0);
+        float2 v = p - float2(wi, 0);
         v -= e * clamp(dot(v, e) / dot(e, e), -1.0, 1.0);
-        d = min(d, float2(dot(v, v), width * height - abs(s)));
+        d = min(d, float2(dot(v, v), wi * he - abs(s)));
         return sqrt(d.x) * sign(-d.y);
     }
 }

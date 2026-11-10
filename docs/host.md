@@ -58,7 +58,7 @@ The rest is under "Later" (§6).
   add to it. It defines `ItemVaryings`, `ItemInput` (uv, colour, vertex colour,
   local position, screen UV, pixel, time, `halfSize`, `centred`, and
   `canvas`: the quad being drawn as it lands on the target, in pixels: `size`,
-  `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `aspect`,
+  `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `centred`, `aspect`,
   `uvAt(pixel)`; worked out from uv derivatives, exact for any 0..1 quad), `input(v)`,
   `sampleItem`, `sampleScreen(uv, lod)` and `[Default(...)]`.
 - **Bindings:** the host owns sampler 0 (the item's texture), sampler 1 (the
@@ -263,7 +263,7 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random` |
-  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.turn` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
+  | `xanadu.shape` | `IShape` (`distance(p)`); `Circle`, `Box` (rounded; boxes and the like take full width and height, round shapes a radius, so `Box(i.canvas.size)` fills the quad), `CornerBox`, `ChamferBox`, `Cross`, `Arc`, `Triangle`, `Parallelogram`, `Star6`, `Moon`; on every shape `.turn` `.move` `.scale` `.repeat` `.onion` `.or` `.and` `.minus` `.melt`, and `.fill` `.stroke` `.glow` |
   | `xanadu.color` | `color.hsv`, `color.hue`, `color.over`, and the X11/web colours as `color.gold`, `color.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
@@ -273,7 +273,7 @@ host fills; tests leave the headless defaults.
   | `xanadu` | re-exports all of the above, plus the stage |
 
   ```slang
-  let petals = Box(float2(28.0), 10.0).repeat(8.0, 160.0).turn(time);
+  let petals = Box(float2(56), 10).repeat(8, 160).turn(time);
   float3 c = lerp(color.midnightBlue.rgb, color.gold.rgb, petals.fill(i.centred));
   ```
 

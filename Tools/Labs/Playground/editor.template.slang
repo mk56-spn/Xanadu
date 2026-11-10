@@ -10,7 +10,7 @@ uniform float2 centre;
 float4 shade(ItemInput i)
 {
     float2 p = i.centred - centre;
-    let box = Box(float2(80), 16).move(float2(140, 0));
+    let box = Box(float2(160), 16).move(float2(140, 0));
     let blob = Circle(120 + 20 * sin(time * 2)).melt(box, melt);
 
     float3 sky = lerp(color.midnightBlue.rgb, color.darkSlateBlue.rgb, i.uv.y);

@@ -88,6 +88,10 @@ public struct Canvas
     public float2 xAxis;
     /// Its height side as a vector: where uv's y runs from 0 to 1.
     public float2 yAxis;
+    /// This pixel's place on the quad from its centre, in pixels along the quad's
+    /// own sides (so turning the quad turns it too): what shapes sized by
+    /// <c>size</c> want, e.g. <c>Box(c.size).fill(c.centred)</c>.
+    public float2 centred;
 
     /// Width over height.
     public property float aspect { get { return size.y > 0.0 ? size.x / size.y : 0.0; } }
@@ -140,7 +144,7 @@ public Canvas canvasOf(ItemVaryings v)
     if (abs(det) < 1e-12)
     {
         c.size = float2(0.0); c.position = v.position.xy; c.corner = v.position.xy;
-        c.rotation = 0.0; c.shear = 0.0; c.xAxis = float2(0.0); c.yAxis = float2(0.0);
+        c.rotation = 0.0; c.shear = 0.0; c.xAxis = float2(0.0); c.yAxis = float2(0.0); c.centred = float2(0.0);
         return c;
     }
 
@@ -149,6 +153,7 @@ public Canvas canvasOf(ItemVaryings v)
     c.size = float2(length(c.xAxis), length(c.yAxis));
     c.corner = v.position.xy - c.xAxis * v.uv.x - c.yAxis * v.uv.y;
     c.position = c.corner + 0.5 * (c.xAxis + c.yAxis);
+    c.centred = (v.uv - 0.5) * c.size;
     c.rotation = atan2(c.xAxis.y, c.xAxis.x);
     float2 along = c.xAxis / max(c.size.x, 1e-9);
     float2 across = float2(-along.y, along.x);
