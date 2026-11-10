@@ -47,6 +47,23 @@ public struct Circle : IShape
     public float distance(float2 p) { return length(p) - radius; }
 }
 
+/// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to stroke or glow.
+public struct Line : IShape
+{
+    public float2 a;
+    public float2 b;
+    public float width;
+
+    public __init(float2 a, float2 b, float width = 0.0) { this.a = a; this.b = b; this.width = width; }
+
+    public float distance(float2 p)
+    {
+        float2 pa = p - a, ba = b - a;
+        float h = saturate(dot(pa, ba) / max(dot(ba, ba), 1e-9));
+        return length(pa - ba * h) - width * 0.5;
+    }
+}
+
 /// A box `size` wide and high, its corners rounded by `radius`.
 public struct Box : IShape
 {
