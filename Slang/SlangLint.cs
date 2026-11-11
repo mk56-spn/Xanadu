@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// The editor's own warnings, for mistakes Slang doesn't report on code that
@@ -19,7 +19,7 @@ namespace Xanadu.Labs.Editor;
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
 /// </summary>
-internal static partial class SlangLint
+public static partial class SlangLint
 {
     [GeneratedRegex(@"\b([A-Za-z_]\w*)\s+([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s*;")]
     private static partial Regex Declaration();

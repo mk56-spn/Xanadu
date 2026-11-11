@@ -11,6 +11,7 @@ using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 using Xanadu.Timeline;
+using Xanadu.Slang;
 
 namespace Xanadu.Tests.Groups;
 

@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Systems.Ui;
 using Xanadu.Timeline;
+using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;
 

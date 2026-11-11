@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// Where a name the code declares is used, for renaming it: every place of it
@@ -14,7 +14,7 @@ namespace Xanadu.Labs.Editor;
 /// declaration and every <c>.field</c>. Names the code doesn't declare (the
 /// library's, the host's, Slang's) can't be renamed.
 /// </summary>
-internal static partial class SlangRename
+public static partial class SlangRename
 {
     /// <summary>Words that can come before a name without declaring it (<c>return x;</c>).</summary>
     private static readonly HashSet<string> NotTypes =

@@ -8,6 +8,7 @@ using Xanadu.Storage;
 using BlendFactor = MoonWorks.Graphics.BlendFactor;
 using BlendOp = MoonWorks.Graphics.BlendOp;
 using Shader = MoonWorks.Graphics.Shader;
+using Xanadu.Slang;
 
 namespace Xanadu.Host.Rendering;
 

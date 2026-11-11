@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// The shader library's named constants (<c>color.gold</c>, <c>PI</c>, …) as

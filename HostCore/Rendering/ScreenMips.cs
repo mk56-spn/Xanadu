@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Texture = MoonWorks.Graphics.Texture;
+using Xanadu.Slang;
 
 namespace Xanadu.Host.Rendering;
 

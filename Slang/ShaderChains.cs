@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// Lets an effect chain the library's in-place methods. Slang has no

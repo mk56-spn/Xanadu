@@ -8,6 +8,7 @@ using Xanadu.Rendering;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
+using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;
 

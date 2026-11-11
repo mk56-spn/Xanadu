@@ -8,6 +8,7 @@ using Xanadu.Systems.Input;
 using Xanadu.Theme;
 using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;
 

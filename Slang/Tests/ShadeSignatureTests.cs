@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Xanadu.Rendering;
+using Xanadu.Slang;
 
-namespace Xanadu.Tests.Shaders;
+namespace Xanadu.Slang.Tests;
 
 [TestFixture]
 public sealed class ShadeSignatureTests

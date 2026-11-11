@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
     <Content Include="../agents.md" Link="agents.md" />
     <InternalsVisibleTo Include="Xanadu.Tests" />

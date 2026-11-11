@@ -5,6 +5,7 @@ using System.Linq;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Timeline;
+using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;
 

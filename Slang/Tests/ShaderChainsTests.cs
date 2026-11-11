@@ -1,10 +1,10 @@
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Rendering;
+using Xanadu.Slang;
 using Xanadu.Storage;
 
-namespace Xanadu.Tests.Shaders;
+namespace Xanadu.Slang.Tests;
 
 [TestFixture]
 public sealed class ShaderChainsTests

@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>One complaint from Slang: where (1-based; line 0 when it isn't in the author's code) and what.</summary>
-internal readonly record struct SlangProblem(int Line, int Column, string Message, bool Warning);
+public readonly record struct SlangProblem(int Line, int Column, string Message, bool Warning);
 
 /// <summary>
 /// Reads Slang's diagnostics for code compiled under a <c>#line 1 "label"</c>
@@ -19,7 +19,7 @@ internal readonly record struct SlangProblem(int Line, int Column, string Messag
 /// </code>
 /// and the older one-line <c>label(6): error 10005: newline in literal</c>.
 /// </summary>
-internal static partial class SlangProblems
+public static partial class SlangProblems
 {
     [GeneratedRegex(@"^(error|warning)\[[^\]]*\]:\s*(.*)$")]
     private static partial Regex Header();

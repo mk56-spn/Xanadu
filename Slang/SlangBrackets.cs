@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// One bracket in the code: where it is, what owns it, and where its partner is.
@@ -9,7 +9,7 @@ namespace Xanadu.Labs.Editor;
 /// is a library type's, <c>if (</c> a keyword's, a function body's braces its
 /// function's), or null for plain grouping such as <c>(a + b)</c>.
 /// </summary>
-internal readonly record struct Bracket(int Line, int Column, TokenKind? Owner, int Partner)
+public readonly record struct Bracket(int Line, int Column, TokenKind? Owner, int Partner)
 {
     public bool Matched => Partner >= 0;
 }
@@ -19,7 +19,7 @@ internal readonly record struct Bracket(int Line, int Column, TokenKind? Owner, 
 /// view can draw a bracket in its owner's colour instead of by nesting depth.
 /// Brackets in comments and strings don't count.
 /// </summary>
-internal static class SlangBrackets
+public static class SlangBrackets
 {
     public static List<Bracket> Find(IReadOnlyList<string> lines, Func<string, List<Token>> tokenize)
     {

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>What a piece of a line is, for its colour.</summary>
-internal enum TokenKind
+public enum TokenKind
 {
     Plain,
     Keyword,
@@ -24,7 +24,7 @@ internal enum TokenKind
 }
 
 /// <summary>A run of one kind in a line: columns [Start, End).</summary>
-internal readonly record struct Token(int Start, int End, TokenKind Kind);
+public readonly record struct Token(int Start, int End, TokenKind Kind);
 
 /// <summary>
 /// Splits one line of Slang into coloured runs. Line by line and forgiving: a
@@ -32,7 +32,7 @@ internal readonly record struct Token(int Start, int End, TokenKind Kind);
 /// anything it doesn't know is plain. Library types and namespaces come from
 /// the library itself (<see cref="SlangHints"/>).
 /// </summary>
-internal static class SlangSyntax
+public static class SlangSyntax
 {
     private static readonly HashSet<string> Keywords =
     [

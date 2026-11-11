@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// What an effect's <c>shade</c> asks for. It returns <c>float4</c> and takes

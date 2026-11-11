@@ -5,6 +5,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Theme;
 using Xanadu.Ui.Editing;
+using Xanadu.Slang;
 
 namespace Xanadu.Labs.Editor;
 

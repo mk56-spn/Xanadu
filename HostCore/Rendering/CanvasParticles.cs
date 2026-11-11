@@ -8,6 +8,7 @@ using Xanadu.Particles;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
+using Xanadu.Slang;
 
 namespace Xanadu.Host.Rendering;
 

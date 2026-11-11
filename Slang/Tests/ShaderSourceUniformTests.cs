@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Rendering;
-using Xanadu.Systems.Shaders;
+using Xanadu.Slang;
 
-namespace Xanadu.Tests.Shaders;
+namespace Xanadu.Slang.Tests;
 
 /// <summary>The instance-uniform declarations a group's shader track may key.</summary>
 [TestFixture]

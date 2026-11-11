@@ -5,7 +5,7 @@ shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
 **Status:** XS003 and XS004 are checked: the shader editor shows them as warnings
-(`Tools/Labs/Editor/SlangLint.cs`). The rest are collected here as they come
+(`Slang/SlangLint.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
 Each rule says what it flags, why, how to fix it, and how hard it complains:

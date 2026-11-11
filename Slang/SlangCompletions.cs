@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Xanadu.Rendering;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
-internal enum CompletionKind
+public enum CompletionKind
 {
     Field,
     Method,
@@ -25,7 +24,7 @@ internal enum CompletionKind
 /// One thing completion offers: its name, what it is, a short signature or type, a colour for colour
 /// constants, and what its <c>///</c> comment says (paragraphs and code lines split by '\n'), for hovering.
 /// </summary>
-internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null, string? Doc = null, string? Text = null)
+public readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null, string? Doc = null, string? Text = null)
 {
     /// <summary>Where a snippet's <see cref="Text"/> puts the caret.</summary>
     public const char Caret = '$';
@@ -59,7 +58,7 @@ internal readonly record struct Completion(string Name, CompletionKind Kind, str
 /// <c>let |</c>), and not once the word typed is already one of them.
 /// </para>
 /// </summary>
-internal sealed partial class SlangCompletions
+public sealed partial class SlangCompletions
 {
     /// <summary>Members by scope: a namespace, a struct, an interface (its extension methods) or a nested enum ("blend.Mode").</summary>
     private readonly Dictionary<string, List<Completion>> _scopes = new(StringComparer.Ordinal);
@@ -258,13 +257,20 @@ internal sealed partial class SlangCompletions
             return shapes;
         }
 
-        if (EntrySnippets(beforeCaret, code, caretLine, out int entryStart, out bool typeWritten) is { } entries)
+        List<Completion>? entries = EntrySnippets(beforeCaret, code, caretLine, out int entryStart, out bool typeWritten);
+        if (entries is not null && typeWritten)
         {
             start = entryStart;
-            if (typeWritten)
-                return entries;
+            return entries;
+        }
+
+        List<Completion>? statements = StatementSnippets(beforeCaret, code, caretLine, out int statementStart);
+        if (entries is not null || statements is not null)
+        {
+            List<Completion> snippets = [.. entries ?? [], .. statements ?? []];
+            start = entries is not null ? entryStart : statementStart;
             List<Completion> rest = Words(beforeCaret, code, out _) ?? [];
-            return [.. entries, .. rest.Where(c => entries.TrueForAll(e => e.Name != c.Name))];
+            return [.. snippets, .. rest.Where(c => snippets.TrueForAll(s => s.Name != c.Name))];
         }
 
         // After a dot only members make sense, known or not.
@@ -324,8 +330,56 @@ internal sealed partial class SlangCompletions
         return found;
     }
 
-    /// <summary>A colour's value being started: <c>colour c = |</c>, <c>c = |</c> for a colour c, or <c>[Default(|</c> on a colour uniform's line.</summary>
-    [GeneratedRegex(@"(?:\bcolour\s+\w+\s*=|(?<![\w.])(\w+)\s*=|\[\s*Default\s*\()\s*(\w*)$")]
+    /// <summary>A line inside a body so far: its indent, then the one word being typed.</summary>
+    [GeneratedRegex(@"^(\s*)([A-Za-z_]\w*)$")]
+    private static partial Regex StatementStart();
+
+    /// <summary>
+    /// Statements offered whole: the keyword, its header, the text written in ($ is the caret,
+    /// and every line after the first gets the indent of the line typed on), and whether it goes
+    /// at the top level (a uniform) or inside a body (an if, a for).
+    /// </summary>
+    private static readonly (string Name, string Header, string Text, bool TopLevel)[] Statements =
+    [
+        ("if", "if (condition)", "if ($)\n{\n    \n}", false),
+        ("for", "for (int i = 0; i < n; i++)", "for (int i = 0; i < $; i++)\n{\n    \n}", false),
+        ("uniform", "[Default(1)] uniform float name;", "[Default(1)] uniform float $;", true),
+        ("uniform", "[Default(colours.white)] uniform colour name;", "[Default(colours.white)] uniform colour $;", true),
+    ];
+
+    /// <summary>
+    /// The statement snippets for a line that starts with (part of) their keyword, even once the
+    /// keyword is typed in full: body ones inside a function, top-level ones outside.
+    /// <paramref name="start"/> is where the keyword begins.
+    /// </summary>
+    private static List<Completion>? StatementSnippets(string beforeCaret, IReadOnlyList<string> code, int caretLine, out int start)
+    {
+        start = 0;
+        Match match = StatementStart().Match(beforeCaret);
+        if (caretLine < 0 || caretLine >= code.Count || !match.Success)
+            return null;
+
+        bool topLevel = Depth(code, caretLine) == 0;
+        string indent = match.Groups[1].Value;
+        string typed = match.Groups[2].Value;
+        var found = new List<Completion>();
+        foreach ((string name, string header, string text, bool top) in Statements)
+        {
+            if (top == topLevel && name.StartsWith(typed, StringComparison.Ordinal))
+                found.Add(new Completion(name, CompletionKind.Snippet, header, Text: text.Replace("\n", "\n" + indent)));
+        }
+
+        if (found.Count == 0)
+            return null;
+        start = indent.Length;
+        return found;
+    }
+
+    /// <summary>
+    /// A colour's value being started: <c>colour c = |</c>, <c>c = |</c> for a colour c, <c>t.colour = |</c>
+    /// for a colour field, or <c>[Default(|</c> on a colour uniform's line.
+    /// </summary>
+    [GeneratedRegex(@"(?:\bcolour\s+\w+\s*=|(?<![\w.])(\w+(?:\.\w+)*)\s*=|\[\s*Default\s*\()\s*(\w*)$")]
     private static partial Regex ColourValueStart();
 
     /// <summary>
@@ -340,7 +394,7 @@ internal sealed partial class SlangCompletions
             return null;
         string line = caretLine >= 0 && caretLine < code.Count ? code[caretLine] : beforeCaret;
         bool colour = match.Groups[1].Success
-            ? IsColour(match.Groups[1].Value, code)
+            ? IsColourTarget(match.Groups[1].Value, code)
             : !match.Value.TrimStart().StartsWith('[') || Regex.IsMatch(line, @"\buniform\s+colour\b");
         if (!colour || (match.Groups[1].Success && match.Value.Contains("==")))
             return null;
@@ -399,6 +453,20 @@ internal sealed partial class SlangCompletions
     private List<Completion> Shapes() =>
         _shapes ??= _globals.Where(g => g.Kind == CompletionKind.Type && _interfaces.TryGetValue(g.Name, out var faces) && faces.Contains("IShape"))
             .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>
+    /// Whether what's being assigned is a colour: a name the code declares as one, or a field
+    /// declared <c>colour</c> at the end of a chain (<c>t.colour</c> for a <c>Thing t</c>).
+    /// </summary>
+    private bool IsColourTarget(string target, IReadOnlyList<string> code)
+    {
+        string[] chain = target.Split('.');
+        if (chain.Length == 1)
+            return IsColour(target, code);
+        string? owner = Scope(chain[..^1], code);
+        return owner is not null && _memberTypes.TryGetValue(owner, out var types)
+                                 && types.TryGetValue(chain[^1], out string? type) && type == "colour";
+    }
 
     /// <summary>Whether the code declares a name as a colour (<c>colour c</c>, <c>uniform colour tint</c>).</summary>
     private static bool IsColour(string name, IReadOnlyList<string> code) =>
@@ -534,13 +602,13 @@ internal sealed partial class SlangCompletions
         foreach (Completion own in CodeNames(code))
         {
             if (own.Name == name)
-                return [own];
+                return [WithMembers(own, VariableType(name, code))];
         }
 
         if (_provided.Find(p => p.Name == name) is { Name: not null } provided)
             return [provided];
         if (_declared.TryGetValue(("", name), out var global))
-            return global;
+            return LibraryType(name) is { } type ? [.. global.SkipLast(1), WithMembers(global[^1], type)] : global;
         foreach ((string intrinsic, string detail, string doc) in Intrinsics)
         {
             if (intrinsic == name)
@@ -548,6 +616,43 @@ internal sealed partial class SlangCompletions
         }
 
         return null;
+    }
+
+    /// <summary>A library struct or interface named by <paramref name="name"/> (alias resolved), or null for anything else.</summary>
+    private string? LibraryType(string name)
+    {
+        string type = _aliases.GetValueOrDefault(name, name);
+        return !_namespaces.Contains(type) && _scopes.ContainsKey(type) ? type : null;
+    }
+
+    /// <summary>
+    /// <paramref name="entry"/> with what <paramref name="type"/> has listed under its comment, straight
+    /// from the library's source: every field, property and method as a code line, then the names it
+    /// shares through its interfaces. Unchanged when the type is not the library's or has nothing.
+    /// </summary>
+    private Completion WithMembers(Completion entry, string? type)
+    {
+        if (type is null || LibraryType(type) is not { } scope)
+            return entry;
+
+        List<Completion> own = _scopes[scope];
+        var lines = new List<string>();
+        foreach (Completion member in own)
+            lines.Add("    " + member.Header);
+
+        foreach (string face in _interfaces.TryGetValue(scope, out var faces) ? faces : [])
+        {
+            if (_scopes.TryGetValue(face, out var shared) && shared.Count > 0)
+            {
+                IEnumerable<string> names = shared.Select(m => m.Name).Where(n => own.TrueForAll(o => o.Name != n)).Distinct();
+                lines.Add("Also every " + face + "'s: " + string.Join(", ", names) + ".");
+            }
+        }
+
+        if (lines.Count == 0)
+            return entry;
+        string list = "Has:\n" + string.Join('\n', lines);
+        return entry with { Doc = entry.Doc is { Length: > 0 } doc ? doc + "\n\n" + list : list };
     }
 
     /// <summary>The names the code declares: uniforms, locals and parameters by their type, let and var, and functions.</summary>
@@ -576,7 +681,7 @@ internal sealed partial class SlangCompletions
     {
         string? scope = _namespaces.Contains(chain[0]) || (_scopes.ContainsKey(chain[0]) && !_memberTypes.ContainsKey(chain[0]))
             ? chain[0]
-            : VariableType(chain[0], code);
+            : VariableType(chain[0], code) ?? LibraryType(chain[0]);
         for (int i = 1; i < chain.Length && scope is not null; i++)
         {
             if (_scopes.ContainsKey(scope + "." + chain[i]))

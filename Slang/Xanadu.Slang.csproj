@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The Slang layer: everything systemic about shaders that isn't a shader.
+    Compiling effect bodies to SPIR-V and reflecting them (SlangShaders), the
+    source rewrites and scans the host and game lean on (ShaderChains,
+    ShaderConstants, ShadeSignature, ShaderSourceUniforms), and the code
+    editor's language smarts (SlangCompletions, SlangHints, SlangLint,
+    SlangRename, SlangProblems, SlangSyntax, SlangBrackets). No GPU, no UI, no
+    game; tested on its own in Tests/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Xanadu.Slang</AssemblyName>
+    <RootNamespace>Xanadu.Slang</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests/**" />
+    <None Remove="Tests/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Slangc.NET" Version="2026.21.0" />
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>

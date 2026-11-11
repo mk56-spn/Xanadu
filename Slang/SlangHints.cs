@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Slang;
 
 /// <summary>A parameter name drawn in front of an argument, which isn't in the text.</summary>
-internal readonly record struct InlayHint(int Column, string Label);
+public readonly record struct InlayHint(int Column, string Label);
 
 /// <summary>
 /// Parameter names for calls into the shader library, shown as inlay hints:
@@ -21,7 +21,7 @@ internal readonly record struct InlayHint(int Column, string Label);
 /// means different parameters in two places gets no hint rather than a wrong
 /// one. Hints show for calls with two or more arguments, or one numeric literal.
 /// </remarks>
-internal sealed partial class SlangHints
+public sealed partial class SlangHints
 {
     /// <summary>Parameter names by (name, argument count); null where two declarations disagree.</summary>
     private readonly Dictionary<(string Name, int Count), string[]?> _table = new();

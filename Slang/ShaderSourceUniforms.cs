@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Slang;
 
 /// <summary>
 /// One keyable shader setting: a global <c>uniform</c> the effect tags

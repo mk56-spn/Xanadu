@@ -4,19 +4,18 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Slangc.NET;
-using Xanadu.Rendering;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Slang;
 
 /// <summary>One value an effect reads from its <c>Params</c> block: where it sits, how big, and its default.</summary>
-internal sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default);
+public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default);
 
 /// <summary>
 /// A compiled entry point and what reflection says it binds: how many
 /// samplers and uniform buffers (for <c>ShaderCreateInfo</c>), the sampler
 /// names by binding, and the layout of uniform buffer 1 (an effect's values).
 /// </summary>
-internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniformBuffers, ShaderParam[] parameters, int paramsSize, int storageBuffers = 0)
+public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniformBuffers, ShaderParam[] parameters, int paramsSize, int storageBuffers = 0)
 {
     public byte[] Spirv { get; } = spirv;
 
@@ -48,7 +47,7 @@ internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint unifo
 }
 
 /// <summary>Just enough SPIR-V reading to see which resources survived compilation.</summary>
-internal static class SpirvScan
+public static class SpirvScan
 {
     private const int OpDecorate = 71, DecorationBinding = 33, DecorationDescriptorSet = 34;
 
@@ -89,7 +88,7 @@ internal static class SpirvScan
 /// with the shipped library (<c>Assets/Shaders/Library</c>: <c>xanadu.stage</c>,
 /// <c>xanadu.colour</c>, …) on the import path. The SPIR-V entry is named <c>main</c>.
 /// </summary>
-internal static class SlangShaders
+public static class SlangShaders
 {
     /// <summary>Where <c>import xanadu.*</c> resolves; set by the host once it knows the game folder.</summary>
     public static string? LibraryPath { get; set; }
@@ -264,7 +263,7 @@ internal static class SlangShaders
             """;
     }
 
-    internal static (string Imports, string Code, string Label) Split(string name, string source)
+    public static (string Imports, string Code, string Label) Split(string name, string source)
     {
         var imports = new System.Text.StringBuilder();
         var body = new System.Text.StringBuilder();

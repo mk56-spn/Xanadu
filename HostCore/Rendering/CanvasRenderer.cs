@@ -9,6 +9,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 using Texture = MoonWorks.Graphics.Texture;
+using Xanadu.Slang;
 
 namespace Xanadu.Host.Rendering;
 

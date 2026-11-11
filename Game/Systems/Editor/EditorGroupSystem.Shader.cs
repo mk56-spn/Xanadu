@@ -6,6 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;
 

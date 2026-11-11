@@ -6,6 +6,7 @@ using Xanadu.Rendering;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Slang;
 
 namespace Xanadu.Labs.Editor;
 

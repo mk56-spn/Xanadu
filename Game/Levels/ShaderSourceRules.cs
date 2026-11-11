@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Xanadu.Ecs;
 using Xanadu.Rendering;
+using Xanadu.Slang;
 
 namespace Xanadu.Levels;
 
