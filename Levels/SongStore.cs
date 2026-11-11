@@ -11,17 +11,16 @@ using Xanadu.Ecs.Storage;
 namespace Xanadu.Levels;
 
 /// <summary>
-/// The song library, and the only code that touches it on disk. The catalog is
-/// a permanent fixture of the project (<c>res://Songs/catalog.json</c>); the
-/// audio lives outside the codebase in <c>user://songs</c>, one folder per song
-/// id. The catalog is read once and kept; the store's own writes update it.
+/// The song library, and the only code that touches it on disk. It lives on
+/// the player's side, never in the repo: <c>user://songs/catalog.json</c> lists
+/// the songs and each one's audio is in <c>user://songs/&lt;id&gt;</c>. The
+/// catalog is read once and kept; the store's own writes update it.
 /// Everything else asks <see cref="Shared"/>: <see cref="Open"/> for a song to
 /// play, <see cref="Find"/> for its details.
 /// </summary>
 public sealed class SongStore
 {
     public const string LibraryFolder = "user://songs";
-    public const string CatalogFile = "res://Songs/catalog.json";
 
     private static readonly Regex SlugPattern = new(
         "[^a-z0-9]+",

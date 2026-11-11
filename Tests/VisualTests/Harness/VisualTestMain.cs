@@ -303,8 +303,7 @@ internal sealed class VisualTestMain : HostApp
     private void EnsureRoot()
     {
         ClearRecovery();
-        SongStore.Shared = new SongStore(
-            catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
+        SongStore.Shared = new SongStore();
         if (_systems is not null)
             return;
 

@@ -34,7 +34,6 @@ internal sealed class HostGame : HostApp
         new HostWindowOptions(options.WindowWidth, options.WindowHeight, options.ShotPath, options.ShotFrame))
     {
         _options = options;
-        SongStore.Shared = new SongStore(catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
 
         var director = new SceneDirector();
         director.Changed += OnSceneChanged;
