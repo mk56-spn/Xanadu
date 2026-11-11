@@ -10,6 +10,13 @@
 // paint) changes the thing it's called on and returns nothing; its past
 // participle (rotated, painted, filled) leaves it alone and returns the result.
 //
+// Everything that draws is centred, then placed: it starts on the quad's
+// centre at the pixel being shaded (shading.canvas.centred), the caller moves
+// it from there, and an explicit point is only an extra overload for what the
+// library can't know (a warped position, a tile's local). New drawing code
+// becomes an IShape, as Grid and Checker in xanadu.pattern did. Docs/shaders.md
+// has the rule.
+//
 // Every shape carries its placement: rotate, move, scale and anchor change it
 // in place; rotated, moved, scaled and anchored give a changed copy. All of
 // them work round the shape's own centre, so their order doesn't matter.

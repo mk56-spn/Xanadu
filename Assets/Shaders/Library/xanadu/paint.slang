@@ -16,6 +16,7 @@ module paint;
 import xanadu.colour;
 import xanadu.shape;
 import xanadu.blend;
+import xanadu.gradient;
 
 /// How a shape is painted: its fill, then an outline just inside its edge. Every part
 /// starts see-through, so set only what you want:
@@ -59,6 +60,12 @@ public extension float4
     [mutating] public void paint<S : IShape>(S shape, colour top = colours.white, blend.Blend how = blend.normal)
     {
         this.paint(shape.filled(), top, how);
+    }
+
+    /// Lays `gradient` over this colour, `from` at its start fading to `to` at its end, by `how`.
+    [mutating] public void paint<G : IGradient>(G gradient, colour from, colour to, blend.Blend how = blend.normal)
+    {
+        this = blend.composite(how, this, gradient.coloured(from, to));
     }
 
     /// Paints `shape` in `look`: its fill, then its outline on top, by `how`.

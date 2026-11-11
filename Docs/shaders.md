@@ -12,6 +12,20 @@ returns nothing. Its past participle (`rotated`, `painted`, `filled`,
 `stroked`) leaves the value alone and returns the result: a changed copy, a
 new shape, or a coverage number.
 
+**Centred, then placed.** Anything the library draws starts on the quad's
+centre, at the pixel being shaded, so you never pass `canvas.centred` around.
+You make it, then place it from there with `moved`, `rotated`, `scaled` or
+`anchored`, and draw it with `filled`, `stroked` or `c.paint`:
+`c.paint(Grid(1, 40).rotated(0.2), colours.white)`. That is why grids,
+lines, checkers and gradients are values you place (§10) rather than
+functions of a position. A
+form that takes an explicit point (`filled(position)`, `pattern.tile(position,
+size)`) is the way out, for a point the library can't know: a warped or
+layered position, or a tile's `.local`. New library code follows the same
+rule: anything that draws becomes a shape (`IShape`), or else takes the
+pixel from `shading.canvas.centred` and keeps the explicit point as an extra
+overload.
+
 ## Contents
 
 1. [A shader](#1-a-shader)
@@ -339,25 +353,43 @@ return c;
 
 ## 10. Patterns, gradients, easing, curves
 
-**`pattern.`** works in pixels; feed it `canvas.centred`.
+**Patterns are shapes.** `Grid`, `Columns`, `Rows` and `Checker` sit on the
+quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
+`anchored`, `filled`, `stroked` and `c.paint` all work on them.
 
-| Call | Gives |
+| Shape | Is |
 |---|---|
-| `pattern.grid(position, width, spacing)` | grid lines `width` pixels thick, 0..1, with lines through the centre. `spacing` can be a `float2` for oblong cells. |
-| `pattern.columns(position, width, spacing)` / `pattern.rows(…)` | lines, 0..1. They sit between multiples of `spacing`, and `width` is half their thickness. |
-| `pattern.checker(position, size)` | 0 or 1 squares |
-| `pattern.checkerSplit(position, size, levels)` | a checker whose squares split again, 0 to 3 times |
-| `pattern.tile(position, size)` | a `Tile`: `.local` is the point within its tile (centred there), `.id` is which tile. Draw one shape at `.local` and it repeats; seed randomness with `.id`. |
+| `Grid(width, spacing)` | graph paper: lines across and down, `width` thick and `spacing` apart, one of each through the centre. A `float2` spacing gives oblong cells. `c.paint(Grid(1, 40), colours.white)` draws 1px white lines every 40px. |
+| `Columns(width, spacing)` / `Rows(width, spacing)` | upright or level lines only, one through the centre. |
+| `Checker(size, levels = 0)` | squares `size` across, corners meeting at the centre; filled on every other one. `levels` (0 to 3) splits each square into a smaller checker again. |
 
-**`gradient.`** gives how far along a gradient a point is, 0..1. Feed it to
-`lerp` or `paint`.
+`pattern.tile(size)` cuts the quad into tiles from its centre and gives a
+`Tile`: `.local` is the pixel's place in its tile (centred there), `.id` is
+which tile. Draw one shape at `.local` and it repeats; seed randomness with
+`.id`. `pattern.tile(position, size)` does the same at any point, for tiles
+that move or layer.
 
-| Call | Gives |
+**Gradients** are centred, then placed, too: make one, place it with
+`moved`, `rotated`, `scaled` or `anchored`, then use it.
+
+| Gradient | Is |
 |---|---|
-| `gradient.linear(position, from, to)` | along the line, 0 at `from`, 1 at `to` |
-| `gradient.radial(position, centre, edge)` | outwards, 1 on the circle through `edge` |
-| `gradient.conical(position, centre, start)` | round the centre, starting towards `start` |
-| `gradient.square(position, centre, edge)` | outwards in squares |
+| `Linear(length)` | left (0) to right (1) across `length` pixels, centred on the quad. `rotated(PI / 2)` runs it top to bottom. |
+| `Radial(radius)` | out from the centre (0) to a circle `radius` pixels round it (1). |
+| `Conical()` | round the centre: 0 pointing right, clockwise (y down) round to 1. Rotate it to start elsewhere. |
+
+Using one:
+
+- `c.paint(g, from, to)` lays it over the colour `c`, `from` fading to `to`,
+  with an optional blend: `c.paint(Radial(200), colours.gold, colours.transparent, blend.screen)`.
+- `g.coloured(from, to)` gives that colour at the pixel.
+- `g.amount()` gives how far along it the pixel is, 0..1, for `lerp`,
+  `ease.` or anything else.
+- Both take a point first (`g.amount(position)`) for a position the library
+  can't know.
+
+`gradient.square(position, centre, edge)` (outwards in squares) is still a
+plain function for now.
 
 **`ease.`** holds Robert Penner's easings: 0..1 in, eased 0..1 out (`back`
 and `elastic` overshoot).
@@ -431,9 +463,11 @@ float4 shade(Canvas canvas)
   A recompile starts it again from zero.
 - If you also bind textures, give them `[[vk::binding(n, 2)]]` numbers from
   2 up, with no gaps.
-- **Lab only for now.** State built up frame by frame can't be recreated when a
-  song seeks, so a level shader with an `update` is an error until levels have
-  an answer for that.
+- **Lab only for now.** State runs forward only: it pauses when the song
+  pauses and carries on from where it is after a seek. A seek backwards does
+  not roll it back, and never will. Levels get kept state once their runtime
+  passes it a paused `dt` of 0. Until then a level shader with an `update` is
+  an error.
 
 See `Tools/Labs/Examples/flashlight.slang`.
 

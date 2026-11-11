@@ -1,9 +1,14 @@
-// xanadu.pattern: lines, checkers and tiles in pixel units, all under
-// `pattern.`. Feed them canvas.centred (or ItemInput's local).
+// xanadu.pattern: grids, lines and checkers as shapes, in pixels. Like any
+// shape they sit on the quad's centre until moved, and draw with filled,
+// stroked or c.paint:
 //
-//     pattern.grid(p, 1.0, 40.0)   pattern.columns(p, 2.0, 24.0)   pattern.checker(p, 16.0)   pattern.tile(p, 64.0)
+//     c.paint(Grid(1, 40), colours.white);                 // 1px lines every 40px, one through the centre
+//     c.paint(Checker(32).rotated(time * 0.2), colours.gold);
+//     Tile cell = pattern.tile(90);                         // repeat one shape in tiles
 module pattern;
 import xanadu.math;
+import xanadu.stage;
+import xanadu.shape;
 
 /// Where a point falls when space is cut into tiles: its place in the tile (centred) and which tile.
 public struct Tile
@@ -12,65 +17,105 @@ public struct Tile
     public float2 id;
 };
 
-public namespace pattern
+/// How far p is from the nearest multiple of `spacing`, on each axis.
+float2 offGrid(float2 p, float2 spacing) { return abs(p - spacing * round(p / spacing)); }
+
+/// Graph paper: lines across and down `width` thick and `spacing` apart, one
+/// of each through the centre. `spacing` can be a float2 for oblong cells.
+/// It is a shape: move, rotate or scale it like one, and draw it with filled
+/// or c.paint.
+///
+///     c.paint(Grid(1, 40), colours.white);                           // 1px white lines every 40px
+///     c.paint(Grid(2, float2(80, 40)).moved(float2(20, 0)), colours.gold);
+///     c.paint(Grid(1, 40).moved(float2(time * 20)));                 // scrolls diagonally
+public struct Grid : IShape
 {
-    /// Grid lines `width` pixels thick, `spacing` apart, with a line through
-    /// the origin (the quad's centre, for canvas.centred): 1 on a line, 0 off it.
-    public float grid(float2 position, float width, float2 spacing)
-    {
-        float2 d = abs(position - spacing * round(position / spacing));
-        float2 aa = fwidth(position);
-        float2 on = smoothstep(width * 0.5 + aa * 0.5, width * 0.5 - aa * 0.5, d);
-        return max(on.x, on.y);
-    }
+    public Placement placement = Placement();
+    public float width;
+    public float2 spacing;
 
-    /// Square grid cells.
-    public float grid(float2 position, float width, float spacing)
-    {
-        return grid(position, width, float2(spacing));
-    }
+    public __init(float width, float2 spacing) { this.width = width; this.spacing = spacing; }
+    public __init(float width, float spacing) { this.width = width; this.spacing = float2(spacing); }
 
-    /// Vertical lines `width` thick, `spacing` apart.
-    public float columns(float2 position, float width, float spacing)
+    public float local(float2 p)
     {
-        float x = mod(position.x, spacing);
-        float aa = fwidth(x);
-        return smoothstep(width + aa, width - aa, abs(x - spacing * 0.5));
+        float2 d = offGrid(p, spacing);
+        return min(d.x, d.y) - width * 0.5;
     }
+}
 
-    /// Horizontal lines `width` thick, `spacing` apart.
-    public float rows(float2 position, float width, float spacing)
-    {
-        float y = mod(position.y, spacing);
-        float aa = fwidth(y);
-        return smoothstep(width + aa, width - aa, abs(y - spacing * 0.5));
-    }
+/// Upright lines `width` thick and `spacing` apart, one through the centre. A shape.
+///
+///     c.paint(Columns(2, 24), colours.white);
+public struct Columns : IShape
+{
+    public Placement placement = Placement();
+    public float width;
+    public float spacing;
 
-    /// 0 or 1 in squares `size` across.
-    public float checker(float2 position, float size)
-    {
-        float2 cell = floor(position / size);
-        return mod(cell.x + cell.y, 2.0);
-    }
+    public __init(float width, float spacing) { this.width = width; this.spacing = spacing; }
 
-    /// A checker whose squares split again, `levels` times (0 to 3).
-    public float checkerSplit(float2 position, float size, int levels)
+    public float local(float2 p) { return offGrid(p, float2(spacing)).x - width * 0.5; }
+}
+
+/// Level lines `width` thick and `spacing` apart, one through the centre. A shape.
+///
+///     c.paint(Rows(2, 24), colours.white);
+public struct Rows : IShape
+{
+    public Placement placement = Placement();
+    public float width;
+    public float spacing;
+
+    public __init(float width, float spacing) { this.width = width; this.spacing = spacing; }
+
+    public float local(float2 p) { return offGrid(p, float2(spacing)).y - width * 0.5; }
+}
+
+/// A checkerboard of squares `size` across, with corners meeting at the
+/// centre; filled is 1 on every other square. With `levels` (0 to 3) each
+/// square splits into a smaller checker again. A shape.
+///
+///     c.paint(Checker(32), colours.white.withAlpha(0.1));
+///     c.paint(Checker(64, 2).rotated(0.3), colours.gold);
+public struct Checker : IShape
+{
+    public Placement placement = Placement();
+    public float size;
+    public int levels;
+
+    public __init(float size, int levels = 0) { this.size = size; this.levels = levels; }
+
+    public float local(float2 p)
     {
-        float2 q = position / size;
+        float2 q = p / size;
         float2 inside = frac(q);
         float2 id = floor(q);
         float parity = mod(id.x + id.y, 2.0);
+        float cell = size;
         for (int l = 0; l < min(levels, 3); l++)
         {
             inside *= 2.0;
             float2 quadrant = floor(inside);
             parity = mod(parity + quadrant.x + quadrant.y, 2.0);
             inside = frac(inside);
+            cell *= 0.5;
         }
-        return parity;
-    }
 
-    /// Space cut into tiles `size` across: draw one shape at tile.local and it repeats.
+        // Distance to the nearest edge of the smallest square, inside on the odd ones.
+        float2 edge = min(inside, 1.0 - inside) * cell;
+        float d = min(edge.x, edge.y);
+        return parity > 0.5 ? -d : d;
+    }
+}
+
+public namespace pattern
+{
+    /// Space cut into tiles `size` across, from the quad's centre: draw one
+    /// shape at tile.local and it repeats in every tile; seed randomness with tile.id.
+    public Tile tile(float size) { return tile(shading.canvas.centred, size); }
+
+    /// Space cut into tiles `size` across, at `position`: for tiles that move, scale or layer.
     public Tile tile(float2 position, float size)
     {
         Tile t;
