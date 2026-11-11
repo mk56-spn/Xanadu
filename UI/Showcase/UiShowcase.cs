@@ -16,22 +16,9 @@ namespace Xanadu.Ui.Showcase;
 /// <summary>Standalone demo of the generic Xanadu.Ui feature set, on the MoonWorks host.</summary>
 internal sealed class UiShowcase : HostApp
 {
-    private readonly SystemRoot _root;
-    private readonly VisualRidRelease _visuals;
 
     public UiShowcase(string[] args) : base("Xanadu UI Showcase", WindowOptions(args))
     {
-        _visuals = new VisualRidRelease(Entities);
-        _root = new SystemRoot(Entities);
-        _root.Add(new UiSystemGroup(
-            Entities,
-            Canvas.RootRid,
-            HostPlatform.NewCanvas(),
-            Pointer,
-            screen: new Vector2(Width, Height),
-            keyboard: Keyboard,
-            wheel: Pointer));
-
         Build();
     }
 
@@ -58,10 +45,7 @@ internal sealed class UiShowcase : HostApp
         return new HostWindowOptions(width, height, shot, frame);
     }
 
-    protected override void Tick(float delta, float time) =>
-        _root.Update(new UpdateTick(delta, time));
-
-    protected override void Shutdown() => _visuals.Dispose();
+    protected override void Tick(float delta, float time) { }
 
     private void Build()
     {

@@ -22,7 +22,6 @@ internal sealed class AnimatorTool : HostApp
 {
     private const string DefaultPath = AnimatorPaths.DefaultPackage;
 
-    private readonly SystemRoot _root;
     private readonly KeyPressQueue _keys = new();
     private readonly SvgAttachmentVisuals _attachments;
     private readonly Entity _session;
@@ -87,14 +86,14 @@ internal sealed class AnimatorTool : HostApp
     /// <summary>Set by <c>--zoom=x</c>: the preview's zoom once it has been fitted, to check what spills past its edges.</summary>
     private float _zoom = -1f;
 
-    private readonly VisualRidRelease _visuals;
     private readonly MiniaudioAnimatorClick _click = new();
 
-    public AnimatorTool(string[] args) : base("Xanadu Animator", WindowOptions(args))
+    /// <summary>The animator's own systems; the host's UI steps them.</summary>
+    private readonly SystemRoot _systems;
+
+    public AnimatorTool(string[] args) : base("Xanadu Animator", WindowOptions(args), HostUi.NoTooltips)
     {
-        _visuals = new VisualRidRelease(Entities);
-        _root = new SystemRoot(Entities);
-        IRectCanvas canvas = HostPlatform.NewCanvas();
+        IRectCanvas canvas = UiCanvas;
 
         _stage = CreateCanvas(AnimatorLayout.GridZ);
         _grid = CreateCanvas(0, _stage);
@@ -105,15 +104,8 @@ internal sealed class AnimatorTool : HostApp
 
         var screen = new Vector2(Width, Height);
         var toasts = new ToastSystem(Entities, screen, HostPlatform.Visuals);
-        _root.Add(new UiSystemGroup(
-            Entities,
-            Canvas.RootRid,
-            canvas,
-            Pointer,
-            tooltips: false,
-            keyboard: Keyboard,
-            wheel: Pointer));
-        _root.Add(new AnimatorSystemGroup(
+        _systems = new SystemRoot(Entities, "Animator");
+        _systems.Add(new AnimatorSystemGroup(
             canvas,
             _grid,
             _preview,
@@ -126,7 +118,8 @@ internal sealed class AnimatorTool : HostApp
             _keys,
             _click,
             toasts));
-        _root.Add(toasts);
+        _systems.Add(toasts);
+        UseSystems(_systems);
 
         var files = new AnimatorFiles();
         _session = AnimatorSession.Create(
@@ -154,13 +147,12 @@ internal sealed class AnimatorTool : HostApp
         return new HostWindowOptions(width, height, null, 0);
     }
 
-    protected override Friflo.Engine.ECS.Systems.SystemRoot Systems => _root;
+    protected override void BeforeSystems(float delta) =>
+        Keyboard.FeedPresses(Inputs.Keyboard, _keys, key =>
+            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
 
     protected override void Tick(float delta, float time)
     {
-        Keyboard.FeedPresses(Inputs.Keyboard, _keys, key =>
-            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
-        _root.Update(new UpdateTick(delta, time));
 
         if (_session.GetComponent<AnimatorFile>().CloseRequested)
         {
@@ -362,7 +354,6 @@ internal sealed class AnimatorTool : HostApp
     protected override void Shutdown()
     {
         _attachments.Release();
-        _visuals.Dispose();
         foreach (Handle canvas in new[] { _grid, _preview, _svgCanvas, _timelineCanvas, _stage })
             CanvasServer.Current.Free(canvas);
         _click.Dispose();

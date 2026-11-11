@@ -94,16 +94,8 @@ public sealed partial class DebugPressedOverlaySystem
         return total;
     }
 
-    /// <summary>Times every system in every group, not only the root's children, while F3 is open.</summary>
-    private static void MonitorNested(SystemGroup group)
-    {
-        group.SetMonitorPerf(true);
-        foreach (BaseSystem child in group.ChildSystems)
-        {
-            if (child is SystemGroup nested)
-                MonitorNested(nested);
-        }
-    }
+    /// <summary>Times every system in every group, and in the app root the UI steps, while F3 is open.</summary>
+    private static void MonitorNested(SystemGroup group) => Xanadu.Systems.Ui.AppStep.MonitorAll(group);
 
     /// <summary>
     /// Closes each window that has run its time and lists the systems again.
@@ -139,18 +131,17 @@ public sealed partial class DebugPressedOverlaySystem
         return total;
     }
 
-    private void Collect(SystemGroup group, string? parent, bool live, bool average)
+    private void Collect(BaseSystem group, string? parent, bool live, bool average)
     {
         int index = 0;
-        foreach (BaseSystem system in group.ChildSystems)
+        foreach (BaseSystem system in Xanadu.Systems.Ui.AppStep.Children(group))
         {
             string id = parent is null ? index.ToString(CultureInfo.InvariantCulture) : $"{parent}.{index}";
             index++;
             SystemWindow window = Sample(system, live, average);
             _byId[id] = system;
             _systemItems.Add(new UiTreeItem(id, parent, Name(system), window.Cells));
-            if (system is SystemGroup nested)
-                Collect(nested, id, live, average);
+            Collect(system, id, live, average);
         }
     }
 
@@ -197,7 +188,7 @@ public sealed partial class DebugPressedOverlaySystem
     {
         foreach ((string id, BaseSystem system) in _byId)
         {
-            if (_known.Add(id) && system is SystemGroup group && group.ChildSystems.Count > 0)
+            if (_known.Add(id) && System.Linq.Enumerable.Any(Xanadu.Systems.Ui.AppStep.Children(system)))
                 UiTreeControl.SetExpanded(_systemTree, id, false);
         }
     }
@@ -213,7 +204,7 @@ public sealed partial class DebugPressedOverlaySystem
             float average = _windows.TryGetValue(system, out SystemWindow? window) ? window.Average : float.NaN;
             Color color = average >= SlowMs
                 ? DebugPalette.Warning
-                : system is SystemGroup ? DebugPalette.Header : DebugPalette.Text;
+                : system is SystemGroup or Xanadu.Systems.Ui.AppStep ? DebugPalette.Header : DebugPalette.Text;
             UiText.SetColor(UiTreeControl.Label(node), color);
             foreach (Entity cell in UiTreeControl.Cells(node))
                 UiText.SetColor(cell, color);

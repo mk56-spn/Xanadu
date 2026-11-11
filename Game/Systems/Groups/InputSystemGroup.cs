@@ -1,35 +1,23 @@
-using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Systems.Scenes;
+using Xanadu.Systems.Ui;
 
 namespace Xanadu.Systems.Groups;
 
-/// <summary>Resolves pointer input against ECS drawables and scene buttons.</summary>
+/// <summary>
+/// The game's answers to this frame's UI input: scene buttons, the display
+/// toggles and keybind rows. The UI's own input ran before the game's root.
+/// </summary>
 public sealed class InputSystemGroup : SystemGroup
 {
     public InputSystemGroup(
-        EntityStore entities,
-        IPointerInputSource pointerInput,
         SceneSystem scenes,
         KeybindSettings keybinds,
-        DisplaySettings display,
-        ScrollSystem scroll,
-        IKeyboardState? keyboard = null,
-        IVisualRidFactory? visuals = null,
-        Vector2 screen = default)
+        DisplaySettings display)
         : base("Input")
     {
-        Add(new UiInteractionSystemGroup(
-            entities,
-            pointerInput,
-            scroll,
-            keyboard,
-            visuals,
-            screen));
         Add(new VSyncToggleSystem(display));
         Add(new WindowModeButtonSystem(display));
         Add(scenes);

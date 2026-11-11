@@ -102,19 +102,12 @@ internal sealed class AutopsyRecorder
         Sample(root, _update);
     }
 
-    private static void Monitor(SystemGroup group)
-    {
-        group.SetMonitorPerf(true);
-        foreach (BaseSystem child in group.ChildSystems)
-        {
-            if (child is SystemGroup nested)
-                Monitor(nested);
-        }
-    }
+    private static void Monitor(SystemGroup group) => Xanadu.Systems.Ui.AppStep.MonitorAll(group);
 
-    private void Sample(SystemGroup group, int parent)
+    /// <summary>Each system's time this frame, nested as the tree is; an app root the UI steps nests under its step.</summary>
+    private void Sample(BaseSystem group, int parent)
     {
-        foreach (BaseSystem system in group.ChildSystems)
+        foreach (BaseSystem system in Xanadu.Systems.Ui.AppStep.Children(group))
         {
             double sum = system.Perf.SumMs;
             if (!_systems.TryGetValue(system, out (int Track, double Sum) known))
@@ -123,8 +116,7 @@ internal sealed class AutopsyRecorder
             _systems[system] = (known.Track, sum);
             if (ms > 0)
                 Add(_current!, known.Track, ms);
-            if (system is SystemGroup nested)
-                Sample(nested, known.Track);
+            Sample(system, known.Track);
         }
     }
 

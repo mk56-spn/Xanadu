@@ -12,6 +12,7 @@ using Xanadu.Settings;
 using Xanadu.Storage;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Ui;
 using Xanadu.Theme;
 
 namespace Xanadu.Tests.VisualTests;
@@ -31,6 +32,9 @@ internal sealed class VisualTestMain : HostApp
 
     private EntityStore? _entities;
     private XanaduSystemRoot? _systems;
+
+    /// <summary>The scene's UI, stepping <see cref="_systems"/>, as the host's does for the game.</summary>
+    private UiRoot? _ui;
     private SceneDirector? _director;
     private ScriptedPointerInputSource? _pointer;
     private ScriptedKeyboardState? _keyboard;
@@ -54,7 +58,7 @@ internal sealed class VisualTestMain : HostApp
     /// <summary>What the process exits with: 0 passed, 1 failed, 2 an unknown test.</summary>
     public int ExitCode { get; private set; }
 
-    public VisualTestMain(string[] args) : base("Xanadu Visual Tests", WindowOptions(args))
+    public VisualTestMain(string[] args) : base("Xanadu Visual Tests", WindowOptions(args), HostUi.None)
     {
         // Tests write levels, songs and profiles: keep them out of the game's own user folder.
         GamePaths.UseRoots(GamePaths.Globalize("res://"), GamePaths.GodotUserFolder("Xanadu Visual Tests"));
@@ -133,7 +137,7 @@ internal sealed class VisualTestMain : HostApp
         if (_systems is null || _context is null || _runner.Test is null)
             return;
 
-        _systems.Update(new UpdateTick(delta, time));
+        _ui!.Update(new UpdateTick(delta, time));
         foreach (EditorOverlay overlay in _context.Overlays)
             overlay.Tick();
 
@@ -277,6 +281,8 @@ internal sealed class VisualTestMain : HostApp
             }
         }
 
+        _ui?.Dispose();
+        _ui = null;
         _systems?.Dispose();
         _systems = null;
         _entities = null;
@@ -323,6 +329,8 @@ internal sealed class VisualTestMain : HostApp
             transitions: false,
             keyboard: _keyboard,
             passSurfaces: () => new HostPassSurfaces(Canvas, Renderer));
+        _ui = new UiRoot(_entities, _testHost, _pointer, _paneSize, _keyboard);
+        _ui.Run(_systems);
 
         _context = new VisualTestContext(
             _entities,

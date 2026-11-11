@@ -68,6 +68,7 @@ public sealed class VisualTestSidebar : IDisposable
     private readonly List<UiNode> _detail = new();
     private readonly Dictionary<string, List<string>> _wrapped = new();
     private readonly EntityStore _store = new();
+    private readonly UiRoot _ui;
     private readonly SystemRoot _root;
     private readonly SidebarCommands _commands = new();
 
@@ -91,16 +92,10 @@ public sealed class VisualTestSidebar : IDisposable
         _rows = new Entity[tests.Count];
         _arrows = new Entity[tests.Count];
 
-        _root = new SystemRoot(_store);
-        _root.Add(new UiSystemGroup(
-            _store,
-            canvas,
-            HostPlatform.NewCanvas(),
-            pointer,
-            keyboard: keyboard,
-            screen: new Vector2(DesignWidth, DesignHeight),
-            wheel: wheel));
-        _root.Add(_commands);
+        // The sidebar's store is its own; no overlays, the scene's UI has those.
+        _ui = new UiRoot(_store, canvas, pointer, new Vector2(DesignWidth, DesignHeight), keyboard, wheel, overlays: false);
+        _root = new SystemRoot(_store, "Sidebar") { _commands };
+        _ui.Run(_root);
 
         Entity root = _store.CreateEntity();
         UiNode panel = UiNode.Layer(_store, root, UiLayers.VisualTestSidebar)
@@ -124,7 +119,7 @@ public sealed class VisualTestSidebar : IDisposable
     /// <summary>Runs the UI systems for one frame.</summary>
     public void Frame(float delta, float time)
     {
-        _root.Update(new UpdateTick(delta, time));
+        _ui.Update(new UpdateTick(delta, time));
     }
 
     /// <summary>Takes the next click, if any. Select and Run are per row.</summary>

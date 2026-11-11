@@ -21,7 +21,9 @@ using Xanadu.Systems;
 namespace Xanadu.Ecs;
 
 /// <summary>
-/// Owns Godot resources and composes the application's phase groups.
+/// The game's own systems: scenes, physics, audio, playfield, editor. It owns no UI:
+/// the host's <see cref="UiRoot"/> runs UI input before it and layout, drawing and
+/// the debug overlays after it, on the same store.
 /// </summary>
 public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 {
@@ -30,8 +32,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly EditorSystemGroup _editorSystems;
     private readonly Xanadu.Systems.Editor.EditorWheelSystem? _editorWheel;
     private readonly AudioSystemGroup _audioSystems;
-    private readonly DebugSystemGroup _debugSystems;
-    private readonly VisualRidRelease _visuals;
     private readonly EntityStore _entities;
     private readonly MiniaudioTrackAudio _trackAudio = new();
     private readonly MiniaudioTrackAudio _playfieldAudio = new();
@@ -90,7 +90,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _editorPassSurfaces = passSurfaces?.Invoke();
         _entities = entities;
         entities.OnEntityDelete += OnEntityDelete;
-        _visuals = new VisualRidRelease(entities);
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
@@ -132,7 +131,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectDragSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
-        Xanadu.Systems.Ui.UiBootstrap.AttachInitialization(this, parentCanvas);
         Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.ProfileEditSystem(Profiles));
         Add(new OffsetWizardSystem(
@@ -142,7 +140,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Keyboard,
             () => Scenes.TryBack()));
         Add(new Xanadu.Systems.Audio.SongPreviewSystem(entities, _previewAudio));
-        Xanadu.Systems.Ui.UiBootstrap.AttachPresentation(this, canvas);
         _audioSystems = new AudioSystemGroup(
             _trackAudio,
             new StopwatchTrackClock(),
@@ -187,32 +184,14 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Toasts);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
-        Add(new InputSystemGroup(
-            entities,
-            pointerInput,
-            Scenes,
-            Keybinds,
-            Display,
-            new ScrollSystem(pointerInput, wheel),
-            Keyboard,
-            HostPlatform.Visuals,
-            viewportSize));
+        Add(new InputSystemGroup(Scenes, Keybinds, Display));
         if (wheel is not null)
         {
-            // After the input group, so it only sees what the UI did not scroll with.
+            // The UI's input ran first, so this only sees what the UI did not scroll with.
             _editorWheel = new Xanadu.Systems.Editor.EditorWheelSystem(Commands, wheel) { Enabled = false };
             Add(_editorWheel);
         }
         Add(new AppShortcutSystem(KeyPresses, Keybinds, Scenes));
-        _debugSystems = new DebugSystemGroup(
-            canvas,
-            parentCanvas,
-            new KeyOverlayToggleSource(DebugKeys.Ecs),
-            entities,
-            this,
-            HostPlatform.Fps,
-            new KeyOverlayPageSource());
-        Add(_debugSystems);
         Add(new Xanadu.Systems.Shaders.ShaderTunerSystem(
             entities,
             Keyboard));
@@ -299,13 +278,11 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     {
         _sceneDirector.Changed -= OnSceneChanged;
         _entities.OnEntityDelete -= OnEntityDelete;
-        _visuals.Dispose();
         _trackAudio.Dispose();
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
         _previewAudio.Dispose();
         Physics.Dispose();
-        _debugSystems.Dispose();
         _editorSystems.Dispose();
         _playfieldSystems.Dispose();
         (_playPassSurfaces as IDisposable)?.Dispose();

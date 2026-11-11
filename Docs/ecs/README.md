@@ -56,7 +56,7 @@ grep -A8 'name="M:Friflo.Engine.ECS.Entity.AddChild' "$XML"
 | hide a subtree | `UiLayout.SetHidden(entity, true)`; the native `Disabled` tag follows | [UiTreeEvents.cs](../../UI/Ecs/Ui/UiTreeEvents.cs) |
 | react to the tree changing | `store.OnChildEntitiesChanged`, `store.OnTagsChanged` | [UiTreeEvents.cs](../../UI/Ecs/Ui/UiTreeEvents.cs) |
 | find what links to an entity | `target.GetIncomingLinks<TLink>()` | [UiDropdownSystem.cs](../../UI/Systems/Ui/UiDropdownSystem.cs) |
-| compose systems | `SystemRoot` + `SystemGroup` + `UpdateTick` | [UiSystemGroup.cs](../../UI/Systems/Ui/UiSystemGroup.cs) |
+| compose systems | `SystemRoot` + `SystemGroup` + `UpdateTick` | [UiRoot.cs](../../UI/Systems/Ui/UiRoot.cs) |
 
 ## Query performance
 

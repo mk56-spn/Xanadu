@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
@@ -13,21 +14,39 @@ using Xanadu.Host.Text;
 using Xanadu.Storage;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Ui;
 using Xanadu.Theme;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MwColor = MoonWorks.Graphics.Color;
+using Xanadu.Slang;
 
 namespace Xanadu.Host;
 
 /// <summary>Window size and the <c>--shot</c> settings every host exe takes.</summary>
 internal sealed record HostWindowOptions(uint Width, uint Height, string? ShotPath, int ShotFrame);
 
+/// <summary>How the host boots the ECS UI (<see cref="UiRoot"/>) on <see cref="HostApp.Entities"/>.</summary>
+internal enum HostUi
+{
+    /// <summary>The UI root, with the F1, F3 and F4 overlays, stepping the exe's root (<see cref="HostApp.UseSystems"/>).</summary>
+    Standard,
+
+    /// <summary>The same, without hover tooltips (the animator draws its own).</summary>
+    NoTooltips,
+
+    /// <summary>No UI on the host's store: only the visual-test harness, which makes a store and a UI root per scene.</summary>
+    None,
+}
+
 /// <summary>
 /// What every MoonWorks exe shares (Docs/host.md): the window, the
 /// 1920×1080 frame drawn by the host's canvas renderer and blitted to the
 /// window, fonts, keyboard, pointer and text input, the shader library, vsync,
-/// F12 screenshots and <c>--shot</c>. The game and the tools derive from it and
-/// put their ECS world on <see cref="Canvas"/> in <see cref="Tick"/>.
+/// F12 screenshots and <c>--shot</c>. The host owns the UI (<see cref="UiRoot"/>):
+/// every exe gets the same UI systems and the F1 frame rate, F3 ECS and F4 UI tree
+/// overlays without wiring them. An exe owns its own root, on the same store, and
+/// hands it over with <see cref="UseSystems"/>; the UI steps it after input and
+/// before layout.
 /// </summary>
 /// <remarks>
 /// Swapchain textures can't be read back, so everything draws into
@@ -64,13 +83,22 @@ internal abstract class HostApp : Game
     private readonly Rendering.VulkanMemoryBudget _gpuMemory = new();
     protected EntityStore Entities { get; } = new();
 
+    /// <summary>The host's UI; null with <see cref="HostUi.None"/>.</summary>
+    private readonly UiRoot? _ui;
+
+    /// <summary>The canvas the host's UI draws with, for exe systems that draw alongside it.</summary>
+    protected IRectCanvas UiCanvas => _ui!.Canvas;
+
+    /// <summary>Hands the exe's own root to the UI's frame: run after UI input, before layout. The exe keeps owning it.</summary>
+    protected void UseSystems(SystemRoot systems) => _ui!.Run(systems);
+
     /// <summary>Seconds since the window opened: the TIME effects see.</summary>
     protected float Seconds => (float)(DateTime.UtcNow - _started).TotalSeconds;
 
     /// <summary>Runs before any instance's base constructor makes the graphics device, which is when the layer must be in place.</summary>
     static HostApp() => GpuTimes.Install();
 
-    protected HostApp(string title, HostWindowOptions window) : base(
+    protected HostApp(string title, HostWindowOptions window, HostUi ui = HostUi.Standard) : base(
         new AppInfo("Xanadu", title),
         new WindowCreateInfo(title, window.Width, window.Height, ScreenMode.Windowed),
         FramePacingSettings.CreateCapped(60, 1),
@@ -83,8 +111,8 @@ internal abstract class HostApp : Game
         UseGameRoots();
         HostWindowIcon.Apply(MainWindow.Handle);
         SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
-        Xanadu.Rendering.ShaderConstants.Use(SlangShaders.LoadConstants());
-        Xanadu.Rendering.ShaderChains.Use(SlangShaders.LoadChains());
+        ShaderConstants.Use(SlangShaders.LoadConstants());
+        ShaderChains.Use(SlangShaders.LoadChains());
         SlangShaders.CacheFolder = GamePaths.Globalize("user://shader_cache_slang");
         Renderer = new CanvasRenderer(GraphicsDevice, Canvas, TargetFormat, Width, Height);
         Text = new HostText(GraphicsDevice, texture =>
@@ -120,6 +148,18 @@ internal abstract class HostApp : Game
         HostPlatform.MeasureMono = (text, size) => Text.Width(text, Xanadu.Host.Text.FontKind.Mono, size);
         _probe = HostFrameProbe.Enabled ? new HostFrameProbe() : null;
 
+        if (ui != HostUi.None)
+        {
+            _ui = new UiRoot(
+                Entities,
+                Canvas.RootRid,
+                Pointer,
+                new Vector2(Width, Height),
+                Keyboard,
+                Pointer,
+                tooltips: ui != HostUi.NoTooltips);
+        }
+
         // Every launch is recorded for the Autopsy tool and saved when the window closes.
         // Shot runs (visual tests) leave the last real launch alone unless XANADU_AUTOPSY=1.
         if (RecordsAutopsy && (window.ShotPath is null || Environment.GetEnvironmentVariable("XANADU_AUTOPSY") == "1"))
@@ -133,8 +173,8 @@ internal abstract class HostApp : Game
         }
     }
 
-    /// <summary>The systems the frame autopsy times, one by one; null leaves update as one block.</summary>
-    protected virtual Friflo.Engine.ECS.Systems.SystemRoot? Systems => null;
+    /// <summary>The systems the frame autopsy times, one by one: the UI's, with the exe's root under its step.</summary>
+    protected virtual SystemRoot? Systems => _ui;
 
     /// <summary>False for an exe whose launches shouldn't be recorded (the Autopsy tool itself).</summary>
     protected virtual bool RecordsAutopsy => true;
@@ -163,8 +203,14 @@ internal abstract class HostApp : Game
     /// <summary>Saves the next frame to <paramref name="path"/> and quits, for an exe that times its own shot.</summary>
     protected void RequestShot(string path) => _requestedShot = path;
 
-    /// <summary>Runs the exe's own systems once a frame, with real seconds since the last frame.</summary>
+    /// <summary>
+    /// The exe's frame, with real seconds since the last one; the UI, and the exe's
+    /// root inside it, have just run.
+    /// </summary>
     protected abstract void Tick(float delta, float time);
+
+    /// <summary>Before the host's systems run: input the exe feeds them (the animator's key presses).</summary>
+    protected virtual void BeforeSystems(float delta) { }
 
     /// <summary>Where an F12 shot goes, and its name; the game uses its own naming.</summary>
     protected virtual string ScreenshotName() => $"Xanadu {DateTime.Now:yyyy-MM-dd HH-mm-ss}.png";
@@ -285,7 +331,10 @@ internal abstract class HostApp : Game
             _screenshotRequested = true;
         FollowWindowSize();
         Pointer.Poll();
-        Tick(delta, (float)(now - _started).TotalSeconds);
+        float time = (float)(now - _started).TotalSeconds;
+        BeforeSystems(delta);
+        _ui?.Update(new UpdateTick(delta, time));
+        Tick(delta, time);
         Pointer.EndFrame();
         _probe?.EndUpdate();
         if (_autopsy is not null)
@@ -400,6 +449,7 @@ internal abstract class HostApp : Game
         SaveAutopsy();
         _sampler?.Stop();
         Shutdown();
+        _ui?.Dispose();
         Text.Dispose();
         Renderer.Dispose();
         _gpuMemory.Dispose();
