@@ -132,9 +132,9 @@ The rest is under "Later" (§6).
   `Assets`, `docs` and the `run-*.sh` launchers.
 - **Tools:** `Tools/Animator`, `UI/Showcase`, `Tools/Labs`,
   `Tests/VisualTests` are `HostApp`s; `Tools/Autopsy` reads frame captures.
-- **Launchers:** `./run.sh` asks which to start; `run-game.sh`,
-  `run-editor.sh`, `run-animator.sh`, `run-showcase.sh`, `run-labs.sh`,
-  `run-autopsy.sh`, `run-visual-tests.sh`.
+- **Launcher:** `./run.sh <target> [args]`, one script for every exe: `game`,
+  `editor`, `labs`, `animator`, `showcase`, `visual-tests`, `atlas`, `autopsy`.
+  With no target it asks which in the terminal.
 - **Game flags:** `--scene=<name>` (any `SceneKind`), `--demo` (a level made in
   memory with a field shader, a buffered group and a self-contained layer),
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
@@ -376,7 +376,7 @@ host fills; tests leave the headless defaults.
     pastes into a level. Sets `mouse` (pixels from the centre), `mouseUv` and `resolution`.
     `Tools/Labs/Examples/` holds common 2D effects written against the
     library (plasma, starfield, Voronoi, tunnel, metaballs, a shape badge, a
-    screen ripple, a flashlight), each opened with `./run-labs.sh --shader=<file>`.
+    screen ripple, a flashlight), each opened with `./run.sh labs --shader=<file>`.
   - **Kept state** (lab only): an effect body with `void update(inout State s,
     float dt)` gets a 1 KB storage buffer per material. `CanvasRenderer`
     runs `update` once a frame as a one-thread compute pass
@@ -471,7 +471,7 @@ host fills; tests leave the headless defaults.
     to drill into) and METHODS.
   - No window: `dotnet run --project Tools/Autopsy -- --dump[=app]` (text
     trees) and `--dump=app --under=<method>`.
-  - `./run-autopsy.sh game|editor|labs|animator` runs that exe with profiling,
+  - `./run.sh autopsy game|editor|labs|animator` runs that exe with profiling,
     then opens the tool.
 - **F3 overlay:** per-system times, and GPU memory (this app, budget, card) from
   `VulkanMemoryBudget`.

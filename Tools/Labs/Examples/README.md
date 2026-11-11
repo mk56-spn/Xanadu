@@ -5,7 +5,7 @@ the xanadu shader library (no code copied); the library itself is described in
 `Docs/shaders.md`. Each is a level shader slot, so
 anything here pastes into a level. Open one in the playground:
 
-    ./run-labs.sh --shader=Tools/Labs/Examples/plasma.slang
+    ./run.sh labs --shader=Tools/Labs/Examples/plasma.slang
 
 | File | What it shows |
 |---|---|

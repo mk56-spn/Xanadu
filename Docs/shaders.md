@@ -439,11 +439,11 @@ See `Tools/Labs/Examples/flashlight.slang`.
 
 ## 14. Trying things out
 
-- **Shader playground** (`./run-labs.sh`, first tab): edit
+- **Shader playground** (`./run.sh labs`, first tab): edit
   `Tools/Labs/Playground/playground.slang` in any editor. Every save
   recompiles; errors show in the panel and the last good version stays.
   `--shader=<file>` watches another file, e.g.
-  `./run-labs.sh --shader=Tools/Labs/Examples/voronoi.slang`.
+  `./run.sh labs --shader=Tools/Labs/Examples/voronoi.slang`.
 - **Shader editor** (second tab): a code editor with
   - live problems under their lines
   - parameter hints

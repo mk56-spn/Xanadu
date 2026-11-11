@@ -22,19 +22,19 @@ or an agent can look at it — see [Capturing](#capturing).
 
 ```bash
 # Interactive browser
-./run-visual-tests.sh
+./run.sh visual-tests
 
 # One test, exit with 0/1
-./run-visual-tests.sh --visual-test=settings --visual-test-exit
+./run.sh visual-tests --visual-test=settings --visual-test-exit
 
 # All tests
-./run-visual-tests.sh --visual-test=all --visual-test-exit
+./run.sh visual-tests --visual-test=all --visual-test-exit
 
 # Save the window to a PNG once it settles, then exit
-./run-visual-tests.sh --visual-test=settings --visual-test-shot=/tmp/harness.png
+./run.sh visual-tests --visual-test=settings --visual-test-shot=/tmp/harness.png
 ```
 
-`run-visual-tests.sh` is `dotnet run --project Tests/VisualTests -- <args>`.
+`run.sh visual-tests` is `dotnet run --project Tests/VisualTests -- <args>`.
 
 `--visual-test-full` drops the sidebar so the scene, and a shot of it, spans
 the whole window; without it the stage starts 340 px in and its right edge is cut off.

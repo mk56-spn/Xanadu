@@ -129,7 +129,7 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 - **Build:** `dotnet build` on each project touched.
 - **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
   `Docs/host.md` §7 lists the failures that are already known.
-- **Perf:** `./run-autopsy.sh game|editor|labs|animator` records a launch and
+- **Perf:** `./run.sh autopsy game|editor|labs|animator` records a launch and
   opens the frame autopsy (`Docs/host.md` §5.10).
 
 ### Screenshots
@@ -141,20 +141,20 @@ pick another); `--scene=<name>`, `--demo`, `--play[=<name>]` and `--editor`
 pick where it starts. `F12` saves into `user://screenshots` on demand.
 
 ```bash
-./run-game.sh --scene=songselect --shot=<path>
-./run-editor.sh --shot=<path>
+./run.sh game --scene=songselect --shot=<path>
+./run.sh editor --shot=<path>
 ```
 
 **Visual tests.** One test, a shot once it settles, exit code 0 or 1:
 
 ```bash
-./run-visual-tests.sh --visual-test=<slug> --visual-test-exit
-./run-visual-tests.sh --visual-test=<slug> --visual-test-shot=<path> --visual-test-full
-./run-visual-tests.sh --visual-test=all --visual-test-exit
+./run.sh visual-tests --visual-test=<slug> --visual-test-exit
+./run.sh visual-tests --visual-test=<slug> --visual-test-shot=<path> --visual-test-full
+./run.sh visual-tests --visual-test=all --visual-test-exit
 ```
 
-**Tools.** `run-animator.sh`, `run-showcase.sh` and `run-labs.sh` take
-`--shot=<path>` too; `./run.sh` asks which to start.
+**Tools.** `./run.sh animator`, `./run.sh showcase` and `./run.sh labs` take
+`--shot=<path>` too; `./run.sh` with no target asks which to start.
 
 Screenshots and scratch files go **outside the repo**: your session's
 scratchpad, or a temp folder. Never in the project folder, not even in
