@@ -17,14 +17,19 @@ internal enum CompletionKind
     Keyword,
     Namespace,
     Variable,
+    /// <summary>A whole function the host calls (shade, update), written out with its body.</summary>
+    Snippet,
 }
 
 /// <summary>
 /// One thing completion offers: its name, what it is, a short signature or type, a colour for colour
 /// constants, and what its <c>///</c> comment says (paragraphs and code lines split by '\n'), for hovering.
 /// </summary>
-internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null, string? Doc = null)
+internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null, string? Doc = null, string? Text = null)
 {
+    /// <summary>Where a snippet's <see cref="Text"/> puts the caret.</summary>
+    public const char Caret = '$';
+
     /// <summary>How hovering names it: a call with its signature, a value with its type first.</summary>
     public string Header => Kind switch
     {
@@ -33,6 +38,7 @@ internal readonly record struct Completion(string Name, CompletionKind Kind, str
         CompletionKind.Type => Detail + " " + Name,
         CompletionKind.EnumValue => Detail + "." + Name,
         CompletionKind.Namespace => "namespace " + Name,
+        CompletionKind.Snippet => Detail,
         _ => Detail + " " + Name,
     };
 }
@@ -61,6 +67,9 @@ internal sealed partial class SlangCompletions
     /// <summary>Field and property types by struct, so a chain can walk on (ItemInput.canvas → Canvas).</summary>
     private readonly Dictionary<string, Dictionary<string, string>> _memberTypes = new(StringComparer.Ordinal);
 
+    /// <summary>The library's namespaces by full name ("blend", "blend.colours"): a chain can start at one.</summary>
+    private readonly HashSet<string> _namespaces = new(StringComparer.Ordinal);
+
     /// <summary>Every declaration by scope ("" for top level) and name, overloads included, for hovering.</summary>
     private readonly Dictionary<(string Scope, string Name), List<Completion>> _declared = new();
 
@@ -72,6 +81,10 @@ internal sealed partial class SlangCompletions
 
     [GeneratedRegex(@"\bextension\s*<\s*\w+\s*:\s*(\w+)\s*>\s*\w+\s*\{")]
     private static partial Regex ShapeExtension();
+
+    /// <summary>An extension of one concrete type (<c>extension float4 {</c>): its members are that type's.</summary>
+    [GeneratedRegex(@"\bextension\s+(\w+)\s*\{")]
+    private static partial Regex TypeExtension();
 
     [GeneratedRegex(@"public\s+static\s+const\s+(\w+)\s+(\w+)\s*=")]
     private static partial Regex Constant();
@@ -88,10 +101,10 @@ internal sealed partial class SlangCompletions
     [GeneratedRegex(@"([A-Za-z_]\w*(?:\s*\.\s*[A-Za-z_]\w*)*)\s*\.\s*(\w*)$")]
     private static partial Regex DotChain();
 
-    [GeneratedRegex(@"\b([A-Z]\w*)\s+(\w+)\s*(?:=|;|,|\))")]
+    [GeneratedRegex(@"\b([A-Za-z_]\w*)\s+(\w+)\s*(?:=|;|,|\))")]
     private static partial Regex TypedName();
 
-    [GeneratedRegex(@"\blet\s+(\w+)\s*=\s*([A-Z]\w*)\s*\(")]
+    [GeneratedRegex(@"\blet\s+(\w+)\s*=\s*([A-Za-z_]\w*)\s*\(")]
     private static partial Regex LetConstructed();
 
     [GeneratedRegex(@"(?<![\w.])([A-Za-z_]\w*)$")]
@@ -117,6 +130,27 @@ internal sealed partial class SlangCompletions
 
     [GeneratedRegex(@"public\s+struct\s+(\w+)\s*(<?)[^{]*\{")]
     private static partial Regex StructName();
+
+    /// <summary>A line so far that may be starting a function: an optional return type, then the name being typed.</summary>
+    [GeneratedRegex(@"^(\s*)(?:(\w+)\s+)?([A-Za-z_]\w*)$")]
+    private static partial Regex EntryStart();
+
+    /// <summary>
+    /// The functions the host calls, offered whole at the top level until the code has them: the
+    /// return type each is declared with, its name, and the text written in ($ is where the caret goes).
+    /// </summary>
+    private static readonly (string Returns, string Name, string Header, string Text, string Doc)[] Entries =
+    [
+        ("float4", "shade", "float4 shade(Canvas canvas)",
+            "float4 shade(Canvas canvas)\n{\n    $\n}",
+            "The effect's pixel colour: runs once per pixel of the quad. canvas is the quad (canvas.centred, canvas.size, …); add ItemInput i for uv, the item's colour and the rest."),
+        ("void", "update", "void update(inout State s, float dt)",
+            "void update(inout State s, float dt)\n{\n    $\n}",
+            "Runs once a frame before the item draws, changing the State every pixel then reads as state. dt is the frame's length in seconds."),
+    ];
+
+    /// <summary>update with the State it changes, for code that has no State yet.</summary>
+    private const string UpdateWithState = "struct State\n{\n    $\n};\n\nvoid update(inout State s, float dt)\n{\n    \n}";
 
     /// <summary>The library's top-level names that are host plumbing, not for effects.</summary>
     private static readonly HashSet<string> Hidden = ["VERSION", "canvasOf", "input", "shading"];
@@ -184,6 +218,9 @@ internal sealed partial class SlangCompletions
     /// <summary>Every type name a declaration can start with: Slang's, the library's structs and aliases.</summary>
     private readonly HashSet<string> _typeNames = new(SlangSyntax.BuiltInTypes, StringComparer.Ordinal);
 
+    /// <summary>The library's type aliases and what they stand for (colour → float4), so an alias finds its type's members.</summary>
+    private readonly Dictionary<string, string> _aliases = new(StringComparer.Ordinal);
+
     /// <param name="provided">Names the host declares for the code, with their types.</param>
     public static SlangCompletions FromSources(
         IEnumerable<string> sources, ShaderConstants constants, IEnumerable<(string Name, string Type, string? Doc)>? provided = null)
@@ -203,12 +240,33 @@ internal sealed partial class SlangCompletions
     /// being typed, filtered by what is typed; null when there is nothing to
     /// offer. <paramref name="start"/> is the column where the typed part begins.
     /// </summary>
-    public List<Completion>? At(string beforeCaret, IReadOnlyList<string> code, out int start)
+    public List<Completion>? At(string beforeCaret, IReadOnlyList<string> code, out int start, int caretLine = -1)
     {
         start = 0;
         int comment = beforeCaret.IndexOf("//", StringComparison.Ordinal);
         if (comment >= 0)
             return null;
+        if (ColourValues(beforeCaret, code, caretLine, out int colourStart) is { } colours)
+        {
+            start = colourStart;
+            return colours;
+        }
+
+        if (ShapeValues(beforeCaret, code, out int shapeStart) is { } shapes)
+        {
+            start = shapeStart;
+            return shapes;
+        }
+
+        if (EntrySnippets(beforeCaret, code, caretLine, out int entryStart, out bool typeWritten) is { } entries)
+        {
+            start = entryStart;
+            if (typeWritten)
+                return entries;
+            List<Completion> rest = Words(beforeCaret, code, out _) ?? [];
+            return [.. entries, .. rest.Where(c => entries.TrueForAll(e => e.Name != c.Name))];
+        }
+
         // After a dot only members make sense, known or not.
         if (!AfterDot().IsMatch(beforeCaret))
             return Words(beforeCaret, code, out start);
@@ -232,6 +290,147 @@ internal sealed partial class SlangCompletions
         List<Completion> found = starting.Concat(containing).ToList();
         // Nothing left to offer once the typed name is complete and the only match.
         return found.Count == 0 || (found.Count == 1 && found[0].Name == typed) ? null : found;
+    }
+
+    /// <summary>
+    /// shade and update, whole, when a top-level line starts with (part of) their name, or their
+    /// return type and then part of it; never once the code declares them. <paramref name="start"/>
+    /// is where the line's text begins; <paramref name="typeWritten"/> says the return type was typed,
+    /// so nothing else fits there.
+    /// </summary>
+    private List<Completion>? EntrySnippets(string beforeCaret, IReadOnlyList<string> code, int caretLine, out int start, out bool typeWritten)
+    {
+        start = 0;
+        typeWritten = false;
+        Match match = EntryStart().Match(beforeCaret);
+        if (caretLine < 0 || caretLine >= code.Count || !match.Success || Depth(code, caretLine) != 0)
+            return null;
+        string? type = match.Groups[2].Success ? match.Groups[2].Value : null;
+        string typed = match.Groups[3].Value;
+        var found = new List<Completion>();
+        foreach ((string returns, string name, string header, string text, string doc) in Entries)
+        {
+            if ((type is not null && type != returns) || !name.StartsWith(typed, StringComparison.Ordinal) || name == typed
+                || Declares(code, caretLine, name + @"\s*\("))
+                continue;
+            string written = name == "update" && !Declares(code, caretLine, @"struct\s+State\b") ? UpdateWithState : text;
+            found.Add(new Completion(name, CompletionKind.Snippet, header, Doc: doc, Text: written));
+        }
+
+        if (found.Count == 0)
+            return null;
+        start = match.Groups[1].Length;
+        typeWritten = type is not null;
+        return found;
+    }
+
+    /// <summary>A colour's value being started: <c>colour c = |</c>, <c>c = |</c> for a colour c, or <c>[Default(|</c> on a colour uniform's line.</summary>
+    [GeneratedRegex(@"(?:\bcolour\s+\w+\s*=|(?<![\w.])(\w+)\s*=|\[\s*Default\s*\()\s*(\w*)$")]
+    private static partial Regex ColourValueStart();
+
+    /// <summary>
+    /// Where a colour is being given, the named colours (and colours.hsv, colours.hue) come up
+    /// at once, each written in whole as colours.name; the usual words follow once something is typed.
+    /// </summary>
+    private List<Completion>? ColourValues(string beforeCaret, IReadOnlyList<string> code, int caretLine, out int start)
+    {
+        start = 0;
+        Match match = ColourValueStart().Match(beforeCaret);
+        if (!match.Success || !_scopes.TryGetValue("colours", out var named))
+            return null;
+        string line = caretLine >= 0 && caretLine < code.Count ? code[caretLine] : beforeCaret;
+        bool colour = match.Groups[1].Success
+            ? IsColour(match.Groups[1].Value, code)
+            : !match.Value.TrimStart().StartsWith('[') || Regex.IsMatch(line, @"\buniform\s+colour\b");
+        if (!colour || (match.Groups[1].Success && match.Value.Contains("==")))
+            return null;
+
+        string typed = match.Groups[2].Value;
+        start = beforeCaret.Length - typed.Length;
+        bool Fits(Completion c) => c.Name.StartsWith(typed, StringComparison.OrdinalIgnoreCase)
+                                   || ("colours." + c.Name).StartsWith(typed, StringComparison.OrdinalIgnoreCase);
+        var found = named.Where(c => c.Kind is CompletionKind.Constant or CompletionKind.Function && Fits(c))
+            .Select(c => c with { Text = "colours." + c.Name + (c.Kind == CompletionKind.Function ? "($)" : "") })
+            .ToList();
+        if (typed.Length > 0 && Words(beforeCaret, code, out _) is { } words)
+            found.AddRange(words.Where(w => found.TrueForAll(f => f.Name != w.Name)));
+        return found.Count == 0 || found.Exists(f => f.Text == typed) ? null : found;
+    }
+
+    /// <summary>
+    /// Where a value starts: after = (not ==), ( , ? : return, or an operator, with the start of a
+    /// word or nothing typed yet.
+    /// </summary>
+    [GeneratedRegex(@"(?:(?<![=!<>])=|[(,?:+\-*/<>]|\breturn)\s*([A-Za-z_]\w*)?$")]
+    private static partial Regex ValueStart();
+
+    /// <summary>A function's declaration up to its open bracket: its parameters aren't values.</summary>
+    [GeneratedRegex(@"^\s*(\w+)\s+\w+\s*\(")]
+    private static partial Regex DeclarationOpen();
+
+    /// <summary>
+    /// Where a value starts, the library's shapes come up at once, each written in as Box(…) with the
+    /// caret between the brackets; once something is typed the usual words follow them.
+    /// </summary>
+    private List<Completion>? ShapeValues(string beforeCaret, IReadOnlyList<string> code, out int start)
+    {
+        start = 0;
+        Match match = ValueStart().Match(beforeCaret);
+        if (!match.Success)
+            return null;
+        // Inside a declaration's parameter list (float4 shade(|) is not a value.
+        Match declaration = DeclarationOpen().Match(beforeCaret);
+        if (declaration.Success && (_typeNames.Contains(declaration.Groups[1].Value) || declaration.Groups[1].Value == "void")
+            && beforeCaret[declaration.Length..].Count(c => c == '(') >= beforeCaret[declaration.Length..].Count(c => c == ')'))
+            return null;
+
+        string typed = match.Groups[1].Value;
+        start = beforeCaret.Length - typed.Length;
+        var found = Shapes().Where(s => s.Name.StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+            .Select(s => s with { Text = s.Name + "($)" }).ToList();
+        if (typed.Length > 0 && Words(beforeCaret, code, out _) is { } words)
+            found.AddRange(words.Where(w => found.TrueForAll(f => f.Name != w.Name)));
+        return found.Count == 0 || (typed.Length > 0 && found.Exists(f => f.Name == typed)) ? null : found;
+    }
+
+    /// <summary>The library's shapes (its top-level structs that are an IShape), found once.</summary>
+    private List<Completion>? _shapes;
+
+    private List<Completion> Shapes() =>
+        _shapes ??= _globals.Where(g => g.Kind == CompletionKind.Type && _interfaces.TryGetValue(g.Name, out var faces) && faces.Contains("IShape"))
+            .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>Whether the code declares a name as a colour (<c>colour c</c>, <c>uniform colour tint</c>).</summary>
+    private static bool IsColour(string name, IReadOnlyList<string> code) =>
+        code.Any(line => Regex.IsMatch(line, $@"\bcolour\s+{Regex.Escape(name)}\b"));
+
+    /// <summary>How many braces are open at the start of a line.</summary>
+    private static int Depth(IReadOnlyList<string> code, int line)
+    {
+        int depth = 0;
+        for (int i = 0; i < line; i++)
+        {
+            int comment = code[i].IndexOf("//", StringComparison.Ordinal);
+            foreach (char c in comment >= 0 ? code[i][..comment] : code[i])
+                depth = c == '{' ? depth + 1 : c == '}' ? Math.Max(0, depth - 1) : depth;
+        }
+
+        return depth;
+    }
+
+    /// <summary>Whether a line other than the caret's has the pattern outside a comment.</summary>
+    private static bool Declares(IReadOnlyList<string> code, int caretLine, string pattern)
+    {
+        for (int i = 0; i < code.Count; i++)
+        {
+            if (i == caretLine)
+                continue;
+            int comment = code[i].IndexOf("//", StringComparison.Ordinal);
+            if (Regex.IsMatch(comment >= 0 ? code[i][..comment] : code[i], @"\b" + pattern))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>Completions for the word before the caret, or null where none fit.</summary>
@@ -284,6 +483,9 @@ internal sealed partial class SlangCompletions
                                                              && c.Name.Contains(typed, StringComparison.OrdinalIgnoreCase))
             .OrderBy(Rank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase);
         List<Completion> found = starting.Concat(containing).ToList();
+        // "shape" (from three letters on) is a way in to every shape: they come first, written in whole.
+        if (typed.Length >= 3 && "shapes".StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+            found.InsertRange(0, Shapes().Select(shape => shape with { Text = shape.Name + "($)" }));
         return found.Count == 0 ? null : found;
     }
 
@@ -372,16 +574,34 @@ internal sealed partial class SlangCompletions
     /// <summary>The scope a dotted chain ends in: a namespace, then nested scopes or fields; or a variable's type, then fields.</summary>
     private string? Scope(string[] chain, IReadOnlyList<string> code)
     {
-        string? scope = _scopes.ContainsKey(chain[0]) && !_memberTypes.ContainsKey(chain[0]) ? chain[0] : VariableType(chain[0], code);
+        string? scope = _namespaces.Contains(chain[0]) || (_scopes.ContainsKey(chain[0]) && !_memberTypes.ContainsKey(chain[0]))
+            ? chain[0]
+            : VariableType(chain[0], code);
         for (int i = 1; i < chain.Length && scope is not null; i++)
         {
             if (_scopes.ContainsKey(scope + "." + chain[i]))
                 scope += "." + chain[i];
             else
-                scope = _memberTypes.TryGetValue(scope, out var types) && types.TryGetValue(chain[i], out string? type) ? type : null;
+                scope = _memberTypes.TryGetValue(scope, out var types) && types.TryGetValue(chain[i], out string? type) ? Resolve(scope, type) : null;
         }
 
         return scope;
+    }
+
+    /// <summary>
+    /// A member's type as a scope: an alias becomes what it stands for, and a name declared
+    /// in the member's own namespace (or one round it) is found there ("Blend" in blend → "blend.Blend").
+    /// </summary>
+    private string Resolve(string scope, string type)
+    {
+        type = _aliases.GetValueOrDefault(type, type);
+        for (string outer = scope; outer.Length > 0; outer = outer.Contains('.') ? outer[..outer.LastIndexOf('.')] : "")
+        {
+            if (_scopes.ContainsKey(outer + "." + type))
+                return outer + "." + type;
+        }
+
+        return type;
     }
 
     /// <summary>A name's type, from how the code declares it; only types the library knows.</summary>
@@ -391,13 +611,15 @@ internal sealed partial class SlangCompletions
         {
             foreach (Match match in TypedName().Matches(line))
             {
-                if (match.Groups[2].Value == name && _scopes.ContainsKey(match.Groups[1].Value))
-                    return match.Groups[1].Value;
+                string type = _aliases.GetValueOrDefault(match.Groups[1].Value, match.Groups[1].Value);
+                if (match.Groups[2].Value == name && _scopes.ContainsKey(type))
+                    return type;
             }
 
             Match let = LetConstructed().Match(line);
-            if (let.Success && let.Groups[1].Value == name && _scopes.ContainsKey(let.Groups[2].Value))
-                return let.Groups[2].Value;
+            string built = let.Success ? _aliases.GetValueOrDefault(let.Groups[2].Value, let.Groups[2].Value) : "";
+            if (let.Success && let.Groups[1].Value == name && _scopes.ContainsKey(built))
+                return built;
         }
 
         return null;
@@ -439,6 +661,8 @@ internal sealed partial class SlangCompletions
 
         foreach (Match match in ShapeExtension().Matches(source))
             spans.Add((match.Index + match.Length, Close(source, match.Index + match.Length - 1), match.Groups[1].Value, "extension"));
+        foreach (Match match in TypeExtension().Matches(source))
+            spans.Add((match.Index + match.Length, Close(source, match.Index + match.Length - 1), match.Groups[1].Value, "extension"));
 
         // A nested scope is named after its parents: an enum in namespace blend is "blend.Mode".
         var named = spans.Select(span =>
@@ -456,9 +680,21 @@ internal sealed partial class SlangCompletions
         foreach (var span in named)
         {
             Scope(span.Scope);
+            if (span.Kind == "namespace")
+                _namespaces.Add(span.Scope);
+            // A struct or namespace inside a namespace is one of its members (blend.Blend, blend.colours).
+            string outer = span.Scope.Contains('.') ? span.Scope[..span.Scope.LastIndexOf('.')] : "";
+            if (outer.Length > 0 && span.Kind is "struct" or "namespace" or "interface")
+            {
+                string inner = span.Scope[(outer.Length + 1)..];
+                int declared = source.LastIndexOf(span.Kind + " " + inner, span.Start, StringComparison.Ordinal);
+                Add(outer, new Completion(inner, span.Kind == "namespace" ? CompletionKind.Namespace : CompletionKind.Type, span.Kind,
+                    Doc: declared >= 0 ? Doc(declared) : null));
+            }
+
             if (span.Kind == "enum")
             {
-                string parent = span.Scope.Contains('.') ? span.Scope[..span.Scope.LastIndexOf('.')] : "";
+                string parent = outer;
                 if (parent.Length > 0)
                     Add(parent, new Completion(span.Scope[(parent.Length + 1)..], CompletionKind.Type, "enum"));
                 foreach (Match value in Regex.Matches(source[span.Start..span.End], @"(\w+)\s*(?:=[^,}]*)?,?"))
@@ -479,6 +715,7 @@ internal sealed partial class SlangCompletions
             if (match.Groups[1].Value is "float3" or "float4" or "colour" && constants.TryGet(scope + "." + name, out float[] values) && values.Length >= 3)
                 swatch = new Vector4(values[0], values[1], values[2], values.Length > 3 ? values[3] : 1);
             Add(scope, new Completion(name, CompletionKind.Constant, match.Groups[1].Value, swatch, Doc(match.Index)));
+            Type(scope, name, match.Groups[1].Value);
         }
 
         foreach (Match match in Property().Matches(source))
@@ -515,6 +752,7 @@ internal sealed partial class SlangCompletions
         foreach (Match match in TypeAlias().Matches(source))
         {
             _typeNames.Add(match.Groups[1].Value);
+            _aliases[match.Groups[1].Value] = match.Groups[2].Value;
             Global(new Completion(match.Groups[1].Value, CompletionKind.Type, match.Groups[2].Value, Doc: doc(match.Index)));
         }
 

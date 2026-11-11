@@ -32,22 +32,29 @@ internal sealed class EditorChrome
 
     private static readonly string[] Help =
     [
-        "shade(ItemInput i) returns the pixel; import xanadu for shapes, colours., ease. …",
+        "shade(Canvas canvas) returns the pixel (add ItemInput i for uv …); import xanadu for shapes, colours., ease. …",
         "Use time, mouse, mouseUv or resolution and the lab fills it; no need to declare them.",
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
+        "F2 renames · drag the bar left of the preview to resize it.",
     ];
 
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
-    private readonly Rect2 _bar;
-    private readonly Rect2 _preview;
-    private readonly Rect2 _side;
+    private Rect2 _bar;
+    private Rect2 _preview;
+    private Rect2 _side;
     private readonly List<(Rect2 Box, SlangProblem Problem)> _problemRows = new();
 
     public EditorChrome(IRectCanvas canvas, Handle item, Rect2 bar, Rect2 preview, Rect2 side)
     {
         _canvas = canvas;
         _item = item;
+        Resize(bar, preview, side);
+    }
+
+    /// <summary>The bar under the code, the preview and the column under it, after the divider moved.</summary>
+    public void Resize(Rect2 bar, Rect2 preview, Rect2 side)
+    {
         _bar = bar;
         _preview = preview;
         _side = side;
@@ -57,7 +64,12 @@ internal sealed class EditorChrome
     }
 
     /// <summary>Where the value sliders go: between the problems and the key guide.</summary>
-    public Rect2 TuningArea { get; }
+    public Rect2 TuningArea { get; private set; }
+
+    /// <summary>The bar between the code and the column that drags to resize them; lit while hovered or held.</summary>
+    public Rect2 Divider { get; set; }
+
+    public bool DividerLit { get; set; }
 
     public void Draw(in EditorState state)
     {
@@ -74,6 +86,10 @@ internal sealed class EditorChrome
             _canvas.DrawRect(_item, badge, Badge);
             _canvas.DrawTextStyled(_item, badge, state.PreviewNote, Palette.Warning, 14);
         }
+
+        float grip = DividerLit ? 4 : 2;
+        _canvas.DrawRect(_item, new Rect2(Divider.GetCenter().X - grip / 2, Divider.Position.Y, grip, Divider.Size.Y),
+            DividerLit ? Palette.PrimaryMuted.Lerp(Colors.White, 0.16f) : Palette.PrimaryMuted);
 
         _canvas.DrawRect(_item, _side, Column);
         float y = _side.Position.Y + Pad;

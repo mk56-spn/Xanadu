@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Ecs;
+using Xanadu.Ui.Editing;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -26,7 +27,8 @@ internal sealed class CompletionPopup
 
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
-    private readonly Rect2 _bounds;
+    /// <summary>The code's area: the box stays inside it. Follows the editor when it is resized.</summary>
+    public Rect2 Bounds { get; set; }
     private List<Completion> _items = [];
     private int _selected;
     private int _first;
@@ -39,7 +41,7 @@ internal sealed class CompletionPopup
     {
         _canvas = canvas;
         _item = item;
-        _bounds = bounds;
+        Bounds = bounds;
     }
 
     public bool Open { get; private set; }
@@ -48,10 +50,10 @@ internal sealed class CompletionPopup
     public int Start { get; private set; }
 
     /// <summary>Follows the caret: opens after an edit when there is something to offer, closes when there isn't.</summary>
-    public void Follow(CodeBuffer buffer, SlangCompletions completions, bool edited)
+    public void Follow(TextBuffer buffer, SlangCompletions completions, bool edited)
     {
         string before = buffer.Lines[buffer.Line][..buffer.Column];
-        List<Completion>? found = completions.At(before, buffer.Lines, out int start);
+        List<Completion>? found = completions.At(before, buffer.Lines, out int start, buffer.Line);
         if (found is null || _dismissed == (buffer.Line, start))
         {
             Open = false;
@@ -76,18 +78,32 @@ internal sealed class CompletionPopup
         _selected = (_selected + by + _items.Count) % _items.Count;
     }
 
-    public void Dismiss(CodeBuffer buffer)
+    public void Dismiss(TextBuffer buffer)
     {
         Open = false;
         _dismissed = (buffer.Line, Start);
     }
 
     /// <summary>Takes the chosen entry: the typed part becomes its name, a function gets its opening bracket and a namespace its dot.</summary>
-    public void Accept(CodeBuffer buffer)
+    public void Accept(TextBuffer buffer)
     {
         if (!Open)
             return;
         Completion choice = _items[_selected];
+        if (choice.Text is { } text)
+        {
+            // A snippet: written in whole, the caret where it marks.
+            int line = buffer.Line, column = Start;
+            buffer.Replace(Start, buffer.Column, "");
+            int caret = text.IndexOf(Completion.Caret);
+            string before = caret >= 0 ? text[..caret] : text;
+            buffer.Insert(text.Replace(Completion.Caret.ToString(), ""));
+            string[] lines = before.Split('\n');
+            buffer.Place(line + lines.Length - 1, (lines.Length == 1 ? column : 0) + lines[^1].Length);
+            Open = false;
+            return;
+        }
+
         string after = choice.Kind switch
         {
             CompletionKind.Function or CompletionKind.Method => "(",
@@ -99,7 +115,7 @@ internal sealed class CompletionPopup
     }
 
     /// <summary>Takes the entry under a click; true if the click was on the list.</summary>
-    public bool Click(CodeBuffer buffer, Vector2 point)
+    public bool Click(TextBuffer buffer, Vector2 point)
     {
         if (!Open || !_box.HasPoint(point))
             return false;
@@ -124,9 +140,9 @@ internal sealed class CompletionPopup
         _first = Math.Clamp(_first, Math.Max(0, _selected - rows + 1), _selected);
         float height = rows * Row + 4;
         float y = at.End.Y + 2;
-        if (y + height > _bounds.End.Y)
+        if (y + height > Bounds.End.Y)
             y = at.Position.Y - height - 2;
-        float x = Math.Min(at.Position.X, _bounds.End.X - Width);
+        float x = Math.Min(at.Position.X, Bounds.End.X - Width);
         _box = new Rect2(x, y, Width, height);
 
         _canvas.DrawRect(_item, new Rect2(_box.Position - Vector2.One, _box.Size + Vector2.One * 2), Border);
@@ -168,6 +184,7 @@ internal sealed class CompletionPopup
         CompletionKind.Keyword => "k",
         CompletionKind.Namespace => "n",
         CompletionKind.Variable => "v",
+        CompletionKind.Snippet => "s",
         _ => "e",
     };
 

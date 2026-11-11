@@ -6,6 +6,12 @@ every type and call the library offers. How the host compiles and runs effects
 is in `docs/host.md` §5.5; the house style is `docs/shader-style.md`; worked
 examples are in `Tools/Labs/Examples/`.
 
+**Naming.** Library calls on a value follow one rule. A verb in the
+imperative (`rotate`, `paint`, `erase`) changes the value it's called on and
+returns nothing. Its past participle (`rotated`, `painted`, `filled`,
+`stroked`) leaves the value alone and returns the result: a changed copy, a
+new shape, or a coverage number.
+
 ## Contents
 
 1. [A shader](#1-a-shader)
@@ -14,7 +20,7 @@ examples are in `Tools/Labs/Examples/`.
 4. [Shapes](#4-shapes)
 5. [Placing shapes](#5-placing-shapes)
 6. [Combining shapes](#6-combining-shapes)
-7. [Drawing: fill, stroke, glow](#7-drawing-fill-stroke-glow)
+7. [Drawing: filled, stroked, haloed](#7-drawing-filled-stroked-haloed)
 8. [Distances by hand: `sdf.`](#8-distances-by-hand-sdf)
 9. [Painting a picture in layers](#9-painting-a-picture-in-layers)
 10. [Patterns, gradients, easing, curves](#10-patterns-gradients-easing-curves)
@@ -38,7 +44,7 @@ import xanadu;
 [Default(colours.gold)] uniform colour tint;
 [Instance] [Default(0.5)] uniform float strength;
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
     colour c = colours.midnightBlue;
     c.paint(Circle(120), tint.withAlpha(strength));
@@ -57,8 +63,10 @@ float4 shade(ItemInput i)
     item.
   - A four-channel value named like a colour (`tint`, `…colour`, `…color`)
     gets a colour picker in the tuners.
-- **Which pixel:** `shade` runs once per pixel of the quad being drawn. It
-  gets that pixel in `i` (§2) and returns a straight-alpha colour.
+- **Which pixel:** `shade` runs once per pixel of the quad being drawn and
+  returns a straight-alpha colour. It takes what it needs about that pixel
+  (§2): `Canvas canvas`, `ItemInput i`, both in either order
+  (`shade(ItemInput i, Canvas canvas)`), or nothing. Names are yours.
 - **Numbers:** write whole numbers without `.0` (`Circle(120)`, `sin(time * 2)`);
   Slang makes them floats where floats are wanted. See `docs/shader-style.md`.
 - **Named arguments:** Slang has none, so the shader editor shows parameter
@@ -66,17 +74,21 @@ float4 shade(ItemInput i)
 
 ## 2. Where a pixel is
 
-`ItemInput i` describes the pixel being shaded:
+`Canvas canvas` is the quad being drawn, and the pixel's place on it:
 
 | Field | What it is |
 |---|---|
-| `i.canvas.centred` | **The usual one.** Pixels from the quad's centre, along the quad's own sides (y down). Turning the quad turns it too. Shapes use it by default. |
-| `i.canvas.size` | The quad's width and height in pixels. `Box(i.canvas.size)` fills the quad. |
-| `i.canvas.aspect` | Width over height. |
-| `i.canvas.position`, `.corner`, `.rotation`, `.shear`, `.xAxis`, `.yAxis` | Where the quad lands on the target: its centre, its uv-(0, 0) corner, its turn (radians, clockwise), its lean, and its two sides as vectors. |
-| `i.canvas.uvAt(pixel)` | The quad's uv at any target pixel. |
+| `canvas.centred` | **The usual one.** Pixels from the quad's centre, along the quad's own sides (y down). Turning the quad turns it too. Shapes use it by default. |
+| `canvas.size` | The quad's width and height in pixels. `Box(canvas.size)` fills the quad. |
+| `canvas.aspect` | Width over height. |
+| `canvas.position`, `.corner`, `.rotation`, `.shear`, `.xAxis`, `.yAxis` | Where the quad lands on the target: its centre, its uv-(0, 0) corner, its turn (radians, clockwise), its lean, and its two sides as vectors. |
+| `canvas.uvAt(pixel)` | The quad's uv at any target pixel. |
+
+`ItemInput i` has the rest (and the canvas again, as `i.canvas`):
+
+| Field | What it is |
+|---|---|
 | `i.uv` | 0..1 across the quad. |
-| `i.centred`, `i.halfSize` | The older item-unit version of `canvas.centred`, and half the quad's size in item units. |
 | `i.colour` | The item's own colour: vertex colour × modulates × its texture. |
 | `i.vertexColour` | The vertex colour alone. |
 | `i.local` | The pixel in the item's own space. |
@@ -91,7 +103,7 @@ is how shapes draw without being given a point.
 names declares it for you and the lab fills it every frame:
 
 - `time`: seconds since the lab started
-- `mouse`: the pointer, in pixels from the centre like `i.canvas.centred`,
+- `mouse`: the pointer, in pixels from the centre like `canvas.centred`,
   so `s.move(mouse)` puts a shape under it
 - `mouseUv`: the pointer, 0..1 on the stage
 - `resolution`: the stage's size in pixels
@@ -128,7 +140,7 @@ heights in pixels (by default); round shapes take a radius.
 | Shape | Made with | Notes |
 |---|---|---|
 | `Circle` | `Circle(radius)` | |
-| `Line` | `Line(a, b, width = 0)` | From `a` to `b`, round ends. With width 0 it's a bare line: stroke or glow it. |
+| `Line` | `Line(a, b, width = 0)` | From `a` to `b`, round ends. With width 0 it's a bare line: draw it with `stroked` or `haloed`. |
 | `Box` | `Box(size, radius = 0)` | `radius` rounds the corners. |
 | `CornerBox` | `CornerBox(size, corners)` | One radius per corner: (bottom right, top right, bottom left, top left). |
 | `ChamferBox` | `ChamferBox(size, chamfer)` | Corners cut at 45°. |
@@ -172,7 +184,7 @@ Circle c = Circle(40);          // declared with its type (or var), so it can ch
 c.rotate(time);
 c.move(float2(-60, 60)).anchor(anchor.topRight);   // in-place calls chain too
 
-let petals = Box(float2(40), 6).rotate(0.3).repeat(8, 140).rotate(time);
+let petals = Box(float2(40), 6).rotate(0.3).repeated(8, 140).rotate(time);
 let copy = c.moved(float2(10, 0));                  // a changed copy; c stays as it is
 ```
 
@@ -209,48 +221,50 @@ like any other.
 | `a.or(b)` | both together (union) |
 | `a.and(b)` | only where they overlap (intersection) |
 | `a.minus(b)` | `a` with `b` cut out |
-| `a.melt(b, blend)` | both, melted together over `blend` pixels (smooth union) |
-| `a.meltAnd(b, blend)` | the overlap, its edge rounded over `blend` (smooth intersection) |
-| `a.meltMinus(b, blend)` | `a` with `b` cut out, the cut rounded (smooth cut) |
-| `s.repeat(count, radius)` | `count` copies in a ring, `radius` out, each facing outwards |
-| `s.onion(thickness)` | just a shell `thickness` wide round the edge |
+| `a.melted(b, blend)` | both, melted together over `blend` pixels (smooth union) |
+| `a.meltedAnd(b, blend)` | the overlap, its edge rounded over `blend` (smooth intersection) |
+| `a.meltedMinus(b, blend)` | `a` with `b` cut out, the cut rounded (smooth cut) |
+| `s.repeated(count, radius)` | `count` copies in a ring, `radius` out, each facing outwards |
+| `s.hollowed(thickness)` | just a shell `thickness` wide round the edge |
 
 ```slang
-let badge = Circle(70).meltMinus(Star6(34).rotated(-time), 4);
-let ring = Arc(110, 14, 0.5).or(Box(float2(14, 4), 2).repeat(24, 135));
+let badge = Circle(70).meltedMinus(Star6(34).rotated(-time), 4);
+let ring = Arc(110, 14, 0.5).or(Box(float2(14, 4), 2).repeated(24, 135));
 ```
 
 **In a loop:** each combination has its own type, which grows with every
 join, so a loop can't keep combining shapes into one variable. Combine their
 distances instead (§8).
 
-## 7. Drawing: fill, stroke, glow
+## 7. Drawing: filled, stroked, haloed
 
 Each call turns a shape into a 0..1 coverage at the pixel. Leave the point
-out and it's the pixel being shaded (`i.canvas.centred`). Pass one to draw
-somewhere else, e.g. `s.fill(i.canvas.centred - mouse)` to follow the
+out and it's the pixel being shaded (`canvas.centred`). Pass one to draw
+somewhere else, e.g. `s.filled(canvas.centred - mouse)` to follow the
 pointer.
 
 | Call | Gives |
 |---|---|
-| `s.fill(soft = 1)` / `s.fill(p, soft)` | 1 inside, 0 outside, the edge smoothed over `soft` pixels. A big `soft` makes a blurred shadow. |
-| `s.stroke(width, soft = 1)` / `s.stroke(p, width, soft)` | 1 on a line `width` wide along the edge |
-| `s.glow(reach, falloff = 1)` / `s.glow(p, reach, falloff)` | 1 at the edge, fading to 0 `reach` pixels away on both sides; higher `falloff` is tighter |
-| `s.distance(p)` | the signed distance itself: negative inside, in pixels |
+| `s.filled(soft = 1)` / `s.filled(position, soft)` | 1 inside, 0 outside, the edge smoothed over `soft` pixels. A big `soft` makes a blurred shadow. |
+| `s.stroked(width, soft = 1)` / `s.stroked(position, width, soft)` | 1 on a line `width` wide along the edge |
+| `s.haloed(reach, falloff = 1)` / `s.haloed(position, reach, falloff)` | 1 at the edge, fading to 0 `reach` pixels away on both sides; higher `falloff` is tighter |
+| `s.outlined(width, soft = 1)` / `s.outlined(position, width, soft)` | 1 on a line `width` wide just **inside** the edge, so the shape keeps its size (`stroked` is centred on the edge, half outside) |
+| `box.outlined(sides, width, soft = 1)` / `box.outlined(position, sides, width, soft)` | `Box` only: `outlined` on just the chosen sides, joined with `\|`: `side.top \| side.left`, or `side.all`. A chosen side ends at the corner's diagonal where it meets one that isn't |
+| `s.distance(position)` | the signed distance itself: negative inside, in pixels |
 
 ## 8. Distances by hand: `sdf.`
 
 When you build a distance yourself (in a loop, from a formula, from
-`s.distance(p)`), the same drawing and joining work on the plain number:
+`s.distance(position)`), the same drawing and joining work on the plain number:
 
 | Call | Gives |
 |---|---|
-| `sdf.fill(d, soft = 1)` | as `fill` |
-| `sdf.stroke(d, width, soft = 1)` | as `stroke` |
-| `sdf.glow(d, reach, falloff = 1)` | as `glow` |
-| `sdf.melt(a, b, blend)` | smooth union (a smooth min) |
-| `sdf.meltAnd(a, b, blend)` | smooth intersection (a smooth max) |
-| `sdf.meltMinus(a, b, blend)` | `a` with `b` cut out, smoothly |
+| `sdf.filled(d, soft = 1)` | as `filled` |
+| `sdf.stroked(d, width, soft = 1)` | as `stroked` |
+| `sdf.haloed(d, reach, falloff = 1)` | as `haloed` |
+| `sdf.melted(a, b, blend)` | smooth union (a smooth min) |
+| `sdf.meltedAnd(a, b, blend)` | smooth intersection (a smooth max) |
+| `sdf.meltedMinus(a, b, blend)` | `a` with `b` cut out, smoothly |
 | `min(a, b)`, `max(a, b)`, `max(a, -b)` | the hard union, intersection and cut |
 
 ```slang
@@ -259,56 +273,91 @@ for (int b = 0; b < 7; b++)
 {
     Circle ball = Circle(50);
     ball.move(float2(sin(time + b), cos(time * 0.7 + b * 2)) * 250);
-    d = sdf.melt(d, ball.distance(i.canvas.centred), 60);
+    d = sdf.melted(d, ball.distance(canvas.centred), 60);
 }
-float blob = sdf.fill(d);
+float blob = sdf.filled(d);
 ```
 
 ## 9. Painting a picture in layers
 
 Start from a colour and paint on top of it, layer by layer. A layer goes
 where a shape is (or any 0..1 coverage), with the paint colour's own alpha,
-and with a blend mode if you like:
+and with a blend if you like:
 
 ```slang
 colour c = colours.midnightBlue;
-c.paint(plate.moved(float2(10, 14)).fill(30), colours.black.withAlpha(0.5));   // soft shadow
+c.paint(plate.moved(float2(10, 14)).filled(30), colours.black.withAlpha(0.5));   // soft shadow
 c.paint(plate, colours.darkSlateBlue);                                          // a shape: its fill
-c.paint(plate.stroke(3), colours.slateBlue);                                    // any coverage
-c.paint(halo.glow(40), colours.hotPink, blend.Mode.Screen);                     // with a blend mode
+c.paint(plate.stroked(3), colours.slateBlue);                                    // any coverage
+c.paint(disc.haloed(40), colours.hotPink, blend.screen);                          // with a blend
+c.erase(hole);                                                                  // cut a hole
 return c;
 ```
 
+- **A look:** `c.paint(shape, Look(fill, outline, width))` paints the fill, then
+  an outline just inside the edge. Every part of a `Look` starts see-through,
+  so `Look(colours.gold)` is a plain fill. Its fields can be set too:
+
+  ```slang
+  Look look = Look(colours.darkSlateBlue, colours.white, 2);
+  look.sides = side.top | side.bottom;    // a Box outlines only these
+  look.soft = 1.5;                        // edge smoothing
+  c.paint(box, look);
+  ```
+- **No colour given:** white. `c.paint(box.outlined(side.top, 2));` paints a white line.
 - **In place or a copy:** `c.paint(…)` changes `c` and chains
   (`c.paint(a, x).paint(b, y);`); `c.painted(…)` returns a painted copy.
 - **What it takes:** the first argument is a shape (painted where it's
-  filled) or a coverage number (`s.stroke(3)`, `sdf.fill(d)`, a pattern, a
+  filled) or a coverage number (`s.stroked(3)`, `sdf.filled(d)`, a pattern, a
   gradient).
-- **Blend modes** come from `blend.Mode`: `Normal` (the default), `Multiply`,
-  `Screen`, `Darken`, `Lighten`, `Overlay`, `HardLight`, `SoftLight`,
-  `Difference`, `Exclusion`, `Dodge` and `Burn`.
+- **Blends** are presets under `blend.`: `normal` (the default), `multiply`,
+  `screen`, `darken`, `lighten`, `overlay`, `hardLight`, `softLight`,
+  `difference`, `exclusion`, `dodge` and `burn`. Each mixes the colours the
+  standard way (W3C compositing, Photoshop's formulas) and lays the paint on
+  top by its alpha, so painting never makes anything more see-through. Where
+  the picture is see-through there is nothing to blend with, so the paint
+  shows as it is.
+- **What happens to the alpha** is the other half of a blend; add it to any
+  preset:
+  - `.behind` lays the paint underneath, so it shows where the picture is
+    see-through (partly where it's partly) and never on an opaque pixel:
+    `c.paint(grid, colours.white, blend.behind)`, `blend.screen.behind`.
+  - `.erasing` multiplies the alpha by the paint's, so a see-through paint
+    colour makes the picture see-through there: `blend.erase` is
+    `blend.normal.erasing`.
+  - `.over` is the default, laying it on top.
+
+  A blend is a `blend.Blend` struct (a `blend.Mode` and a `blend.Alpha`), so
+  `blend.Blend(blend.Mode.Screen, blend.Alpha.Behind)` works too, e.g. for a
+  mode picked at run time.
+- **Cutting holes:** `c.erase(hole);` (or `c.erase(coverage)`, `c.erased(…)`
+  for a copy) makes `c` see-through inside the shape, soft edge and all. It is
+  `c.paint(hole, colours.transparent, blend.erase);`.
+- **The colour formulas on their own** (two `float3`s in, one out) are under
+  `blend.colours.`: `blend.colours.overlay(under, over)`,
+  `blend.colours.by(blend.Mode.Screen, under, over)`.
 
 ## 10. Patterns, gradients, easing, curves
 
-**`pattern.`** works in pixels; feed it `i.canvas.centred`.
+**`pattern.`** works in pixels; feed it `canvas.centred`.
 
 | Call | Gives |
 |---|---|
-| `pattern.grid(p, width, spacing)` | grid lines `width` pixels thick, 0..1, with lines through the centre. `spacing` can be a `float2` for oblong cells. |
-| `pattern.columns(p, width, spacing)` / `pattern.rows(…)` | lines, 0..1. They sit between multiples of `spacing`, and `width` is half their thickness. |
-| `pattern.checker(p, size)` | 0 or 1 squares |
-| `pattern.checkerSplit(p, size, levels)` | a checker whose squares split again, 0 to 3 times |
-| `pattern.tile(p, size)` | a `Tile`: `.local` is the point within its tile (centred there), `.id` is which tile. Draw one shape at `.local` and it repeats; seed randomness with `.id`. |
+| `pattern.grid(position, width, spacing)` | grid lines `width` pixels thick, 0..1, with lines through the centre. `spacing` can be a `float2` for oblong cells. |
+| `pattern.columns(position, width, spacing)` / `pattern.rows(…)` | lines, 0..1. They sit between multiples of `spacing`, and `width` is half their thickness. |
+| `pattern.checker(position, size)` | 0 or 1 squares |
+| `pattern.checkerSplit(position, size, levels)` | a checker whose squares split again, 0 to 3 times |
+| `pattern.tile(position, size)` | a `Tile`: `.local` is the point within its tile (centred there), `.id` is which tile. Draw one shape at `.local` and it repeats; seed randomness with `.id`. |
 
 **`gradient.`** gives how far along a gradient a point is, 0..1. Feed it to
 `lerp` or `paint`.
 
 | Call | Gives |
 |---|---|
-| `gradient.linear(p, from, to)` | along the line, 0 at `from`, 1 at `to` |
-| `gradient.radial(p, centre, edge)` | outwards, 1 on the circle through `edge` |
-| `gradient.conical(p, centre, start)` | round the centre, starting towards `start` |
-| `gradient.square(p, centre, edge)` | outwards in squares |
+| `gradient.linear(position, from, to)` | along the line, 0 at `from`, 1 at `to` |
+| `gradient.radial(position, centre, edge)` | outwards, 1 on the circle through `edge` |
+| `gradient.conical(position, centre, start)` | round the centre, starting towards `start` |
+| `gradient.square(position, centre, edge)` | outwards in squares |
 
 **`ease.`** holds Robert Penner's easings: 0..1 in, eased 0..1 out (`back`
 and `elastic` overshoot).
@@ -327,7 +376,7 @@ its point and `.tangent(t)` its direction, for `t` in 0..1.
 |---|---|
 | `PI`, `TAU` | π and 2π |
 | `mod(x, y)` | GLSL's mod: the remainder takes the divisor's sign (HLSL's `fmod` truncates) |
-| `rotate(p, angle)` | a point turned round the origin, clockwise on screen like shapes |
+| `rotate(position, angle)` | a point turned round the origin, clockwise on screen like shapes |
 | `random(seed)` | a repeatable number in 0..1. `seed` is a `float` or `float2`. |
 | `random2(seed)`, `random3(seed)` | two or three independent numbers in 0..1 for a `float2` seed |
 
@@ -348,7 +397,7 @@ Slang's own functions are all there too: `sin`, `cos`, `atan2`, `lerp`,
   A higher `lod` reads a blurrier copy.
 
 ```slang
-float2 push = normalize(i.canvas.centred) * sin(length(i.canvas.centred) / 20 - time * 6) * 8;
+float2 push = normalize(canvas.centred) * sin(length(canvas.centred) / 20 - time * 6) * 8;
 return sampleScreen(i.screenUv + push / frame.screen);
 ```
 
@@ -366,9 +415,9 @@ void update(inout State s, float dt)
     s.light = lerp(s.light, mouse, 1 - exp(-dt * 8));
 }
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float d = distance(i.canvas.centred, state.light);
+    float d = distance(canvas.centred, state.light);
     return colour(0, 0, 0, smoothstep(100, 140, d));
 }
 ```
@@ -398,8 +447,21 @@ See `Tools/Labs/Examples/flashlight.slang`.
 - **Shader editor** (second tab): a code editor with
   - live problems under their lines
   - parameter hints
-  - completion: after a dot, and while typing a word
+  - completion: after a dot, and while typing a word; wherever a value starts
+    (after `=`, `(`, `,`, `return`, an operator) the shapes come up at once,
+    written in as `Box()` with the caret between the brackets;
+    and typing `shape` (from `sha`) anywhere lists them all; at the top level, `shade`
+    and `update` come whole with their signature and body (`update` with a
+    `State` if there is none yet)
+  - where a colour is given (`colour c = `, `c = ` for a colour, `[Default(`
+    on a colour uniform) the named colours come up at once, written in as
+    `colours.name`
+  - F2 on a name the code declares renames it everywhere it means the same
+    thing (a local only in its function, a field at every `.field`): type the
+    new name, Enter keeps it, Esc puts the old one back
   - a slider for every uniform
+  - a bar between the code and the preview that drags to resize them; the
+    preview stays 16:9, so effects can be watched at different sizes
   - selection, copy and paste, undo and redo.
 - **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
   metaballs, a shape badge, a screen ripple and a flashlight, each a slot shader.
@@ -413,8 +475,8 @@ See `Tools/Labs/Examples/flashlight.slang`.
 - **`let` can't change.** `let c = Circle(40); c.rotate(1);` fails. Declare
   with the type (`Circle c = …`) or `var` to use the in-place calls.
 - **A chain inside an expression doesn't change the variable.**
-  `float a = c.move(o).fill();` is an error: only a chain that is a statement
-  of its own changes `c`. Write `c.move(o);` first, or `c.moved(o).fill()` for
+  `float a = c.move(o).filled();` is an error: only a chain that is a statement
+  of its own changes `c`. Write `c.move(o);` first, or `c.moved(o).filled()` for
   a copy.
 - **Multiplying a colour changes its alpha too.** `c * 0.8` fades the colour
   as well as darkening it. Darken with `c.rgb *= 0.8`.

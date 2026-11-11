@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Ecs;
+using Xanadu.Ui.Editing;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -25,7 +26,8 @@ internal sealed class HoverPopup
 
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
-    private readonly Rect2 _bounds;
+    /// <summary>The code's area: the box stays inside it. Follows the editor when it is resized.</summary>
+    public Rect2 Bounds { get; set; }
 
     /// <summary>One character's width at <see cref="TextSize"/>.</summary>
     private readonly float _charWidth;
@@ -37,12 +39,12 @@ internal sealed class HoverPopup
     private Vector2 _anchor;
     private float _lineHeight;
 
-    public HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds, float codeCharWidth)
+    public HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
     {
         _canvas = canvas;
         _item = item;
-        _bounds = bounds;
-        _charWidth = codeCharWidth * TextSize / CodeView.FontSize;
+        Bounds = bounds;
+        _charWidth = UiTextMetrics.MonoCharWidth(TextSize);
     }
 
     /// <summary>
@@ -50,7 +52,7 @@ internal sealed class HoverPopup
     /// off the code, or when the box mustn't show: typing, a press, the completion list).
     /// </summary>
     public void Follow(
-        CodeBuffer buffer, SlangCompletions completions, (int Line, int Column, float Bottom)? under, Vector2 pointer, float delta)
+        TextBuffer buffer, SlangCompletions completions, (int Line, int Column, float Bottom)? under, Vector2 pointer, float delta)
     {
         List<Completion>? found = null;
         (int, int)? over = null;
@@ -76,7 +78,7 @@ internal sealed class HoverPopup
         {
             _shown = found;
             _anchor = new Vector2(pointer.X, still.Bottom);
-            _lineHeight = CodeView.LineHeight;
+            _lineHeight = TextEditorLayout.LineHeight;
         }
     }
 
@@ -116,9 +118,9 @@ internal sealed class HoverPopup
             widest = Math.Max(widest, text.Length);
         float width = Math.Min(MaxWidth, widest * _charWidth + Pad * 2 + 4);
         float height = rows.Count * Row + Pad;
-        float x = Math.Clamp(_anchor.X - 12, _bounds.Position.X, _bounds.End.X - width);
+        float x = Math.Clamp(_anchor.X - 12, Bounds.Position.X, Bounds.End.X - width);
         float y = _anchor.Y + 2;
-        if (y + height > _bounds.End.Y)
+        if (y + height > Bounds.End.Y)
             y = _anchor.Y - _lineHeight - height - 2;
         var box = new Rect2(x, y, width, height);
 

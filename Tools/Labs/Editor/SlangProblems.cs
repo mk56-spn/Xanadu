@@ -33,7 +33,8 @@ internal static partial class SlangProblems
     [GeneratedRegex(@"^(.+)\((\d+)\):\s*(error|warning)\s*\d*:\s*(.*)$")]
     private static partial Regex OneLine();
 
-    public static List<SlangProblem> Parse(string output, string label)
+    /// <param name="code">The code compiled, by line: when given, a missing <c>;</c> is moved back to the line that lacks it.</param>
+    public static List<SlangProblem> Parse(string output, string label, IReadOnlyList<string>? code = null)
     {
         var problems = new List<SlangProblem>();
         string[] lines = output.ReplaceLineEndings("\n").Split('\n');
@@ -73,11 +74,44 @@ internal static partial class SlangProblems
             problems.Add(new SlangProblem(line, column, message, header.Groups[1].Value == "warning"));
         }
 
+        if (code is not null)
+        {
+            for (int i = 0; i < problems.Count; i++)
+                problems[i] = MissingSemicolon(problems[i], code);
+        }
+
         // Slang reports some mistakes twice in the two forms; keep the first of each.
         var seen = new HashSet<(int, string)>();
         problems.RemoveAll(problem => !seen.Add((problem.Line, problem.Message)));
         if (problems.Count == 0 && output.Trim().Length > 0)
             problems.Add(new SlangProblem(0, 1, output.Trim().Split('\n')[0], false));
         return problems;
+    }
+
+    /// <summary>
+    /// Slang finds a missing ; only at the next token, often lines on. When that token starts its
+    /// line, the problem goes to the end of the last line above with code on it (blank and comment
+    /// lines skipped), where the ; belongs.
+    /// </summary>
+    private static SlangProblem MissingSemicolon(SlangProblem problem, IReadOnlyList<string> code)
+    {
+        if (!problem.Message.EndsWith("expected ';'", StringComparison.Ordinal) || problem.Line < 1 || problem.Line > code.Count)
+            return problem;
+        string reported = code[problem.Line - 1];
+        int column = Math.Clamp(problem.Column - 1, 0, reported.Length);
+        if (reported[..column].Trim().Length > 0)
+            return problem;
+
+        for (int line = problem.Line - 2; line >= 0; line--)
+        {
+            string text = code[line];
+            int comment = text.IndexOf("//", StringComparison.Ordinal);
+            string before = (comment >= 0 ? text[..comment] : text).TrimEnd();
+            if (before.Trim().Length == 0)
+                continue;
+            return problem with { Line = line + 1, Column = before.Length + 1, Message = "missing ';' at the end of this line" };
+        }
+
+        return problem;
     }
 }

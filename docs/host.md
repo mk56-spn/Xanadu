@@ -46,7 +46,7 @@ Agreed with the user. Don't revisit them without asking.
 | Slot | Default | Player can |
 |---|---|---|
 | Vertex | the host's standard quad | pick a library modifier (wobble, perspective tilt, squash) or write `ItemVertex deform(ItemVertex v, ItemInput i)` |
-| Fragment | plain colour or texture | pick library effects or write `float4 shade(ItemInput i)`; several in a row form a **chain** |
+| Fragment | plain colour or texture | pick library effects or write `float4 shade(Canvas canvas)` (it may take `ItemInput i` too); several in a row form a **chain** |
 | Blend | mix | dropdown: hardware modes (mix, add, subtract, multiply, screen, min, max, premultiplied) are free; "exotic" modes (overlay, soft and hard light, dodge, burn, difference, exclusion, HSL) go through a group buffer and the composite shader |
 | State (later) | 2D defaults | depth test and write once 2D depth exists |
 
@@ -56,7 +56,7 @@ The rest is under "Later" (§6).
 - **The contract** is the Slang module `xanadu.stage`
   (`Assets/Shaders/Library/xanadu/stage.slang`), **versioned** (v1). Only ever
   add to it. It defines `ItemVaryings`, `ItemInput` (uv, colour, vertex colour,
-  local position, screen UV, pixel, time, `halfSize`, `centred`, and
+  local position, screen UV, pixel, time, and
   `canvas`: the quad being drawn as it lands on the target, in pixels: `size`,
   `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `centred`, `aspect`,
   `uvAt(pixel)`; worked out from uv derivatives, exact for any 0..1 quad), `input(v)`,
@@ -245,7 +245,9 @@ host fills; tests leave the headless defaults.
   glass, text gradient, colour picker, editor waveform).
 - **Level shader slots** hold an effect body: global `uniform`s (tagged
   `[Instance]` when a group's item-shader track may key them, with
-  `[Default(...)]`s) and `float4 shade(ItemInput i)`. `SlangShaders.Wrap` puts
+  `[Default(...)]`s) and a `float4 shade(…)` taking any of `Canvas` and
+  `ItemInput` (`ShadeSignature`, Core, reads which; the wrapper passes
+  `i.canvas` and/or `i`). `SlangShaders.Wrap` puts
   it in a namespace, hoists its imports, adds `import xanadu.stage` and an
   entry point, and uses `#line` so errors land on the author's lines.
   `-fvk-bind-globals 1 3` makes the globals uniform buffer 1.
@@ -268,19 +270,19 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random(seed)` / `random2` / `random3` (0..1, PCG hashes of the seed's bits, so large or fractional seeds stay random) |
-  | `xanadu.shape` | `IShape`, the shapes (`Circle`, `Line`, `Box`, …), placement (`rotate`/`rotated`, `move`/`moved`, `scale`/`scaled`, `anchor`/`anchored`), combining (`or`, `and`, `minus`, `melt`, `meltAnd`, `meltMinus`, `repeat`, `onion`), drawing (`fill`, `stroke`, `glow`), and `sdf.` for distances built by hand |
+  | `xanadu.shape` | `IShape`, the shapes (`Circle`, `Line`, `Box`, …), placement (`rotate`/`rotated`, `move`/`moved`, `scale`/`scaled`, `anchor`/`anchored`), combining (`or`, `and`, `minus`, `melted`, `meltedAnd`, `meltedMinus`, `repeated`, `hollowed`), drawing (`filled`, `stroked`, `haloed`, `outlined` inside the edge, on a `Box` by `side.` flags), and `sdf.` for distances built by hand |
   | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` and `c.withAlpha(a)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
-  | `xanadu.blend` | `blend.overlay(under, over)` and 11 more, `blend.by(blend.Mode.X, …)`, `blend.composite` |
+  | `xanadu.blend` | `blend.Blend` (a `blend.Mode` for the colours, a `blend.Alpha` for the alpha) with presets `blend.screen` and 11 more, `blend.behind`, `blend.erase`, and `.behind` / `.erasing` / `.over`; `blend.composite`; the bare colour formulas under `blend.colours.` |
   | `xanadu.pattern` | `pattern.columns`, `.rows`, `.checker`, `.checkerSplit`, `.tile` (→ `Tile`) |
   | `xanadu.gradient` | `gradient.linear`, `.radial`, `.conical`, `.square` |
   | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
-  | `xanadu.paint` | `c.paint(shape or coverage, colour, blend.Mode)` / `c.painted(…)`: a picture in layers |
+  | `xanadu.paint` | `c.paint(shape or coverage, colour, blend)` / `c.painted(…)`, `c.erase(shape or coverage)` / `c.erased(…)`, `c.paint(shape, Look(fill, outline, width))`: a picture in layers |
   | `xanadu` | re-exports all of the above, plus the stage |
 
   ```slang
-  let petals = Box(float2(56), 10).repeat(8, 160).rotated(time);
-  colour c = lerp(colours.midnightBlue, colours.gold, petals.fill());
+  let petals = Box(float2(56), 10).repeated(8, 160).rotated(time);
+  colour c = lerp(colours.midnightBlue, colours.gold, petals.filled());
   ```
 
   Slang has no named arguments; the shader editor shows parameter names as
@@ -379,9 +381,7 @@ host fills; tests leave the headless defaults.
     gates it; level materials leave it off, so `update` is a compile error
     there.
   - **Shader editor** (tab 1; the start of the in-game shader editor): a
-    level slot typed in the lab (`Tools/Labs/Editor/`: `CodeBuffer` text and
-    caret, `CodeView` drawing, `EditorChrome` round it, `SlangProblems`,
-    `SlangHints`), compiled 0.3 s after typing stops, saved to the git-ignored
+    level slot typed in the lab, compiled 0.3 s after typing stops, saved to the git-ignored
     `Playground/editor.slang` (started from `editor.template.slang`). It uses
     the whole body (`ILabExperiment.FullWidth`, no side panel): code left with
     a status bar under it, a 16:9 preview top right (the playfield's shape;
@@ -396,9 +396,9 @@ host fills; tests leave the headless defaults.
     signatures, matched by name and argument count (no hint when ambiguous).
     Completion after a dot (`SlangCompletions`, `CompletionPopup`): a
     namespace's members (`colours.` with swatches), a struct's fields and
-    methods (`i.canvas.`), the shape methods every `IShape` gets, enum values
+    methods (`canvas.`), the shape methods every `IShape` gets, enum values
     (`blend.Mode.`); a name's type comes from a light scan of the code
-    (`ItemInput i`, `Canvas c = …`, `let b = Box(…)`). Up/Down, Tab/Enter,
+    (`Canvas canvas`, `ItemInput i`, `let b = Box(…)`). Up/Down, Tab/Enter,
     Esc, click. No calls in the chain, no inference past that. While typing
     a word it offers the code's own names first (uniforms, locals, functions
     and the lab's provided values), then Slang's types, keywords and common
@@ -410,13 +410,25 @@ host fills; tests leave the headless defaults.
     (`SlangLint`, the checked rules in `docs/shader-style.md`: so far XS003,
     a local read before it has a value); warnings tint amber and never stale
     the preview.
-    Shift+moves, drag, Shift+click and double-click select; Ctrl+A/C/X/V
-    go through the SDL clipboard. It claims the keyboard through
-    `HostTextInput.Claimed`. Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z undo and redo
-    on the shared `UndoHistory` (`CodeHistory`): a run of plain typing is one
-    step until the caret moves or typing pauses for a second; Enter, paste,
-    cut, a completion or typing over a selection is a step of its own. No
-    horizontal scroll yet.
+    Built in layers. **Text editor** (UI, ECS): a `TextEditor` component
+    (`UI/Ecs/Ui/TextEditorComponents.cs`) holding a `TextBuffer` and its
+    `TextHistory` (`UI/Editing/`); `TextEditorInputSystem` edits the focused
+    one (`TextEditorFocused`: a press inside focuses, outside unfocuses) and
+    `TextEditorDrawSystem` draws them all, both in `UiSystemGroup`. Typing
+    and the clipboard come through `HostPlatform.TextEntry` (the host's
+    `HostTextInput`, claimed while an editor has focus). It knows nothing
+    of code: its owner's `ITextEditorHost` gives colour runs, inlays, line
+    marks with notes and boxed cells, and takes keys, typing and presses
+    first. Shift+moves, drag, Shift+click and double-click select;
+    Ctrl+A/C/X/V; Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z undo and redo on the
+    shared `UndoHistory`: a run of plain typing is one step until the caret
+    moves or typing pauses for a second; Enter, paste, cut, anything the owner
+    does or typing over a selection is a step of its own. No horizontal scroll
+    yet. **Shader** (`Tools/Labs/Editor/`): `SlangEditorHost` is the owner
+    (tokens, bracket colours, hints, problems, the completion list's keys,
+    Enter after `{` and `}` indenting); `EditorChrome`, `EditorTuning`,
+    `SlangProblems`, `SlangHints`, the popups and compiling stay in Labs. A
+    code editor layer between the two (any language) is next.
   - **Particles:** bursts every library effect once a second.
   - **Blend:** two quads with the whole fixed-function blend open
     (`CanvasMaterial.Custom`); the renderer sets the blend constant per draw.

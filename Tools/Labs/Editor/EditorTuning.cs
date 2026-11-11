@@ -24,7 +24,8 @@ internal sealed class EditorTuning
 
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
-    private readonly Rect2 _area;
+    /// <summary>Where the sliders go; set again when the column is resized.</summary>
+    public Rect2 Area { get; set; }
     private readonly HashSet<string> _filledByLab;
 
     /// <summary>The values in declaration order, one slider per channel.</summary>
@@ -38,7 +39,7 @@ internal sealed class EditorTuning
     {
         _canvas = canvas;
         _item = item;
-        _area = area;
+        Area = area;
         _filledByLab = new HashSet<string>(filledByLab);
     }
 
@@ -108,18 +109,18 @@ internal sealed class EditorTuning
     public void Draw()
     {
         _tracks.Clear();
-        float y = _area.Position.Y;
-        _canvas.DrawTextStyledLeft(_item, new Rect2(_area.Position.X, y, _area.Size.X, Row), "VALUES", Palette.TextDim, 13);
+        float y = Area.Position.Y;
+        _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "VALUES", Palette.TextDim, 13);
         y += Row + 2;
         if (_values.Count == 0)
         {
-            _canvas.DrawTextStyledLeft(_item, new Rect2(_area.Position.X, y, _area.Size.X, Row), "declare a uniform to tune it here", Palette.TextMuted, 14);
+            _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "declare a uniform to tune it here", Palette.TextMuted, 14);
             return;
         }
 
         foreach ((string name, int channels, bool colour) in _values)
         {
-            for (int c = 0; c < channels && y + Row <= _area.End.Y; c++)
+            for (int c = 0; c < channels && y + Row <= Area.End.Y; c++)
             {
                 string label = channels == 1 ? name : $"{name}.{(colour ? "rgba" : "xyzw")[c]}";
                 DrawSlider(label, name, c, colour, y);
@@ -132,8 +133,8 @@ internal sealed class EditorTuning
     {
         (float min, float max) = _ranges[Key(name, channel)];
         float value = Channel(_tuned[name], channel);
-        float left = _area.Position.X;
-        var track = new Rect2(left + LabelWidth, y + Row / 2 - 2, _area.Size.X - LabelWidth - ValueWidth - 12, 4);
+        float left = Area.Position.X;
+        var track = new Rect2(left + LabelWidth, y + Row / 2 - 2, Area.Size.X - LabelWidth - ValueWidth - 12, 4);
         _tracks.Add((track, name, channel));
 
         _canvas.DrawTextMono(_item, new Rect2(left - 4, y, LabelWidth, Row), label, Palette.TextMuted, TextSize, TextAlign.Left);

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
-using MoonWorks.Input;
 using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
 using Xanadu.Labs.Editor;
@@ -14,6 +13,7 @@ using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Editing;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -55,44 +55,35 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
         /// <summary>How long typing has to pause before a compile starts.</summary>
         private const float Settle = 0.3f;
 
-        private const float RepeatDelay = 0.4f, RepeatEvery = 0.033f;
-
-        /// <summary>A second click on the same place within this long selects the word.</summary>
-        private const float DoubleClick = 0.4f;
-
-        private static readonly KeyCode[] Repeating =
-        [
-            KeyCode.Left, KeyCode.Right, KeyCode.Up, KeyCode.Down, KeyCode.Backspace, KeyCode.Delete,
-            KeyCode.Return, KeyCode.PageUp, KeyCode.PageDown, KeyCode.Tab,
-        ];
-
         private const float Gap = 12;
         private const float StatusHeight = 32;
 
-        /// <summary>The right-hand column's width: the preview at 16:9 on top, problems and help under it.</summary>
+        /// <summary>The right-hand column's width at first: the preview at 16:9 on top, problems and help under it.</summary>
         private const float SideWidth = 720;
+
+        /// <summary>The least the code and the column can be dragged down to; the column also keeps room under the preview.</summary>
+        private const float MinCode = 360, MinSide = 280, MinUnderPreview = 260;
 
         private readonly LabContext _context;
         private readonly EditorChrome _chrome;
         private readonly EditorTuning _tuning;
-        private readonly Handle _codeItem;
         private readonly Handle _previewItem;
-        private readonly Rect2 _preview;
-        private readonly CodeView _view;
-        private readonly CodeBuffer _buffer = new();
-        private readonly CodeHistory _history;
+        private readonly Rect2 _area;
+        private Rect2 _preview;
+        private float _sideWidth = SideWidth;
 
-        /// <summary>Set by an edit this frame that is not plain typing, so it gets an undo step of its own.</summary>
-        private bool _breaksRun;
+        /// <summary>The divider is being dragged; where the pointer grabbed it from its middle.</summary>
+        private bool _dragging;
+        private float _grabbedAt;
 
-        /// <summary>Set when this frame undid or redid, so the completion list doesn't open on the restored text.</summary>
-        private bool _steppedHistory;
+        /// <summary>The UI text editor the code lives in; the input and drawing are its systems'.</summary>
+        private readonly Entity _editor;
+        private readonly SlangEditorHost _host;
         private readonly SlangHints _hints;
         private readonly SlangCompletions _completions;
         private readonly CompletionPopup _popup;
         private readonly HoverPopup _hover;
         private readonly string _file;
-        private readonly Dictionary<KeyCode, float> _held = new();
         private List<SlangProblem> _shownProblems = [];
 
         /// <summary>The editor's own warnings (<see cref="SlangLint"/>) for the text being compiled.</summary>
@@ -104,15 +95,7 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
         private int[] _wanted = [];
         private int _compiledVersion = -1;
         private float _sinceEdit;
-        private float _sinceCaretMove;
         private bool _wasHeld;
-
-        /// <summary>A press that began in the code: holding it drags the selection.</summary>
-        private bool _dragging;
-
-        private float _lastClick = -1;
-        private (int Line, int Column) _lastClickAt = (-1, -1);
-        private bool _shift;
         private bool _everCompiled;
         private Vector2 _pointer;
         private string _status = "compiling…";
@@ -122,21 +105,18 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
         public Stage(LabContext context, Handle parent, Rect2 area, string workingFile)
         {
             _context = context;
-            float codeWidth = area.Size.X - SideWidth - Gap;
-            var codeArea = new Rect2(area.Position, new Vector2(codeWidth, area.Size.Y - StatusHeight));
-            var bar = new Rect2(area.Position.X, codeArea.End.Y, codeWidth, StatusHeight);
-            float sideLeft = codeArea.End.X + Gap;
-            // The game's playfield is 16:9, so the preview is too: a shader looks here as it will there.
-            _preview = new Rect2(sideLeft, area.Position.Y, SideWidth, MathF.Round(SideWidth * 9f / 16f));
-            var side = new Rect2(sideLeft, _preview.End.Y + Gap, SideWidth, area.End.Y - _preview.End.Y - Gap);
+            _area = area;
+            _sideWidth = ClampSide(SideWidth);
+            (Rect2 codeArea, Rect2 bar, _preview, Rect2 side, Rect2 divider) = Arrange(_sideWidth);
             _pointer = _preview.GetCenter();
 
-            _codeItem = Child(parent);
+            // Made first, so everything after draws over the code.
+            _file = workingFile;
+            _editor = TextEditors.Create(context.Entities, parent, codeArea, File.ReadAllText(_file));
             _previewItem = Child(parent);
             Handle chromeItem = Child(parent);
             CanvasServer.Current.AddRect(_previewItem, _preview, new Color("#0b1020"));
             IRectCanvas canvas = HostPlatform.NewCanvas();
-            _view = new CodeView(canvas, _codeItem, codeArea, context.Text);
             _chrome = new EditorChrome(canvas, chromeItem, bar, _preview, side);
             _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea, Array.ConvertAll(LabShaderValues.All, value => value.Name));
             string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
@@ -147,13 +127,62 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
                 Xanadu.Rendering.ShaderConstants.Library,
                 LabShaderValues.All.Select(value => (value.Name, value.Type, LabShaderValues.Note(value.Name))));
             // Made last, so the boxes draw over the code and everything round it; the list over a hover box.
-            _hover = new HoverPopup(canvas, Child(parent), codeArea, _view.CharWidth);
+            _hover = new HoverPopup(canvas, Child(parent), codeArea);
             _popup = new CompletionPopup(canvas, Child(parent), codeArea);
+            _host = new SlangEditorHost(_hints, _popup);
+            _editor.GetComponent<TextEditor>().Host = _host;
+            _chrome.Divider = divider;
+        }
 
-            _file = workingFile;
-            _buffer.Load(File.ReadAllText(_file));
-            _history = new CodeHistory(_buffer);
-            context.ClaimTyping(true);
+        /// <summary>
+        /// Where everything goes for a column this wide: the code and its status bar on the left, the
+        /// divider in the gap, the preview (16:9, as the game's playfield is, so a shader looks here as
+        /// it will there) and the column under it on the right.
+        /// </summary>
+        private (Rect2 Code, Rect2 Bar, Rect2 Preview, Rect2 Side, Rect2 Divider) Arrange(float sideWidth)
+        {
+            float codeWidth = _area.Size.X - sideWidth - Gap;
+            var code = new Rect2(_area.Position, new Vector2(codeWidth, _area.Size.Y - StatusHeight));
+            var bar = new Rect2(_area.Position.X, code.End.Y, codeWidth, StatusHeight);
+            float sideLeft = code.End.X + Gap;
+            var preview = new Rect2(sideLeft, _area.Position.Y, sideWidth, MathF.Round(sideWidth * 9f / 16f));
+            var side = new Rect2(sideLeft, preview.End.Y + Gap, sideWidth, _area.End.Y - preview.End.Y - Gap);
+            var divider = new Rect2(code.End.X, _area.Position.Y, Gap, _area.Size.Y);
+            return (code, bar, preview, side, divider);
+        }
+
+        /// <summary>A column width that leaves the code, the column and the room under the preview their least.</summary>
+        private float ClampSide(float width)
+        {
+            float most = MathF.Min(_area.Size.X - Gap - MinCode, (_area.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
+            return MathF.Round(Math.Clamp(width, MinSide, MathF.Max(MinSide, most)));
+        }
+
+        /// <summary>Moves everything to a new column width: the code, the preview quad (so the shader sees its new size), the column and the popups' bounds.</summary>
+        private void Resize(float sideWidth)
+        {
+            sideWidth = ClampSide(sideWidth);
+            if (sideWidth == _sideWidth)
+                return;
+            _sideWidth = sideWidth;
+            (Rect2 code, Rect2 bar, Rect2 preview, Rect2 side, Rect2 divider) = Arrange(sideWidth);
+
+            ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
+            editor.Layout.Area = code;
+            CanvasServer.Current.SetCustomRect(editor.Item, true, code);
+            _hover.Bounds = code;
+            _popup.Bounds = code;
+
+            // The pointer keeps its place on the preview as a fraction of it.
+            Vector2 at = (_pointer - _preview.Position) / _preview.Size;
+            _preview = preview;
+            _pointer = _preview.Position + at * _preview.Size;
+            CanvasServer.Current.Clear(_previewItem);
+            CanvasServer.Current.AddRect(_previewItem, _preview, new Color("#0b1020"));
+
+            _chrome.Resize(bar, preview, side);
+            _chrome.Divider = divider;
+            _tuning.Area = _chrome.TuningArea;
         }
 
         private static Handle Child(Handle parent)
@@ -163,36 +192,29 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
             return item;
         }
 
+        /// <summary>After the UI's text editor systems: follows what they did, compiles, and draws the shader's parts.</summary>
         public void Update(in LabFrame frame)
         {
-            int version = _buffer.Version;
-            (int line, int column) caret = (_buffer.Line, _buffer.Column);
-            _shift = frame.Inputs is { } held && (held.Keyboard.IsDown(KeyCode.LeftShift) || held.Keyboard.IsDown(KeyCode.RightShift));
-            _breaksRun = _steppedHistory = false;
-            if (frame.Inputs is { } inputs)
-                Edit(inputs, frame);
-            Point(frame);
-            if (!_steppedHistory)
-                _history.After(typing: !_breaksRun, frame.Delta);
+            TextEditor editor = _editor.GetComponent<TextEditor>();
+            TextBuffer buffer = editor.Buffer;
+            TextEditorFrame did = editor.Frame;
+            Point(frame, buffer);
 
-            _popup.Follow(_buffer, _completions, edited: _buffer.Version != version && !_steppedHistory);
-            if (_buffer.Version != version)
-                _sinceEdit = 0;
-            else
-                _sinceEdit += frame.Delta;
-            if (_buffer.Version != version || caret != (_buffer.Line, _buffer.Column))
-            {
-                _sinceCaretMove = 0;
-                _view.Reveal(_buffer.Line, _shownProblems);
-            }
-            else
-                _sinceCaretMove += frame.Delta;
-            bool quiet = !_popup.Open && !frame.Held && _buffer.Version == version;
-            _hover.Follow(_buffer, _completions, quiet ? _view.Under(_buffer, _hints, frame.Mouse) : null, frame.Mouse, frame.Delta);
+            if (did.SteppedHistory && _popup.Open)
+                _popup.Dismiss(buffer);
+            if (did.SteppedHistory)
+                _host.StopRename();
+            if (_host.IsRenaming && _popup.Open)
+                _popup.Dismiss(buffer);
+            else if (!_host.IsRenaming)
+                _popup.Follow(buffer, _completions, edited: did.Edited && !did.SteppedHistory);
+            _sinceEdit = did.Edited ? 0 : _sinceEdit + frame.Delta;
+            bool quiet = !_popup.Open && !frame.Held && !did.Edited;
+            _hover.Follow(buffer, _completions, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
             Finish();
-            if (_compiling is null && _compiledVersion != _buffer.Version && _sinceEdit >= Settle)
-                Compile();
+            if (_compiling is null && _compiledVersion != buffer.Version && _sinceEdit >= Settle)
+                Compile(buffer);
 
             // The pointer counts only over the preview; elsewhere the shader keeps where it last was (the middle at first).
             if (_preview.HasPoint(frame.Mouse))
@@ -203,179 +225,60 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
                 _tuning.Apply(_material);
             }
 
-            // Solid while typing or moving, blinking once still.
-            bool caretOn = _sinceCaretMove < 0.5f || (int)(_sinceCaretMove * 2) % 2 == 0;
-            _view.Draw(_buffer, _hints, _shownProblems, caretOn);
             _chrome.Draw(new EditorState(
-                _buffer.Line, _buffer.Column, _status, _statusColour,
+                buffer.Line, buffer.Column, _status, _statusColour,
                 PreviewStale: _shownProblems.Exists(problem => !problem.Warning) || !_everCompiled,
                 PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
                 _shownProblems));
             _tuning.Draw();
             _hover.Draw();
-            _popup.Draw(_view.CaretRect);
+            _popup.Draw(editor.Layout.CaretRect);
         }
 
-        private void Edit(Inputs inputs, in LabFrame frame)
-        {
-            Keyboard keys = inputs.Keyboard;
-            bool ctrl = keys.IsDown(KeyCode.LeftControl) || keys.IsDown(KeyCode.RightControl);
-            bool shift = _shift;
-
-            // Undo and redo take the whole frame, so nothing else edits around them.
-            if (ctrl && (keys.IsPressed(KeyCode.Z) || keys.IsPressed(KeyCode.Y)))
-            {
-                if (keys.IsPressed(KeyCode.Z) && !shift)
-                    _history.Undo();
-                else
-                    _history.Redo();
-                if (_popup.Open)
-                    _popup.Dismiss(_buffer);
-                _steppedHistory = true;
-                return;
-            }
-
-            // Anything typed over a selection replaces it: its own step, not part of a run.
-            _breaksRun = _buffer.HasSelection;
-
-            if (frame.Typed.Length > 0 && !ctrl)
-                _buffer.Insert(frame.Typed);
-            if (ctrl && keys.IsPressed(KeyCode.A))
-                _buffer.SelectAll();
-            if (ctrl && (keys.IsPressed(KeyCode.C) || keys.IsPressed(KeyCode.X)) && _buffer.HasSelection)
-            {
-                SDL3.SDL.SDL_SetClipboardText(_buffer.SelectedText);
-                if (keys.IsPressed(KeyCode.X))
-                {
-                    _buffer.DeleteSelection();
-                    _breaksRun = true;
-                }
-            }
-
-            if (ctrl && keys.IsPressed(KeyCode.V) && SDL3.SDL.SDL_GetClipboardText() is { Length: > 0 } clip)
-            {
-                _buffer.Insert(clip);
-                _breaksRun = true;
-            }
-
-            if (_popup.Open && keys.IsPressed(KeyCode.Escape))
-                _popup.Dismiss(_buffer);
-            foreach (KeyCode key in Repeating)
-            {
-                if (!Fires(keys, key, frame.Delta))
-                    continue;
-                // While the list is open its keys choose and take, not move the caret.
-                if (_popup.Open && !shift && key is KeyCode.Up or KeyCode.Down or KeyCode.Return or KeyCode.Tab)
-                {
-                    if (key == KeyCode.Up)
-                        _popup.Move(-1);
-                    else if (key == KeyCode.Down)
-                        _popup.Move(1);
-                    else
-                    {
-                        _popup.Accept(_buffer);
-                        _breaksRun = true;
-                    }
-
-                    continue;
-                }
-
-                Press(key, shift);
-            }
-
-            if (keys.IsPressed(KeyCode.Home))
-                _buffer.Home(shift);
-            if (keys.IsPressed(KeyCode.End))
-                _buffer.End(shift);
-        }
-
-        /// <summary>A key's edit or move; with Shift held, moves extend the selection.</summary>
-        private void Press(KeyCode key, bool shift)
-        {
-            switch (key)
-            {
-                case KeyCode.Left: _buffer.MoveColumn(-1, shift); break;
-                case KeyCode.Right: _buffer.MoveColumn(1, shift); break;
-                case KeyCode.Up: _buffer.MoveLine(-1, shift); break;
-                case KeyCode.Down: _buffer.MoveLine(1, shift); break;
-                case KeyCode.PageUp: _buffer.MoveLine(-_view.VisibleRows, shift); break;
-                case KeyCode.PageDown: _buffer.MoveLine(_view.VisibleRows, shift); break;
-                case KeyCode.Backspace: _buffer.Backspace(); break;
-                case KeyCode.Delete: _buffer.Delete(); break;
-                case KeyCode.Return:
-                    _buffer.NewLine();
-                    _breaksRun = true;
-                    break;
-                case KeyCode.Tab: _buffer.Insert(new string(' ', CodeBuffer.Indent - _buffer.Column % CodeBuffer.Indent)); break;
-            }
-        }
-
-        /// <summary>A key fires when pressed, then repeatedly once held past a delay.</summary>
-        private bool Fires(Keyboard keys, KeyCode key, float delta)
-        {
-            if (keys.IsPressed(key))
-            {
-                _held[key] = 0;
-                return true;
-            }
-
-            if (!keys.IsDown(key) || !_held.TryGetValue(key, out float before))
-            {
-                _held.Remove(key);
-                return false;
-            }
-
-            float now = before + delta;
-            _held[key] = now;
-            if (now < RepeatDelay)
-                return false;
-            return before < RepeatDelay || (int)((before - RepeatDelay) / RepeatEvery) != (int)((now - RepeatDelay) / RepeatEvery);
-        }
-
-        private void Point(in LabFrame frame)
+        /// <summary>The sliders, and a click on a problem in the list jumping the editor to it.</summary>
+        private void Point(in LabFrame frame, TextBuffer buffer)
         {
             // A held slider takes the pointer from everything else.
-            if (_tuning.Point(frame.Mouse, frame.Held, frame.Held && !_wasHeld))
-            {
-                _wasHeld = frame.Held;
-                return;
-            }
-
             bool pressed = frame.Held && !_wasHeld;
             _wasHeld = frame.Held;
-            if (!frame.Held)
-                _dragging = false;
-            bool picked = pressed && _popup.Click(_buffer, frame.Mouse);
-            _breaksRun |= picked;
-            if (pressed && !picked)
-            {
-                if (_view.Hit(_buffer, _hints, frame.Mouse) is { } hit)
-                {
-                    bool twice = frame.Time - _lastClick < DoubleClick && _lastClickAt == hit;
-                    if (twice)
-                        _buffer.SelectWord(hit.Line, hit.Column);
-                    else
-                        _buffer.Place(hit.Line, hit.Column, extend: _shift);
-                    // A third click starts over rather than reselecting the word.
-                    _lastClick = twice ? -1 : frame.Time;
-                    _lastClickAt = hit;
-                    _dragging = !twice;
-                }
-                else if (_chrome.ProblemAt(frame.Mouse) is { } problem)
-                    _buffer.Place(problem.Line - 1, problem.Column - 1);
-            }
-            else if (_dragging && _view.Hit(_buffer, _hints, frame.Mouse, dragging: true) is { } to && to != (_buffer.Line, _buffer.Column))
-                _buffer.Place(to.Line, to.Column, extend: true);
 
-            if (frame.Inputs is { } inputs && inputs.Mouse.Wheel != 0 && _view.Area.HasPoint(frame.Mouse))
-                _view.Scroll = Math.Clamp(_view.Scroll - inputs.Mouse.Wheel * 3, 0, Math.Max(0, _buffer.Lines.Count - 1));
+            // The divider: a press on it drags the column's edge until let go.
+            if (pressed && _chrome.Divider.HasPoint(frame.Mouse))
+            {
+                _dragging = true;
+                _grabbedAt = frame.Mouse.X - _chrome.Divider.GetCenter().X;
+            }
+
+            if (_dragging)
+            {
+                Resize(_area.End.X - (frame.Mouse.X - _grabbedAt) - Gap / 2);
+                if (!frame.Held)
+                {
+                    _dragging = false;
+                    // Pressing outside the code took its focus; dragging shouldn't cost the typing.
+                    _editor.AddTag<TextEditorFocused>();
+                }
+            }
+
+            _chrome.DividerLit = _dragging || _chrome.Divider.HasPoint(frame.Mouse);
+            if (_dragging)
+                return;
+
+            if (_tuning.Point(frame.Mouse, frame.Held, pressed))
+                return;
+
+            if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem)
+            {
+                buffer.Place(problem.Line - 1, problem.Column - 1);
+                _editor.AddTag<TextEditorFocused>();
+            }
         }
 
         /// <summary>Saves the text and compiles it off the frame, so typing never waits on Slang.</summary>
-        private void Compile()
+        private void Compile(TextBuffer buffer)
         {
-            string source = _buffer.Text;
-            int version = _buffer.Version;
+            string source = buffer.Text;
+            int version = buffer.Version;
             try
             {
                 File.WriteAllText(_file, source);
@@ -415,13 +318,13 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
             _compiledVersion = version;
             if (error is not null)
             {
-                _shownProblems = WithLint(SlangProblems.Parse(error, Label));
+                _host.Problems = _shownProblems = WithLint(SlangProblems.Parse(error, Label, source.Split('\n')));
                 int count = _shownProblems.Count;
                 (_status, _statusColour) = ($"{count} problem{(count == 1 ? "" : "s")}", Palette.DangerBright);
                 return;
             }
 
-            _shownProblems = WithLint([]);
+            _host.Problems = _shownProblems = WithLint([]);
             CanvasMaterial? previous = _material;
             _material = CanvasMaterial.FromSource(Label, source, keepsState: true);
             CanvasServer.Current.SetMaterial(_previewItem, _material);
@@ -451,7 +354,7 @@ internal sealed class ShaderEditor(string? file = null) : ILabExperiment
 
         public void Dispose()
         {
-            _context.ClaimTyping(false);
+            TextEditors.Delete(_editor);
             if (_material is not null)
                 _context.Pipelines.Forget(_material);
         }
