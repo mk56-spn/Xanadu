@@ -8,6 +8,8 @@ using Xanadu.Host.Rendering;
 using Xanadu.Labs.Editor;
 using Xanadu.Systems.Canvas;
 using Mw = MoonWorks.Graphics;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -39,7 +41,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
             /// Radians, clockwise. Starts at 0.
             public float rotation;
             /// Straight alpha. Starts white.
-            public float4 colour;
+            public colour colour;
             /// True skips it. Starts false.
             public bool hidden;
             /// Which one it is: the i spawn was given.
@@ -394,7 +396,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
         CanvasServer.Current.AddTextureRect(item, area, _shown);
     }
 
-    public void Update(in LabFrame frame, Vector2 pointer, EditorTuning tuning)
+    public void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning)
     {
         Vector2 mouse = pointer - _area.GetCenter();
         _frame = new SpawnFrame

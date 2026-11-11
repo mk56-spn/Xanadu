@@ -14,6 +14,8 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -45,7 +47,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
 
     public string[] Notes => [];
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area, WorkingFile(), preview);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area, WorkingFile(), preview);
 
     /// <summary><c>--editor-file</c>, or the lab's own working copy, made from the template the first time.</summary>
     private string WorkingFile()
@@ -59,7 +61,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         return copy;
     }
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         /// <summary>How long typing has to pause before a compile starts.</summary>
         private const float Settle = 0.3f;
@@ -133,7 +135,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
             IEnumerable<string> sources = Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [];
             _completions = SlangCompletions.FromSources(
                 _view.Prelude.Length > 0 ? sources.Append(_view.Prelude) : sources,
-                Xanadu.Rendering.ShaderConstants.Library,
+                ShaderConstants.Library,
                 _view.Provided);
             // Made last, so the boxes draw over the code and everything round it; the list over a hover box.
             _hover = new HoverPopup(canvas, Child(parent), codeArea);
@@ -203,7 +205,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         public void Render(MoonWorks.Graphics.CommandBuffer commands) => _view.Render(commands);
 
         /// <summary>After the UI's text editor systems: follows what they did, compiles, and draws the shader's parts.</summary>
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             TextEditor editor = _editor.GetComponent<TextEditor>();
             TextBuffer buffer = editor.Buffer;
@@ -242,7 +244,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         }
 
         /// <summary>The sliders, and a click on a problem in the list jumping the editor to it.</summary>
-        private void Point(in LabFrame frame, TextBuffer buffer)
+        private void Point(in ToolFrame frame, TextBuffer buffer)
         {
             // A held slider takes the pointer from everything else.
             bool pressed = frame.Held && !_wasHeld;

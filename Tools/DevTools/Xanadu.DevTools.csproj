@@ -1,15 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Autopsy of a frame: opens the frame captures every host exe saves when it
-    closes (HostCore/Autopsy) and splits one frame's CPU and GPU time into bars.
+    Dev tools: one exe for looking at the project, on the shared tabbed tool
+    shell (HostCore/Tools/TabbedToolApp.cs). Atlas charts the project's types
+    from the built assemblies (what touches what); Autopsy opens the frame
+    captures every host exe saves when it closes and splits a frame's CPU and
+    GPU time into bars.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>Xanadu.Autopsy</AssemblyName>
-    <RootNamespace>Xanadu.Tools.Autopsy</RootNamespace>
+    <AssemblyName>Xanadu.DevTools</AssemblyName>
+    <RootNamespace>Xanadu.Tools.DevTools</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="4.0.0" />

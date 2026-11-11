@@ -4,6 +4,7 @@ using System.Linq;
 using Xanadu.Particles;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -25,9 +26,9 @@ internal sealed class ParticleBursts : ILabExperiment
 
     private static List<XpfParticle> Effects() => ParticleLibrary.Shared.Particles;
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(parent, area);
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const float Every = 1f;
 
@@ -46,7 +47,7 @@ internal sealed class ParticleBursts : ILabExperiment
             CanvasServer.Current.SetParent(_item, parent);
         }
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             if (frame.Time < _next || HostPlatform.Particles is not { } server)
                 return;

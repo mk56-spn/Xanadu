@@ -9,6 +9,8 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -68,7 +70,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
         panel.Text("smoothed follower. Colours: the chain, state kept on the GPU.", UiType.Small, Palette.TextMuted);
     }
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
 
     /// <summary>One key: x, y in stage pixels, the lab's time it was at, unused.</summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -167,7 +169,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
         }
     }
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const Mw.TextureFormat Format = Mw.TextureFormat.R8G8B8A8Unorm;
 
@@ -284,7 +286,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
                 },
             });
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             _delta = frame.Delta;
 

@@ -8,6 +8,8 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -58,7 +60,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
         panel.Text("DIRECT draws every shape: the number is what it submitted.", UiType.Small, Palette.TextMuted);
     }
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct FrameUniforms
@@ -69,7 +71,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
         public float Size, Orbit, Pad0, Pad1;
     }
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const Mw.TextureFormat Format = Mw.TextureFormat.R8G8B8A8Unorm;
         private static readonly Vector2 World = new(12000, 8000);
@@ -175,7 +177,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
                 },
             });
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             _lab._ui.PollSteppers();
             _lab._ui.ShowSteppers();

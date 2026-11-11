@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Xanadu.Ecs;
 using Xanadu.Host;
+using Xanadu.Tools.DevTools;
 using Xanadu.Host.Autopsy;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
@@ -18,7 +19,7 @@ namespace Xanadu.Tools.Autopsy;
 /// split bars then show where that frame's CPU and GPU time went against the
 /// display's budget; click a segment to open it, a crumb to go back out.
 /// </summary>
-internal sealed class AutopsyApp : HostApp
+internal sealed class AutopsyStage : CanvasToolStage
 {
     private const float Margin = 40;
     private const float Left = 150;
@@ -38,8 +39,6 @@ internal sealed class AutopsyApp : HostApp
     private static readonly Color Self = new(0.36f, 0.4f, 0.48f);
     private static readonly Color Idle = new(0.22f, 0.26f, 0.33f);
 
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _item;
     private readonly List<AutopsyCapture> _captures;
     private int _captureIndex = -1;
     private FrameAutopsy? _autopsy;
@@ -58,6 +57,12 @@ internal sealed class AutopsyApp : HostApp
     private System.Threading.Tasks.Task<MethodProfile>? _profileTask;
     private string? _profileError;
 
+    /// <summary>Where a system's track can open in Atlas; null without the chart.</summary>
+    private readonly ICodeLinks? _links;
+
+    /// <summary>Each CPU track's type, once worked out for the open capture (null: not a system or group).</summary>
+    private readonly Dictionary<int, CodeLink?> _types = new();
+
     // Pointer, and what this frame's drawing found under it.
     private Vector2 _mouse;
     private bool _click;
@@ -65,19 +70,14 @@ internal sealed class AutopsyApp : HostApp
     private string? _hint;
     private Action? _onClick;
 
-    public AutopsyApp(HostWindowOptions window, bool methods = false) : base("Xanadu Autopsy", window)
+    public AutopsyStage(DevToolsContext context, Handle item, Rect2 area, ICodeLinks? links = null, bool methods = false) : base(context, item, area)
     {
+        _links = links;
         _methodsView = methods;
-        // Not a field initializer: those run before the host has set up its text canvas.
-        _canvas = HostPlatform.NewCanvas();
-        _item = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(_item, Canvas.RootRid);
         _captures = AutopsyStore.List();
         if (_captures.Count > 0)
             Open(0);
     }
-
-    protected override bool RecordsAutopsy => false;
 
     // ---- data ---------------------------------------------------------------------
 
@@ -85,6 +85,7 @@ internal sealed class AutopsyApp : HostApp
     {
         _captureIndex = index;
         _error = null;
+        _types.Clear();
         try
         {
             _autopsy = AutopsyStore.Load(_captures[index]);
@@ -158,15 +159,15 @@ internal sealed class AutopsyApp : HostApp
 
     protected override void Tick(float delta, float time)
     {
-        _mouse = Pointer.Position;
-        bool down = Pointer.LeftDown;
+        _mouse = Mouse;
+        bool down = LeftDown;
         _click = down && !_wasDown;
         _wasDown = down;
         _hint = null;
         _onClick = null;
 
-        _canvas.Clear(_item);
-        _canvas.DrawRect(_item, new Rect2(0, 0, Width, Height), Palette.Background);
+        Canvas.Clear(Item);
+        Canvas.DrawRect(Item, new Rect2(0, 0, Width, Height), Palette.Background);
         DrawHeader();
         if (_autopsy is not null && _frame is not null)
         {
@@ -236,8 +237,8 @@ internal sealed class AutopsyApp : HostApp
         var gpuLane = new Rect2(Left, StripTop + LaneHeight + LaneGap, Right - Left, LaneHeight);
         Label(new Rect2(Margin, cpuLane.Position.Y + 28, 100, 28), "CPU", Palette.TextMuted, 20);
         Label(new Rect2(Margin, gpuLane.Position.Y + 28, 100, 28), "GPU", Palette.TextMuted, 20);
-        _canvas.DrawRect(_item, cpuLane, Palette.SurfaceDeep);
-        _canvas.DrawRect(_item, gpuLane, Palette.SurfaceDeep);
+        Canvas.DrawRect(Item, cpuLane, Palette.SurfaceDeep);
+        Canvas.DrawRect(Item, gpuLane, Palette.SurfaceDeep);
 
         int count = Math.Max(1, _recent.Count);
         float step = cpuLane.Size.X / count;
@@ -250,28 +251,28 @@ internal sealed class AutopsyApp : HostApp
             foreach ((int track, Color colour) in (ReadOnlySpan<(int, Color)>)[(_update, Segments[0]), (_draw, Segments[1]), (_idle, Idle)])
             {
                 float h = MathF.Min(Ms(frame, track) / scale * LaneHeight, bottom - cpuLane.Position.Y);
-                _canvas.DrawRect(_item, new Rect2(x, bottom - h, width, h), colour);
+                Canvas.DrawRect(Item, new Rect2(x, bottom - h, width, h), colour);
                 bottom -= h;
             }
             if (Ms(frame, FrameAutopsy.CpuRoot) > scale)
-                _canvas.DrawRect(_item, new Rect2(x, cpuLane.Position.Y, width, 3), Palette.Danger);
+                Canvas.DrawRect(Item, new Rect2(x, cpuLane.Position.Y, width, 3), Palette.Danger);
 
             float gpu = Ms(frame, FrameAutopsy.GpuRoot);
             float gh = MathF.Min(gpu / scale * LaneHeight, LaneHeight);
-            _canvas.DrawRect(_item, new Rect2(x, gpuLane.End.Y - gh, width, gh), Palette.Cyan);
+            Canvas.DrawRect(Item, new Rect2(x, gpuLane.End.Y - gh, width, gh), Palette.Cyan);
             if (gpu > scale)
-                _canvas.DrawRect(_item, new Rect2(x, gpuLane.Position.Y, width, 3), Palette.Danger);
+                Canvas.DrawRect(Item, new Rect2(x, gpuLane.Position.Y, width, 3), Palette.Danger);
 
             if (frame == _frame)
             {
-                _canvas.DrawRect(_item, new Rect2(x - 1, cpuLane.Position.Y - 6, MathF.Max(width, 2) + 2, 4), Palette.Accent);
-                _canvas.DrawRect(_item, new Rect2(x - 1, gpuLane.End.Y + 2, MathF.Max(width, 2) + 2, 4), Palette.Accent);
+                Canvas.DrawRect(Item, new Rect2(x - 1, cpuLane.Position.Y - 6, MathF.Max(width, 2) + 2, 4), Palette.Accent);
+                Canvas.DrawRect(Item, new Rect2(x - 1, gpuLane.End.Y + 2, MathF.Max(width, 2) + 2, 4), Palette.Accent);
             }
 
             var column = new Rect2(x, cpuLane.Position.Y, step, gpuLane.End.Y - cpuLane.Position.Y);
             if (column.HasPoint(_mouse))
             {
-                _canvas.DrawRect(_item, new Rect2(x, cpuLane.Position.Y, MathF.Max(width, 1), column.Size.Y), new Color(1, 1, 1, 0.12f));
+                Canvas.DrawRect(Item, new Rect2(x, cpuLane.Position.Y, MathF.Max(width, 1), column.Size.Y), new Color(1, 1, 1, 0.12f));
                 _hint = $"frame {frame.Number}  ·  CPU {Ms(frame, FrameAutopsy.CpuRoot):0.00} ms (update {Ms(frame, _update):0.00}, draw {Ms(frame, _draw):0.00}, idle {Ms(frame, _idle):0.00})  ·  GPU {gpu:0.000} ms";
                 AutopsyFrame picked = frame;
                 Clickable(column, () => Pick(picked));
@@ -281,7 +282,7 @@ internal sealed class AutopsyApp : HostApp
         foreach (Rect2 lane in (ReadOnlySpan<Rect2>)[cpuLane, gpuLane])
         {
             float y = lane.End.Y - budget / scale * LaneHeight;
-            _canvas.DrawRect(_item, new Rect2(lane.Position.X, y, lane.Size.X, 1), Palette.Accent with { A = 0.6f });
+            Canvas.DrawRect(Item, new Rect2(lane.Position.X, y, lane.Size.X, 1), Palette.Accent with { A = 0.6f });
             Label(new Rect2(Right + 2, y - 10, Width - Right - 2, 20), $"{budget:0.0}", Palette.Accent, 13);
         }
     }
@@ -387,7 +388,7 @@ internal sealed class AutopsyApp : HostApp
             bool last = i == path.Count - 1;
             if (!last && box.HasPoint(_mouse))
             {
-                _canvas.DrawRect(_item, box, Palette.PrimaryMuted);
+                Canvas.DrawRect(Item, box, Palette.PrimaryMuted);
                 Clickable(box, () => _focus[side] = track);
             }
             Label(box, name, last ? Palette.TextBright : Palette.InfoSoft, 18, center: true);
@@ -402,7 +403,7 @@ internal sealed class AutopsyApp : HostApp
         Label(new Rect2(Right - 520, top, 520, 28), of, Palette.TextMuted, 18, right: true);
 
         var bar = new Rect2(Left, top + 36, Right - Left, BarHeight);
-        _canvas.DrawRect(_item, bar, Palette.SurfaceDeep);
+        Canvas.DrawRect(Item, bar, Palette.SurfaceDeep);
         float px = bar.Position.X;
         float children = 0;
         int colour = 0;
@@ -422,7 +423,7 @@ internal sealed class AutopsyApp : HostApp
         if (atRoot)
         {
             float bx = bar.Position.X + budget / scale * bar.Size.X;
-            _canvas.DrawRect(_item, new Rect2(bx - 1, bar.Position.Y - 6, 2, bar.Size.Y + 12), Palette.Accent);
+            Canvas.DrawRect(Item, new Rect2(bx - 1, bar.Position.Y - 6, 2, bar.Size.Y + 12), Palette.Accent);
             if (total < budget)
                 Label(new Rect2(px + 8, bar.Position.Y, bx - px - 16, bar.Size.Y), $"{budget - total:0.00} ms to spare", Palette.TextDim, 16);
         }
@@ -433,8 +434,8 @@ internal sealed class AutopsyApp : HostApp
         float width = ms / scale * bar.Size.X;
         var box = new Rect2(x, bar.Position.Y, MathF.Max(width, 1), bar.Size.Y);
         bool hover = box.HasPoint(_mouse);
-        _canvas.DrawRect(_item, box, hover ? colour.Lerp(Colors.White, 0.25f) : colour);
-        _canvas.DrawRect(_item, new Rect2(box.End.X - 1, box.Position.Y, 1, box.Size.Y), Palette.Background);
+        Canvas.DrawRect(Item, box, hover ? colour.Lerp(Colors.White, 0.25f) : colour);
+        Canvas.DrawRect(Item, new Rect2(box.End.X - 1, box.Position.Y, 1, box.Size.Y), Palette.Background);
         bool opens = track >= 0 && HasTime(track);
         if (width > 60)
         {
@@ -487,23 +488,64 @@ internal sealed class AutopsyApp : HostApp
             bool opens = HasTime(track);
             if (row.HasPoint(_mouse) && opens)
             {
-                _canvas.DrawRect(_item, row, Palette.PrimaryMuted);
+                Canvas.DrawRect(Item, row, Palette.PrimaryMuted);
                 int open = track;
                 Clickable(row, () => _focus[side] = open);
             }
             float indent = depth * 22;
-            _canvas.DrawRect(_item, new Rect2(left + indent, y + 7, 12, 12), depth == 0 ? ColourOf(focus, track) : Palette.BorderSubtle);
+            Canvas.DrawRect(Item, new Rect2(left + indent, y + 7, 12, 12), depth == 0 ? ColourOf(focus, track) : Palette.BorderSubtle);
             Label(new Rect2(left + indent + 20, y, width * 0.55f - indent, RowHeight), _autopsy!.Tracks[track].Name + (opens ? " ›" : ""),
                 depth == 0 ? Palette.Text : Palette.TextDim, 16);
+            if (row.HasPoint(_mouse) && TypeOf(track) is { } link)
+            {
+                // Added after the row's own click, so over the button this one wins.
+                Button(new Rect2(left + width * 0.58f - 82, y + 2, 74, RowHeight - 4), "ATLAS", false,
+                    () => _links!.Open(link.Type),
+                    $"{link.Type} in Atlas: what it queries, uses and is used by");
+            }
             float barLeft = left + width * 0.58f;
             float barWidth = width * 0.22f;
-            _canvas.DrawRect(_item, new Rect2(barLeft, y + 8, barWidth, 10), Palette.SurfaceDeep);
-            _canvas.DrawRect(_item, new Rect2(barLeft, y + 8, barWidth * MathF.Min(ms / total, 1), 10), depth == 0 ? Palette.InfoSoft : Palette.BorderStrong);
+            Canvas.DrawRect(Item, new Rect2(barLeft, y + 8, barWidth, 10), Palette.SurfaceDeep);
+            Canvas.DrawRect(Item, new Rect2(barLeft, y + 8, barWidth * MathF.Min(ms / total, 1), 10), depth == 0 ? Palette.InfoSoft : Palette.BorderStrong);
             Label(new Rect2(left + width * 0.8f, y, width * 0.2f, RowHeight), $"{ms:0.000} ms", Palette.TextMuted, 16, right: true);
             y += RowHeight;
         }
         if (rows.Count == 0)
             Label(new Rect2(left, y, width, RowHeight), "nothing inside this one", Palette.TextDim, 16);
+    }
+
+    /// <summary>
+    /// The system or group a CPU track times, if Atlas knows it. A track named
+    /// after a system is that system, and a group's track carries its short name
+    /// (Editor → EditorSystemGroup). Inside a known group it has to be one the
+    /// group uses, and tracks inside a system time parts of its work, not
+    /// types, so they have none.
+    /// </summary>
+    private CodeLink? TypeOf(int track)
+    {
+        if (_links is not { Ready: true } links || track < 0)
+            return null;
+        if (_types.TryGetValue(track, out CodeLink? known))
+            return known;
+
+        CodeLink? link = null;
+        int parent = _autopsy!.Tracks[track].Parent;
+        CodeLink? owner = parent >= 0 ? TypeOf(parent) : null;
+        if (UnderCpu(track) && owner is not { Group: false })
+            link = links.Resolve(_autopsy.Tracks[track].Name, owner);
+        _types[track] = link;
+        return link;
+    }
+
+    private bool UnderCpu(int track)
+    {
+        for (int at = track; at >= 0; at = _autopsy!.Tracks[at].Parent)
+        {
+            if (at == FrameAutopsy.CpuRoot)
+                return true;
+        }
+
+        return false;
     }
 
     private void Collect(int track, int depth, List<(int, int)> rows)
@@ -610,7 +652,7 @@ internal sealed class AutopsyApp : HostApp
         var bySelf = Ranked(self);
         var bar = new Rect2(Left, MethodsTop + 56, Right - Left, BarHeight);
         Label(new Rect2(Margin, bar.Position.Y + 16, 100, 28), "SELF", Palette.TextMuted, 18);
-        _canvas.DrawRect(_item, bar, Palette.SurfaceDeep);
+        Canvas.DrawRect(Item, bar, Palette.SurfaceDeep);
         float x = bar.Position.X;
         int shown = 0, inBar = 0;
         foreach (int method in bySelf)
@@ -625,7 +667,7 @@ internal sealed class AutopsyApp : HostApp
         {
             float width = (float)(count - inBar) / count * bar.Size.X;
             var rest = new Rect2(x, bar.Position.Y, width, bar.Size.Y);
-            _canvas.DrawRect(_item, rest, Self);
+            Canvas.DrawRect(Item, rest, Self);
             if (width > 120)
                 Label(new Rect2(x + 6, bar.Position.Y, width - 12, bar.Size.Y), $"{bySelf.Count - shown} other methods", new Color(0.05f, 0.07f, 0.12f), 16);
             if (rest.HasPoint(_mouse))
@@ -655,8 +697,8 @@ internal sealed class AutopsyApp : HostApp
         float width = (float)self / count * bar.Size.X;
         var box = new Rect2(x, bar.Position.Y, MathF.Max(width, 1), bar.Size.Y);
         bool hover = box.HasPoint(_mouse);
-        _canvas.DrawRect(_item, box, hover ? colour.Lerp(Colors.White, 0.25f) : colour);
-        _canvas.DrawRect(_item, new Rect2(box.End.X - 1, box.Position.Y, 1, box.Size.Y), Palette.Background);
+        Canvas.DrawRect(Item, box, hover ? colour.Lerp(Colors.White, 0.25f) : colour);
+        Canvas.DrawRect(Item, new Rect2(box.End.X - 1, box.Position.Y, 1, box.Size.Y), Palette.Background);
         string name = _profile!.Methods[method];
         if (width > 80)
         {
@@ -680,14 +722,14 @@ internal sealed class AutopsyApp : HostApp
             var row = new Rect2(left, y, width, RowHeight);
             if (row.HasPoint(_mouse))
             {
-                _canvas.DrawRect(_item, row, Palette.SurfaceRaised);
+                Canvas.DrawRect(Item, row, Palette.SurfaceRaised);
                 _hint = name;
             }
-            _canvas.DrawRect(_item, new Rect2(left, y + 7, 12, 12), colour && i < BarMethods ? Segments[i % Segments.Length] : Palette.BorderSubtle);
+            Canvas.DrawRect(Item, new Rect2(left, y + 7, 12, 12), colour && i < BarMethods ? Segments[i % Segments.Length] : Palette.BorderSubtle);
             Label(new Rect2(left + 20, y, width * 0.56f, RowHeight), Fit(name, width * 0.56f, 16), Palette.Text, 16);
             float barLeft = left + width * 0.58f, barWidth = width * 0.2f;
-            _canvas.DrawRect(_item, new Rect2(barLeft, y + 8, barWidth, 10), Palette.SurfaceDeep);
-            _canvas.DrawRect(_item, new Rect2(barLeft, y + 8, barWidth * counts[method] / count, 10), Palette.InfoSoft);
+            Canvas.DrawRect(Item, new Rect2(barLeft, y + 8, barWidth, 10), Palette.SurfaceDeep);
+            Canvas.DrawRect(Item, new Rect2(barLeft, y + 8, barWidth * counts[method] / count, 10), Palette.InfoSoft);
             Label(new Rect2(left + width * 0.78f, y, width * 0.22f, RowHeight),
                 $"{counts[method] * sampleMs:0.0} ms  {counts[method] * 100.0 / count,5:0.0}%", Palette.TextMuted, 16, right: true);
             y += RowHeight;
@@ -708,7 +750,7 @@ internal sealed class AutopsyApp : HostApp
         bool hover = box.HasPoint(_mouse);
         // Bright blue only for what's chosen; muted at rest.
         Color fill = on ? Palette.Primary : Palette.Muted;
-        _canvas.DrawRect(_item, box, hover ? fill.Lerp(Colors.White, 0.16f) : fill);
+        Canvas.DrawRect(Item, box, hover ? fill.Lerp(Colors.White, 0.16f) : fill);
         Label(box, label, Palette.TextBright, 17, center: true);
         if (hover)
         {
@@ -726,21 +768,20 @@ internal sealed class AutopsyApp : HostApp
     private void DrawHint(string hint)
     {
         var box = new Rect2(Margin, Height - 44, Width - Margin * 2, 32);
-        _canvas.DrawRect(_item, box, Palette.Tooltip);
+        Canvas.DrawRect(Item, box, Palette.Tooltip);
         Label(new Rect2(box.Position.X + 12, box.Position.Y, box.Size.X - 24, box.Size.Y), hint, Palette.Text, 16);
     }
 
     private void Label(Rect2 box, string text, Color colour, int size, bool center = false, bool right = false)
     {
         if (center)
-            _canvas.DrawTextStyled(_item, box, text, colour, size);
+            Canvas.DrawTextStyled(Item, box, text, colour, size);
         else if (right)
-            _canvas.DrawTextStyledRight(_item, box, text, colour, size);
+            Canvas.DrawTextStyledRight(Item, box, text, colour, size);
         else
-            _canvas.DrawTextStyledLeft(_item, box, text, colour, size);
+            Canvas.DrawTextStyledLeft(Item, box, text, colour, size);
     }
 
     private static float Measure(string text, int size) => text.Length * size * 0.55f;
 
-    protected override void Shutdown() => CanvasServer.Current.Free(_item);
 }

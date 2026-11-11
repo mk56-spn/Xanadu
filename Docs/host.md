@@ -117,6 +117,14 @@ The rest is under "Later" (§6).
 
 ### 5.1 Projects and exes
 
+- **`Slang`** (library, `Xanadu.Slang`): the systemic shader layer, no GPU,
+  UI or game. Compiling effect bodies and reflecting them (`SlangShaders`),
+  the source rewrites and scans (`ShaderChains`, `ShaderConstants`,
+  `ShadeSignature`, `ShaderSourceUniforms`), and the code editor's language
+  smarts (`SlangCompletions`, `SlangHints`, `SlangLint`, `SlangRename`,
+  `SlangProblems`, `SlangSyntax`, `SlangBrackets`). Tested on its own by
+  `Slang/Tests` (`dotnet test Slang/Tests`), which may reach Core and UI but
+  never the game. The shaders themselves stay in `Assets/Shaders`.
 - **`HostCore`** (library): what every exe shares. `HostApp` is an abstract
   MoonWorks `Game` that owns the window (and its icon), the 1920×1080 target,
   fonts, keyboard, pointer and text input, `HostPlatform` wiring, vsync and
@@ -130,8 +138,18 @@ The rest is under "Later" (§6).
   shader warm-up), `HostPassSurfaces` and `DemoLevel`. The repo's top level is
   the engine (`Core`, `UI`, `HostCore`), `Game`, `Tools`, `Tests`, `External`,
   `Assets`, `docs` and the `run-*.sh` launchers.
-- **Tools:** `Tools/Animator`, `UI/Showcase`, `Tools/Labs`,
-  `Tests/VisualTests` are `HostApp`s; `Tools/Autopsy` reads frame captures.
+- **Tools:** `Tools/Animator`, `UI/Showcase`, `Tools/Labs`, `Tools/DevTools` and
+  `Tests/VisualTests` are `HostApp`s. Labs and the dev tools share the tabbed
+  tool shell; the dev tools hold Atlas (the type chart) and Autopsy (frame
+  captures) as two tabs.
+- **Who owns which systems:** the host owns the UI, `UiRoot` (`UI/Systems/Ui`),
+  on `HostApp.Entities`. Each frame it runs UI input, then the exe's own root,
+  then layout, drawing and the F1/F3/F4 overlays. An exe owns its root (the
+  game's `XanaduSystemRoot`, the animator's) on the same store and hands it over
+  with `UseSystems`; it never boots UI itself. F3 and the frame autopsy show the
+  exe's root nested under the UI's step for it. Input the exe feeds its systems
+  goes in `BeforeSystems`. Only the visual-test harness opts out (`HostUi.None`):
+  it makes a store and a `UiRoot` per scene.
 - **Launcher:** `./run.sh <target> [args]`, one script for every exe: `game`,
   `editor`, `labs`, `animator`, `showcase`, `visual-tests`, `atlas`, `autopsy`.
   With no target it asks which in the terminal.
@@ -237,7 +255,7 @@ host fills; tests leave the headless defaults.
 
 ### 5.5 Shaders
 
-- **Compile service** (`HostCore/Rendering/SlangShaders.cs`): Slang with
+- **Compile service** (`Slang/SlangShaders.cs`): Slang with
   `-reflection-json`, which fills the `ShaderCreateInfo` counts, sampler names,
   and values' offsets, sizes and `[Default]`s. Disk cache in
   `user://shader_cache_slang/` (SPIR-V + reflection), keyed by the source,
@@ -278,8 +296,8 @@ host fills; tests leave the headless defaults.
   | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` and `c.withAlpha(a)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.Blend` (a `blend.Mode` for the colours, a `blend.Alpha` for the alpha) with presets `blend.screen` and 11 more, `blend.behind`, `blend.erase`, and `.behind` / `.erasing` / `.over`; `blend.composite`; the bare colour formulas under `blend.colours.` |
-  | `xanadu.pattern` | `pattern.columns`, `.rows`, `.checker`, `.checkerSplit`, `.tile` (→ `Tile`) |
-  | `xanadu.gradient` | `gradient.linear`, `.radial`, `.conical`, `.square` |
+  | `xanadu.pattern` | the shapes `Grid`, `Columns`, `Rows`, `Checker`; `pattern.tile` (→ `Tile`) |
+  | `xanadu.gradient` | `IGradient` and `Linear`, `Radial`, `Conical`; `gradient.square` |
   | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
   | `xanadu.paint` | `c.paint(shape or coverage, colour, blend)` / `c.painted(…)`, `c.erase(shape or coverage)` / `c.erased(…)`, `c.paint(shape, Look(fill, outline, width))`: a picture in layers |
   | `xanadu` | re-exports all of the above, plus the stage |
@@ -365,10 +383,22 @@ host fills; tests leave the headless defaults.
 - **UI Showcase** (`UI/Showcase`): a `HostApp`.
 - **Visual tests** (`Tests/VisualTests`): see its README. Every test starts
   with the test user folder's recovery files cleared.
-- **Xanadu Labs** (`Tools/Labs`): tabs, an ECS side panel per experiment, and
-  a stage. Experiments implement `ILabExperiment`; stages that render on their
-  own get `ILabStage.Render` (called from `HostApp.RenderOffscreen`) and show
-  the result through `LabContext.Show`. Panel rows live in `LabPanel`.
+- **Tabbed tools** (`HostCore/Tools/TabbedToolApp.cs`): the shell Labs and the
+  dev tools share. A strip of tabs, the open tab's notes and controls in an ECS
+  side panel (`IToolTab`), and its drawing on a stage (`IToolStage`), built
+  when the tab opens and freed when another does. The shell is the one place
+  that reads the pointer for its tabs: each stage gets it in a `ToolFrame`.
+  A tool derives from `TabbedToolApp`, lists its tabs and makes a tab's stage.
+- **Dev tools** (`Tools/DevTools`): a `TabbedToolApp` with two tabs, ATLAS and
+  AUTOPSY (`./run.sh devtools [atlas|autopsy] [flags]`). Both are still their
+  own canvases laid out for 1920×1080 (`CanvasToolStage`): the stage scales
+  them into the tab's area and maps the pointer back. Atlas reads the builds
+  once, the first time its tab opens.
+- **Xanadu Labs** (`Tools/Labs`): a `TabbedToolApp`, one tab per experiment.
+  Experiments implement `ILabExperiment` (an `IToolTab` that makes its stage
+  from a `LabContext`); stages that render on their own get
+  `IToolStage.Render` (called from `HostApp.RenderOffscreen`) and show the
+  result through `LabContext.Show`. Panel rows live in `LabPanel`.
   - **Shader playground:** watches `Tools/Labs/Playground/playground.slang`
     (gitignored, made from the template) or `--shader=<file>`, recompiles off
     the frame on save and swaps it in; errors show in mono in the panel and the
@@ -418,7 +448,7 @@ host fills; tests leave the headless defaults.
     (`UI/Ecs/Ui/TextEditorComponents.cs`) holding a `TextBuffer` and its
     `TextHistory` (`UI/Editing/`); `TextEditorInputSystem` edits the focused
     one (`TextEditorFocused`: a press inside focuses, outside unfocuses) and
-    `TextEditorDrawSystem` draws them all, both in `UiSystemGroup`. Typing
+    `TextEditorDrawSystem` draws them all, in `UiRoot`'s input and draw phases. Typing
     and the clipboard come through `HostPlatform.TextEntry` (the host's
     `HostTextInput`, claimed while an editor has focus). It knows nothing
     of code: its owner's `ITextEditorHost` gives colour runs, inlays, line
@@ -430,9 +460,11 @@ host fills; tests leave the headless defaults.
     does or typing over a selection is a step of its own. No horizontal scroll
     yet. **Shader** (`Tools/Labs/Editor/`): `SlangEditorHost` is the owner
     (tokens, bracket colours, hints, problems, the completion list's keys,
-    Enter after `{` and `}` indenting); `EditorChrome`, `EditorTuning`,
-    `SlangProblems`, `SlangHints`, the popups and compiling stay in Labs. A
-    code editor layer between the two (any language) is next.
+    Enter after `{` and `}` indenting); `EditorChrome`, `EditorTuning`, the
+    popups and the previews (`IEditorPreview`) stay in Labs. The language
+    smarts it drives (completion, hints, lint, rename, problems, syntax,
+    brackets) live in the `Slang` module. A code editor layer between the
+    two (any language) is next.
   - **Particles:** bursts every library effect once a second.
   - **Blend:** two quads with the whole fixed-function blend open
     (`CanvasMaterial.Custom`); the renderer sets the blend constant per draw.
@@ -458,7 +490,7 @@ host fills; tests leave the headless defaults.
   `External/fetch-vulkan-headers.sh` (gitignored); without them it's skipped.
   On by default when built; `XANADU_GPU_TIMES=0` turns it off, `=1` also prints
   a tree each second. Name GPU work with `commands.Scope("name")` (§5.3).
-- **Autopsy of a Frame** (`HostCore/Autopsy`, `Tools/Autopsy`):
+- **Autopsy of a Frame** (`HostCore/Autopsy`, the AUTOPSY tab of `Tools/DevTools`):
   - Every host exe records each launch: the CPU frame split into update (every
     Friflo system, nested), draw (wait for swapchain, record + submit) and
     idle, plus the GPU groups of the same frame. Saved on close or crash as
@@ -472,10 +504,10 @@ host fills; tests leave the headless defaults.
     *self* for small methods.
   - Views: FRAME (recent frames, mean / latest / worst, CPU and GPU split bars
     to drill into) and METHODS.
-  - No window: `dotnet run --project Tools/Autopsy -- --dump[=app]` (text
-    trees) and `--dump=app --under=<method>`.
-  - `./run.sh autopsy game|editor|labs|animator` runs that exe with profiling,
-    then opens the tool.
+  - No window: `dotnet run --project Tools/DevTools -- autopsy --dump[=app]`
+    (text trees) and `autopsy --dump=app --under=<method>`.
+  - `./run.sh devtools autopsy game|editor|labs|animator` runs that exe with
+    profiling, then opens the tool on METHODS.
 - **F3 overlay:** per-system times, and GPU memory (this app, budget, card) from
   `VulkanMemoryBudget`.
 - **Query cache** (`UI/Ecs/QueryCache.cs`): `store.Cached<T>()` and

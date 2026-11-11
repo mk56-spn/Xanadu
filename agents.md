@@ -129,7 +129,7 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 - **Build:** `dotnet build` on each project touched.
 - **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
   `Docs/host.md` §7 lists the failures that are already known.
-- **Perf:** `./run.sh autopsy game|editor|labs|animator` records a launch and
+- **Perf:** `./run.sh devtools autopsy game|editor|labs|animator` records a launch and
   opens the frame autopsy (`Docs/host.md` §5.10).
 
 ### Screenshots

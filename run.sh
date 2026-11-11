@@ -9,16 +9,17 @@
 #   ./run.sh animator [args]      -> the animator (--clip=name@seconds …)
 #   ./run.sh showcase [args]      -> the UI showcase
 #   ./run.sh visual-tests [args]  -> the visual test browser (--visual-test=<slug> --visual-test-exit …)
-#   ./run.sh atlas [args]         -> a chart of what types touch what (--focus=<type>, --compare=A,B,
-#                                    --sort=used, --dump=<type>); builds the projects it reads first
-#   ./run.sh autopsy [args]       -> frame autopsy of each exe's last launch
-#   ./run.sh autopsy game|editor|labs|animator [args]
+#   ./run.sh devtools [args]      -> Atlas and Autopsy, one tab each; builds the projects Atlas reads first
+#   ./run.sh devtools atlas [args]    -> opens on ATLAS, a chart of what types touch what
+#                                        (--focus=<type>, --compare=A,B, --sort=used, --dump=<type>)
+#   ./run.sh devtools autopsy [args]  -> opens on AUTOPSY, each exe's last launch (--methods, --dump[=app])
+#   ./run.sh devtools autopsy game|editor|labs|animator [args]
 #                                 -> runs that target with the CPU sampler on, then opens
-#                                    autopsy on METHODS once it closes
+#                                    AUTOPSY on METHODS once it closes
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-targets=(game editor labs animator showcase visual-tests atlas autopsy)
+targets=(game editor labs animator showcase visual-tests devtools)
 
 # Started without a terminal (a double click in the file manager): the menu would
 # have nowhere to ask, so open one and run there.
@@ -47,23 +48,20 @@ run() {
         animator) dotnet run --project "$root/Tools/Animator" -- "$@" ;;
         showcase) dotnet run --project "$root/UI/Showcase" -- "$@" ;;
         visual-tests) dotnet run --project "$root/Tests/VisualTests" -- "$@" ;;
-        atlas)
-            # The chart is read from the builds; a project that fails to build shows its last good one.
-            for project in Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/Autopsy UI/Showcase; do
-                dotnet build "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "atlas: $project didn't build; showing its last build" >&2
-            done
-            dotnet run --project "$root/Tools/Atlas" -- "$@"
-            ;;
-        autopsy)
-            if [[ $# -gt 0 && " game editor labs animator " == *" $1 "* ]]; then
-                local profiled="$1"
-                shift
+        devtools)
+            if [[ $# -gt 1 && "$1" == autopsy && " game editor labs animator " == *" $2 "* ]]; then
+                local profiled="$2"
+                shift 2
                 # The exe's own exit code doesn't stop the autopsy: a crash is worth looking at too.
                 XANADU_PROFILE=1 run "$profiled" "$@" || true
-                dotnet run --project "$root/Tools/Autopsy" -- --methods
-            else
-                dotnet run --project "$root/Tools/Autopsy" -- "$@"
+                dotnet run --project "$root/Tools/DevTools" -- autopsy --methods
+                return
             fi
+            # Atlas reads its chart from the builds; a project that fails to build shows its last good one.
+            for project in Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/DevTools UI/Showcase; do
+                dotnet build "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "devtools: $project didn't build; Atlas shows its last build" >&2
+            done
+            dotnet run --project "$root/Tools/DevTools" -- "$@"
             ;;
         *)
             echo "Unknown target '$target' (choose from: ${targets[*]})" >&2

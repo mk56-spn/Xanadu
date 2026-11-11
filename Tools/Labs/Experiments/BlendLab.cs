@@ -8,6 +8,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using BlendFactor = Xanadu.Rendering.BlendFactor;
 using BlendOp = Xanadu.Rendering.BlendOp;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -282,9 +283,9 @@ internal sealed class BlendLab : ILabExperiment
 
     // ---- stage --------------------------------------------------------------
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, parent, area);
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private static readonly Color[] Bands =
         [
@@ -338,7 +339,7 @@ internal sealed class BlendLab : ILabExperiment
             return item;
         }
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             _lab.Poll();
             DrawBackdrop();

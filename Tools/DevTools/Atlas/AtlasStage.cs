@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Host;
+using Xanadu.Tools.DevTools;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
@@ -16,12 +17,15 @@ namespace Xanadu.Tools.Atlas;
 /// right, each group by how (queries, implements, inherits, uses), with lines
 /// coloured the same way. COMPARE puts two types side by side: what only the
 /// first touches, what both touch in the middle, what only the second touches,
-/// so "do these share code?" is one look. Click any card to go there; BACK
-/// goes back. Kinds can be hidden to cut noise (enums, plain structs). SORT
-/// orders the list and every chart column the same way: by name, kind,
-/// project, or how many types use it or it uses.
+/// so "do these share code?" is one look. SIMILAR ranks components by how
+/// alike they are (<see cref="Similarity"/>): the most alike pairs overall, or
+/// with a component picked, the ones most like it; click one to compare. Click
+/// any card to go there; BACK goes back. Kinds can be hidden to cut noise
+/// (enums, plain structs). SORT orders the list and every chart column the
+/// same way: by name, kind, project, or how many types use it or it uses;
+/// clicking the chosen sort again flips it (least used first).
 /// </summary>
-internal sealed class AtlasApp : HostApp
+internal sealed class AtlasStage : CanvasToolStage
 {
     /// <summary>How the list and the chart's columns are ordered; ties go by name.</summary>
     internal enum SortMode
@@ -40,6 +44,14 @@ internal sealed class AtlasApp : HostApp
 
         /// <summary>By assembly.</summary>
         Project,
+    }
+
+    /// <summary>What the chart shows.</summary>
+    internal enum View
+    {
+        Focus,
+        Compare,
+        Similar,
     }
 
     private static readonly (SortMode Mode, string Label, string Hint)[] Sorts =
@@ -78,10 +90,9 @@ internal sealed class AtlasApp : HostApp
         [LinkKind.Uses] = new(0.5f, 0.56f, 0.66f),
     };
 
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _item;
     private readonly CodeMap _map;
     private readonly (string Assembly, int Components, int Tags) _heaviest;
+    private readonly Similarity _similarity;
     private readonly HashSet<NodeKind> _hidden = [NodeKind.Enum];
     private readonly Stack<(int Focus, int Other)> _back = new();
     private readonly KeyRepeat _backspace = new();
@@ -89,10 +100,14 @@ internal sealed class AtlasApp : HostApp
     private int _focus = -1;
     private SortMode _sort;
 
+    /// <summary>The sort flipped: Z to A, least used first, and so on.</summary>
+    private bool _reverse;
+
     /// <summary>The second type while comparing; -1 in FOCUS.</summary>
     private int _other = -1;
 
-    private bool _comparing;
+    private View _view;
+    private bool Comparing => _view == View.Compare;
     private bool _escapeWasDown;
 
     /// <summary>How far each scrolling column is scrolled, by its left edge.</summary>
@@ -106,32 +121,30 @@ internal sealed class AtlasApp : HostApp
     private Action? _onClick;
     private float? _wheelColumn;
 
-    public AtlasApp(HostWindowOptions window, string root, string? focus, string? compare, SortMode sort = SortMode.Name) : base("Xanadu Atlas", window)
+    public AtlasStage(DevToolsContext context, Handle item, Rect2 area, CodeMap map, AtlasOptions options)
+        : base(context, item, area)
     {
-        _sort = sort;
-        _canvas = HostPlatform.NewCanvas();
-        _item = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(_item, Canvas.RootRid);
-        _map = CodeMap.Read(root);
+        (string? focus, string? compare, _sort, _reverse, bool similar) = options;
+        _map = map;
         _heaviest = _map.Heaviest();
-        TextInput.Claimed = true;
+        _similarity = new Similarity(_map);
 
         if (compare?.Split(',') is [var a, var b] && _map.Find(a.Trim()) is { } first && _map.Find(b.Trim()) is { } second)
         {
-            _comparing = true;
+            _view = View.Compare;
             _focus = first.Id;
             _other = second.Id;
         }
         else if (focus is not null && _map.Find(focus) is { } node)
             _focus = node.Id;
+        if (similar)
+            _view = View.Similar;
     }
-
-    protected override bool RecordsAutopsy => false;
 
     protected override void Tick(float delta, float time)
     {
-        _mouse = Pointer.Position;
-        bool down = Pointer.LeftDown;
+        _mouse = Mouse;
+        bool down = LeftDown;
         _click = down && !_wasDown;
         _wasDown = down;
         _hint = null;
@@ -140,12 +153,14 @@ internal sealed class AtlasApp : HostApp
         _cardIds.Clear();
         Type(delta);
 
-        _canvas.Clear(_item);
-        _canvas.DrawRect(_item, new Rect2(0, 0, Width, Height), Palette.Background);
+        Canvas.Clear(Item);
+        Canvas.DrawRect(Item, new Rect2(0, 0, Width, Height), Palette.Background);
         DrawHeader();
         DrawList();
-        if (_comparing)
+        if (_view == View.Compare)
             DrawCompare();
+        else if (_view == View.Similar)
+            DrawSimilar();
         else
             DrawFocus();
 
@@ -153,7 +168,7 @@ internal sealed class AtlasApp : HostApp
             DrawHint(_hint);
 
         // The wheel scrolls whichever column the pointer is over.
-        int wheel = Pointer.TakeWheel();
+        int wheel = TakeWheel();
         if (wheel != 0 && _wheelColumn is { } column)
             _scroll[column] = Math.Max(0, _scroll.GetValueOrDefault(column) - wheel * 3);
 
@@ -201,6 +216,15 @@ internal sealed class AtlasApp : HostApp
         _scroll.Clear();
     }
 
+    /// <summary>Opens COMPARE on two types.</summary>
+    private void Open(int a, int b)
+    {
+        _back.Push((_focus, _other));
+        (_focus, _other) = (a, b);
+        _view = View.Compare;
+        _scroll.Clear();
+    }
+
     private void Back()
     {
         if (_back.Count > 0)
@@ -213,12 +237,17 @@ internal sealed class AtlasApp : HostApp
     private void DrawHeader()
     {
         Label(new Rect2(Margin, 26, 300, 44), "ATLAS", Palette.Accent, 34);
-        Button(new Rect2(190, 30, 120, 38), "FOCUS", !_comparing, () => _comparing = false, "one type: what points at it, and what it points at");
-        Button(new Rect2(318, 30, 140, 38), "COMPARE", _comparing, () => _comparing = true,
+        Button(new Rect2(190, 30, 120, 38), "FOCUS", _view == View.Focus, () => _view = View.Focus, "one type: what points at it, and what it points at");
+        Button(new Rect2(318, 30, 140, 38), "COMPARE", Comparing, () => _view = View.Compare,
             "two types side by side: what each touches alone, and what both touch; the list then picks the second");
-        Button(new Rect2(466, 30, 100, 38), "BACK", false, Back, "back to the last type");
+        Button(new Rect2(466, 30, 130, 38), "SIMILAR", _view == View.Similar, () =>
+        {
+            _view = View.Similar;
+            _scroll.Clear();
+        }, "components that could be one: same field types and same users; pick a component to see the ones like it");
+        Button(new Rect2(604, 30, 100, 38), "BACK", false, Back, "back to the last type");
 
-        float x = 600;
+        float x = 724;
         foreach (NodeKind kind in Enum.GetValues<NodeKind>())
         {
             string label = kind.ToString().ToUpperInvariant();
@@ -226,8 +255,8 @@ internal sealed class AtlasApp : HostApp
             var box = new Rect2(x, 34, width, 30);
             bool shown = !_hidden.Contains(kind);
             bool hover = box.HasPoint(_mouse);
-            _canvas.DrawRect(_item, box, hover ? Palette.SurfaceAlt : Palette.Surface);
-            _canvas.DrawRect(_item, new Rect2(x + 8, 43, 12, 12), shown ? KindColours[kind] : Palette.Muted);
+            Canvas.DrawRect(Item, box, hover ? Palette.SurfaceAlt : Palette.Surface);
+            Canvas.DrawRect(Item, new Rect2(x + 8, 43, 12, 12), shown ? KindColours[kind] : Palette.Muted);
             Label(new Rect2(x + 26, 34, width - 30, 30), label, shown ? Palette.Text : Palette.TextDim, 14);
             if (hover)
             {
@@ -250,22 +279,27 @@ internal sealed class AtlasApp : HostApp
         DrawSorts();
     }
 
-    /// <summary>The sort chips over the list: one is on, and it orders the chart's columns too.</summary>
+    /// <summary>The sort chips over the list: one is on, and it orders the chart's columns too; clicking it again flips it.</summary>
     private void DrawSorts()
     {
         float x = ListLeft, y = 112;
-        Label(new Rect2(x, y, 50, 28), "SORT", Palette.TextMuted, 14);
-        x += 50;
+        Label(new Rect2(x, y, 44, 28), "SORT", Palette.TextMuted, 14);
+        x += 44;
         foreach ((SortMode mode, string label, string hint) in Sorts)
         {
-            float width = label.Length * 9 + 22;
+            float width = label.Length * 9 + 30;
             SortMode chosen = mode;
-            Button(new Rect2(x, y, width, 28), label, _sort == mode, () =>
+            bool on = _sort == mode;
+            string tooltip = on
+                ? $"sorted by {label.ToLowerInvariant()}{(_reverse ? ", flipped" : "")}: {hint}; click to flip"
+                : $"sort by {label.ToLowerInvariant()}: {hint}";
+            Button(new Rect2(x, y, width, 28), on ? label + (_reverse ? " ▲" : " ▼") : label, on, () =>
             {
+                _reverse = _sort == chosen && !_reverse;
                 _sort = chosen;
                 _scroll.Clear();
-            }, $"sort by {label.ToLowerInvariant()}: {hint}", 14);
-            x += width + 6;
+            }, tooltip, 14);
+            x += width + 4;
         }
     }
 
@@ -276,20 +310,28 @@ internal sealed class AtlasApp : HostApp
     private List<int> Sorted(IEnumerable<int> ids)
     {
         IEnumerable<CodeNode> nodes = ids.Select(id => _map.Nodes[id]);
+        bool flip = _reverse;
         IOrderedEnumerable<CodeNode> ordered = _sort switch
         {
-            SortMode.Used => nodes.OrderByDescending(n => Degree(n.In)),
-            SortMode.Uses => nodes.OrderByDescending(n => Degree(n.Out)),
-            SortMode.Type => nodes.OrderBy(n => n.Kind),
-            SortMode.Project => nodes.OrderBy(n => n.Assembly, StringComparer.Ordinal),
+            SortMode.Used => By(nodes, n => Degree(n.In), !flip),
+            SortMode.Uses => By(nodes, n => Degree(n.Out), !flip),
+            SortMode.Type => By(nodes, n => n.Kind, flip),
+            SortMode.Project => By(nodes, n => n.Assembly, flip, StringComparer.Ordinal),
             // Finding by name: what starts with the search, then the shortest, is what's being typed.
             _ when _query.Length > 0 => nodes
                 .OrderBy(n => n.Name.StartsWith(_query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
                 .ThenBy(n => n.Name.Length),
             _ => nodes.OrderBy(_ => 0),
         };
-        return ordered.ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase).Select(n => n.Id).ToList();
+        // Ties go A to Z, unless it's the name being flipped.
+        return (flip && _sort == SortMode.Name
+                ? ordered.ThenByDescending(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                : ordered.ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
+            .Select(n => n.Id).ToList();
     }
+
+    private static IOrderedEnumerable<CodeNode> By<T>(IEnumerable<CodeNode> nodes, Func<CodeNode, T> key, bool descending, IComparer<T>? comparer = null) =>
+        descending ? nodes.OrderByDescending(key, comparer) : nodes.OrderBy(key, comparer);
 
     /// <summary>
     /// The ECS's hard limits, top right: component and tag types in the heaviest exe
@@ -310,8 +352,8 @@ internal sealed class AtlasApp : HostApp
             var box = new Rect2(right - 300, y, 300, 22);
             Label(new Rect2(box.Position.X, y, 120, 22), label, Palette.TextMuted, 14);
             var bar = new Rect2(box.Position.X + 110, y + 6, 110, 10);
-            _canvas.DrawRect(_item, bar, Palette.SurfaceDeep);
-            _canvas.DrawRect(_item, new Rect2(bar.Position, new Vector2(bar.Size.X * Math.Min(1, share), bar.Size.Y)), colour);
+            Canvas.DrawRect(Item, bar, Palette.SurfaceDeep);
+            Canvas.DrawRect(Item, new Rect2(bar.Position, new Vector2(bar.Size.X * Math.Min(1, share), bar.Size.Y)), colour);
             Label(new Rect2(bar.End.X + 10, y, 80, 22), $"{count} / {max}", colour, 15);
             if (box.HasPoint(_mouse))
                 _hint = $"{count} {why}. Counted for {assembly.Replace("Xanadu.", "")} with what it references, the heaviest exe, Friflo's own included; the limit is per process.";
@@ -324,7 +366,7 @@ internal sealed class AtlasApp : HostApp
     {
         List<int> list = Sorted(_map.Nodes.Where(n => _query.Length == 0 || n.Name.Contains(_query, StringComparison.OrdinalIgnoreCase)).Select(n => n.Id));
         Column(ListLeft, ListWidth, Top, list, selected: id => id == _focus || id == _other,
-            click: id => Go(id, second: _comparing && _focus >= 0), drawLines: null);
+            click: id => Go(id, second: Comparing && _focus >= 0), drawLines: null);
     }
 
     private void DrawFocus()
@@ -381,7 +423,7 @@ internal sealed class AtlasApp : HostApp
 
             var box = new Rect2(left, y, width, Card);
             Vector2 start = incoming ? new Vector2(box.End.X, box.GetCenter().Y) : new Vector2(box.Position.X, box.GetCenter().Y);
-            _canvas.DrawLine(_item, start, end, LinkColours[kind].Lerp(Palette.Background, 0.45f), 1.5f);
+            Canvas.DrawLine(Item, start, end, LinkColours[kind].Lerp(Palette.Background, 0.45f), 1.5f);
             SmallCard(box, _map.Nodes[id], () => Go(id));
             y += Card + CardGap;
         }
@@ -422,7 +464,7 @@ internal sealed class AtlasApp : HostApp
         Label(new Rect2(onlyBLeft, Top - 6, ChartRight - onlyBLeft, 22), $"ONLY {b.Name.ToUpperInvariant()}", Palette.TextMuted, 14);
 
         if (Linked(a, b) is { } direct)
-            _canvas.DrawLine(_item, new Vector2(aCard.End.X, centreY), new Vector2(bCard.Position.X, centreY), LinkColours[direct].Lerp(Palette.Background, 0.3f), 2f);
+            Canvas.DrawLine(Item, new Vector2(aCard.End.X, centreY), new Vector2(bCard.Position.X, centreY), LinkColours[direct].Lerp(Palette.Background, 0.3f), 2f);
         Column(onlyALeft, column, Top + 20, onlyA, _ => false, id => Go(id), box => Line(box.End.X, box, aCard.Position.X, aCard, a, box));
         Column(sharedLeft, column, Top + 20, shared, _ => false, id => Go(id), box =>
         {
@@ -435,12 +477,87 @@ internal sealed class AtlasApp : HostApp
         Button(new Rect2(aLeft, aCard.End.Y + 12, cardWidth, 32), "SWAP", false, () => (_focus, _other) = (_other, _focus), "swap the two");
     }
 
+    /// <summary>
+    /// SIMILAR: with a component picked, the components most like it; otherwise the
+    /// most alike pairs of all. Each row gives the score, then shape and users apart,
+    /// then the field types; click a card to compare the two.
+    /// </summary>
+    private void DrawSimilar()
+    {
+        float total = ChartRight - ChartLeft;
+        CodeNode? picked = _focus >= 0 && _map.Nodes[_focus].Kind == NodeKind.Component ? _map.Nodes[_focus] : null;
+        List<Match> matches = picked is null ? _similarity.Pairs() : _similarity.Like(picked.Id);
+        string title = picked is null
+            ? $"the {matches.Count} most alike component pairs: same field types (shape) and same users; pick a component on the left for its own"
+            : $"components like {picked.Name} ({Fields(picked)}): same field types (shape) and same users";
+        Label(new Rect2(ChartLeft, Top - 34, total, 26), Fit(title, total, 18), Palette.Text, 18);
+        if (matches.Count == 0)
+        {
+            Label(new Rect2(ChartLeft, 500, total, 40), "nothing shares a field type or a user with it", Palette.TextMuted, 22, center: true);
+            return;
+        }
+
+        float cardWidth = picked is null ? 300 : 380;
+        float y = Top + 20;
+        int first = Scrolled(ChartLeft, total, matches.Count);
+        for (int i = first; i < matches.Count && y + Card <= Bottom; i++)
+        {
+            Match match = matches[i];
+            float x = ChartLeft;
+            if (picked is null)
+            {
+                Pick(new Rect2(x, y, cardWidth, Card), match.A, match);
+                x += cardWidth + 8;
+            }
+
+            CodeNode other = _map.Nodes[match.B];
+            Pick(new Rect2(x, y, cardWidth, Card), match.B, match);
+            x += cardWidth + 16;
+
+            Label(new Rect2(x, y, 60, Card), $"{match.Score * 100:0}%", Palette.TextDim.Lerp(Palette.Accent, match.Score), TextSize);
+            Label(new Rect2(x + 60, y, 220, Card), $"shape {match.Shape * 100:0}%  ·  users {match.Users * 100:0}%", Palette.TextMuted, 14);
+            float rest = ChartRight - (x + 290);
+            string fields = picked is null ? $"{Fields(_map.Nodes[match.A])}  |  {Fields(other)}" : Fields(other);
+            Label(new Rect2(x + 290, y, rest, Card), Fit(fields, rest, 14), Palette.TextDim, 14);
+            y += Card + CardGap;
+        }
+
+        More(ChartLeft, total, first, matches.Count, y);
+    }
+
+    /// <summary>One card of a SIMILAR row; a click compares the row's two.</summary>
+    private void Pick(Rect2 box, int id, Match match)
+    {
+        CodeNode node = _map.Nodes[id];
+        SmallCard(box, node, () => Open(match.A, match.B));
+        if (box.HasPoint(_mouse))
+            _hint = $"{node.FullName}  ·  {Fields(node)}  ·  click to compare {_map.Nodes[match.A].Name} with {_map.Nodes[match.B].Name}";
+    }
+
+    /// <summary>A component's field types, short: <c>float, Vector2, List&lt;Entity&gt;</c>.</summary>
+    private static string Fields(CodeNode node) =>
+        node.Fields.Count == 0 ? "no fields" : string.Join(", ", node.Fields.Select(f => Short(f.Type)));
+
+    /// <summary>A full type name without namespaces or arity marks.</summary>
+    private static string Short(string type)
+    {
+        string plain = System.Text.RegularExpressions.Regex.Replace(type, @"[\w.]*\.|`\d+", "").Replace('/', '.');
+        return System.Text.RegularExpressions.Regex.Replace(plain, @"\w+", word => Keywords.GetValueOrDefault(word.Value, word.Value));
+    }
+
+    private static readonly Dictionary<string, string> Keywords = new()
+    {
+        ["Single"] = "float", ["Double"] = "double", ["Int32"] = "int", ["UInt32"] = "uint", ["Int64"] = "long",
+        ["UInt64"] = "ulong", ["Int16"] = "short", ["UInt16"] = "ushort", ["Byte"] = "byte", ["SByte"] = "sbyte",
+        ["Boolean"] = "bool", ["String"] = "string", ["Char"] = "char", ["Object"] = "object",
+    };
+
     /// <summary>A line from a card to a centre card, in the colour of how that centre type touches it.</summary>
     private void Line(float fromX, Rect2 from, float toX, Rect2 to, CodeNode centre, Rect2 card)
     {
         int id = _cardIds.TryGetValue(card.Position, out int known) ? known : -1;
         Color colour = id >= 0 && Linked(centre, _map.Nodes[id]) is { } kind ? LinkColours[kind] : LinkColours[LinkKind.Uses];
-        _canvas.DrawLine(_item, new Vector2(fromX, from.GetCenter().Y), new Vector2(toX, to.GetCenter().Y), colour.Lerp(Palette.Background, 0.45f), 1.5f);
+        Canvas.DrawLine(Item, new Vector2(fromX, from.GetCenter().Y), new Vector2(toX, to.GetCenter().Y), colour.Lerp(Palette.Background, 0.45f), 1.5f);
     }
 
     private readonly Dictionary<Vector2, int> _cardIds = new();
@@ -530,9 +647,9 @@ internal sealed class AtlasApp : HostApp
         // The whole card in its kind's colour, so systems, components and classes read apart at a glance.
         Color kind = KindColours[node.Kind];
         if (selected)
-            _canvas.DrawRect(_item, new Rect2(box.Position - Vector2.One * 2, box.Size + Vector2.One * 4), Palette.TextBright);
-        _canvas.DrawRect(_item, box, Palette.Surface.Lerp(kind, hover ? 0.42f : selected ? 0.34f : 0.24f));
-        _canvas.DrawRect(_item, new Rect2(box.Position.X, box.Position.Y, 4, box.Size.Y), kind);
+            Canvas.DrawRect(Item, new Rect2(box.Position - Vector2.One * 2, box.Size + Vector2.One * 4), Palette.TextBright);
+        Canvas.DrawRect(Item, box, Palette.Surface.Lerp(kind, hover ? 0.42f : selected ? 0.34f : 0.24f));
+        Canvas.DrawRect(Item, new Rect2(box.Position.X, box.Position.Y, 4, box.Size.Y), kind);
         Label(new Rect2(box.Position.X + 12, box.Position.Y, box.Size.X - 16, box.Size.Y), Fit(node.Name, box.Size.X - 16, TextSize), Palette.Text, TextSize);
         if (hover)
         {
@@ -543,8 +660,8 @@ internal sealed class AtlasApp : HostApp
 
     private void BigCard(Rect2 box, CodeNode node)
     {
-        _canvas.DrawRect(_item, new Rect2(box.Position - Vector2.One * 2, box.Size + Vector2.One * 4), KindColours[node.Kind]);
-        _canvas.DrawRect(_item, box, Palette.SurfaceRaised.Lerp(KindColours[node.Kind], 0.24f));
+        Canvas.DrawRect(Item, new Rect2(box.Position - Vector2.One * 2, box.Size + Vector2.One * 4), KindColours[node.Kind]);
+        Canvas.DrawRect(Item, box, Palette.SurfaceRaised.Lerp(KindColours[node.Kind], 0.24f));
         Label(new Rect2(box.Position.X + 12, box.Position.Y + 6, box.Size.X - 24, 30), Fit(node.Name, box.Size.X - 24, 22), Palette.TextBright, 22);
         Label(new Rect2(box.Position.X + 12, box.Position.Y + 38, box.Size.X - 24, 18), node.Kind.ToString().ToLowerInvariant() + "  ·  " + node.Assembly.Replace("Xanadu.", ""), KindColours[node.Kind], 14);
         Label(new Rect2(box.Position.X + 12, box.Position.Y + 56, box.Size.X - 24, 18), Fit(node.Namespace, box.Size.X - 24, 13), Palette.TextDim, 13);
@@ -559,7 +676,7 @@ internal sealed class AtlasApp : HostApp
         bool hover = box.HasPoint(_mouse);
         // Bright blue only for what's chosen; muted at rest.
         Color fill = on ? Palette.Primary : Palette.Muted;
-        _canvas.DrawRect(_item, box, hover ? fill.Lerp(Colors.White, 0.16f) : fill);
+        Canvas.DrawRect(Item, box, hover ? fill.Lerp(Colors.White, 0.16f) : fill);
         Label(box, label, Palette.TextBright, size, center: true);
         if (hover)
         {
@@ -571,16 +688,16 @@ internal sealed class AtlasApp : HostApp
     private void DrawHint(string hint)
     {
         var box = new Rect2(Margin, Height - 44, Width - Margin * 2, 32);
-        _canvas.DrawRect(_item, box, Palette.Tooltip);
+        Canvas.DrawRect(Item, box, Palette.Tooltip);
         Label(new Rect2(box.Position.X + 12, box.Position.Y, box.Size.X - 24, box.Size.Y), hint, Palette.Text, 16);
     }
 
     private void Label(Rect2 box, string text, Color colour, int size, bool center = false)
     {
         if (center)
-            _canvas.DrawTextStyled(_item, box, text, colour, size);
+            Canvas.DrawTextStyled(Item, box, text, colour, size);
         else
-            _canvas.DrawTextStyledLeft(_item, box, text, colour, size);
+            Canvas.DrawTextStyledLeft(Item, box, text, colour, size);
     }
 
     /// <summary>Cuts a name to what fits <paramref name="width"/> at <paramref name="size"/>, keeping its start.</summary>
@@ -590,5 +707,38 @@ internal sealed class AtlasApp : HostApp
         return text.Length <= max ? text : text[..(max - 1)] + "…";
     }
 
-    protected override void Shutdown() => CanvasServer.Current.Free(_item);
+    /// <summary>
+    /// Goes to the type named <paramref name="name"/> in FOCUS, as clicking it
+    /// would (BACK returns from it); false when the chart has no such type.
+    /// </summary>
+    public bool Show(string name)
+    {
+        if (_map.Find(name) is not { } node)
+            return false;
+
+        _view = View.Focus;
+        _other = -1;
+        Go(node.Id);
+        return true;
+    }
+
+    /// <summary>Typing finds a type while the tab is open.</summary>
+    public override void Shown() => TextInput.Claimed = true;
+
+    /// <summary>Typing goes back to the UI once the tab closes.</summary>
+    public override void Hidden() => TextInput.Claimed = false;
+
+    public override void Dispose()
+    {
+        Hidden();
+        base.Dispose();
+    }
 }
+
+/// <summary>How Atlas opens: on a type, comparing two, sorted a way, or on SIMILAR.</summary>
+internal readonly record struct AtlasOptions(
+    string? Focus = null,
+    string? Compare = null,
+    AtlasStage.SortMode Sort = AtlasStage.SortMode.Name,
+    bool Reverse = false,
+    bool Similar = false);

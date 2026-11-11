@@ -10,6 +10,8 @@ using Xanadu.Storage;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -70,7 +72,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             _errors[i] = column.Text("", UiType.Caption, Palette.DangerBright, TextAlign.Left).Mono().Width(ErrorWidth);
     }
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
 
     private void ShowStatus(string text, Color colour)
     {
@@ -88,7 +90,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
         }
     }
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const float PollSeconds = 0.2f;
 
@@ -115,7 +117,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             CanvasServer.Current.AddRect(item, area, Colors.White);
         }
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             Finish();
 

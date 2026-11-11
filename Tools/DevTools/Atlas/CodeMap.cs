@@ -45,6 +45,9 @@ internal sealed record CodeNode(int Id, string Name, string FullName, string Nam
 
     /// <summary>Links to this type, by kind, from node ids.</summary>
     public readonly Dictionary<LinkKind, SortedSet<int>> In = new();
+
+    /// <summary>Its instance fields, name and full type (generic arguments kept), in declaration order.</summary>
+    public readonly List<(string Name, string Type)> Fields = new();
 }
 
 /// <summary>
@@ -253,8 +256,13 @@ internal sealed class CodeMap
             }
 
             // Decoding records every type a signature names into `named`.
-            foreach (FieldDefinitionHandle field in type.GetFields())
-                meta.GetFieldDefinition(field).DecodeSignature(new Names(meta, named), null);
+            foreach (FieldDefinitionHandle fieldHandle in type.GetFields())
+            {
+                FieldDefinition field = meta.GetFieldDefinition(fieldHandle);
+                string fieldType = field.DecodeSignature(new Names(meta, named) { Full = true }, null);
+                if (own && (field.Attributes & FieldAttributes.Static) == 0)
+                    Nodes[from].Fields.Add((FieldName(meta.GetString(field.Name)), fieldType));
+            }
 
             foreach (MethodDefinitionHandle methodHandle in type.GetMethods())
             {
@@ -385,6 +393,10 @@ internal sealed class CodeMap
         return null;
     }
 
+    /// <summary>An auto-property's backing field (<c>&lt;Value&gt;k__BackingField</c>) by its property's name.</summary>
+    private static string FieldName(string name) =>
+        name.StartsWith('<') && name.IndexOf('>') is > 1 and var end ? name[1..end] : name;
+
     /// <summary>A compiler-made type: a closure, an iterator, an anonymous type.</summary>
     private static bool Generated(string full) => full.Contains('<');
 
@@ -446,6 +458,9 @@ internal sealed class CodeMap
         /// <summary>Where a generic instance's arguments go, when the caller wants them apart (a query's components).</summary>
         public ICollection<string>? Arguments { get; init; }
 
+        /// <summary>Names a generic instance with its arguments (<c>List&lt;Entity&gt;</c>), not just its generic type.</summary>
+        public bool Full { get; init; }
+
         private string Seen(string name)
         {
             seen.Add(name);
@@ -467,10 +482,10 @@ internal sealed class CodeMap
                     Arguments.Add(arg);
             }
 
-            return genericType;
+            return Full ? $"{genericType}<{string.Join(", ", typeArguments)}>" : genericType;
         }
 
-        public string GetSZArrayType(string elementType) => elementType;
+        public string GetSZArrayType(string elementType) => Full ? elementType + "[]" : elementType;
         public string GetArrayType(string elementType, ArrayShape shape) => elementType;
         public string GetByReferenceType(string elementType) => elementType;
         public string GetPointerType(string elementType) => elementType;

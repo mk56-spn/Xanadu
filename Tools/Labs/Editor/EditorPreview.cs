@@ -4,6 +4,8 @@ using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
 using Xanadu.Labs.Experiments;
 using Xanadu.Systems.Canvas;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Editor;
 
@@ -43,7 +45,7 @@ internal interface IEditorPreview : IDisposable
     void Place(Rect2 area);
 
     /// <summary>Every frame: the pointer (on the preview, or where it last was) and the sliders' values.</summary>
-    void Update(in LabFrame frame, Vector2 pointer, EditorTuning tuning);
+    void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning);
 
     /// <summary>The preview's own GPU passes, before the canvas draws.</summary>
     void Render(MoonWorks.Graphics.CommandBuffer commands) { }
@@ -93,7 +95,7 @@ internal sealed class MaterialPreview(LabContext context, Handle item) : IEditor
         CanvasServer.Current.AddRect(item, area, new Color("#0b1020"));
     }
 
-    public void Update(in LabFrame frame, Vector2 pointer, EditorTuning tuning)
+    public void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning)
     {
         if (_material is null)
             return;

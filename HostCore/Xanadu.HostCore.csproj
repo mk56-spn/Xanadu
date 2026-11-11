@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     What every MoonWorks exe shares (Docs/host.md): the window and frame
-    loop (HostApp), the canvas tree and renderer, Slang shaders, text, input and
+    loop (HostApp), the canvas tree and renderer, text, input and
     native dialogs. The game (Host) and the tools (Tools/Labs, …) build on it.
     It knows the UI and Core assemblies, never the game's.
   -->
@@ -16,8 +16,7 @@
     <InternalsVisibleTo Include="Xanadu.Host" />
     <InternalsVisibleTo Include="Xanadu.Labs" />
     <InternalsVisibleTo Include="Xanadu.AnimatorTool" />
-    <InternalsVisibleTo Include="Xanadu.Autopsy" />
-    <InternalsVisibleTo Include="Xanadu.Atlas" />
+    <InternalsVisibleTo Include="Xanadu.DevTools" />
     <InternalsVisibleTo Include="Xanadu.Ui.Showcase" />
     <InternalsVisibleTo Include="Xanadu.VisualTests" />
   </ItemGroup>
@@ -25,11 +24,11 @@
     <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.750501" />
     <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
     <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
     <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
-    <PackageReference Include="Slangc.NET" Version="2026.21.0" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
   <ItemGroup>

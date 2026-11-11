@@ -9,6 +9,8 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -84,7 +86,7 @@ internal sealed class RadianceLab : ILabExperiment
         _ui.ShowSteppers();
     }
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(this, context, parent, area);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Params
@@ -92,7 +94,7 @@ internal sealed class RadianceLab : ILabExperiment
         public Vector4 Size, Cascade, Setup, BrushA, BrushB, BrushC, Look, Extra;
     }
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const Mw.TextureFormat Format = Mw.TextureFormat.R16G16B16A16Float;
         private const Mw.TextureFormat ShowFormat = Mw.TextureFormat.R8G8B8A8Unorm;
@@ -188,7 +190,7 @@ internal sealed class RadianceLab : ILabExperiment
                 },
             });
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             _lab.Poll();
             _time += frame.Delta;

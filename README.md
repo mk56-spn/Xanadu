@@ -36,8 +36,9 @@ External/fetch-moonlibs.sh   # once after cloning: the native libraries (SDL3 an
 | Folder | What's in it |
 | --- | --- |
 | `Core`, `UI`, `HostCore` | The engine: maths, the ECS UI, and the MoonWorks host every exe shares |
+| `Slang` | The shader layer: compiling effect bodies, and the code editor's completion, lint and the rest. Tested on its own |
 | `Game` | The game, its editor and its exe |
-| `Tools` | Labs, the animator, the atlas, the frame autopsy |
+| `Tools` | Labs, the animator, the dev tools (the atlas and the frame autopsy) |
 | `Tests` | Unit and visual tests |
 | `Assets` | Shaders (the Slang library players write against), fonts, icons, audio, particles, the song catalog |
 | `External` | Vendored MoonWorks and the fetch scripts for native libraries |

@@ -9,6 +9,8 @@ using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Xanadu.Slang;
+using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -69,7 +71,7 @@ internal sealed class RtsLab : ILabExperiment
         panel.Text("each raises its own unit types, so ground matters.", UiType.Small, Palette.TextMuted);
     }
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area)
+    public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area)
     {
         _restart = true;
         return new Stage(this, context, parent, area);
@@ -94,7 +96,7 @@ internal sealed class RtsLab : ILabExperiment
         [KeyCode.D1], [KeyCode.D2], [KeyCode.D3], [KeyCode.D4], [KeyCode.D5],
     ];
 
-    private sealed class Stage : ILabStage
+    private sealed class Stage : IToolStage
     {
         private const Mw.TextureFormat Format = Mw.TextureFormat.R8G8B8A8Unorm;
         private const uint Group = 64;
@@ -263,7 +265,7 @@ internal sealed class RtsLab : ILabExperiment
                 },
             });
 
-        public void Update(in LabFrame frame)
+        public void Update(in ToolFrame frame)
         {
             _lab._ui.PollSteppers();
             _lab._ui.ShowSteppers();
