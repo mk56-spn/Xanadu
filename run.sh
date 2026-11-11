@@ -75,13 +75,52 @@ run() {
 target="${1:-}"
 [[ $# -gt 0 ]] && shift
 
-if [[ -z "$target" ]]; then
-    echo "Xanadu: which one? (type its number, then Enter)"
-    PS3="> "
-    select target in "${targets[@]}"; do
-        [[ -n "$target" ]] && break
+# The menu: ↑/↓ (or k/j) move, Enter picks, a number picks at once, q or Esc quits.
+choose() {
+    local count=${#targets[@]} at=0 key rest i
+    echo "Xanadu: which one?  ↑/↓ move · Enter runs · q quits" >&2
+    tput civis >&2 2>/dev/null || true
+    trap 'tput cnorm >&2 2>/dev/null || true' RETURN
+    while true; do
+        for ((i = 0; i < count; i++)); do
+            if ((i == at)); then
+                printf '\e[2K  \e[7m %d  %-14s\e[0m\n' "$((i + 1))" "${targets[i]}" >&2
+            else
+                printf '\e[2K   %d  %s\n' "$((i + 1))" "${targets[i]}" >&2
+            fi
+        done
+
+        IFS= read -rsn1 key || return 1
+        case "$key" in
+            $'\e')
+                rest=""
+                IFS= read -rsn2 -t 0.05 rest || true
+                case "$rest" in
+                    '[A') at=$(((at + count - 1) % count)) ;;
+                    '[B') at=$(((at + 1) % count)) ;;
+                    '') return 1 ;;
+                esac
+                ;;
+            k) at=$(((at + count - 1) % count)) ;;
+            j) at=$(((at + 1) % count)) ;;
+            q) return 1 ;;
+            '') break ;;
+            [1-9])
+                if ((key <= count)); then
+                    at=$((key - 1))
+                    break
+                fi
+                ;;
+        esac
+        printf '\e[%dA' "$count" >&2
     done
-    [[ -n "$target" ]] || exit 0
+
+    target="${targets[at]}"
+}
+
+if [[ -z "$target" ]]; then
+    choose || exit 0
+    echo "→ $target" >&2
 fi
 
 run "$target" "$@"
