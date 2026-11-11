@@ -34,6 +34,9 @@ public sealed class UiSystemGroup : SystemGroup
             screen,
             focus,
             tooltips));
+        // Text editors: their input, then drawing what it left.
+        Add(new TextEditorInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel));
+        Add(new TextEditorDrawSystem(canvas));
         UiDebugOverlayGroup.Attach(
             this,
             canvas,

@@ -1,37 +1,37 @@
 using Xanadu.History;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Ui.Editing;
 
 /// <summary>
-/// Undo and redo for the shader editor, on the shared <see cref="UndoHistory{T}"/>
+/// Undo and redo for a <see cref="TextBuffer"/>, on the shared <see cref="UndoHistory{T}"/>
 /// the level editor and the animator use. It watches the buffer once a frame
 /// rather than wrapping every edit: plain typing (characters, Backspace,
 /// Delete, Tab with nothing selected) runs together into one step until the
 /// caret moves on its own or typing pauses; any other edit (Enter, paste, cut,
-/// a completion, replacing a selection) is a step of its own.
+/// replacing a selection, anything an owner does to the text) is a step of its own.
 /// </summary>
-internal sealed class CodeHistory
+public sealed class TextHistory
 {
     /// <summary>A pause this long ends a run of typing.</summary>
     private const float RunPause = 1f;
 
-    private readonly CodeBuffer _buffer;
-    private readonly UndoHistory<CodeSnapshot> _history;
+    private readonly TextBuffer _buffer;
+    private readonly UndoHistory<TextSnapshot> _history;
 
     /// <summary>The buffer as it was at the end of the last frame (text from the last change, caret kept current).</summary>
-    private CodeSnapshot _latest;
+    private TextSnapshot _latest;
 
     /// <summary>Where the open run of typing began; null when none is open.</summary>
-    private CodeSnapshot? _runStart;
+    private TextSnapshot? _runStart;
 
     private int _seenVersion;
     private float _idle;
 
-    public CodeHistory(CodeBuffer buffer)
+    public TextHistory(TextBuffer buffer)
     {
         _buffer = buffer;
         // Caret-only differences are not steps.
-        _history = new UndoHistory<CodeSnapshot>((a, b) => a.Text == b.Text, buffer.Restore);
+        _history = new UndoHistory<TextSnapshot>((a, b) => a.Text == b.Text, buffer.Restore);
         _latest = buffer.Snapshot();
         _seenVersion = buffer.Version;
     }
@@ -50,7 +50,7 @@ internal sealed class CodeHistory
             return;
         }
 
-        CodeSnapshot now = _buffer.Snapshot();
+        TextSnapshot now = _buffer.Snapshot();
         if (typing)
             _runStart ??= _latest;
         else

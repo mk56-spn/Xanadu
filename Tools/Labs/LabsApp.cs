@@ -119,8 +119,7 @@ internal sealed class LabsApp : HostApp
     {
         _root.Update(new UpdateTick(delta, time));
         ShowSelected();
-        string typed = TextInput.Claimed ? TextInput.TakeTyped() : "";
-        _stage?.Update(new LabFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, typed));
+        _stage?.Update(new LabFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs));
     }
 
     /// <summary>
@@ -134,7 +133,6 @@ internal sealed class LabsApp : HostApp
             return;
 
         _stage?.Dispose();
-        TextInput.Claimed = false;
         if (_stageItem.IsValid)
             CanvasServer.Current.Free(_stageItem);
 
@@ -144,7 +142,7 @@ internal sealed class LabsApp : HostApp
         _stage = _experiments[selected].CreateStage(
             new LabContext(
                 Renderer.Pipelines, GraphicsDevice, ShowTexture, id => Renderer.Textures.Remove(id.Id),
-                Text, claimed => TextInput.Claimed = claimed),
+                Text, Entities),
             _stageItem, _experiments[selected].FullWidth ? _fullArea : _area);
         _shown = selected;
         // A full-width experiment draws its own frame.

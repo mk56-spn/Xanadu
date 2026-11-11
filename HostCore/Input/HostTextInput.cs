@@ -19,7 +19,7 @@ namespace Xanadu.Host.Input;
 /// only Escape on to the game's shortcuts, as the <c>LineEdit</c> swallowed
 /// the rest.
 /// </remarks>
-internal sealed class HostTextInput
+internal sealed class HostTextInput : Xanadu.Systems.Input.ITextEntry
 {
     private const float RepeatDelay = 0.45f, RepeatEvery = 0.035f;
 
@@ -40,7 +40,7 @@ internal sealed class HostTextInput
     public bool Active => !_field.IsNull;
 
     /// <summary>
-    /// Set by something that runs its own text editing (Labs' shader editor):
+    /// Set by something that runs its own text editing (the UI's <c>TextEditor</c>, through <c>HostPlatform.TextEntry</c>):
     /// SDL text input stays on, no field is typed into, and what is typed waits
     /// in <see cref="TakeTyped"/>.
     /// </summary>
@@ -52,6 +52,12 @@ internal sealed class HostTextInput
         string typed = _typed.ToString();
         _typed.Clear();
         return typed;
+    }
+
+    public string Clipboard
+    {
+        get => SDL.SDL_GetClipboardText() ?? "";
+        set => SDL.SDL_SetClipboardText(value);
     }
 
     public void Update(Keyboard keyboard, float delta)

@@ -28,6 +28,13 @@ public static class UiTextMetrics
     public static float MonoWidth(string text, float fontSize) =>
         text.Length * MathF.Ceiling(MonoAdvance * fontSize);
 
+    /// <summary>
+    /// One character's width in the monospaced face as the host draws it, for
+    /// laying out columns of text (a text editor); the estimate where no host measures.
+    /// </summary>
+    public static float MonoCharWidth(int fontSize) =>
+        Xanadu.Systems.HostPlatform.MeasureMono is { } measure ? measure("MMMMMMMMMM", fontSize) / 10f : MonoWidth("M", fontSize);
+
     /// <summary>JetBrains Mono's advance: 600 units of a 1000-unit em, for every glyph.</summary>
     private const float MonoAdvance = 0.6f;
 

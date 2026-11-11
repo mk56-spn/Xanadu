@@ -116,6 +116,8 @@ internal abstract class HostApp : Game
         ApplyVSync(true);
         HostPlatform.ApplyWindowMode = ApplyWindowMode;
         TextInput = new HostTextInput(Entities, MainWindow);
+        HostPlatform.TextEntry = TextInput;
+        HostPlatform.MeasureMono = (text, size) => Text.Width(text, Xanadu.Host.Text.FontKind.Mono, size);
         _probe = HostFrameProbe.Enabled ? new HostFrameProbe() : null;
 
         // Every launch is recorded for the Autopsy tool and saved when the window closes.

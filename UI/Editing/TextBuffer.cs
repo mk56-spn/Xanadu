@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Ui.Editing;
 
 /// <summary>
-/// The text of the shader editor as lines, with one caret and the editing a
-/// plain code editor needs: typing, new lines that keep the indentation,
+/// Text as lines, with one caret and the editing any text editor needs: typing,
+/// new lines that keep the indentation,
 /// Backspace that removes a whole indent step, Delete, and caret moves that
 /// remember the column when passing short lines. A selection runs from an
 /// anchor to the caret; moves that extend keep the anchor, other moves drop it,
 /// and any edit replaces what is selected.
 /// </summary>
-internal sealed class CodeBuffer
+public sealed class TextBuffer
 {
     public const int Indent = 4;
 
@@ -75,10 +75,10 @@ internal sealed class CodeBuffer
     }
 
     /// <summary>The text, caret and selection as they are now, for undo.</summary>
-    public CodeSnapshot Snapshot() => new(Text, Line, Column, Anchor);
+    public TextSnapshot Snapshot() => new(Text, Line, Column, Anchor);
 
     /// <summary>Puts back a snapshot's text, caret and selection (an undo or redo).</summary>
-    public void Restore(CodeSnapshot snapshot)
+    public void Restore(TextSnapshot snapshot)
     {
         _lines.Clear();
         _lines.AddRange(snapshot.Text.Split('\n'));
@@ -154,9 +154,6 @@ internal sealed class CodeBuffer
         string before = line[..Column], after = line[Column..];
         if (parts.Length == 1)
         {
-            // A closing brace typed on a line of only spaces steps back one indent.
-            if (parts[0] == "}" && before.Length >= Indent && before.Trim().Length == 0)
-                before = before[..^Indent];
             _lines[Line] = before + parts[0] + after;
             Column = before.Length + parts[0].Length;
         }
@@ -173,14 +170,12 @@ internal sealed class CodeBuffer
         Version++;
     }
 
-    /// <summary>Enter: splits the line, the new one indented like this one, one step more after an opening brace.</summary>
-    public void NewLine()
+    /// <summary>Enter: splits the line, the new one indented like this one plus <paramref name="extraIndent"/> spaces.</summary>
+    public void NewLine(int extraIndent = 0)
     {
         DeleteSelection();
         string line = _lines[Line];
-        int indent = line.Length - line.TrimStart(' ').Length;
-        if (line[..Column].TrimEnd().EndsWith('{'))
-            indent += Indent;
+        int indent = line.Length - line.TrimStart(' ').Length + extraIndent;
         string after = line[Column..].TrimStart(' ');
         _lines[Line] = line[..Column].TrimEnd(' ');
         _lines.Insert(Line + 1, new string(' ', indent) + after);
@@ -307,6 +302,25 @@ internal sealed class CodeBuffer
         Version++;
     }
 
+    /// <summary>
+    /// Replaces columns [from, to) of any line, the caret kept on the same text: after the
+    /// change it moves with it, inside it it goes to its end. Drops the selection (a rename's other places).
+    /// </summary>
+    public void Edit(int line, int from, int to, string text)
+    {
+        string old = _lines[line];
+        from = Math.Clamp(from, 0, old.Length);
+        to = Math.Clamp(to, from, old.Length);
+        _lines[line] = old[..from] + text + old[to..];
+        Anchor = null;
+        if (Line == line && Column >= to)
+            Column += text.Length - (to - from);
+        else if (Line == line && Column > from)
+            Column = from + text.Length;
+        _wantedColumn = Column;
+        Version++;
+    }
+
     /// <summary>Puts the caret at a line and column, clamped to the text; extending keeps the selection's anchor.</summary>
     public void Place(int line, int column, bool extend = false)
     {
@@ -333,4 +347,4 @@ internal sealed class CodeBuffer
 }
 
 /// <summary>A copy of the buffer for undo: the text, and where the caret and selection were.</summary>
-internal readonly record struct CodeSnapshot(string Text, int Line, int Column, (int Line, int Column)? Anchor);
+public readonly record struct TextSnapshot(string Text, int Line, int Column, (int Line, int Column)? Anchor);

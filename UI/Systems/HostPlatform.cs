@@ -15,6 +15,15 @@ public static class HostPlatform
 {
     public static IKeyboardState Keyboard { get; private set; } = new NoKeyboard();
 
+    /// <summary>
+    /// The width the host's monospaced face really draws a text at a size, from
+    /// its font; null where no host has fonts (tests), and then estimates stand in.
+    /// </summary>
+    public static System.Func<string, int, float>? MeasureMono { get; set; }
+
+    /// <summary>Typing and the clipboard for UI that edits text itself; the host's once it has a window.</summary>
+    public static ITextEntry TextEntry { get; set; } = new NoTextEntry();
+
     /// <summary>Makes canvas items; only the host's loads textures and fonts into the UI.</summary>
     public static IVisualRidFactory Visuals { get; private set; } = new CanvasServerRidFactory();
 
