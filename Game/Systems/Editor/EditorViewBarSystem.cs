@@ -9,6 +9,9 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// The view controls in the bar at the top centre of the editor: the grid
 /// button and its drop-down (show the grid, snap to it), and the music button

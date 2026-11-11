@@ -6,6 +6,9 @@ using Xanadu.Tools.Animator.Commands;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): viewport: bone drags in the preview, until the viewport has its own design.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Routes preview pointer input: zoom and pan, hover, then the press to a grab
 /// and the following frames to a drag. What each of those does lives in

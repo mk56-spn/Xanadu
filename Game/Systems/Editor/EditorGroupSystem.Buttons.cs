@@ -8,6 +8,9 @@ using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>The overlay's buttons: adding, selecting, duplicating, muting and nudging effects.</summary>
 public sealed partial class EditorGroupSystem
 {

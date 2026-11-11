@@ -11,6 +11,9 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Rebuilds the bone, attachment, chain, effect and clip lists when the package changes and
 /// highlights the selected entries.

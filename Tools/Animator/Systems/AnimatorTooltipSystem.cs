@@ -7,6 +7,9 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Shows the <see cref="UiTooltip"/> of the hovered button just below the
 /// pointer, widening the panel to fit. It hides while the pointer is pressed

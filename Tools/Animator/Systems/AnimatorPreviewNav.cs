@@ -6,6 +6,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): viewport: preview pan and zoom, until the viewport has its own design.
+#pragma warning disable RS0030
+
 /// <summary>The preview's wheel zoom and middle-drag pan, which own no selection.</summary>
 public sealed class AnimatorPreviewNav(IWheelSource? wheel = null)
 {

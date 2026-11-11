@@ -1,0 +1,18 @@
+<Project>
+  <!--
+    Only the UI library reads the pointer and the wheel (BannedSymbols.txt).
+    Every other project of ours gets the banned-API analyzer with RS0030 as an
+    error; UI, its showcase, the tests and External are left alone.
+  -->
+  <PropertyGroup>
+    <XanaduBansPointer Condition="'$(XanaduBansPointer)' == ''">false</XanaduBansPointer>
+    <XanaduBansPointer Condition="'$(MSBuildProjectName)' == 'Xanadu' Or '$(MSBuildProjectName)' == 'Xanadu.Host' Or '$(MSBuildProjectName)' == 'Xanadu.HostCore' Or '$(MSBuildProjectName)' == 'Xanadu.AnimatorTool' Or '$(MSBuildProjectName)' == 'Xanadu.Labs' Or '$(MSBuildProjectName)' == 'Xanadu.DevTools' Or '$(MSBuildProjectName)' == 'Xanadu.Core' Or '$(MSBuildProjectName)' == 'Xanadu.Slang'">true</XanaduBansPointer>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(XanaduBansPointer)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(XanaduBansPointer)' == 'true'">
+    <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
+  </PropertyGroup>
+</Project>

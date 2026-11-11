@@ -8,6 +8,9 @@ using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>Dragging an effect's bar and its ends on the group timeline.</summary>
 public sealed partial class EditorGroupSystem
 {

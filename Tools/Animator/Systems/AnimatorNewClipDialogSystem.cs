@@ -7,6 +7,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Centres the NEW CLIP dialog over a dimmer, seeds its name and length from
 /// the current clip, keeps those defaults in step with the duplicate toggle,

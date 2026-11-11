@@ -4,6 +4,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Systems.Editor;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Moves the editor's view of the playfield: pans while the middle button is
 /// dragged (starting over the field area), zooms by the notches the overlay

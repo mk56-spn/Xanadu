@@ -7,6 +7,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Centres the FILE INFO popup over its dimmer while it is open, fills the
 /// readout under the path, and closes it on a click outside.

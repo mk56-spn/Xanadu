@@ -1,0 +1,16 @@
+# Only the UI library reads the pointer and the wheel. Everything else is told
+# what a press or a drag meant, through a UI concept (a timeline, a scroll view,
+# a slider). Passing a source on to a UI system is fine; reading it is not.
+# Applied by Directory.Build.props to every project outside UI and the tests.
+M:Xanadu.Systems.Input.IPointerInputSource.Read;Pointer input is the UI library's: describe the thing to the UI and handle what it reports (see UI/Systems/Timeline)
+P:Xanadu.Systems.Input.IWheelSource.Notches;Wheel input is the UI library's
+P:Xanadu.Systems.Input.IWheelSource.Control;Wheel input is the UI library's
+P:Xanadu.Systems.Input.IWheelSource.Shift;Wheel input is the UI library's
+M:Xanadu.Systems.Input.IWheelSource.TakeWheel;Wheel input is the UI library's
+M:Xanadu.Host.Input.HostPointer.Read;Pointer input is the UI library's
+P:Xanadu.Host.Input.HostPointer.Position;Pointer input is the UI library's
+P:Xanadu.Host.Input.HostPointer.LeftDown;Pointer input is the UI library's
+P:Xanadu.Host.Input.HostPointer.Notches;Wheel input is the UI library's
+P:Xanadu.Host.Input.HostPointer.Control;Wheel input is the UI library's
+P:Xanadu.Host.Input.HostPointer.Shift;Wheel input is the UI library's
+M:Xanadu.Host.Input.HostPointer.TakeWheel;Wheel input is the UI library's

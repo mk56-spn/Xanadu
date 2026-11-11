@@ -6,6 +6,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Systems.Editor;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// The wheel the UI left over: seeks the song, faster with Shift, and Ctrl zooms
 /// the field view about the pointer. A warning, the group overlay or a text field

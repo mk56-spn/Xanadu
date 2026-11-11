@@ -9,6 +9,9 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Right-clicking a track row in the timeline opens a menu to add a key at
 /// the clicked time, delete the key under the pointer, or select every key;

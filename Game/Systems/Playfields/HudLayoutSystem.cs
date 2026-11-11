@@ -11,6 +11,9 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>Applies saved HUD positions/visibility and edits them in play mode.</summary>
 public sealed class HudLayoutSystem(
     IRectCanvas canvas,

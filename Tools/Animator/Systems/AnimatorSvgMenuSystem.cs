@@ -9,6 +9,9 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// The ADD SVG picker. It lists every group of every SVG the project holds,
 /// built afresh the frame the picker opens, and stays beside the bone menu.

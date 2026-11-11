@@ -6,6 +6,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Systems.Scenes;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Pressing a carousel row: moving the pointer far enough drags the list under
 /// it and the selection follows the nearest level; letting go without moving is

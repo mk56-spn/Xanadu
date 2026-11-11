@@ -8,6 +8,9 @@ using Xanadu.Tools.Animator.Commands;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Places the clip length panel under the CONFIG button, shows the current
 /// clip's length in its numeric field, and commits a typed length when the

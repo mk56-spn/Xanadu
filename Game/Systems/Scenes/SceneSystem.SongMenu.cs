@@ -12,6 +12,9 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Scenes;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
     private const float SongMenuWidth = 200;

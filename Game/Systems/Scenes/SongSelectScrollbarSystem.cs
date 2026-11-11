@@ -6,6 +6,9 @@ using Xanadu.Systems.Input;
 
 namespace Xanadu.Systems.Scenes;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Dragging the two scrollbars on song select: the level list's moves the
 /// selection, the scores' scrolls their viewport. Presses come through each

@@ -8,6 +8,9 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Tools.Animator.Systems;
 
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
 /// <summary>
 /// Right-clicking a bone in the bone tree, or its label or joint in the
 /// preview, selects the bone and opens a menu to rename, reparent, add a child to or delete it. The menu
