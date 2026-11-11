@@ -156,8 +156,9 @@ pick where it starts. `F12` saves into `user://screenshots` on demand.
 **Tools.** `run-animator.sh`, `run-showcase.sh` and `run-labs.sh` take
 `--shot=<path>` too; `./run.sh` asks which to start.
 
-Screenshots and scratch files go under `screenshots/` (git-ignored) or the
-scratchpad, never into `Assets/`.
+Screenshots and scratch files go **outside the repo**: your session's
+scratchpad, or a temp folder. Never in the project folder, not even in
+git-ignored ones.
 
 ### When things break
 
