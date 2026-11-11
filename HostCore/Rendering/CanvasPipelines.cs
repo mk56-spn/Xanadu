@@ -12,12 +12,19 @@ using Shader = MoonWorks.Graphics.Shader;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
-internal sealed class CanvasEffect(Shader shader, CompiledShader compiled) : IDisposable
+internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, ComputePipeline? update = null) : IDisposable
 {
     public Shader Shader { get; } = shader;
     public CompiledShader Compiled { get; } = compiled;
 
-    public void Dispose() => Shader.Dispose();
+    /// <summary>A kept-state effect's once-a-frame <c>update</c>; null when it keeps none.</summary>
+    public ComputePipeline? Update { get; } = update;
+
+    public void Dispose()
+    {
+        Shader.Dispose();
+        Update?.Dispose();
+    }
 }
 
 /// <summary>
@@ -60,12 +67,12 @@ internal sealed class CanvasPipelines : IDisposable
             return Effect(material?.Shader ?? "");
 
         // Keyed by the code, not the name: two slots may share a name, and an edit makes a new effect.
-        string key = "source:" + source;
+        string key = (material.KeepsState ? "state:" : "source:") + source;
         if (!_effects.TryGetValue(key, out CanvasEffect? effect))
         {
             try
             {
-                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source));
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
             }
             catch (Exception exception)
             {
@@ -120,9 +127,19 @@ internal sealed class CanvasPipelines : IDisposable
             Format = ShaderFormat.SPIRV,
             Stage = ShaderStage.Fragment,
             NumSamplers = (uint)compiled.Samplers.Length,
+            NumStorageBuffers = (uint)compiled.StorageBuffers,
             NumUniformBuffers = compiled.UniformBuffers,
         });
-        return new CanvasEffect(shader, compiled);
+        ComputePipeline? update = compiled.Update is { } step
+            ? ComputePipeline.Create(_device, step.Spirv, "main", new ComputePipelineCreateInfo
+            {
+                Format = ShaderFormat.SPIRV,
+                NumReadWriteStorageBuffers = 1,
+                NumUniformBuffers = step.UniformBuffers,
+                ThreadCountX = 1, ThreadCountY = 1, ThreadCountZ = 1,
+            })
+            : null;
+        return new CanvasEffect(shader, compiled, update);
     }
 
     /// <summary>
@@ -132,7 +149,9 @@ internal sealed class CanvasPipelines : IDisposable
     /// </summary>
     public void Forget(Xanadu.Systems.Canvas.CanvasMaterial material)
     {
-        if (material.Source is not { } source || !_effects.Remove("source:" + source, out CanvasEffect? effect) || effect is null)
+        Forgotten?.Invoke(material);
+        if (material.Source is not { } source ||
+            !_effects.Remove((material.KeepsState ? "state:" : "source:") + source, out CanvasEffect? effect) || effect is null)
             return;
 
         foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
@@ -145,6 +164,9 @@ internal sealed class CanvasPipelines : IDisposable
 
         effect.Dispose();
     }
+
+    /// <summary>Raised when a material is forgotten, so what the renderer keeps for it (its state) can go too.</summary>
+    public event Action<Xanadu.Systems.Canvas.CanvasMaterial>? Forgotten;
 
     /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
     public void Warm(Xanadu.Systems.Canvas.CanvasMaterial material) =>

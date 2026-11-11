@@ -23,7 +23,7 @@ namespace Xanadu.Labs.Experiments;
 /// right. Slang's problems mark their lines; calls into the library show their
 /// parameter names as inlay hints. The text saves itself to a git-ignored file.
 /// </summary>
-internal sealed class ShaderEditor : ILabExperiment
+internal sealed class ShaderEditor(string? file = null) : ILabExperiment
 {
     private const string WorkingCopy = "res://Tools/Labs/Playground/editor.slang";
     private const string Template = "res://Tools/Labs/Playground/editor.template.slang";
@@ -36,14 +36,18 @@ internal sealed class ShaderEditor : ILabExperiment
 
     public string[] Notes => [];
 
-    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area);
+    public ILabStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area, WorkingFile());
 
-    private static string WorkingFile()
+    /// <summary><c>--editor-file</c>, or the lab's own working copy, made from the template the first time.</summary>
+    private string WorkingFile()
     {
-        string file = GamePaths.Globalize(WorkingCopy);
-        if (!File.Exists(file))
-            File.Copy(GamePaths.Globalize(Template), file);
-        return file;
+        if (file is not null)
+            return file;
+
+        string copy = GamePaths.Globalize(WorkingCopy);
+        if (!File.Exists(copy))
+            File.Copy(GamePaths.Globalize(Template), copy);
+        return copy;
     }
 
     private sealed class Stage : ILabStage
@@ -86,6 +90,7 @@ internal sealed class ShaderEditor : ILabExperiment
         private readonly SlangHints _hints;
         private readonly SlangCompletions _completions;
         private readonly CompletionPopup _popup;
+        private readonly HoverPopup _hover;
         private readonly string _file;
         private readonly Dictionary<KeyCode, float> _held = new();
         private List<SlangProblem> _shownProblems = [];
@@ -114,7 +119,7 @@ internal sealed class ShaderEditor : ILabExperiment
         private Color _statusColour = Palette.TextMuted;
         private Task<(int Version, string Source, ShaderParam[] Params, string? Error, long Ms)>? _compiling;
 
-        public Stage(LabContext context, Handle parent, Rect2 area)
+        public Stage(LabContext context, Handle parent, Rect2 area, string workingFile)
         {
             _context = context;
             float codeWidth = area.Size.X - SideWidth - Gap;
@@ -140,11 +145,12 @@ internal sealed class ShaderEditor : ILabExperiment
             _completions = SlangCompletions.FromSources(
                 Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [],
                 Xanadu.Rendering.ShaderConstants.Library,
-                LabShaderValues.All.Select(value => (value.Name, value.Type)));
-            // Made last, so the list draws over the code and everything round it.
+                LabShaderValues.All.Select(value => (value.Name, value.Type, LabShaderValues.Note(value.Name))));
+            // Made last, so the boxes draw over the code and everything round it; the list over a hover box.
+            _hover = new HoverPopup(canvas, Child(parent), codeArea, _view.CharWidth);
             _popup = new CompletionPopup(canvas, Child(parent), codeArea);
 
-            _file = WorkingFile();
+            _file = workingFile;
             _buffer.Load(File.ReadAllText(_file));
             _history = new CodeHistory(_buffer);
             context.ClaimTyping(true);
@@ -181,6 +187,8 @@ internal sealed class ShaderEditor : ILabExperiment
             }
             else
                 _sinceCaretMove += frame.Delta;
+            bool quiet = !_popup.Open && !frame.Held && _buffer.Version == version;
+            _hover.Follow(_buffer, _completions, quiet ? _view.Under(_buffer, _hints, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
             Finish();
             if (_compiling is null && _compiledVersion != _buffer.Version && _sinceEdit >= Settle)
@@ -204,6 +212,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
                 _shownProblems));
             _tuning.Draw();
+            _hover.Draw();
             _popup.Draw(_view.CaretRect);
         }
 
@@ -386,7 +395,7 @@ internal sealed class ShaderEditor : ILabExperiment
                 {
                     // What the lab provides is declared for the code that uses it; the file keeps what was typed.
                     string full = LabShaderValues.Declare(source);
-                    CompiledShader compiled = SlangShaders.CompileEffectBody(Label, full);
+                    CompiledShader compiled = SlangShaders.CompileEffectBody(Label, full, keepsState: true);
                     return (version, full, compiled.Params, (string?)null, clock.ElapsedMilliseconds);
                 }
                 catch (Exception exception)
@@ -414,7 +423,7 @@ internal sealed class ShaderEditor : ILabExperiment
 
             _shownProblems = WithLint([]);
             CanvasMaterial? previous = _material;
-            _material = CanvasMaterial.FromSource(Label, source);
+            _material = CanvasMaterial.FromSource(Label, source, keepsState: true);
             CanvasServer.Current.SetMaterial(_previewItem, _material);
             _wanted = LabShaderValues.Wanted(Array.ConvertAll(declared, param => param.Name));
             _tuning.Use(declared);

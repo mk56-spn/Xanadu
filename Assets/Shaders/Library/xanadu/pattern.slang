@@ -1,7 +1,7 @@
 // xanadu.pattern: lines, checkers and tiles in pixel units, all under
 // `pattern.`. Feed them ItemInput.centred or .local.
 //
-//     pattern.columns(p, 2.0, 24.0)   pattern.checker(p, 16.0)   pattern.tile(p, 64.0)
+//     pattern.grid(p, 1.0, 40.0)   pattern.columns(p, 2.0, 24.0)   pattern.checker(p, 16.0)   pattern.tile(p, 64.0)
 module pattern;
 import xanadu.math;
 
@@ -14,6 +14,22 @@ public struct Tile
 
 public namespace pattern
 {
+    /// Grid lines `width` pixels thick, `spacing` apart, with a line through
+    /// the origin (the quad's centre, for i.canvas.centred): 1 on a line, 0 off it.
+    public float grid(float2 p, float width, float2 spacing)
+    {
+        float2 d = abs(p - spacing * round(p / spacing));
+        float2 aa = fwidth(p);
+        float2 on = smoothstep(width * 0.5 + aa * 0.5, width * 0.5 - aa * 0.5, d);
+        return max(on.x, on.y);
+    }
+
+    /// Square grid cells.
+    public float grid(float2 p, float width, float spacing)
+    {
+        return grid(p, width, float2(spacing));
+    }
+
     /// Vertical lines `width` thick, `spacing` apart.
     public float columns(float2 p, float width, float spacing)
     {

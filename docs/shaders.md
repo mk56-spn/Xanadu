@@ -20,8 +20,9 @@ examples are in `Tools/Labs/Examples/`.
 10. [Patterns, gradients, easing, curves](#10-patterns-gradients-easing-curves)
 11. [Maths and random numbers](#11-maths-and-random-numbers)
 12. [Reading textures and the screen](#12-reading-textures-and-the-screen)
-13. [Trying things out](#13-trying-things-out)
-14. [Pitfalls](#14-pitfalls)
+13. [Keeping state between frames](#13-keeping-state-between-frames)
+14. [Trying things out](#14-trying-things-out)
+15. [Pitfalls](#15-pitfalls)
 
 ---
 
@@ -90,8 +91,9 @@ is how shapes draw without being given a point.
 names declares it for you and the lab fills it every frame:
 
 - `time`: seconds since the lab started
-- `mousePos`: the pointer, in `i.centred`'s space
-- `mouse`: the pointer, 0..1 on the stage
+- `mouse`: the pointer, in pixels from the centre like `i.canvas.centred`,
+  so `s.move(mouse)` puts a shape under it
+- `mouseUv`: the pointer, 0..1 on the stage
 - `resolution`: the stage's size in pixels
 
 In a level, use `i.time`.
@@ -226,7 +228,7 @@ distances instead (§8).
 
 Each call turns a shape into a 0..1 coverage at the pixel. Leave the point
 out and it's the pixel being shaded (`i.canvas.centred`). Pass one to draw
-somewhere else, e.g. `s.fill(i.canvas.centred - mousePos)` to follow the
+somewhere else, e.g. `s.fill(i.canvas.centred - mouse)` to follow the
 pointer.
 
 | Call | Gives |
@@ -292,7 +294,8 @@ return c;
 
 | Call | Gives |
 |---|---|
-| `pattern.columns(p, width, spacing)` / `pattern.rows(…)` | lines, 0..1 |
+| `pattern.grid(p, width, spacing)` | grid lines `width` pixels thick, 0..1, with lines through the centre. `spacing` can be a `float2` for oblong cells. |
+| `pattern.columns(p, width, spacing)` / `pattern.rows(…)` | lines, 0..1. They sit between multiples of `spacing`, and `width` is half their thickness. |
 | `pattern.checker(p, size)` | 0 or 1 squares |
 | `pattern.checkerSplit(p, size, levels)` | a checker whose squares split again, 0 to 3 times |
 | `pattern.tile(p, size)` | a `Tile`: `.local` is the point within its tile (centred there), `.id` is which tile. Draw one shape at `.local` and it repeats; seed randomness with `.id`. |
@@ -349,7 +352,43 @@ float2 push = normalize(i.canvas.centred) * sin(length(i.canvas.centred) / 20 - 
 return sampleScreen(i.screenUv + push / frame.screen);
 ```
 
-## 13. Trying things out
+## 13. Keeping state between frames
+
+`shade` runs once per pixel and forgets everything when the frame ends. To keep
+something from frame to frame, such as a light that trails the pointer,
+declare a `State` struct and an `update`:
+
+```slang
+struct State { float2 light; };
+
+void update(inout State s, float dt)
+{
+    s.light = lerp(s.light, mouse, 1 - exp(-dt * 8));
+}
+
+float4 shade(ItemInput i)
+{
+    float d = distance(i.canvas.centred, state.light);
+    return colour(0, 0, 0, smoothstep(100, 140, d));
+}
+```
+
+- `update` runs **once a frame**, on one GPU thread, before the item draws.
+  Every pixel of `shade` then reads the same result as `state`.
+- `dt` is the frame's length in seconds. Ease with `1 - exp(-dt * rate)`,
+  not a fixed fraction, so it feels the same at any frame rate.
+- `update` sees the same uniforms as `shade` (`mouse`, `time`, sliders).
+- State starts zeroed and may take up to 1 KB. Each material keeps its own.
+  A recompile starts it again from zero.
+- If you also bind textures, give them `[[vk::binding(n, 2)]]` numbers from
+  2 up, with no gaps.
+- **Lab only for now.** State built up frame by frame can't be recreated when a
+  song seeks, so a level shader with an `update` is an error until levels have
+  an answer for that.
+
+See `Tools/Labs/Examples/flashlight.slang`.
+
+## 14. Trying things out
 
 - **Shader playground** (`./run-labs.sh`, first tab): edit
   `Tools/Labs/Playground/playground.slang` in any editor. Every save
@@ -363,9 +402,9 @@ return sampleScreen(i.screenUv + push / frame.screen);
   - a slider for every uniform
   - selection, copy and paste, undo and redo.
 - **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
-  metaballs, a shape badge and a screen ripple, each a slot shader.
+  metaballs, a shape badge, a screen ripple and a flashlight, each a slot shader.
 
-## 14. Pitfalls
+## 15. Pitfalls
 
 - **Locals start as noise.** `colour c;` isn't black or transparent: it's
   whatever was left over, and the pixel comes out garbled. Give every local a
@@ -387,5 +426,8 @@ return sampleScreen(i.screenUv + push / frame.screen);
   `min(fwidth(a), fwidth(frac(a + 0.5)))` (see `tunnel.slang`).
 - **A variable named `colour`** is legal but hides the type for the rest of
   the function.
+- **`anchor` isn't for the mouse.** Anchors are fractions of the quad;
+  `mouse` is pixels, so `anchor(mouse)` throws the shape off the stage. Use
+  `move(mouse)`. The shader editor warns about it (XS004).
 - **A shape's anchor follows the quad.** `anchor(…)` reads the quad's size when
   it's called, so call it inside `shade`, not at file level.

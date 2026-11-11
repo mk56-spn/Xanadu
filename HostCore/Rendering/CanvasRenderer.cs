@@ -42,6 +42,10 @@ internal sealed class CanvasRenderer : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct FrameUniforms { public float Width, Height, Time, ItemPremultiplied; }
 
+    /// <summary>A kept-state effect's update's uniform buffer 0 (SlangShaders.WrapUpdate).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct UpdateUniforms { public float Dt, Time, Pad0, Pad1; }
+
     /// <summary>One item's draws in a job, or (with <see cref="Group"/>) a buffered group's composite.</summary>
     private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip, Job? Group = null);
 
@@ -87,6 +91,11 @@ internal sealed class CanvasRenderer : IDisposable
     private TransferBuffer? _transfer;
     private uint _capacity;
 
+    /// <summary>Each kept-state material's state, made zeroed the first frame it is drawn.</summary>
+    private readonly Dictionary<CanvasMaterial, Buffer> _states = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<CanvasMaterial> _updated = new(ReferenceEqualityComparer.Instance);
+    private readonly TransferBuffer _zeros;
+
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
     public Dictionary<ulong, Texture> Textures { get; } = new();
 
@@ -127,6 +136,15 @@ internal sealed class CanvasRenderer : IDisposable
 
         // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
         _sampler = Sampler.Create(device, SamplerCreateInfo.LinearClamp);
+
+        _zeros = TransferBuffer.Create<byte>(device, "state zeros", TransferBufferUsage.Upload, SlangShaders.MaxStateBytes);
+        _zeros.Map<byte>(cycle: false).Clear();
+        _zeros.Unmap();
+        _pipelines.Forgotten += material =>
+        {
+            if (_states.Remove(material, out Buffer? state))
+                state.Dispose();
+        };
     }
 
     /// <summary>Makes a target the size of the frame, for an offscreen root or a group.</summary>
@@ -152,9 +170,11 @@ internal sealed class CanvasRenderer : IDisposable
         using (commands.Scope("upload vertices"))
             Upload(commands);
 
-        // The particles move by the frame's time, before any pass draws them.
+        // The particles and kept state move by the frame's time, before any pass draws them.
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _lastTime = time;
+        using (commands.Scope("shader updates"))
+            UpdateStates(commands, dt, time);
         using (commands.Scope("particles step"))
             Particles.Step(commands, dt);
 
@@ -469,6 +489,8 @@ internal sealed class CanvasRenderer : IDisposable
             }
 
             pass.BindFragmentSamplers(samplers[..count]);
+            if (effect.Compiled.StorageBuffers > 0 && batch.Material is { } kept && _states.TryGetValue(kept, out Buffer? state))
+                pass.BindFragmentStorageBuffers(state);
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, batch.Material, batch.Owner?.InstanceValues);
             pass.DrawPrimitives(batch.Count, 1, batch.Start, 0);
@@ -476,6 +498,43 @@ internal sealed class CanvasRenderer : IDisposable
         }
 
         commands.EndRenderPass(pass);
+    }
+
+    /// <summary>
+    /// Runs each kept-state effect's <c>update</c> once, on one GPU thread, for
+    /// every material drawn this frame, so all its pixels read the same state.
+    /// </summary>
+    private void UpdateStates(CommandBuffer commands, float dt, float time)
+    {
+        _updated.Clear();
+        foreach (Batch batch in _batches)
+        {
+            if (batch.Material is not { KeepsState: true } material || !_updated.Add(material))
+                continue;
+
+            CanvasEffect effect = _pipelines.Effect(material);
+            if (effect.Update is not { } update || effect.Compiled.Update is not { } compiled)
+                continue;
+
+            if (!_states.TryGetValue(material, out Buffer? state))
+            {
+                state = Buffer.Create<byte>(_device, "shader state",
+                    BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
+                    SlangShaders.MaxStateBytes);
+                CopyPass copy = commands.BeginCopyPass();
+                copy.UploadToBuffer(_zeros, state, cycle: false);
+                commands.EndCopyPass(copy);
+                _states[material] = state;
+            }
+
+            commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time });
+            if (compiled.ParamsSize > 0)
+                PushParams(commands, compiled, material, null, compute: true);
+            ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
+            pass.BindComputePipeline(update);
+            pass.Dispatch(1, 1, 1);
+            commands.EndComputePass(pass);
+        }
     }
 
     private void Begin(RenderPass pass)
@@ -497,7 +556,7 @@ internal sealed class CanvasRenderer : IDisposable
     }
 
     /// <summary>Packs an effect's values (its defaults, then the material's, then the item's own) into uniform buffer 1.</summary>
-    private static unsafe void PushParams(CommandBuffer commands, CompiledShader compiled, CanvasMaterial? material, Dictionary<string, Vector4>? instance)
+    private static unsafe void PushParams(CommandBuffer commands, CompiledShader compiled, CanvasMaterial? material, Dictionary<string, Vector4>? instance, bool compute = false)
     {
         Span<byte> bytes = stackalloc byte[compiled.ParamsSize];
         bytes.Clear();
@@ -521,7 +580,12 @@ internal sealed class CanvasRenderer : IDisposable
         }
 
         fixed (byte* data = bytes)
-            commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
+        {
+            if (compute)
+                commands.PushComputeUniformData(data, (uint)bytes.Length, 1);
+            else
+                commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
+        }
     }
 
     private void EnsureCapacity(uint count)
@@ -567,6 +631,9 @@ internal sealed class CanvasRenderer : IDisposable
         _screen.Dispose();
         _mips.Dispose();
         _sampler.Dispose();
+        _zeros.Dispose();
+        foreach (Buffer state in _states.Values)
+            state.Dispose();
         foreach (Texture target in _groupTargets)
             target.Dispose();
         _buffer?.Dispose();

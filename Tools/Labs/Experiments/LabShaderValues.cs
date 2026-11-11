@@ -16,13 +16,13 @@ namespace Xanadu.Labs.Experiments;
 internal static partial class LabShaderValues
 {
     /// <summary>What the values are made from this frame.</summary>
-    public readonly record struct Provided(Vector2 MousePos, float Time, Vector2 Mouse, Vector2 Resolution);
+    public readonly record struct Provided(Vector2 Mouse, float Time, Vector2 MouseUv, Vector2 Resolution);
 
     public static readonly (string Name, string Type, Func<Provided, Vector4> Value)[] All =
     [
-        ("mousePos", "float2", p => new Vector4(p.MousePos.X, p.MousePos.Y, 0, 0)),
-        ("time", "float", p => new Vector4(p.Time, 0, 0, 0)),
         ("mouse", "float2", p => new Vector4(p.Mouse.X, p.Mouse.Y, 0, 0)),
+        ("time", "float", p => new Vector4(p.Time, 0, 0, 0)),
+        ("mouseUv", "float2", p => new Vector4(p.MouseUv.X, p.MouseUv.Y, 0, 0)),
         ("resolution", "float2", p => new Vector4(p.Resolution.X, p.Resolution.Y, 0, 0)),
     ];
 
@@ -30,11 +30,19 @@ internal static partial class LabShaderValues
     public static readonly string[] Notes =
     [
         "Use any of these and the lab fills it every frame:",
-        "  mousePos: the pointer in i.centred's space",
+        "  mouse: the pointer, pixels from the stage's centre (like i.canvas.centred)",
         "  time: seconds since the lab started",
-        "  mouse: the pointer, 0..1 on the stage",
+        "  mouseUv: the pointer, 0..1 on the stage",
         "  resolution: the stage's size in pixels",
     ];
+
+    /// <summary>What <see cref="Notes"/> says a value is, for hovering its name; null for one it doesn't list.</summary>
+    public static string? Note(string name)
+    {
+        string prefix = "  " + name + ": ";
+        string? line = Array.Find(Notes, note => note.StartsWith(prefix, StringComparison.Ordinal));
+        return line is null ? null : char.ToUpperInvariant(line[prefix.Length]) + line[(prefix.Length + 1)..] + ".";
+    }
 
     /// <summary>
     /// The source with a uniform added for each provided value it uses but
@@ -64,14 +72,14 @@ internal static partial class LabShaderValues
     /// <summary>Sets the wanted values on a material for a stage drawn in <paramref name="area"/>.</summary>
     public static void Apply(CanvasMaterial material, int[] wanted, Rect2 area, Vector2 pointer, float time)
     {
-        Vector2 mouse = (pointer - area.Position) / area.Size;
-        mouse = new Vector2(Mathf.Clamp(mouse.X, 0, 1), Mathf.Clamp(mouse.Y, 0, 1));
-        var provided = new Provided((mouse - new Vector2(0.5f, 0.5f)) * area.Size, time, mouse, area.Size);
+        Vector2 uv = (pointer - area.Position) / area.Size;
+        uv = new Vector2(Mathf.Clamp(uv.X, 0, 1), Mathf.Clamp(uv.Y, 0, 1));
+        var provided = new Provided((uv - new Vector2(0.5f, 0.5f)) * area.Size, time, uv, area.Size);
         foreach (int index in wanted)
             material.Set(All[index].Name, All[index].Value(provided));
     }
 
-    /// <summary>" · lab sets mousePos, time", or empty.</summary>
+    /// <summary>" · lab sets mouse, time", or empty.</summary>
     public static string Describe(int[] wanted) =>
         wanted.Length == 0 ? "" : " · lab sets " + string.Join(", ", wanted.Select(index => All[index].Name));
 }

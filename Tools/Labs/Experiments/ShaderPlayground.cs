@@ -40,6 +40,8 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
         "Edit the file below in any editor: every save",
         "recompiles and redraws. It is a level shader slot:",
         "uniforms and float4 shade(ItemInput i); import xanadu.",
+        "Keep state across frames with struct State and",
+        "void update(inout State s, float dt); shade reads state.",
         .. LabShaderValues.Notes,
     ];
 
@@ -165,7 +167,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
                 var clock = Stopwatch.StartNew();
                 try
                 {
-                    CompiledShader compiled = SlangShaders.CompileEffectBody(Name, LabShaderValues.Declare(source));
+                    CompiledShader compiled = SlangShaders.CompileEffectBody(Name, LabShaderValues.Declare(source), keepsState: true);
                     string[] names = Array.ConvertAll(compiled.Params, param => param.Name);
                     return (source, names, (string?)null, clock.ElapsedMilliseconds);
                 }
@@ -194,7 +196,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
 
             // The renderer compiles it again for itself, from the disk cache this compile just filled.
             CanvasMaterial previous = _material!;
-            _material = CanvasMaterial.FromSource(Name, LabShaderValues.Declare(source));
+            _material = CanvasMaterial.FromSource(Name, LabShaderValues.Declare(source), keepsState: true);
             CanvasServer.Current.SetMaterial(_item, _material);
             _wanted = LabShaderValues.Wanted(declared);
             if (previous is not null)

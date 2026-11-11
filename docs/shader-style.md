@@ -4,7 +4,7 @@ The house style for Xanadu shaders (level shader slots, the playground, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** XS003 is checked: the shader editor shows it as a warning
+**Status:** XS003 and XS004 are checked: the shader editor shows them as warnings
 (`Tools/Labs/Editor/SlangLint.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
@@ -98,4 +98,26 @@ c.paint(Circle(40), colours.gold);
 // fine
 colour c = colours.transparent;
 c.paint(Circle(40), colours.gold);
+```
+
+## XS004 · `mouse` passed to `anchor` (warning) · checked
+
+**Flags** `anchor(…)` or `anchored(…)` whose argument uses `mouse`:
+`s.anchor(mouse)`, `s.anchor(mouse + anchor.topLeft)`.
+
+**Why** An anchor is a fraction of the quad's size from its centre
+(`anchor.topLeft` is `(-0.5, -0.5)`). `mouse` is in pixels from the centre, so
+`anchor(mouse)` asks for hundreds of quad widths and the shape lands far off
+the stage.
+
+**Fix** Move by pixels: `s.move(mouse)`, or `s.moved(mouse)` for a copy.
+
+**Not flagged** `mouseUv`, and anchors that don't mention `mouse`.
+
+```slang
+// flagged
+triangle.anchor(mouse);
+
+// fine
+triangle.move(mouse);
 ```

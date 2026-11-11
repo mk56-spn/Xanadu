@@ -40,8 +40,15 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     public string? Source { get; private init; }
 
     /// <summary>A material for a level shader's code; <paramref name="name"/> names it in errors and caches.</summary>
-    public static CanvasMaterial FromSource(string name, string source, BlendMode blend = BlendMode.Mix) =>
-        new(name, blend) { Source = source };
+    /// <param name="keepsState">Lets the code keep state with <c>update</c> (docs/shaders.md); the lab only, for now.</param>
+    public static CanvasMaterial FromSource(string name, string source, BlendMode blend = BlendMode.Mix, bool keepsState = false) =>
+        new(name, blend) { Source = source, KeepsState = keepsState };
+
+    /// <summary>
+    /// Whether the code may keep state between frames (an <c>update</c> and its
+    /// <c>State</c>). Each material keeps its own, starting zeroed.
+    /// </summary>
+    public bool KeepsState { get; private init; }
 
     public BlendMode Blend { get; } = blend;
 

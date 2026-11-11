@@ -12,6 +12,9 @@ namespace Xanadu.Labs.Editor;
 /// use reads it. Slang leaves locals as whatever was there, so the result is
 /// noise. A first use that assigns it, or one of its fields (<c>c = …</c>,
 /// <c>t.id = …</c>), is fine.</item>
+/// <item>XS004: <c>mouse</c> passed to <c>anchor</c>/<c>anchored</c>. Anchors are
+/// fractions of the quad; <c>mouse</c> is pixels, so the shape lands far off the
+/// stage. <c>move(mouse)</c> is what was meant.</item>
 /// </list>
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
@@ -23,6 +26,12 @@ internal static partial class SlangLint
 
     [GeneratedRegex(@"^\s*(?:(?:\.\s*\w+)|(?:\[[^\]]*\]))*\s*=(?!=)")]
     private static partial Regex AssignedAfter();
+
+    [GeneratedRegex(@"\.\s*anchor(?:ed)?\s*\(")]
+    private static partial Regex AnchorCall();
+
+    [GeneratedRegex(@"(?<![\w.])mouse\b")]
+    private static partial Regex Mouse();
 
     /// <param name="typeNames">Types a local can be declared with: Slang's and the library's.</param>
     public static List<SlangProblem> Check(string source, IReadOnlySet<string> typeNames)
@@ -53,7 +62,36 @@ internal static partial class SlangLint
             }
         }
 
+        problems.AddRange(MouseAnchors(code));
+        problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
         return problems;
+    }
+
+    /// <summary>XS004: each <c>anchor(…)</c> or <c>anchored(…)</c> whose argument uses <c>mouse</c>.</summary>
+    private static IEnumerable<SlangProblem> MouseAnchors(string code)
+    {
+        foreach (Match call in AnchorCall().Matches(code))
+        {
+            int start = call.Index + call.Length, open = 1, i = start;
+            for (; i < code.Length && open > 0; i++)
+            {
+                if (code[i] == '(')
+                    open++;
+                else if (code[i] == ')')
+                    open--;
+            }
+
+            Match mouse = Mouse().Match(code[start..Math.Max(start, i - 1)]);
+            if (!mouse.Success)
+                continue;
+
+            string method = code.Substring(call.Index, call.Length).Contains("anchored") ? "moved" : "move";
+            (int line, int column) = Place(code, start + mouse.Index);
+            yield return new SlangProblem(
+                line, column,
+                $"XS004 · anchor takes a fraction of the quad, but mouse is in pixels; use {method}(mouse)",
+                Warning: true);
+        }
     }
 
     /// <summary>Each declared name, with its place in the source.</summary>

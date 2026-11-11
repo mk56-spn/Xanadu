@@ -33,7 +33,7 @@ internal sealed class EditorChrome
     private static readonly string[] Help =
     [
         "shade(ItemInput i) returns the pixel; import xanadu for shapes, colours., ease. …",
-        "Use time, mousePos, mouse or resolution and the lab fills it; no need to declare them.",
+        "Use time, mouse, mouseUv or resolution and the lab fills it; no need to declare them.",
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
     ];
 

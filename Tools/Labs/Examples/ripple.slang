@@ -7,7 +7,7 @@ import xanadu;
 
 float4 shade(ItemInput i)
 {
-    float2 fromPointer = i.canvas.centred - mousePos;
+    float2 fromPointer = i.canvas.centred - mouse;
     float r = length(fromPointer);
     float2 outward = r > 0 ? fromPointer / r : float2(0);
 

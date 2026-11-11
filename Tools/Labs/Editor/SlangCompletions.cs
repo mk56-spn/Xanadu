@@ -19,8 +19,23 @@ internal enum CompletionKind
     Variable,
 }
 
-/// <summary>One thing completion offers: its name, what it is, a short signature or type, and a colour for colour constants.</summary>
-internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null);
+/// <summary>
+/// One thing completion offers: its name, what it is, a short signature or type, a colour for colour
+/// constants, and what its <c>///</c> comment says (paragraphs and code lines split by '\n'), for hovering.
+/// </summary>
+internal readonly record struct Completion(string Name, CompletionKind Kind, string Detail, Vector4? Swatch = null, string? Doc = null)
+{
+    /// <summary>How hovering names it: a call with its signature, a value with its type first.</summary>
+    public string Header => Kind switch
+    {
+        CompletionKind.Function or CompletionKind.Method => Name + Detail,
+        CompletionKind.Type when Detail.StartsWith('(') => Name + Detail,
+        CompletionKind.Type => Detail + " " + Name,
+        CompletionKind.EnumValue => Detail + "." + Name,
+        CompletionKind.Namespace => "namespace " + Name,
+        _ => Detail + " " + Name,
+    };
+}
 
 /// <summary>
 /// Primitive completion from the shader library's own source. After a dot:
@@ -45,6 +60,9 @@ internal sealed partial class SlangCompletions
 
     /// <summary>Field and property types by struct, so a chain can walk on (ItemInput.canvas → Canvas).</summary>
     private readonly Dictionary<string, Dictionary<string, string>> _memberTypes = new(StringComparer.Ordinal);
+
+    /// <summary>Every declaration by scope ("" for top level) and name, overloads included, for hovering.</summary>
+    private readonly Dictionary<(string Scope, string Name), List<Completion>> _declared = new();
 
     /// <summary>The interfaces each struct says it implements.</summary>
     private readonly Dictionary<string, List<string>> _interfaces = new(StringComparer.Ordinal);
@@ -110,24 +128,57 @@ internal sealed partial class SlangCompletions
         "static", "uniform", "in", "out", "inout", "struct", "import", "true", "false",
     ];
 
-    /// <summary>Slang's common intrinsics, with their usual parameters.</summary>
-    private static readonly (string Name, string Detail)[] Intrinsics =
+    /// <summary>Slang's common intrinsics, with their usual parameters and what they do. Vectors work per component unless said.</summary>
+    private static readonly (string Name, string Detail, string Doc)[] Intrinsics =
     [
-        ("abs", "(x)"), ("acos", "(x)"), ("asin", "(x)"), ("atan", "(x)"), ("atan2", "(y, x)"), ("ceil", "(x)"),
-        ("clamp", "(x, min, max)"), ("cos", "(x)"), ("cross", "(a, b)"), ("ddx", "(x)"), ("ddy", "(x)"),
-        ("degrees", "(radians)"), ("distance", "(a, b)"), ("dot", "(a, b)"), ("exp", "(x)"), ("exp2", "(x)"),
-        ("floor", "(x)"), ("fmod", "(x, y)"), ("frac", "(x)"), ("fwidth", "(x)"), ("length", "(v)"),
-        ("lerp", "(a, b, t)"), ("log", "(x)"), ("log2", "(x)"), ("max", "(a, b)"), ("min", "(a, b)"),
-        ("mul", "(a, b)"), ("normalize", "(v)"), ("pow", "(x, y)"), ("radians", "(degrees)"),
-        ("reflect", "(i, n)"), ("round", "(x)"), ("rsqrt", "(x)"), ("saturate", "(x)"), ("sign", "(x)"),
-        ("sin", "(x)"), ("smoothstep", "(edge0, edge1, x)"), ("sqrt", "(x)"), ("step", "(edge, x)"),
-        ("tan", "(x)"), ("tanh", "(x)"), ("trunc", "(x)"),
+        ("abs", "(x)", "x without its sign."),
+        ("acos", "(x)", "The angle in radians whose cosine is x (x in -1..1); 0 to π."),
+        ("asin", "(x)", "The angle in radians whose sine is x (x in -1..1); -π/2 to π/2."),
+        ("atan", "(x)", "The angle in radians whose tangent is x; -π/2 to π/2. For a direction's angle use atan2."),
+        ("atan2", "(y, x)", "The angle of the direction (x, y) in radians, -π to π, measured from +x. Note y comes first."),
+        ("ceil", "(x)", "The smallest whole number not below x."),
+        ("clamp", "(x, min, max)", "x held between min and max."),
+        ("cos", "(x)", "Cosine of x radians."),
+        ("cross", "(a, b)", "The cross product of two float3s: a vector at right angles to both."),
+        ("ddx", "(x)", "How much x changes to the next pixel across. Neighbouring pixels share it (2×2 blocks)."),
+        ("ddy", "(x)", "How much x changes to the next pixel down. Neighbouring pixels share it (2×2 blocks)."),
+        ("degrees", "(radians)", "Radians turned into degrees."),
+        ("distance", "(a, b)", "How far apart two points are: length(a - b)."),
+        ("dot", "(a, b)", "The dot product: the sum of a × b component by component. For unit vectors, the cosine of the angle between them."),
+        ("exp", "(x)", "e to the power x."),
+        ("exp2", "(x)", "2 to the power x."),
+        ("floor", "(x)", "The largest whole number not above x."),
+        ("fmod", "(x, y)", "The remainder of x / y, with x's sign (so negative x gives a negative result). The library's mod() wraps instead."),
+        ("frac", "(x)", "The part of x after the point: x - floor(x), always 0 to 1."),
+        ("fwidth", "(x)", "abs(ddx(x)) + abs(ddy(x)): how much x changes over one pixel. What edges are smoothed over."),
+        ("length", "(v)", "A vector's length."),
+        ("lerp", "(a, b, t)", "From a to b by t: a at 0, b at 1, a + (b - a) × t. Not held to 0..1."),
+        ("log", "(x)", "The natural logarithm of x."),
+        ("log2", "(x)", "The base 2 logarithm of x."),
+        ("max", "(a, b)", "The larger of a and b."),
+        ("min", "(a, b)", "The smaller of a and b."),
+        ("mul", "(a, b)", "Matrix product: a matrix times a vector, a vector times a matrix, or two matrices."),
+        ("normalize", "(v)", "v scaled to length 1, pointing the same way. Undefined for a zero vector."),
+        ("pow", "(x, y)", "x to the power y. Undefined for negative x."),
+        ("radians", "(degrees)", "Degrees turned into radians."),
+        ("reflect", "(i, n)", "Direction i bounced off a surface with unit normal n."),
+        ("round", "(x)", "x to the nearest whole number."),
+        ("rsqrt", "(x)", "1 / sqrt(x)."),
+        ("saturate", "(x)", "x held to 0..1."),
+        ("sign", "(x)", "-1, 0 or 1 by x's sign."),
+        ("sin", "(x)", "Sine of x radians."),
+        ("smoothstep", "(edge0, edge1, x)", "0 at edge0 to 1 at edge1, eased at both ends; held outside. Swap the edges to go 1 to 0."),
+        ("sqrt", "(x)", "The square root of x."),
+        ("step", "(edge, x)", "0 where x is below edge, 1 from edge on. A hard edge; smoothstep gives a soft one."),
+        ("tan", "(x)", "Tangent of x radians."),
+        ("tanh", "(x)", "Hyperbolic tangent: an S-curve from -1 to 1, through 0 at 0."),
+        ("trunc", "(x)", "x with the part after the point dropped (towards 0)."),
     ];
 
     /// <summary>The library's top-level names: free functions and constants, structs, aliases, namespaces.</summary>
     private readonly List<Completion> _globals = new();
 
-    /// <summary>Names the host declares for the code (the lab's time, mousePos, …).</summary>
+    /// <summary>Names the host declares for the code (the lab's time, mouse, …).</summary>
     private readonly List<Completion> _provided = new();
 
     /// <summary>Every type name a declaration can start with: Slang's, the library's structs and aliases.</summary>
@@ -135,13 +186,13 @@ internal sealed partial class SlangCompletions
 
     /// <param name="provided">Names the host declares for the code, with their types.</param>
     public static SlangCompletions FromSources(
-        IEnumerable<string> sources, ShaderConstants constants, IEnumerable<(string Name, string Type)>? provided = null)
+        IEnumerable<string> sources, ShaderConstants constants, IEnumerable<(string Name, string Type, string? Doc)>? provided = null)
     {
         var completions = new SlangCompletions();
         foreach (string source in sources)
-            completions.Read(Regex.Replace(Regex.Replace(source, @"/\*.*?\*/", " ", RegexOptions.Singleline), @"//[^\n]*", ""), constants);
-        foreach ((string name, string type) in provided ?? [])
-            completions._provided.Add(new Completion(name, CompletionKind.Variable, type + " · provided"));
+            completions.Read(source, constants);
+        foreach ((string name, string type, string? doc) in provided ?? [])
+            completions._provided.Add(new Completion(name, CompletionKind.Variable, type + " · provided", Doc: doc));
         foreach (List<Completion> members in completions._scopes.Values)
             members.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return completions;
@@ -215,8 +266,8 @@ internal sealed partial class SlangCompletions
             Offer(global);
         foreach (string type in SlangSyntax.BuiltInTypes)
             Offer(new Completion(type, CompletionKind.Type, "type"));
-        foreach ((string name, string detail) in Intrinsics)
-            Offer(new Completion(name, CompletionKind.Function, detail));
+        foreach ((string name, string detail, string doc) in Intrinsics)
+            Offer(new Completion(name, CompletionKind.Function, detail, Doc: doc));
         foreach (string keyword in Keywords)
             Offer(new Completion(keyword, CompletionKind.Keyword, "keyword"));
 
@@ -234,6 +285,67 @@ internal sealed partial class SlangCompletions
             .OrderBy(Rank).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase);
         List<Completion> found = starting.Concat(containing).ToList();
         return found.Count == 0 ? null : found;
+    }
+
+    /// <summary>
+    /// What the name at a column is, for hovering: every declaration of it (overloads each), or null
+    /// for no name or one nothing is known about. After a dot it is a member, found the way completion
+    /// finds the scope; otherwise the code's, the host's, the library's or an intrinsic.
+    /// <paramref name="start"/> is where the name begins.
+    /// </summary>
+    public List<Completion>? Describe(string line, int column, IReadOnlyList<string> code, out int start)
+    {
+        static bool Word(char c) => char.IsLetterOrDigit(c) || c == '_';
+        start = column;
+        if (column < 0 || column >= line.Length || !Word(line[column]))
+            return null;
+        while (start > 0 && Word(line[start - 1]))
+            start--;
+        int end = column;
+        while (end < line.Length && Word(line[end]))
+            end++;
+        string name = line[start..end];
+        int comment = line.IndexOf("//", StringComparison.Ordinal);
+        if (char.IsDigit(name[0]) || (comment >= 0 && comment < start))
+            return null;
+
+        string before = line[..start];
+        if (AfterDot().IsMatch(before))
+        {
+            Match match = DotChain().Match(before);
+            if (!match.Success || (match.Index > 0 && (char.IsDigit(before[match.Index - 1]) || before[match.Index - 1] == '.')))
+                return null;
+            string[] chain = match.Groups[1].Value.Split('.').Select(part => part.Trim()).ToArray();
+            if (Scope(chain, code) is not { } scope)
+                return null;
+            if (_declared.TryGetValue((scope, name), out var own))
+                return own;
+            foreach (string face in _interfaces.TryGetValue(scope, out var faces) ? faces : [])
+            {
+                if (_declared.TryGetValue((face, name), out var shared))
+                    return shared;
+            }
+
+            return null;
+        }
+
+        foreach (Completion own in CodeNames(code))
+        {
+            if (own.Name == name)
+                return [own];
+        }
+
+        if (_provided.Find(p => p.Name == name) is { Name: not null } provided)
+            return [provided];
+        if (_declared.TryGetValue(("", name), out var global))
+            return global;
+        foreach ((string intrinsic, string detail, string doc) in Intrinsics)
+        {
+            if (intrinsic == name)
+                return [new Completion(name, CompletionKind.Function, detail, Doc: doc)];
+        }
+
+        return null;
     }
 
     /// <summary>The names the code declares: uniforms, locals and parameters by their type, let and var, and functions.</summary>
@@ -308,9 +420,12 @@ internal sealed partial class SlangCompletions
         return members;
     }
 
-    private void Read(string source, ShaderConstants constants)
+    private void Read(string original, ShaderConstants constants)
     {
-        ReadGlobals(source);
+        // Comments become spaces, so every place in the code is the same in both and docs are found above a match.
+        string source = Regex.Replace(original, @"/\*.*?\*/|//[^\n]*", m => Regex.Replace(m.Value, @"[^\n]", " "), RegexOptions.Singleline);
+        string? Doc(int index) => DocAbove(original, index);
+        ReadGlobals(source, Doc);
         var spans = new List<(int Start, int End, string Scope, string Kind)>();
         foreach (Match match in Opener().Matches(source))
         {
@@ -347,7 +462,7 @@ internal sealed partial class SlangCompletions
                 if (parent.Length > 0)
                     Add(parent, new Completion(span.Scope[(parent.Length + 1)..], CompletionKind.Type, "enum"));
                 foreach (Match value in Regex.Matches(source[span.Start..span.End], @"(\w+)\s*(?:=[^,}]*)?,?"))
-                    Add(span.Scope, new Completion(value.Groups[1].Value, CompletionKind.EnumValue, span.Scope));
+                    Add(span.Scope, new Completion(value.Groups[1].Value, CompletionKind.EnumValue, span.Scope, Doc: Doc(span.Start + value.Index)));
             }
         }
 
@@ -363,14 +478,14 @@ internal sealed partial class SlangCompletions
             Vector4? swatch = null;
             if (match.Groups[1].Value is "float3" or "float4" or "colour" && constants.TryGet(scope + "." + name, out float[] values) && values.Length >= 3)
                 swatch = new Vector4(values[0], values[1], values[2], values.Length > 3 ? values[3] : 1);
-            Add(scope, new Completion(name, CompletionKind.Constant, match.Groups[1].Value, swatch));
+            Add(scope, new Completion(name, CompletionKind.Constant, match.Groups[1].Value, swatch, Doc(match.Index)));
         }
 
         foreach (Match match in Property().Matches(source))
         {
             if (Inner(match.Index) is not { } scope)
                 continue;
-            Add(scope, new Completion(match.Groups[2].Value, CompletionKind.Field, match.Groups[1].Value));
+            Add(scope, new Completion(match.Groups[2].Value, CompletionKind.Field, match.Groups[1].Value, Doc: Doc(match.Index)));
             Type(scope, match.Groups[2].Value, match.Groups[1].Value);
         }
 
@@ -378,7 +493,7 @@ internal sealed partial class SlangCompletions
         {
             if (Inner(match.Index) is not { } scope)
                 continue;
-            Add(scope, new Completion(match.Groups[2].Value, CompletionKind.Field, match.Groups[1].Value));
+            Add(scope, new Completion(match.Groups[2].Value, CompletionKind.Field, match.Groups[1].Value, Doc: Doc(match.Index)));
             Type(scope, match.Groups[2].Value, match.Groups[1].Value);
         }
 
@@ -390,21 +505,21 @@ internal sealed partial class SlangCompletions
             string parameters = Regex.Replace(match.Groups[3].Value.Trim(), @"\s+", " ");
             Add(scope, new Completion(
                 match.Groups[2].Value, inNamespace ? CompletionKind.Function : CompletionKind.Method,
-                $"({parameters}) → {match.Groups[1].Value.Trim()}"));
+                $"({parameters}) → {match.Groups[1].Value.Trim()}", Doc: Doc(match.Index)));
         }
     }
 
     /// <summary>The top-level names of one library file: what a word can complete to.</summary>
-    private void ReadGlobals(string source)
+    private void ReadGlobals(string source, Func<int, string?> doc)
     {
         foreach (Match match in TypeAlias().Matches(source))
         {
             _typeNames.Add(match.Groups[1].Value);
-            _globals.Add(new Completion(match.Groups[1].Value, CompletionKind.Type, match.Groups[2].Value));
+            Global(new Completion(match.Groups[1].Value, CompletionKind.Type, match.Groups[2].Value, Doc: doc(match.Index)));
         }
 
         foreach (Match match in NamespaceName().Matches(source))
-            _globals.Add(new Completion(match.Groups[1].Value, CompletionKind.Namespace, "namespace"));
+            Global(new Completion(match.Groups[1].Value, CompletionKind.Namespace, "namespace", Doc: doc(match.Index)));
 
         // Only what sits outside every brace is top level.
         int depth = 0;
@@ -426,23 +541,87 @@ internal sealed partial class SlangCompletions
             if (!top[match.Index] || name.EndsWith("Attribute", StringComparison.Ordinal) || match.Groups[2].Value == "<")
                 continue;
             Match init = Regex.Match(source[match.Index..Close(source, match.Index + match.Length - 1)], @"public\s+__init\s*\(([^)]*)\)");
-            _globals.Add(new Completion(name, CompletionKind.Type, init.Success ? "(" + Regex.Replace(init.Groups[1].Value.Trim(), @"\s+", " ") + ")" : "struct"));
+            Global(new Completion(name, CompletionKind.Type, init.Success ? "(" + Regex.Replace(init.Groups[1].Value.Trim(), @"\s+", " ") + ")" : "struct", Doc: doc(match.Index)));
         }
 
         foreach (Match match in Constant().Matches(source))
         {
             if (top[match.Index] && !Hidden.Contains(match.Groups[2].Value))
-                _globals.Add(new Completion(match.Groups[2].Value, CompletionKind.Constant, match.Groups[1].Value));
+                Global(new Completion(match.Groups[2].Value, CompletionKind.Constant, match.Groups[1].Value, Doc: doc(match.Index)));
         }
 
         foreach (Match match in Method().Matches(source))
         {
             string name = match.Groups[2].Value;
-            if (!top[match.Index] || Hidden.Contains(name) || _globals.Exists(g => g.Name == name))
+            if (!top[match.Index] || Hidden.Contains(name))
                 continue;
             string parameters = Regex.Replace(match.Groups[3].Value.Trim(), @"\s+", " ");
-            _globals.Add(new Completion(name, CompletionKind.Function, $"({parameters}) → {match.Groups[1].Value.Trim()}"));
+            Global(new Completion(name, CompletionKind.Function, $"({parameters}) → {match.Groups[1].Value.Trim()}", Doc: doc(match.Index)));
         }
+    }
+
+    /// <summary>A top-level name: offered once, every declaration kept for hovering.</summary>
+    private void Global(Completion completion)
+    {
+        Declare("", completion);
+        if (!_globals.Exists(g => g.Name == completion.Name))
+            _globals.Add(completion);
+    }
+
+    private void Declare(string scope, Completion completion)
+    {
+        if (!_declared.TryGetValue((scope, completion.Name), out var all))
+            _declared[(scope, completion.Name)] = all = [];
+        if (!all.Exists(c => c.Detail == completion.Detail))
+            all.Add(completion);
+    }
+
+    /// <summary>
+    /// The <c>///</c> lines just above the line a declaration starts on (attributes between are skipped), or null.
+    /// Lines run together into paragraphs; a blank one starts the next; indented ones are code, kept as they are.
+    /// </summary>
+    private static string? DocAbove(string source, int index)
+    {
+        var lines = new List<string>();
+        int end = index == 0 ? -1 : source.LastIndexOf('\n', index - 1);
+        while (end > 0)
+        {
+            int start = source.LastIndexOf('\n', end - 1) + 1;
+            string text = source[start..end].Trim();
+            if (text.StartsWith("///", StringComparison.Ordinal))
+                lines.Insert(0, text[3..].TrimEnd());
+            else if (!(text.StartsWith('[') && lines.Count == 0))
+                break;
+            end = start - 1;
+        }
+
+        if (lines.Count == 0)
+            return null;
+        var parts = new List<string>();
+        bool joining = false;
+        foreach (string raw in lines)
+        {
+            string line = raw.StartsWith(' ') ? raw[1..] : raw;
+            if (line.Trim().Length == 0)
+            {
+                parts.Add("");
+                joining = false;
+            }
+            else if (line.StartsWith("    ", StringComparison.Ordinal))
+            {
+                parts.Add(line);
+                joining = false;
+            }
+            else if (joining)
+                parts[^1] += " " + line.Replace("`", "");
+            else
+            {
+                parts.Add(line.Replace("`", ""));
+                joining = true;
+            }
+        }
+
+        return string.Join('\n', parts).Trim('\n');
     }
 
     private void Scope(string scope)
@@ -454,6 +633,7 @@ internal sealed partial class SlangCompletions
     private void Add(string scope, Completion completion)
     {
         Scope(scope);
+        Declare(scope, completion);
         if (!_scopes[scope].Exists(existing => existing.Name == completion.Name))
             _scopes[scope].Add(completion);
     }

@@ -49,6 +49,10 @@ internal sealed class CodeView
         [TokenKind.Attribute] = new("#a0a8c4"),
         [TokenKind.Comment] = new("#6b7a99"),
     };
+    /// <summary>How much of its owner's colour a bracket takes, the rest being the background: dimmer than the name, so the name leads.</summary>
+    private const float BracketStrength = 0.7f;
+
+    private static readonly Color MatchBox = new(1, 1, 1, 0.10f);
     private static readonly Color HintText = new("#93a4cf");
     private static readonly Color HintPill = new(0.55f, 0.65f, 0.95f, 0.10f);
     private static readonly Color CaretLine = new(1, 1, 1, 0.04f);
@@ -59,6 +63,9 @@ internal sealed class CodeView
     private readonly IRectCanvas _canvas;
     private readonly Handle _item;
     private readonly float _charWidth;
+
+    /// <summary>This frame's bracket colours by line, column.</summary>
+    private readonly Dictionary<(int Line, int Column), Color> _bracketColours = new();
 
     /// <summary>What each drawn row shows, top to bottom: its top, its line, and the problem column for a message row.</summary>
     private readonly List<(float Top, int Line, int? ProblemColumn)> _rows = new();
@@ -74,6 +81,9 @@ internal sealed class CodeView
     }
 
     public Rect2 Area { get; }
+
+    /// <summary>One character's width in the code's face.</summary>
+    public float CharWidth => _charWidth;
 
     /// <summary>Where the caret was drawn last frame (blinking or not); null when its line is scrolled away.</summary>
     public Rect2? CaretRect { get; private set; }
@@ -105,6 +115,7 @@ internal sealed class CodeView
         _canvas.DrawRect(_item, Area, Background);
         _rows.Clear();
         CaretRect = null;
+        (int Line, int Column)[] match = ColourBrackets(buffer, hints);
 
         float bottom = Area.End.Y - Inset;
         float y = Area.Position.Y + Inset;
@@ -125,7 +136,13 @@ internal sealed class CodeView
             _canvas.DrawTextMono(
                 _item, new Rect2(Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Code : GutterText, FontSize, TextAlign.Right);
-            DrawLine(line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases), y);
+            foreach ((int matchLine, int matchColumn) in match)
+            {
+                if (matchLine == index)
+                    _canvas.DrawRect(_item, new Rect2(TextLeft + VisualColumn(lineHints, matchColumn) * _charWidth, y + 1, _charWidth, LineHeight - 2), MatchBox);
+            }
+
+            DrawLine(index, line, lineHints, SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases), y);
             if (index == buffer.Line)
             {
                 float x = TextLeft + VisualColumn(lineHints, buffer.Column) * _charWidth;
@@ -185,6 +202,36 @@ internal sealed class CodeView
         return (row.Line, Column(buffer, hints, row.Line, point.X));
     }
 
+    /// <summary>The character under a point and the bottom of its row; null off the code, past a line's end, on a hint or a message row.</summary>
+    public (int Line, int Column, float Bottom)? Under(CodeBuffer buffer, SlangHints hints, Vector2 point)
+    {
+        if (!Area.HasPoint(point) || point.X < TextLeft)
+            return null;
+        foreach ((float top, int index, int? problemColumn) in _rows)
+        {
+            if (point.Y < top || point.Y >= top + LineHeight)
+                continue;
+            if (problemColumn is not null)
+                return null;
+            string line = buffer.Lines[index];
+            int visual = (int)((point.X - TextLeft) / _charWidth), shift = 0;
+            foreach (InlayHint hint in hints.For(line))
+            {
+                int at = hint.Column + shift;
+                if (visual < at)
+                    break;
+                if (visual < at + hint.Label.Length + 1)
+                    return null;
+                shift += hint.Label.Length + 1;
+            }
+
+            int column = visual - shift;
+            return column < line.Length ? (index, column, top + LineHeight) : null;
+        }
+
+        return null;
+    }
+
     private int Column(CodeBuffer buffer, SlangHints hints, int line, float x)
     {
         int visual = Math.Max(0, (int)MathF.Round((x - TextLeft) / _charWidth));
@@ -226,19 +273,49 @@ internal sealed class CodeView
         return rows;
     }
 
-    private void DrawLine(string line, List<InlayHint> hints, List<Token> tokens, float y)
+    /// <summary>
+    /// Fills <see cref="_bracketColours"/>: each bracket in its owner's colour,
+    /// plain grouping in the code colour, both dimmed; an unmatched one in red. The
+    /// pair at the caret is drawn at full strength, and returned for its boxes.
+    /// </summary>
+    private (int Line, int Column)[] ColourBrackets(CodeBuffer buffer, SlangHints hints)
+    {
+        _bracketColours.Clear();
+        List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, line => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases));
+
+        // The bracket just after the caret, else the one just before it.
+        int active = brackets.FindIndex(b => b.Line == buffer.Line && b.Column == buffer.Column);
+        if (active < 0)
+            active = brackets.FindIndex(b => b.Line == buffer.Line && b.Column == buffer.Column - 1);
+        int partner = active >= 0 ? brackets[active].Partner : -1;
+
+        for (int i = 0; i < brackets.Count; i++)
+        {
+            Bracket bracket = brackets[i];
+            Color full = !bracket.Matched ? Palette.DangerBright : bracket.Owner is { } owner ? Colours[owner] : Code;
+            bool lit = bracket.Matched && (i == active || i == partner);
+            _bracketColours[(bracket.Line, bracket.Column)] =
+                lit || !bracket.Matched ? full : Background.Lerp(full, BracketStrength);
+        }
+
+        return partner >= 0
+            ? [(brackets[active].Line, brackets[active].Column), (brackets[partner].Line, brackets[partner].Column)]
+            : [];
+    }
+
+    private void DrawLine(int index, string line, List<InlayHint> hints, List<Token> tokens, float y)
     {
         int visual = 0, logical = 0;
         foreach (InlayHint hint in hints)
         {
-            DrawCode(line, tokens, logical, hint.Column, visual, y);
+            DrawCode(index, line, tokens, logical, hint.Column, visual, y);
             visual += hint.Column - logical;
             logical = hint.Column;
             DrawHint(hint.Label, visual, y);
             visual += hint.Label.Length + 1;
         }
 
-        DrawCode(line, tokens, logical, line.Length, visual, y);
+        DrawCode(index, line, tokens, logical, line.Length, visual, y);
     }
 
     /// <summary>A hint in a smaller face on a faint pill, so it can't be read as code or a comment.</summary>
@@ -253,8 +330,11 @@ internal sealed class CodeView
         _canvas.DrawTextMono(_item, new Rect2(x + 4 - TextPadding, y, textWidth + TextPadding * 2 + 8, LineHeight), label, HintText, HintSize, TextAlign.Left);
     }
 
-    /// <summary>The code from one column to another, each token in its colour; punctuation between tokens is plain.</summary>
-    private void DrawCode(string line, List<Token> tokens, int from, int to, int visual, float y)
+    /// <summary>
+    /// The code from one column to another, each token in its colour;
+    /// punctuation between tokens is plain, brackets in their own colours.
+    /// </summary>
+    private void DrawCode(int index, string line, List<Token> tokens, int from, int to, int visual, float y)
     {
         int at = from;
         foreach (Token token in tokens)
@@ -263,13 +343,39 @@ internal sealed class CodeView
             if (end <= start)
                 continue;
             if (start > at)
-                DrawAt(line[at..start], visual + at - from, y, Code);
-            DrawAt(line[start..end], visual + start - from, y, Colours[token.Kind]);
+                DrawPunctuation(index, line, at, start, visual - from, y);
+            // An attribute's '[' starts its token: drawn as a bracket, the name after it as the token.
+            if (_bracketColours.TryGetValue((index, start), out Color bracket))
+            {
+                DrawAt(line[start..(start + 1)], visual + start - from, y, bracket);
+                start++;
+            }
+
+            if (end > start)
+                DrawAt(line[start..end], visual + start - from, y, Colours[token.Kind]);
             at = end;
         }
 
         if (to > at)
-            DrawAt(line[at..to], visual + at - from, y, Code);
+            DrawPunctuation(index, line, at, to, visual - from, y);
+    }
+
+    /// <summary>Text between tokens: plain, but each bracket in its colour.</summary>
+    private void DrawPunctuation(int index, string line, int from, int to, int shift, float y)
+    {
+        int run = from;
+        for (int column = from; column < to; column++)
+        {
+            if (!_bracketColours.TryGetValue((index, column), out Color colour))
+                continue;
+            if (column > run)
+                DrawAt(line[run..column], shift + run, y, Code);
+            DrawAt(line[column..(column + 1)], shift + column, y, colour);
+            run = column + 1;
+        }
+
+        if (to > run)
+            DrawAt(line[run..to], shift + run, y, Code);
     }
 
     private void DrawAt(string text, int visualColumn, float y, Color colour)

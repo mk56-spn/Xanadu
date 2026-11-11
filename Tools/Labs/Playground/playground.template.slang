@@ -12,14 +12,15 @@
 // The lab's working copies (playground.slang, editor.slang) are git-ignored.
 import xanadu;
 
-// Provided by the lab, no need to declare them: time (seconds), mousePos (the
-// pointer in i.centred's space), mouse (0..1 on the stage), resolution.
+// Provided by the lab, no need to declare them: time (seconds), mouse (the
+// pointer in pixels from the centre, like i.canvas.centred), mouseUv (0..1 on
+// the stage), resolution.
 
 [Default(0.6)] uniform float speed;
 
 float4 shade(ItemInput i)
 {
-    float2 p = i.centred - mousePos;
+    float2 p = i.canvas.centred - mouse;
 
     // Eight rounded boxes in a ring round the pointer, the ring turning one way
     // and each box the other; a breathing circle's outline around them.

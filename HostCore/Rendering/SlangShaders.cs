@@ -16,7 +16,7 @@ internal sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt
 /// samplers and uniform buffers (for <c>ShaderCreateInfo</c>), the sampler
 /// names by binding, and the layout of uniform buffer 1 (an effect's values).
 /// </summary>
-internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniformBuffers, ShaderParam[] parameters, int paramsSize)
+internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniformBuffers, ShaderParam[] parameters, int paramsSize, int storageBuffers = 0)
 {
     public byte[] Spirv { get; } = spirv;
 
@@ -26,6 +26,15 @@ internal sealed class CompiledShader(byte[] spirv, string[] samplers, uint unifo
     public uint UniformBuffers { get; } = uniformBuffers;
 
     public ShaderParam[] Params { get; } = parameters;
+
+    /// <summary>Read-only storage buffers after the samplers: 1 for an effect that keeps state, else 0.</summary>
+    public int StorageBuffers { get; } = storageBuffers;
+
+    /// <summary>Bytes in one element of the structured buffer it binds (a kept <c>State</c>); 0 for none.</summary>
+    public int StateBytes { get; init; }
+
+    /// <summary>A kept-state effect's once-a-frame <c>update</c>, compiled for compute; null when it keeps none.</summary>
+    public CompiledShader? Update { get; init; }
 
     /// <summary>Bytes in the values block, padded to 16; 0 when the effect has none.</summary>
     public int ParamsSize { get; } = paramsSize;
@@ -116,14 +125,71 @@ internal static class SlangShaders
     /// <c>shade</c>. <c>#line</c> keeps Slang's errors on the author's lines,
     /// under <paramref name="name"/>.
     /// </summary>
-    public static CompiledShader CompileEffectBody(string name, string source)
+    /// <remarks>
+    /// An effect that declares <c>void update(inout State s, float dt)</c> keeps
+    /// state (docs/shaders.md): <c>update</c> runs once a frame on one GPU
+    /// thread and <c>shade</c> reads the result as <c>state</c>. Only where
+    /// <paramref name="keepsState"/> allows it (the lab, for now); elsewhere such
+    /// an effect is an error.
+    /// </remarks>
+    public static CompiledShader CompileEffectBody(string name, string source, bool keepsState = false)
+    {
+        bool updates = KeepsState(source);
+        if (updates && !keepsState)
+            throw new InvalidOperationException($"{name}: update() and kept state work only in the lab for now.");
+
+        int stateBinding = updates ? StateBinding(source) : -1;
+        CompiledShader fragment = CompileWrapped(Wrap(name, source, stateBinding), "xanaduFragment", "fragment", 2, 3);
+        if (!updates)
+            return fragment;
+
+        if (fragment.Samplers.Length != stateBinding)
+            throw new InvalidOperationException(
+                $"{name}: kept state expected {stateBinding} samplers before it but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 2 up, with no gaps.");
+
+        CompiledShader update = CompileWrapped(WrapUpdate(name, source), "xanaduUpdate", "compute", 0, 2);
+        if (update.StateBytes > MaxStateBytes)
+            throw new InvalidOperationException($"{name}: State takes {update.StateBytes} bytes; it may take at most {MaxStateBytes}.");
+        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 1)
+        {
+            Update = update,
+        };
+    }
+
+    /// <summary>The most bytes an effect's <c>State</c> may take.</summary>
+    public const int MaxStateBytes = 1024;
+
+    /// <summary>Whether an effect body declares an <c>update</c>, and so keeps state.</summary>
+    public static bool KeepsState(string source) =>
+        System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), @"\bvoid\s+update\s*\(");
+
+    private static string StripComments(string source) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            System.Text.RegularExpressions.Regex.Replace(source, @"/\*.*?\*/", " ", System.Text.RegularExpressions.RegexOptions.Singleline),
+            @"//[^\n]*", "");
+
+    /// <summary>
+    /// Where the state buffer goes in the fragment's set 2: SDL_GPU puts storage
+    /// buffers after the samplers, which are the host's two plus the effect's own
+    /// <c>[[vk::binding(n, 2)]]</c> textures.
+    /// </summary>
+    private static int StateBinding(string source)
+    {
+        int next = 2;
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
+                     StripComments(source), @"vk::binding\(\s*(\d+)\s*,\s*2\s*\)"))
+            next = Math.Max(next, int.Parse(match.Groups[1].Value) + 1);
+        return next;
+    }
+
+    private static CompiledShader CompileWrapped(string code, string entry, string stage, int samplerSpace, int uniformSpace)
     {
         Directory.CreateDirectory(ReflectionFolder);
         string file = Path.Combine(ReflectionFolder, Guid.NewGuid().ToString("N") + ".slang");
-        File.WriteAllText(file, Wrap(name, source));
+        File.WriteAllText(file, code);
         try
         {
-            return CompileReflected(file, "xanaduFragment", "fragment", samplerSpace: 2, uniformSpace: 3, bindGlobals: true);
+            return CompileReflected(file, entry, stage, samplerSpace, uniformSpace, bindGlobals: true);
         }
         finally
         {
@@ -132,7 +198,70 @@ internal static class SlangShaders
     }
 
     /// <summary>The generated module around one effect body; a chain would add one namespace per effect.</summary>
-    public static string Wrap(string name, string source)
+    /// <param name="stateBinding">The fragment binding for kept state, or -1 when the effect keeps none.</param>
+    public static string Wrap(string name, string source, int stateBinding = -1)
+    {
+        (string imports, string code, string label) = Split(name, source);
+        // Read once per pixel, before shade, into a static the body sees as `state`.
+        string state = stateBinding < 0 ? "" : $$"""
+            [[vk::binding({{stateBinding}}, 2)]] StructuredBuffer<State> xanaduStateIn;
+            static State state;
+            """;
+        string load = stateBinding < 0 ? "" : "effect0::state = effect0::xanaduStateIn[0];";
+        return $$"""
+            import xanadu.stage;
+            {{imports}}
+            namespace effect0 {
+            #line 1 "{{label}}"
+            {{code}}
+            #line 1 "{{label}} (wrapper)"
+            {{state}}
+            }
+            #line 1 "{{label}} (wrapper)"
+            [shader("fragment")]
+            float4 xanaduFragment(ItemVaryings v) : SV_Target
+            {
+                {{load}}
+                ItemInput i = input(v);
+                i.colour = effect0::shade(i);
+                return i.colour;
+            }
+            """;
+    }
+
+    /// <summary>
+    /// The same body with a compute entry that runs its <c>update</c> on the kept
+    /// state: buffer 0 of compute set 1, the frame's dt in uniform buffer 0 and
+    /// the effect's values (laid out as the fragment's) in uniform buffer 1.
+    /// </summary>
+    public static string WrapUpdate(string name, string source)
+    {
+        (string imports, string code, string label) = Split(name, source);
+        return $$"""
+            import xanadu.stage;
+            {{imports}}
+            namespace effect0 {
+            #line 1 "{{label}}"
+            {{code}}
+            #line 1 "{{label}} (wrapper)"
+            static State state;
+            }
+            #line 1 "{{label}} (wrapper)"
+            struct XanaduUpdateFrame { float dt; float time; float2 pad; };
+            [[vk::binding(0, 2)]] ConstantBuffer<XanaduUpdateFrame> xanaduUpdateFrame;
+            [[vk::binding(0, 1)]] RWStructuredBuffer<effect0::State> xanaduStateOut;
+            [shader("compute")]
+            [numthreads(1, 1, 1)]
+            void xanaduUpdate()
+            {
+                effect0::State s = xanaduStateOut[0];
+                effect0::update(s, xanaduUpdateFrame.dt);
+                xanaduStateOut[0] = s;
+            }
+            """;
+    }
+
+    private static (string Imports, string Code, string Label) Split(string name, string source)
     {
         var imports = new System.Text.StringBuilder();
         var body = new System.Text.StringBuilder();
@@ -150,22 +279,7 @@ internal static class SlangShaders
         string label = name.Replace("\"", "'");
         // Slang's attributes take only literals: a library name in a [Default] becomes its numbers.
         string code = ShaderChains.Library.Rewrite(ShaderConstants.Library.ExpandDefaults(body.ToString()));
-        return $$"""
-            import xanadu.stage;
-            {{imports}}
-            namespace effect0 {
-            #line 1 "{{label}}"
-            {{code}}
-            }
-            #line 1 "{{label}} (wrapper)"
-            [shader("fragment")]
-            float4 xanaduFragment(ItemVaryings v) : SV_Target
-            {
-                ItemInput i = input(v);
-                i.colour = effect0::shade(i);
-                return i.colour;
-            }
-            """;
+        return (imports.ToString(), code, label);
     }
 
     /// <summary>Just the SPIR-V (the particle spike's use).</summary>
@@ -263,7 +377,7 @@ internal static class SlangShaders
     private static CompiledShader Reflect(byte[] spirv, JsonElement root, int samplerSpace, int uniformSpace)
     {
         var samplers = new SortedDictionary<int, string>();
-        int uniformBuffers = 0;
+        int uniformBuffers = 0, stateBytes = 0;
         ShaderParam[] parameters = [];
         int paramsSize = 0;
 
@@ -282,7 +396,11 @@ internal static class SlangShaders
             if (binding.TryGetProperty("kind", out JsonElement bindingKind) && bindingKind.GetString() == "uniform")
                 continue;
 
-            if (space == samplerSpace && kind == "resource")
+            bool buffer = type.TryGetProperty("baseShape", out JsonElement shape) && shape.GetString() == "structuredBuffer";
+            if (buffer && type.TryGetProperty("resultType", out JsonElement element) && element.TryGetProperty("sizes", out JsonElement sizes))
+                foreach (JsonElement size in sizes.EnumerateArray())
+                    stateBytes = Math.Max(stateBytes, size.GetProperty("value").GetInt32());
+            if (space == samplerSpace && kind == "resource" && !buffer)
                 samplers[index] = name;
             else if (space == uniformSpace && kind == "constantBuffer")
             {
@@ -317,7 +435,7 @@ internal static class SlangShaders
         foreach ((int index, string name) in samplers)
             names[index] = name;
 
-        return new CompiledShader(spirv, names, (uint)uniformBuffers, parameters, paramsSize);
+        return new CompiledShader(spirv, names, (uint)uniformBuffers, parameters, paramsSize) { StateBytes = stateBytes };
     }
 
     private static (ShaderParam[] Params, int Size) Fields(JsonElement constantBuffer)

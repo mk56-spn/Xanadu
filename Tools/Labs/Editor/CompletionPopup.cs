@@ -20,8 +20,8 @@ internal sealed class CompletionPopup
     private const float Width = 460;
     private const int TextSize = 13;
 
-    private static readonly Color Back = new("#161e38");
-    private static readonly Color Border = new("#2c3a66");
+    internal static readonly Color Back = new("#161e38");
+    internal static readonly Color Border = new("#2c3a66");
     private static readonly Color Chosen = new("#24335f");
 
     private readonly IRectCanvas _canvas;

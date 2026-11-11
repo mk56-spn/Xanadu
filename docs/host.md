@@ -367,10 +367,17 @@ host fills; tests leave the headless defaults.
     (gitignored, made from the template) or `--shader=<file>`, recompiles off
     the frame on save and swaps it in; errors show in mono in the panel and the
     last good version stays. The format is a level slot, so anything made here
-    pastes into a level. Sets `mouse` and `resolution`.
+    pastes into a level. Sets `mouse` (pixels from the centre), `mouseUv` and `resolution`.
     `Tools/Labs/Examples/` holds common 2D effects written against the
     library (plasma, starfield, Voronoi, tunnel, metaballs, a shape badge, a
-    screen ripple), each opened with `./run-labs.sh --shader=<file>`.
+    screen ripple, a flashlight), each opened with `./run-labs.sh --shader=<file>`.
+  - **Kept state** (lab only): an effect body with `void update(inout State s,
+    float dt)` gets a 1 KB storage buffer per material. `CanvasRenderer`
+    runs `update` once a frame as a one-thread compute pass
+    (`SlangShaders.WrapUpdate`), and the fragment reads it as `state`, its
+    storage buffer placed after its samplers. `CanvasMaterial.KeepsState`
+    gates it; level materials leave it off, so `update` is a compile error
+    there.
   - **Shader editor** (tab 1; the start of the in-game shader editor): a
     level slot typed in the lab (`Tools/Labs/Editor/`: `CodeBuffer` text and
     caret, `CodeView` drawing, `EditorChrome` round it, `SlangProblems`,
