@@ -1,20 +1,17 @@
 using System.Text.RegularExpressions;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 
 namespace Xanadu.Levels;
 
 /// <summary>
 /// The cheap checks a level's shader source must pass before it is kept: a Slang
 /// fragment effect against <c>xanadu.stage</c> (docs/host.md §3) that
-/// defines <c>float4 shade(ItemInput i)</c>. Whether it really compiles is only
+/// defines a <c>shade</c> the host can call (<see cref="ShadeSignature"/>). Whether it really compiles is only
 /// known when the host builds it; a broken one draws plain and logs Slang's error.
 /// </summary>
 public static partial class ShaderSourceRules
 {
-    // The effect's entry: comments may sit anywhere before it.
-    [GeneratedRegex(@"\bfloat4\s+shade\s*\(\s*ItemInput\b")]
-    private static partial Regex ShadeFunction();
-
     [GeneratedRegex(@"\bshader_type\s+\w+\s*;")]
     private static partial Regex GodotHeader();
 
@@ -35,17 +32,10 @@ public static partial class ShaderSourceRules
 
         if (GodotHeader().IsMatch(source))
         {
-            problem = "Godot shaders are no longer supported: write a Slang effect with \"float4 shade(ItemInput i)\".";
+            problem = $"Godot shaders are no longer supported: write a Slang effect with \"{ShadeSignature.Usual}\".";
             return false;
         }
 
-        if (!ShadeFunction().IsMatch(source))
-        {
-            problem = "A shader must define \"float4 shade(ItemInput i)\".";
-            return false;
-        }
-
-        problem = "";
-        return true;
+        return ShadeSignature.Arguments(source, out problem) is not null;
     }
 }

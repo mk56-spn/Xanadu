@@ -16,7 +16,7 @@ namespace Xanadu.Labs.Experiments;
 /// <summary>
 /// A Slang effect on a full stage, recompiled every time its file is saved.
 /// The file is written exactly like a level's shader slot (uniforms plus
-/// <c>float4 shade(ItemInput i)</c>, <c>import xanadu;</c> for the library), so
+/// <c>float4 shade(Canvas canvas)</c>, <c>import xanadu;</c> for the library), so
 /// anything made here pastes straight into a level. A broken save keeps the
 /// last good version on screen and shows Slang's errors in the panel.
 /// </summary>
@@ -39,7 +39,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
     [
         "Edit the file below in any editor: every save",
         "recompiles and redraws. It is a level shader slot:",
-        "uniforms and float4 shade(ItemInput i); import xanadu.",
+        "uniforms and float4 shade(Canvas canvas); import xanadu.",
         "Keep state across frames with struct State and",
         "void update(inout State s, float dt); shade reads state.",
         .. LabShaderValues.Notes,

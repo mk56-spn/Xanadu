@@ -5,9 +5,9 @@ import xanadu;
 [Default(18)] uniform float strength;
 [Default(60)] uniform float wavelength;
 
-float4 shade(ItemInput i)
+float4 shade(ItemInput i, Canvas canvas)
 {
-    float2 fromPointer = i.canvas.centred - mouse;
+    float2 fromPointer = canvas.centred - mouse;
     float r = length(fromPointer);
     float2 outward = r > 0 ? fromPointer / r : float2(0);
 

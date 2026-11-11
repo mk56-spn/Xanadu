@@ -5,9 +5,9 @@ import xanadu;
 [Default(0.4)] uniform float speed;
 [Default(0.15)] uniform float twist;
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float2 p = i.canvas.centred / (i.canvas.size.y * 0.5);
+    float2 p = canvas.centred / (canvas.size.y * 0.5);
     float radius = length(p);
     float angle = atan2(p.y, p.x) / TAU + 0.5;
 

@@ -4,9 +4,9 @@ import xanadu;
 [Default(0.6)] uniform float speed;
 [Default(140)] uniform float scale;
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float2 p = i.canvas.centred / scale;
+    float2 p = canvas.centred / scale;
     float t = time * speed;
     float v = sin(p.x + t)
             + sin(p.y * 1.3 - t * 0.7)

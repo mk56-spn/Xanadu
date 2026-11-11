@@ -208,6 +208,9 @@ internal static class SlangShaders
             static State state;
             """;
         string load = stateBinding < 0 ? "" : "effect0::state = effect0::xanaduStateIn[0];";
+        // shade gets what its parameters ask for (ShadeSignature): the canvas, the whole input, or both.
+        string arguments = ShadeSignature.Arguments(source, out string problem)
+                           ?? throw new InvalidOperationException($"{name}: {problem}");
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -223,7 +226,7 @@ internal static class SlangShaders
             {
                 {{load}}
                 ItemInput i = input(v);
-                i.colour = effect0::shade(i);
+                i.colour = effect0::shade({{arguments}});
                 return i.colour;
             }
             """;

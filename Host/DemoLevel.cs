@@ -74,11 +74,11 @@ internal static class DemoLevel
                 uniform float4 tint;
 
                 // Slow bands of the tint, under a rounded frame inset from the field's edge.
-                float4 shade(ItemInput i)
+                float4 shade(ItemInput i, Canvas canvas)
                 {
                     float band = 0.5 + 0.5 * sin(i.uv.y * 18.0 - i.time * speed * TAU);
                     float3 colour = lerp(i.colour.rgb, tint.rgb, band * 0.35);
-                    float edge = Box(i.halfSize * 2 - 80, 32).stroke(i.centred, 6.0, 2.0);
+                    float edge = Box(canvas.size - 80, 32).stroked(canvas.centred, 6.0, 2.0);
                     return float4(lerp(colour, float3(1.0, 0.8, 0.3), edge), i.colour.a);
                 }
                 """,

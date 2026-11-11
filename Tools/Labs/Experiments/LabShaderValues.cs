@@ -30,7 +30,7 @@ internal static partial class LabShaderValues
     public static readonly string[] Notes =
     [
         "Use any of these and the lab fills it every frame:",
-        "  mouse: the pointer, pixels from the stage's centre (like i.canvas.centred)",
+        "  mouse: the pointer, pixels from the stage's centre (like canvas.centred)",
         "  time: seconds since the lab started",
         "  mouseUv: the pointer, 0..1 on the stage",
         "  resolution: the stage's size in pixels",

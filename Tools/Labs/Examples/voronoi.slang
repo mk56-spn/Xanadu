@@ -5,9 +5,9 @@ import xanadu;
 [Default(110)] uniform float cellSize;
 [Default(0.5)] uniform float speed;
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float2 q = i.canvas.centred / cellSize;
+    float2 q = canvas.centred / cellSize;
     float2 cell = floor(q), inside = frac(q);
 
     float nearest = 8, second = 8;

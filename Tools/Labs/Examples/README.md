@@ -13,6 +13,6 @@ anything here pastes into a level. Open one in the playground:
 | `starfield.slang` | layered grids of random stars, depth by zoom and fade |
 | `voronoi.slang` | nearest of the wandering points in the 3×3 cells round a pixel, borders |
 | `tunnel.slang` | polar coordinates as a texture lookup, the atan2 seam handled |
-| `metaballs.slang` | a loop of circles joined with `sdf.melt`, fill, outline and glow from one distance |
-| `badge.slang` | layering library shapes: placement, booleans, repeat, stroke |
+| `metaballs.slang` | a loop of circles joined with `sdf.melted`, filled, outlined and haloed from one distance |
+| `badge.slang` | layering library shapes: placement, booleans, repeated, stroked |
 | `ripple.slang` | reading what is already drawn (`sampleScreen`) through a warp |

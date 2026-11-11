@@ -34,7 +34,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
 
     /// <summary>
     /// A level shader's own code (an effect body: uniforms and
-    /// <c>float4 shade(ItemInput i)</c>), which the host wraps into an entry
+    /// <c>float4 shade(Canvas canvas)</c>), which the host wraps into an entry
     /// point; null for a shipped effect at <see cref="Shader"/>.
     /// </summary>
     public string? Source { get; private init; }

@@ -17,13 +17,15 @@
 // Values a material doesn't set take the field's [Default(...)], else zero.
 //
 // A level shader slot holds just an effect body: global uniforms (tagged
-// [Instance] when a group may key them) and `float4 shade(ItemInput i)`. The
-// host wraps it with this import and an entry point, and binds its globals to
-// uniform buffer 1:
+// [Instance] when a group may key them) and `shade`, which takes the quad
+// (`Canvas canvas`), the rest of the pixel's input (`ItemInput i`), both, or
+// neither. The host wraps it with this import and an entry point that passes
+// what shade asked for, and binds its globals to uniform buffer 1:
 //
 //     [Instance] [Default(0.5)] uniform float strength;
 //     uniform float4 tint;
 //     float4 shade(ItemInput i) { return i.colour * tint * strength; }
+//     float4 shade(Canvas canvas) { return tint * (canvas.centred.x > 0 ? 1 : 0); }
 module stage;
 
 public static const int VERSION = 1;
@@ -90,7 +92,7 @@ public struct Canvas
     public float2 yAxis;
     /// This pixel's place on the quad from its centre, in pixels along the quad's
     /// own sides (so turning the quad turns it too): what shapes sized by
-    /// <c>size</c> want, e.g. <c>Box(c.size).fill(c.centred)</c>.
+    /// <c>size</c> want, e.g. <c>Box(c.size).filled(c.centred)</c>.
     public float2 centred;
 
     /// Width over height.
@@ -124,12 +126,6 @@ public struct ItemInput
     public float2 pixel;
     /// Seconds since the game started: Godot's TIME.
     public float time;
-    /// Half the drawn shape's size in item units, worked out from how uv
-    /// changes across the pixel (the legacy CANVAS_HALF_SIZE). Exact for rects
-    /// and quads whose uv runs 0..1 across them; meaningless where uv is constant.
-    public float2 halfSize;
-    /// The pixel's position from the shape's centre in item units, y down (the legacy PIXEL_UV).
-    public float2 centred;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
     public Canvas canvas;
 };
@@ -163,7 +159,7 @@ public Canvas canvasOf(ItemVaryings v)
 }
 
 /// The pixel being shaded: input() keeps it here, so shapes can default to it
-/// (`circle.fill()` is `circle.fill(i.canvas.centred)`).
+/// (`circle.filled()` is `circle.filled(canvas.centred)`).
 public static ItemInput shading = {};
 
 public ItemInput input(ItemVaryings v)
@@ -176,10 +172,6 @@ public ItemInput input(ItemVaryings v)
     i.pixel = v.position.xy;
     i.screenUv = v.position.xy / frame.screen;
     i.time = frame.time;
-    float2 span = fwidth(v.uv);
-    i.halfSize = 0.5 * abs(float2(span.x > 1e-6 ? fwidth(v.local.x) / span.x : 0.0,
-                                  span.y > 1e-6 ? fwidth(v.local.y) / span.y : 0.0));
-    i.centred = (v.uv - 0.5) * 2.0 * i.halfSize;
     i.canvas = canvasOf(v);
     shading = i;
     return i;

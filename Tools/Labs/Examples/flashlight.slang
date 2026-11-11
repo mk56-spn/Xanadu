@@ -17,8 +17,8 @@ void update(inout State s, float dt)
     s.light = lerp(s.light, mouse, 1 - exp(-dt * follow));
 }
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float d = distance(i.canvas.centred, state.light);
+    float d = distance(canvas.centred, state.light);
     return colour(0, 0, 0, smoothstep(radius * 0.7, radius, d));
 }

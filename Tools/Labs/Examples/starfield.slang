@@ -6,9 +6,9 @@ import xanadu;
 
 static const int Layers = 5;
 
-float4 shade(ItemInput i)
+float4 shade(Canvas canvas)
 {
-    float2 p = i.canvas.centred;
+    float2 p = canvas.centred;
     float3 sky = float3(0);
     for (int l = 0; l < Layers; l++)
     {
