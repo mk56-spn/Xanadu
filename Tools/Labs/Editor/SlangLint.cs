@@ -6,7 +6,7 @@ namespace Xanadu.Labs.Editor;
 
 /// <summary>
 /// The editor's own warnings, for mistakes Slang doesn't report on code that
-/// compiles. Each is a rule in <c>docs/shader-style.md</c>, named in its message.
+/// compiles. Each is a rule in <c>Docs/shader-style.md</c>, named in its message.
 /// <list type="bullet">
 /// <item>XS003: a local declared without a value (<c>colour c;</c>) whose first
 /// use reads it. Slang leaves locals as whatever was there, so the result is

@@ -13,7 +13,7 @@ using Xanadu.Timeline;
 namespace Xanadu.Tests.Playfields;
 
 /// <summary>
-/// Step 9 of docs/render-architecture.md: a layer's pass either composites its
+/// Step 9 of Docs/render-architecture.md: a layer's pass either composites its
 /// own viewport (self-contained) or reads the screen behind it (background reader).
 /// </summary>
 [TestFixture]

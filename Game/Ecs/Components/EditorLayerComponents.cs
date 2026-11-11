@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 namespace Xanadu.Ecs;
 
 /// <summary>
-/// The level editor's own view of the layers (docs/render-architecture.md
+/// The level editor's own view of the layers (Docs/render-architecture.md
 /// step 4): which are hidden, locked or soloed, empty layers added from the
 /// layers panel, and the row picked in the panel. None of it is saved; names
 /// and passes are level data, in <see cref="LevelLayers"/>. Layer 0 stands for

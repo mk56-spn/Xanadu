@@ -6,7 +6,7 @@ namespace Xanadu.Levels;
 
 /// <summary>
 /// The cheap checks a level's shader source must pass before it is kept: a Slang
-/// fragment effect against <c>xanadu.stage</c> (docs/host.md §3) that
+/// fragment effect against <c>xanadu.stage</c> (Docs/host.md §3) that
 /// defines a <c>shade</c> the host can call (<see cref="ShadeSignature"/>). Whether it really compiles is only
 /// known when the host builds it; a broken one draws plain and logs Slang's error.
 /// </summary>

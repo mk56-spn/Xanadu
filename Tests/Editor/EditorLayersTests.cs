@@ -11,7 +11,7 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
 
-/// <summary>Step 4 of docs/render-architecture.md: the editor's layers panel, layer and z steppers, and moving through a layer.</summary>
+/// <summary>Step 4 of Docs/render-architecture.md: the editor's layers panel, layer and z steppers, and moving through a layer.</summary>
 [TestFixture]
 public sealed class EditorLayersTests
 {

@@ -15,7 +15,7 @@ namespace Xanadu.Systems.Editor;
 /// The group overlay's own drawing: the effects on the timeline as ease bands
 /// and pins (the animator's style), the selected effect's easing curve and the
 /// palette's frame, on a canvas above the dialog. What the groups do to the
-/// level shows live in the editor view itself (docs/render-architecture.md D18b).
+/// level shows live in the editor view itself (Docs/render-architecture.md D18b).
 /// </summary>
 public sealed class EditorGroupOverlayDrawSystem :
     QuerySystem<EditorGroupState, LevelGroups, PlayfieldView>

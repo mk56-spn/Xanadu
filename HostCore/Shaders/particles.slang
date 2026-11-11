@@ -1,4 +1,4 @@
-// The canvas's GPU particles (docs/host.md §5.6): one compute step
+// The canvas's GPU particles (Docs/host.md §5.6): one compute step
 // that moves every particle of a canvas item, and one instanced quad per
 // particle drawn where the item sits in the tree.
 //

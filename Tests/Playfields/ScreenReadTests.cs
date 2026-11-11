@@ -15,7 +15,7 @@ using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Playfields;
 
-/// <summary>Step 11 of docs/render-architecture.md: screen-read regions refresh the back buffer where they are reached.</summary>
+/// <summary>Step 11 of Docs/render-architecture.md: screen-read regions refresh the back buffer where they are reached.</summary>
 [TestFixture]
 public sealed class ScreenReadTests
 {

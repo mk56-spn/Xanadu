@@ -21,23 +21,23 @@ the library author wrote. The version is whatever `Xanadu.csproj` references, so
 do not hand-roll the path:
 
 ```bash
-python3 docs/ecs/lookup.py --path
+python3 Docs/ecs/lookup.py --path
 ```
 
 ## Look things up
 
 ```bash
-python3 docs/ecs/lookup.py CommandBuffer
-python3 docs/ecs/lookup.py CommandBuffer Playback    # every term must match
-python3 docs/ecs/lookup.py QuerySystem --full        # params and remarks too
-python3 docs/ecs/lookup.py Entity AddChild
+python3 Docs/ecs/lookup.py CommandBuffer
+python3 Docs/ecs/lookup.py CommandBuffer Playback    # every term must match
+python3 Docs/ecs/lookup.py QuerySystem --full        # params and remarks too
+python3 Docs/ecs/lookup.py Entity AddChild
 ```
 
 Or grep the XML directly. Members are named `T:` type, `M:` method, `P:`
 property, `F:` field:
 
 ```bash
-XML=$(python3 docs/ecs/lookup.py --path)
+XML=$(python3 Docs/ecs/lookup.py --path)
 grep -A8 'name="M:Friflo.Engine.ECS.Entity.AddChild' "$XML"
 ```
 
@@ -76,7 +76,7 @@ frame use `store.Cached<T>()` / `store.Cached<T1, T2>()`, one kept query per
 store, and `store.ToggleOn<TTag>(none, hidden)` to read a tagged `Toggle`
 ([QueryCache.cs](../../UI/Ecs/QueryCache.cs)). The cached query is shared:
 never add filters (`WithDisabled`, `AllTags`) to it; keep a filtered query of
-your own instead. Find hot ones with the frame autopsy (`docs/host.md` §5.10).
+your own instead. Find hot ones with the frame autopsy (`Docs/host.md` §5.10).
 
 ## Rules that bite
 

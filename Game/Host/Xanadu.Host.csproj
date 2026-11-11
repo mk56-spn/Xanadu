@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The game on MoonWorks (docs/host.md). A plain .NET exe on HostCore: it
+    The game on MoonWorks (Docs/host.md). A plain .NET exe on HostCore: it
     references the game assemblies the same way the tests do and never starts Godot.
   -->
   <PropertyGroup>

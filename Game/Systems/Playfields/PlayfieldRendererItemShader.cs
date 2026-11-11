@@ -5,7 +5,7 @@ using Xanadu.Systems.Canvas;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Picks the shader an item draws with (docs/render-architecture.md D11, step
+/// Picks the shader an item draws with (Docs/render-architecture.md D11, step
 /// 8): the group its shader source names, when that group is in its mask and
 /// has a track, with the track's keyed values at the playhead; otherwise its
 /// own static shader.

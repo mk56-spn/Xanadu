@@ -112,7 +112,7 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     /// <summary>
     /// A picked point moved into the item's placed frame: items are picked where
-    /// their groups show them at the playhead (docs/render-architecture.md step 3a).
+    /// their groups show them at the playhead (Docs/render-architecture.md step 3a).
     /// </summary>
     private static Vector2 Placed(Entity entity, Vector2 shown) => shown - GroupOffset.Of(entity);
 

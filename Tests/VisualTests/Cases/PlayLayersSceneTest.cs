@@ -8,7 +8,7 @@ namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// Items of different kinds interleaved across layers in play, with time held
-/// still (docs/render-architecture.md step 3). Left to right: a note between a
+/// still (Docs/render-architecture.md step 3). Left to right: a note between a
 /// blue block under it and a green block over it on the same layer; a text
 /// behind that green block; a yellow block made first but drawn over the
 /// purple one made after it, by z. A red strip on layer 3 crosses the field in

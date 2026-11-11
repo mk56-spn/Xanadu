@@ -29,7 +29,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     // Godot sorts the items of one layer by draw index. AnimatorDrawOrder owns
     // those indices: attachments in list order, then cloth, chains and effects,
     // so a dress on the legs' layer covers the legs and stays under the next
-    // layer up (docs/render-architecture.md step 12).
+    // layer up (Docs/render-architecture.md step 12).
 
     /// <summary>Pixels per unit art is rasterised at; the preview zooms well past one.</summary>
     private const float ArtScale = 4f;

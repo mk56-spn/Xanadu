@@ -10,7 +10,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Host.Text;
 
 /// <summary>
-/// The glow behind a polygon or polyline (docs/host.md §5.5), as
+/// The glow behind a polygon or polyline (Docs/host.md §5.5), as
 /// <c>GodotShapeGlow</c> drew it: the outline's coverage (distance to each
 /// segment for the stroke, an even-odd crossing count for the fill) blurred
 /// with text's <see cref="GlowBlur"/>, scaled by the intensity and tinted by

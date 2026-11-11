@@ -20,7 +20,7 @@ public interface IRectCanvas
 
     /// <summary>
     /// Sets an instance uniform for the draws that follow, on the run they go
-    /// into (docs/render-architecture.md §5.3). Values are written when the run
+    /// into (Docs/render-architecture.md §5.3). Values are written when the run
     /// is picked; canvases with no shaders ignore it.
     /// </summary>
     void SetShaderValue(string param, Vector4 value, int size) { }
@@ -51,13 +51,13 @@ public interface IRectCanvas
     /// <summary>
     /// Makes the next shaded run copy the whole screen to the back buffer just
     /// before it draws, so a screen-reading pass sees everything drawn so far
-    /// (docs/render-architecture.md D9/D10). Canvases with no shaders ignore it.
+    /// (Docs/render-architecture.md D9/D10). Canvases with no shaders ignore it.
     /// </summary>
     void CopyScreen() { }
 
     /// <summary>
     /// Refreshes the back buffer for one rect now, where the draw order reaches
-    /// it: a screen-read region (docs/render-architecture.md step 11, D10). The
+    /// it: a screen-read region (Docs/render-architecture.md step 11, D10). The
     /// rect is in the canvas's own coordinates; canvases with no shaders ignore it.
     /// </summary>
     void CopyScreen(Rect2 bounds) { }

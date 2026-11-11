@@ -9,7 +9,7 @@ namespace Xanadu.Systems;
 /// What the running host provides that systems fall back on when nothing is
 /// passed in: headless stand-ins (no keys down, a canvas nobody sees) until the
 /// MoonWorks host calls <see cref="Use"/> before building the world
-/// (docs/host.md §5.2). The canvas itself is <see cref="CanvasServer"/>.
+/// (Docs/host.md §5.2). The canvas itself is <see cref="CanvasServer"/>.
 /// </summary>
 public static class HostPlatform
 {
@@ -55,7 +55,7 @@ public static class HostPlatform
     /// </summary>
     public static System.Func<CanvasMaterial, System.Collections.Generic.IReadOnlyList<MaterialParam>?>? DescribeMaterial { get; set; }
 
-    /// <summary>The host's particles (docs/host.md §5.6); null in tests.</summary>
+    /// <summary>The host's particles (Docs/host.md §5.6); null in tests.</summary>
     public static Xanadu.Particles.IParticleServer? Particles { get; set; }
 
     public static void Use(

@@ -10,7 +10,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The group's item-shader track (docs/render-architecture.md step 8): which
+/// The group's item-shader track (Docs/render-architecture.md step 8): which
 /// shader slot it draws with, which of that shader's instance uniforms is being
 /// keyed, and the value buttons that write a key at the playhead.
 /// </summary>

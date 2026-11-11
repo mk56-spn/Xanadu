@@ -3,7 +3,7 @@
 Status: **built** (2026-11-06; on the MoonWorks host since 2026-11-10).
 Layering in the level editor and play, sharing a core with the animator's
 layering: the decisions, the model, how it maps onto the host renderer
-(`docs/host.md` §5.3), and design notes for each part as it was built.
+(`Docs/host.md` §5.3), and design notes for each part as it was built.
 
 Pre-alpha: **no migration**. Bump the file format version and break old levels
 freely unless keeping them working is trivial.
@@ -101,7 +101,7 @@ self modulate (static colour)
 
 ## 5. How it maps onto the host
 
-The renderer itself is described in `docs/host.md` §5.3; this is how layering
+The renderer itself is described in `Docs/host.md` §5.3; this is how layering
 uses it. (Until 2026-11-10 this mapped onto Godot's RenderingServer; the old
 version is in git history.)
 
@@ -140,7 +140,7 @@ background reader → after the container: a fresh screen copy, then a
   changes; the run key is **(shader slot, blend, shader-source group)**, so
   items following different groups never share a run.
 - **Buffered groups** render into a pooled frame-sized texture and composite
-  back as one premultiplied quad (`docs/host.md` §5.3). `xanadu.stage` hands
+  back as one premultiplied quad (`Docs/host.md` §5.3). `xanadu.stage` hands
   effects straight colour, so any slot shader works as a buffer shader.
 - **Screen reads** inside a buffered group sample the group's own image so far,
   not the screen behind it (Godot read the image from before the group). Rare
@@ -153,7 +153,7 @@ item-shader values are written as **instance values** on the runs that follow
 that group, once per frame; the same goes for a layer pass quad and a buffered
 group's composite. Two layers using the same blur share a material.
 
-- A level shader marks its keyable settings `[Instance]` (`docs/host.md` §5.5);
+- A level shader marks its keyable settings `[Instance]` (`Docs/host.md` §5.5);
   plain uniforms stay tuned constants. The editor's key track lists only the
   `[Instance]` ones.
 - Values are up to `float4` each. The host packs them into the effect's
@@ -215,7 +215,7 @@ The shared core (built in step 1 under `Core/Layering/`):
 
 Each part as it was planned and then built, with the design choices made on
 the way. Code comments cite these by step number. Written while Godot was the
-engine: where the drawing side has moved to the host, §5 and `docs/host.md`
+engine: where the drawing side has moved to the host, §5 and `Docs/host.md`
 are current. Data files use the versioned binary formats (`Game/Levels/XmfBinary.cs`
 and friends), never JSON.
 

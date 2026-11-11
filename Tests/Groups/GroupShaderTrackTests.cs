@@ -15,7 +15,7 @@ using Xanadu.Timeline;
 namespace Xanadu.Tests.Groups;
 
 /// <summary>
-/// Step 8 of docs/render-architecture.md: a group's keyed item-shader track and
+/// Step 8 of Docs/render-architecture.md: a group's keyed item-shader track and
 /// the item shader source that follows it.
 /// </summary>
 [TestFixture]

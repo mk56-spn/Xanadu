@@ -5,7 +5,7 @@ namespace Xanadu.Layering;
 /// <summary>
 /// Where one thing draws: its layer, then its z inside the layer, then its place
 /// in its list. Higher draws in front on every count. Shared by the animator and
-/// levels (docs/render-architecture.md).
+/// levels (Docs/render-architecture.md).
 /// </summary>
 public readonly record struct DrawSlot(int Layer, int Z, int Index) : IComparable<DrawSlot>
 {

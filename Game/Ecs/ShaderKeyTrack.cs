@@ -5,7 +5,7 @@ namespace Xanadu.Ecs;
 
 /// <summary>
 /// Works out what a shader track's keys say at a moment
-/// (docs/render-architecture.md step 8). A key holds the value from its time
+/// (Docs/render-architecture.md step 8). A key holds the value from its time
 /// until the next key for the same setting eases into its own; before the
 /// first key the first one's value already applies, and after the last it
 /// holds. Pure, so the editor, play and tests share it.

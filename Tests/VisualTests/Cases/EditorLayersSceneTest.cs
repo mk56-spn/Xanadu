@@ -8,7 +8,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// The editor's layers (docs/render-architecture.md step 4): items on several
+/// The editor's layers (Docs/render-architecture.md step 4): items on several
 /// layers, the selection's LAYER and Z steppers in the sidebar, and the layers
 /// panel from the view bar with one layer hidden and one named, and the
 /// group tags turned on beside the items in groups.

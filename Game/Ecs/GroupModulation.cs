@@ -70,7 +70,7 @@ public static class GroupModulation
     /// colour has been replaced, 0 to 1.
     /// <para>
     /// <paramref name="alpha"/> is what the groups multiply the item's own alpha
-    /// by (docs/render-architecture.md D6). Each group works out its own alpha
+    /// by (Docs/render-architecture.md D6). Each group works out its own alpha
     /// from its own colour effects, the latest to start winning inside the
     /// group, so a colour in one group can never bring back an item another
     /// group has faded out; the groups' alphas then multiply.
@@ -169,7 +169,7 @@ public static class GroupModulation
 
     /// <summary>
     /// The shader an item draws with when one of its groups supplies it
-    /// (docs/render-architecture.md D11, step 8): the source group's slot and
+    /// (Docs/render-architecture.md D11, step 8): the source group's slot and
     /// its keyed values at the moment. False when the item follows its own
     /// shader instead: no group chosen, a group not in its mask, or a group
     /// whose track has no shader, which is the fallback to own.

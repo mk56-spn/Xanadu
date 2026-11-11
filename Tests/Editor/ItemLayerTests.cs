@@ -13,7 +13,7 @@ using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Editor;
 
-/// <summary>Step 2 of docs/render-architecture.md: every level item has a layer and a z.</summary>
+/// <summary>Step 2 of Docs/render-architecture.md: every level item has a layer and a z.</summary>
 [TestFixture]
 public sealed class ItemLayerTests
 {

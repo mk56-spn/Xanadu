@@ -37,7 +37,7 @@ public static class ShaderUniforms
 
     /// <summary>
     /// The tunable values of an engine-free material, from the host's
-    /// reflection (docs/host.md §5.5). A four-channel value whose
+    /// reflection (Docs/host.md §5.5). A four-channel value whose
     /// name says colour is edited as a colour, standing in for Godot's
     /// <c>source_color</c> hint.
     /// </summary>

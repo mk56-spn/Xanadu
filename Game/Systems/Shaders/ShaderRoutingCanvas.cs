@@ -59,7 +59,7 @@ public interface IShaderCanvasItems
 /// root, kept from frame to frame, and their runs are children of that
 /// container. The root's children (its runs and the containers) are stacked
 /// by draw index in the order this frame used them, so a layer made late still
-/// draws where it was begun (docs/render-architecture.md §5.1).
+/// draws where it was begun (Docs/render-architecture.md §5.1).
 /// </para>
 /// </remarks>
 public sealed class ShaderRoutingCanvas(IRectCanvas inner, Handle root, IShaderCanvasItems items, Func<Rect2, Rect2>? toPixels = null) : IRectCanvas
@@ -535,7 +535,7 @@ public sealed class ShaderRoutingCanvas(IRectCanvas inner, Handle root, IShaderC
 /// Shader canvas items on the <see cref="CanvasServer"/>: each run item gets a
 /// <see cref="CanvasMaterial"/> for its common shader and blend, and instance
 /// values go on the item itself; a level slot's material comes from
-/// <see cref="SlotMaterialOf"/> (docs/host.md §5.5).
+/// <see cref="SlotMaterialOf"/> (Docs/host.md §5.5).
 /// </summary>
 public class ServerShaderCanvasItems : IShaderCanvasItems
 {
@@ -580,7 +580,7 @@ public class ServerShaderCanvasItems : IShaderCanvasItems
         CanvasServer.Current.SetInstanceValue(item, param, value);
 
     // The host copies the whole target whenever a screen reader needs a fresh
-    // copy (docs/host.md §5.3), so a region is copied whole.
+    // copy (Docs/host.md §5.3), so a region is copied whole.
     public void CopyScreen(Handle item) => CanvasServer.Current.SetCopyScreen(item, true);
 
     public void CopyRectangle(Handle item, Rect2 pixelRect) => CanvasServer.Current.SetCopyScreen(item, true);

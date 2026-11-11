@@ -3,7 +3,7 @@ using Xanadu.Layering;
 namespace Xanadu.Animation;
 
 /// <summary>
-/// The animator's draw order (docs/render-architecture.md step 12), expressed in
+/// The animator's draw order (Docs/render-architecture.md step 12), expressed in
 /// the shared <see cref="DrawOrder"/>: an attachment's layer and list index, then
 /// cloth, chains and effects after it on the same layer. Every item an animator
 /// draws gets its draw index from here, so both the layer panel's rows and the

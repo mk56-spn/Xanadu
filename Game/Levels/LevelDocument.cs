@@ -104,7 +104,7 @@ public sealed class ShaderDocument
 }
 
 /// <summary>
-/// Serializable layer table entry (docs/render-architecture.md step 5): a
+/// Serializable layer table entry (Docs/render-architecture.md step 5): a
 /// layer's name and its pass, with the pass shader's keyed settings.
 /// </summary>
 public sealed class LayerDocument
@@ -220,7 +220,7 @@ public abstract class ItemDocument
     /// <summary>The order inside the layer; higher draws in front.</summary>
     public int Z { get; set; }
 
-    /// <summary>How its pixels combine with the layer, docs/render-architecture.md D17.</summary>
+    /// <summary>How its pixels combine with the layer, Docs/render-architecture.md D17.</summary>
     public Xanadu.Rendering.BlendMode Blend { get; set; }
 
     /// <summary>The group slot whose item-shader track it follows, or -1 for its own shader.</summary>
@@ -392,7 +392,7 @@ public sealed class TextDocument : ItemDocument
 
 /// <summary>
 /// A screen-read region: a rect that refreshes the back buffer when the draw
-/// order reaches it (docs/render-architecture.md step 11).
+/// order reaches it (Docs/render-architecture.md step 11).
 /// </summary>
 public sealed class ScreenReadDocument : ItemDocument
 {

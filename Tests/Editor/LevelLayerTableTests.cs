@@ -10,7 +10,7 @@ using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
-/// <summary>Step 5 of docs/render-architecture.md: the level's layer table, saved in XMF and carried by undo.</summary>
+/// <summary>Step 5 of Docs/render-architecture.md: the level's layer table, saved in XMF and carried by undo.</summary>
 [TestFixture]
 public sealed class LevelLayerTableTests
 {

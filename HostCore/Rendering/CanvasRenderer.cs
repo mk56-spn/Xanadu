@@ -13,7 +13,7 @@ using Texture = MoonWorks.Graphics.Texture;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>
-/// Draws a <see cref="CanvasTree"/> (docs/host.md §5.3):
+/// Draws a <see cref="CanvasTree"/> (Docs/host.md §5.3):
 /// walks it once a frame in Godot's order, puts every visible item's triangles
 /// into one vertex buffer in pixel space, and draws them in as few calls as the
 /// textures, clip rects and materials allow.

@@ -9,7 +9,7 @@ using Xanadu.Rendering;
 namespace Xanadu.Scenes;
 
 /// <summary>
-/// The editor's layer controls (docs/render-architecture.md step 4): the
+/// The editor's layer controls (Docs/render-architecture.md step 4): the
 /// layers panel the view bar's LAYERS button opens, and the selection's layer
 /// and z steppers in the sidebar.
 /// </summary>

@@ -6,7 +6,7 @@ using Xanadu.Timeline;
 namespace Xanadu.Ecs;
 
 /// <summary>
-/// What a layer's full-screen pass reads (docs/render-architecture.md D8):
+/// What a layer's full-screen pass reads (Docs/render-architecture.md D8):
 /// nothing, everything drawn so far, or only the layer's own content.
 /// </summary>
 public enum LayerPassKind : byte
@@ -76,7 +76,7 @@ public sealed class LevelLayer
 }
 
 /// <summary>
-/// The level's layer table (docs/render-architecture.md step 5), on the level's
+/// The level's layer table (Docs/render-architecture.md step 5), on the level's
 /// entity beside <see cref="LevelGroups"/>: an entry for each layer number that
 /// has settings. Saved with the level and part of undo.
 /// </summary>

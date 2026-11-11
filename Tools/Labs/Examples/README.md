@@ -2,7 +2,7 @@
 
 Common 2D effects, the kind found all over Shadertoy, written fresh against
 the xanadu shader library (no code copied); the library itself is described in
-`docs/shaders.md`. Each is a level shader slot, so
+`Docs/shaders.md`. Each is a level shader slot, so
 anything here pastes into a level. Open one in the playground:
 
     ./run-labs.sh --shader=Tools/Labs/Examples/plasma.slang

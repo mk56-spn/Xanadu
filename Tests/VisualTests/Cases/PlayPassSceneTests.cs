@@ -10,7 +10,7 @@ namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
 /// A self-contained back layer drawn into its own SubViewport and blurred by
-/// its pass, with a sharp text in front of it (docs/render-architecture.md
+/// its pass, with a sharp text in front of it (Docs/render-architecture.md
 /// step 9). Time is held still.
 /// </summary>
 public sealed class PlayPassBlurSceneTest : SceneTest

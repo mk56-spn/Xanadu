@@ -2,7 +2,7 @@ namespace Xanadu.Rendering;
 
 /// <summary>
 /// How a draw's pixels combine with what is already on its target
-/// (docs/render-architecture.md D17). Static: a level may set it, but it is not
+/// (Docs/render-architecture.md D17). Static: a level may set it, but it is not
 /// keyable. <see cref="Mix"/> is ordinary alpha blending; the rest are the
 /// blend modes Godot's canvas items offer.
 /// </summary>

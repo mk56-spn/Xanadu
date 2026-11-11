@@ -7,7 +7,7 @@ namespace Xanadu.Systems.Playfields;
 
 /// <summary>
 /// Works out what the level's groups do to each member at the playhead, in play
-/// and in the editor alike (docs/render-architecture.md step 3a): how far its
+/// and in the editor alike (Docs/render-architecture.md step 3a): how far its
 /// moves have taken it (<see cref="GroupOffset"/>) and the colour its fades
 /// reach (<see cref="GroupColor"/>, and <see cref="GroupOutlineColor"/> for a
 /// block's outline). Nothing here touches an item's own position: drawing,

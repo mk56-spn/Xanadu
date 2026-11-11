@@ -13,7 +13,7 @@ namespace Xanadu.Systems.Editor;
 
 /// <summary>
 /// The key lane under the effect rows: the selected shader setting's keys as
-/// pins on the timeline (docs/render-architecture.md step 8, "keys use the
+/// pins on the timeline (Docs/render-architecture.md step 8, "keys use the
 /// shared timeline"). Clicking a pin selects it and moves the playhead to it;
 /// dragging retimes it. The lane's table cells type the selected key's moment
 /// and value, open the ease picker on it and delete it. Every change is one undo step.

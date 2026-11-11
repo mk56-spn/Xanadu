@@ -5,7 +5,7 @@ using Xanadu.Ecs;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The buffer lock's edit guard (docs/render-architecture.md D16a): an edit
+/// The buffer lock's edit guard (Docs/render-architecture.md D16a): an edit
 /// that would break a buffered group is refused before it is made, with the
 /// same message a warning popup shows. Every editor command that changes a
 /// member's layer or its group mask asks this first.

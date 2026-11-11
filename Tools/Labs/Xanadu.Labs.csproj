@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Xanadu Labs on MoonWorks (docs/host.md): a sandbox of isolated
+    Xanadu Labs on MoonWorks (Docs/host.md): a sandbox of isolated
     experiments, one tab each. A plain exe on HostCore; it needs the UI and Core
     assemblies, never the game's. The Godot lab in Tools/Lab stays as reference
     until its experiments are rebuilt here one at a time.

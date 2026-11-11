@@ -7,7 +7,7 @@ using Xanadu.Settings;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Buffered groups (docs/render-architecture.md step 10): two groups of three
+/// Buffered groups (Docs/render-architecture.md step 10): two groups of three
 /// overlapping blocks, faded the same amount. The left one is buffered, so the
 /// overlaps keep the members' own colour and the group fades as one image; the
 /// right one fades each member, so its overlaps darken.

@@ -12,7 +12,7 @@ using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
-/// <summary>Step 10 of docs/render-architecture.md: buffered groups and their rules (D12–D16a).</summary>
+/// <summary>Step 10 of Docs/render-architecture.md: buffered groups and their rules (D12–D16a).</summary>
 [TestFixture]
 public sealed class GroupBufferTests
 {

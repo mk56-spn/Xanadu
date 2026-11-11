@@ -6,8 +6,8 @@ using Texture = MoonWorks.Graphics.Texture;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>
-/// Self-contained layers' surfaces in the host (docs/render-architecture.md
-/// §5.4, docs/host.md §5.3): a parentless canvas item drawn into a
+/// Self-contained layers' surfaces in the host (Docs/render-architecture.md
+/// §5.4, Docs/host.md §5.3): a parentless canvas item drawn into a
 /// frame-sized texture before the frame, made when a layer's pass turns on and
 /// freed when it turns off. The texture is premultiplied, as Godot's
 /// SubViewport's was.

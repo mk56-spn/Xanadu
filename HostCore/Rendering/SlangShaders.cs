@@ -119,7 +119,7 @@ internal static class SlangShaders
         Path.Combine(Path.GetTempPath(), $"xanadu-slang-{System.Environment.ProcessId}");
 
     /// <summary>
-    /// Compiles a level shader's effect body (docs/host.md §5.5):
+    /// Compiles a level shader's effect body (Docs/host.md §5.5):
     /// its <c>import</c> lines are hoisted, the rest goes in a namespace of its
     /// own, and a generated entry point runs <c>input(v)</c> then its
     /// <c>shade</c>. <c>#line</c> keeps Slang's errors on the author's lines,
@@ -127,7 +127,7 @@ internal static class SlangShaders
     /// </summary>
     /// <remarks>
     /// An effect that declares <c>void update(inout State s, float dt)</c> keeps
-    /// state (docs/shaders.md): <c>update</c> runs once a frame on one GPU
+    /// state (Docs/shaders.md): <c>update</c> runs once a frame on one GPU
     /// thread and <c>shade</c> reads the result as <c>state</c>. Only where
     /// <paramref name="keepsState"/> allows it (the lab, for now); elsewhere such
     /// an effect is an error.

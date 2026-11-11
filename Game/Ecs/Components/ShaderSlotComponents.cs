@@ -22,7 +22,7 @@ public sealed class ShaderSlot
 
     /// <summary>
     /// The engine-free materials for this slot, one per blend mode used, made
-    /// from <see cref="MaterialSource"/> (docs/host.md §5.5).
+    /// from <see cref="MaterialSource"/> (Docs/host.md §5.5).
     /// </summary>
     public readonly Dictionary<BlendMode, Xanadu.Systems.Canvas.CanvasMaterial> Materials = new();
 
@@ -81,7 +81,7 @@ public struct ItemCommonShader(string path) : IComponent
 }
 
 /// <summary>
-/// Where an item's shader comes from (docs/render-architecture.md D11): its own
+/// Where an item's shader comes from (Docs/render-architecture.md D11): its own
 /// static shader, or one group's item-shader track. The group must be in the
 /// item's mask; when it isn't, or its track has no shader, the item falls back
 /// to its own shader. Every editor item carries one from creation.

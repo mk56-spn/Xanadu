@@ -11,7 +11,7 @@ namespace Xanadu.Editor;
 /// <see cref="UndoHistory{T}"/>. Capturing, comparing and restoring snapshots
 /// each live in their own class; this only keeps the history the editor asks for.
 /// <para>
-/// It is also where the buffer lock (docs/render-architecture.md D16a) is
+/// It is also where the buffer lock (Docs/render-architecture.md D16a) is
 /// enforced for every edit: an edit that newly breaks a buffered group's rules
 /// is put back and not recorded, and the rule is shown as a warning. The
 /// commands still check first where they can, so they refuse without a

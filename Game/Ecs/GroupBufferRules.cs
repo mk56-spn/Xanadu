@@ -7,7 +7,7 @@ namespace Xanadu.Ecs;
 public readonly record struct BufferPreview(int Layer, uint Mask);
 
 /// <summary>
-/// When a group may be buffered (docs/render-architecture.md D15/D16): every
+/// When a group may be buffered (Docs/render-architecture.md D15/D16): every
 /// member on one layer, and no member in any other group. Buffering is a lock
 /// (D16a), so the editor asks this before it turns the flag on and refuses any
 /// later edit that would break one of the rules.

@@ -124,7 +124,7 @@ public struct ItemLayer(int layer, int z) : IComponent, IEquatable<ItemLayer>
 /// <summary>
 /// Where an effect left by an item (a note pop, a dash link fade, a hit or
 /// dash trail) draws: on its source's layer, just above the source
-/// (docs/render-architecture.md D18a). Taken when the effect is made, since
+/// (Docs/render-architecture.md D18a). Taken when the effect is made, since
 /// the source is usually gone the moment after. Not an <see cref="ItemLayer"/>,
 /// so effects never count as placed items.
 /// </summary>

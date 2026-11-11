@@ -3,8 +3,8 @@
 ## Architecture
 
 - **Do not try and skirt around the ECS. Always use the ECS.**
-- ECS docs are local, not a website: start with `docs/ecs/README.md` and look
-  types up with `python3 docs/ecs/lookup.py <Type>`. The gitbook is tutorials
+- ECS docs are local, not a website: start with `Docs/ecs/README.md` and look
+  types up with `python3 Docs/ecs/lookup.py <Type>`. The gitbook is tutorials
   only: <https://friflo.gitbook.io/friflo.engine.ecs/documentation>
 
 ### ECS in ten points
@@ -45,12 +45,12 @@
    `ChildEntities`, with `TreeMembership` and `ChildEntitiesChanged`. Don't
    hand-roll parent ids, and don't store a reference to a child or parent the
    tree already gives you. Reorder with `UiLayout.MoveChild`, never `InsertChild`
-   (see `docs/ecs/README.md`).
+   (see `Docs/ecs/README.md`).
 10. **Entities are handles.** `Entity` is a small struct (store + id); `default`
     is null, so check `IsNull`; `entity.Store` gets the store. Components live in
     archetypes, not in the handle.
 
-Working examples of the slice this project uses: `docs/ecs/README.md`.
+Working examples of the slice this project uses: `Docs/ecs/README.md`.
 
 ## UI
 
@@ -128,9 +128,9 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 
 - **Build:** `dotnet build` on each project touched.
 - **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
-  `docs/host.md` §7 lists the failures that are already known.
+  `Docs/host.md` §7 lists the failures that are already known.
 - **Perf:** `./run-autopsy.sh game|editor|labs|animator` records a launch and
-  opens the frame autopsy (`docs/host.md` §5.10).
+  opens the frame autopsy (`Docs/host.md` §5.10).
 
 ### Screenshots
 
@@ -167,8 +167,8 @@ git-ignored ones.
 
 ## See also
 
-- `docs/host.md` — the MoonWorks host: decisions, renderer, shaders, tools,
+- `Docs/host.md` — the MoonWorks host: decisions, renderer, shaders, tools,
   perf tooling (GPU times, Autopsy) and what is left for later.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
-- `docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
+- `Docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
   migration settled on, and its open questions. This is the house style.

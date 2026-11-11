@@ -15,7 +15,7 @@ public readonly record struct EditorLayerRow(int Layer, int Count)
 }
 
 /// <summary>
-/// The level editor's layer edits (docs/render-architecture.md step 4): the
+/// The level editor's layer edits (Docs/render-architecture.md step 4): the
 /// layers panel's rows, adding a layer beside a row, putting items on another
 /// layer, stepping z, and moving items forward or back through their layer
 /// with the shared <see cref="DrawStack"/>. The callers wrap each edit in one

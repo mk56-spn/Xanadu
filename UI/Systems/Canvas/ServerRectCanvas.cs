@@ -5,7 +5,7 @@ namespace Xanadu.Systems.Canvas;
 /// <summary>
 /// The shape half of the production canvas: every draw goes to the
 /// <see cref="CanvasServer"/> as a command on the canvas item. Text and glows
-/// are left to subclasses (the host's text, docs/host.md §5.4), so this draws
+/// are left to subclasses (the host's text, Docs/host.md §5.4), so this draws
 /// no text on its own.
 /// </summary>
 public class ServerRectCanvas : IRectCanvas

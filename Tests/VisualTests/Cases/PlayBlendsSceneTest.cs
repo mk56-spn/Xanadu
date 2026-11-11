@@ -8,7 +8,7 @@ using Xanadu.Settings;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Static blend modes in play (docs/render-architecture.md step 7): three pairs
+/// Static blend modes in play (Docs/render-architecture.md step 7): three pairs
 /// of overlapping blocks over one background, left to right on mix, add and
 /// multiply. Mix darkens where they overlap, add brightens, multiply darkens
 /// the background under it. Time is held still.

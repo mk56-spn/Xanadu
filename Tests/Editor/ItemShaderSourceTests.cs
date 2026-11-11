@@ -12,7 +12,7 @@ using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Editor;
 
-/// <summary>Step 8 of docs/render-architecture.md: where an item's shader comes from.</summary>
+/// <summary>Step 8 of Docs/render-architecture.md: where an item's shader comes from.</summary>
 [TestFixture]
 public sealed class ItemShaderSourceTests
 {

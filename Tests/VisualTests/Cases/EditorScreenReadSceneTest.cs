@@ -9,7 +9,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Step 11 of docs/render-architecture.md in the editor: the Screen reads tool
+/// Step 11 of Docs/render-architecture.md in the editor: the Screen reads tool
 /// places a region on the current layer, the editor outlines it, and the resize
 /// handles change its rect.
 /// </summary>

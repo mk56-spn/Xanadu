@@ -145,7 +145,7 @@ public sealed class GroupDefinition
     public List<GroupEffect> Effects = new();
 
     /// <summary>The shader slot its item-shader track draws with, or 0 for none
-    /// (docs/render-architecture.md D11).</summary>
+    /// (Docs/render-architecture.md D11).</summary>
     public int Shader;
 
     /// <summary>The track's keyed instance-uniform values, in any order.</summary>
@@ -282,7 +282,7 @@ public struct ItemGroups(uint mask) : IComponent
 /// How far the item's groups have moved it at the playhead. It is applied when
 /// the item is drawn, hit or picked, and never written into the item's own
 /// position, so the placed position stays what the level, undo and saving hold
-/// (docs/render-architecture.md step 3a). Worked out each frame by
+/// (Docs/render-architecture.md step 3a). Worked out each frame by
 /// <c>GroupModulationSystem</c>; an item no group moves has none.
 /// </summary>
 public struct GroupOffset(Vector2 offset) : IComponent
@@ -311,7 +311,7 @@ public struct GroupOffset(Vector2 offset) : IComponent
 /// The colour a group fades an item towards: <see cref="Mix"/> at <see cref="Coverage"/>
 /// of the way from the item's own colour. Drawing blends the item's colour into it.
 /// <see cref="Alpha"/> is the separate, multiplied product of every group's own
-/// alpha (docs/render-architecture.md D6), so a colour in one group never brings
+/// alpha (Docs/render-architecture.md D6), so a colour in one group never brings
 /// back an item another group has faded out.
 /// </summary>
 public struct GroupColor(Color mix, float coverage, float alpha = 1f) : IComponent

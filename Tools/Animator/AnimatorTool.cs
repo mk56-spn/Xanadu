@@ -15,7 +15,7 @@ namespace Xanadu.Tools.Animator;
 
 /// <summary>
 /// The XAF skeleton and animation tool on the MoonWorks host
-/// (docs/host.md §5.9): builds the animator's ECS world on
+/// (Docs/host.md §5.9): builds the animator's ECS world on
 /// <see cref="HostApp"/>'s canvas and feeds it input.
 /// </summary>
 internal sealed class AnimatorTool : HostApp

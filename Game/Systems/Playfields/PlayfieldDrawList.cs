@@ -49,7 +49,7 @@ public readonly record struct PlayfieldDrawEntry(int Layer, int Z, PlayfieldDraw
 
 /// <summary>
 /// Gathers every item and effect on the playfield into one list sorted back to
-/// front (docs/render-architecture.md §3). The player wedge isn't in it: it
+/// front (Docs/render-architecture.md §3). The player wedge isn't in it: it
 /// draws between the last negative layer and the first positive one.
 /// </summary>
 public static class PlayfieldDrawList

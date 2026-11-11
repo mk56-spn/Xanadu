@@ -32,7 +32,7 @@ public readonly record struct PlayfieldItemFrame(
 /// <summary>
 /// Draws every placed item and the effects they leave in layer order, with the
 /// player wedge between the layers behind it and those in front
-/// (docs/render-architecture.md §3, step 3).
+/// (Docs/render-architecture.md §3, step 3).
 /// </summary>
 public static partial class PlayfieldRenderer
 {
@@ -232,7 +232,7 @@ public static partial class PlayfieldRenderer
     /// <summary>
     /// Ends a layer's pass: a self-contained layer's viewport is composited
     /// through the pass shader, and a background reader copies the screen just
-    /// before its quad draws (docs/render-architecture.md D9).
+    /// before its quad draws (Docs/render-architecture.md D9).
     /// </summary>
     private static void FinishPassLayer(
         IRectCanvas canvas,
@@ -341,7 +341,7 @@ public static partial class PlayfieldRenderer
 
     /// <summary>
     /// Refreshes the back buffer for a screen-read region where the draw order
-    /// reaches it (docs/render-architecture.md step 11, D10). The editor draws
+    /// reaches it (Docs/render-architecture.md step 11, D10). The editor draws
     /// its outline separately, over every item, so the boundary's own mark can
     /// never feed a later screen read.
     /// </summary>

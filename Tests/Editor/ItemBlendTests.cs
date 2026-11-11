@@ -13,7 +13,7 @@ using Xanadu.Tests.Support;
 
 namespace Xanadu.Tests.Editor;
 
-/// <summary>Step 7 of docs/render-architecture.md: an item's static blend mode.</summary>
+/// <summary>Step 7 of Docs/render-architecture.md: an item's static blend mode.</summary>
 [TestFixture]
 public sealed class ItemBlendTests
 {

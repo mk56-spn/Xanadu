@@ -6,7 +6,7 @@ using Xanadu.Scenes;
 namespace Xanadu.Tests.VisualTests;
 
 /// <summary>
-/// Screen-read regions (docs/render-architecture.md step 11). Two blocks draw
+/// Screen-read regions (Docs/render-architecture.md step 11). Two blocks draw
 /// the screen through a shader: the top one has only an early baseline region
 /// behind it, so it reads the plain field; the bottom one has a region between
 /// the coloured band and itself, so it reads the fresh band. Time is held still.

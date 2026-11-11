@@ -2,10 +2,10 @@
 """Look up Friflo.Engine.ECS API docs that ship inside the NuGet package.
 
 Usage:
-    python3 docs/ecs/lookup.py CommandBuffer
-    python3 docs/ecs/lookup.py CommandBuffer Playback      # all terms must match
-    python3 docs/ecs/lookup.py --path                      # print the file used
-    python3 docs/ecs/lookup.py Entity --full --limit 20
+    python3 Docs/ecs/lookup.py CommandBuffer
+    python3 Docs/ecs/lookup.py CommandBuffer Playback      # all terms must match
+    python3 Docs/ecs/lookup.py --path                      # print the file used
+    python3 Docs/ecs/lookup.py Entity --full --limit 20
 
 Set FRIFLO_ECS_XML to override which reference file is read.
 """

@@ -11,7 +11,7 @@ public readonly record struct MaterialParam(string Name, int Channels, bool IsIn
 
 /// <summary>
 /// What a canvas item draws with when it isn't the plain canvas shader: a
-/// shader (a Slang effect by <c>res://</c> path, docs/host.md §5.5),
+/// shader (a Slang effect by <c>res://</c> path, Docs/host.md §5.5),
 /// a blend mode, and named values and textures the shader reads. Engine-free,
 /// so scenes build and tune materials without Godot; the host compiles the
 /// shader and packs the values by name (fields of its <c>Params</c> block).
@@ -40,7 +40,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     public string? Source { get; private init; }
 
     /// <summary>A material for a level shader's code; <paramref name="name"/> names it in errors and caches.</summary>
-    /// <param name="keepsState">Lets the code keep state with <c>update</c> (docs/shaders.md); the lab only, for now.</param>
+    /// <param name="keepsState">Lets the code keep state with <c>update</c> (Docs/shaders.md); the lab only, for now.</param>
     public static CanvasMaterial FromSource(string name, string source, BlendMode blend = BlendMode.Mix, bool keepsState = false) =>
         new(name, blend) { Source = source, KeepsState = keepsState };
 

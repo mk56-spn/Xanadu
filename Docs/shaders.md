@@ -3,7 +3,7 @@
 How to write a Xanadu effect with the shipped library
 (`Assets/Shaders/Library`): what a shader is, the coordinates it gets, and
 every type and call the library offers. How the host compiles and runs effects
-is in `docs/host.md` §5.5; the house style is `docs/shader-style.md`; worked
+is in `Docs/host.md` §5.5; the house style is `Docs/shader-style.md`; worked
 examples are in `Tools/Labs/Examples/`.
 
 **Naming.** Library calls on a value follow one rule. A verb in the
@@ -68,7 +68,7 @@ float4 shade(Canvas canvas)
   (§2): `Canvas canvas`, `ItemInput i`, both in either order
   (`shade(ItemInput i, Canvas canvas)`), or nothing. Names are yours.
 - **Numbers:** write whole numbers without `.0` (`Circle(120)`, `sin(time * 2)`);
-  Slang makes them floats where floats are wanted. See `docs/shader-style.md`.
+  Slang makes them floats where floats are wanted. See `Docs/shader-style.md`.
 - **Named arguments:** Slang has none, so the shader editor shows parameter
   names as hints (`Box(size: …, radius: …)`).
 
@@ -481,7 +481,7 @@ See `Tools/Labs/Examples/flashlight.slang`.
 - **Multiplying a colour changes its alpha too.** `c * 0.8` fades the colour
   as well as darkening it. Darken with `c.rgb *= 0.8`.
 - **Whole-number division:** `1 / 2` is `0`. Write `0.5` or `1.0 / 2`
-  (`docs/shader-style.md` XS002).
+  (`Docs/shader-style.md` XS002).
 - **The `atan2` seam.** An angle from `atan2` jumps from π to −π on the left,
   and anything smoothed with `fwidth` of it shows a line there. Take the width
   from a copy that wraps elsewhere:

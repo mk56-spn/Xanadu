@@ -9,7 +9,7 @@ namespace Xanadu.Labs.Experiments;
 
 /// <summary>
 /// Every effect in the particle library going off once a second, side by
-/// side, through the host's GPU particles (docs/host.md §5.6).
+/// side, through the host's GPU particles (Docs/host.md §5.6).
 /// Each column sets off one effect, in the order the panel lists them.
 /// </summary>
 internal sealed class ParticleBursts : ILabExperiment

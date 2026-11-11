@@ -39,7 +39,7 @@ public static class EditorLayersLayout
 }
 
 /// <summary>
-/// Runs the layers panel (docs/render-architecture.md step 4): the view bar's
+/// Runs the layers panel (Docs/render-architecture.md step 4): the view bar's
 /// LAYERS button opens it, and its rows list the layers front first with the
 /// player wedge fixed among them. A row's label makes it current; H, L and S
 /// hide, lock and solo it in the editor; SEL selects what's on it. + FRONT and

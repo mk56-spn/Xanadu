@@ -9,7 +9,7 @@ namespace Xanadu.Systems.Editor;
 /// <summary>
 /// The editor's playfield items, drawn the way play draws them: layer by layer,
 /// back to front, with the player wedge between the layers behind it and those
-/// in front (docs/render-architecture.md §3).
+/// in front (Docs/render-architecture.md §3).
 /// </summary>
 public sealed class EditorItemsDrawer(EditorDrawSurface surface, IPassSurfaces? passes = null)
 {

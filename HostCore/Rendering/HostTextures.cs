@@ -10,7 +10,7 @@ using Texture = MoonWorks.Graphics.Texture;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>
-/// The host's <see cref="ITextureServer"/> (docs/host.md §5.7):
+/// The host's <see cref="ITextureServer"/> (Docs/host.md §5.7):
 /// uploads pixels into GPU textures the renderer draws by id, with mipmaps
 /// made on the GPU, and loads image files through IRO.
 /// </summary>

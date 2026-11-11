@@ -6,7 +6,7 @@ plain `dotnet run`; there is no engine. This doc holds the decisions behind the
 host, how it is built, the tooling around it, and what is left for later.
 
 Godot was removed on 2026-11-10. The port's step-by-step log is in git history
-(`docs/moonworks-port.md` up to commit `337ff7a0`).
+(`Docs/moonworks-port.md` up to commit `337ff7a0`).
 
 ---
 
@@ -292,7 +292,7 @@ host fills; tests leave the headless defaults.
   Slang has no named arguments; the shader editor shows parameter names as
   inlay hints instead.
 
-  **`docs/shaders.md` is the full guide to the library**: every call, the
+  **`Docs/shaders.md` is the full guide to the library**: every call, the
   coordinates, painting, pitfalls.
 
 - **Named defaults:** `[Default(colours.gold)]` or `[Default(PI, 2)]` work.
@@ -300,7 +300,7 @@ host fills; tests leave the headless defaults.
   the host from the library's `public static const`s) swaps names for their
   numbers in `SlangShaders.Wrap`, and `ShaderSourceUniforms` reads them the
   same way. Slang's own messages then quote the numbers.
-- **Style:** `docs/shader-style.md` collects the house style as numbered
+- **Style:** `Docs/shader-style.md` collects the house style as numbered
   rules (whole numbers without `.0`, whole-number division, …) for the
   shader editor to warn about later. None are checked yet.
 
@@ -411,7 +411,7 @@ host fills; tests leave the headless defaults.
     given (`float4 |`, `let |`) and once the word is already a whole name, so
     Enter there is still a new line.
     Besides Slang's own problems it shows its own warnings
-    (`SlangLint`, the checked rules in `docs/shader-style.md`: so far XS003,
+    (`SlangLint`, the checked rules in `Docs/shader-style.md`: so far XS003,
     a local read before it has a value); warnings tint amber and never stale
     the preview.
     Built in layers. **Text editor** (UI, ECS): a `TextEditor` component
@@ -476,7 +476,7 @@ host fills; tests leave the headless defaults.
 - **F3 overlay:** per-system times, and GPU memory (this app, budget, card) from
   `VulkanMemoryBudget`.
 - **Query cache** (`UI/Ecs/QueryCache.cs`): `store.Cached<T>()` and
-  `store.ToggleOn<TTag>(none, hidden)`; see `docs/ecs/README.md`.
+  `store.ToggleOn<TTag>(none, hidden)`; see `Docs/ecs/README.md`.
 
 ---
 

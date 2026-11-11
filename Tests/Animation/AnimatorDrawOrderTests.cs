@@ -4,7 +4,7 @@ using Xanadu.Layering;
 
 namespace Xanadu.Tests.Animation;
 
-/// <summary>Step 12 of docs/render-architecture.md: the animator sorts through the shared draw order.</summary>
+/// <summary>Step 12 of Docs/render-architecture.md: the animator sorts through the shared draw order.</summary>
 [TestFixture]
 public sealed class AnimatorDrawOrderTests
 {

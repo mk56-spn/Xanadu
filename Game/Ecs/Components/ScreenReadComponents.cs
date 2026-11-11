@@ -3,7 +3,7 @@ using Friflo.Engine.ECS;
 namespace Xanadu.Ecs;
 
 /// <summary>
-/// A screen-read region (docs/render-architecture.md step 11, D10): a placed
+/// A screen-read region (Docs/render-architecture.md step 11, D10): a placed
 /// rect with a layer and z. When the draw order reaches it, the back buffer is
 /// refreshed for its rect, so screen-reading shaders drawn after it see the
 /// pixels up to that point. It draws no body of its own; the editor outlines
