@@ -20,6 +20,23 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 targets=(game editor labs animator showcase visual-tests atlas autopsy)
 
+# Started without a terminal (a double click in the file manager): the menu would
+# have nowhere to ask, so open one and run there.
+if [[ ! -t 0 && -z "${XANADU_RUN_WINDOW:-}" ]]; then
+    for terminal in konsole kgx gnome-terminal xterm; do
+        command -v "$terminal" >/dev/null || continue
+        case "$terminal" in
+            gnome-terminal | kgx) exec "$terminal" -- env XANADU_RUN_WINDOW=1 "$0" "$@" ;;
+            *) exec "$terminal" -e env XANADU_RUN_WINDOW=1 "$0" "$@" ;;
+        esac
+    done
+fi
+
+# In a window of its own, a failed build or launch stays readable until Enter.
+if [[ -n "${XANADU_RUN_WINDOW:-}" ]]; then
+    trap 'status=$?; if [[ $status -ne 0 ]]; then echo; read -rp "Failed ($status). Press Enter to close. "; fi' EXIT
+fi
+
 run() {
     local target="$1"
     shift
