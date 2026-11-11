@@ -17,7 +17,7 @@ public sealed class ShaderChainsTests
             [mutating] public void lonely(float x) { }
             public S rotated(float angle) { S r = this; r.rotate(angle); return r; }
             public S moved(float2 offset) { S r = this; r.move(offset); return r; }
-            public float fill(float soft = 1.0) { return 0; }
+            public float filled(float soft = 1.0) { return 0; }
         }
         public extension float4
         {
@@ -40,7 +40,7 @@ public sealed class ShaderChainsTests
     }
 
     [TestCase("let p = Box(s).move(o).rotate(t);", "let p = Box(s).moved(o).rotated(t);")]
-    [TestCase("float a = Circle(30).move(float2(5, 0)).fill();", "float a = Circle(30).moved(float2(5, 0)).fill();")]
+    [TestCase("float a = Circle(30).move(float2(5, 0)).filled();", "float a = Circle(30).moved(float2(5, 0)).filled();")]
     [TestCase("x = colour(1).paint(Circle(2), y);", "x = colour(1).painted(Circle(2), y);")]
     public void InPlaceCallsOnATemporaryTakeTheCopy(string source, string expected) =>
         Assert.That(Chains().Rewrite(source), Is.EqualTo(expected));
@@ -58,8 +58,8 @@ public sealed class ShaderChainsTests
     [TestCase("c.move(a);")]
     [TestCase("c.rotate(time);\nc.move(float2(1, 2));")]
     [TestCase("let b = a.moved(5);")]
-    [TestCase("float v = c.move(a).fill();")]
-    [TestCase("c.move(a).fill();")]
+    [TestCase("float v = c.move(a).filled();")]
+    [TestCase("c.move(a).filled();")]
     [TestCase("// Circle(3).move(1).rotate(2);")]
     [TestCase("c.lonely(1);")]
     public void EverythingElseIsLeftAlone(string source) =>

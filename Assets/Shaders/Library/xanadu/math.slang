@@ -11,10 +11,10 @@ public float2 mod(float2 x, float y) { return x - y * floor(x / y); }
 public float3 mod(float3 x, float3 y) { return x - y * floor(x / y); }
 
 /// p turned round the origin by angle radians, clockwise on screen (y down), as shapes turn.
-public float2 rotate(float2 p, float angle)
+public float2 rotate(float2 position, float angle)
 {
     float c = cos(angle), s = sin(angle);
-    return float2(c * p.x - s * p.y, s * p.x + c * p.y);
+    return float2(c * position.x - s * position.y, s * position.x + c * position.y);
 }
 
 // Repeatable random numbers in 0..1 from a seed: the seed's exact bits go

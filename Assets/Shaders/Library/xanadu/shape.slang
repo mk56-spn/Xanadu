@@ -3,23 +3,37 @@
 //     Circle c = Circle(30);
 //     c.rotate(time);                  // changes c
 //     c.move(float2(40, 0));
-//     let petals = Box(float2(28), 10).rotated(time).repeat(8, 160);   // copies, for chains
-//     float a = petals.fill() + c.stroke(2);
+//     let petals = Box(float2(28), 10).rotated(time).repeated(8, 160);   // copies, for chains
+//     float a = petals.filled() + c.stroked(2);
+//
+// Names follow one rule across the library: a verb in the imperative (rotate,
+// paint) changes the thing it's called on and returns nothing; its past
+// participle (rotated, painted, filled) leaves it alone and returns the result.
 //
 // Every shape carries its placement: rotate, move, scale and anchor change it
 // in place; rotated, moved, scaled and anchored give a changed copy. All of
 // them work round the shape's own centre, so their order doesn't matter.
 // anchor(anchor.topLeft) and the like move it by a point of the quad (a
-// corner, a side, or any fraction of its size). repeat, onion, or, and,
-// minus and melt build new shapes from it; fill, stroke and glow draw it,
+// corner, a side, or any fraction of its size). repeated, hollowed, or, and,
+// minus and melted build new shapes from it; filled, stroked and haloed draw it,
 // from the quad's centre unless given a point (the pixel being shaded, at
-// i.canvas.centred). distance(p) is the signed distance (negative inside).
-// Sizes are full widths and heights, in the units of p (pixels by default),
-// so Box(i.canvas.size) fills the quad. Round shapes take a radius. Most
+// canvas.centred). distance(position) is the signed distance (negative inside).
+// Sizes are full widths and heights, in the units of the position (pixels by default),
+// so Box(canvas.size) fills the quad. Round shapes take a radius. Most
 // distances are Inigo Quilez's (iquilezles.org/articles/distfunctions2d).
 module shape;
 import xanadu.math;
 import xanadu.stage;
+
+/// A box's sides for outlined(), joined with |: side.top | side.left.
+public namespace side
+{
+    public static const uint top = 1;
+    public static const uint right = 2;
+    public static const uint bottom = 4;
+    public static const uint left = 8;
+    public static const uint all = 15;
+}
 
 /// Points of the quad for anchor(): from the centre, as fractions of its size (y down).
 public namespace anchor
@@ -40,34 +54,34 @@ public namespace anchor
 /// joining the shapes have.
 ///
 ///     float d = 1e5;
-///     for (int b = 0; b < 7; b++) d = sdf.melt(d, ball[b].distance(p), 40);
-///     float a = sdf.fill(d) + sdf.glow(d, 60, 2);
+///     for (int b = 0; b < 7; b++) d = sdf.melted(d, ball[b].distance(p), 40);
+///     float a = sdf.filled(d) + sdf.haloed(d, 60, 2);
 public namespace sdf
 {
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
-    public float fill(float d, float soft = 1.0) { return 1.0 - smoothstep(-soft * 0.5, soft * 0.5, d); }
+    public float filled(float d, float soft = 1.0) { return 1.0 - smoothstep(-soft * 0.5, soft * 0.5, d); }
 
     /// 1 on a line `width` wide along the edge, 0 elsewhere.
-    public float stroke(float d, float width, float soft = 1.0)
+    public float stroked(float d, float width, float soft = 1.0)
     {
         return 1.0 - smoothstep(width * 0.5 - soft * 0.5, width * 0.5 + soft * 0.5, abs(d));
     }
 
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
-    public float glow(float d, float reach, float falloff = 1.0) { return pow(1.0 - saturate(abs(d) / reach), falloff); }
+    public float haloed(float d, float reach, float falloff = 1.0) { return pow(1.0 - saturate(abs(d) / reach), falloff); }
 
     /// Both together, melted over `blend` units: a smooth min (Quilez's polynomial smin).
-    public float melt(float a, float b, float blend)
+    public float melted(float a, float b, float blend)
     {
         float h = saturate(0.5 + 0.5 * (b - a) / max(blend, 1e-5));
         return lerp(b, a, h) - blend * h * (1.0 - h);
     }
 
     /// Only where both are, the edge rounded over `blend` units: a smooth max.
-    public float meltAnd(float a, float b, float blend) { return -melt(-a, -b, blend); }
+    public float meltedAnd(float a, float b, float blend) { return -melted(-a, -b, blend); }
 
     /// `a` with `b` cut out, the cut rounded over `blend` units.
-    public float meltMinus(float a, float b, float blend) { return -melt(-a, b, blend); }
+    public float meltedMinus(float a, float b, float blend) { return -melted(-a, b, blend); }
 }
 
 /// Where a shape sits: moved by offset, turned by angle (radians, clockwise, y
@@ -79,10 +93,10 @@ public struct Placement
     public float scale = 1.0;
 
     /// A point in the shape's own space, before it was placed.
-    public float2 toLocal(float2 p)
+    public float2 toLocal(float2 position)
     {
         // Undoing the placement: back by the offset, back by the turn, back by the scale.
-        return rotate(p - offset, -angle) / scale;
+        return rotate(position - offset, -angle) / scale;
     }
 }
 
@@ -107,7 +121,7 @@ public struct Circle : IShape
     public float local(float2 p) { return length(p) - radius; }
 }
 
-/// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to stroke or glow.
+/// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to draw with stroked or haloed.
 public struct Line : IShape
 {
     public Placement placement = Placement();
@@ -139,6 +153,28 @@ public struct Box : IShape
         float2 q = abs(p) - size * 0.5 + radius;
         return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
     }
+}
+
+public extension Box
+{
+    /// outlined (a line `width` wide just inside the edge), but only along the chosen `sides`
+    /// (side.top | side.left, …). Where a chosen side meets one that isn't, the line ends at the
+    /// corner's diagonal (half a rounded corner).
+    public float outlined(float2 position, uint sides, float width, float soft = 1.0)
+    {
+        Placement at = placement;
+        float2 p = at.toLocal(position);
+        // How far past the straight part of each side the point is: the corner's diagonal is where they're equal.
+        float2 past = abs(p) - (size * 0.5 - radius);
+        float upright = (sides & (p.x < 0.0 ? side.left : side.right)) != 0 ? 1.0 : 0.0;
+        float level = (sides & (p.y < 0.0 ? side.top : side.bottom)) != 0 ? 1.0 : 0.0;
+        float edge = soft * 0.5 / at.scale;
+        float shown = lerp(level, upright, smoothstep(-edge, edge, past.x - past.y));
+        return sdf.stroked(distance(position) + width * 0.5, width, soft) * shown;
+    }
+
+    /// outlined at the pixel being shaded, from the quad's centre.
+    public float outlined(uint sides, float width, float soft = 1.0) { return outlined(shading.canvas.centred, sides, width, soft); }
 }
 
 /// A box `size` wide and high with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
@@ -339,7 +375,7 @@ public struct Repeated<S : IShape> : IShape
 }
 
 /// A shell `thickness` wide around the shape's edge.
-public struct Onion<S : IShape> : IShape
+public struct Hollow<S : IShape> : IShape
 {
     public Placement placement = Placement();
     public S shape;
@@ -385,7 +421,7 @@ public struct SmoothUnion<A : IShape, B : IShape> : IShape
 
     public float local(float2 p)
     {
-        return sdf.melt(a.distance(p), b.distance(p), blend);
+        return sdf.melted(a.distance(p), b.distance(p), blend);
     }
 }
 
@@ -397,7 +433,7 @@ public struct SmoothIntersection<A : IShape, B : IShape> : IShape
     public B b;
     public float blend;
 
-    public float local(float2 p) { return sdf.meltAnd(a.distance(p), b.distance(p), blend); }
+    public float local(float2 p) { return sdf.meltedAnd(a.distance(p), b.distance(p), blend); }
 }
 
 /// `a` with `b` cut out of it, the cut rounded over `blend` units.
@@ -408,7 +444,7 @@ public struct SmoothDifference<A : IShape, B : IShape> : IShape
     public B b;
     public float blend;
 
-    public float local(float2 p) { return sdf.meltMinus(a.distance(p), b.distance(p), blend); }
+    public float local(float2 p) { return sdf.meltedMinus(a.distance(p), b.distance(p), blend); }
 }
 
 // ---- What every shape can do ------------------------------------------------
@@ -416,10 +452,10 @@ public struct SmoothDifference<A : IShape, B : IShape> : IShape
 public extension<S : IShape> S
 {
     /// The signed distance from p to its edge, placed: negative inside, positive outside.
-    public float distance(float2 p)
+    public float distance(float2 position)
     {
         Placement at = placement;
-        return local(at.toLocal(p)) * at.scale;
+        return local(at.toLocal(position)) * at.scale;
     }
 
     /// Turns it by `angle` radians round its centre, clockwise (y down).
@@ -447,10 +483,10 @@ public extension<S : IShape> S
     public S anchored(float2 place) { S r = this; r.anchor(place); return r; }
 
     /// `count` copies in a circle, each `radius` out from the centre.
-    public Repeated<S> repeat(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }
+    public Repeated<S> repeated(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }
 
     /// Just a shell `thickness` wide round its edge.
-    public Onion<S> onion(float thickness) { Onion<S> r; r.placement = Placement(); r.shape = this; r.thickness = thickness; return r; }
+    public Hollow<S> hollowed(float thickness) { Hollow<S> r; r.placement = Placement(); r.shape = this; r.thickness = thickness; return r; }
 
     /// This shape and `other` together.
     public Union<S, T> or<T : IShape>(T other) { Union<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
@@ -462,29 +498,36 @@ public extension<S : IShape> S
     public Difference<S, T> minus<T : IShape>(T other) { Difference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
 
     /// This shape and `other` melted together over `blend` units.
-    public SmoothUnion<S, T> melt<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+    public SmoothUnion<S, T> melted<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// Only where this shape and `other` overlap, the edge rounded over `blend` units.
-    public SmoothIntersection<S, T> meltAnd<T : IShape>(T other, float blend) { SmoothIntersection<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+    public SmoothIntersection<S, T> meltedAnd<T : IShape>(T other, float blend) { SmoothIntersection<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// This shape with `other` cut out of it, the cut rounded over `blend` units.
-    public SmoothDifference<S, T> meltMinus<T : IShape>(T other, float blend) { SmoothDifference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+    public SmoothDifference<S, T> meltedMinus<T : IShape>(T other, float blend) { SmoothDifference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
-    public float fill(float2 p, float soft = 1.0) { return sdf.fill(distance(p), soft); }
+    public float filled(float2 position, float soft = 1.0) { return sdf.filled(distance(position), soft); }
 
     /// 1 on a line `width` wide along the edge, 0 elsewhere.
-    public float stroke(float2 p, float width, float soft = 1.0) { return sdf.stroke(distance(p), width, soft); }
+    public float stroked(float2 position, float width, float soft = 1.0) { return sdf.stroked(distance(position), width, soft); }
 
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
-    public float glow(float2 p, float reach, float falloff = 1.0) { return sdf.glow(distance(p), reach, falloff); }
+    public float haloed(float2 position, float reach, float falloff = 1.0) { return sdf.haloed(distance(position), reach, falloff); }
 
-    /// fill at the pixel being shaded, from the quad's centre.
-    public float fill(float soft = 1.0) { return fill(shading.canvas.centred, soft); }
+    /// filled at the pixel being shaded, from the quad's centre.
+    public float filled(float soft = 1.0) { return filled(shading.canvas.centred, soft); }
 
-    /// stroke at the pixel being shaded, from the quad's centre.
-    public float stroke(float width, float soft = 1.0) { return stroke(shading.canvas.centred, width, soft); }
+    /// 1 on a line `width` wide just inside the edge, 0 elsewhere: the shape keeps its size
+    /// (stroked is centred on the edge instead, half outside).
+    public float outlined(float2 position, float width, float soft = 1.0) { return sdf.stroked(distance(position) + width * 0.5, width, soft); }
 
-    /// glow at the pixel being shaded, from the quad's centre.
-    public float glow(float reach, float falloff = 1.0) { return glow(shading.canvas.centred, reach, falloff); }
+    /// outlined at the pixel being shaded, from the quad's centre.
+    public float outlined(float width, float soft = 1.0) { return outlined(shading.canvas.centred, width, soft); }
+
+    /// stroked at the pixel being shaded, from the quad's centre.
+    public float stroked(float width, float soft = 1.0) { return stroked(shading.canvas.centred, width, soft); }
+
+    /// haloed at the pixel being shaded, from the quad's centre.
+    public float haloed(float reach, float falloff = 1.0) { return haloed(shading.canvas.centred, reach, falloff); }
 }
