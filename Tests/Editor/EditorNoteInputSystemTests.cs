@@ -6,6 +6,8 @@ using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
+using Xanadu.Systems.Timeline;
+using Xanadu.Editor.Commands;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Tests.Support;
 
@@ -26,14 +28,19 @@ public sealed class EditorNoteInputSystemTests
         _pointer = new ScriptedPointer();
         _history = new EditorHistory(_store);
         _root = new SystemRoot(_store);
+        // The timeline strip is the shared timeline's, run ahead of the note input as in the editor.
+        _root.Add(new TimelineInputSystem(_pointer, _pointer));
         _root.Add(new EditorNoteInputSystem(_store, _pointer, _history));
 
-        _store.CreateEntity(
+        Entity editor = _store.CreateEntity(
             new LevelInfo("Test", TestSongs.At("/tmp/test.wav")),
             new Playfield(1000, 1000),
             new Playhead(1_000, 120, 0, false),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
-            new NoteSelection(default));
+            new NoteSelection(default),
+            new TimelineView());
+        editor.AddComponent(new TimelineHost(
+            new EditorTimelineHost(editor, new EditorCommandBus(), _ => { }, _history)));
     }
 
     [Test]
@@ -1294,10 +1301,18 @@ public sealed class EditorNoteInputSystemTests
         _root.Update(new UpdateTick(1f / 60f, 0));
     }
 
-    private sealed class ScriptedPointer : IPointerInputSource
+    private sealed class ScriptedPointer : IPointerInputSource, IWheelSource
     {
         public PointerInput Current;
 
         public PointerInput Read() => Current;
+
+        public int Notches => 0;
+
+        public bool Control => false;
+
+        public bool Shift => false;
+
+        public int TakeWheel() => 0;
     }
 }

@@ -6,7 +6,9 @@ namespace Xanadu.Systems.Groups;
 
 /// <summary>
 /// Behaviour every timeline shares, whichever tool owns it. Each tool adds this
-/// group to its own and describes its timeline with a <see cref="TimelineHost"/>.
+/// group to its own and describes its timeline with a <see cref="TimelineHost"/>;
+/// a host that is also an <see cref="Xanadu.Timeline.ITimelineInput"/> gets its
+/// presses and drags read here too.
 /// Keys go through <see cref="TimelineShortcuts"/> from each tool's dispatcher,
 /// which knows when its keys are live.
 /// </summary>
@@ -16,5 +18,6 @@ public sealed class TimelineSystemGroup : SystemGroup
     {
         Add(new TimelineWheelSystem(pointer, wheel));
         Add(new TimelinePinSystem());
+        Add(new TimelineInputSystem(pointer, wheel));
     }
 }

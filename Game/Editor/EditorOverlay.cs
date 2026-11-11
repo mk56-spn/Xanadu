@@ -38,7 +38,8 @@ public sealed partial class EditorOverlay
         Action? onForward = null,
         Action<LevelDocument, string, long>? onPreview = null,
         bool openSongDialog = true,
-        Action<LevelDocument, string, long>? onPreviewHere = null)
+        Action<LevelDocument, string, long>? onPreviewHere = null,
+        EditorHistory? history = null)
     {
         _entities = entities;
         _commands = commands;
@@ -54,7 +55,7 @@ public sealed partial class EditorOverlay
         {
             _editor.AddComponent(new EditorShortcutHost(this));
             _editor.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(
-                new EditorTimelineHost(_editor, _commands, SetStatus)));
+                new EditorTimelineHost(_editor, _commands, SetStatus, history)));
         }
     }
 

@@ -22,7 +22,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
+        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorKeyMenuSystem(Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }

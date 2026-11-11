@@ -38,7 +38,6 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorKeyMenuSystem(pointer));
         Add(new Xanadu.Systems.Groups.TimelineSystemGroup(pointer, wheel));
         Add(new AnimatorPreviewInputSystem(pointer, wheel));
-        Add(new AnimatorTimelineInputSystem(pointer, wheel));
         Add(new AnimatorShortcutSystem(keys));
         Add(new AnimatorSequenceSystem());
         Add(new AnimatorAttackCycleSystem(click));

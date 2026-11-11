@@ -6,18 +6,8 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 
-/// <summary>The part of an override's bar on the timeline that a press took.</summary>
-/// <summary>An override being dragged on the timeline, and where it was when the press landed.</summary>
-public sealed record AnimatorOverrideDrag(
-    XafLimbTarget Target,
-    TimelineGrabPart Grab,
-    float GrabbedAt,
-    float From,
-    float To)
-{
-    /// <summary>The same drag as the shared timeline span drag, in milliseconds.</summary>
-    public TimelineSpanDrag Span => new(Grab, From * 1000.0, To * 1000.0, GrabbedAt * 1000.0);
-}
+/// <summary>An override being dragged on the timeline, and the span it had when the press landed.</summary>
+public sealed record AnimatorOverrideDrag(XafLimbTarget Target, float From, float To);
 
 /// <summary>
 /// Retiming an override, a pin or an ellipse, by its bar on the timeline. The drag
@@ -29,11 +19,7 @@ public static class AnimatorOverrideCommands
     /// <summary>The shortest an override can be dragged to.</summary>
     public const float MinDuration = 0.01f;
 
-    public static AnimatorOverrideDrag Begin(
-        Entity session,
-        XafLimbTarget target,
-        TimelineGrabPart grab,
-        float seconds)
+    public static AnimatorOverrideDrag Begin(Entity session, XafLimbTarget target)
     {
         AnimatorHistoryCommands.BeginGesture(session);
         session.GetComponent<AnimatorDocument>().Runtime.SetPaused(true);
@@ -41,27 +27,15 @@ public static class AnimatorOverrideCommands
         session.GetComponent<AnimatorSelection>().HasKey = false;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag { Kind = AnimatorDragKind.OverrideSpan };
         Report(session, target);
-        return new AnimatorOverrideDrag(target, grab, seconds, target.From, target.To);
+        return new AnimatorOverrideDrag(target, target.From, target.To);
     }
 
-    /// <summary>Moves the grabbed part to a time, kept inside the clip and clear of the bone's other overrides.</summary>
-    public static void Drag(
-        Entity session,
-        XafClip clip,
-        AnimatorOverrideDrag drag,
-        double seconds,
-        Func<double, double> snap)
+    /// <summary>Puts the dragged span at new ends; the timeline has already kept it inside its <see cref="Room"/>.</summary>
+    public static void Drag(Entity session, AnimatorOverrideDrag drag, double fromSeconds, double toSeconds)
     {
-        (float low, float high) = Room(clip, drag);
-        (double from, double to) = drag.Span.Apply(
-            seconds * 1000.0,
-            ms => snap(ms / 1000.0) * 1000.0,
-            low * 1000.0,
-            high * 1000.0,
-            MinDuration * 1000.0);
         XafLimbTarget target = drag.Target;
-        target.From = (float)(from / 1000.0);
-        target.To = (float)(to / 1000.0);
+        target.From = (float)fromSeconds;
+        target.To = (float)toSeconds;
         Report(session, target);
     }
 
@@ -96,17 +70,18 @@ public static class AnimatorOverrideCommands
         });
     }
 
-    private static (float Low, float High) Room(XafClip clip, AnimatorOverrideDrag drag)
+    /// <summary>Where an override can be dragged: inside the clip and clear of the bone's other overrides.</summary>
+    public static (float Low, float High) Room(XafClip clip, XafLimbTarget target)
     {
         float low = 0f;
         float high = clip.Duration;
         foreach (XafLimbTarget other in clip.Targets)
         {
-            if (ReferenceEquals(other, drag.Target) || other.BoneId != drag.Target.BoneId)
+            if (ReferenceEquals(other, target) || other.BoneId != target.BoneId)
                 continue;
-            if (other.To <= drag.From)
+            if (other.To <= target.From)
                 low = Math.Max(low, other.To);
-            else if (other.From >= drag.To)
+            else if (other.From >= target.To)
                 high = Math.Min(high, other.From);
         }
         return (low, high);

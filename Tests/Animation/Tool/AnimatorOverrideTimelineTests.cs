@@ -15,7 +15,6 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
-        Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorKeyMenuSystem(Pointer));
     }

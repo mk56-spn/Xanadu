@@ -13,7 +13,10 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Adds, selects, drags, and scrubs notes in playfield coordinates.</summary>
+// Reads the pointer outside UI (BannedSymbols.txt): viewport: placing and dragging on the playfield, until the viewport has its own design.
+#pragma warning disable RS0030
+
+/// <summary>Adds, selects and drags notes in playfield coordinates; the timeline strip is the shared timeline's.</summary>
 public sealed class EditorNoteInputSystem : QuerySystem<Note>
 {
     private readonly EntityStore _entities;
@@ -31,7 +34,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     /// the next click on empty space places again rather than deselecting it.
     /// </summary>
     private Entity _placed;
-    private readonly EditorTimelineTool _timeline;
     private readonly EditorPlacementCreator _creator;
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
@@ -57,7 +59,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _paint = new EditorPaintTool(_scene, history);
         _resize = new EditorResizeTool(_scene, history);
         _rotation = new EditorRotationTool(_scene, history);
-        _timeline = new EditorTimelineTool(_scene, history);
         _creator = new EditorPlacementCreator(_scene, history);
         _box = new NoteBox(this);
     }
@@ -101,45 +102,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _box.Cancel(editor);
         _resize.Cancel();
 
-        Rect2 bar = EditorLayout.RulerRect(view);
-        if (bar.HasPoint(screenPosition))
-        {
-            Entity timelineHit = _timeline.FindNoteAt(screenPosition, bar, playhead, editor);
-            if (!timelineHit.IsNull)
-            {
-                _placed = default;
-                ref NoteSelection timelineSelection =
-                    ref editor.GetComponent<NoteSelection>();
-                if (shift)
-                {
-                    timelineSelection.Toggle(timelineHit);
-                }
-                else
-                {
-                    if (!timelineSelection.Contains(timelineHit))
-                        timelineSelection.Note = timelineHit;
-                    _timeline.BeginDrag(
-                        screenPosition, bar, ref playhead, editor, timelineHit);
-                }
-
-                if (EditorItemTiming.TryGet(timelineHit, out long timelineTime))
-                    playhead.SeekRequestMs = timelineTime;
-                return;
-            }
-
-            // Shift on empty strip drags a box over the notes, as on the
-            // playfield; a plain press scrubs.
-            if (shift && playhead.DurationMs > 0)
-            {
-                _box.OnTimeline = true;
-                _box.BeginAdditive(
-                    screenPosition, editor.GetComponent<NoteSelection>().AllNotes);
-                return;
-            }
-
-            _timeline.BeginScrub(screenPosition, bar, ref playhead, editor);
+        // The ruler strip is the shared timeline's (TimelineInputSystem, through EditorTimelineHost).
+        if (EditorLayout.RulerRect(view).HasPoint(screenPosition))
             return;
-        }
 
         if (editor.HasComponent<EditorSidebar>() &&
             editor.GetComponent<EditorSidebar>().Bounds.HasPoint(screenPosition))
@@ -223,7 +188,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         // Shift-dragging adds to the selection; a plain press may place a note or
         // clear the selection when released without dragging, or box-select when dragged.
-        _box.OnTimeline = false;
         if (shift)
             _box.BeginAdditive(screenPosition, selection.AllNotes);
         else
@@ -249,27 +213,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (_resize.Active)
         {
             _resize.Update(screenPosition, shift, view, playfield);
-            return;
-        }
-
-        if (_timeline.Scrubbing)
-        {
-            _timeline.Scrub(
-                screenPosition,
-                EditorLayout.RulerRect(view),
-                ref playhead,
-                editor,
-                Tick.deltaTime);
-            return;
-        }
-
-        if (_timeline.Dragging)
-        {
-            _timeline.Drag(
-                screenPosition,
-                EditorLayout.RulerRect(view),
-                ref playhead,
-                editor);
             return;
         }
 
@@ -342,9 +285,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        if (_timeline.End(editor))
-            return;
-
         MarqueeEnd end = _box.End(editor);
         if (end == MarqueeEnd.Box)
             return;
@@ -384,28 +324,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         return notes.Count > 1 || (notes.Count == 1 && notes[0] != _placed);
     }
 
-    /// <summary>Drag-to-select for the playfield and for the timeline strip; they differ only in what a box covers.</summary>
+    /// <summary>Drag-to-select on the playfield; the timeline strip's box is the shared timeline's.</summary>
     private sealed class NoteBox(EditorNoteInputSystem system) : UiBoxSelector<Entity>
     {
-        /// <summary>The box was started on the timeline strip rather than the playfield.</summary>
-        public bool OnTimeline { get; set; }
-
-        protected override IEnumerable<Entity> HitsIn(Entity owner, Rect2 bounds)
-        {
-            Playhead playhead = owner.GetComponent<Playhead>();
-            if (!OnTimeline)
-                return system._picker.FindNotesIn(bounds, playhead.TimeMs);
-
-            var hits = new List<Entity>();
-            Rect2 ruler = EditorLayout.RulerRect(owner.GetComponent<PlayfieldView>());
-            foreach ((Entity note, Rect2 slot) in system._timeline.Slots(owner, ruler, playhead))
-            {
-                if (bounds.Intersects(slot))
-                    hits.Add(note);
-            }
-
-            return hits;
-        }
+        protected override IEnumerable<Entity> HitsIn(Entity owner, Rect2 bounds) =>
+            system._picker.FindNotesIn(bounds, owner.GetComponent<Playhead>().TimeMs);
 
         protected override void Select(Entity owner, List<Entity> selection) =>
             owner.GetComponent<NoteSelection>().SetMany(selection);

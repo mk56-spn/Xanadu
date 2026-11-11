@@ -50,6 +50,9 @@ public interface ITimelineHost
 public struct TimelineHost(ITimelineHost host) : IComponent
 {
     public ITimelineHost Host = host;
+
+    /// <summary>The press or drag under way on this timeline; <see cref="TimelineInputSystem"/> keeps it.</summary>
+    public Xanadu.Timeline.TimelineGesture Gesture = new();
 }
 
 /// <summary>The keys every timeline answers to the same way; a tool's own table holds the rest.</summary>

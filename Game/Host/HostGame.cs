@@ -49,10 +49,9 @@ internal sealed class HostGame : HostApp
             passSurfaces: () => new HostPassSurfaces(Canvas, Renderer));
         _fileDialog = new HostFileDialog(MainWindow);
         _systems.Scenes.AddSongRequested = () => _fileDialog.OpenAudio(AddSong);
+        UseSystems(_systems);
         Start();
     }
-
-    protected override Friflo.Engine.ECS.Systems.SystemRoot Systems => _systems;
 
     /// <summary>What the Godot <c>Main</c> did on a scene change: the editor gets its overlay while it is up.</summary>
     private void OnSceneChanged(SceneKind scene)
@@ -81,7 +80,8 @@ internal sealed class HostGame : HostApp
             onPreviewHere: (document, path, playheadMs) => _systems.Scenes.StartEditorPreview(
                 LevelStore.Entry(path, document),
                 playheadMs,
-                fromPlayhead: true))
+                fromPlayhead: true),
+            history: _systems.EditorHistory)
         {
             PickShaderFile = then => _fileDialog.OpenShader(then),
             FileDialogOpen = () => _fileDialog.IsOpen,
@@ -141,12 +141,15 @@ internal sealed class HostGame : HostApp
         _systems.Scenes.Start(_options.Editor ? SceneKind.Editor : SceneKind.Profiles);
     }
 
-    protected override void Tick(float delta, float time)
+    protected override void BeforeSystems(float delta)
     {
         _fileDialog.Poll();
         Keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
             key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
-        _systems.Update(new UpdateTick(delta, time));
+    }
+
+    protected override void Tick(float delta, float time)
+    {
         _editorOverlay?.Tick();
         WarmLevelShaders();
     }

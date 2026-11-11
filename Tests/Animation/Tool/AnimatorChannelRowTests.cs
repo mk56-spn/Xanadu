@@ -20,7 +20,7 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
+        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
     }
 
     /// <summary>Head rotation at 0, 1, 2 plus separate scale channels at 0.5 and 1.5.</summary>

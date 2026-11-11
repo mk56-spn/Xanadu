@@ -18,7 +18,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Root.Add(new UiTreeSystem());
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorPreviewInputSystem(Pointer));
-        Root.Add(new AnimatorTimelineInputSystem(Pointer, Pointer));
+        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
         Root.Add(new AnimatorHierarchySystem(new FakeVisualRidFactory()));
     }
