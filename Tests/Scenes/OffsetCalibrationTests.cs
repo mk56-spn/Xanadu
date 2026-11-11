@@ -103,7 +103,7 @@ public sealed class OffsetCalibrationTests
     {
         string root = System.IO.Path.GetFullPath(System.IO.Path.Combine(
             TestContext.CurrentContext.TestDirectory, "../../../../"));
-        byte[] wav = System.IO.File.ReadAllBytes(System.IO.Path.Combine(root, "Audio", "offset-calibration.wav"));
+        byte[] wav = System.IO.File.ReadAllBytes(System.IO.Path.Combine(root, "Assets", "Audio", "offset-calibration.wav"));
 
         const int rate = 44100;
         const int data = 44;

@@ -9,7 +9,7 @@ public static partial class TestContent
     public static LoadedSong Song(
         string id,
         string title,
-        string audioPath = "res://Audio/test-track.wav",
+        string audioPath = "res://Assets/Audio/test-track.wav",
         int bpm = 120)
     {
         return new LoadedSong(

@@ -188,7 +188,7 @@ a buffered character on (step 12).
 
 Before step 1 the animator had this (and the editor had none of it):
 - `XafAttachment.ZOrder` as the layer, `MinLayer = -4096`,
-  `MaxLayer = 4096` (`Animation/XafPackage.cs`), with list order as the
+  `MaxLayer = 4096` (`Game/Animation/XafPackage.cs`), with list order as the
   tiebreak.
 - `ArtDrawOrder.Of(layer, order)`: the banded draw index. Gone since step 1;
   `DrawOrder.Banded` (`Core/Layering/`) replaced it.
@@ -216,7 +216,7 @@ The shared core (built in step 1 under `Core/Layering/`):
 Each part as it was planned and then built, with the design choices made on
 the way. Code comments cite these by step number. Written while Godot was the
 engine: where the drawing side has moved to the host, §5 and `docs/host.md`
-are current. Data files use the versioned binary formats (`Levels/XmfBinary.cs`
+are current. Data files use the versioned binary formats (`Game/Levels/XmfBinary.cs`
 and friends), never JSON.
 
 Step 0 was a spike of the Godot primitives (CanvasGroup fades, z escaping
@@ -252,8 +252,8 @@ its results shaped §5 and are in git history.
   `Tests/Layering/DrawStackTests.cs`.
 
 ### Step 2: Layer and z on every level item
-- Add `Layer` and `Z` to every item component (`Ecs/Components/PlayfieldComponents.cs`,
-  `GrassComponents.cs`, …), their documents (`Levels/LevelDocument.cs`), the
+- Add `Layer` and `Z` to every item component (`Game/Ecs/Components/PlayfieldComponents.cs`,
+  `GrassComponents.cs`, …), their documents (`Game/Levels/LevelDocument.cs`), the
   mappers, and the XMF binary (bump the version, no migration).
 - Default layer for new items depends on the kind (Q10 settled). Keep this
   in one table in code so it's easy to tune:
@@ -274,7 +274,7 @@ its results shaped §5 and are in git history.
 
 **Done 2026-11-05.**
 - Layer and z are one component, `ItemLayer(Layer, Z)`
-  (`Ecs/Components/LayerComponents.cs`), not fields on each kind's struct. It
+  (`Game/Ecs/Components/LayerComponents.cs`), not fields on each kind's struct. It
   sits beside `ItemGroups` and `ItemShader` and holds the kind defaults
   (`ItemLayer.Polygons` −3, `Terrain` −2, `Gameplay` −1, `Grass` 1, `Texts` 2).
 - `EditorItems.Create` attaches the kind's default layer at z 0 to every
@@ -288,7 +288,7 @@ its results shaped §5 and are in git history.
   layers gives. Layers are clamped to ±200.
 - Documents: the eight item documents implement `ILayeredDocument` (`Layer`, `Z`).
 - XMF: optional chunk `ItemLayers` (17) in maps and (12) in mapsets, written
-  by `Levels/XmfItemLayers.cs`: each kind in its own chunk's order, (layer, z)
+  by `Game/Levels/XmfItemLayers.cs`: each kind in its own chunk's order, (layer, z)
   per item. It's left out when every item is on 0/0. Minor versions are now
   2.1. Older files still read; their items take their defaults.
 - Undo: every snapshot record has `ItemLayer Layer`, so changing only a layer
@@ -319,7 +319,7 @@ its results shaped §5 and are in git history.
   screenshot.
 
 **Done 2026-11-05.**
-- `PlayfieldDrawList` (`Systems/Playfields/PlayfieldDrawList.cs`) gathers every
+- `PlayfieldDrawList` (`Game/Systems/Playfields/PlayfieldDrawList.cs`) gathers every
   item and effect as `PlayfieldDrawEntry(Layer, Z, Kind, Entity)` and sorts
   back to front by layer, z, **kind**, then entity id (list order). The kind
   order (`PlayfieldDrawKind`: polygons, blocks, spikes, grass, texts, notes,
@@ -348,7 +348,7 @@ its results shaped §5 and are in git history.
     backmost rail note's layer, or the gameplay layer with no rail notes. Each
     rail note draws at its own slot.
 - **Effects:** a new `EffectLayer(Layer, Z)` component
-  (`Ecs/Components/LayerComponents.cs`) is copied from the source item when
+  (`Game/Ecs/Components/LayerComponents.cs`) is copied from the source item when
   the effect spawns (`EffectLayer.From`), since the source is deleted right
   after. Effects sort after every item on the same layer and z, which is
   "just above it". Without a source (`EffectLayer.Loose`) they go in front of
@@ -397,7 +397,7 @@ its results shaped §5 and are in git history.
   playhead.
 
 **Done 2026-11-05.**
-- `GroupOffset` (`Ecs/Components/GroupComponents.cs`) replaces `GroupBase`: how
+- `GroupOffset` (`Game/Ecs/Components/GroupComponents.cs`) replaces `GroupBase`: how
   far the groups move an item at the playhead. `GroupModulationSystem` now runs
   for play **and** the editor and only writes `GroupOffset`, `GroupColor` and
   `GroupOutlineColor`; it never touches an item's position, and removes all
@@ -487,11 +487,11 @@ its results shaped §5 and are in git history.
 
 **Done 2026-11-05.**
 - Editor-only state is one component on the editor entity, `EditorLayers`
-  (`Ecs/Components/EditorLayerComponents.cs`): open, current row, solo,
+  (`Game/Ecs/Components/EditorLayerComponents.cs`): open, current row, solo,
   scroll, and the hidden / locked / kept (empty but added) sets and names.
   `Shows(layer)` (not hidden, and the soloed one if any; the wedge always) and
   `Picks(layer)` (shown and not locked) are what drawing and picking ask.
-- The edits are in `Systems/Editor/EditorLayerEdits.cs`: `Rows` (layers in
+- The edits are in `Game/Systems/Editor/EditorLayerEdits.cs`: `Rows` (layers in
   use, kept or named, plus the wedge as layer 0, front first, with item
   counts), `Insert`, `StepLayer`, `PutOnLayer`, `StepZ`, `Move` and
   `FrontFirst`.
@@ -550,7 +550,7 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
 - Tests: round trip.
 
 **Done 2026-11-05.**
-- Runtime: `LevelLayers` (`Ecs/Components/LevelLayerComponents.cs`) on the
+- Runtime: `LevelLayers` (`Game/Ecs/Components/LevelLayerComponents.cs`) on the
   level's entity beside `LevelGroups`: a `Dictionary<int, LevelLayer>`. A
   `LevelLayer` has `Name`, `Pass` (`LayerPassKind`: None, BackgroundReader,
   SelfContained), `PassShader` (slot, 0 for none) and `PassKeys`, a list of
@@ -562,10 +562,10 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
   (`Prune`). The editor scene always has the component.
 - Documents: `LayerDocument` (Number, Name, Pass, PassShader, PassKeys) and
   `ShaderKeyDocument` (Param, Time, `float[]` Value, Ease) in
-  `Levels/LevelDocument.cs`. `IChartItems.Layers` is on both `LevelDocument`
+  `Game/Levels/LevelDocument.cs`. `IChartItems.Layers` is on both `LevelDocument`
   and `XmfVariant`, and `LevelStore` copies it both ways between them.
 - XMF: optional chunk `LayerTable` (18) in maps and (13) in mapsets (per
-  variant), written by `Levels/XmfLayerTable.cs` in layer order. Strings are
+  variant), written by `Game/Levels/XmfLayerTable.cs` in layer order. Strings are
   inline, like texts (names and params clipped to 256 characters). Each key
   stores 0–4 floats; more is a format error, and so is an unknown pass kind.
   The chunk is left out when no layer has settings. Minor versions are now
@@ -628,7 +628,7 @@ effect's first frame the group is still where the fade out left it.
 namespace `Xanadu.Rendering`) so the canvas interface can name it: `Mix`, `Add`,
 `Sub`, `Mul`, `Premultiplied`, with `BlendModes.All` / `Step` / `Name` for the
 inspector.
-- **Data:** `ItemBlend(BlendMode)` (`Ecs/Components/BlendComponents.cs`) is on
+- **Data:** `ItemBlend(BlendMode)` (`Game/Ecs/Components/BlendComponents.cs`) is on
   every item from creation (`EditorItems.Create`, so an edit never adds a
   component), carried by the item documents through `IBlendedDocument`, the
   mapper, undo snapshots and the clipboard. XMF has an optional `ItemBlends`
@@ -834,7 +834,7 @@ screenshot landed; settings UI and edit guards still to do):
   keys for every buffered group. Minor versions are now 2.5 for both. The
   mapper writes and reads the buffer both ways (`CaptureKeys` / `ApplyKeys`
   are shared with the item-shader track).
-- `GroupBufferRules` (`Ecs/GroupBufferRules.cs`): `Problem` returns
+- `GroupBufferRules` (`Game/Ecs/GroupBufferRules.cs`): `Problem` returns
   `OneLayer` ("buffered groups must sit on one layer", D15) or `OneGroup`
   ("items in a buffered group can't be in other groups", D16); `CanBuffer`
   and `Broken` (the first buffered group an edit has broken) are what the
@@ -878,7 +878,7 @@ screenshot landed; settings UI and edit guards still to do):
   The row was widened so its labels read in full (the old widths cut
   `TRACK ITEM`, `TINT #ffffff` and `A 1.0` short).
 - **Edit guards (D16a).** `GroupBufferRules.Problem` / `Broken` take a predicted
-  `(layer, mask)` per item (`BufferPreview`), and `Systems/Editor/EditorBufferGuard`
+  `(layer, mask)` per item (`BufferPreview`), and `Game/Systems/Editor/EditorBufferGuard`
   asks them before an edit: `MovingToLayer` refuses moving one member away from
   its buffered group's layer (moving every member together is allowed), and
   `AddingToGroup` refuses a member gaining a second group or joining a buffered
@@ -930,7 +930,7 @@ vanishing.
 - Check: one screenshot of a screen-reading item before and after a region.
 
 **Done 2026-11-06.**
-- **Item.** `ScreenReadRegion(Position, Size)` (`Ecs/Components/ScreenReadComponents.cs`)
+- **Item.** `ScreenReadRegion(Position, Size)` (`Game/Ecs/Components/ScreenReadComponents.cs`)
   is a placed rect with an `ItemLayer` like every other item. It draws no
   body. The editor item plumbing carries it: `EditorItems` position read/write,
   `GridPlacement` bounds (so the resize handles work), picking and marquee,
@@ -984,7 +984,7 @@ smaller, so it fits where it's placed.
 - Tests: the animator layer tests stay green.
 
 **Done 2026-11-06.** The animator now states its order once, in the shared vocabulary.
-- **One order rule.** `Animation/AnimatorDrawOrder` gives every piece its draw
+- **One order rule.** `Game/Animation/AnimatorDrawOrder` gives every piece its draw
   index from the shared `DrawOrder`: an attachment's place in the attachment
   list, then cloth, chains and effects in bands after it on the same layer. It
   also owns the layer panel's row slot, so `AnimatorLayerCommands` and

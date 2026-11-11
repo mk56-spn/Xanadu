@@ -16,8 +16,8 @@
     <Compile Remove="NUnitIntegrationTests.cs" />
     <Compile Remove="SceneTestRunnerTests.cs" />
     <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
-    <ProjectReference Include="../../Host/Xanadu.Host.csproj" />
-    <ProjectReference Include="../../Xanadu.csproj" />
+    <ProjectReference Include="../../Game/Host/Xanadu.Host.csproj" />
+    <ProjectReference Include="../../Game/Xanadu.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
   <Import Project="../../Core/Maths/Maths.props" />

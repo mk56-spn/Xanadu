@@ -9,7 +9,7 @@ namespace Xanadu.Levels;
 public static class LevelStore
 {
     public const string LevelsFolder = "user://levels";
-    private const string FallbackFolder = "res://Levels";
+    private const string FallbackFolder = "res://Game/Levels";
 
     private static string? _directory;
 

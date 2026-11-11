@@ -124,8 +124,12 @@ The rest is under "Later" (§6).
   exe derives from it, builds its ECS world on `Canvas`, and runs it in `Tick`.
   It copies the moonlibs, `HostCore/Shaders/*` and the timing layer next to
   every exe.
-- **`Host`**: the game (`HostGame`: the world, the add-song dialog, the editor
-  overlay, level shader warm-up), `HostPassSurfaces` and `DemoLevel`.
+- **`Game`**: the game's code (`Game/Xanadu.csproj`: Animation, Ecs, Editor,
+  Levels, Scenes, Systems and the rest) and its exe, **`Game/Host`**
+  (`HostGame`: the world, the add-song dialog, the editor overlay, level
+  shader warm-up), `HostPassSurfaces` and `DemoLevel`. The repo's top level is
+  the engine (`Core`, `UI`, `HostCore`), `Game`, `Tools`, `Tests`, `External`,
+  `Assets`, `docs` and the `run-*.sh` launchers.
 - **Tools:** `Tools/Animator`, `UI/Showcase`, `Tools/Labs`,
   `Tests/VisualTests` are `HostApp`s; `Tools/Autopsy` reads frame captures.
 - **Launchers:** `./run.sh` asks which to start; `run-game.sh`,
@@ -135,7 +139,7 @@ The rest is under "Later" (§6).
   memory with a field shader, a buffered group and a self-contained layer),
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
   default 60), `--resolution=WxH`.
-- `GamePaths.RootMarker` (`Xanadu.csproj`) marks the game folder `res://`
+- `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder `res://`
   means; `user://` is `~/.local/share/godot/app_userdata/Xanadu` (kept so old
   profiles, songs and levels stay put).
 
@@ -514,5 +518,5 @@ No hurry; none of this is parity.
   `EditorPlayfieldDrawSystemTests`, `MapOffsetSettingsTests.ZeroLeavesNoEntry`.
   Don't count them as regressions or fix them unasked.
 - **Visual:** one screenshot from `--shot` (or a visual test's
-  `--visual-test-shot`), saved under `screenshots/` (gitignored) or the
-  scratchpad. Never commit images outside `Assets/`.
+  `--visual-test-shot`), saved outside the repo (the session's scratchpad or a
+  temp folder). Never commit images outside `Assets/`.

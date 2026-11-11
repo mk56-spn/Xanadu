@@ -14,7 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
-    <ProjectReference Include="../../Xanadu.csproj" />
+    <ProjectReference Include="../../Game/Xanadu.csproj" />
     <ProjectReference Include="../../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../../UI/Xanadu.Ui.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />

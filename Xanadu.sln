@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu", "Xanadu.csproj", "{51266C2D-1FDE-40D0-A3C4-719422EA3262}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu", "Game\Xanadu.csproj", "{51266C2D-1FDE-40D0-A3C4-719422EA3262}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Ui.Tests", "UI\Tests
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{7226ABEA-787E-1D09-10EA-A2ECF996D6A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Host", "Host\Xanadu.Host.csproj", "{3F95A44A-FEB3-496C-B34B-117F04254E11}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xanadu.Host", "Game\Host\Xanadu.Host.csproj", "{3F95A44A-FEB3-496C-B34B-117F04254E11}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{A288BEE0-695A-BEEA-455C-649571D89326}"
 EndProject

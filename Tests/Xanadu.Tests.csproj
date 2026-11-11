@@ -20,7 +20,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Xanadu.csproj" />
+    <ProjectReference Include="../Game/Xanadu.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
     <ProjectReference Include="VisualTests/Xanadu.VisualTests.csproj" />

@@ -4,7 +4,7 @@
 `UiNode`; `UiType`/`UiMetrics` and `UiStage` are in use, and `SceneUi` is down to
 layer ids, palette aliases and `SetText`. The API lives in
 `UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiStage.cs`, `UiEdge.cs`,
-`UiDropdownNode.cs`; scene-level sugar in `Scenes/UiNodeActions.cs`.
+`UiDropdownNode.cs`; scene-level sugar in `Game/Scenes/UiNodeActions.cs`.
 
 ---
 
@@ -25,7 +25,7 @@ ui.Current.AddComponent(new UiBorder(Palette.BorderStrong, 1));
 
 `ui.Current` is the only way to reach the thing you just made, so a container's
 own styling can never be part of the call that creates it. There are **49
-`ui.Current` reads** in `Scenes/`, `Systems/`, `Editor/` and `UI/`.
+`ui.Current` reads** in `Game/Scenes/`, `Game/Systems/`, `Game/Editor/` and `UI/`.
 
 ### 1.2 `End()` is a hand-counted stack
 
@@ -76,7 +76,7 @@ button.AddComponent(ButtonVisual.Create(SceneUi.ButtonColor));
 AddEditorAction(button, kind);
 ```
 
-**168 `AddComponent` calls in `Scenes/`**, and 42 of them are the same
+**168 `AddComponent` calls in `Game/Scenes/`**, and 42 of them are the same
 anchor / tooltip / command / layout-ignore triple.
 
 ### 1.5 Six ways to make a button
@@ -88,7 +88,7 @@ parameter name.
 
 ### 1.6 Guessed geometry, everywhere
 
-**290 `new Vector2(` literals in `Scenes/`**, most of them a width and a height
+**290 `new Vector2(` literals in `Game/Scenes/`**, most of them a width and a height
 that exist only because the API demands one, even inside auto-sized stacks.
 Text boxes are sized by eye (`new Vector2(480, 16)`) when `UiTextMetrics`
 already estimates them.
@@ -254,7 +254,7 @@ button.AddComponent(ButtonVisual.Create(normal));
 button.AddComponent(new SceneCommand(action));
 ```
 
-After (one call; `.On` is a five-line extension in `Scenes/`):
+After (one call; `.On` is a five-line extension in `Game/Scenes/`):
 
 ```csharp
 parent.Button(label, 18, normal).On(action);
@@ -346,7 +346,7 @@ Cleanup finished: `SceneUi`'s construction helpers (`Background`, `Panel`,
 over `UiNode.Button`) and every temporary `Wrap`/bridge.
 
 One `UiBuilder` caller remains on purpose: the F2 shader tuner
-(`Systems/Shaders/ShaderTunerSystem.cs`) is a debug overlay, not a scene.
+(`Game/Systems/Shaders/ShaderTunerSystem.cs`) is a debug overlay, not a scene.
 
 ---
 

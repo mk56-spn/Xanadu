@@ -4,4 +4,4 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-exec dotnet run --project "$root/Host" -- "$@"
+exec dotnet run --project "$root/Game/Host" -- "$@"

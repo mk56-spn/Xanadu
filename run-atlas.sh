@@ -10,7 +10,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-for project in Xanadu.csproj Tools/Labs Tools/Animator Tools/Autopsy UI/Showcase; do
+for project in Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/Autopsy UI/Showcase; do
     dotnet build "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "atlas: $project didn't build; showing its last build" >&2
 done
 exec dotnet run --project "$root/Tools/Atlas" -- "$@"

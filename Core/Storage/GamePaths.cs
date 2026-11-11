@@ -14,7 +14,7 @@ public static class GamePaths
     private static (string Res, string User)? _roots;
 
     /// <summary>The file that marks the game folder, the one <c>res://</c> means.</summary>
-    public const string RootMarker = "Xanadu.csproj";
+    public const string RootMarker = "Xanadu.sln";
 
     /// <summary>
     /// The game folder above the running exe (or the working directory), for

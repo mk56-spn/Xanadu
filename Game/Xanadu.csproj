@@ -5,23 +5,18 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Tests/**/*.cs" />
-    <Compile Remove="Core/**/*.cs" />
-    <Compile Remove="UI/**/*.cs" />
-    <Compile Remove="Tools/**/*.cs" />
-    <Compile Remove="External/**/*.cs" />
+    <!-- The game's exe is its own project. -->
     <Compile Remove="Host/**/*.cs" />
-    <Compile Remove="HostCore/**/*.cs" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
     <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Core/Xanadu.Core.csproj" />
-    <ProjectReference Include="UI/Xanadu.Ui.csproj" />
-    <Content Include="agents.md" />
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <Content Include="../agents.md" Link="agents.md" />
     <InternalsVisibleTo Include="Xanadu.Tests" />
   </ItemGroup>
-  <Import Project="Core/Maths/Maths.props" />
+  <Import Project="../Core/Maths/Maths.props" />
 </Project>

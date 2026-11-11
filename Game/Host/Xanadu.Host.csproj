@@ -12,12 +12,12 @@
     <RootNamespace>Xanadu.Host</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../HostCore/Xanadu.HostCore.csproj" />
+    <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
     <ProjectReference Include="../Xanadu.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Xanadu.VisualTests" />
   </ItemGroup>
-  <Import Project="../Core/Maths/Maths.props" />
+  <Import Project="../../Core/Maths/Maths.props" />
 </Project>

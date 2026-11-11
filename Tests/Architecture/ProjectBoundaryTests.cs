@@ -54,9 +54,9 @@ public sealed class ProjectBoundaryTests
     {
         string[] roots =
         {
-            Path.Combine(Root, "Systems", "Editor"),
-            Path.Combine(Root, "Editor"),
-            Path.Combine(Root, "Levels"),
+            Path.Combine(Root, "Game", "Systems", "Editor"),
+            Path.Combine(Root, "Game", "Editor"),
+            Path.Combine(Root, "Game", "Levels"),
         };
         string[] direct =
         {

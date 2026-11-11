@@ -15,9 +15,9 @@ public sealed class DebugPaletteTests
         "UI/Systems/Debug/DebugTable.cs",
         "UI/Systems/Debug/FpsCounterSystem.cs",
         "UI/Systems/Debug/DebugPressedOverlaySystem.Archetypes.cs",
-        "Systems/Playfields/PlayfieldRendererHitboxes.cs",
-        "Systems/Playfields/PlayfieldHitboxOverlaySystem.cs",
-        "Systems/Shaders/ShaderTunerSystem.cs",
+        "Game/Systems/Playfields/PlayfieldRendererHitboxes.cs",
+        "Game/Systems/Playfields/PlayfieldHitboxOverlaySystem.cs",
+        "Game/Systems/Shaders/ShaderTunerSystem.cs",
         "UI/Systems/Ui/DebugElementOverlaySystem.cs",
     };
 
