@@ -441,6 +441,9 @@ host fills; tests leave the headless defaults.
     state all open.
   - **Transparency:** order-dependent against order-independent transparency.
   - **Indirect draw:** up to a million GPU-only shapes.
+  - **Spawner:** the shader editor with a different preview: `count` and
+    `Thing spawn(uint i)` (optionally `shade(Thing t, Canvas canvas)`) become a
+    compute pass that spawns, culls and packs, plus one indirect draw.
   - **Pointer history:** the pointer's path as a ring of keys on the GPU.
   - **RTS:** an RTS that lives on the GPU.
   - **Radiance cascades:** 2D GI, GPU-bound at ~22 ms with the bilinear fix.

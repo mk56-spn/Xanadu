@@ -30,10 +30,9 @@ internal sealed class EditorChrome
     private static readonly Color Column = new("#0e1428");
     private static readonly Color Badge = new(0.04f, 0.06f, 0.13f, 0.85f);
 
-    private static readonly string[] Help =
+    /// <summary>The lines under the problems: the editor's own keys; the stage puts its preview's lines before them.</summary>
+    public string[] Help { get; set; } =
     [
-        "shade(Canvas canvas) returns the pixel (add ItemInput i for uv …); import xanadu for shapes, colours., ease. …",
-        "Use time, mouse, mouseUv or resolution and the lab fills it; no need to declare them.",
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
         "F2 renames · drag the bar left of the preview to resize it.",
     ];

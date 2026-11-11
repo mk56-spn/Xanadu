@@ -61,7 +61,7 @@ internal static class LabExperiments
     public static ILabExperiment[] All(LabsOptions options) =>
     [
         new Experiments.ShaderPlayground(options.Shader),
-        new Experiments.ShaderEditor(options.EditorFile),
+        Experiments.ShaderEditor.Effects(options.EditorFile),
         new Experiments.ParticleBursts(),
         new Experiments.BlendLab(),
         new Experiments.DepthLab(),
@@ -69,6 +69,7 @@ internal static class LabExperiments
         new Experiments.TransparencyLab(),
         new Experiments.PointerHistoryLab(),
         new Experiments.IndirectDrawLab(),
+        Experiments.ShaderEditor.Spawner(),
         new Experiments.RtsLab(),
     ];
 }

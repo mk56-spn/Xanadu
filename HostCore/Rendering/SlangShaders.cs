@@ -264,7 +264,7 @@ internal static class SlangShaders
             """;
     }
 
-    private static (string Imports, string Code, string Label) Split(string name, string source)
+    internal static (string Imports, string Code, string Label) Split(string name, string source)
     {
         var imports = new System.Text.StringBuilder();
         var body = new System.Text.StringBuilder();
