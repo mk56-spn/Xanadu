@@ -11,8 +11,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
 /// What a name is, in a box under it, once the pointer has rested on it a
-/// moment: its signature (each overload's) and what its <c>///</c> comment
-/// says. Goes the moment the pointer leaves the name, a key edits or a button is
+/// moment: why it is faded if it is, its signature (each overload's) and
+/// what its <c>///</c> comment says. Goes the moment the pointer leaves the name, a key edits or a button is
 /// down, and never shows while the completion list is open.
 /// </summary>
 internal sealed class HoverPopup
@@ -37,6 +37,7 @@ internal sealed class HoverPopup
     private (int Line, int Start)? _over;
     private float _rested;
     private List<Completion>? _shown;
+    private string? _shownReason;
     private Vector2 _anchor;
     private float _lineHeight;
 
@@ -52,15 +53,27 @@ internal sealed class HoverPopup
     /// Follows the pointer: <paramref name="under"/> is the code under it (null when it is
     /// off the code, or when the box mustn't show: typing, a press, the completion list).
     /// </summary>
+    /// <param name="faded">Why the name at a place is faded, or null.</param>
     public void Follow(
-        TextBuffer buffer, SlangCompletions completions, (int Line, int Column, float Bottom)? under, Vector2 pointer, float delta)
+        TextBuffer buffer, SlangCompletions completions, Func<int, int, string?> faded,
+        (int Line, int Column, float Bottom)? under, Vector2 pointer, float delta)
     {
         List<Completion>? found = null;
+        string? reason = null;
         (int, int)? over = null;
         if (under is { } at)
         {
             found = completions.Describe(buffer.Lines[at.Line], at.Column, buffer.Lines, out int start);
-            if (found is not null)
+            reason = faded(at.Line, at.Column);
+            if (found is null && reason is not null)
+            {
+                start = at.Column;
+                string text = buffer.Lines[at.Line];
+                while (start > 0 && (char.IsLetterOrDigit(text[start - 1]) || text[start - 1] == '_'))
+                    start--;
+            }
+
+            if (found is not null || reason is not null)
                 over = (at.Line, start);
         }
 
@@ -69,6 +82,7 @@ internal sealed class HoverPopup
             _over = over;
             _rested = 0;
             _shown = null;
+            _shownReason = null;
             return;
         }
 
@@ -77,7 +91,8 @@ internal sealed class HoverPopup
         _rested += delta;
         if (_shown is null && _rested >= Delay)
         {
-            _shown = found;
+            _shown = found ?? [];
+            _shownReason = reason;
             _anchor = new Vector2(pointer.X, still.Bottom);
             _lineHeight = TextEditorLayout.LineHeight;
         }
@@ -102,8 +117,16 @@ internal sealed class HoverPopup
             }
         }
 
+        if (_shownReason is { } why)
+        {
+            foreach (string piece in Wrap(char.ToUpperInvariant(why[0]) + why[1..] + ".", fits))
+                rows.Add((piece, Palette.Warning));
+            if (_shown.Count > 0)
+                rows.Add(("", Palette.Text));
+        }
+
         // Overloads sharing one comment list their signatures, then it once; otherwise each signature has its own.
-        bool shared = _shown.TrueForAll(entry => entry.Doc == _shown[0].Doc);
+        bool shared = _shown.Count > 0 && _shown.TrueForAll(entry => entry.Doc == _shown[0].Doc);
         for (int e = 0; e < _shown.Count; e++)
         {
             if (e > 0 && !shared)

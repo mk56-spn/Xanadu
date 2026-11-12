@@ -441,8 +441,9 @@ host fills; tests leave the headless defaults.
     given (`float4 |`, `let |`) and once the word is already a whole name, so
     Enter there is still a new line.
     Besides Slang's own problems it shows its own warnings
-    (`SlangLint`, the checked rules in `Docs/shader-style.md`: so far XS003,
-    a local read before it has a value); warnings tint amber and never stale
+    (`SlangLint`, the checked rules in `Docs/shader-style.md`: so far XS002
+    whole-number division, XS003 a local read before it has a value and XS004
+    mouse given to anchor); warnings tint amber and never stale
     the preview.
     Built in layers. **Text editor** (UI, ECS): a `TextEditor` component
     (`UI/Ecs/Ui/TextEditorComponents.cs`) holding a `TextBuffer` and its

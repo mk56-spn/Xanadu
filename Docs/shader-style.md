@@ -4,7 +4,7 @@ The house style for Xanadu shaders (level shader slots, the playground, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** XS003 and XS004 are checked: the shader editor shows them as warnings
+**Status:** XS002, XS003 and XS004 are checked: the shader editor shows them as warnings
 (`Slang/SlangLint.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
@@ -42,7 +42,7 @@ return float4(colour, 1);
 
 ---
 
-## XS002 · Whole-number division (warning)
+## XS002 · Whole-number division (warning) · checked
 
 **Flags** a division whose two sides are both whole numbers or int values, in a
 place that wants a float: `1 / 2`, `count / 3` with `int count`.
@@ -53,6 +53,11 @@ place where XS001's whole numbers bite.
 
 **Fix** Make one side a float: `1.0 / 2`, `float(count) / 3`, or write the
 result (`0.5`).
+
+**Not flagged** where an int is wanted: an index (`points[n / 2]`), a for's
+header, an int being given a value (`int mid = n / 2`), or what an int function
+returns. Only plain names and numbers count as sides: `s.count / 2` and
+`(a + b) / 2` aren't checked.
 
 ```slang
 // flagged

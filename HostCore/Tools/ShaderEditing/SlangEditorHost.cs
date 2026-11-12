@@ -12,8 +12,10 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// <summary>
 /// What turns the UI's plain <see cref="TextEditor"/> into the Slang editor:
 /// each token in its kind's colour, brackets in their owner's colour (the pair
-/// at the caret lit and boxed, an unmatched one red), the library's parameter
-/// names as inlays, problems as marked lines, and the completion list taking
+/// at the caret lit and boxed, an unmatched one red), each loop's index in a
+/// colour by its nesting, colour swizzles by channel, names that do nothing
+/// faded (<see cref="SlangUnused"/>), the library's parameter names as inlays,
+/// problems as marked lines, and the completion list taking
 /// its keys and clicks first. Enter after <c>{</c> indents a step; <c>}</c>
 /// typed on an empty line steps back one. An opening bracket brings its
 /// closer with the caret between; typing that closer steps over it, and
@@ -44,6 +46,21 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         [TokenKind.Attribute] = new("#a0a8c4"),
         [TokenKind.Comment] = new("#6b7a99"),
     };
+
+    /// <summary>Each letter of a colour swizzle (<c>.rgb</c>, <c>.a</c>, <c>.bgra</c>) in its own channel's colour.</summary>
+    private static readonly Dictionary<char, Color> Channels = new()
+    {
+        ['r'] = new("#ff7a7a"),
+        ['g'] = new("#7fe0a0"),
+        ['b'] = new("#7ab8ff"),
+        ['a'] = new("#c9cfe0"),
+    };
+
+    /// <summary>A loop's index, by how deep the loop is nested (cycling past the last), so nested ones read apart.</summary>
+    private static readonly Color[] LoopIndexes = [new("#ff8fb8"), new("#9fe870"), new("#7fd6e8")];
+
+    /// <summary>How much of its colour a name that does nothing keeps, the rest being the background.</summary>
+    private const float FadedStrength = 0.4f;
 
     /// <summary>How much of its owner's colour a bracket takes, the rest being the background: dimmer than the name, so the name leads.</summary>
     private const float BracketStrength = 0.7f;
@@ -82,12 +99,38 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
     /// <summary>What Slang and the lint found, by 1-based line; the first on a line is the one shown.</summary>
     public IReadOnlyList<SlangProblem> Problems { get; set; } = [];
 
+    /// <summary>The names that do nothing, found again whenever the text changes.</summary>
+    public IReadOnlyList<Faded> Faded => _faded;
+
+    private List<Faded> _faded = [];
+    private List<LoopIndex> _loopIndexes = [];
+    private int _fadedVersion = -1;
+
+    /// <summary>Why the name at a place is faded, or null when it isn't.</summary>
+    public string? FadedAt(int line, int column)
+    {
+        foreach (Faded faded in _faded)
+        {
+            if (faded.Line == line && faded.Column <= column && column < faded.Column + faded.Length)
+                return faded.Reason;
+        }
+
+        return null;
+    }
+
     private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases);
 
     public void Prepare(TextBuffer buffer, List<TextCell> boxed)
     {
         _brackets.Clear();
         FollowRename(buffer, boxed);
+        if (_fadedVersion != buffer.Version)
+        {
+            _fadedVersion = buffer.Version;
+            _faded = SlangUnused.Find(buffer.Lines);
+            _loopIndexes = SlangLoops.Find(buffer.Lines);
+        }
+
         List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, Tokens);
 
         // The bracket just after the caret, else the one just before it.
@@ -120,6 +163,34 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         {
             for (int c = token.Start; c < token.End && c < text.Length; c++)
                 colours[c] = Colours[token.Kind];
+        }
+
+        foreach (LoopIndex index in _loopIndexes)
+        {
+            if (index.Line != line)
+                continue;
+            for (int c = index.Column; c < index.Column + index.Length && c < text.Length; c++)
+                colours[c] = LoopIndexes[index.Depth % LoopIndexes.Length];
+        }
+
+        // A swizzle of colour channels only: right after a dot, one to four of r g b a, then the word ends.
+        for (int dot = text.IndexOf('.'); dot >= 0; dot = text.IndexOf('.', dot + 1))
+        {
+            int end = dot + 1;
+            while (end < text.Length && Channels.ContainsKey(text[end]))
+                end++;
+            bool swizzle = end - dot - 1 is >= 1 and <= 4 && (end == text.Length || !(char.IsLetterOrDigit(text[end]) || text[end] == '_'))
+                           && dot > 0 && !char.IsDigit(text[dot - 1]);
+            for (int c = dot + 1; swizzle && c < end; c++)
+                colours[c] = Channels[text[c]];
+        }
+
+        foreach (Faded faded in _faded)
+        {
+            if (faded.Line != line)
+                continue;
+            for (int c = faded.Column; c < faded.Column + faded.Length && c < text.Length; c++)
+                colours[c] = Background.Lerp(colours[c] ?? TextEditorDrawSystem.Plain, FadedStrength);
         }
 
         for (int c = 0; c < text.Length; c++)
@@ -200,7 +271,7 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         char? next = buffer.Column < line.Length ? line[buffer.Column] : null;
 
         // Backspace inside an empty pair takes both brackets.
-        if (key == Key.Backspace && !buffer.HasSelection && previous is { } open && Pairs.TryGetValue(open, out char close) && next == close)
+        if (key == Key.Backspace && !ctrl && !buffer.HasSelection && previous is { } open && Pairs.TryGetValue(open, out char close) && next == close)
         {
             buffer.Replace(buffer.Column - 1, buffer.Column + 1, "");
             return true;
@@ -256,6 +327,8 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
     }
 
     public bool TakePress(TextBuffer buffer, Vector2 point) => popup.Click(buffer, point);
+
+    public string LineComment => "//";
 
     /// <summary>Starts renaming the name at (or just before) the caret, if the code declares it.</summary>
     private void StartRename(TextBuffer buffer)

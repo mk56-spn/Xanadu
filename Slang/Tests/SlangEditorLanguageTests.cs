@@ -142,6 +142,40 @@ public sealed class SlangLintTests
     }
 
     [Test]
+    public void AWholeNumberDivisionWhereAFloatIsWantedIsFlagged()
+    {
+        const string code = "static const int trail = 30;\nfloat4 shade()\n{\n    float step = 1 / trail;\n    return step;\n}";
+        SlangProblem problem = SlangLint.Check(code, Types).Single();
+        Assert.That(problem.Message, Does.StartWith("XS002"));
+        Assert.That(problem.Message, Does.Contain("1.0 / trail"));
+        Assert.That((problem.Line, problem.Column), Is.EqualTo((4, 18)));
+
+        Assert.That(SlangLint.Check("float4 shade(int count)\n{\n    return float4(count / 3);\n}", Types).Single().Message,
+            Does.Contain("float(count) / 3"));
+    }
+
+    [Test]
+    public void FloatDivisionsAndOnesThatWantAnIntAreFine()
+    {
+        Assert.That(SlangLint.Check("""
+            static const int trail = 30;
+            int half(int n) { return n / 2; }
+            float4 shade(float x)
+            {
+                float a = 1. / trail;
+                float b = x / 2;
+                float c = float(trail) / 2;
+                int mid = trail / 2;
+                int pts[trail];
+                int e = pts[trail / 2];
+                for (int i = 0; i < trail / 2; i++)
+                    a += 1;
+                return a + b + c;
+            }
+            """, Types), Is.Empty);
+    }
+
+    [Test]
     public void MouseGivenToAnchorIsFlagged()
     {
         SlangProblem problem = SlangLint.Check("float4 shade() { return Circle(9).anchored(mouse).filled(); }", Types).Single();
@@ -329,5 +363,120 @@ public sealed class SlangHintsTests
 
         Assert.That(shipped.Count, Is.GreaterThan(20));
         Assert.That(shipped.Types, Does.Contain("Circle"));
+    }
+}
+
+[TestFixture]
+public sealed class SlangUnusedTests
+{
+    private static Dictionary<string, string> Faded(string code)
+    {
+        string[] lines = code.Split('\n');
+        return SlangUnused.Find(lines).ToDictionary(f => lines[f.Line].Substring(f.Column, f.Length), f => f.Reason);
+    }
+
+    /// <summary>The trail shader that waited on a time it never kept.</summary>
+    private const string Trail = """
+        import xanadu;
+
+        const int refreshSpeed;
+
+        uniform colour circleColour;
+
+        static const int trail = 10;
+
+        struct State
+        {
+            float2[trail] prevPoints;
+            float[trail] prevTime;
+            int pointer = 0;
+            float2 moved(float dt) { float2 step = prevPoints[0] * dt; return step; }
+        };
+
+        void update(inout State s, float dt)
+        {
+            if (s.prevTime[s.pointer] + 2 < time)
+            {
+                s.prevPoints[s.pointer] = mouse;
+                s.pointer += 1;
+            }
+        }
+
+        float4 shade(ItemInput i)
+        {
+            colour col = colours.transparent;
+            for (int k = 0; k < trail; k++)
+                col.paint(Circle(9).moved(state.prevPoints[k]), colours.red);
+            return col;
+        }
+        """;
+
+    [Test]
+    public void AFieldReadButNeverGivenAValueFades()
+    {
+        Assert.That(Faded(Trail).GetValueOrDefault("prevTime"), Is.EqualTo(SlangUnused.NeverGiven));
+    }
+
+    [Test]
+    public void NamesNeverUsedFade()
+    {
+        var faded = Faded(Trail);
+        Assert.That(faded.GetValueOrDefault("refreshSpeed"), Is.EqualTo(SlangUnused.NeverUsed));
+        Assert.That(faded.GetValueOrDefault("circleColour"), Is.EqualTo(SlangUnused.NeverUsed));
+        Assert.That(faded.GetValueOrDefault("dt"), Is.EqualTo(SlangUnused.NeverUsed));
+    }
+
+    [Test]
+    public void WhatIsReadAndWrittenOrCalledByTheHostStaysLit()
+    {
+        var faded = Faded(Trail);
+        Assert.That(faded.Keys, Has.None.AnyOf("prevPoints", "pointer", "trail", "col", "s", "k", "shade", "update", "step"));
+    }
+
+    [Test]
+    public void ALocalGivenValuesNobodyReadsFades()
+    {
+        var faded = Faded("float4 shade()\n{\n    float x = 1;\n    x = 2;\n    return 1;\n}");
+        Assert.That(faded.GetValueOrDefault("x"), Is.EqualTo(SlangUnused.NeverRead));
+    }
+
+    [Test]
+    public void AMutatingCallCountsAsGivingAValue()
+    {
+        const string code = "struct State\n{\n    colour tint;\n};\nfloat4 shade(State s)\n{\n    s.tint.paint(Circle(4), colours.red);\n    return s.tint;\n}";
+        Assert.That(Faded(code).ContainsKey("tint"), Is.False);
+    }
+}
+
+[TestFixture]
+public sealed class SlangLoopsTests
+{
+    [Test]
+    public void TheIndexIsFoundFromTheHeaderToTheBodysEnd()
+    {
+        const string code = "for (int i = 0; i < 4; i++)\n{\n    a[i] = s.i + i;\n}\nb = i;";
+        var found = SlangLoops.Find(code.Split('\n'));
+        // Header: three; body: a[i] and the last i, not s.i; nothing after the loop.
+        Assert.That(found.Select(f => (f.Line, f.Column)), Is.EqualTo(new[] { (0, 9), (0, 16), (0, 23), (2, 6), (2, 17) }));
+        Assert.That(found.TrueForAll(f => f.Depth == 0), Is.True);
+    }
+
+    [Test]
+    public void ANestedLoopIsOneDeeperAndAOneStatementBodyEndsAtItsSemicolon()
+    {
+        const string code = "for (int i = 0; i < 4; i++)\n    for (int j = 0; j < i; j++)\n        x += j;\ny = j;";
+        var found = SlangLoops.Find(code.Split('\n'));
+        Assert.That(found.Where(f => f.Depth == 1).Select(f => f.Line), Is.EqualTo(new[] { 1, 1, 1, 2 }));
+        Assert.That(found.Exists(f => f.Line == 3), Is.False);
+        // i inside the inner header is still the outer loop's.
+        Assert.That(found.Exists(f => f is { Line: 1, Depth: 0 }), Is.True);
+    }
+
+    [Test]
+    public void ShadowedNamesBelongToTheInnerLoop()
+    {
+        const string code = "for (int i = 0; i < 2; i++)\n{\n    for (int i = 0; i < 3; i++)\n        x += i;\n}";
+        var found = SlangLoops.Find(code.Split('\n'));
+        Assert.That(found.Where(f => f.Line >= 2).All(f => f.Depth == 1), Is.True);
     }
 }

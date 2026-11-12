@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -94,6 +95,115 @@ public sealed class SlangCompletionsTests
     public void APreludeStructsFieldsComeAfterADot()
     {
         Assert.That(Names("Thing t;\nt."), Is.SupersetOf(new[] { "position", "colour", "size" }));
+    }
+
+    /// <summary>A State the code itself declares, the way update uses one.</summary>
+    private const string OwnState = """
+        struct State
+        {
+            /// Where the dot is.
+            float2 at;
+            float speed, spin;
+            colour tint;
+            float2 moved(float dt) { float2 step = at * dt; return step; }
+        };
+
+        """;
+
+    [Test]
+    public void TheCodesOwnStructsFieldsComeAfterADot()
+    {
+        List<string> names = Names(OwnState + "void update(inout State s, float dt)\n{\n    s.");
+        Assert.That(names, Is.SupersetOf(new[] { "at", "speed", "spin", "tint", "moved" }));
+        // A method's locals are no members.
+        Assert.That(names, Does.Not.Contain("step"));
+    }
+
+    [Test]
+    public void ShadeReadsTheKeptStateWithItsFields()
+    {
+        const string update = "void update(inout State s, float dt)\n{\n}\n";
+        Assert.That(Names(OwnState + update + "float4 shade(Canvas canvas)\n{\n    state."), Is.SupersetOf(new[] { "at", "speed", "tint" }));
+        Assert.That(Names(OwnState + update + "float4 shade(Canvas canvas)\n{\n    let a = sta"), Does.Contain("state"));
+        // No update, no state.
+        Assert.That(Names(OwnState + "float4 shade(Canvas canvas)\n{\n    state."), Is.Empty);
+    }
+
+    /// <summary>A State with arrays sized after the type, the way the trail shader wrote it.</summary>
+    private const string TrailState = """
+        static const int trail = 30;
+
+        struct State
+        {
+            float2[trail] prevPoints;
+            float[trail] prevTime;
+
+            int pointer = 0;
+        };
+
+        void update(inout State s, float dt)
+        {
+        }
+
+        """;
+
+    [Test]
+    public void ArrayFieldsSizedAfterTheTypeAreFields()
+    {
+        List<Completion>? offered = At(TrailState + "float4 shade(ItemInput i)\n{\n    state.");
+        Assert.That(offered?.Select(c => c.Name), Is.SupersetOf(new[] { "prevPoints", "prevTime", "pointer" }));
+        Assert.That(offered!.Find(c => c.Name == "prevPoints").Detail, Is.EqualTo("float2[trail]"));
+    }
+
+    [Test]
+    public void AnIndexedArrayFieldWalksOnToItsElement()
+    {
+        // A float2's components; an unindexed array has none.
+        List<string> element = Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints[state.pointer + 1].");
+        Assert.That(element, Is.EquivalentTo(new[] { "x", "y" }));
+        Assert.That(element, Does.Not.Contain("prevTime"));
+        Assert.That(Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints."), Is.Empty);
+    }
+
+    [Test]
+    public void VectorsOfferTheirComponents()
+    {
+        Assert.That(Names("float4 shade()\n{\n    float3 v;\n    v."), Is.SupersetOf(new[] { "x", "y", "z", "r", "g", "b", "xy", "rgb" }));
+        // A colour has the library's own members and its channels too.
+        Assert.That(Names("float4 shade()\n{\n    colour c;\n    c."), Is.SupersetOf(new[] { "rgb", "a", "paint" }));
+        Assert.That(Names("float4 shade()\n{\n    float4 v;\n    v.xy."), Is.EquivalentTo(new[] { "x", "y" }));
+        // mouse is provided as a float2.
+        Assert.That(Names("float4 shade()\n{\n    float a = mouse."), Is.EquivalentTo(new[] { "x", "y" }));
+    }
+
+    [Test]
+    public void TheCodesOwnStructsFieldsNarrowAndChainOn()
+    {
+        Assert.That(Names(OwnState + "void update(inout State s, float dt)\n{\n    s.sp"), Is.EquivalentTo(new[] { "speed", "spin" }));
+        // A local declared with the code's type, or built from it, gets its members too.
+        Assert.That(Names(OwnState + "float4 shade()\n{\n    State t;\n    t."), Does.Contain("at"));
+        Assert.That(Names(OwnState + "float4 shade()\n{\n    let t = State();\n    t."), Does.Contain("at"));
+    }
+
+    [Test]
+    public void TheCodesOwnStructIsOfferedAsATypeAndItsColourFieldsGetColours()
+    {
+        Assert.That(At(OwnState + "float4 shade()\n{\n    Sta")?.Find(c => c.Name == "State").Kind, Is.EqualTo(CompletionKind.Type));
+        // A name being given after the code's own type gets nothing.
+        Assert.That(At(OwnState + "float4 shade()\n{\n    State st"), Is.Null);
+        Assert.That(At(OwnState + "void update(inout State s, float dt)\n{\n    s.tint = ")?.Select(c => c.Text), Does.Contain("colours.gold"));
+    }
+
+    [Test]
+    public void HoveringTheCodesOwnStructOrAFieldOfItDescribesIt()
+    {
+        string[] code = (OwnState + "void update(inout State s, float dt)\n{\n    s.at = 0;\n}").Split('\n');
+        int use = Array.FindIndex(code, l => l.Contains("s.at"));
+        Assert.That(_completions.Describe(code[use], code[use].IndexOf("at", StringComparison.Ordinal), code, out _)?[0].Doc,
+            Is.EqualTo("Where the dot is."));
+        int header = Array.FindIndex(code, l => l.StartsWith("void update", StringComparison.Ordinal));
+        Assert.That(_completions.Describe(code[header], code[header].IndexOf("State", StringComparison.Ordinal), code, out _)?[^1].Doc,
+            Does.Contain("    float speed"));
     }
 
     [Test]

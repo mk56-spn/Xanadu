@@ -8,6 +8,10 @@ namespace Xanadu.Slang;
 /// The editor's own warnings, for mistakes Slang doesn't report on code that
 /// compiles. Each is a rule in <c>Docs/shader-style.md</c>, named in its message.
 /// <list type="bullet">
+/// <item>XS002: a division of two whole numbers (<c>1 / trail</c> with
+/// <c>int trail</c>) where a float is wanted: the fraction is dropped before
+/// it becomes one, so <c>1 / 30</c> is 0. Not where an int is wanted: an index
+/// (<c>[n / 2]</c>), a for's header, an int being given a value, an int returned.</item>
 /// <item>XS003: a local declared without a value (<c>colour c;</c>) whose first
 /// use reads it. Slang leaves locals as whatever was there, so the result is
 /// noise. A first use that assigns it, or one of its fields (<c>c = …</c>,
@@ -63,8 +67,101 @@ public static partial class SlangLint
         }
 
         problems.AddRange(MouseAnchors(code));
+        problems.AddRange(WholeDivisions(code));
         problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
         return problems;
+    }
+
+    /// <summary>A name declared int or uint (<c>int count</c>, <c>static const int trail</c>, <c>for (int i …</c>).</summary>
+    [GeneratedRegex(@"\b(?:int|uint)\s+([A-Za-z_]\w*)")]
+    private static partial Regex IntName();
+
+    /// <summary>A function returning int or uint, up to its body's brace.</summary>
+    [GeneratedRegex(@"\b(?:int|uint)\s+[A-Za-z_]\w*\s*\([^)]*\)\s*\{")]
+    private static partial Regex IntFunction();
+
+    /// <summary>A whole-number literal (<c>2</c>, <c>2u</c>), not part of a float (<c>2.5</c>, <c>.5</c>, <c>2e3</c>).</summary>
+    private static bool WholeLiteral(string word) => Regex.IsMatch(word, @"^\d+[uU]?$");
+
+    /// <summary>XS002: each whole-number division where a float is wanted.</summary>
+    private static IEnumerable<SlangProblem> WholeDivisions(string code)
+    {
+        var ints = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match match in IntName().Matches(code))
+            ints.Add(match.Groups[1].Value);
+        var intBodies = new List<(int Start, int End)>();
+        foreach (Match match in IntFunction().Matches(code))
+            intBodies.Add((match.Index + match.Length, ScopeEnd(code, match.Index + match.Length)));
+
+        bool Whole(string word) => WholeLiteral(word) || ints.Contains(word);
+
+        for (int at = 0; at < code.Length; at++)
+        {
+            if (code[at] != '/' || (at + 1 < code.Length && code[at + 1] is '=' or '/') || (at > 0 && code[at - 1] == '/'))
+                continue;
+
+            // The operand just before: a word not after a dot (a.b / 2 is a field, unknown here).
+            int leftEnd = at;
+            while (leftEnd > 0 && code[leftEnd - 1] is ' ' or '\t')
+                leftEnd--;
+            int leftStart = leftEnd;
+            while (leftStart > 0 && (char.IsLetterOrDigit(code[leftStart - 1]) || code[leftStart - 1] == '_'))
+                leftStart--;
+            if (leftStart == leftEnd || (leftStart > 0 && code[leftStart - 1] == '.'))
+                continue;
+
+            // The operand just after: a word not followed by a call, a field or an index.
+            int rightStart = at + 1;
+            while (rightStart < code.Length && code[rightStart] is ' ' or '\t')
+                rightStart++;
+            int rightEnd = rightStart;
+            while (rightEnd < code.Length && (char.IsLetterOrDigit(code[rightEnd]) || code[rightEnd] == '_'))
+                rightEnd++;
+            if (rightStart == rightEnd || (rightEnd < code.Length && code[rightEnd] is '.' or '(' or '['))
+                continue;
+
+            string left = code[leftStart..leftEnd], right = code[rightStart..rightEnd];
+            if (!Whole(left) || !Whole(right) || WantsInt(code, leftStart, ints, intBodies))
+                continue;
+
+            (int line, int column) = Place(code, leftStart);
+            string fix = WholeLiteral(left) ? $"{left.TrimEnd('u', 'U')}.0 / {right}" : $"float({left}) / {right}";
+            yield return new SlangProblem(
+                line, column,
+                $"XS002 · {left} / {right} divides whole numbers, so the fraction is dropped; write {fix}",
+                Warning: true);
+        }
+    }
+
+    /// <summary>
+    /// Whether the expression at an offset gives an int: inside an index's brackets or a for's
+    /// header, the value of an int being declared or assigned, or what an int function returns.
+    /// </summary>
+    private static bool WantsInt(string code, int at, HashSet<string> ints, List<(int Start, int End)> intBodies)
+    {
+        int square = 0, round = 0;
+        int i = at - 1;
+        for (; i >= 0 && code[i] is not (';' or '{' or '}'); i--)
+        {
+            if (code[i] == ']')
+                square--;
+            else if (code[i] == '[' && ++square > 0)
+                return true;
+            else if (code[i] == ')')
+                round--;
+            else if (code[i] == '(' && ++round > 0 && Regex.IsMatch(code[..i], @"\bfor\s*$"))
+                return true;
+        }
+
+        // A for's header has ;s of its own: its condition and step sit after one.
+        if (i >= 0 && code[i] == ';' && Regex.IsMatch(code[..(i + 1)], @"\bfor\s*\([^)]*$"))
+            return true;
+
+        string statement = code[(i + 1)..at].TrimStart();
+        Match target = Regex.Match(statement, @"^(?:(?:static|const)\s+)*(?:(int|uint)\s+\w+|(\w+)(?:\s*\[[^\]]*\])?)\s*[+\-*%]?=(?!=)");
+        if (target.Success && (target.Groups[1].Success || ints.Contains(target.Groups[2].Value)))
+            return true;
+        return statement.StartsWith("return", StringComparison.Ordinal) && intBodies.Exists(b => b.Start <= at && at < b.End);
     }
 
     /// <summary>XS004: each <c>anchor(…)</c> or <c>anchored(…)</c> whose argument uses <c>mouse</c>.</summary>

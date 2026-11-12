@@ -108,16 +108,16 @@ public static partial class SlangRename
     }
 
     /// <summary>
-    /// Where the name is declared: after a type (<c>float x</c>, <c>State s</c>, <c>float4 shade(</c>),
-    /// after let or var, or as a struct's name.
+    /// Where the name is declared: after a type (<c>float x</c>, <c>State s</c>, <c>float4 shade(</c>,
+    /// <c>float2[8] points</c>), after let or var, or as a struct's name.
     /// </summary>
     private static List<int> Declarations(string code, string name)
     {
         var found = new List<int>();
-        foreach (Match match in Regex.Matches(code, $@"\b([A-Za-z_]\w*)(\s*<[^<>;{{}}]*>)?\s+({name})\s*[=;,)(\[:]"))
+        foreach (Match match in Regex.Matches(code, $@"\b([A-Za-z_]\w*)(\s*<[^<>;{{}}]*>)?(\s*\[[^\]\n]*\])?\s+({name})\s*[=;,)(\[:]"))
         {
             if (!NotTypes.Contains(match.Groups[1].Value) && !MemberAt(code, match.Index))
-                found.Add(match.Groups[3].Index);
+                found.Add(match.Groups[4].Index);
         }
 
         foreach (Match match in Regex.Matches(code, $@"\b(?:let|var|struct)\s+({name})\b"))
