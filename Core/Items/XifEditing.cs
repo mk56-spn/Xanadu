@@ -14,13 +14,13 @@ public static class XifEditing
     public const int MinPolygonPoints = 3;
 
     /// <summary>A new polygon's outline: a small square around the origin.</summary>
-    public static List<Vector2> DefaultOutline() => new()
-    {
+    public static List<Vector2> DefaultOutline() =>
+    [
         new Vector2(-16, -16),
         new Vector2(16, -16),
         new Vector2(16, 16),
-        new Vector2(-16, 16),
-    };
+        new Vector2(-16, 16)
+    ];
 
     public static bool Rename(Xif item, string name)
     {

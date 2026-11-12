@@ -207,6 +207,7 @@ internal sealed class BrowserStage : IToolStage
 | --- | --- | --- |
 | 1 | `IToolStage.Build(UiNode body)` in a tool tab | a canvas stage that draws in a `Rect2` area |
 | 2 | nested `Column` / `Row` with `grow:`, `stretch:`, `width:`, `gap:`, `pad:`, `Spacer`, a `Flex` preset | `new Rect2(724, 34, …)`, `x += width + 6`, a flat run of `page.Row()` statements |
+| 2 | `items.Select(item => Row(item))` in the stack's braces | a `foreach` that calls `table.Add(new Row…)` after the initializer |
 | 2 | `UiType.*` sizes, `UiMetrics.*` gaps and controls | font sizes and gaps as numbers |
 | 2 | `tone:`, `ink:`, `.Chosen(on)`, `.CategoryTone(i)` | `Palette.X` passed per call |
 | 3 | a `Field` | reading typed text and drawing `find: {q}_` yourself |
@@ -229,9 +230,20 @@ internal sealed class BrowserStage : IToolStage
 
 - **State changes in handlers, showing happens in one place.** Press handlers
   set fields and a flag; `Update` (or a system) rebuilds what is shown.
-- **The build tells the story.** `Build` reads top-down as the screen does, one
-  named method per region (`Header()`, `TypeList()`, `Chart()`), each returning
-  its spec; details live in the method, not in the outline.
+- **The build tells the story.** `Build` reads top-down as the screen does.
+  Split a region into its own method (`Header()`, `TypeList()`, `Chart()`, each
+  returning its spec) only when `Build` would no longer fit on one screen, or
+  when the region is used more than once; a small screen writes its card in
+  place. A method called once that just wraps one stack is noise.
+- **Name the repeated shape.** When the same named arguments turn up on three or
+  more specs, write one small helper that returns that spec and pass in only what
+  differs. The song timing screen's `Caption`, `Field`, `Action` and `Readout`,
+  and the settings screen's `Setting(label, control)` and `Choice(text, cmd,
+  style)`, are the pattern: every row of settings, keybinds included, is one
+  `Setting`, so its column width and height are written once.
+- **One spec, one line, when it fits.** Keep a spec's arguments on its line up to
+  120 columns; break them onto separate lines only past that. A spec spread one
+  argument per line hides the tree it belongs to.
 - **Measure static text, `Fit` live text.** Labels that never change take their
   measured box; anything a fill rewrites sits in a grown box with `fit: true`.
 - **Live text in a measured button:** build it with its longest label (say

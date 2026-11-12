@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Core;
 
 /// <summary>
 /// Turns a held key into a single press event: the first frame the key reads
@@ -9,7 +9,7 @@ namespace Xanadu.Ecs;
 /// </summary>
 public sealed class KeyPress
 {
-    private readonly HashSet<Key> _held = new();
+    private readonly HashSet<Key> _held = [];
 
     /// <summary>True on the one frame <paramref name="key"/> starts being held.</summary>
     public bool Started(Key key, bool pressed)

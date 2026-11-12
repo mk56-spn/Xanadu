@@ -11,6 +11,19 @@ indent_style = space
 indent_size = 4
 tab_width = 4
 
+# Line length (Rider / ReSharper formatter)
+# A call or declaration stays on one line up to 120 columns; past that, one argument per line, starting after the
+# open bracket. Existing line breaks are not kept, so a short call chopped by hand is joined back up on reformat.
+# Collection initializers keep their arrangement, so a spec tree's children stay one per line.
+max_line_length = 120
+resharper_wrap_lines = true
+resharper_keep_existing_linebreaks = false
+resharper_keep_existing_initializer_arrangement = true
+resharper_csharp_wrap_arguments_style = chop_if_long
+resharper_csharp_wrap_parameters_style = chop_if_long
+resharper_csharp_wrap_after_invocation_lpar = true
+resharper_csharp_wrap_after_declaration_lpar = true
+
 # Namespace and using directives
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_using_directive_placement = outside_namespace:warning
@@ -36,6 +49,17 @@ csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
 # Lambdas
 # Prefer implicit parameter types when the delegate type makes them inferable.
 csharp_style_prefer_implicitly_typed_lambda_expression = true:warning
+
+# Collections
+# Prefer collection expressions ([], [a, b], [..xs]) over new List<T>(), new[] { }, Array.Empty<T>() and friends.
+dotnet_style_prefer_collection_expression = when_types_loosely_match:warning
+dotnet_diagnostic.IDE0028.severity = warning
+dotnet_diagnostic.IDE0300.severity = warning
+dotnet_diagnostic.IDE0301.severity = warning
+dotnet_diagnostic.IDE0302.severity = warning
+dotnet_diagnostic.IDE0303.severity = warning
+dotnet_diagnostic.IDE0304.severity = warning
+dotnet_diagnostic.IDE0305.severity = warning
 
 # Braces and new lines
 csharp_prefer_braces = when_multiline:suggestion
