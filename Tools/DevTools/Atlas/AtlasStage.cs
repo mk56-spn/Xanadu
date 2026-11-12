@@ -147,14 +147,14 @@ internal sealed partial class AtlasStage : IToolStage
     {
         bool escape = _context.Keyboard.IsPressed(Key.Escape);
         if (escape && !_escapeWasDown)
-            _search.Entity.GetComponent<TextField>().Value = "";
+            _search.Node.Entity.GetComponent<TextField>().Value = "";
         _escapeWasDown = escape;
 
         // Typing always finds: the search keeps the keys whatever was clicked last.
-        if (!_search.Entity.Tags.Has<TextFieldFocused>())
-            _search.Entity.AddTag<TextFieldFocused>();
+        if (!_search.Node.Entity.Tags.Has<TextFieldFocused>())
+            _search.Node.Entity.AddTag<TextFieldFocused>();
 
-        string typed = _search.Entity.GetComponent<TextField>().Value;
+        string typed = _search.Node.Entity.GetComponent<TextField>().Value;
         if (typed != _query)
         {
             _query = typed;
@@ -326,7 +326,7 @@ internal sealed partial class AtlasStage : IToolStage
         node.Fields.Count == 0 ? "no fields" : string.Join(", ", node.Fields.Select(f => TypeNames.Short(f.Type)));
 
     /// <summary>Typing goes back to the rest of the UI once the tab closes.</summary>
-    public void Hidden() => _search.Entity.RemoveTag<TextFieldFocused>();
+    public void Hidden() => _search.Node.Entity.RemoveTag<TextFieldFocused>();
 
     public void Dispose()
     {

@@ -4,6 +4,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Theme;
+using Xanadu.Ui.Tree;
 
 namespace Xanadu.Tools.Atlas;
 
@@ -26,12 +27,13 @@ internal sealed partial class AtlasStage
     private void ShowHeader()
     {
         for (int i = 0; i < _views.Length; i++)
-            _views[i].Chosen((int)_view == i);
+            _views[i].Node.Chosen((int)_view == i);
 
-        UiThemeRoles roles = _search.Roles;
+        UiThemeRoles roles = _search.Node.Roles;
         foreach (NodeKind kind in Enum.GetValues<NodeKind>())
         {
-            (UiNode chip, UiNode swatch, UiNode label) = _kinds[(int)kind];
+            KindChip kindChip = _kinds[(int)kind];
+            (UiNode chip, UiNode swatch, UiNode label) = (kindChip.Chip, kindChip.Swatch, kindChip.Label);
             bool shown = !_hidden.Contains(kind);
             if (shown)
                 swatch.CategoryFill(KindCategory(kind));
@@ -46,7 +48,7 @@ internal sealed partial class AtlasStage
             (SortMode mode, string label, string hint) = Sorts[i];
             bool on = _sort == mode;
             string name = label.ToLowerInvariant();
-            _sorts[i].Chosen(on)
+            _sorts[i].Node.Chosen(on)
                 .SetText(on ? label + (_reverse ? " ▲" : " ▼") : label)
                 .Tooltip(on
                     ? $"sorted by {name}{(_reverse ? ", flipped" : "")}: {hint}; click to flip"
@@ -78,7 +80,7 @@ internal sealed partial class AtlasStage
         UiLayout.SetHidden(_compareView, open != View.Compare);
         UiLayout.SetHidden(_similarView, open != View.Similar);
         UiLayout.SetHidden(_empty, open is not null);
-        _emptyText.SetText(focus is null || _view == View.Focus
+        _emptyText.Node.SetText(focus is null || _view == View.Focus
             ? "pick a type on the left"
             : $"pick a type on the left to compare with {focus.Name}");
 
@@ -124,7 +126,7 @@ internal sealed partial class AtlasStage
     private static void ShowSide(FocusSide side, List<(int Id, LinkKind Kind)> rows, string none)
     {
         UiLayout.SetHidden(side.Empty, rows.Count > 0);
-        side.Empty.SetText(none);
+        side.Empty.Node.SetText(none);
         UiLists.SetCount(side.List, rows.Count);
     }
 
@@ -136,9 +138,9 @@ internal sealed partial class AtlasStage
         _onlyAIds = Sorted(aNear.Except(bNear));
         _onlyBIds = Sorted(bNear.Except(aNear));
 
-        _compareTitle.SetText($"{a.Name} touches {aNear.Count}, {b.Name} touches {bNear.Count}; they share {_sharedIds.Count}" + Direct(a, b));
-        _onlyAHead.SetText($"ONLY {a.Name.ToUpperInvariant()}");
-        _onlyBHead.SetText($"ONLY {b.Name.ToUpperInvariant()}");
+        _compareTitle.Node.SetText($"{a.Name} touches {aNear.Count}, {b.Name} touches {bNear.Count}; they share {_sharedIds.Count}" + Direct(a, b));
+        _onlyAHead.Node.SetText($"ONLY {a.Name.ToUpperInvariant()}");
+        _onlyBHead.Node.SetText($"ONLY {b.Name.ToUpperInvariant()}");
         ShowBigCard(_aCard, a);
         ShowBigCard(_bCard, b);
         LinkKind? direct = Linked(a, b);
@@ -161,7 +163,7 @@ internal sealed partial class AtlasStage
             : picked is null
                 ? $"the {_matches.Count} most alike pairs of {kinds}: same field types (shape), same users, same uses; pick a type on the left for its own"
                 : $"{kinds} like {picked.Name} ({Fields(picked)}): same field types (shape), same users, same uses";
-        _similarTitle.SetText(title);
+        _similarTitle.Node.SetText(title);
         UiLists.SetCount(_similarList, _matches.Count);
     }
 
@@ -169,12 +171,12 @@ internal sealed partial class AtlasStage
 
     private void FillList()
     {
-        UiList view = _list.Entity.GetComponent<UiList>();
+        UiList view = _list.Node.Entity.GetComponent<UiList>();
         for (int i = 0; i < view.Shown; i++)
         {
             int id = _listIds[view.First + i];
-            (UiNode used, Card card) = _listRows[i];
-            used.SetText(Degree(_map.Nodes[id].In).ToString());
+            (Label used, TypeCard card) = _listRows[i];
+            used.Node.SetText(Degree(_map.Nodes[id].In).ToString());
             ShowCard(card, id, selected: id == _focus || id == _other);
         }
 
@@ -184,16 +186,16 @@ internal sealed partial class AtlasStage
     private void FillSide(FocusSide side, bool incoming)
     {
         List<(int Id, LinkKind Kind)> rows = incoming ? _inRows : _outRows;
-        UiList view = side.List.Entity.GetComponent<UiList>();
+        UiList view = side.List.Node.Entity.GetComponent<UiList>();
         for (int i = 0; i < view.Shown; i++)
         {
             (int id, LinkKind kind) = rows[view.First + i];
-            (UiNode heading, Card card) = side.Rows[i];
+            (Label heading, TypeCard card) = side.Rows[i];
             UiLayout.SetHidden(heading, id >= 0);
             UiLayout.SetHidden(card.Box, id < 0);
             if (id < 0)
             {
-                heading.SetText(Heading(kind, incoming)).CategoryText(LinkCategory(kind));
+                heading.Node.SetText(Heading(kind, incoming)).CategoryText(LinkCategory(kind));
                 continue;
             }
 
@@ -207,11 +209,11 @@ internal sealed partial class AtlasStage
     private void FillCompare(CompareColumn column)
     {
         List<int> ids = column == _onlyA ? _onlyAIds : column == _shared ? _sharedIds : _onlyBIds;
-        UiList view = column.List.Entity.GetComponent<UiList>();
+        UiList view = column.List.Node.Entity.GetComponent<UiList>();
         for (int i = 0; i < view.Shown; i++)
         {
             int id = ids[view.First + i];
-            Card card = column.Rows[i];
+            TypeCard card = column.Rows[i];
             ShowCard(card, id);
             CodeNode node = _map.Nodes[id];
             if (column.ToA.Count > 0)
@@ -226,7 +228,7 @@ internal sealed partial class AtlasStage
     private void FillSimilar()
     {
         bool picked = _focus >= 0;
-        UiList view = _similarList.Entity.GetComponent<UiList>();
+        UiList view = _similarList.Node.Entity.GetComponent<UiList>();
         for (int i = 0; i < view.Shown; i++)
         {
             int index = view.First + i;
@@ -240,11 +242,11 @@ internal sealed partial class AtlasStage
             row.A.Box.Tooltip($"{_map.Nodes[match.A].FullName}  ·  {Fields(_map.Nodes[match.A])}  ·  {compare}");
             row.B.Box.Tooltip($"{_map.Nodes[match.B].FullName}  ·  {Fields(_map.Nodes[match.B])}  ·  {compare}");
 
-            UiThemeRoles roles = row.Score.Roles;
-            row.Score.SetText($"{match.Score * 100:0}%").TextColor(roles.TextDim.Lerp(roles.Accent, match.Score));
-            row.Breakdown.SetText($"shape {Match.Percent(match.Shape)}  ·  users {Match.Percent(match.Users)}  ·  uses {Match.Percent(match.Uses)}");
+            UiThemeRoles roles = row.Score.Node.Roles;
+            row.Score.Node.SetText($"{match.Score * 100:0}%").TextColor(roles.TextDim.Lerp(roles.Accent, match.Score));
+            row.Breakdown.Node.SetText($"shape {Match.Percent(match.Shape)}  ·  users {Match.Percent(match.Users)}  ·  uses {Match.Percent(match.Uses)}");
             string fields = picked ? Fields(_map.Nodes[match.B]) : $"{Fields(_map.Nodes[match.A])}  |  {Fields(_map.Nodes[match.B])}";
-            row.Fields.SetText(fields);
+            row.Fields.Node.SetText(fields);
         }
 
         Foot(_similarFoot, view);
@@ -253,7 +255,7 @@ internal sealed partial class AtlasStage
     // ---- cards ----------------------------------------------------------------------
 
     /// <summary>Shows type <paramref name="id"/> on a small card, which then presses with it (or with <paramref name="arg"/>).</summary>
-    private void ShowCard(Card card, int id, bool selected = false, int arg = -1)
+    private void ShowCard(TypeCard card, int id, bool selected = false, int arg = -1)
     {
         CodeNode node = _map.Nodes[id];
         int category = KindCategory(node.Kind);
