@@ -58,7 +58,7 @@ internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
             ? _options.Atlas with { Focus = focus, Compare = null, Similar = false }
             : _options.Atlas;
         _pendingFocus = null;
-        return new AtlasStage(context, parent, area, _map.Result, start);
+        return new AtlasStage(context, _map.Result, start);
     }
 
     public bool Ready => _map.IsCompletedSuccessfully;

@@ -95,7 +95,7 @@ internal sealed class CodeMap
     /// </summary>
     public (string Assembly, int Components, int Tags) Heaviest()
     {
-        (string, int, int) heaviest = ("", 0, 0);
+        var heaviest = ("", 0, 0);
         foreach (string assembly in _references.Keys)
         {
             var closure = new HashSet<string>(StringComparer.Ordinal);
