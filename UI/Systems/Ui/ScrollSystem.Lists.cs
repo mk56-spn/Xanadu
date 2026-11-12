@@ -28,16 +28,19 @@ public sealed partial class ScrollSystem
     }
 
     /// <summary>
-    /// Fits every shown list to its viewport. A change is written back through the
-    /// store so its owner hears it: the native ComponentChanged event (Update), at playback.
+    /// Fits every shown list to its viewport. A change is written straight back to
+    /// the store so its owner hears it (the native ComponentChanged event, Update)
+    /// and refills its rows there and then: the loop runs over a copy, not inside a
+    /// query, and an owner's refill restructures the tree, which must not happen
+    /// in the middle of a command buffer's playback.
     /// </summary>
-    private void SettleLists(CommandBuffer buffer)
+    private void SettleLists()
     {
         foreach (Entity list in Lists.ToEntityList())
         {
             UiList view = list.GetComponent<UiList>();
             if (UiLists.Settle(list, ref view))
-                buffer.AddComponent(list.Id, view);
+                list.AddComponent(view);
         }
     }
 }

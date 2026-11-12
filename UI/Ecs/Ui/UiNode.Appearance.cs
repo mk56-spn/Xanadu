@@ -124,7 +124,9 @@ public readonly partial struct UiNode
 
     /// <summary>
     /// Cuts the node's text with an ellipsis to the width layout gives it
-    /// (<see cref="TextFit"/>), for text in a box sized by its container.
+    /// (<see cref="TextFit"/>), for text in a box sized by its container. It asks
+    /// its stack for no width of its own, so long text never widens what holds
+    /// it: grow it, stretch it or give it a width.
     /// </summary>
     public UiNode Fit()
     {
@@ -132,7 +134,9 @@ public readonly partial struct UiNode
             return this;
 
         _entity.AddTag<TextFit>();
-        return Touch(layout: false);
+        ref UiFlex flex = ref Flex;
+        flex.Natural = new Vector2(0, flex.Natural.Y);
+        return Touch(layout: true);
     }
 
     /// <summary>

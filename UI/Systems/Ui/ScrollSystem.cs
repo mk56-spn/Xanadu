@@ -37,7 +37,7 @@ public sealed partial class ScrollSystem(
         CommandBuffer buffer = CommandBuffer;
         foreach (Entity viewport in Query.ToEntityList())
             Place(viewport, buffer);
-        SettleLists(buffer);
+        SettleLists();
     }
 
     /// <summary>Makes <paramref name="entity"/> the wheel's target when the pointer is over it and it is the topmost so far.</summary>
