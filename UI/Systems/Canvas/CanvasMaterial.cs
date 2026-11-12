@@ -45,6 +45,16 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
         new(name, blend) { Source = source, KeepsState = keepsState };
 
     /// <summary>
+    /// A material for a whole effect's text (its own <c>shade</c> entry point, as
+    /// a shipped <c>.slang</c> file has), for one being edited before it is saved.
+    /// </summary>
+    public static CanvasMaterial FromEffect(string name, string source, BlendMode blend = BlendMode.Mix) =>
+        new(name, blend) { Source = source, Whole = true };
+
+    /// <summary>True when <see cref="Source"/> is a whole effect, not an effect body to wrap.</summary>
+    public bool Whole { get; private init; }
+
+    /// <summary>
     /// Whether the code may keep state between frames (an <c>update</c> and its
     /// <c>State</c>). Each material keeps its own, starting zeroed.
     /// </summary>

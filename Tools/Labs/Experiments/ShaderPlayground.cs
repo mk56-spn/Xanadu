@@ -131,7 +131,7 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             if (_material is null)
                 return;
 
-            LabShaderValues.Apply(_material, _wanted, _area, frame.Mouse, frame.Time);
+            LabShaderValues.Apply(_material, _wanted, _area, frame.Mouse);
         }
 
         /// <summary>Starts a compile when the file's write time moves; editors that save by renaming still bump it.</summary>

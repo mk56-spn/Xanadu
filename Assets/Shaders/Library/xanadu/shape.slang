@@ -107,13 +107,19 @@ public struct Placement
     }
 }
 
-public interface IShape
+/// Anything centred, then placed: shapes, gradients, sprites. Each carries a
+/// Placement, and rotate, move, scale and anchor (or their copies rotated,
+/// moved, scaled and anchored) work on all of them alike.
+public interface IPlaced
+{
+    /// Where it sits; rotate, move, scale and anchor change it.
+    public property Placement placement { get; set; }
+}
+
+public interface IShape : IPlaced
 {
     /// Signed distance from p in the shape's own space, before its placement: negative inside.
     public float local(float2 p);
-
-    /// Where it sits; rotate, move, scale and anchor change it.
-    public property Placement placement { get; set; }
 }
 
 // ---- Shapes ----------------------------------------------------------------
@@ -454,17 +460,10 @@ public struct SmoothDifference<A : IShape, B : IShape> : IShape
     public float local(float2 p) { return sdf.meltedMinus(a.distance(p), b.distance(p), blend); }
 }
 
-// ---- What every shape can do ------------------------------------------------
+// ---- What everything placed can do -------------------------------------------
 
-public extension<S : IShape> S
+public extension<P : IPlaced> P
 {
-    /// The signed distance from p to its edge, placed: negative inside, positive outside.
-    public float distance(float2 position)
-    {
-        Placement at = placement;
-        return local(at.toLocal(position)) * at.scale;
-    }
-
     /// Turns it by `angle` radians round its centre, clockwise (y down).
     [mutating] public void rotate(float angle) { placement.angle += angle; }
 
@@ -478,16 +477,28 @@ public extension<S : IShape> S
     [mutating] public void anchor(float2 place) { placement.offset += place * shading.canvas.size; }
 
     /// A copy turned by `angle` radians round its centre, clockwise (y down).
-    public S rotated(float angle) { S r = this; r.rotate(angle); return r; }
+    public P rotated(float angle) { P r = this; r.rotate(angle); return r; }
 
     /// A copy moved by `offset`.
-    public S moved(float2 offset) { S r = this; r.move(offset); return r; }
+    public P moved(float2 offset) { P r = this; r.move(offset); return r; }
 
     /// A copy `factor` times bigger round its centre.
-    public S scaled(float factor) { S r = this; r.scale(factor); return r; }
+    public P scaled(float factor) { P r = this; r.scale(factor); return r; }
 
     /// A copy moved by a point of the quad: anchor.topLeft, anchor.right, … or any fraction of its size from the centre.
-    public S anchored(float2 place) { S r = this; r.anchor(place); return r; }
+    public P anchored(float2 place) { P r = this; r.anchor(place); return r; }
+}
+
+// ---- What every shape can do ------------------------------------------------
+
+public extension<S : IShape> S
+{
+    /// The signed distance from p to its edge, placed: negative inside, positive outside.
+    public float distance(float2 position)
+    {
+        Placement at = placement;
+        return local(at.toLocal(position)) * at.scale;
+    }
 
     /// `count` copies in a circle, each `radius` out from the centre.
     public Repeated<S> repeated(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }

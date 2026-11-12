@@ -6,7 +6,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>What the editor's surroundings show this frame.</summary>
 internal readonly record struct EditorState(

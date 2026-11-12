@@ -181,14 +181,22 @@ public static class SlangShaders
         return next;
     }
 
-    private static CompiledShader CompileWrapped(string code, string entry, string stage, int samplerSpace, int uniformSpace)
+    /// <summary>
+    /// Compiles a whole shipped effect from its text, as it would compile from
+    /// its file (entry <c>shade</c>), for editing one before it is saved.
+    /// Slang's errors name <paramref name="name"/> and the file's own lines.
+    /// </summary>
+    public static CompiledShader CompileWholeEffect(string name, string source) =>
+        CompileWrapped($"#line 1 \"{name.Replace("\"", "'")}\"\n{source}", "shade", "fragment", 2, 3, bindGlobals: false);
+
+    private static CompiledShader CompileWrapped(string code, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals = true)
     {
         Directory.CreateDirectory(ReflectionFolder);
         string file = Path.Combine(ReflectionFolder, Guid.NewGuid().ToString("N") + ".slang");
         File.WriteAllText(file, code);
         try
         {
-            return CompileReflected(file, entry, stage, samplerSpace, uniformSpace, bindGlobals: true);
+            return CompileReflected(file, entry, stage, samplerSpace, uniformSpace, bindGlobals);
         }
         finally
         {
@@ -256,6 +264,7 @@ public static class SlangShaders
             [numthreads(1, 1, 1)]
             void xanaduUpdate()
             {
+                time = xanaduUpdateFrame.time;
                 effect0::State s = xanaduStateOut[0];
                 effect0::update(s, xanaduUpdateFrame.dt);
                 xanaduStateOut[0] = s;

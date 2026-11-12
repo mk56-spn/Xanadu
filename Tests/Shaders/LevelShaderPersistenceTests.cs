@@ -94,7 +94,7 @@ public sealed class LevelShaderPersistenceTests
     {
         var level = new LevelDocument { PlayerShader = 2, FieldShader = 3 };
         level.Shaders.Add(new ShaderDocument { Slot = 1, Source = Glow });
-        level.Shaders.Add(new ShaderDocument { Slot = 2, Source = "shader_type spatial;\nvoid fragment() {}" });
+        level.Shaders.Add(new ShaderDocument { Slot = 2, Source = "void fragment() {}" });
         level.Shaders.Add(new ShaderDocument { Slot = 1, Source = Glow, Name = "duplicate" });
         level.Shaders.Add(new ShaderDocument { Slot = 11, Source = Glow });
         level.Shaders.Add(new ShaderDocument { Slot = 4, Source = "" });
@@ -174,8 +174,7 @@ public sealed class LevelShaderPersistenceTests
     [TestCase("float4 shade(ItemInput i) { return i.colour; }", true)]
     [TestCase("// my glow\n/* block */\nuniform float speed;\nfloat4 shade( ItemInput i ) { return i.colour * speed; }", true)]
     [TestCase("import xanadu.colour;\nfloat4  shade(ItemInput input) { return input.colour; }", true)]
-    [TestCase("shader_type canvas_item;\nvoid fragment(){}", false)]
-    [TestCase("shader_type canvas_item;\nfloat4 shade(ItemInput i) { return i.colour; }", false)]
+    [TestCase("void fragment(){}", false)]
     [TestCase("float4 shade(Canvas canvas) { return float4(canvas.centred, 0, 1); }", true)]
     [TestCase("float4 shade(ItemInput i, Canvas c) { return i.colour; }", true)]
     [TestCase("float4 shade(Canvas canvas, ItemInput i) { return i.colour; }", true)]

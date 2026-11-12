@@ -68,12 +68,14 @@ internal sealed class CanvasPipelines : IDisposable
             return Effect(material?.Shader ?? "");
 
         // Keyed by the code, not the name: two slots may share a name, and an edit makes a new effect.
-        string key = (material.KeepsState ? "state:" : "source:") + source;
+        string key = SourceKey(material, source);
         if (!_effects.TryGetValue(key, out CanvasEffect? effect))
         {
             try
             {
-                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
+                effect = Make(material.Whole
+                    ? SlangShaders.CompileWholeEffect(material.Shader, source)
+                    : SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
             }
             catch (Exception exception)
             {
@@ -85,6 +87,9 @@ internal sealed class CanvasPipelines : IDisposable
 
         return effect ?? _plain;
     }
+
+    private static string SourceKey(Xanadu.Systems.Canvas.CanvasMaterial material, string source) =>
+        (material.Whole ? "whole:" : material.KeepsState ? "state:" : "source:") + source;
 
     /// <summary>The effect at a <c>res://</c> path (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
     public CanvasEffect Effect(string path)
@@ -151,8 +156,26 @@ internal sealed class CanvasPipelines : IDisposable
     public void Forget(Xanadu.Systems.Canvas.CanvasMaterial material)
     {
         Forgotten?.Invoke(material);
-        if (material.Source is not { } source ||
-            !_effects.Remove((material.KeepsState ? "state:" : "source:") + source, out CanvasEffect? effect) || effect is null)
+        if (material.Source is not { } source || !_effects.Remove(SourceKey(material, source), out CanvasEffect? effect))
+            return;
+
+        Drop(effect);
+    }
+
+    /// <summary>
+    /// Drops a shipped effect so its next draw compiles it again from its file,
+    /// for one just saved over (the shader tool's thumbnails).
+    /// </summary>
+    public void Reload(string path)
+    {
+        if (_effects.Remove(path, out CanvasEffect? effect))
+            Drop(effect);
+    }
+
+    /// <summary>Frees an effect and every pipeline made with it.</summary>
+    private void Drop(CanvasEffect? effect)
+    {
+        if (effect is null)
             return;
 
         foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom) key, GraphicsPipeline pipeline) in _pipelines.ToArray())

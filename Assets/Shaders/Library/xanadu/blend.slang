@@ -9,8 +9,8 @@
 //     c.paint(glow, colours.gold, blend.screen.behind);
 //
 // The colour formulas on their own (float3 under, float3 over) are under
-// `blend.colours.`. For the hardware modes (mix, add, multiply, …) pick the
-// item's blend instead.
+// `blend.colours.`. To add a whole item's light to what is behind it, pick the
+// item's blend instead; blend.add adds paint within one effect.
 module blend;
 
 public namespace blend
@@ -30,6 +30,7 @@ public namespace blend
         Exclusion,
         Dodge,
         Burn,
+        Add,
     }
 
     /// What painting does to the alpha.
@@ -89,6 +90,8 @@ public namespace blend
     public static const Blend dodge = Blend(Mode.Dodge);
     /// Darkens the colour underneath by the paint (colour burn).
     public static const Blend burn = Blend(Mode.Burn);
+    /// Adds the paint's light to the colour underneath, as glows and flares do (W3C's plus-lighter).
+    public static const Blend add = Blend(Mode.Add);
 
     /// Normal, laid behind: the paint shows only where the picture is see-through.
     public static const Blend behind = Blend(Mode.Normal, Alpha.Behind);
@@ -110,6 +113,7 @@ public namespace blend
         public float3 exclusion(float3 under, float3 over) { return under + over - 2.0 * under * over; }
         public float3 dodge(float3 under, float3 over) { return saturate(under / max(1.0 - over, 1e-5)); }
         public float3 burn(float3 under, float3 over) { return 1.0 - saturate((1.0 - under) / max(over, 1e-5)); }
+        public float3 add(float3 under, float3 over) { return min(under + over, 1.0); }
 
         /// One mode chosen at run time.
         public float3 by(Mode mode, float3 under, float3 over)
@@ -127,6 +131,7 @@ public namespace blend
             case Mode.Exclusion: return exclusion(under, over);
             case Mode.Dodge: return dodge(under, over);
             case Mode.Burn: return burn(under, over);
+            case Mode.Add: return add(under, over);
             }
             return over;
         }

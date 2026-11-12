@@ -227,6 +227,7 @@ public sealed partial class SlangCompletions
         var completions = new SlangCompletions();
         foreach (string source in sources)
             completions.Read(source, constants);
+        completions.InheritInterfaces();
         foreach ((string name, string type, string? doc) in provided ?? [])
             completions._provided.Add(new Completion(name, CompletionKind.Variable, type + " · provided", Doc: doc));
         foreach (List<Completion> members in completions._scopes.Values)
@@ -747,6 +748,29 @@ public sealed partial class SlangCompletions
         return members;
     }
 
+    /// <summary>
+    /// Gives every type its interfaces' interfaces too (IShape is an IPlaced, so a
+    /// Circle shares IPlaced's rotated and moved), once every source is read.
+    /// </summary>
+    private void InheritInterfaces()
+    {
+        foreach (string type in _interfaces.Keys.ToList())
+        {
+            var all = new List<string>();
+            var pending = new Queue<string>(_interfaces[type]);
+            while (pending.TryDequeue(out string? face))
+            {
+                if (all.Contains(face))
+                    continue;
+                all.Add(face);
+                foreach (string inherited in _interfaces.TryGetValue(face, out var bases) ? bases : [])
+                    pending.Enqueue(inherited);
+            }
+
+            _interfaces[type] = all;
+        }
+    }
+
     private void Read(string original, ShaderConstants constants)
     {
         // Comments become spaces, so every place in the code is the same in both and docs are found above a match.
@@ -760,7 +784,7 @@ public sealed partial class SlangCompletions
             string name = match.Groups[2].Value;
             string kind = match.Groups[1].Value;
             spans.Add((match.Index + match.Length, end, name, kind));
-            if (kind == "struct" && match.Groups[3].Success)
+            if (kind is "struct" or "interface" && match.Groups[3].Success)
                 _interfaces[name] = match.Groups[3].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
         }
 

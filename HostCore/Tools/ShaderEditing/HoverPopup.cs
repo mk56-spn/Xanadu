@@ -7,7 +7,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
 /// What a name is, in a box under it, once the pointer has rested on it a

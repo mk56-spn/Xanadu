@@ -10,5 +10,5 @@ float4 shade(ItemVaryings v) : SV_Target
 {
     ItemInput i = input(v);
     float4 texel = sampleItem(i.uv);
-    return float4(texel.rgb * colours.hue(frac(i.time * params.speed)).rgb, texel.a);
+    return float4(texel.rgb * colours.hue(frac(time * params.speed)).rgb, texel.a);
 }

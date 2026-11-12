@@ -16,12 +16,11 @@ namespace Xanadu.Labs.Experiments;
 internal static partial class LabShaderValues
 {
     /// <summary>What the values are made from this frame.</summary>
-    public readonly record struct Provided(Vector2 Mouse, float Time, Vector2 MouseUv, Vector2 Resolution);
+    public readonly record struct Provided(Vector2 Mouse, Vector2 MouseUv, Vector2 Resolution);
 
     public static readonly (string Name, string Type, Func<Provided, Vector4> Value)[] All =
     [
         ("mouse", "float2", p => new Vector4(p.Mouse.X, p.Mouse.Y, 0, 0)),
-        ("time", "float", p => new Vector4(p.Time, 0, 0, 0)),
         ("mouseUv", "float2", p => new Vector4(p.MouseUv.X, p.MouseUv.Y, 0, 0)),
         ("resolution", "float2", p => new Vector4(p.Resolution.X, p.Resolution.Y, 0, 0)),
     ];
@@ -29,9 +28,8 @@ internal static partial class LabShaderValues
     /// <summary>The lines a panel shows to say which values exist.</summary>
     public static readonly string[] Notes =
     [
-        "Use any of these and the lab fills it every frame:",
+        "Use any of these and the lab fills it every frame (time is always there):",
         "  mouse: the pointer, pixels from the stage's centre (like canvas.centred)",
-        "  time: seconds since the lab started",
         "  mouseUv: the pointer, 0..1 on the stage",
         "  resolution: the stage's size in pixels",
     ];
@@ -70,16 +68,16 @@ internal static partial class LabShaderValues
         Enumerable.Range(0, All.Length).Where(index => Array.IndexOf(declared, All[index].Name) >= 0).ToArray();
 
     /// <summary>Sets the wanted values on a material for a stage drawn in <paramref name="area"/>.</summary>
-    public static void Apply(CanvasMaterial material, int[] wanted, Rect2 area, Vector2 pointer, float time)
+    public static void Apply(CanvasMaterial material, int[] wanted, Rect2 area, Vector2 pointer)
     {
         Vector2 uv = (pointer - area.Position) / area.Size;
         uv = new Vector2(Mathf.Clamp(uv.X, 0, 1), Mathf.Clamp(uv.Y, 0, 1));
-        var provided = new Provided((uv - new Vector2(0.5f, 0.5f)) * area.Size, time, uv, area.Size);
+        var provided = new Provided((uv - new Vector2(0.5f, 0.5f)) * area.Size, uv, area.Size);
         foreach (int index in wanted)
             material.Set(All[index].Name, All[index].Value(provided));
     }
 
-    /// <summary>" · lab sets mouse, time", or empty.</summary>
+    /// <summary>" · lab sets mouse, resolution", or empty.</summary>
     public static string Describe(int[] wanted) =>
         wanted.Length == 0 ? "" : " · lab sets " + string.Join(", ", wanted.Select(index => All[index].Name));
 }

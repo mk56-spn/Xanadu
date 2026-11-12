@@ -7,7 +7,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
 /// The completion list under the caret. It opens when typing leaves the caret

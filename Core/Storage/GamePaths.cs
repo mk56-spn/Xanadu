@@ -37,7 +37,7 @@ public static class GamePaths
     /// <summary>Whether <paramref name="folder"/> is the game folder.</summary>
     public static bool IsGameFolder(string folder) => File.Exists(Path.Combine(folder, RootMarker));
 
-    /// <summary>Use these folders instead of asking Godot.</summary>
+    /// <summary>Sets the folders <c>res://</c> and <c>user://</c> resolve to.</summary>
     public static void UseRoots(string res, string user) => _roots = (res, user);
 
     /// <summary>The folder Godot keeps <c>user://</c> in for this game, on Linux.</summary>

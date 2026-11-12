@@ -8,7 +8,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
 /// A slider for every value the shader declares (one per channel), except the

@@ -120,6 +120,22 @@ public sealed class SlangShadersTests
     }
 
     [Test]
+    public void TimeReachesEveryFunctionWithoutBeingPassed()
+    {
+        const string body = """
+            import xanadu;
+            struct State { float last; };
+            float pulse() { return 0.5 + 0.5 * sin(time * 2); }
+            void update(inout State s, float dt) { s.last = time; }
+            float4 shade() { return colours.gold * pulse() + state.last * 0; }
+            """;
+
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test", body, keepsState: true);
+
+        Assert.That(compiled.Update, Is.Not.Null);
+    }
+
+    [Test]
     public void AnUpdateInACommentDoesNotKeepState()
     {
         Assert.That(SlangShaders.KeepsState("// void update(inout State s, float dt)\nfloat4 shade() { return 1; }"), Is.False);

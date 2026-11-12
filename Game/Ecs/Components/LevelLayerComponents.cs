@@ -13,10 +13,10 @@ public enum LayerPassKind : byte
 {
     None,
 
-    /// <summary>Reads the whole screen drawn so far, like a Godot CanvasLayer with a screen texture.</summary>
+    /// <summary>Reads the whole screen drawn so far.</summary>
     BackgroundReader,
 
-    /// <summary>Reads only the layer's own content, drawn into its own SubViewport.</summary>
+    /// <summary>Reads only the layer's own content, drawn into its own offscreen target.</summary>
     SelfContained,
 }
 

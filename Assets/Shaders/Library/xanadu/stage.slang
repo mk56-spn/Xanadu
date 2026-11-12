@@ -124,7 +124,7 @@ public struct ItemInput
     public float2 screenUv;
     /// The pixel's position on the target, in pixels.
     public float2 pixel;
-    /// Seconds since the game started: Godot's TIME.
+    /// Seconds since the game started; the global `time` is the same, and reaches everywhere.
     public float time;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
     public Canvas canvas;
@@ -162,6 +162,11 @@ public Canvas canvasOf(ItemVaryings v)
 /// (`circle.filled()` is `circle.filled(canvas.centred)`).
 public static ItemInput shading = {};
 
+/// Seconds since the game started, the same clock as frame.time, for any
+/// shader and any function it calls: no need to pass it down. Set before
+/// `shade` runs, and before `update` for kept state.
+public static float time = 0.0;
+
 public ItemInput input(ItemVaryings v)
 {
     ItemInput i;
@@ -172,6 +177,7 @@ public ItemInput input(ItemVaryings v)
     i.pixel = v.position.xy;
     i.screenUv = v.position.xy / frame.screen;
     i.time = frame.time;
+    time = frame.time;
     i.canvas = canvasOf(v);
     shading = i;
     return i;

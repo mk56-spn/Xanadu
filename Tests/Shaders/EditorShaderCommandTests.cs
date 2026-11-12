@@ -47,7 +47,7 @@ public sealed class EditorShaderCommandTests : EcsSystemTest
     [Test]
     public void ImportRefusesShadersALevelMayNotCarry()
     {
-        _commands.Enqueue(EditorCommand.ImportShader(1, "Spatial", "shader_type spatial;"));
+        _commands.Enqueue(EditorCommand.ImportShader(1, "No shade", "void fragment() {}"));
         _commands.Enqueue(EditorCommand.ImportShader(11, "Out of range", Source));
         _commands.Enqueue(EditorCommand.ImportShader(0, "Slot zero", Source));
         Frame();

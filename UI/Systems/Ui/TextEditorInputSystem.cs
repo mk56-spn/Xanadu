@@ -11,8 +11,8 @@ namespace Xanadu.Systems.Ui;
 /// <summary>
 /// Edits the focused <see cref="TextEditor"/>: typing, the caret keys (repeating
 /// when held), Shift to select, Ctrl+A/C/X/V, Ctrl+Z/Y (and Ctrl+Shift+Z) for
-/// undo, Enter keeping the indent, Tab to the next indent step; Esc and F2 go
-/// only to the owner. The pointer works
+/// undo, Enter keeping the indent, Tab to the next indent step; Esc, F2 and
+/// Ctrl+S go only to the owner. The pointer works
 /// on every editor: a press focuses the one it lands in (and unfocuses the rest),
 /// a click places the caret, a double click selects a word, a drag selects, and
 /// the wheel scrolls. The owner's <see cref="ITextEditorHost"/> sees keys, typing
@@ -36,7 +36,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
 
     private static readonly Key[] Watched =
     [
-        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.A, Key.C, Key.V, Key.X, Key.Y, Key.Z,
+        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z,
     ];
 
     /// <summary>Keys the editor itself does nothing with, passed to its owner once per press.</summary>
@@ -229,6 +229,10 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             buffer.Insert(clip);
             breaksRun = true;
         }
+
+        // Saving is the owner's: the editor only holds text.
+        if (ctrl && _pressed.Contains(Key.S))
+            breaksRun |= host?.TakeKey(buffer, Key.S, shift, ctrl) == true;
 
         // Keys only an owner has a use for (F2: rename in a code editor).
         foreach (Key key in OwnersOnly)

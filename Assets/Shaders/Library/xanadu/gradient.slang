@@ -10,15 +10,12 @@ import xanadu.math;
 import xanadu.stage;
 import xanadu.shape;
 
-/// A gradient: how far along it a point is, in its own space. Placed with the
-/// same Placement as a shape, so move, rotate, scale and anchor work on it.
-public interface IGradient
+/// A gradient: how far along it a point is, in its own space. Placed like a
+/// shape (IPlaced), so move, rotate, scale and anchor work on it.
+public interface IGradient : IPlaced
 {
     /// How far along a point in the gradient's own space is: 0 at its start, 1 at its end, unclamped.
     public float local(float2 p);
-
-    /// Where it sits; rotate, move, scale and anchor change it.
-    public property Placement placement { get; set; }
 }
 
 /// From left (0) to right (1) across `length` pixels, centred on the quad.
@@ -70,30 +67,6 @@ public extension<G : IGradient> G
 
     /// `from` at its start fading to `to` at its end, at the pixel being shaded.
     public float4 coloured(float4 from, float4 to) { return coloured(shading.canvas.centred, from, to); }
-
-    /// Turns it by `angle` radians round its centre, clockwise (y down).
-    [mutating] public void rotate(float angle) { placement.angle += angle; }
-
-    /// Moves it by `offset`.
-    [mutating] public void move(float2 offset) { placement.offset += offset; }
-
-    /// Makes it `factor` times bigger round its centre.
-    [mutating] public void scale(float factor) { placement.scale *= factor; }
-
-    /// Moves it by a point of the quad: anchor.topLeft, anchor.right, … or any fraction of its size from the centre.
-    [mutating] public void anchor(float2 place) { placement.offset += place * shading.canvas.size; }
-
-    /// A copy turned by `angle` radians round its centre, clockwise (y down).
-    public G rotated(float angle) { G r = this; r.rotate(angle); return r; }
-
-    /// A copy moved by `offset`.
-    public G moved(float2 offset) { G r = this; r.move(offset); return r; }
-
-    /// A copy `factor` times bigger round its centre.
-    public G scaled(float factor) { G r = this; r.scale(factor); return r; }
-
-    /// A copy moved by a point of the quad.
-    public G anchored(float2 place) { G r = this; r.anchor(place); return r; }
 }
 
 public namespace gradient

@@ -7,7 +7,7 @@ using Xanadu.Theme;
 using Xanadu.Ui.Editing;
 using Xanadu.Slang;
 
-namespace Xanadu.Labs.Editor;
+namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
 /// What turns the UI's plain <see cref="TextEditor"/> into the Slang editor:
@@ -56,6 +56,9 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
     private static readonly Dictionary<char, char> Pairs = new() { ['('] = ')', ['['] = ']', ['{'] = '}' };
 
     private static readonly HashSet<char> Closers = [')', ']', '}'];
+
+    /// <summary>Ctrl+S in the code; null leaves the key to nobody.</summary>
+    public Action? Save { get; init; }
 
     /// <summary>A rename under way: the name as it was, as it is now, and its places (the caret's one first).</summary>
     private sealed class Renaming(string original, List<(int Line, int Column)> places)
@@ -151,6 +154,12 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
 
     public bool TakeKey(TextBuffer buffer, Key key, bool shift, bool ctrl)
     {
+        if (key == Key.S && ctrl)
+        {
+            Save?.Invoke();
+            return Save is not null;
+        }
+
         if (key == Key.F2)
         {
             StartRename(buffer);

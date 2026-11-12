@@ -7,19 +7,20 @@
 #   ./run.sh editor [args]        -> the game, straight into the level editor
 #   ./run.sh labs [args]          -> shader playground, editor and experiments (--tab=<n>, --shader=<file> …)
 #   ./run.sh animator [args]      -> the animator (--clip=name@seconds …)
+#   ./run.sh shaders [args]       -> the shader tool: shipped effects, edited beside their preview (--open=<name> …)
 #   ./run.sh showcase [args]      -> the UI showcase
 #   ./run.sh visual-tests [args]  -> the visual test browser (--visual-test=<slug> --visual-test-exit …)
 #   ./run.sh devtools [args]      -> Atlas and Autopsy, one tab each; builds the projects Atlas reads first, then refreshes ~/.cache/xanadu/atlas.txt (the map as greppable text)
 #   ./run.sh devtools atlas [args]    -> opens on ATLAS, a chart of what types touch what
 #                                        (--focus=<type>, --compare=A,B, --sort=used, --dump=<type>)
 #   ./run.sh devtools autopsy [args]  -> opens on AUTOPSY, each exe's last launch (--methods, --dump[=app])
-#   ./run.sh devtools autopsy game|editor|labs|animator [args]
+#   ./run.sh devtools autopsy game|editor|labs|animator|shaders [args]
 #                                 -> runs that target with the CPU sampler on, then opens
 #                                    AUTOPSY on METHODS once it closes
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-targets=(game editor labs animator showcase visual-tests devtools)
+targets=(game editor labs animator shaders showcase visual-tests devtools)
 
 # Started without a terminal (a double click in the file manager): the menu would
 # have nowhere to ask, so open one and run there.
@@ -46,10 +47,11 @@ run() {
         editor) dotnet run --project "$root/Game/Host" -- --editor "$@" ;;
         labs) dotnet run --project "$root/Tools/Labs" -- "$@" ;;
         animator) dotnet run --project "$root/Tools/Animator" -- "$@" ;;
+        shaders) dotnet run --project "$root/Tools/Shaders" -- "$@" ;;
         showcase) dotnet run --project "$root/UI/Showcase" -- "$@" ;;
         visual-tests) dotnet run --project "$root/Tests/VisualTests" -- "$@" ;;
         devtools)
-            if [[ $# -gt 1 && "$1" == autopsy && " game editor labs animator " == *" $2 "* ]]; then
+            if [[ $# -gt 1 && "$1" == autopsy && " game editor labs animator shaders " == *" $2 "* ]]; then
                 local profiled="$2"
                 shift 2
                 # The exe's own exit code doesn't stop the autopsy: a crash is worth looking at too.
@@ -58,7 +60,7 @@ run() {
                 return
             fi
             # Atlas reads its chart from the builds; a project that fails to build shows its last good one.
-            local projects=(Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/DevTools UI/Showcase)
+            local projects=(Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/Shaders Tools/DevTools UI/Showcase)
             local i=0 started=$SECONDS
             for project in "${projects[@]}"; do
                 i=$((i + 1))

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Xanadu.Ecs;
 using Xanadu.Host.Rendering;
-using Xanadu.Labs.Editor;
+using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Systems.Canvas;
 using Mw = MoonWorks.Graphics;
 using Xanadu.Slang;
@@ -145,7 +145,6 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
             import xanadu;
             {{imports}}
             struct XanaduSpawnFrame { float time; float dt; float2 resolution; float2 mouse; float2 pad; };
-            static float time;
             static float dt;
             static float2 resolution;
             static float2 mouse;

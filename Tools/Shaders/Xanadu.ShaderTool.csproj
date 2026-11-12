@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The shader tool: every shipped effect under Assets/Shaders in a list with a
+    live thumbnail, the picked one in the shared Slang editor
+    (HostCore/Tools/ShaderEditing) beside its preview. Edits stay in memory
+    until saved. A plain exe on HostCore, laid out with containers.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Xanadu.ShaderTool</AssemblyName>
+    <RootNamespace>Xanadu.Tools.Shaders</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <Import Project="../../Core/Maths/Maths.props" />
+</Project>

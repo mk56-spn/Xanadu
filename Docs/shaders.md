@@ -108,7 +108,7 @@ float4 shade(Canvas canvas)
 | `i.local` | The pixel in the item's own space. |
 | `i.pixel` | The pixel on the target, in pixels. |
 | `i.screenUv` | The pixel on the target, 0..1 (for `sampleScreen`). |
-| `i.time` | Seconds since the game started. |
+| `i.time` | Seconds since the game started (the same as `time`). |
 
 The host also keeps the pixel being shaded in `shading` (an `ItemInput`). That
 is how shapes draw without being given a point.
@@ -116,13 +116,13 @@ is how shapes draw without being given a point.
 **Values the lab provides.** In the playground and editor, using one of these
 names declares it for you and the lab fills it every frame:
 
-- `time`: seconds since the lab started
 - `mouse`: the pointer, in pixels from the centre like `canvas.centred`,
   so `s.move(mouse)` puts a shape under it
 - `mouseUv`: the pointer, 0..1 on the stage
 - `resolution`: the stage's size in pixels
 
-In a level, use `i.time`.
+**`time`** (seconds since the game started) is global in every shader, lab,
+level or shipped, and in any function it calls: no need to declare it or pass it down.
 
 ## 3. Colours
 
@@ -185,6 +185,7 @@ struct Ellipse : IShape
 
 Every shape carries its placement: an offset, a turn and a scale, **each round
 the shape's own centre**, so the order you apply them in doesn't matter.
+Gradients and sprites are placed the same way (all three are `IPlaced`).
 
 | Changes the shape | Returns a changed copy | Does |
 |---|---|---|
@@ -326,7 +327,8 @@ return c;
   gradient).
 - **Blends** are presets under `blend.`: `normal` (the default), `multiply`,
   `screen`, `darken`, `lighten`, `overlay`, `hardLight`, `softLight`,
-  `difference`, `exclusion`, `dodge` and `burn`. Each mixes the colours the
+  `difference`, `exclusion`, `dodge`, `burn` and `add` (light added, for
+  glows). Each mixes the colours the
   standard way (W3C compositing, Photoshop's formulas) and lays the paint on
   top by its alpha, so painting never makes anything more see-through. Where
   the picture is see-through there is nothing to blend with, so the paint
@@ -432,6 +434,20 @@ Slang's own functions are all there too: `sin`, `cos`, `atan2`, `lerp`,
 float2 push = normalize(canvas.centred) * sin(length(canvas.centred) / 20 - time * 6) * 8;
 return sampleScreen(i.screenUv + push / frame.screen);
 ```
+
+- **`Sprite`** (`xanadu.sprite`) is a picture as a value, drawn like a shape:
+  one cell of a strip (equal pictures side by side in a texture of your own;
+  a lone picture is a strip of one), `size` across, centred, then placed.
+  `filled()` is how much of its ink covers the pixel, `haloed(reach)` a soft
+  glow round that ink, `sampled()` its own colours; outside its box it is
+  see-through, so neighbouring cells never bleed in. `note_background.slang`
+  draws its notes this way:
+
+  ```slang
+  let note = Sprite(notes, 4, glyph, float2(size)).rotated(tilt).moved(offset);
+  c.paint(note.haloed(cell.local, 0.09 * size), colours.gold, blend.add);
+  c.paint(note.filled(cell.local), colours.white);
+  ```
 
 ## 13. Keeping state between frames
 

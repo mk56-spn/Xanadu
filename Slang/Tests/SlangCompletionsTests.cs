@@ -131,6 +131,13 @@ public sealed class SlangCompletionsTests
     }
 
     [Test]
+    public void GradientsAndSpritesArePlacedLikeShapes()
+    {
+        Assert.That(Names("float4 shade()\n{\n    let g = Linear(400);\n    g."), Is.SupersetOf(new[] { "coloured", "moved", "rotated" }));
+        Assert.That(Names("float4 shade()\n{\n    let n = Sprite(notes, 4, 0, float2(40));\n    n."), Is.SupersetOf(new[] { "filled", "haloed", "moved", "rotated" }));
+    }
+
+    [Test]
     public void ProvidedValuesComeUpWhileTyping()
     {
         Assert.That(Names("float4 shade()\n{\n    float t = ti"), Does.Contain("time"));

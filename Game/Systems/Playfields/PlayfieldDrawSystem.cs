@@ -16,7 +16,7 @@ public sealed class PlayfieldDrawSystem :
     private readonly ShaderRoutingCanvas _canvas;
     /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
 
-    /// <summary>The engine-free shader items, when this draws on a host other than Godot.</summary>
+    /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
     private readonly ServerShaderCanvasItems? _serverItems;
     private readonly Handle _playfield;
     private readonly IPassSurfaces? _passes;

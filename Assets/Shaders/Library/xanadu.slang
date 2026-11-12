@@ -4,7 +4,7 @@
 // the shapes (Circle, Box, …; shape; Grid, Checker, …; pattern), the
 // gradients (Linear, Radial, Conical; gradient), Bezier (curve), colour and its paint
 // (colour, paint). Everything else is under its own name: colours., sdf.,
-// anchor., ease., blend., gradient., pattern.
+// anchor., ease., blend., gradient., pattern., sprite.
 module xanadu;
 
 __exported import xanadu.stage;
@@ -17,3 +17,4 @@ __exported import xanadu.pattern;
 __exported import xanadu.gradient;
 __exported import xanadu.curve;
 __exported import xanadu.paint;
+__exported import xanadu.sprite;

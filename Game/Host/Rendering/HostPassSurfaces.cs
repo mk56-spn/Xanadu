@@ -9,8 +9,7 @@ namespace Xanadu.Host.Rendering;
 /// Self-contained layers' surfaces in the host (Docs/render-architecture.md
 /// §5.4, Docs/host.md §5.3): a parentless canvas item drawn into a
 /// frame-sized texture before the frame, made when a layer's pass turns on and
-/// freed when it turns off. The texture is premultiplied, as Godot's
-/// SubViewport's was.
+/// freed when it turns off. The texture is premultiplied.
 /// </summary>
 internal sealed class HostPassSurfaces(CanvasTree tree, CanvasRenderer renderer) : IPassSurfaces, IDisposable
 {
