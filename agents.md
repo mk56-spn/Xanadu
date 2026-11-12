@@ -87,6 +87,10 @@ The keys themselves live in one place, `DebugKeys`; see its comment for the band
   screen-size parameter. The stage is 1920x1080 and the host scales it.
 - **Stop hard coding UI by not using containers, unless you have a really good
   reason. IMPORTANT**
+- If the UI library is missing a feature you need (a control, a container
+  behaviour, a scroll list, a tooltip…), ask me for permission to add it to the
+  library. Do not hard code around the gap with hand-placed rects, raw canvas
+  draws or your own pointer reading.
 
 ### Layers
 
@@ -172,3 +176,5 @@ git-ignored ones.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
 - `Docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
   migration settled on, and its open questions. This is the house style.
+- `Docs/ui-best-practices.md` — the current house style on one worked example
+  (tool tab, pooled list, connectors, `Fit`, commands); Atlas is the full-size one.
