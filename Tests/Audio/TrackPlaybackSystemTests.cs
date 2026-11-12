@@ -78,7 +78,7 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     private Entity AddTrack(long durationMs, int speedPercent = 100) =>
         Store.CreateEntity(
             new TrackProgress(
-                "res://test-track.wav",
+                "test-track.wav",
                 durationMs,
                 bpm: 128,
                 speedPercent: speedPercent));

@@ -34,7 +34,7 @@ internal sealed class HostGame : HostApp
         new HostWindowOptions(options.WindowWidth, options.WindowHeight, options.ShotPath, options.ShotFrame))
     {
         _options = options;
-        SongStore.Shared = new SongStore(catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
+        SongStore.Shared = new SongStore(catalogPath: GamePaths.Full(SongStore.CatalogFile));
 
         var director = new SceneDirector();
         director.Changed += OnSceneChanged;
@@ -156,7 +156,7 @@ internal sealed class HostGame : HostApp
 
     protected override string ScreenshotName()
     {
-        string folder = GamePaths.Globalize("user://screenshots");
+        string folder = GamePaths.Full("user://screenshots");
         return Xanadu.Misc.ScreenshotNaming.Create("Xanadu", DateTime.Now, candidate => File.Exists(Path.Combine(folder, candidate)));
     }
 

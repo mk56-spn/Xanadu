@@ -41,7 +41,7 @@ public sealed unsafe class MiniaudioAnimatorClick : IAnimatorClick, IDisposable
 
         try
         {
-            string folder = GamePaths.Globalize("user://animator");
+            string folder = GamePaths.Full("user://animator");
             Directory.CreateDirectory(folder);
             _accent = WriteTick(Path.Combine(folder, "click_accent.wav"), 1760f, 0.5f);
             _beat = WriteTick(Path.Combine(folder, "click_beat.wav"), 1100f, 0.25f);

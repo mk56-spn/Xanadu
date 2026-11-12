@@ -76,7 +76,7 @@ public sealed class ShaderChainsTests
     [Test]
     public void TheShippedLibraryPairsItsPlacementAndPaint()
     {
-        string folder = GamePaths.Globalize("res://Assets/Shaders/Library");
+        string folder = GamePaths.Full("Assets/Shaders/Library");
         ShaderChains chains = ShaderChains.FromSources(Directory.EnumerateFiles(folder, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText));
 
         Assert.That(chains.Twins.Keys, Is.SupersetOf(new[] { "move", "rotate", "scale", "anchor", "paint" }));

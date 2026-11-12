@@ -59,7 +59,7 @@ neither the compositor nor the window to be visible or focused.
 Each capture happens once, after 60 frames or as soon as a longer test
 finishes, then the process exits 0 (or 1 if
 the PNG could not be written). Tests write levels, songs and profiles into
-their own user folder (`Xanadu Visual Tests`), never the game's.
+their own user folder (`~/.local/share/xanadu-visual-tests`), never the game's.
 
 ## The step model
 

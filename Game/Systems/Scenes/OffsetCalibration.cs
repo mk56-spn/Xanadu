@@ -24,7 +24,7 @@ public readonly record struct OffsetMeasurement(double OffsetMs, double SpreadMs
 /// </summary>
 public sealed class OffsetCalibration
 {
-    public const string TrackPath = "res://Assets/Audio/offset-calibration.wav";
+    public const string TrackPath = "Assets/Audio/offset-calibration.wav";
 
     /// <summary>When the first click is in the track, in seconds.</summary>
     public const double FirstClickSeconds = 1.0;

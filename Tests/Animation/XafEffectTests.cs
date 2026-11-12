@@ -15,8 +15,8 @@ public sealed class XafEffectTests
         XafEffect effect = package.Effects[0];
         effect.Transform = new Transform2D(0.5f, new Vector2(10, -4));
         effect.ZOrder = 7;
-        effect.Item.Primitives[0].Ref = "res://streak.png";
-        effect.Item.Shaders.Add(XifShaderRef.OfCommon("res://Assets/Shaders/Items/rainbow.slang"));
+        effect.Item.Primitives[0].Ref = "streak.png";
+        effect.Item.Shaders.Add(XifShaderRef.OfCommon("Assets/Shaders/Items/rainbow.slang"));
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
 
@@ -159,7 +159,7 @@ public sealed class XafEffectTests
     public void NewEffectsGetUniqueIdsAndDrawAboveTheArt()
     {
         XafPackage package = Package();
-        package.Attachments.Add(new XafAttachment { SvgPath = "res://a.svg", Group = "a", BoneId = "arm", ZOrder = 4 });
+        package.Attachments.Add(new XafAttachment { SvgPath = "a.svg", Group = "a", BoneId = "arm", ZOrder = 4 });
 
         int index = XafEffects.Add(package, "arm", XafEffects.Streak(), "streak");
 

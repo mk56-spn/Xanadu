@@ -110,10 +110,10 @@ internal abstract class HostApp : Game
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
         UseGameRoots();
         HostWindowIcon.Apply(MainWindow.Handle);
-        SlangShaders.LibraryPath = GamePaths.Globalize("res://Assets/Shaders/Library");
+        SlangShaders.LibraryPath = GamePaths.Full("Assets/Shaders/Library");
         ShaderConstants.Use(SlangShaders.LoadConstants());
         ShaderChains.Use(SlangShaders.LoadChains());
-        SlangShaders.CacheFolder = GamePaths.Globalize("user://shader_cache_slang");
+        SlangShaders.CacheFolder = GamePaths.Full("user://shader_cache_slang");
         Renderer = new CanvasRenderer(GraphicsDevice, Canvas, TargetFormat, Width, Height);
         Text = new HostText(GraphicsDevice, texture =>
         {
@@ -287,10 +287,10 @@ internal abstract class HostApp : Game
         return display is null || display->refresh_rate < 1 ? 60 : (int)MathF.Round(display->refresh_rate);
     }
 
-    /// <summary>Points res:// and user:// where every host exe has them; for a command that runs without a window.</summary>
-    internal static void UseGameRoots() => GamePaths.UseRoots(FindGameFolder(), GamePaths.GodotUserFolder("Xanadu"));
+    /// <summary>Points the game folder and user:// where every host exe has them; for a command that runs without a window.</summary>
+    internal static void UseGameRoots() => GamePaths.UseRoots(FindGameFolder(), GamePaths.UserFolder("xanadu"));
 
-    /// <summary>The folder <c>res://</c> means: the one holding <see cref="GamePaths.RootMarker"/>, above the exe.</summary>
+    /// <summary>The game folder: the one holding <see cref="GamePaths.RootMarker"/>, above the exe.</summary>
     private static string FindGameFolder()
     {
         for (DirectoryInfo? folder = new(AppContext.BaseDirectory); folder is not null; folder = folder.Parent)
@@ -327,7 +327,8 @@ internal abstract class HostApp : Game
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         _probe?.BeginPhase();
         TextInput.Update(Inputs.Keyboard, delta);
-        if (Inputs.Keyboard.IsPressed(KeyCode.F12))
+        // While a code editor has the keys, F12 is its go-to-declaration.
+        if (Inputs.Keyboard.IsPressed(KeyCode.F12) && !TextInput.Claimed)
             _screenshotRequested = true;
         FollowWindowSize();
         Pointer.Poll();
@@ -432,7 +433,7 @@ internal abstract class HostApp : Game
     {
         try
         {
-            string folder = GamePaths.Globalize("user://screenshots");
+            string folder = GamePaths.Full("user://screenshots");
             Directory.CreateDirectory(folder);
             string file = ScreenshotName();
             Screenshot.Save(GraphicsDevice, commands, Target, Width, Height, Path.Combine(folder, file));

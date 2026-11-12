@@ -15,7 +15,7 @@ public sealed class LevelDocumentMapperTests
     {
         var sourceStore = new EntityStore();
         Entity source = sourceStore.CreateEntity(
-            new LevelInfo("Mapped", TestSongs.At("res://song.mp3"), "Artist", "Insane"),
+            new LevelInfo("Mapped", TestSongs.At("song.mp3"), "Artist", "Insane"),
             new Playfield(1000, 1000),
             new Playhead(0, 150, 25, false, snapDivision: 16),
             new NoteSelection(default));
@@ -160,7 +160,7 @@ public sealed class LevelDocumentMapperTests
     {
         var sourceStore = new EntityStore();
         Entity source = sourceStore.CreateEntity(
-            new LevelInfo("Mapped", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Mapped", TestSongs.At("song.mp3")),
             new Playfield(1000, 1000),
             new Playhead(0, 150, 0, false),
             new NoteSelection(default));

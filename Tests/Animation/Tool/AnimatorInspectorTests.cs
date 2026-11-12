@@ -77,7 +77,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     {
         Package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://leg.svg",
+            SvgPath = "leg.svg",
             Group = "leg",
             BoneId = "torso",
         });
@@ -96,7 +96,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     {
         Package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://leg.svg",
+            SvgPath = "leg.svg",
             Group = "leg",
             BoneId = "torso",
             ZOrder = 4,

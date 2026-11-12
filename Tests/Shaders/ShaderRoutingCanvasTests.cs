@@ -159,7 +159,7 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void ACommonShaderGetsItsOwnItemAndTakesPriorityOverASlot()
     {
-        const string rainbow = "res://Assets/Shaders/Items/rainbow.slang";
+        const string rainbow = "Assets/Shaders/Items/rainbow.slang";
 
         _canvas.SelectShader(1);
         _canvas.DrawRect(Root, new Rect2(), Colors.Red);

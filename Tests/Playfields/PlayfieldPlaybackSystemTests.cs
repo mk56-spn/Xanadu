@@ -20,12 +20,12 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(audio.LoadedPath, Is.EqualTo("res://song.mp3"));
+        Assert.That(audio.LoadedPath, Is.EqualTo("song.mp3"));
         Assert.That(editor.GetComponent<Playhead>().DurationMs, Is.EqualTo(12_000));
 
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
@@ -46,7 +46,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -68,7 +68,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -89,7 +89,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -114,7 +114,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://missing.mp3")),
+            new LevelInfo("Test", TestSongs.At("missing.mp3")),
             new Playhead(0, 120, 0, true));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -132,7 +132,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
@@ -158,7 +158,7 @@ public sealed class PlayfieldPlaybackSystemTests
         root.Add(new PlayfieldPlaybackSystem(audio));
 
         Entity editor = store.CreateEntity(
-            new LevelInfo("Test", TestSongs.At("res://song.mp3")),
+            new LevelInfo("Test", TestSongs.At("song.mp3")),
             new Playhead(0, 120, 0, false));
 
         root.Update(new UpdateTick(1f / 60f, 0));

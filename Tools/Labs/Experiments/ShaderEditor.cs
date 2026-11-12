@@ -20,12 +20,12 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
 {
     /// <summary>A level shader slot: <c>shade</c> on a quad.</summary>
     public static ShaderEditor Effects(string? file) => new("SHADER EDITOR",
-        "res://Tools/Labs/Playground/editor.slang", "res://Tools/Labs/Playground/editor.template.slang", file,
+        "Tools/Labs/Playground/editor.slang", "Tools/Labs/Playground/editor.template.slang", file,
         (context, item) => new MaterialPreview(context, item));
 
     /// <summary>The spawner: <c>count</c> things from <c>spawn(i)</c>, culled and drawn indirectly on the GPU.</summary>
     public static ShaderEditor Spawner() => new("SPAWNER",
-        "res://Tools/Labs/Playground/spawner.slang", "res://Tools/Labs/Playground/spawner.template.slang", null,
+        "Tools/Labs/Playground/spawner.slang", "Tools/Labs/Playground/spawner.template.slang", null,
         (context, item) => new SpawnerPreview(context, item));
 
     public string Name => name;
@@ -43,9 +43,9 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         if (file is not null)
             return file;
 
-        string copy = GamePaths.Globalize(workingCopy);
+        string copy = GamePaths.Full(workingCopy);
         if (!File.Exists(copy))
-            File.Copy(GamePaths.Globalize(template), copy);
+            File.Copy(GamePaths.Full(template), copy);
         return copy;
     }
 

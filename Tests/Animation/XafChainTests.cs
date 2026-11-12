@@ -23,7 +23,7 @@ public sealed class XafChainTests
         SegmentLength = 12f,
         Gravity = 700f,
         Damping = 0.9f,
-        SvgPath = "res://Assets/SVG/Char/hair_segment.svg",
+        SvgPath = "Assets/SVG/Char/hair_segment.svg",
         Group = "hair_segment",
         Width = 7f,
         Lean = 120f,
@@ -50,7 +50,7 @@ public sealed class XafChainTests
         Assert.That(chain.SegmentLength, Is.EqualTo(12f));
         Assert.That(chain.Gravity, Is.EqualTo(700f));
         Assert.That(chain.Damping, Is.EqualTo(0.9f));
-        Assert.That(chain.SvgPath, Is.EqualTo("res://Assets/SVG/Char/hair_segment.svg"));
+        Assert.That(chain.SvgPath, Is.EqualTo("Assets/SVG/Char/hair_segment.svg"));
         Assert.That(chain.Group, Is.EqualTo("hair_segment"));
         Assert.That(chain.Width, Is.EqualTo(7f));
         Assert.That(chain.Lean, Is.EqualTo(120f));
@@ -65,7 +65,7 @@ public sealed class XafChainTests
         XafPackage package = Package();
         package.Chains.Add(new XafChain
         {
-            Id = "a", BoneId = "head", SvgPath = "res://x.svg", Group = "",
+            Id = "a", BoneId = "head", SvgPath = "x.svg", Group = "",
         });
         package.Chains.Add(new XafChain { Id = "b", BoneId = "head", Width = 0f });
         package.Chains.Add(new XafChain
@@ -368,12 +368,12 @@ public sealed class XafChainTests
         XafPackage package = TwoBones();
         XafChainAuthoring.Add(package, 2);
 
-        Assert.That(XafChainAuthoring.SetArt(package, 0, "res://Assets/SVG/leaf.svg", "leaf"), Is.True);
-        Assert.That(package.Chains[0].SvgPath, Is.EqualTo("res://Assets/SVG/leaf.svg"));
+        Assert.That(XafChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "leaf"), Is.True);
+        Assert.That(package.Chains[0].SvgPath, Is.EqualTo("Assets/SVG/leaf.svg"));
         Assert.That(package.Chains[0].Group, Is.EqualTo("leaf"));
         Assert.That(package.Chains[0].HasArt, Is.True);
 
-        XafChainAuthoring.SetArt(package, 0, "res://Assets/SVG/leaf.svg", "");
+        XafChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "");
         Assert.That(package.Chains[0].HasArt, Is.False);
         Assert.That(package.Chains[0].SvgPath, Is.EqualTo(""));
         Assert.That(XafValidation.Validate(package), Is.Empty);

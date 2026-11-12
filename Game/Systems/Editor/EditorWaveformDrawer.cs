@@ -14,7 +14,7 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed class EditorWaveformDrawer(EditorDrawSurface surface)
 {
-    public const string Shader = "res://Assets/Shaders/Editor/waveform.slang";
+    public const string Shader = "Assets/Shaders/Editor/waveform.slang";
 
     private const float ColumnWidth = 2f;
     private const float Margin = 4f;

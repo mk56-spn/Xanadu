@@ -32,7 +32,7 @@ public sealed class ShaderTunerSystem(
     private static readonly Vector2 ButtonSize = new(120, 34);
     private static readonly Color Clear = new(0, 0, 0, 0);
 
-    private const string UiShaders = "res://Assets/Shaders/Ui/";
+    private const string UiShaders = "Assets/Shaders/Ui/";
 
 
     private readonly List<ShaderTarget> _targets = new();

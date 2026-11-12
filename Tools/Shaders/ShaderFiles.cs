@@ -5,7 +5,7 @@ using Xanadu.Storage;
 
 namespace Xanadu.Tools.Shaders;
 
-/// <summary>One shipped effect: its <c>res://</c> path (how materials name it) and a short name for the list.</summary>
+/// <summary>One shipped effect: its path in the game folder (how materials name it) and a short name for the list.</summary>
 internal sealed record ShaderFile(string Path, string Name);
 
 /// <summary>
@@ -15,11 +15,11 @@ internal sealed record ShaderFile(string Path, string Name);
 /// </summary>
 internal static class ShaderFiles
 {
-    private const string Root = "res://Assets/Shaders";
+    private const string Root = "Assets/Shaders";
 
     public static ShaderFile[] All()
     {
-        string root = GamePaths.Globalize(Root);
+        string root = GamePaths.Full(Root);
         string library = System.IO.Path.Combine(root, "Library");
         return Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
             .Where(file => !file.StartsWith(library, StringComparison.Ordinal))
@@ -29,14 +29,14 @@ internal static class ShaderFiles
             .ToArray();
     }
 
-    public static string Read(ShaderFile file) => File.ReadAllText(GamePaths.Globalize(file.Path));
+    public static string Read(ShaderFile file) => File.ReadAllText(GamePaths.Full(file.Path));
 
     /// <summary>Writes the text over the file; false (and the message) when the disk refuses.</summary>
     public static bool Write(ShaderFile file, string text, out string? error)
     {
         try
         {
-            File.WriteAllText(GamePaths.Globalize(file.Path), text);
+            File.WriteAllText(GamePaths.Full(file.Path), text);
             error = null;
             return true;
         }

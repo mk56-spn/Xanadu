@@ -11,7 +11,7 @@ namespace Xanadu.Ecs;
 /// <remarks>Needs a screen read; the host draws it plain until step 6.</remarks>
 public static class UiFrostedGlass
 {
-    public const string Shader = "res://Assets/Shaders/Ui/frosted_glass.slang";
+    public const string Shader = "Assets/Shaders/Ui/frosted_glass.slang";
 
     /// <summary>Higher <paramref name="lod"/> blurs more: each step halves the resolution.</summary>
     public static CanvasMaterial Create(float lod = 3f)

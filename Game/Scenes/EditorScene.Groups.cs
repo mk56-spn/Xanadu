@@ -143,7 +143,7 @@ public static class EditorSceneGroups
         editor.AddComponent(new EditorViewBar(gridButton, gridMenu, musicButton, musicMenu, divisionButtons));
     }
 
-    private const string IconDir = "res://Assets/Icons/";
+    private const string IconDir = "Assets/Icons/";
     private const float MenuItemWidth = 150f;
 
     /// <summary>A thin upright line between the bar's sections.</summary>

@@ -12,7 +12,7 @@ namespace Xanadu.Tests.Groups;
 public sealed class GroupPersistenceTests
 {
     private static Entity Editor(EntityStore store) => store.CreateEntity(
-        new LevelInfo("Groups", TestSongs.At("res://song.mp3")),
+        new LevelInfo("Groups", TestSongs.At("song.mp3")),
         new Playfield(1000, 1000),
         new Playhead(0, 120, 0, false),
         LevelGroups.Create());

@@ -12,7 +12,7 @@ public sealed class XafPackageCopyTests
         XafRigAuthoring.AddBone(package, 0, "child", new Vector2(0, -40));
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://a.svg",
+            SvgPath = "a.svg",
             Group = "a",
             BoneId = "child",
         });

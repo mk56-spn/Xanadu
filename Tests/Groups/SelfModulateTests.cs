@@ -236,7 +236,7 @@ public sealed class SelfModulateTests : EcsSystemTest
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
-        package.Attachments.Add(new XafAttachment { SvgPath = "res://a.svg", Group = "a", BoneId = "root", SelfModulate = tint });
+        package.Attachments.Add(new XafAttachment { SvgPath = "a.svg", Group = "a", BoneId = "root", SelfModulate = tint });
         return package;
     }
 

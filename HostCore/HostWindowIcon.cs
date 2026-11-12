@@ -16,7 +16,7 @@ internal static class HostWindowIcon
 {
     public static unsafe void Apply(IntPtr window)
     {
-        string path = GamePaths.Globalize("res://Assets/icon.png");
+        string path = GamePaths.Full("Assets/icon.png");
         if (!File.Exists(path))
             return;
 

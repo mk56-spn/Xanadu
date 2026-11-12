@@ -12,7 +12,7 @@ namespace Xanadu.Levels;
 
 /// <summary>
 /// The song library, and the only code that touches it on disk. The catalog is
-/// a permanent fixture of the project (<c>res://Assets/song-catalog.json</c>); the
+/// a permanent fixture of the project (<c>Assets/song-catalog.json</c>); the
 /// audio lives outside the codebase in <c>user://songs</c>, one folder per song
 /// id. The catalog is read once and kept; the store's own writes update it.
 /// Everything else asks <see cref="Shared"/>: <see cref="Open"/> for a song to
@@ -21,7 +21,7 @@ namespace Xanadu.Levels;
 public sealed class SongStore
 {
     public const string LibraryFolder = "user://songs";
-    public const string CatalogFile = "res://Assets/song-catalog.json";
+    public const string CatalogFile = "Assets/song-catalog.json";
 
     private static readonly Regex SlugPattern = new(
         "[^a-z0-9]+",
@@ -50,7 +50,7 @@ public sealed class SongStore
     }
 
     public string Root => _root ??=
-        Xanadu.Storage.GamePaths.Globalize(LibraryFolder);
+        Xanadu.Storage.GamePaths.Full(LibraryFolder);
 
     public string CatalogPath =>
         _catalogPath ?? Path.Combine(Root, "catalog.json");

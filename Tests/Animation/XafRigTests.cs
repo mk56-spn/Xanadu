@@ -48,7 +48,7 @@ public sealed class XafRigTests
         });
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://body.svg",
+            SvgPath = "body.svg",
             Group = "body",
             BoneId = "root",
             Transform = new Transform2D(0f, new Vector2(4, 6)),

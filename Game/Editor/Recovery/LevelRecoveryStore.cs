@@ -32,7 +32,7 @@ public sealed class LevelRecoveryStore(string directory)
     }
 
     public static LevelRecoveryStore Default =>
-        _default ??= new LevelRecoveryStore(Xanadu.Storage.GamePaths.Globalize(UserFolder));
+        _default ??= new LevelRecoveryStore(Xanadu.Storage.GamePaths.Full(UserFolder));
 
     public string Directory { get; } = directory;
 

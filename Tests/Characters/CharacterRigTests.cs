@@ -155,7 +155,7 @@ public sealed class CharacterRigTests : EcsSystemTest
     }
 
     [Test]
-    public void RebasePointsResPathsAtTheProjectThatSavedThePackage()
+    public void RebasePointsRelativePathsAtTheGameFolderThatHoldsThePackage()
     {
         string root = Path.Combine(Path.GetTempPath(), $"xaf-rebase-{Guid.NewGuid():N}");
         string characters = Path.Combine(root, "Animations", "Characters");
@@ -165,7 +165,7 @@ public sealed class CharacterRigTests : EcsSystemTest
         {
             XafPackage package = RigPackage();
             package.Attachments.Add(new XafAttachment { SvgPath = "/abs/kept.svg" });
-            package.Chains.Add(new XafChain { Id = "hair", BoneId = "torso", SvgPath = "res://Assets/SVG/Char/hair_segment.svg" });
+            package.Chains.Add(new XafChain { Id = "hair", BoneId = "torso", SvgPath = "Assets/SVG/Char/hair_segment.svg" });
             package.Chains.Add(new XafChain { Id = "bare", BoneId = "torso", SvgPath = "", Group = "" });
             XafAssetPaths.Rebase(package, Path.Combine(characters, "contact.xaf"));
 
@@ -194,7 +194,7 @@ public sealed class CharacterRigTests : EcsSystemTest
         });
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://Assets/SVG/torso.svg",
+            SvgPath = "Assets/SVG/torso.svg",
             Group = "torso",
             BoneId = "torso",
         });

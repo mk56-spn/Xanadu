@@ -34,7 +34,7 @@ public sealed class AutopsyCapture
 /// </summary>
 public static class AutopsyStore
 {
-    private static string Folder => GamePaths.Globalize("user://autopsy");
+    private static string Folder => GamePaths.Full("user://autopsy");
 
     public static void Save(FrameAutopsy autopsy)
     {

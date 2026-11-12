@@ -13,7 +13,7 @@ public sealed class XafTracksTests
         XafRigAuthoring.AddBone(package, 0, "leg", new Vector2(-10, 0));
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://a.svg",
+            SvgPath = "a.svg",
             Group = "sword",
             BoneId = "arm",
         });

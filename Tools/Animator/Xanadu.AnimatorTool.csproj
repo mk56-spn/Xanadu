@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     The XAF animator on MoonWorks (Docs/host.md §5.9): a plain exe on
-    HostCore. res:// is the game folder, as in every host exe; the animator's own
-    rigs and art live under res://Tools/Animator (AnimatorPaths).
+    HostCore. Relative paths are under the game folder, as in every host exe; the
+    animator's own rigs and art live under Tools/Animator (AnimatorPaths).
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -139,11 +139,11 @@ public sealed class XifEditorTests : EcsSystemTest
     {
         Type(XifEditorFieldKind.Name, "  slash ");
         Type(XifEditorFieldKind.Fill, "#ff800080");
-        Type(XifEditorFieldKind.Texture, "res://streak.png");
+        Type(XifEditorFieldKind.Texture, "streak.png");
 
         Assert.That(_host.Current!.Name, Is.EqualTo("slash"));
         Assert.That(Polygon.Fill, Is.EqualTo(Color.FromHtml("#ff800080")));
-        Assert.That(Polygon.Ref, Is.EqualTo("res://streak.png"));
+        Assert.That(Polygon.Ref, Is.EqualTo("streak.png"));
         Assert.That(Text(Editor.Parts.Status), Is.EqualTo("TEXTURE SET"));
 
         Type(XifEditorFieldKind.Fill, "orange-ish");
@@ -155,7 +155,7 @@ public sealed class XifEditorTests : EcsSystemTest
     public void TheShaderCyclesThroughWhatTheHostAllows()
     {
         Click(XifEditorActionKind.NextShader);
-        Assert.That(Polygon.Shader.Path, Is.EqualTo("res://glow.gdshader"));
+        Assert.That(Polygon.Shader.Path, Is.EqualTo("glow.gdshader"));
         Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("GLOW"));
 
         Click(XifEditorActionKind.NextShader);
@@ -240,7 +240,7 @@ public sealed class XifEditorTests : EcsSystemTest
         public IReadOnlyList<XifShaderChoice> Shaders { get; } = new List<XifShaderChoice>
         {
             new("NONE", new XifShaderRef()),
-            new("GLOW", XifShaderRef.OfCommon("res://glow.gdshader")),
+            new("GLOW", XifShaderRef.OfCommon("glow.gdshader")),
         };
 
         public bool CanLoad(string path) => path.EndsWith(".png", StringComparison.Ordinal);

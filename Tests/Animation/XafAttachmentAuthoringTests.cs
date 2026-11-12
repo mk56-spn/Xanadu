@@ -12,7 +12,7 @@ public sealed class XafAttachmentAuthoringTests
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafRigAuthoring.AddBone(package, 0, "arm", new Vector2(0, -50));
         XafRigAuthoring.AddBone(package, 1, "forearm", new Vector2(0, 30));
-        package.Attachments.Add(new XafAttachment { SvgPath = "res://a.svg", Group = "arm", BoneId = "arm" });
+        package.Attachments.Add(new XafAttachment { SvgPath = "a.svg", Group = "arm", BoneId = "arm" });
         return package;
     }
 
@@ -21,8 +21,8 @@ public sealed class XafAttachmentAuthoringTests
     {
         XafPackage package = Package();
         XafClip clip = package.Clips[0];
-        XafAttachmentAuthoring.AddAlternate(package, 0, "res://a.svg", "fist");
-        XafAttachmentAuthoring.AddAlternate(package, 0, "res://a.svg", "point");
+        XafAttachmentAuthoring.AddAlternate(package, 0, "a.svg", "fist");
+        XafAttachmentAuthoring.AddAlternate(package, 0, "a.svg", "point");
         XafAttachmentAuthoring.KeyArt(package, clip, 0, 0f, 1);
         XafAttachmentAuthoring.KeyArt(package, clip, 0, 1f, 2);
 

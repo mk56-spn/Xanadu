@@ -130,7 +130,7 @@ public sealed class XafBinaryTests
         });
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://Assets/SVG/body.svg",
+            SvgPath = "Assets/SVG/body.svg",
             Group = "body",
             BoneId = "root",
             Transform = Transform2D.Identity,
@@ -138,7 +138,7 @@ public sealed class XafBinaryTests
         });
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://Assets/SVG/head.svg",
+            SvgPath = "Assets/SVG/head.svg",
             Group = "head",
             BoneId = "head-bone",
             Transform = new Transform2D(0.2f, new Vector2(4, 5)),

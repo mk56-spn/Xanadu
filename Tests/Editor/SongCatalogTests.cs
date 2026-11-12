@@ -46,7 +46,6 @@ public sealed class SongCatalogTests
         {
             Assert.That(song.Id, Has.Length.EqualTo(32), song.Title);
             Assert.That(song.Slug, Does.StartWith(SlugRoot(song.Title)), song.Title);
-            Assert.That(song.AudioFileName, Does.Not.StartWith("res://"), song.Title);
             Assert.That(Path.IsPathRooted(song.AudioFileName), Is.False, song.Title);
             Assert.That(song.ContentHash, Has.Length.EqualTo(64), song.Title);
         }

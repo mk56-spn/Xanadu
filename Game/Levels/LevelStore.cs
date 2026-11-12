@@ -9,7 +9,7 @@ namespace Xanadu.Levels;
 public static class LevelStore
 {
     public const string LevelsFolder = "user://levels";
-    private const string FallbackFolder = "res://Game/Levels";
+    private const string FallbackFolder = "Game/Levels";
 
     private static string? _directory;
 
@@ -17,11 +17,11 @@ public static class LevelStore
 
     private static string ResolveDirectory()
     {
-        string userDirectory = Xanadu.Storage.GamePaths.Globalize(LevelsFolder);
+        string userDirectory = Xanadu.Storage.GamePaths.Full(LevelsFolder);
         if (IsWritable(userDirectory))
             return userDirectory;
 
-        string fallbackDirectory = Xanadu.Storage.GamePaths.Globalize(FallbackFolder);
+        string fallbackDirectory = Xanadu.Storage.GamePaths.Full(FallbackFolder);
         System.IO.Directory.CreateDirectory(fallbackDirectory);
         return fallbackDirectory;
     }
@@ -146,8 +146,8 @@ public static class LevelStore
         var entries = new List<LevelEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        AddFrom(Xanadu.Storage.GamePaths.Globalize(LevelsFolder));
-        AddFrom(Xanadu.Storage.GamePaths.Globalize(FallbackFolder));
+        AddFrom(Xanadu.Storage.GamePaths.Full(LevelsFolder));
+        AddFrom(Xanadu.Storage.GamePaths.Full(FallbackFolder));
 
         entries.Sort(static (left, right) =>
         {

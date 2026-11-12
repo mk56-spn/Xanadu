@@ -64,7 +64,7 @@ public sealed class ShaderConstantsTests
     [Test]
     public void TheShippedLibraryNamesItsColours()
     {
-        string folder = GamePaths.Globalize("res://Assets/Shaders/Library");
+        string folder = GamePaths.Full("Assets/Shaders/Library");
         ShaderConstants constants = ShaderConstants.FromSources(Directory.EnumerateFiles(folder, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText));
 
         Assert.That(constants.TryGet("colours.gold", out float[] gold) && gold.SequenceEqual([1f, 0.84f, 0f, 1f]), Is.True);

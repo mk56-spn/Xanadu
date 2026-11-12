@@ -8,7 +8,7 @@ namespace Xanadu.Tools.Animator.Files;
 
 /// <summary>
 /// Lists the SVG files under <see cref="AnimatorPaths.Assets"/> and reads their
-/// group ids from disk. Paths are stored as <c>res://</c> (the game folder), so
+/// group ids from disk. Paths are stored relative to the game folder, so
 /// they resolve the same in the animator and the game.
 /// </summary>
 public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
@@ -16,7 +16,7 @@ public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
     public IReadOnlyList<string> Files()
     {
         var files = new List<string>();
-        string folder = GamePaths.Globalize(AnimatorPaths.Assets);
+        string folder = GamePaths.Full(AnimatorPaths.Assets);
         if (!Directory.Exists(folder))
             return files;
 
@@ -41,7 +41,7 @@ public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
 
     public long Stamp(string svgPath)
     {
-        string path = GamePaths.Globalize(svgPath);
+        string path = GamePaths.Full(svgPath);
         return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
     }
 
@@ -50,7 +50,7 @@ public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
         try
         {
             return XafSvgDocument.Groups(
-                File.ReadAllText(GamePaths.Globalize(svgPath)));
+                File.ReadAllText(GamePaths.Full(svgPath)));
         }
         catch (Exception exception) when (exception is XafFormatException or
                                               IOException or
@@ -60,7 +60,6 @@ public sealed class AnimatorSvgCatalog : IAnimatorSvgCatalog
         }
     }
 
-    /// <summary>A file under the game folder as a <c>res://</c> path.</summary>
-    private static string Localize(string file) =>
-        "res://" + Path.GetRelativePath(GamePaths.Globalize("res://"), file).Replace('\\', '/');
+    /// <summary>A file under the game folder as its path there.</summary>
+    private static string Localize(string file) => GamePaths.InGame(file);
 }

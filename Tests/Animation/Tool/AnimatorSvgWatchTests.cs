@@ -7,7 +7,7 @@ namespace Xanadu.Tests.Animation.Tool;
 
 public sealed class AnimatorSvgWatchTests : AnimatorToolTest
 {
-    private const string Body = "res://body.svg";
+    private const string Body = "body.svg";
     private FakeAnimatorSvgCatalog _catalog = null!;
 
     private int Version => Session.GetComponent<AnimatorDocument>().Version;

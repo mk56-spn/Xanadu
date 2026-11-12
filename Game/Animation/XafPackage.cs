@@ -150,7 +150,7 @@ public sealed class XafChain
     public const float MaxSegmentLength = 500f;
 
     /// <summary>The golden rhombus a new chain is built from, one per segment.</summary>
-    public const string DefaultSvgPath = "res://Assets/SVG/Char/hair_segment.svg";
+    public const string DefaultSvgPath = "Assets/SVG/Char/hair_segment.svg";
     public const string DefaultGroup = "hair_segment";
 
     public string Id = "";

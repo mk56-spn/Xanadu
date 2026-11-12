@@ -67,7 +67,7 @@ public sealed class EditorXifHost(EntityStore store) : IXifEditorHost
         }
     }
 
-    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Globalize(path));
+    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path));
 
     public void Edit(Action change)
     {

@@ -12,8 +12,8 @@ public sealed class XafAttachmentArtTests
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://hand.svg", Group = "hand", BoneId = "root", ZOrder = 2,
-            Alternates = { new XafArt { SvgPath = "res://hand.svg", Group = "fist" } },
+            SvgPath = "hand.svg", Group = "hand", BoneId = "root", ZOrder = 2,
+            Alternates = { new XafArt { SvgPath = "hand.svg", Group = "fist" } },
         });
         clip = package.Clips.Find(found => found.Id == "idle")!;
         return package;

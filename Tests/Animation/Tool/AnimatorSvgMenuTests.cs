@@ -88,8 +88,8 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
     public void UseOneFileWithTwoGroups()
     {
         _catalog.GroupsByFile.Clear();
-        _catalog.Add("res://Assets/SVG/body.svg", "body");
-        _catalog.Add("res://Assets/SVG/arm.svg", "arm", "sleeve");
+        _catalog.Add("Assets/SVG/body.svg", "body");
+        _catalog.Add("Assets/SVG/arm.svg", "arm", "sleeve");
     }
 
     [Test]
@@ -103,9 +103,9 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
             Menu.Choices,
             Is.EqualTo(new[]
             {
-                new AnimatorSvgChoice("res://Assets/SVG/arm.svg", "arm"),
-                new AnimatorSvgChoice("res://Assets/SVG/arm.svg", "sleeve"),
-                new AnimatorSvgChoice("res://Assets/SVG/body.svg", "body"),
+                new AnimatorSvgChoice("Assets/SVG/arm.svg", "arm"),
+                new AnimatorSvgChoice("Assets/SVG/arm.svg", "sleeve"),
+                new AnimatorSvgChoice("Assets/SVG/body.svg", "body"),
             }));
         Assert.That(UiLayout.IsHidden(Ui.SvgMenu), Is.False);
     }
@@ -135,7 +135,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
 
         Assert.That(Package.Attachments.Count, Is.EqualTo(before + 1));
         XafAttachment added = Package.Attachments[^1];
-        Assert.That(added.SvgPath, Is.EqualTo("res://Assets/SVG/arm.svg"));
+        Assert.That(added.SvgPath, Is.EqualTo("Assets/SVG/arm.svg"));
         Assert.That(added.Group, Is.EqualTo("sleeve"));
         Assert.That(added.BoneId, Is.EqualTo("head"));
         Assert.That(Session.GetComponent<AnimatorSelection>().Attachment, Is.EqualTo(before));
@@ -189,7 +189,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
     [Test]
     public void ManyGroupsShowAScrollingWindowOfRows()
     {
-        _catalog.Add("res://Assets/SVG/sheet.svg", ManyGroups(25));
+        _catalog.Add("Assets/SVG/sheet.svg", ManyGroups(25));
 
         OpenPicker(2);
 

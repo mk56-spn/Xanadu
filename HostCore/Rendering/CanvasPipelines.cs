@@ -91,7 +91,7 @@ internal sealed class CanvasPipelines : IDisposable
     private static string SourceKey(Xanadu.Systems.Canvas.CanvasMaterial material, string source) =>
         (material.Whole ? "whole:" : material.KeepsState ? "state:" : "source:") + source;
 
-    /// <summary>The effect at a <c>res://</c> path (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
+    /// <summary>The effect at a path in the game folder (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
     public CanvasEffect Effect(string path)
     {
         if (path.Length == 0)
@@ -108,7 +108,7 @@ internal sealed class CanvasPipelines : IDisposable
 
     private CanvasEffect? TryCompile(string path)
     {
-        string file = GamePaths.Globalize(path);
+        string file = GamePaths.Full(path);
         if (!File.Exists(file))
         {
             Console.Error.WriteLine($"Shader {path} not found; drawing plain.");
@@ -203,14 +203,14 @@ internal sealed class CanvasPipelines : IDisposable
     /// </summary>
     public void WarmShipped()
     {
-        string root = GamePaths.Globalize("res://Assets/Shaders");
+        string root = GamePaths.Full("Assets/Shaders");
         string library = Path.Combine(root, "Library");
         foreach (string file in Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories))
         {
             if (file.StartsWith(library, StringComparison.Ordinal))
                 continue;
 
-            string path = "res://Assets/Shaders/" + Path.GetRelativePath(root, file).Replace('\\', '/');
+            string path = "Assets/Shaders/" + Path.GetRelativePath(root, file).Replace('\\', '/');
             Pipeline(Effect(path), BlendMode.Mix);
         }
     }

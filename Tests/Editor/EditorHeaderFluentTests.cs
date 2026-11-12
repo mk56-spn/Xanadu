@@ -24,7 +24,7 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     private const float Control = EditorShellMetrics.HeaderControlHeight;
     private const float Pad = (EditorShellMetrics.HeaderHeight - Control) / 2;
     private const float InfoWidth = 420;
-    private const string IconDir = "res://Assets/Icons/";
+    private const string IconDir = "Assets/Icons/";
 
     private UiNode _level;
     private UiNode _song;

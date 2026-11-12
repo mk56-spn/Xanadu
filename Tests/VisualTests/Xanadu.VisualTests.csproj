@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     The scene-test browser on MoonWorks (Docs/host.md §5.9): a plain exe
-    on HostCore that boots the game's ECS world beside an ECS sidebar. res:// is the
-    game folder; user:// is its own "Xanadu Visual Tests" folder.
+    on HostCore that boots the game's ECS world beside an ECS sidebar. Relative paths are
+    under the game folder; user:// is its own xanadu-visual-tests folder.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

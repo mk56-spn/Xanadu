@@ -30,7 +30,7 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
         {
             Package.Attachments.Add(new XafAttachment
             {
-                SvgPath = $"res://{group}.svg",
+                SvgPath = $"{group}.svg",
                 Group = group,
                 BoneId = "torso",
                 ZOrder = layer,

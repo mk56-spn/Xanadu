@@ -61,7 +61,7 @@ internal sealed class VisualTestMain : HostApp
     public VisualTestMain(string[] args) : base("Xanadu Visual Tests", WindowOptions(args), HostUi.None)
     {
         // Tests write levels, songs and profiles: keep them out of the game's own user folder.
-        GamePaths.UseRoots(GamePaths.Globalize("res://"), GamePaths.GodotUserFolder("Xanadu Visual Tests"));
+        GamePaths.UseRoots(GamePaths.GameFolder, GamePaths.UserFolder("xanadu-visual-tests"));
 
         BuildUi();
         ParseArguments(args);
@@ -310,7 +310,7 @@ internal sealed class VisualTestMain : HostApp
     {
         ClearRecovery();
         SongStore.Shared = new SongStore(
-            catalogPath: GamePaths.Globalize(SongStore.CatalogFile));
+            catalogPath: GamePaths.Full(SongStore.CatalogFile));
         if (_systems is not null)
             return;
 

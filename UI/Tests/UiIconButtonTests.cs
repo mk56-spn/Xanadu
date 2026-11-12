@@ -34,9 +34,9 @@ public sealed class UiIconButtonTests
         var store = new EntityStore();
         UiBuilder ui = UiBuilder.Begin(store, new FakeVisualRidFactory()).Layer(0);
 
-        Entity button = ui.IconButton("AK", "res://Assets/Icons/auto.svg", new Vector2(56, 56));
+        Entity button = ui.IconButton("AK", "Assets/Icons/auto.svg", new Vector2(56, 56));
 
-        Assert.That(_requested, Is.EqualTo("res://Assets/Icons/auto.svg"));
+        Assert.That(_requested, Is.EqualTo("Assets/Icons/auto.svg"));
         Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("AK"));
         Assert.That(button.Tags.Has<TakesInput>(), Is.True);
         Assert.That(button.HasComponent<ButtonVisual>(), Is.True);

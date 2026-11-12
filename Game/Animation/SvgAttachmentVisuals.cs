@@ -328,7 +328,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     {
         texture = null;
         size = Vector2.Zero;
-        string path = Xanadu.Storage.GamePaths.Globalize(svgPath);
+        string path = Xanadu.Storage.GamePaths.Full(svgPath);
         if (!System.IO.File.Exists(path))
             return false;
 

@@ -18,9 +18,7 @@ public static class WaveformLoader
         if (string.IsNullOrWhiteSpace(path))
             return null;
 
-        string filePath = path.StartsWith("res://") || path.StartsWith("user://")
-            ? Xanadu.Storage.GamePaths.Globalize(path)
-            : path;
+        string filePath = Xanadu.Storage.GamePaths.Full(path);
         if (!File.Exists(filePath))
             return null;
 

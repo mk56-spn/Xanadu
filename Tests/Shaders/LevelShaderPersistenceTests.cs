@@ -116,7 +116,7 @@ public sealed class LevelShaderPersistenceTests
     {
         var level = new LevelDocument();
         level.Notes.Add(new NoteDocument { Item = Xif.ForCommonShader(CommonShaders.Paths[0]) });
-        level.Notes.Add(new NoteDocument { Item = Xif.ForCommonShader("res://not-a-real-shader.gdshader") });
+        level.Notes.Add(new NoteDocument { Item = Xif.ForCommonShader("not-a-real-shader.gdshader") });
 
         LevelDocument read = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
 
@@ -139,7 +139,7 @@ public sealed class LevelShaderPersistenceTests
                     new XifPrimitive
                     {
                         Kind = "svg",
-                        Ref = "res://note-body.svg",
+                        Ref = "note-body.svg",
                         Shader = XifShaderRef.OfCommon(CommonShaders.Paths[0]),
                     },
                 },
@@ -149,10 +149,10 @@ public sealed class LevelShaderPersistenceTests
         LevelDocument read = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
 
         XifPrimitive layer = read.Notes.Single().Item.Primitives.Single();
-        Assert.That(layer.Ref, Is.EqualTo("res://note-body.svg"));
+        Assert.That(layer.Ref, Is.EqualTo("note-body.svg"));
         Assert.That(layer.Shader.Scope, Is.EqualTo(XifShaderScope.Common));
         Assert.That(layer.Shader.Path, Is.EqualTo(CommonShaders.Paths[0]));
-        Assert.That(layer.Shader.Path, Is.EqualTo("res://Assets/Shaders/Items/rainbow.slang"));
+        Assert.That(layer.Shader.Path, Is.EqualTo("Assets/Shaders/Items/rainbow.slang"));
     }
 
     [Test]

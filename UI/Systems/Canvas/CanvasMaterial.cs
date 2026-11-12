@@ -11,7 +11,7 @@ public readonly record struct MaterialParam(string Name, int Channels, bool IsIn
 
 /// <summary>
 /// What a canvas item draws with when it isn't the plain canvas shader: a
-/// shader (a Slang effect by <c>res://</c> path, Docs/host.md §5.5),
+/// shader (a Slang effect by its path in the game folder, Docs/host.md §5.5),
 /// a blend mode, and named values and textures the shader reads. Engine-free,
 /// so scenes build and tune materials without Godot; the host compiles the
 /// shader and packs the values by name (fields of its <c>Params</c> block).
@@ -26,7 +26,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Handle> _textures = new();
 
     /// <summary>
-    /// The effect's path, such as <c>res://Assets/Shaders/note_background.slang</c>;
+    /// The effect's path, such as <c>Assets/Shaders/note_background.slang</c>;
     /// empty for the plain canvas shader. For an effect made from <see cref="Source"/>,
     /// the name it is cached and reported by.
     /// </summary>

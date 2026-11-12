@@ -12,7 +12,7 @@ public sealed class ReplayStore(string directory)
     private static ReplayStore? _default;
 
     public static ReplayStore Default =>
-        _default ??= new ReplayStore(Xanadu.Storage.GamePaths.Globalize(UserFolder));
+        _default ??= new ReplayStore(Xanadu.Storage.GamePaths.Full(UserFolder));
 
     public string Directory { get; } = directory;
 

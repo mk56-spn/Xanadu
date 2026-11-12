@@ -11,12 +11,12 @@ public interface ICharacterRigFiles
     XafPackage? Load(string path);
 }
 
-/// <summary>Reads XAF files from <c>res://</c>, <c>user://</c> or absolute paths, through <see cref="Xanadu.Storage.GamePaths"/>.</summary>
+/// <summary>Reads XAF files from game-folder, <c>user://</c> or absolute paths, through <see cref="Xanadu.Storage.GamePaths"/>.</summary>
 public sealed class DiskCharacterRigFiles : ICharacterRigFiles
 {
     public XafPackage? Load(string path)
     {
-        string full = Xanadu.Storage.GamePaths.Globalize(path);
+        string full = Xanadu.Storage.GamePaths.Full(path);
         if (!System.IO.File.Exists(full))
             return null;
 
@@ -38,7 +38,7 @@ public sealed class DiskCharacterRigFiles : ICharacterRigFiles
 /// <summary>Which XAF package each character family is drawn with.</summary>
 public static class CharacterRigs
 {
-    public const string ContactPath = "res://Tools/Animator/Animations/Characters/contact.xaf";
+    public const string ContactPath = "Tools/Animator/Animations/Characters/contact.xaf";
 
     /// <summary>The rig for a character, or null when it has none yet.</summary>
     public static string? PathFor(CharacterKind kind) => kind switch

@@ -24,8 +24,8 @@ internal enum FontKind { Regular, Bold, Mono }
 /// </remarks>
 internal sealed unsafe class HostText : IDisposable
 {
-    private const string SansPath = "res://Assets/Fonts/SourceSans3-Variable.ttf";
-    private const string MonoPath = "res://Assets/Fonts/JetBrainsMono-Regular.ttf";
+    private const string SansPath = "Assets/Fonts/SourceSans3-Variable.ttf";
+    private const string MonoPath = "Assets/Fonts/JetBrainsMono-Regular.ttf";
 
     /// <summary>One glyph image: its face, size, glyph, and what was made of it.</summary>
     private readonly record struct Key(int Face, int Size, uint Glyph, GlyphLook Look, float A, float B);
@@ -46,8 +46,8 @@ internal sealed unsafe class HostText : IDisposable
             throw new InvalidOperationException("FreeType did not start.");
         _library = library;
 
-        byte[] sans = File.ReadAllBytes(GamePaths.Globalize(SansPath));
-        byte[] mono = File.ReadAllBytes(GamePaths.Globalize(MonoPath));
+        byte[] sans = File.ReadAllBytes(GamePaths.Full(SansPath));
+        byte[] mono = File.ReadAllBytes(GamePaths.Full(MonoPath));
         _faces =
         [
             new FontFace(library, sans, 0, "Source Sans 3", weight: 400),

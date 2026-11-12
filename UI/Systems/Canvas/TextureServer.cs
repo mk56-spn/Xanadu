@@ -20,7 +20,7 @@ public interface ITextureServer
     /// </summary>
     Handle CreateFloat(int width, int height, float[] values);
 
-    /// <summary>An image file (a <c>res://</c> path), loaded once and kept; the default id when it can't be read.</summary>
+    /// <summary>An image file (a path in the game folder), loaded once and kept; the default id when it can't be read.</summary>
     Handle Load(string path);
 
     /// <summary>Frees a texture made by <see cref="Create"/>.</summary>

@@ -24,8 +24,8 @@ namespace Xanadu.Labs.Experiments;
 /// </summary>
 internal sealed class ShaderPlayground(string? path) : ILabExperiment
 {
-    private const string WorkingCopy = "res://Tools/Labs/Playground/playground.slang";
-    private const string Template = "res://Tools/Labs/Playground/playground.template.slang";
+    private const string WorkingCopy = "Tools/Labs/Playground/playground.slang";
+    private const string Template = "Tools/Labs/Playground/playground.template.slang";
     private const int ErrorLines = 18;
     private const int ErrorColumns = 80;
 
@@ -55,9 +55,9 @@ internal sealed class ShaderPlayground(string? path) : ILabExperiment
             if (path is not null)
                 return path;
 
-            string copy = GamePaths.Globalize(WorkingCopy);
+            string copy = GamePaths.Full(WorkingCopy);
             if (!System.IO.File.Exists(copy))
-                System.IO.File.Copy(GamePaths.Globalize(Template), copy);
+                System.IO.File.Copy(GamePaths.Full(Template), copy);
             return copy;
         }
     }

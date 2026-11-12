@@ -13,7 +13,7 @@ namespace Xanadu.Ecs;
 /// UiNode header = page.Row().Height(80);
 /// UiNode left = header.Edge(UiEdge.Left).Gap(12);
 /// left.Text("LEVEL EDITOR", 24).TextColor(Palette.Accent);
-/// left.IconButton("UN", "res://Assets/Icons/undo.svg").On(EditorButtonKind.Undo);
+/// left.IconButton("UN", "Assets/Icons/undo.svg").On(EditorButtonKind.Undo);
 /// </code>
 /// There is no cursor and no <c>End()</c>: a child is added to the node it was
 /// called on, never to "whatever was opened last". That removes the matching

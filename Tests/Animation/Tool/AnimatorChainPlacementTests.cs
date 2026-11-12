@@ -196,11 +196,11 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
 
         Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice>
         {
-            new("res://Assets/SVG/leaf.svg", "leaf_piece"),
+            new("Assets/SVG/leaf.svg", "leaf_piece"),
         };
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AttachSvg, "0"));
 
-        Assert.That(Chain.SvgPath, Is.EqualTo("res://Assets/SVG/leaf.svg"));
+        Assert.That(Chain.SvgPath, Is.EqualTo("Assets/SVG/leaf.svg"));
         Assert.That(Chain.Group, Is.EqualTo("leaf_piece"));
         Assert.That(Package.Attachments, Has.Count.EqualTo(1), "a chain's art is not a new attachment");
         Assert.That(Session.GetComponent<AnimatorSvgMenu>().Open, Is.False, "the picker closes once the art is chosen");
@@ -220,7 +220,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         int version = Session.GetComponent<AnimatorDocument>().Version;
 
         Click(Button(ToolActionKind.PickChainArt));
-        Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice> { new("res://a.svg", "a") };
+        Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice> { new("a.svg", "a") };
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AttachSvg, "0"));
 
         Assert.That(Session.GetComponent<AnimatorDocument>().Version, Is.GreaterThan(version));
@@ -238,7 +238,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AddSvg));
         Assert.That(Session.GetComponent<AnimatorSvgMenu>().ForChain, Is.False);
 
-        Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice> { new("res://a.svg", "a") };
+        Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice> { new("a.svg", "a") };
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AttachSvg, "0"));
 
         Assert.That(Package.Attachments, Has.Count.EqualTo(2));

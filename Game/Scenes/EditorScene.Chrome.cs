@@ -23,7 +23,7 @@ public static class EditorSceneChrome
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HeaderPad = (EditorShellMetrics.HeaderHeight - HeaderControl) / 2;
 
-    private const string IconDir = "res://Assets/Icons/";
+    private const string IconDir = "Assets/Icons/";
     private static readonly Color Clear = new(0, 0, 0, 0);
 
     internal static void BuildEditorChrome(

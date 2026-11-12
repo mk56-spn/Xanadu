@@ -78,7 +78,7 @@ public static class XifEditorPanel
         UiNode texture = panel.Row().Size(Inner, Row).Gap(6);
         texture.Text("TEXTURE", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
         parts.Texture = Field(texture, XifEditorFieldKind.Texture, editor, Inner - LabelWidth - 6,
-            "A texture stretched over the polygon, as a res:// path; empty for none");
+            "A texture stretched over the polygon, as a path in the game folder; empty for none");
 
         UiNode shader = panel.Row().Size(Inner, Row).Gap(6);
         shader.Text("SHADER", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);

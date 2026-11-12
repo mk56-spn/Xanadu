@@ -17,7 +17,7 @@ public sealed partial class DebugPressedOverlaySystem
     private const float DetailWidth = 620;
 
     /// <summary>Where END writes the archetype list: beside the project, so it is easy to open.</summary>
-    private const string DumpPath = "res://archetypes.txt";
+    private const string DumpPath = "archetypes.txt";
 
     private static readonly Color Unselected = new(0, 0, 0, 0);
 
@@ -147,7 +147,7 @@ public sealed partial class DebugPressedOverlaySystem
     /// <summary>Writes every archetype, active or not, to <see cref="DumpPath"/> for reading outside the overlay.</summary>
     private void WriteDump()
     {
-        string path = Xanadu.Storage.GamePaths.Globalize(DumpPath);
+        string path = Xanadu.Storage.GamePaths.Full(DumpPath);
         try
         {
             _archetypes.Dump(path);

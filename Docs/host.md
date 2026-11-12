@@ -13,7 +13,7 @@ Godot was removed on 2026-11-10. The port's step-by-step log is in git history
 ## 1. Why MoonWorks
 
 - Plain .NET: every tool is a normal exe, with no per-assembly engine project,
-  no `res://` root per tool, no symlinked assets.
+  no asset root per tool, no symlinked assets.
 - Features Godot's 2D would not give: 2D depth buffers, arbitrary blend modes,
   compute (GPU particles), instance data without per-shader limits, and control
   over present mode and frame latency.
@@ -157,9 +157,8 @@ The rest is under "Later" (§6).
   memory with a field shader, a buffered group and a self-contained layer),
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
   default 60), `--resolution=WxH`.
-- `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder `res://`
-  means; `user://` is `~/.local/share/godot/app_userdata/Xanadu` (kept so old
-  profiles, songs and levels stay put).
+- `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder, which every
+  relative path is under (`Assets/Shaders/flare.slang`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`).
 
 ### 5.2 Seams the game draws through
 
@@ -179,9 +178,9 @@ host fills; tests leave the headless defaults.
   memory, material description for the F2 tuner.
 - **`TextureServer`**: `Create` (RGBA8 pixels, optional GPU mipmaps),
   `CreateFloat` (RGBA32F data a shader reads with `Load`), `Load` (an image or
-  SVG by `res://` path) and `Free`.
-- **`GamePaths`** (`Core/Storage/GamePaths.cs`) is the only place `res://` and
-  `user://` become real paths (no IO spread).
+  SVG by its path in the game folder) and `Free`.
+- **`GamePaths`** (`Core/Storage/GamePaths.cs`) is the only place game-folder
+  and `user://` paths become real ones (`GamePaths.Full`; no IO spread).
 - Draw-system tests pass `Tests/Support/Fakes/FakeShaderCanvasItems`.
 
 ### 5.3 Canvas tree and renderer
@@ -296,7 +295,7 @@ host fills; tests leave the headless defaults.
   | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` and `c.withAlpha(a)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.Blend` (a `blend.Mode` for the colours, a `blend.Alpha` for the alpha) with presets `blend.screen` and 11 more, `blend.behind`, `blend.erase`, and `.behind` / `.erasing` / `.over`; `blend.composite`; the bare colour formulas under `blend.colours.` |
-  | `xanadu.pattern` | the shapes `Grid`, `Columns`, `Rows`, `Checker`; `pattern.tile` (→ `Tile`) |
+  | `xanadu.pattern` | the shapes `Grid`, `Columns`, `Rows`, `Stripes`, `Checker`; `pattern.tile` (→ `Tile`) |
   | `xanadu.gradient` | `IGradient` and `Linear`, `Radial`, `Conical`; `gradient.square` |
   | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
   | `xanadu.paint` | `c.paint(shape or coverage, colour, blend)` / `c.painted(…)`, `c.erase(shape or coverage)` / `c.erased(…)`, `c.paint(shape, Look(fill, outline, width))`: a picture in layers |
@@ -375,8 +374,8 @@ host fills; tests leave the headless defaults.
 ### 5.9 Tools
 
 - **Animator** (`Tools/Animator`): `AnimatorTool` derives from `HostApp`.
-  `res://` is the game folder here too; its content lives under
-  `res://Tools/Animator/...` (`Files/AnimatorPaths.cs`). Flags: `--shot`,
+  Paths are relative to the game folder here too; its content lives under
+  `Tools/Animator/...` (`Files/AnimatorPaths.cs`). Flags: `--shot`,
   `--shot-frames`, `--shot-seconds`, `--flow`, `--clip` and more. The
   metronome writes its ticks once to `user://animator/*.wav` and plays them
   through miniaudio.

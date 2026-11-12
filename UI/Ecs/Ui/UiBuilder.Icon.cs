@@ -25,7 +25,7 @@ public static class UiIcons
     /// a missing file gives no icon rather than an error.
     /// </summary>
     public static Handle FromResources(string path) =>
-        System.IO.File.Exists(Xanadu.Storage.GamePaths.Globalize(path))
+        System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path))
             ? Xanadu.Systems.Canvas.TextureServer.Current.Load(path)
             : default;
 }

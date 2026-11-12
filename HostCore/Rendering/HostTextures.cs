@@ -48,7 +48,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
             return known;
 
         Handle rid = default;
-        string file = GamePaths.Globalize(path);
+        string file = GamePaths.Full(path);
         if (File.Exists(file) && file.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
         {
             // At the document's own size, as Godot's SVG import (scale 1) made it.

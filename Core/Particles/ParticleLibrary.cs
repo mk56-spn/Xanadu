@@ -96,7 +96,7 @@ public static class ParticleLibrary
 
     private static string? FilePath()
     {
-        for (string? directory = Xanadu.Storage.GamePaths.Globalize("res://");
+        for (string? directory = Xanadu.Storage.GamePaths.GameFolder;
              !string.IsNullOrEmpty(directory);
              directory = Path.GetDirectoryName(directory.TrimEnd('/', '\\')))
         {

@@ -60,7 +60,7 @@ public static partial class AnimatorLayout
     private const float TimelineButtonGap = 4f;
     private const float TimelineGroupGap = 12f;
     private const float TimelineCaptionWidth = 480f;
-    private const string IconDir = "res://Assets/Icons/";
+    private const string IconDir = "Assets/Icons/";
 
     /// <summary>Width of the clip dropdown button in the header.</summary>
     public const float ClipWidth = 160f;

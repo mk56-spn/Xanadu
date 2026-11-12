@@ -4,7 +4,7 @@ using Xanadu.Host;
 using Xanadu.Tools.Shaders;
 
 // dotnet run --project Tools/Shaders                        -> the shader tool, on the first shipped effect
-// dotnet run --project Tools/Shaders -- --open=<name>       -> opens that one first (note_background, Ui/colour_hue, or its res:// path)
+// dotnet run --project Tools/Shaders -- --open=<name>       -> opens that one first (note_background, Ui/colour_hue, or its path)
 // dotnet run --project Tools/Shaders -- --shot=<png>        -> saves frame 60 and quits (--shot-frame=<n> to pick)
 // dotnet run --project Tools/Shaders -- --resolution=WxH    -> window size (default 1600x900)
 string? shot = null, open = null;

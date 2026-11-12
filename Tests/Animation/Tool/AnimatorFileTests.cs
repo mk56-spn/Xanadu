@@ -37,7 +37,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     public void ADocumentStartsClean()
     {
         Assert.That(File.Dirty, Is.False);
-        Assert.That(File.Path, Is.EqualTo("res://test.xaf"));
+        Assert.That(File.Path, Is.EqualTo("test.xaf"));
     }
 
     [Test]
@@ -59,16 +59,16 @@ public sealed class AnimatorFileTests : AnimatorToolTest
 
         Run(ToolActionKind.Save);
 
-        Assert.That(Files.SavedPath, Is.EqualTo("res://test.xaf"));
+        Assert.That(Files.SavedPath, Is.EqualTo("test.xaf"));
         Assert.That(Files.Saved, Is.SameAs(Package));
         Assert.That(File.Dirty, Is.False);
-        Assert.That(Status, Is.EqualTo("SAVED res://test.xaf"));
+        Assert.That(Status, Is.EqualTo("SAVED test.xaf"));
     }
 
     [Test]
     public void ANewSessionOpensWithAutoKeyOn()
     {
-        Entity fresh = AnimatorSession.Create(Store, CreatePackage(), Files, "res://other.xaf");
+        Entity fresh = AnimatorSession.Create(Store, CreatePackage(), Files, "other.xaf");
 
         Assert.That(fresh.GetComponent<AnimatorModes>().AutoKey, Is.True);
     }
@@ -82,7 +82,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Run(ToolActionKind.Save);
 
         Assert.That(AnimatorUnkeyed.Count(Session), Is.EqualTo(1));
-        Assert.That(Status, Is.EqualTo("SAVED res://test.xaf · 1 PART POSED BUT NOT KEYED"));
+        Assert.That(Status, Is.EqualTo("SAVED test.xaf · 1 PART POSED BUT NOT KEYED"));
     }
 
     [Test]
@@ -95,7 +95,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Run(ToolActionKind.Save);
 
         Assert.That(AnimatorUnkeyed.Count(Session), Is.Zero);
-        Assert.That(Status, Is.EqualTo("SAVED res://test.xaf"));
+        Assert.That(Status, Is.EqualTo("SAVED test.xaf"));
     }
 
     [Test]
@@ -137,7 +137,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(4));
 
         Run(ToolActionKind.Load);
-        Assert.That(Files.LoadedPath, Is.EqualTo("res://test.xaf"));
+        Assert.That(Files.LoadedPath, Is.EqualTo("test.xaf"));
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(1));
         Assert.That(File.Dirty, Is.False);
     }
@@ -192,16 +192,16 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Run(ToolActionKind.Load);
 
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(3));
-        Assert.That(Status, Is.EqualTo("LOAD FAILED: res://test.xaf"));
+        Assert.That(Status, Is.EqualTo("LOAD FAILED: test.xaf"));
     }
 
     [Test]
     public void PathsAreTrimmedAndGetTheExtensionWhenMissing()
     {
         Assert.That(AnimatorFileCommands.NormalizePath("  user://rig  "), Is.EqualTo("user://rig.xaf"));
-        Assert.That(AnimatorFileCommands.NormalizePath("res://a/b.v2/rig"), Is.EqualTo("res://a/b.v2/rig.xaf"));
-        Assert.That(AnimatorFileCommands.NormalizePath("res://a/rig.xaf"), Is.EqualTo("res://a/rig.xaf"));
-        Assert.That(AnimatorFileCommands.NormalizePath("res://a/rig.bin"), Is.EqualTo("res://a/rig.bin"));
+        Assert.That(AnimatorFileCommands.NormalizePath("a/b.v2/rig"), Is.EqualTo("a/b.v2/rig.xaf"));
+        Assert.That(AnimatorFileCommands.NormalizePath("a/rig.xaf"), Is.EqualTo("a/rig.xaf"));
+        Assert.That(AnimatorFileCommands.NormalizePath("a/rig.bin"), Is.EqualTo("a/rig.bin"));
         Assert.That(AnimatorFileCommands.NormalizePath("   "), Is.EqualTo(""));
     }
 
@@ -209,13 +209,13 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     public void TheHeaderFieldShowsThePathAndEditingItIsSaveAs()
     {
         Frame();
-        Assert.That(PathText.Value, Is.EqualTo("res://test.xaf"));
+        Assert.That(PathText.Value, Is.EqualTo("test.xaf"));
 
         Ui.PathField.AddTag<TextFieldFocused>();
         Frame();
         PathText.Value = "user://other";
         Frame();
-        Assert.That(File.Path, Is.EqualTo("res://test.xaf"), "applied only when editing ends");
+        Assert.That(File.Path, Is.EqualTo("test.xaf"), "applied only when editing ends");
         Ui.PathField.RemoveTag<TextFieldFocused>();
         Frame();
 
@@ -235,8 +235,8 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Ui.PathField.RemoveTag<TextFieldFocused>();
         Frame();
 
-        Assert.That(File.Path, Is.EqualTo("res://test.xaf"));
-        Assert.That(PathText.Value, Is.EqualTo("res://test.xaf"));
+        Assert.That(File.Path, Is.EqualTo("test.xaf"));
+        Assert.That(PathText.Value, Is.EqualTo("test.xaf"));
     }
 
     [Test]
@@ -263,7 +263,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
         Keyboard.Press(Key.S);
         Frame(3);
 
-        Assert.That(Files.SavedPath, Is.EqualTo("res://test.xaf"));
+        Assert.That(Files.SavedPath, Is.EqualTo("test.xaf"));
         Assert.That(File.Dirty, Is.False);
     }
 

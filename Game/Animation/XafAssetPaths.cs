@@ -4,17 +4,15 @@ using System.IO;
 namespace Xanadu.Animation;
 
 /// <summary>
-/// Resolves a package's <c>res://</c> SVG paths against the Godot project that
-/// saved it, so packages authored in the animator tool's project load from
-/// any other project.
+/// Resolves a package's SVG paths (relative to the game folder that saved it)
+/// against the game folder the package sits in, so a package loads the same
+/// art wherever it is opened from.
 /// </summary>
 public static class XafAssetPaths
 {
-    private const string ResPrefix = "res://";
-
     /// <summary>
-    /// Rewrites every <c>res://</c> attachment and chain art path to an absolute path under the
-    /// project root that contains <paramref name="xafFullPath"/>. Paths are left
+    /// Rewrites every relative attachment and chain art path to an absolute path under the
+    /// game folder that contains <paramref name="xafFullPath"/>. Paths are left
     /// unchanged when no enclosing game folder is found.
     /// </summary>
     public static void Rebase(XafPackage package, string xafFullPath)
@@ -25,18 +23,19 @@ public static class XafAssetPaths
 
         foreach (XafAttachment attachment in package.Attachments)
         {
-            if (!attachment.SvgPath.StartsWith(ResPrefix, StringComparison.Ordinal))
-                continue;
-
-            attachment.SvgPath = Path.Combine(root, attachment.SvgPath[ResPrefix.Length..]);
+            if (IsRelative(attachment.SvgPath))
+                attachment.SvgPath = Path.Combine(root, attachment.SvgPath);
         }
 
         foreach (XafChain chain in package.Chains)
         {
-            if (chain.SvgPath.StartsWith(ResPrefix, StringComparison.Ordinal))
-                chain.SvgPath = Path.Combine(root, chain.SvgPath[ResPrefix.Length..]);
+            if (IsRelative(chain.SvgPath))
+                chain.SvgPath = Path.Combine(root, chain.SvgPath);
         }
     }
+
+    private static bool IsRelative(string path) =>
+        path.Length > 0 && !Path.IsPathRooted(path) && !path.StartsWith("user://", StringComparison.Ordinal);
 
     /// <summary>Nearest directory at or above the file that is a game folder (<see cref="Xanadu.Storage.GamePaths.RootMarker"/>).</summary>
     public static string? ProjectRoot(string fullPath)

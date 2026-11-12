@@ -4,16 +4,19 @@ using System.IO;
 namespace Xanadu.Storage;
 
 /// <summary>
-/// The one place <c>res://</c> and <c>user://</c> paths become real ones.
-/// <c>res://</c> is the game folder and <c>user://</c> the folder Godot used to
-/// keep, so old saves stay put. Hosts set them with <see cref="UseRoots"/>;
-/// otherwise they are found on first use. Plain paths come back unchanged.
+/// The one place paths become real ones. A relative path is under the game
+/// folder (<c>Assets/Shaders/flare.slang</c>); <c>user://</c> is the player's
+/// folder (<c>~/.local/share/xanadu</c>); an absolute path comes
+/// back unchanged. Hosts set the folders with <see cref="UseRoots"/>; otherwise
+/// they are found on first use.
 /// </summary>
 public static class GamePaths
 {
-    private static (string Res, string User)? _roots;
+    private const string UserPrefix = "user://";
 
-    /// <summary>The file that marks the game folder, the one <c>res://</c> means.</summary>
+    private static (string Game, string User)? _roots;
+
+    /// <summary>The file that marks the game folder.</summary>
     public const string RootMarker = "Xanadu.sln";
 
     /// <summary>
@@ -34,30 +37,33 @@ public static class GamePaths
         return Directory.GetCurrentDirectory();
     }
 
+    private static (string Game, string User) Roots => _roots ??= (FindGameFolder(), UserFolder("xanadu"));
+
     /// <summary>Whether <paramref name="folder"/> is the game folder.</summary>
     public static bool IsGameFolder(string folder) => File.Exists(Path.Combine(folder, RootMarker));
 
-    /// <summary>Sets the folders <c>res://</c> and <c>user://</c> resolve to.</summary>
-    public static void UseRoots(string res, string user) => _roots = (res, user);
+    /// <summary>Sets the game folder (relative paths) and the folder <c>user://</c> means.</summary>
+    public static void UseRoots(string game, string user) => _roots = (game, user);
 
-    /// <summary>The folder Godot keeps <c>user://</c> in for this game, on Linux.</summary>
-    public static string GodotUserFolder(string gameName) =>
+    /// <summary>The folder relative paths are under.</summary>
+    public static string GameFolder => Roots.Game;
+
+    /// <summary>A player's folder by name under the data home (<c>$XDG_DATA_HOME</c>, else <c>~/.local/share</c>).</summary>
+    public static string UserFolder(string name) =>
         Path.Combine(
             Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } data
                 ? data
                 : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"),
-            "godot",
-            "app_userdata",
-            gameName);
+            name);
 
-    public static string Globalize(string path)
+    /// <summary>The real path: a relative one under the game folder, <c>user://</c> under the player's, an absolute one as it is.</summary>
+    public static string Full(string path)
     {
-        (string Res, string User) roots = _roots ??= (FindGameFolder(), GodotUserFolder("Xanadu"));
-
-        if (path.StartsWith("res://", StringComparison.Ordinal))
-            return Path.Combine(roots.Res, path["res://".Length..]);
-        if (path.StartsWith("user://", StringComparison.Ordinal))
-            return Path.Combine(roots.User, path["user://".Length..]);
-        return path;
+        if (path.StartsWith(UserPrefix, StringComparison.Ordinal))
+            return Path.Combine(Roots.User, path[UserPrefix.Length..]);
+        return Path.IsPathRooted(path) ? path : Path.Combine(Roots.Game, path);
     }
+
+    /// <summary>A file under the game folder as the relative path the game names it by (forward slashes).</summary>
+    public static string InGame(string file) => Path.GetRelativePath(Roots.Game, Path.GetFullPath(file)).Replace('\\', '/');
 }

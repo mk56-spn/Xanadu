@@ -126,7 +126,7 @@ public sealed class XafSkinMeshTests
         package.Skeleton.Bones[lower].Tip = new Vector2(0, 50);
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://strip.svg", Group = "strip", BoneId = "upper",
+            SvgPath = "strip.svg", Group = "strip", BoneId = "upper",
             Transform = new Transform2D(0f, new Vector2(0, 50)),
         });
         const string svg = """

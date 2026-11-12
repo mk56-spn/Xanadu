@@ -17,7 +17,7 @@ public sealed class TimelineDrawSystemTests
     {
         var store = new EntityStore();
         Entity track = store.CreateEntity(new TrackProgress(
-            "res://test-track.wav",
+            "test-track.wav",
             durationMs: 20_000,
             bpm: 128f)
         {
@@ -50,7 +50,7 @@ public sealed class TimelineDrawSystemTests
     {
         var store = new EntityStore();
         Entity track = store.CreateEntity(new TrackProgress(
-            "res://test-track.wav",
+            "test-track.wav",
             durationMs: 20_000,
             bpm: 128f)
         {
@@ -83,7 +83,7 @@ public sealed class TimelineDrawSystemTests
     {
         var store = new EntityStore();
         store.CreateEntity(new TrackProgress(
-            "res://test-track.wav",
+            "test-track.wav",
             durationMs: 20_000,
             bpm: 128f)
         {

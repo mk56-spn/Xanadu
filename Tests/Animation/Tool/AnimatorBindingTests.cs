@@ -326,7 +326,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     {
         Tap(Key.Ctrl, Key.O);
 
-        Assert.That(Files.LoadedPath, Is.EqualTo("res://test.xaf"));
+        Assert.That(Files.LoadedPath, Is.EqualTo("test.xaf"));
         Assert.That(Session.GetComponent<AnimatorModes>().Onion, Is.False);
     }
 }

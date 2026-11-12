@@ -25,7 +25,7 @@ public sealed class MapOffsetSettings
 
     public MapOffsetSettings(string? path = null, bool persist = true)
     {
-        _path = persist ? path ?? Xanadu.Storage.GamePaths.Globalize(DefaultPath) : null;
+        _path = persist ? path ?? Xanadu.Storage.GamePaths.Full(DefaultPath) : null;
         Load();
     }
 

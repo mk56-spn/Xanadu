@@ -9,7 +9,7 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Plays a click on BPM/offset beat boundaries.</summary>
 public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronome>
 {
-    private const string ClickPath = "res://Assets/Audio/metronome.wav";
+    private const string ClickPath = "Assets/Audio/metronome.wav";
 
     private readonly ITrackAudio _audio;
     private long _lastBeat = long.MinValue;

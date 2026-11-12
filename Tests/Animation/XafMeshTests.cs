@@ -24,7 +24,7 @@ public sealed class XafMeshTests
         XafRigAuthoring.AddBone(package, Shin, "foot", new Vector2(0, 50));
         package.Attachments.Add(new XafAttachment
         {
-            SvgPath = "res://leg.svg", Group = "thigh", BoneId = "thigh",
+            SvgPath = "leg.svg", Group = "thigh", BoneId = "thigh",
             Transform = new Transform2D(0f, new Vector2(0, 25)),
             Mesh = new XafMesh { Detail = 8, Blend = 10f },
         });

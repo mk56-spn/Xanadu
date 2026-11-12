@@ -136,7 +136,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Load));
 
         Assert.That(Package, Is.SameAs(before));
-        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("LOAD FAILED: res://test.xaf"));
+        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("LOAD FAILED: test.xaf"));
     }
 
     [Test]

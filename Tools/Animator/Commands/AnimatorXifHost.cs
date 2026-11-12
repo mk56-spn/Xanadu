@@ -41,7 +41,7 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
 
     public IReadOnlyList<XifShaderChoice> Shaders => Choices;
 
-    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Globalize(path));
+    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path));
 
     public void Edit(Action change)
     {

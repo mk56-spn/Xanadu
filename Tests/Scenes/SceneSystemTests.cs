@@ -42,8 +42,8 @@ public sealed partial class SceneSystemTests
 
         _catalog = new List<LevelEntry>
         {
-            CreateLevel("First Level", "res://song-a.mp3", 140),
-            CreateLevel("Second Level", "res://song-b.mp3", 170),
+            CreateLevel("First Level", "song-a.mp3", 140),
+            CreateLevel("Second Level", "song-b.mp3", 170),
         };
 
         _keybinds = new KeybindSettings(persist: false);

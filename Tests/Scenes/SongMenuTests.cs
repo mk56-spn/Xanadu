@@ -35,7 +35,7 @@ public sealed class SongMenuTests
 
         _catalog =
         [
-            CreateLevel("Menu Level", "res://song-a.mp3"),
+            CreateLevel("Menu Level", "song-a.mp3"),
         ];
 
         _scenes = new SceneSystem(
