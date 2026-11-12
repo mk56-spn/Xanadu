@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Rendering;
 using Xanadu.Ecs;
 using Xanadu.Scoring;
 using Xanadu.Settings;
@@ -53,6 +54,60 @@ public sealed class PlayNoteInputSystemTests
 
     [TearDown]
     public void TearDown() => _physics.Dispose();
+
+    [Test]
+    public void APlayKeyPressReachesTheShaders()
+    {
+        ShaderKeys.Clear();
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.Up);
+
+        Frame();
+
+        Assert.That(ShaderKeys.Since((int)KeybindAction.Up), Is.LessThan(1f));
+        Assert.That(ShaderKeys.Since((int)KeybindAction.Action1), Is.EqualTo(ShaderKeys.Never));
+        ShaderKeys.Clear();
+    }
+
+    [Test]
+    public void AHitStartsTheShadersHitClocks()
+    {
+        ShaderPlay.Clear();
+        Entity playfield = CreatePlayfield(totalNotes: 1);
+        CreateNote(1_000, new Vector2(500, 500));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.Action2);
+
+        Frame();
+
+        Assert.That(ShaderPlay.Since(ShaderEvent.Hit), Is.LessThan(1f));
+        Assert.That(ShaderPlay.Since(ShaderEvent.FlawlessPlus), Is.LessThan(1f));
+        Assert.That(ShaderPlay.Since(ShaderEvent.Judged), Is.LessThan(1f));
+        Assert.That(ShaderPlay.Since(ShaderEvent.Miss), Is.EqualTo(ShaderKeys.Never));
+        Assert.That(ShaderPlay.Since(ShaderEvent.ComboBroken), Is.EqualTo(ShaderKeys.Never));
+        ShaderPlay.Clear();
+    }
+
+    [Test]
+    public void AMissAfterAHitBreaksTheShadersCombo()
+    {
+        ShaderPlay.Clear();
+        Entity playfield = CreatePlayfield(totalNotes: 2);
+        CreateNote(1_000, new Vector2(500, 500));
+        CreateNote(2_000, new Vector2(200, 200));
+        SetPlayhead(playfield, 1_000);
+        Press(KeybindAction.Action2);
+        Frame();
+        Release(KeybindAction.Action2);
+        SetPlayhead(playfield, 2_151);
+
+        Frame();
+
+        Assert.That(ShaderPlay.Since(ShaderEvent.Miss), Is.LessThan(1f));
+        Assert.That(ShaderPlay.Since(ShaderEvent.ComboBroken), Is.LessThan(1f));
+        ShaderPlay.Clear();
+    }
 
     [Test]
     public void CorrectKeyWhileOnTheNoteAwardsAJudgement()

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -47,6 +48,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
                 if (hitbox.Overlaps(playerRect))
                 {
                     session.Died = true;
+                    ShaderPlay.Mark(ShaderEvent.Death);
                     Shatter(playfield, player.Size);
                     return;
                 }

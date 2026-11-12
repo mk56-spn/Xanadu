@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
@@ -28,6 +29,7 @@ public sealed class GroundModeSystem(
     {
         _latch?.Update();
         bool hold = _latch?.Visible == true;
+        ShaderPlay.GroundHold = hold;
         CommandBuffer buffer = CommandBuffer;
 
         Query.ForEachEntity((ref mode, ref player, ref body, ref position, entity) =>

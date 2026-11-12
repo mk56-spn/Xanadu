@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Systems.Audio;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -125,6 +126,7 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
         }
 
         session.CountdownDone = true;
+        ShaderPlay.Mark(ShaderEvent.CountdownDone);
         SetCountdown(ref session, "GO!", buffer);
 
         if (playhead.DurationMs > 0)
@@ -175,6 +177,7 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
         playhead.SeekRequestMs = session.StartTimeMs;
         playhead.Playing = true;
         session.Started = true;
+        ShaderPlay.Mark(ShaderEvent.SongStart);
         SetStatus(ref session, "PLAYING", buffer);
     }
 

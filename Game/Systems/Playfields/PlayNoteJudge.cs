@@ -51,6 +51,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
 
             score.AccuracyPenalty +=
                 ScoreRules.MineAccuracyPenalty * score.TotalNotes;
+            PlayScoring.Mark(Judgement.Mine, comboBroken: score.Combo > 0);
             score.Combo = 0;
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Mine;

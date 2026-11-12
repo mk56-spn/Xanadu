@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Theme;
@@ -77,6 +78,8 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
 
                 ref ContactCounters counters = ref entity.GetComponent<ContactCounters>();
                 bool paid = counters.Consume(note.Costs);
+                if (paid)
+                    ShaderPlay.Mark(ShaderEvent.BarrierPaid);
 
                 if (!paid && entity.HasComponent<ScoreState>())
                 {

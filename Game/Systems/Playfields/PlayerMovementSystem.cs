@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
@@ -85,6 +86,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 }
 
                 DashDirection heading = NoteRules.Heading(movement, action);
+                ShaderPlay.Mark(movement.Kind == NoteKind.Dash ? ShaderEvent.Dash : ShaderEvent.Momentum);
+                ShaderPlay.LastMove = DashDirectionVector(heading);
                 GroundStepSystem.Cancel(entity, buffer);
                 // Before the note moves the player, so the copy stays where it hit.
                 HitGhostSystem.Spawn(_entities, entity);

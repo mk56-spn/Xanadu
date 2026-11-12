@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Position = Xanadu.Ecs.Position;
@@ -62,6 +63,9 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             Key key = _keybinds.Get(action);
             if (!_presses.Started(key, _keyboard.IsPressed(key)))
                 continue;
+
+            // Level shaders read each key's last press (keys. in xanadu.anim).
+            ShaderKeys.Press((int)action);
 
             // Direction keys steer: their notes are resolved by the movement system.
             if (_judge.Mine(action, playfield) || KeybindSettings.IsDirection(action))

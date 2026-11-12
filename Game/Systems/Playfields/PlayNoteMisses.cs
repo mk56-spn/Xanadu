@@ -40,6 +40,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
                 continue;
 
             entity.AddTag<NoteMissed>();
+            PlayScoring.Mark(Judgement.Miss, comboBroken: score.Combo > 0);
             score.Combo = 0;
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Miss;

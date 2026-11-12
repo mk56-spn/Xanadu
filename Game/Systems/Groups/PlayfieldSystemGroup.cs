@@ -107,6 +107,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlayerSmoothingSystem());
         Add(new PlayerPathRecordSystem());
         Add(new PlayCameraSystem());
+        Add(new ShaderPlaySystem());
         Add(new PlayScoreSystem());
         Add(new ComboHudSystem());
         if (rigFiles is not null)
