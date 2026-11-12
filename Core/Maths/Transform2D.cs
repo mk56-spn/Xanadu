@@ -370,7 +370,6 @@ namespace Xanadu.Maths
 
         /// <summary>
         /// The identity transform, with no translation, rotation, or scaling applied.
-        /// This is used as a replacement for <c>Transform2D()</c> in GDScript.
         /// Do not use <c>new Transform2D()</c> with no arguments in C#, because it sets all values to zero.
         /// </summary>
         /// <value>Equivalent to <c>new Transform2D(Vector2.Right, Vector2.Down, Vector2.Zero)</c>.</value>

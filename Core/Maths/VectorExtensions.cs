@@ -689,7 +689,7 @@ public static class Vector2Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector2(10, -20) % 7); // Prints "(3, -6)"
+        /// new Vector2(10, -20) % 7 == (3, -6)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -712,7 +712,7 @@ public static class Vector2Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector2(10, -20) % new Vector2(7, 8)); // Prints "(3, -4)"
+        /// new Vector2(10, -20) % new Vector2(7, 8) == (3, -4)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -1514,7 +1514,7 @@ public static class Vector3Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector3(10, -20, 30) % 7); // Prints "(3, -6, 2)"
+        /// new Vector3(10, -20, 30) % 7 == (3, -6, 2)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -1538,7 +1538,7 @@ public static class Vector3Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector3(10, -20, 30) % new Vector3(7, 8, 9)); // Prints "(3, -4, 3)"
+        /// new Vector3(10, -20, 30) % new Vector3(7, 8, 9) == (3, -4, 3)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -2109,7 +2109,7 @@ public static class Vector4Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector4(10, -20, 30, 40) % 7); // Prints "(3, -6, 2, 5)"
+        /// new Vector4(10, -20, 30, 40) % 7 == (3, -6, 2, 5)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -2134,7 +2134,7 @@ public static class Vector4Godot
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector4(10, -20, 30, 10) % new Vector4(7, 8, 9, 10)); // Prints "(3, -4, 3, 0)"
+        /// new Vector4(10, -20, 30, 10) % new Vector4(7, 8, 9, 10) == (3, -4, 3, 0)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>

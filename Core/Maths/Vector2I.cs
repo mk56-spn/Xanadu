@@ -506,7 +506,7 @@ namespace Xanadu.Maths
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector2I(10, -20) % 7); // Prints "(3, -6)"
+        /// new Vector2I(10, -20) % 7 == (3, -6)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>
@@ -529,7 +529,7 @@ namespace Xanadu.Maths
         /// </summary>
         /// <example>
         /// <code>
-        /// GD.Print(new Vector2I(10, -20) % new Vector2I(7, 8)); // Prints "(3, -4)"
+        /// new Vector2I(10, -20) % new Vector2I(7, 8) == (3, -4)
         /// </code>
         /// </example>
         /// <param name="vec">The dividend vector.</param>

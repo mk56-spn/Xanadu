@@ -436,7 +436,6 @@ namespace Xanadu.Maths
         /// <summary>
         /// Returns the color converted to an unsigned 32-bit integer in ARGB
         /// format (each byte represents a color channel).
-        /// ARGB is more compatible with DirectX, but not used much in Godot.
         /// </summary>
         /// <returns>A <see langword="uint"/> representing this color in ARGB32 format.</returns>
         public readonly uint ToArgb32()
@@ -455,7 +454,6 @@ namespace Xanadu.Maths
         /// <summary>
         /// Returns the color converted to an unsigned 64-bit integer in ARGB
         /// format (each word represents a color channel).
-        /// ARGB is more compatible with DirectX, but not used much in Godot.
         /// </summary>
         /// <returns>A <see langword="ulong"/> representing this color in ARGB64 format.</returns>
         public readonly ulong ToArgb64()
