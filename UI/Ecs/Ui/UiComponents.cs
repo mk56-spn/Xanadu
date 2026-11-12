@@ -273,6 +273,13 @@ public struct UiOverlayItem : ITag;
 /// </summary>
 public struct TextMono : ITag;
 
+/// <summary>
+/// Text that is cut, with an ellipsis, to whatever width layout gives its box,
+/// rather than running past it. The whole string stays in <see cref="Text"/>;
+/// only what is drawn is cut, again each time the box changes.
+/// </summary>
+public struct TextFit : ITag;
+
 /// <summary>Marks a slider fill so it draws above its track.</summary>
 public struct UiSliderFill : ITag;
 

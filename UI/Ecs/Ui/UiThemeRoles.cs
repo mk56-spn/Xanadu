@@ -29,6 +29,9 @@ public sealed record UiThemeRoles
     /// <summary>An action that destroys something.</summary>
     public required UiTone Danger { get; init; }
 
+    /// <summary>The one choice of a group that is on: a toggled view, a chosen sort.</summary>
+    public required UiTone Chosen { get; init; }
+
     /// <summary>An opaque panel.</summary>
     public required Color Surface { get; init; }
 
@@ -40,6 +43,34 @@ public sealed record UiThemeRoles
 
     /// <summary>Titles and highlighted text.</summary>
     public required Color Accent { get; init; }
+
+    /// <summary>A recessed well, such as a meter's empty track.</summary>
+    public required Color Inset { get; init; }
+
+    /// <summary>A reading that is fine, such as a meter well under its limit.</summary>
+    public required Color Good { get; init; }
+
+    /// <summary>A reading getting close to a limit.</summary>
+    public required Color Warn { get; init; }
+
+    /// <summary>A reading at or past a limit.</summary>
+    public required Color Bad { get; init; }
+
+    /// <summary>
+    /// Colours that only tell things apart, such as kinds of item in a chart.
+    /// They mean nothing on their own: whoever shows the categories decides
+    /// which is which, and asks for them by index (<see cref="Category"/>).
+    /// </summary>
+    public required Color[] Categories { get; init; }
+
+    /// <summary>How far a category tints a surface: enough to tell kinds apart, not so much the text on it stops reading.</summary>
+    public float CategoryTint { get; init; } = 0.24f;
+
+    /// <summary>Category <paramref name="index"/>'s colour; indices past the end wrap round.</summary>
+    public Color Category(int index) => Categories[((index % Categories.Length) + Categories.Length) % Categories.Length];
+
+    /// <summary>A surface tinted with category <paramref name="index"/>, and the text that reads on it.</summary>
+    public UiTone CategoryTone(int index) => new(Surface.Lerp(Category(index), CategoryTint), Text);
 }
 
 /// <summary>
@@ -59,11 +90,21 @@ public static class UiThemes
         Secondary = new UiTone(Palette.Muted, Palette.Text),
         Quiet = new UiTone(Clear, Palette.TextDim),
         Danger = new UiTone(Palette.Danger, Palette.TextBright),
+        Chosen = new UiTone(Palette.Primary, Palette.TextBright),
         Surface = Palette.Surface,
         Backing = new Color(0f, 0f, 0f, 0.3f),
         Text = Palette.Text,
         TextDim = Palette.TextDim,
         Accent = Palette.Accent,
+        Inset = Palette.SurfaceDeep,
+        Good = Palette.Success,
+        Warn = Palette.Warning,
+        Bad = Palette.DangerBright,
+        Categories =
+        [
+            Palette.Gold, Palette.GoldLight, Palette.InfoSoft, Palette.Cyan,
+            Palette.Violet, Palette.Lime, Palette.Pink, Palette.TextDim, Palette.BorderSubtle,
+        ],
     };
 
     /// <summary>The menus, after song select: gold for the main action and titles, dark text on the gold.</summary>

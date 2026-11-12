@@ -8,10 +8,12 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Ui;
 
 /// <summary>
-/// Scrolls the ECS viewport under the pointer. It takes the wheel only when there
-/// is one, leaving the notches for the host's own wheel behaviour otherwise.
+/// Scrolls the ECS viewport or pooled list (<see cref="UiList"/>) under the
+/// pointer. It takes the wheel only when there is one, leaving the notches for
+/// the host's own wheel behaviour otherwise. Lists are also fitted to their
+/// viewports each frame, so a resize shows more or fewer rows.
 /// </summary>
-public sealed class ScrollSystem(
+public sealed partial class ScrollSystem(
     IPointerInputSource? pointerSource = null,
     IWheelSource? wheel = null) : QuerySystem<ScrollView, Rectangle, Position>
 {
@@ -22,27 +24,36 @@ public sealed class ScrollSystem(
             Vector2 pointer = pointerSource.Read().Position;
             Entity target = default;
             foreach (Entity entity in Query.ToEntityList())
-            {
-                Rectangle rect = entity.GetComponent<Rectangle>();
-                Position position = entity.GetComponent<Position>();
-                Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-                var bounds = new Rect2(
-                    world + rect.Bounds.Position,
-                    rect.Bounds.Size);
-                if (bounds.HasPoint(pointer) &&
-                    (target.IsNull || LayerZ(entity) > LayerZ(target)))
-                {
-                    target = entity;
-                }
-            }
+                Consider(entity, pointer, ref target);
+            foreach (Entity entity in Lists.ToEntityList())
+                Consider(entity, pointer, ref target);
 
-            if (!target.IsNull)
+            if (!target.IsNull && target.HasComponent<UiList>())
+                Scroll(target, wheel.TakeWheel());
+            else if (!target.IsNull)
                 target.GetComponent<ScrollView>().Offset -= wheel.TakeWheel() * 48f;
         }
 
         CommandBuffer buffer = CommandBuffer;
         foreach (Entity viewport in Query.ToEntityList())
             Place(viewport, buffer);
+        SettleLists(buffer);
+    }
+
+    /// <summary>Makes <paramref name="entity"/> the wheel's target when the pointer is over it and it is the topmost so far.</summary>
+    private static void Consider(Entity entity, Vector2 pointer, ref Entity target)
+    {
+        Rectangle rect = entity.GetComponent<Rectangle>();
+        Position position = entity.GetComponent<Position>();
+        Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+        var bounds = new Rect2(
+            world + rect.Bounds.Position,
+            rect.Bounds.Size);
+        if (bounds.HasPoint(pointer) &&
+            (target.IsNull || LayerZ(entity) > LayerZ(target)))
+        {
+            target = entity;
+        }
     }
 
     /// <summary>The z index of the layer a viewport draws on, so the topmost one takes the wheel.</summary>

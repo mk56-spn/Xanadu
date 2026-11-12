@@ -22,10 +22,20 @@ internal readonly record struct ToolFrame(float Delta, float Time, Vector2 Mouse
 /// <summary>
 /// One tab's drawing. It is made when its tab first opens; when another tab
 /// opens it is disposed, or only hidden if its tab keeps it (<see cref="IToolTab.Keep"/>).
+/// A stage either draws on the canvas item it is made with, or builds ECS UI
+/// into the body it is handed (<see cref="Build"/>), which the shell lays out,
+/// shows and hides with the tab.
 /// </summary>
 internal interface IToolStage : IDisposable
 {
     void Update(in ToolFrame frame);
+
+    /// <summary>
+    /// Builds the stage's ECS UI into <paramref name="body"/>, a column that fills
+    /// the tab's room, once, right after the stage is made. A stage that builds
+    /// nothing draws on its canvas item instead and keeps the shell's frame.
+    /// </summary>
+    void Build(UiNode body) { }
 
     /// <summary>Its tab opened: on first opening, and again each time a kept stage comes back.</summary>
     void Shown() { }
@@ -70,7 +80,8 @@ internal interface IToolTab
 /// along the top, the open tab's notes and controls in an ECS side panel, and
 /// its drawing on a stage to the right. It is all containers: the tabs share
 /// the strip (each capped), the panel has a fixed width, and the stage is a
-/// growing slot whose laid-out box the stage draws in. Leaving a tab frees its stage and
+/// growing slot: an ECS stage builds into the tab's body there, a canvas stage
+/// draws in the slot's laid-out box. Leaving a tab frees its stage and
 /// opening one builds it fresh, so every tab starts clean, unless the tab
 /// keeps it (<see cref="IToolTab.Keep"/>). A tool only says what its tabs are
 /// and how to make a tab's stage, and can send the user to a tab (<see cref="Open"/>).
@@ -105,6 +116,9 @@ internal abstract class TabbedToolApp : HostApp
     private readonly IToolStage?[] _stages;
     private readonly Handle[] _items;
 
+    /// <summary>Each tab's ECS body in the slot, shown while the tab is open and its stage built into it.</summary>
+    private readonly Entity[] _bodies;
+
     private IToolStage? Stage => _shown >= 0 ? _stages[_shown] : null;
 
     protected TabbedToolApp(string title, HostWindowOptions window, IToolTab[] tabs, int openTab = 0) : base(title, window)
@@ -112,6 +126,7 @@ internal abstract class TabbedToolApp : HostApp
         _tabs = tabs;
         _stages = new IToolStage?[tabs.Length];
         _items = new Handle[tabs.Length];
+        _bodies = new Entity[tabs.Length];
         Build();
         if (openTab >= 0 && openTab < _tabs.Length)
             _strip.GetComponent<UiTabs>().Selected = openTab;
@@ -165,6 +180,8 @@ internal abstract class TabbedToolApp : HostApp
         UiNode slot = body.Column().Cross(StackCrossAlignment.Stretch).Grow();
         _slot = slot;
         _frame = slot.Rect(Palette.SurfaceDeep).Grow().Border(Palette.BorderStrong);
+        for (int i = 0; i < _tabs.Length; i++)
+            _bodies[i] = slot.Column().Cross(StackCrossAlignment.Stretch).Grow().Hidden();
 
         _strip.AddComponent(new UiTabs(buttons, bodies, Vector2.Zero));
     }
@@ -198,15 +215,18 @@ internal abstract class TabbedToolApp : HostApp
             CanvasServer.Current.SetZIndex(_items[selected], StageZ);
             _area = UiLayout.Box(_slot);
             _stages[selected] = CreateStage(selected, _items[selected], _area);
+            _stages[selected]!.Build(UiNode.Wrap(_bodies[selected]));
         }
         else
         {
             CanvasServer.Current.SetVisible(_items[selected], true);
         }
 
+        // An ECS stage fills the slot itself; a canvas one draws over the frame, unless its tab is full width.
+        bool ecs = _bodies[selected].ChildCount > 0;
+        UiLayout.SetHidden(_bodies[selected], !ecs);
         _stages[selected]!.Shown();
-        // A full-width tab draws its own frame.
-        UiLayout.SetHidden(_frame, _tabs[selected].FullWidth);
+        UiLayout.SetHidden(_frame, ecs || _tabs[selected].FullWidth);
     }
 
     /// <summary>Tells the shown stage when its slot's box changes.</summary>
@@ -229,6 +249,7 @@ internal abstract class TabbedToolApp : HostApp
         if (_stages[tab] is not { } stage)
             return;
 
+        UiLayout.SetHidden(_bodies[tab], true);
         if (_tabs[tab].Keep)
         {
             stage.Hidden();
@@ -237,6 +258,7 @@ internal abstract class TabbedToolApp : HostApp
         }
 
         stage.Dispose();
+        UiLayout.DeleteChildren(_bodies[tab]);
         CanvasServer.Current.Free(_items[tab]);
         _stages[tab] = null;
         _items[tab] = default;

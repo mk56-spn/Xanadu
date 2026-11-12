@@ -6,7 +6,7 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Rendering;
 
-/// <summary>Draws dirty entity text into the entity canvas item.</summary>
+/// <summary>Draws dirty entity text into the entity canvas item, cut to its box when it has <see cref="TextFit"/>.</summary>
 public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualRid>
 {
     private static readonly Color TextColor = Colors.White;
@@ -35,6 +35,9 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
             if (entity.HasComponent<TextStyle>())
             {
                 TextStyle style = entity.GetComponent<TextStyle>();
+                string shown = entity.Tags.Has<TextFit>()
+                    ? UiTextFit.Cut(text.Value, style.FontSize, rect.Bounds.Size.X)
+                    : text.Value;
                 TextAlign align = entity.HasComponent<TextAlignment>()
                     ? entity.GetComponent<TextAlignment>().Align
                     : TextAlign.Center;
@@ -44,7 +47,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     _canvas.DrawTextMono(
                         visual.Value,
                         rect.Bounds,
-                        text.Value,
+                        shown,
                         style.Color,
                         style.FontSize,
                         align);
@@ -54,7 +57,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     _canvas.DrawTextGlow(
                         visual.Value,
                         rect.Bounds,
-                        text.Value,
+                        shown,
                         style.Color,
                         style.FontSize,
                         align,
@@ -71,7 +74,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                         _canvas.DrawTextOutline(
                             visual.Value,
                             rect.Bounds,
-                            text.Value,
+                            shown,
                             outline.Color,
                             style.FontSize,
                             align,
@@ -82,7 +85,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                     _canvas.DrawTextWeighted(
                         visual.Value,
                         rect.Bounds,
-                        text.Value,
+                        shown,
                         style.Color,
                         style.FontSize,
                         align,

@@ -25,6 +25,18 @@ public readonly partial struct UiNode
     /// <summary>An action that destroys something.</summary>
     public UiNode Danger() => Tone(Roles.Danger);
 
+    /// <summary>One choice of a group: the chosen tone when <paramref name="on"/>, the secondary one otherwise.</summary>
+    public UiNode Chosen(bool on) => Tone(on ? Roles.Chosen : Roles.Secondary);
+
+    /// <summary>A surface tinted with category <paramref name="index"/> (<see cref="UiThemeRoles.Categories"/>), such as a card of one kind.</summary>
+    public UiNode CategoryTone(int index) => Tone(Roles.CategoryTone(index));
+
+    /// <summary>Filled with category <paramref name="index"/>'s own colour, such as a swatch or a stripe.</summary>
+    public UiNode CategoryFill(int index) => Fill(Roles.Category(index));
+
+    /// <summary>Text in category <paramref name="index"/>'s colour, such as a heading over that kind.</summary>
+    public UiNode CategoryText(int index) => TextColor(Roles.Category(index));
+
     /// <summary>An opaque panel fill.</summary>
     public UiNode Solid() => Fill(Roles.Surface);
 
