@@ -14,8 +14,8 @@ namespace Xanadu.Tests.Scenes;
 
 /// <summary>
 /// Song timing has no scene-test case (it needs a catalog song), so this covers
-/// the migrated builder directly: the live handles the controller writes to, the
-/// adjust buttons, and the action row's layout.
+/// the builder directly: the live handles the controller writes to, the step
+/// buttons around their values, the action row's layout, and the changes list.
 /// </summary>
 [TestFixture]
 public sealed class SongTimingSceneTests
@@ -107,14 +107,12 @@ public sealed class SongTimingSceneTests
         Assert.That((save.Position.X + back.End.X) / 2,
             Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
 
-        // The value box is deliberately wider than its text, so the adjust
-        // buttons flank its centre rather than clearing its edges.
+        // The value box is deliberately wider than its text, so the step buttons
+        // beside it stay put however long the value gets.
         Assert.That(CenterX(bpm), Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
-        Assert.That(CenterX(minus),
-            Is.EqualTo(UiStage.Full.Center.X - 180).Within(0.5f));
-        Assert.That(CenterX(plus),
-            Is.EqualTo(UiStage.Full.Center.X + 180).Within(0.5f));
-        Assert.That(minus.Position.X, Is.LessThan(bpm.Position.X));
+        Assert.That(minus.End.X, Is.LessThan(bpm.Position.X));
+        Assert.That(plus.Position.X, Is.GreaterThan(bpm.End.X));
+        Assert.That(CenterX(minus) + CenterX(plus), Is.EqualTo(2 * UiStage.Full.Center.X).Within(0.5f));
     }
 
     private static float CenterX(Rect2 area) => area.Position.X + area.Size.X / 2;
@@ -138,14 +136,18 @@ public sealed class SongTimingSceneTests
         Build();
 
         SongTimingView timing = _store.Query<SongTimingView>().ToEntityList()[0].GetComponent<SongTimingView>();
-        var kinds = _store.Query<SongTimingField>().ToEntityList()
+        // Pooled rows past the last change are hidden, so their fields are disabled entities.
+        var kinds = _store.Query<SongTimingField>().WithDisabled().ToEntityList()
             .Select(entity => entity.GetComponent<SongTimingField>().Kind)
             .ToList();
 
-        Assert.That(timing.Rows, Has.Length.EqualTo(SongTimingScene.ChangeRows));
+        // The changes are a pooled list: one set of fields per pooled row.
+        int pool = UiLists.Pool(timing.List);
+        Assert.That(timing.List.HasComponent<UiList>(), Is.True);
+        Assert.That(timing.Rows, Has.Length.EqualTo(pool));
         Assert.That(kinds, Does.Contain(SongTimingFieldKind.BaseBpm));
         Assert.That(kinds, Does.Contain(SongTimingFieldKind.Offset));
-        Assert.That(kinds.Count(kind => kind == SongTimingFieldKind.ChangeBpm), Is.EqualTo(SongTimingScene.ChangeRows));
+        Assert.That(kinds.Count(kind => kind == SongTimingFieldKind.ChangeBpm), Is.EqualTo(pool));
         Assert.That(
             UiCommand.All<SongTempoAction>(_store).Select(button => button.Id),
             Does.Contain(SongTempoAction.Add));

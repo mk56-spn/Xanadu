@@ -16,9 +16,10 @@ public sealed class PooledList(
     float gap,
     Action? changed = null,
     float? width = null,
+    float? height = null,
     float grow = 0,
     bool stretch = false)
-    : UiSpec(width, null, null, grow, stretch)
+    : UiSpec(width, height, null, grow, stretch)
 {
     public required Func<int, IEnumerable<UiSpec?>> Row { get; init; }
 

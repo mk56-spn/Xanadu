@@ -101,9 +101,10 @@ public sealed class Field(
     bool numeric = false,
     Vector2? size = null,
     float? width = null,
+    float? height = null,
     float grow = 0,
     string? tip = null)
-    : UiSpec(width, null, size, grow, tip: tip)
+    : UiSpec(width, height, size, grow, tip: tip)
 {
     // The field systems give it its fill, focused or not.
     protected override UiNode Create(UiNode parent) =>

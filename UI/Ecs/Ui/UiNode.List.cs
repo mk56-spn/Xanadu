@@ -23,6 +23,9 @@ public struct UiList : IComponent
     /// <summary>How many rows show an item now; the rest are hidden.</summary>
     public int Shown;
 
+    /// <summary>How many rows the viewport fits, items or not.</summary>
+    public int Fits;
+
     /// <summary>One row's height.</summary>
     public float RowHeight;
 
@@ -91,6 +94,28 @@ public static class UiLists
         list.AddComponent(view);
     }
 
+    /// <summary>
+    /// Scrolls the list as little as it takes for item <paramref name="item"/> to
+    /// show; the owner hears it when the list moved.
+    /// </summary>
+    public static void Reveal(Entity list, int item)
+    {
+        if (list.IsNull || !list.HasComponent<UiList>())
+            return;
+
+        UiList view = list.GetComponent<UiList>();
+        int before = view.First;
+        if (item < view.First)
+            view.First = item;
+        else if (view.Fits > 0 && item >= view.First + view.Fits)
+            view.First = item - view.Fits + 1;
+        Settle(list, ref view);
+        if (view.First != before)
+            list.AddComponent(view);
+        else
+            list.GetComponent<UiList>() = view;
+    }
+
     /// <summary>The pooled row at <paramref name="index"/>, from the top.</summary>
     public static Entity Row(Entity list, int index) => list.ChildEntities[index];
 
@@ -112,6 +137,7 @@ public static class UiLists
         bool changed = first != view.First || shown != view.Shown;
         view.First = first;
         view.Shown = shown;
+        view.Fits = fits;
 
         for (int i = 0; i < Pool(list); i++)
         {

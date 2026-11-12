@@ -98,14 +98,12 @@ public sealed class SceneControllerRegistry
                 return;
             }
 
-            _scroll = 0;
             _focused.Clear();
             SongTimingScene.Build(c.Entities, c.Root, song, c.Visuals);
         }
 
         private readonly ButtonPress _presses = new();
         private readonly HashSet<int> _focused = new();
-        private int _scroll;
 
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
@@ -114,6 +112,14 @@ public sealed class SceneControllerRegistry
             if (song is null)
                 return;
 
+            EntityList views = system.Entities.Query<SongTimingView>().ToEntityList();
+            if (views.Count == 0)
+                return;
+
+            SongTimingView timing = views[0].GetComponent<SongTimingView>();
+
+            // The list stands for the song's changes; its top is which change the first row shows.
+            int first = timing.List.GetComponent<UiList>().First;
             bool changed = false;
             foreach ((Entity entity, SongTimingAdjustKind kind, UiCommand adjust) in UiCommand.All<SongTimingAdjustKind>(system.Entities))
             {
@@ -136,23 +142,20 @@ public sealed class SceneControllerRegistry
                     case SongTempoAction.Add:
                         int added = SongTempoEdits.Add(song);
                         if (added >= 0)
-                            _scroll = Math.Max(0, added - SongTimingScene.ChangeRows + 1);
+                        {
+                            UiLists.SetCount(timing.List, song.TempoChanges.Count, keepPlace: true);
+                            UiLists.Reveal(timing.List, added);
+                        }
                         changed = true;
                         break;
                     case SongTempoAction.Remove:
-                        changed |= SongTempoEdits.Remove(song, _scroll + button.Arg);
-                        break;
-                    case SongTempoAction.ScrollUp:
-                        _scroll--;
-                        break;
-                    case SongTempoAction.ScrollDown:
-                        _scroll++;
+                        changed |= SongTempoEdits.Remove(song, first + button.Arg);
                         break;
                 }
             }
 
             // Typed values are read before the view refreshes the fields.
-            changed |= CommitFields(system.Entities, song);
+            changed |= CommitFields(system.Entities, song, first);
 
             bool savePressed = false;
             Entity save = UiCommand.Find(system.Entities, SongTempoAction.Save);
@@ -165,17 +168,13 @@ public sealed class SceneControllerRegistry
             if (changed || savePressed)
                 songs.Save(song);
 
-            _scroll = Math.Clamp(_scroll, 0, Math.Max(0, song.TempoChanges.Count - SongTimingScene.ChangeRows));
-            Entity view = system.Entities.Query<SongTimingView>()
-                .ToEntityList().Count > 0
-                ? system.Entities.Query<SongTimingView>().ToEntityList()[0]
-                : default;
-            if (!view.IsNull)
-                Show(system.Entities, view.GetComponent<SongTimingView>(), song);
+            if (timing.List.GetComponent<UiList>().Count != song.TempoChanges.Count)
+                UiLists.SetCount(timing.List, song.TempoChanges.Count, keepPlace: true);
+            Show(system.Entities, timing, song);
         }
 
         /// <summary>Applies each typed field once it loses focus. True when the song changed.</summary>
-        private bool CommitFields(EntityStore entities, SongDocument song)
+        private bool CommitFields(EntityStore entities, SongDocument song, int first)
         {
             bool changed = false;
             foreach (Entity entity in entities.Query<SongTimingField, TextField>().ToEntityList())
@@ -194,7 +193,7 @@ public sealed class SceneControllerRegistry
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
                     continue;
 
-                int index = _scroll + field.Slot;
+                int index = first + field.Slot;
                 changed |= field.Kind switch
                 {
                     SongTimingFieldKind.BaseBpm => SongTempoEdits.SetBase(song, bpm: value),
@@ -216,13 +215,14 @@ public sealed class SceneControllerRegistry
             SceneUi.SetText(timing.Offset, $"OFFSET {song.OffsetMs} MS");
 
             TempoMap map = song.Tempo();
+            UiList list = timing.List.GetComponent<UiList>();
             foreach (Entity entity in entities.Query<SongTimingField, TextField>().ToEntityList())
             {
                 if (entity.Tags.Has<TextFieldFocused>())
                     continue;
 
                 SongTimingField field = entity.GetComponent<SongTimingField>();
-                int index = _scroll + field.Slot;
+                int index = list.First + field.Slot;
                 TempoChangeDocument? change = index < song.TempoChanges.Count ? song.TempoChanges[index] : null;
                 string value = field.Kind switch
                 {
@@ -242,16 +242,13 @@ public sealed class SceneControllerRegistry
                 }
             }
 
+            // The list hides the rows past the last change; the shown ones say where theirs falls.
             UiLayout.SetHidden(timing.Empty, song.TempoChanges.Count > 0);
-            for (int slot = 0; slot < (timing.Rows?.Length ?? 0); slot++)
-            {
-                SongTempoRowUi row = timing.Rows![slot];
-                int index = _scroll + slot;
-                bool used = index < song.TempoChanges.Count;
-                UiLayout.SetHidden(row.Row, !used);
-                if (used)
-                    SceneUi.SetText(row.Position, SongTempoEdits.Position(map, song.TempoChanges[index].TimeMs));
-            }
+            for (int slot = 0; slot < list.Shown; slot++)
+                SceneUi.SetText(timing.Rows![slot].Position, SongTempoEdits.Position(map, song.TempoChanges[list.First + slot].TimeMs));
+            SceneUi.SetText(timing.Foot, list.Shown < list.Count
+                ? $"{list.First + 1}–{list.First + list.Shown} of {list.Count} · wheel to scroll"
+                : "");
         }
     }
 

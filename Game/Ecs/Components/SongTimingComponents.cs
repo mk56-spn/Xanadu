@@ -15,15 +15,21 @@ public struct SongTimingView(Entity title, Entity bpm, Entity offset) : ICompone
     public Entity Bpm = bpm;
     public Entity Offset = offset;
 
-    /// <summary>The BPM changes list's row slots, filled from the song by the controller.</summary>
+    /// <summary>The BPM changes list (<see cref="UiList"/>): it stands for the song's changes and scrolls through them.</summary>
+    public Entity List;
+
+    /// <summary>The list's pooled rows, top first; row <c>i</c> shows change <c>First + i</c>.</summary>
     public SongTempoRowUi[] Rows;
 
     /// <summary>Shown when the song has no BPM changes.</summary>
     public Entity Empty;
+
+    /// <summary>Under the list: which changes show, of how many, when they don't all fit.</summary>
+    public Entity Foot;
 }
 
-/// <summary>One BPM change row: its moment, where that falls, its tempo, its bar length and remove.</summary>
-public readonly record struct SongTempoRowUi(Entity Row, Entity At, Entity Position, Entity Bpm, Entity Bar, Entity Remove);
+/// <summary>One pooled BPM change row: its moment, where that falls, its tempo, its bar length and remove.</summary>
+public readonly record struct SongTempoRowUi(Entity At, Entity Position, Entity Bpm, Entity Bar, Entity Remove);
 
 /// <summary>What a typed field on the timing screen sets.</summary>
 public enum SongTimingFieldKind
@@ -36,7 +42,7 @@ public enum SongTimingFieldKind
     ChangeBar,
 }
 
-/// <summary>A typed timing field; <see cref="Slot"/> is the change row slot for change fields.</summary>
+/// <summary>A typed timing field; <see cref="Slot"/> is the pooled row for change fields, which shows change <c>First + Slot</c>.</summary>
 public struct SongTimingField(SongTimingFieldKind kind, int slot = 0) : IComponent
 {
     public SongTimingFieldKind Kind = kind;
@@ -45,13 +51,11 @@ public struct SongTimingField(SongTimingFieldKind kind, int slot = 0) : ICompone
 
 /// <summary>
 /// The timing screen's other buttons. Remove's command <see cref="UiCommand.Arg"/>
-/// is its row slot in the BPM changes list.
+/// is its pooled row in the BPM changes list.
 /// </summary>
 public enum SongTempoAction
 {
     Add,
     Remove,
-    ScrollUp,
-    ScrollDown,
     Save,
 }
