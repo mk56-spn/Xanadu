@@ -1,8 +1,9 @@
 # UI best practices, by example
 
 The house style for ECS UI: the model, then one small tool built with it.
-Atlas (`Tools/DevTools/Atlas/`) is the full-size reference: it is built exactly
-this way. The rules are also in `agents.md` (UI). The specs live in
+Atlas (`Tools/DevTools/Atlas/`) is the full-size reference for a tool, and the
+song timing screen (`Game/Scenes/SongTimingScene.cs`) for a game screen with a
+controller: both are built exactly this way. The rules are also in `agents.md` (UI). The specs live in
 `UI/Ecs/Ui/Tree/`, the node calls in `UI/Ecs/Ui/UiNode*.cs`.
 
 **If the library is missing something you need, ask before adding it.** Do not
@@ -34,7 +35,10 @@ the code has the shape of the screen, the way osu!lazer's drawables do; you
    braces, then `_back.Node` after the build: a spec only describes, and `Node` is
    the `UiNode` it made. A spec converts to `UiNode` and `Entity` wherever one is
    wanted. (In a collection initializer an assignment needs its brackets, or it
-   reads as a property.)
+   reads as a property.) **A spec has no node until the tree is built**, so never
+   turn one into an `Entity` early: a record or component filled with specs inside
+   a row template or a helper holds null entities. Keep the specs, and read their
+   nodes after `Add` (the song timing screen's `ChangeRowParts`).
 6. **Change with the node.** `_back.Node.Chosen(on)`, `.SetText(s)`, `.Hidden()`:
    every fluent call edits components in place, marks them dirty and returns the
    node. `With<T>`, `Tag<T>`, `Without<T>` and `Untag<T>` carry a tool's own state.
@@ -60,7 +64,7 @@ it directly.
 | | Specs (`Xanadu.Ui.Tree`) |
 | --- | --- |
 | Stacks | `Column(flex, gap:, pad:, main:, cross:, clip:, …) { children }`, `Row(…) { … }`, `Panel(…) { … }`, `Spacer(grow)` |
-| Content | `Label(text, type, ink:, align:, fit:, bold:, mono:)`, `Button(label, type, tone:, cmd:, tip:)`, `Box(width:, size:, category:, tone:)`, `Meter(share, size:)`, `Field(value, type, numeric:, size:)`, `Connector(from, to, category)`, `PooledList(rowHeight, gap, changed:) { Row = … }`, `Custom(build)` |
+| Content | `Label(text, type, ink:, align:, fit:, bold:, mono:)`, `Button(label, type, tone:, cmd:, tip:)`, `Box(width:, size:, category:, tone:)`, `Meter(share, size:)`, `Field(value, type, numeric:, size:, width:, height:)`, `Connector(from, to, category)`, `PooledList(rowHeight, gap, changed:, width:, height:, grow:) { Row = slot => … }`, `Custom(build)` |
 | On most specs | `width:` `height:` `size:` `grow:` `stretch:` `tip:` (and `tone:` `cmd:` where they make sense) |
 | Rare | `{ Free, Hidden, MinWidth, MaxWidth, Style }` on leaves; `free:` `hidden:` `style:` on stacks |
 | Roles | `Tone.Primary/Secondary/Quiet/Danger/Solid/Backing`, `Ink.Normal/Dim/Accent` |
@@ -74,7 +78,7 @@ it directly.
 | Text | `.SetText(s)` `.Fit()` `.Align(...)` `.Bold()` `.Mono()` |
 | Geometry and flex | `.Size(w, h)` `.Width(w)` `.Height(h)` `.Grow(w)` `.Stretch()` `.IgnoreLayout()` `.Anchor(UiEdge)` |
 | Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` |
-| Lists, lines, meters | `UiLists.SetCount / Row / OnChanged`, `UiConnectors.Join`, `UiMeters.Set` |
+| Lists, lines, meters | `UiLists.SetCount / Reveal / Row / Pool / OnChanged`, the `UiList` component (`First`, `Shown`, `Count`), `UiConnectors.Join`, `UiMeters.Set` |
 | More structure | `.Grid(n)` `.Edge(UiEdge.X)` `.Collapsible(...)` `.Dropdown(...)` `.IconButton` `.Image` `.Shape` (no spec yet: use `Custom`) |
 
 ### Defaults
@@ -206,7 +210,7 @@ internal sealed class BrowserStage : IToolStage
 | 2 | `UiType.*` sizes, `UiMetrics.*` gaps and controls | font sizes and gaps as numbers |
 | 2 | `tone:`, `ink:`, `.Chosen(on)`, `.CategoryTone(i)` | `Palette.X` passed per call |
 | 3 | a `Field` | reading typed text and drawing `find: {q}_` yourself |
-| 4 | `PooledList` + `UiLists.SetCount` for anything long | thousands of row entities, or your own scroll offsets |
+| 4 | `PooledList` + `UiLists.SetCount` / `Reveal` for anything long | thousands of row entities, fixed slots with ▲ ▼ buttons, or your own scroll offsets |
 | 5 | `fit: true` on text whose box layout sizes | cutting strings to guessed character counts |
 | 6 | `Connector(from, to, category)` | `Canvas.DrawLine` between computed points |
 | 7 | `cmd: Cmd(enum, arg)` + `UiCommandEvents.OnPressed<T>` | per-feature button components, `box.HasPoint(_mouse)`, click closures |
@@ -214,6 +218,14 @@ internal sealed class BrowserStage : IToolStage
 | — | `Meter(share)` | rect pairs sized by hand |
 
 ## Habits
+
+- **A pooled list owns its scroll.** Row `i` shows item `First + i` (read
+  `UiList`); a row's commands and fields carry `i`, and whoever acts adds
+  `First`. Keep the list's count in step with the data (`SetCount`, `keepPlace:
+  true`), and `Reveal` an item you just added. Rows past the end are hidden, so
+  their entities are disabled: a query that must see them (a test counting
+  fields, say) needs `WithDisabled()`. A controller that refreshes every frame
+  can fill the shown rows there; one that doesn't fills them from `changed:`.
 
 - **State changes in handlers, showing happens in one place.** Press handlers
   set fields and a flag; `Update` (or a system) rebuilds what is shown.
