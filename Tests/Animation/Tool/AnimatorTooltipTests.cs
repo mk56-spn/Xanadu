@@ -97,9 +97,9 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
     [Test]
     public void EveryActionButtonExplainsItself()
     {
-        foreach (Entity entity in Store.Query<ToolAction>().ToEntityList())
+        foreach (Entity entity in ToolActions.All(Store))
         {
-            ToolAction action = entity.GetComponent<ToolAction>();
+            ToolAction action = entity.GetToolAction();
             Assert.That(
                 entity.HasComponent<UiTooltip>(),
                 Is.True,

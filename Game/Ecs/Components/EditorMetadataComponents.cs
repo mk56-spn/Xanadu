@@ -52,12 +52,6 @@ public struct EditorHud(
     }
 }
 
-/// <summary>Entities in the editor sidebar that flow around open dropdowns.</summary>
-public struct EditorSidebarLayout(Entity panel) : IComponent
-{
-    public Entity Panel = panel;
-}
-
 /// <summary>
 /// The note-key bar inside the left panel. It shows while placing notes or dash
 /// notes, the two kinds that carry a key, and leaves the layout otherwise.
@@ -76,14 +70,3 @@ public struct EditorLeftMenu(Entity panel) : IComponent
     public Entity Panel = panel;
 }
 
-/// <summary>
-/// Binds the generic Xanadu.UI wheel to the editor's dash direction. The wheel
-/// owns presentation and pointer handling; this adapter only maps wedge indices
-/// to <see cref="DashDirection"/> and owns the floating widget's visibility.
-/// </summary>
-public struct EditorDirectionWheel(Entity wheel, Entity label)
-    : IComponent
-{
-    public Entity Wheel = wheel;
-    public Entity Label = label;
-}

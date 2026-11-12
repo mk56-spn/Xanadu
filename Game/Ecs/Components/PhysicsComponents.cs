@@ -92,8 +92,3 @@ public struct Character(float mass) : IComponent
     public float Mass = mass;
 }
 
-/// <summary>Linear momentum in kg*m/s.</summary>
-public struct Momentum(System.Numerics.Vector2 value) : IComponent
-{
-    public System.Numerics.Vector2 Value = value;
-}

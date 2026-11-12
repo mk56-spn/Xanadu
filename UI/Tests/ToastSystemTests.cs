@@ -26,15 +26,15 @@ public sealed class ToastSystemTests
         toasts.Show("Screenshot saved");
         root.Update(new UpdateTick(0.1f, 0));
 
-        Entity toast = store.Query<Toast>().ToEntityList()[0];
-        Assert.That(toast.GetComponent<Toast>().Active, Is.True);
+        Entity toast = toasts.Entity;
+        Assert.That(toasts.Active, Is.True);
         Assert.That(toast.GetComponent<Text>().Value, Is.EqualTo("Screenshot saved"));
         Assert.That(toast.GetComponent<Position>().Value.X, Is.EqualTo(640).Within(0.1f));
 
         for (int i = 0; i < 160; i++)
             root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(toast.GetComponent<Toast>().Active, Is.False);
+        Assert.That(toasts.Active, Is.False);
         Assert.That(toast.GetComponent<Text>().Value, Is.Empty);
         Assert.That(UiLayout.IsHidden(toast), Is.True);
     }
@@ -56,8 +56,8 @@ public sealed class ToastSystemTests
             store.Query<TextStyle>().ForEachEntity((ref TextStyle _, Entity _) => toasts.ShowStatus("Saved")));
         root.Update(new UpdateTick(0.05f, 0));
 
-        Entity toast = store.Query<Toast>().ToEntityList()[0];
-        Assert.That(toast.GetComponent<Toast>().Active, Is.True);
+        Entity toast = toasts.Entity;
+        Assert.That(toasts.Active, Is.True);
         Assert.That(toast.GetComponent<Text>().Value, Is.EqualTo("Saved"));
     }
 
@@ -76,7 +76,7 @@ public sealed class ToastSystemTests
         toasts.Show("Second", duration: 0.1f);
         root.Update(new UpdateTick(0.05f, 0));
         Assert.That(
-            store.Query<Toast>().ToEntityList()[0].GetComponent<Text>().Value,
+            toasts.Entity.GetComponent<Text>().Value,
             Is.EqualTo("First"));
 
         // The first is gone after 0.54 s; the second then shows for its own 0.1 s.
@@ -84,7 +84,7 @@ public sealed class ToastSystemTests
             root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            store.Query<Toast>().ToEntityList()[0].GetComponent<Text>().Value,
+            toasts.Entity.GetComponent<Text>().Value,
             Is.EqualTo("Second"));
     }
 

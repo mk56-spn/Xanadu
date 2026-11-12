@@ -57,13 +57,6 @@ public enum ParticleEditorFieldKind
     Color,
 }
 
-/// <summary>A button of one particle editor, and which editor it belongs to.</summary>
-public struct ParticleEditorAction(ParticleEditorActionKind kind, Entity editor) : IComponent
-{
-    public ParticleEditorActionKind Kind = kind;
-    public Entity Editor = editor;
-}
-
 /// <summary>A text field of one particle editor; typed values are applied when it loses focus.</summary>
 public struct ParticleEditorField(ParticleEditorFieldKind kind, Entity editor) : IComponent
 {

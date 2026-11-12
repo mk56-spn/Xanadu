@@ -50,7 +50,7 @@ public sealed class EditorGrassPanelSystem(EditorHistory history)
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.GrassStep))
         {
             if (_presses.Started(button))
-                Step(editor, selection, first, button.GetComponent<EditorButton>().Arg);
+                Step(editor, selection, first, button.GetComponent<UiCommand>().Arg);
         }
 
         GrassPatch shown = first.IsNull

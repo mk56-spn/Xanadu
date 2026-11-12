@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -12,6 +13,9 @@ public sealed class UiFocusRing
     private const float RingWidth = 2f;
     private readonly Entity[] _edges = new Entity[4];
 
+    /// <summary>The four edges: top, bottom, left, right.</summary>
+    public IReadOnlyList<Entity> Edges => _edges;
+
     public UiFocusRing(EntityStore entities, IVisualRidFactory visuals)
     {
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Focus);
@@ -22,7 +26,6 @@ public sealed class UiFocusRing
                 new Vector2(RingWidth, RingWidth),
                 UiTheme.Focus);
             UiLayout.SetHidden(edge, true);
-            edge.AddComponent(new UiFocusRingEdge(i));
             _edges[i] = edge;
         }
     }

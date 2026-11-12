@@ -33,7 +33,6 @@ public sealed class PlayerSmoothingTests : EcsSystemTest
             new Player(new Vector2(30, 100)),
             new Position(at),
             new Character(1f),
-            new Momentum(),
             new PhysicsBody(body),
             new PlayerSmoothing(at));
     }

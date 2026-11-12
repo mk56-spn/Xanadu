@@ -75,7 +75,7 @@ public sealed class EditorPreviewPathSceneTest : SceneTest
     }
 
     private Entity PathToggle() =>
-        Context.Entities.Query<Toggle>().AllTags(Tags.Get<PlayerPathToggle>()).ToEntityList()[0];
+        UiToggles.FindSwitch(Context.Entities, PlayerPathSwitch.Id);
 
     private void ClickPathToggle()
     {

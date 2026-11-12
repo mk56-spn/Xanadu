@@ -24,7 +24,7 @@ public readonly record struct AnimatorKeySample(
 /// data, so pasting works across times, clips and even rig edits that kept the
 /// same bone ids.
 /// </summary>
-public struct AnimatorKeyClipboard : IComponent
+public struct AnimatorKeyClipboard
 {
     public List<AnimatorKeySample>? Keys;
 

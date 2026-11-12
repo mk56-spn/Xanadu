@@ -7,8 +7,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// <summary>
 /// Keeps mode toggles and <see cref="AnimatorModes"/> in step. Whichever side
 /// moved away from the last agreed value wins: a click on the toggle sets the
-/// mode, and a mode changed by a command moves the toggle. This does not
-/// depend on <see cref="ToggleChanged"/> being visible within the same frame.
+/// mode, and a mode changed by a command moves the toggle.
 /// </summary>
 public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
 {
@@ -18,7 +17,6 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
         if (session.IsNull)
             return;
 
-        CommandBuffer buffer = CommandBuffer;
         foreach (Entity entity in Query.ToEntityList())
         {
             ref Toggle toggle = ref entity.GetComponent<Toggle>();
@@ -39,8 +37,6 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
             }
 
             binding.Synced = toggle.Value;
-            if (entity.Tags.Has<ToggleChanged>())
-                buffer.RemoveTag<ToggleChanged>(entity.Id);
         }
     }
 

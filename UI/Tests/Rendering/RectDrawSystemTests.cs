@@ -84,30 +84,6 @@ public sealed class RectDrawSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void DiamondDrawsTheMidpointsOfItsSides()
-    {
-        var bounds = new Rect2(-50, -30, 100, 60);
-        Store.CreateEntity(
-            new Rectangle(bounds),
-            new Drawable(0),
-            new VisualRid(new Handle()),
-            new FillColor(Colors.Red),
-            new UiDiamond(),
-            Tags.Get<Dirty>());
-
-        Frame();
-
-        Assert.That(_canvas.Draws, Is.Empty);
-        Assert.That(_canvas.Polygons[0], Is.EqualTo(new[]
-        {
-            new Vector2(0, -30),
-            new Vector2(50, 0),
-            new Vector2(0, 30),
-            new Vector2(-50, 0),
-        }));
-    }
-
-    [Test]
     public void CleanRectDoesNotRedraw()
     {
         AddRect(new Rect2(10, 20, 30, 40));

@@ -109,7 +109,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         // Settings build; first-time component registration during scene
         // construction leaves the new layer's structural tags stuck.
         Entity keybindWarmup = entities.CreateEntity(
-            new KeybindButton(KeybindAction.Left));
+            UiCommand.Of(KeybindAction.Left));
         keybindWarmup.DeleteEntity();
 
         Scenes = new SceneSystem(

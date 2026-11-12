@@ -122,7 +122,6 @@ public sealed class AnimatorActionTests : AnimatorToolTest
         Click(ModeButton(AnimatorMode.AutoKey));
 
         Assert.That(Session.GetComponent<AnimatorModes>().AutoKey, Is.True);
-        Assert.That(ModeButton(AnimatorMode.AutoKey).Tags.Has<ToggleChanged>(), Is.False);
 
         Click(ModeButton(AnimatorMode.AutoKey));
         Assert.That(Session.GetComponent<AnimatorModes>().AutoKey, Is.False);

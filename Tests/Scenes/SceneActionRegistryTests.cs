@@ -13,7 +13,7 @@ public sealed class SceneActionRegistryTests
     {
         var registry = new SceneActionRegistry();
         var store = new EntityStore();
-        Entity entity = store.CreateEntity(new SceneCommand(SceneActionId.Exit));
+        Entity entity = store.CreateEntity(UiCommand.Of(SceneActionId.Exit));
         bool called = false;
 
         registry.Register(SceneKind.Editor, SceneActionId.Exit,
@@ -27,7 +27,7 @@ public sealed class SceneActionRegistryTests
                 null!,
                 store,
                 entity,
-                entity.GetComponent<SceneCommand>()));
+                entity.GetComponent<UiCommand>().As<SceneActionId>()));
 
         Assert.That(handled, Is.True);
         Assert.That(called, Is.True);
@@ -43,7 +43,7 @@ public sealed class SceneActionRegistryTests
             new LevelInfo("Level"),
             new EditorUiRequest());
         Entity button = store.CreateEntity(
-            new SceneCommand(SceneActionId.ToggleMetadata));
+            UiCommand.Of(SceneActionId.ToggleMetadata));
 
         bool handled = registry.TryInvoke(
             SceneKind.Editor,
@@ -51,7 +51,7 @@ public sealed class SceneActionRegistryTests
                 null!,
                 store,
                 button,
-                button.GetComponent<SceneCommand>()));
+                button.GetComponent<UiCommand>().As<SceneActionId>()));
 
         Assert.That(handled, Is.True);
         Assert.That(
@@ -64,7 +64,7 @@ public sealed class SceneActionRegistryTests
     {
         var registry = new SceneActionRegistry();
         var store = new EntityStore();
-        Entity entity = store.CreateEntity(new SceneCommand(SceneActionId.Exit));
+        Entity entity = store.CreateEntity(UiCommand.Of(SceneActionId.Exit));
 
         Assert.That(
             registry.TryInvoke(
@@ -73,7 +73,7 @@ public sealed class SceneActionRegistryTests
                     null!,
                     store,
                     entity,
-                    entity.GetComponent<SceneCommand>())),
+                    entity.GetComponent<UiCommand>().As<SceneActionId>())),
             Is.False);
     }
 }

@@ -54,9 +54,6 @@ public struct UiTreeDisclosure : ITag;
 /// <summary>Marks the label button that selects a node.</summary>
 public struct UiTreeLabel : ITag;
 
-/// <summary>Marks a text in one of a tree's columns, right of the label.</summary>
-public struct UiTreeCell : ITag;
-
 /// <summary>Set on the tree entity when the user selects a node; the consumer removes it.</summary>
 public struct UiTreeChanged(string id) : IComponent
 {

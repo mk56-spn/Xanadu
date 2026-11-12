@@ -45,7 +45,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
     {
         foreach (Entity child in Ui.BoneMenu.ChildEntities)
         {
-            if (child.GetComponent<ToolAction>().Kind == kind)
+            if (child.GetToolAction().Kind == kind)
                 return child;
         }
 
@@ -118,7 +118,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
         List<Entity> rows = Rows();
         Assert.That(rows.Count, Is.EqualTo(3));
         foreach (Entity row in rows)
-            Assert.That(row.GetComponent<ToolAction>().Kind, Is.EqualTo(ToolActionKind.AttachSvg));
+            Assert.That(row.GetToolAction().Kind, Is.EqualTo(ToolActionKind.AttachSvg));
 
         // The file's name alone when it matches the group, both when it does not.
         Assert.That(rows[0].GetComponent<Text>().Value, Is.EqualTo("arm"));

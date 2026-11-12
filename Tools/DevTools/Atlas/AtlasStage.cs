@@ -17,11 +17,11 @@ namespace Xanadu.Tools.Atlas;
 /// right, each group by how (queries, implements, inherits, uses), with lines
 /// coloured the same way. COMPARE puts two types side by side: what only the
 /// first touches, what both touch in the middle, what only the second touches,
-/// so "do these share code?" is one look. SIMILAR ranks components by how
-/// alike they are (<see cref="Similarity"/>): the most alike pairs overall, or
-/// with a component picked, the ones most like it; click one to compare. Click
+/// so "do these share code?" is one look. SIMILAR ranks types by how
+/// alike they are (<see cref="Similarity"/>), among the kinds the top bar shows:
+/// the most alike pairs overall, or with a type picked, the ones most like it; click one to compare. Click
 /// any card to go there; BACK goes back. Kinds can be hidden to cut noise
-/// (enums, plain structs). SORT orders the list and every chart column the
+/// (enums, plain structs) from the chart; the list always has every kind. SORT orders the list and every chart column the
 /// same way: by name, kind, project, or how many types use it or it uses;
 /// clicking the chosen sort again flips it (least used first).
 /// </summary>
@@ -244,7 +244,7 @@ internal sealed class AtlasStage : CanvasToolStage
         {
             _view = View.Similar;
             _scroll.Clear();
-        }, "components that could be one: same field types and same users; pick a component to see the ones like it");
+        }, "types that could be one: same field types, same users and same uses, among the kinds the top bar shows; pick a type to see the ones like it");
         Button(new Rect2(604, 30, 100, 38), "BACK", false, Back, "back to the last type");
 
         float x = 724;
@@ -361,12 +361,12 @@ internal sealed class AtlasStage : CanvasToolStage
         }
     }
 
-    /// <summary>Every type whose name has the search in it, best matches first; click to look at it.</summary>
+    /// <summary>Every type whose name has the search in it, best matches first; click to look at it. The kind filter is the chart's only.</summary>
     private void DrawList()
     {
         List<int> list = Sorted(_map.Nodes.Where(n => _query.Length == 0 || n.Name.Contains(_query, StringComparison.OrdinalIgnoreCase)).Select(n => n.Id));
         Column(ListLeft, ListWidth, Top, list, selected: id => id == _focus || id == _other,
-            click: id => Go(id, second: Comparing && _focus >= 0), drawLines: null);
+            click: id => Go(id, second: Comparing && _focus >= 0), drawLines: null, usedBy: true);
     }
 
     private void DrawFocus()
@@ -485,11 +485,14 @@ internal sealed class AtlasStage : CanvasToolStage
     private void DrawSimilar()
     {
         float total = ChartRight - ChartLeft;
-        CodeNode? picked = _focus >= 0 && _map.Nodes[_focus].Kind == NodeKind.Component ? _map.Nodes[_focus] : null;
-        List<Match> matches = picked is null ? _similarity.Pairs() : _similarity.Like(picked.Id);
+        // The pool is whatever kinds the top bar shows: components alone, or every kind against every other.
+        var pool = Enum.GetValues<NodeKind>().Where(kind => !_hidden.Contains(kind)).ToHashSet();
+        CodeNode? picked = _focus >= 0 ? _map.Nodes[_focus] : null;
+        List<Match> matches = picked is null ? _similarity.Pairs(pool) : _similarity.Like(picked.Id, pool);
+        string kinds = pool.Count == 1 ? pool.First().ToString().ToLowerInvariant() + "s" : "shown kinds";
         string title = picked is null
-            ? $"the {matches.Count} most alike component pairs: same field types (shape) and same users; pick a component on the left for its own"
-            : $"components like {picked.Name} ({Fields(picked)}): same field types (shape) and same users";
+            ? $"the {matches.Count} most alike pairs of {kinds}: same field types (shape), same users, same uses; pick a type on the left for its own"
+            : $"{kinds} like {picked.Name} ({Fields(picked)}): same field types (shape), same users, same uses";
         Label(new Rect2(ChartLeft, Top - 34, total, 26), Fit(title, total, 18), Palette.Text, 18);
         if (matches.Count == 0)
         {
@@ -515,10 +518,10 @@ internal sealed class AtlasStage : CanvasToolStage
             x += cardWidth + 16;
 
             Label(new Rect2(x, y, 60, Card), $"{match.Score * 100:0}%", Palette.TextDim.Lerp(Palette.Accent, match.Score), TextSize);
-            Label(new Rect2(x + 60, y, 220, Card), $"shape {match.Shape * 100:0}%  ·  users {match.Users * 100:0}%", Palette.TextMuted, 14);
-            float rest = ChartRight - (x + 290);
+            Label(new Rect2(x + 60, y, 300, Card), $"shape {Match.Percent(match.Shape)}  ·  users {Match.Percent(match.Users)}  ·  uses {Match.Percent(match.Uses)}", Palette.TextMuted, 14);
+            float rest = ChartRight - (x + 370);
             string fields = picked is null ? $"{Fields(_map.Nodes[match.A])}  |  {Fields(other)}" : Fields(other);
-            Label(new Rect2(x + 290, y, rest, Card), Fit(fields, rest, 14), Palette.TextDim, 14);
+            Label(new Rect2(x + 370, y, rest, Card), Fit(fields, rest, 14), Palette.TextDim, 14);
             y += Card + CardGap;
         }
 
@@ -534,23 +537,9 @@ internal sealed class AtlasStage : CanvasToolStage
             _hint = $"{node.FullName}  ·  {Fields(node)}  ·  click to compare {_map.Nodes[match.A].Name} with {_map.Nodes[match.B].Name}";
     }
 
-    /// <summary>A component's field types, short: <c>float, Vector2, List&lt;Entity&gt;</c>.</summary>
+    /// <summary>A type's field types, short: <c>float, Vector2, List&lt;Entity&gt;</c>.</summary>
     private static string Fields(CodeNode node) =>
-        node.Fields.Count == 0 ? "no fields" : string.Join(", ", node.Fields.Select(f => Short(f.Type)));
-
-    /// <summary>A full type name without namespaces or arity marks.</summary>
-    private static string Short(string type)
-    {
-        string plain = System.Text.RegularExpressions.Regex.Replace(type, @"[\w.]*\.|`\d+", "").Replace('/', '.');
-        return System.Text.RegularExpressions.Regex.Replace(plain, @"\w+", word => Keywords.GetValueOrDefault(word.Value, word.Value));
-    }
-
-    private static readonly Dictionary<string, string> Keywords = new()
-    {
-        ["Single"] = "float", ["Double"] = "double", ["Int32"] = "int", ["UInt32"] = "uint", ["Int64"] = "long",
-        ["UInt64"] = "ulong", ["Int16"] = "short", ["UInt16"] = "ushort", ["Byte"] = "byte", ["SByte"] = "sbyte",
-        ["Boolean"] = "bool", ["String"] = "string", ["Char"] = "char", ["Object"] = "object",
-    };
+        node.Fields.Count == 0 ? "no fields" : string.Join(", ", node.Fields.Select(f => TypeNames.Short(f.Type)));
 
     /// <summary>A line from a card to a centre card, in the colour of how that centre type touches it.</summary>
     private void Line(float fromX, Rect2 from, float toX, Rect2 to, CodeNode centre, Rect2 card)
@@ -563,7 +552,8 @@ internal sealed class AtlasStage : CanvasToolStage
     private readonly Dictionary<Vector2, int> _cardIds = new();
 
     /// <summary>A scrolling column of cards; <paramref name="drawLines"/> draws a card's lines before the card goes over them.</summary>
-    private void Column(float left, float width, float top, List<int> ids, Func<int, bool> selected, Action<int> click, Action<Rect2>? drawLines)
+    /// <summary>A scrolling column of cards; <paramref name="usedBy"/> puts how many types use each one in the margin to its left.</summary>
+    private void Column(float left, float width, float top, List<int> ids, Func<int, bool> selected, Action<int> click, Action<Rect2>? drawLines, bool usedBy = false)
     {
         float y = top;
         int first = Scrolled(left, width, ids.Count);
@@ -574,6 +564,8 @@ internal sealed class AtlasStage : CanvasToolStage
             _cardIds[box.Position] = id;
             drawLines?.Invoke(box);
             SmallCard(box, _map.Nodes[id], () => click(id), selected(id));
+            if (usedBy)
+                Label(new Rect2(left - Margin, y, Margin - 4, Card), Degree(_map.Nodes[id].In).ToString(), Palette.TextDim, 14, center: true);
             y += Card + CardGap;
         }
 

@@ -93,11 +93,11 @@ public sealed class EditorExitMenuSceneTest : SceneTest
     private void ClickExit()
     {
         foreach (Entity entity in Context.Entities
-                     .Query<SceneCommand>()
+                     .Query<UiCommand>()
                      .WithDisabled()
                      .ToEntityList())
         {
-            if (entity.GetComponent<SceneCommand>().Action == SceneActionId.Exit)
+            if (entity.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Exit)
             {
                 ClickNode(entity);
                 return;

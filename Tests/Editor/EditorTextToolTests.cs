@@ -38,7 +38,7 @@ public sealed class EditorTextToolTests
         _section = _store.CreateEntity();
         _field = _store.CreateEntity(new TextField(""));
         _size = _store.CreateEntity(new Text("SIZE"));
-        _bigger = _store.CreateEntity(new EditorButton(EditorButtonKind.TextSize, 1));
+        _bigger = _store.CreateEntity(EditorButton.Of(EditorButtonKind.TextSize, 1));
         _editor = _store.CreateEntity(
             new LevelInfo("Test", TestSongs.At("/tmp/test.wav")),
             new Playfield(1000, 1000),

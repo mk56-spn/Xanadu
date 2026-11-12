@@ -45,6 +45,6 @@ public sealed class EditorBlockSizeSystemTests : EcsSystemTest
     }
 
     private Entity Button(BlockBrushSize size) => Store.CreateEntity(
-        new EditorButton(EditorButtonKind.BlockSize, (int)size),
+        EditorButton.Of(EditorButtonKind.BlockSize, (int)size),
         ButtonVisual.Create(Palette.Muted));
 }

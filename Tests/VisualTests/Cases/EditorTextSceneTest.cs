@@ -59,7 +59,7 @@ public sealed class EditorTextSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.TextSize))
         {
-            if (button.GetComponent<EditorButton>().Arg == delta)
+            if (button.GetComponent<UiCommand>().Arg == delta)
                 return button;
         }
 

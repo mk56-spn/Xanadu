@@ -93,14 +93,10 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
     private void RunActions(Entity panel, ref XifEditor editor, Xif item)
     {
         var requests = new List<XifEditorActionKind>();
-        foreach (Entity button in Query.Store.Query<XifEditorAction>().WithDisabled().ToEntityList())
+        foreach ((Entity button, XifEditorActionKind kind, _) in UiCommand.All<XifEditorActionKind>(Query.Store, panel))
         {
-            XifEditorAction action = button.GetComponent<XifEditorAction>();
-            if (action.Editor.Id != panel.Id)
-                continue;
-
             if (_presses.Started(button))
-                requests.Add(action.Kind);
+                requests.Add(kind);
         }
 
         foreach (XifEditorActionKind kind in requests)

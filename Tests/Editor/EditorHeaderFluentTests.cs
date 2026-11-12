@@ -59,9 +59,9 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
             .Fill(SceneUi.PanelColor)
             .Text("LEVEL EDITOR", UiTheme.HeadingFontSize, SceneUi.AccentColor);
         left.IconButton("UN", IconDir + "undo.svg", Control, SceneUi.ButtonColor)
-            .With(new EditorButton(EditorButtonKind.Undo));
+            .With(EditorButton.Of(EditorButtonKind.Undo));
         left.IconButton("RE", IconDir + "redo.svg", Control, SceneUi.ButtonColor)
-            .With(new EditorButton(EditorButtonKind.Redo));
+            .With(EditorButton.Of(EditorButtonKind.Redo));
 
         UiNode info = left
             .Column()
@@ -103,9 +103,9 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
 
     private Entity Button(EditorButtonKind kind)
     {
-        foreach (Entity entity in Store.Query<EditorButton>().ToEntityList())
+        foreach (Entity entity in Store.Query<UiCommand>().ToEntityList())
         {
-            if (entity.GetComponent<EditorButton>().Kind == kind)
+            if (entity.GetComponent<UiCommand>().As<EditorButtonKind>() == kind)
                 return entity;
         }
 

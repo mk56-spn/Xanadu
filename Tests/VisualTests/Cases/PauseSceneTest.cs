@@ -46,7 +46,7 @@ public sealed class PauseSceneTest : SceneTest
 
     private bool PauseVisible()
     {
-        return Context.Entities.Query<ScenePause>().Count == 1;
+        return Context.Scenes.PauseOpen;
     }
 
     private void OpenPlay()

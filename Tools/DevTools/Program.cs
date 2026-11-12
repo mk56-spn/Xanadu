@@ -9,9 +9,10 @@ using Xanadu.Tools.DevTools;
 //
 // atlas --focus=TextEditor   -> opens on that type          atlas --compare=A,B    -> comparing two types
 // atlas --sort=used          -> sorted: name, used, uses, type or project; --sort=used- flips it
-// atlas --similar            -> opens on SIMILAR (with --focus=X: components like X)
+// atlas --similar            -> opens on SIMILAR (with --focus=X: types like X)
 // atlas --dump=TextEditor    -> prints a type's links as text, no window
-// atlas --similar=Glow       -> prints the components most like one as text, no window
+// atlas --similar=Glow       -> prints the types most like one as text, no window (--similar= alone: the top pairs)
+// atlas --dump-all=<path>    -> writes the whole map as greppable text, no window (run.sh devtools keeps one fresh)
 // autopsy --methods          -> opens on the METHODS view
 // autopsy --dump[=app]       -> prints the latest (or that app's) capture as text, no window
 //         --under=<name>     -> with --dump: the methods run beneath methods named like that
@@ -34,6 +35,12 @@ for (int i = first; i < args.Length; i++)
     if (tab == DevToolsApp.AtlasTab && arg.StartsWith("--dump=", StringComparison.Ordinal))
     {
         AtlasDump.Links(CodeMap.Read(root), arg["--dump=".Length..]);
+        return;
+    }
+
+    if (tab == DevToolsApp.AtlasTab && arg.StartsWith("--dump-all=", StringComparison.Ordinal))
+    {
+        AtlasDump.All(CodeMap.Read(root), arg["--dump-all=".Length..]);
         return;
     }
 

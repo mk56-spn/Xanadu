@@ -4,9 +4,9 @@ using Xanadu.Theme;
 namespace Xanadu.Ecs;
 
 /// <summary>
-/// A strip of tab buttons and the floating bodies they switch between. The
-/// selected body sits centred on <see cref="BodyCenter"/>; the others are
-/// parked off screen, because a container in a stack cannot be hidden.
+/// A strip of tab buttons and the bodies they switch between; only the
+/// selected body is shown. A floating body is centred on
+/// <see cref="BodyCenter"/>; one in a container's stack is placed by the stack.
 /// </summary>
 public struct UiTabs : IComponent
 {

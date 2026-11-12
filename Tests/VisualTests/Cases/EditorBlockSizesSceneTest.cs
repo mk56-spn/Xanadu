@@ -123,7 +123,7 @@ public sealed class EditorBlockSizesSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.BlockSize))
         {
-            if (button.GetComponent<EditorButton>().Arg == (int)size)
+            if (button.GetComponent<UiCommand>().Arg == (int)size)
                 return button;
         }
 
@@ -134,7 +134,7 @@ public sealed class EditorBlockSizesSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.Place))
         {
-            if (button.GetComponent<EditorButton>().Arg == (int)mode)
+            if (button.GetComponent<UiCommand>().Arg == (int)mode)
                 Click(button);
         }
     }

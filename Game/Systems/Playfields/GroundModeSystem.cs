@@ -12,7 +12,7 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>
 /// The two ground movement modes under test, switched with F8. Skid (the
 /// default): the ground has no friction, so a landing keeps its sideways speed
-/// until a friction field stops it. Hold (<see cref="GroundHold"/>): on the
+/// until a friction field stops it. Hold: on the
 /// ground the player keeps its sideways speed only while the direction key of
 /// the last directional note it hit (<see cref="MoveKey"/>) is held; letting go
 /// stops it at once.
@@ -34,14 +34,6 @@ public sealed class GroundModeSystem(
         {
             if (mode.Kind != PlayfieldKind.Play)
                 return;
-
-            if (entity.Tags.Has<GroundHold>() != hold)
-            {
-                if (hold)
-                    buffer.AddTag<GroundHold>(entity.Id);
-                else
-                    buffer.RemoveTag<GroundHold>(entity.Id);
-            }
 
             if (entity.TryGetComponent(out GroundModeHud hud))
                 UiText.Set(hud.Label, hold ? "GROUND: HOLD  (F8)" : "GROUND: SKID  (F8)", buffer);

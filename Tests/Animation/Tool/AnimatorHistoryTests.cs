@@ -29,7 +29,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     private void Select(int bone) =>
         Session.GetComponent<AnimatorSelection>().Bone = bone;
 
-    private bool CanUndo => Session.GetComponent<AnimatorHistory>().History.CanUndo;
+    private bool CanUndo => Session.GetComponent<AnimatorSessionState>().History.History.CanUndo;
 
     private XafChannel? Channel(string bone, XafChannelProperty property) =>
         Idle.Channels.Find(channel =>

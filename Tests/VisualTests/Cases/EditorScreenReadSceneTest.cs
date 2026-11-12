@@ -84,10 +84,10 @@ public sealed class EditorScreenReadSceneTest : SceneTest
 
     private Entity PlaceButton(EditorPlacementMode mode)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorButton>().ToEntityList())
+        foreach (Entity entity in Context.Entities.Query<UiCommand>().ToEntityList())
         {
-            EditorButton button = entity.GetComponent<EditorButton>();
-            if (button.Kind == EditorButtonKind.Place && button.Arg == (int)mode)
+            UiCommand button = entity.GetComponent<UiCommand>();
+            if (button.As<EditorButtonKind>() == EditorButtonKind.Place && button.Arg == (int)mode)
                 return entity;
         }
 

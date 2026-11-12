@@ -51,11 +51,9 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
 
     private Entity Button(EditorDialogAction action)
     {
-        foreach (Entity entity in Store.Query<EditorDialogButton>().WithDisabled().ToEntityList())
-        {
-            if (entity.GetComponent<EditorDialogButton>().Action == action)
-                return entity;
-        }
+        Entity found = UiCommand.Find(Store, action);
+        if (!found.IsNull)
+            return found;
 
         throw new InvalidOperationException($"no {action} button");
     }
@@ -127,10 +125,9 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
         Frame();
 
         Entity third = default;
-        foreach (Entity entity in Store.Query<EditorDialogButton>().WithDisabled().ToEntityList())
+        foreach ((Entity entity, EditorDialogAction action, UiCommand row) in UiCommand.All<EditorDialogAction>(Store))
         {
-            EditorDialogButton button = entity.GetComponent<EditorDialogButton>();
-            if (button.Action == EditorDialogAction.PickShader && button.Arg == 3)
+            if (action == EditorDialogAction.PickShader && row.Arg == 3)
                 third = entity;
         }
 

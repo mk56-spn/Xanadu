@@ -78,7 +78,7 @@ public static partial class AnimatorLayout
 
         Entity delete = menu.Button("DELETE CHAIN", new Vector2(inner, ChainRow),
             fontSize: UiTheme.SmallFontSize);
-        delete.AddComponent(new ToolAction(ToolActionKind.DeleteChain));
+        delete.AddComponent(ToolAction.Of(ToolActionKind.DeleteChain));
         AnimatorTooltips.Attach(delete, ToolActionKind.DeleteChain);
         menu.End();
     }
@@ -90,7 +90,7 @@ public static partial class AnimatorLayout
         menu.Text(label, new Vector2(ChainLabelWidth, 20), 11, UiTheme.TextDim, TextAlign.Left);
         Entity button = menu.Button("", new Vector2(width - ChainLabelWidth - 4, 22),
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(kind));
+        button.AddComponent(ToolAction.Of(kind));
         AnimatorTooltips.Attach(button, kind);
         menu.End();
         return button;

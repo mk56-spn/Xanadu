@@ -58,8 +58,8 @@ public sealed class SongTimingSceneTests
     {
         Build();
 
-        var actions = _store.Query<SceneCommand>().ToEntityList()
-            .Select(entity => entity.GetComponent<SceneCommand>().Action)
+        var actions = _store.Query<UiCommand>().ToEntityList()
+            .Select(entity => entity.GetComponent<UiCommand>().As<SceneActionId>())
             .ToList();
 
         Assert.That(actions, Does.Contain(SceneActionId.AddSong));
@@ -84,11 +84,11 @@ public sealed class SongTimingSceneTests
     {
         Build();
 
-        Assert.That(_store.Query<SongTimingAdjust>().Count, Is.EqualTo(4));
-        Assert.That(_store.Query<SongTimingSave>().Count, Is.EqualTo(1));
+        Assert.That(UiCommand.All<SongTimingAdjustKind>(_store), Has.Count.EqualTo(4));
+        Assert.That(UiCommand.Find(_store, SongTempoAction.Save).IsNull, Is.False);
 
-        bool hasBack = _store.Query<SceneCommand>().ToEntityList()
-            .Any(entity => entity.GetComponent<SceneCommand>().Action == SceneActionId.Back);
+        bool hasBack = _store.Query<UiCommand>().ToEntityList()
+            .Any(entity => entity.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Back);
         Assert.That(hasBack, Is.True);
     }
 
@@ -147,7 +147,7 @@ public sealed class SongTimingSceneTests
         Assert.That(kinds, Does.Contain(SongTimingFieldKind.Offset));
         Assert.That(kinds.Count(kind => kind == SongTimingFieldKind.ChangeBpm), Is.EqualTo(SongTimingScene.ChangeRows));
         Assert.That(
-            _store.Query<SongTempoButton>().ToEntityList().Select(entity => entity.GetComponent<SongTempoButton>().Action),
+            UiCommand.All<SongTempoAction>(_store).Select(button => button.Id),
             Does.Contain(SongTempoAction.Add));
     }
 }

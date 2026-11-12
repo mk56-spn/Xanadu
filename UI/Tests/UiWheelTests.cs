@@ -59,13 +59,12 @@ public sealed class UiWheelTests : EcsSystemTest
     }
 
     [Test]
-    public void SelectingThroughTheControlRaisesOneChange()
+    public void SelectingThroughTheControlReportsOneChange()
     {
         Entity wheel = AddWheel(selected: 0);
 
         Assert.That(UiWheelControl.SetSelected(wheel, 3), Is.True);
         Assert.That(UiWheelControl.SelectedIndex(wheel), Is.EqualTo(3));
-        Assert.That(wheel.GetComponent<UiWheelChanged>().Index, Is.EqualTo(3));
         Assert.That(UiWheelControl.SetSelected(wheel, 3), Is.False);
     }
 
@@ -77,13 +76,10 @@ public sealed class UiWheelTests : EcsSystemTest
         _pointer.Current = new PointerInput(new Vector2(200, 120), true);
         Frame(2);
         Assert.That(wheel.GetComponent<UiWheel>().Selected, Is.EqualTo(0));
-        Assert.That(wheel.GetComponent<UiWheelChanged>().Index, Is.EqualTo(0));
 
-        wheel.RemoveComponent<UiWheelChanged>();
         _pointer.Current = new PointerInput(new Vector2(260, 200), true);
         Frame();
         Assert.That(wheel.GetComponent<UiWheel>().Selected, Is.EqualTo(2));
-        Assert.That(wheel.GetComponent<UiWheelChanged>().Index, Is.EqualTo(2));
 
         _pointer.Current = new PointerInput(new Vector2(140, 200), false);
         Frame();
@@ -99,7 +95,6 @@ public sealed class UiWheelTests : EcsSystemTest
         Frame(2);
 
         Assert.That(wheel.GetComponent<UiWheel>().Selected, Is.EqualTo(3));
-        Assert.That(wheel.HasComponent<UiWheelChanged>(), Is.False);
     }
 
     [Test]

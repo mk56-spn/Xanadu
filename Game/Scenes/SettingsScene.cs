@@ -58,10 +58,10 @@ public static class SettingsScene
             .Gap(UiMetrics.Space.Lg);
 
         ToggleRow(content, SettingsStrings.VSync, SettingsStrings.VSyncOn, SettingsStrings.VSyncOff,
-            display.VSyncEnabled, new VSyncToggle());
+            display.VSyncEnabled).OnToggled(display.SetVSync);
         WindowModeRow(content, display.WindowMode);
         ToggleRow(content, SettingsStrings.Autosave, SettingsStrings.AutosaveOn, SettingsStrings.AutosaveOff,
-            display.EditorAutosave, new EditorAutosaveToggle());
+            display.EditorAutosave).OnToggled(display.SetEditorAutosave);
         content.Text(
             LocalizedText.Get(SettingsStrings.Keybinds),
             UiType.Section,
@@ -98,10 +98,9 @@ public static class SettingsScene
             new Vector2(CardWidth, height));
     }
 
-    /// <summary>One label and one switch, on the same grid as the keybinds.</summary>
-    private static void ToggleRow<T>(
-        UiNode card, LString label, LString onText, LString offText, bool value, T marker)
-        where T : struct, IComponent
+    /// <summary>One label and one switch, on the same grid as the keybinds; the switch, for its owner to listen to.</summary>
+    private static Entity ToggleRow(
+        UiNode card, LString label, LString onText, LString offText, bool value)
     {
         string on = LocalizedText.Get(onText);
         string off = LocalizedText.Get(offText);
@@ -109,11 +108,11 @@ public static class SettingsScene
         UiNode row = card.Row().Gap(ColumnGap);
         row.Text(LocalizedText.Get(label), UiType.Label, SceneUi.TextColor)
             .Size(LabelColumn, UiMetrics.Control.Md);
-        row.Button(value ? on : off, UiType.Small, SceneUi.MutedButtonColor)
+        return row.Button(value ? on : off, UiType.Small, SceneUi.MutedButtonColor)
             .Size(ControlWidth, UiMetrics.Control.Md)
             .With(new Toggle(on, off, value, Palette.Primary,
                 SceneUi.MutedButtonColor))
-            .With(marker);
+            .Entity;
     }
 
     /// <summary>The window mode: one button that cycles windowed, fullscreen, borderless.</summary>
@@ -150,7 +149,7 @@ public static class SettingsScene
                     UiType.Small,
                     SceneUi.MutedButtonColor)
                 .Size(ControlWidth, UiMetrics.Control.Md)
-                .With(new KeybindButton(action));
+                .With(UiCommand.Of(action));
         }
     }
 

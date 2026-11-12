@@ -3,9 +3,6 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Marks the toggle in the group bar's music menu that turns music snap on and off.</summary>
-public struct EditorMusicSnapToggle : ITag;
-
 /// <summary>
 /// Music snap: placed notes land on the beat grid. The toggle's <see cref="Toggle"/>
 /// is the switch; <see cref="EditorViewBarSystem"/> copies it onto the
@@ -17,16 +14,16 @@ public static class EditorMusicSnap
     public const string OnLabel = "MUSIC SNAP ON";
     public const string OffLabel = "MUSIC SNAP OFF";
 
+    /// <summary>The switch's name in its store (<see cref="UiToggles.Switch"/>).</summary>
+    public const string Id = "editor-music-snap";
+
     public static Entity Attach(Entity button)
     {
         button.AddComponent(new Toggle(OnLabel, OffLabel, true));
-        button.AddTag<EditorMusicSnapToggle>();
+        button.Switch(Id);
         button.AddComponent(new UiTooltip("Place notes on the beat grid. Off: notes keep the exact time they are put at"));
         return button;
     }
 
-    public static bool IsOn(EntityStore store)
-    {
-        return store.ToggleOn<EditorMusicSnapToggle>(none: true, hidden: true);
-    }
+    public static bool IsOn(EntityStore store) => UiToggles.On(store, Id, none: true);
 }

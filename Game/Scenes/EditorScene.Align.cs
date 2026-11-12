@@ -58,7 +58,7 @@ public static class EditorSceneAlign
             .Main(StackMainAlignment.Center)
             .Cross(StackCrossAlignment.Center)
             .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
-            .With(new EditorButton(EditorButtonKind.Align, (int)edge))
+            .With(EditorButton.Of(EditorButtonKind.Align, (int)edge))
             .Tooltip(tooltip);
 
         StackCrossAlignment meet = edge switch

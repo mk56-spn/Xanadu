@@ -9,7 +9,7 @@
 #   ./run.sh animator [args]      -> the animator (--clip=name@seconds …)
 #   ./run.sh showcase [args]      -> the UI showcase
 #   ./run.sh visual-tests [args]  -> the visual test browser (--visual-test=<slug> --visual-test-exit …)
-#   ./run.sh devtools [args]      -> Atlas and Autopsy, one tab each; builds the projects Atlas reads first
+#   ./run.sh devtools [args]      -> Atlas and Autopsy, one tab each; builds the projects Atlas reads first, then refreshes ~/.cache/xanadu/atlas.txt (the map as greppable text)
 #   ./run.sh devtools atlas [args]    -> opens on ATLAS, a chart of what types touch what
 #                                        (--focus=<type>, --compare=A,B, --sort=used, --dump=<type>)
 #   ./run.sh devtools autopsy [args]  -> opens on AUTOPSY, each exe's last launch (--methods, --dump[=app])
@@ -58,9 +58,18 @@ run() {
                 return
             fi
             # Atlas reads its chart from the builds; a project that fails to build shows its last good one.
-            for project in Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/DevTools UI/Showcase; do
+            local projects=(Game/Xanadu.csproj Tools/Labs Tools/Animator Tools/DevTools UI/Showcase)
+            local i=0 started=$SECONDS
+            for project in "${projects[@]}"; do
+                i=$((i + 1))
+                echo "devtools: building $project for Atlas ($i/${#projects[@]})..." >&2
                 dotnet build "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "devtools: $project didn't build; Atlas shows its last build" >&2
             done
+            echo "devtools: builds done in $((SECONDS - started))s, launching" >&2
+            # The whole map as greppable text, for reading outside the window (agents too); out of the repo, refreshed alongside.
+            local atlas="${XDG_CACHE_HOME:-$HOME/.cache}/xanadu/atlas.txt"
+            mkdir -p "$(dirname "$atlas")"
+            (dotnet run --project "$root/Tools/DevTools" --no-build -- atlas --dump-all="$atlas" >/dev/null 2>&1 &)
             dotnet run --project "$root/Tools/DevTools" -- "$@"
             ;;
         *)

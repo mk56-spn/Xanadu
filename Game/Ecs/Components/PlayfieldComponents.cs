@@ -454,14 +454,6 @@ public struct PlayfieldMode(PlayfieldKind kind) : IComponent
 /// </summary>
 public struct DivaNotes : ITag;
 
-/// <summary>
-/// On a play playfield: the hold-to-move ground mode. On the ground the player
-/// keeps moving only while holding the direction key of the last directional
-/// note it hit (<see cref="MoveKey"/>); let go and it stops. Without it the
-/// player skids, and only friction fields stop it. F8 switches.
-/// </summary>
-public struct GroundHold : ITag;
-
 /// <summary>The play HUD label that names the ground mode.</summary>
 public struct GroundModeHud(Entity label) : IComponent
 {

@@ -121,13 +121,13 @@ public sealed class SongMenuTests
         Frame();
     }
 
-    private Entity MenuPanel() => _store.Query<SceneSongMenu>().WithDisabled().ToEntityList()[0];
+    private Entity MenuPanel() => _scenes.SongMenuPanel;
 
-    private Entity ConfirmPanel() => _store.Query<SceneDeleteLevel>().WithDisabled().ToEntityList()[0];
+    private Entity ConfirmPanel() => _scenes.DeleteLevelPanel;
 
-    private SceneSongMenu Menu() => MenuPanel().GetComponent<SceneSongMenu>();
+    private SceneSongMenu Menu() => _scenes.SongMenu;
 
-    private SceneDeleteLevel Confirm() => ConfirmPanel().GetComponent<SceneDeleteLevel>();
+    private SceneDeleteLevel Confirm() => _scenes.DeleteLevel;
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 

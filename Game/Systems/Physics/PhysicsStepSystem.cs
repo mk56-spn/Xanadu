@@ -5,8 +5,8 @@ using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Physics;
 
-/// <summary>Steps Box2D and syncs character transforms and momentum into ECS.</summary>
-public sealed class PhysicsStepSystem : QuerySystem<Character, PhysicsBody, Momentum>
+/// <summary>Steps Box2D and syncs character positions into ECS.</summary>
+public sealed class PhysicsStepSystem : QuerySystem<Character, PhysicsBody, Position>
 {
     private readonly Box2DPhysicsWorld _physics;
 
@@ -38,11 +38,9 @@ public sealed class PhysicsStepSystem : QuerySystem<Character, PhysicsBody, Mome
 
         CommandBuffer buffer = CommandBuffer;
 
-        Query.ForEachEntity((ref _, ref body, ref momentum, entity) =>
+        Query.ForEachEntity((ref _, ref body, ref position, entity) =>
         {
-            ref Position position = ref entity.GetComponent<Position>();
             position.Value = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());
-            momentum.Value = body.Body.LinearVelocity * body.Body.Mass;
             buffer.AddTag<Moved>(entity.Id);
         });
     }

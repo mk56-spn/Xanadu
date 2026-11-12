@@ -70,7 +70,7 @@ public sealed class EditorFlareSceneTest : SceneTest
         {
             foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.Place))
             {
-                if (button.GetComponent<EditorButton>().Arg == (int)EditorPlacementMode.Flare)
+                if (button.GetComponent<UiCommand>().Arg == (int)EditorPlacementMode.Flare)
                     Click(button);
             }
         });
@@ -97,7 +97,7 @@ public sealed class EditorFlareSceneTest : SceneTest
         int arg = EditorFlarePanelSystem.StepArg(setting, sign);
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.FlareStep))
         {
-            if (button.GetComponent<EditorButton>().Arg == arg)
+            if (button.GetComponent<UiCommand>().Arg == arg)
                 return button;
         }
 

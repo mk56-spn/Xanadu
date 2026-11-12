@@ -126,6 +126,5 @@ public sealed class UiWheelSystem : QuerySystem<UiWheel, Drawable>
 
         data.Selected = index;
         buffer.AddTag<Dirty>(wheel.Id);
-        buffer.AddComponent(wheel.Id, new UiWheelChanged(index));
     }
 }

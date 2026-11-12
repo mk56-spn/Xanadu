@@ -161,7 +161,7 @@ public static class EditorSceneChrome
             if (entries[i].Action is EditorButtonKind kind)
                 AddEditorAction(dropdown.Options[i], kind);
             else if (entries[i].Action is SceneActionId action)
-                dropdown.Options[i].AddComponent(new SceneCommand(action));
+                dropdown.Options[i].AddComponent(UiCommand.Of(action));
         }
     }
 
@@ -332,8 +332,8 @@ public static class EditorSceneChrome
         };
 
         if (action is { } value)
-            button.AddComponent(new SceneCommand(value));
+            button.AddComponent(UiCommand.Of(value));
         else
-            button.AddComponent(new EditorButton(kind));
+            button.AddComponent(EditorButton.Of(kind));
     }
 }

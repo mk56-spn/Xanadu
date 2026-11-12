@@ -64,8 +64,8 @@ public sealed class EditorMetadataSceneTest : SceneTest
         AddAssert(
             "the song is changed from level info",
             () => Context.Entities.Query<EditorSongLabel>().Count == 1 &&
-                  Context.Entities.Query<EditorButton>().ToEntityList()
-                      .Any(button => button.GetComponent<EditorButton>().Kind == EditorButtonKind.LoadSong));
+                  Context.Entities.Query<UiCommand>().ToEntityList()
+                      .Any(button => button.GetComponent<UiCommand>().As<EditorButtonKind>() == EditorButtonKind.LoadSong));
         AddAssert(
             "start property panel is separate",
             () => EditorPanel.Find(Context.Entities, EditorPanelKind.Start) is { IsNull: false } start &&

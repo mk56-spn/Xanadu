@@ -43,7 +43,7 @@ public sealed class EditorBlockOutlineSystem(EditorHistory history) : QuerySyste
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.OutlineStep))
         {
             if (_presses.Started(button))
-                Step(selection, first, button.GetComponent<EditorButton>().Arg);
+                Step(selection, first, button.GetComponent<UiCommand>().Arg);
         }
 
         if (first.IsNull)

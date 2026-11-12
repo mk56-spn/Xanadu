@@ -55,7 +55,7 @@ public sealed class EditorTextPanelSystem(EditorHistory history) : QuerySystem<N
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.TextSize))
         {
             if (_presses.Started(button))
-                StepSize(selection, first, button.GetComponent<EditorButton>().Arg);
+                StepSize(selection, first, button.GetComponent<UiCommand>().Arg);
         }
 
         if (first.IsNull)

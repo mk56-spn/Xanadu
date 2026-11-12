@@ -79,7 +79,7 @@ public sealed class EditorBlockStylesSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.OutlineStep))
         {
-            if (button.GetComponent<EditorButton>().Arg == delta)
+            if (button.GetComponent<UiCommand>().Arg == delta)
                 return button;
         }
 

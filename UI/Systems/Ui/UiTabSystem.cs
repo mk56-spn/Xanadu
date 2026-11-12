@@ -39,7 +39,8 @@ public sealed class UiTabSystem : QuerySystem<UiTabs>
 
     private static void Place(Entity body, Vector2 center)
     {
-        if (body.IsNull || !body.HasComponent<Position>())
+        // A body in a container's stack is placed by the stack.
+        if (body.IsNull || !body.HasComponent<Position>() || UiLayout.InFlow(body))
             return;
 
         if (UiLayout.Move(body, center))

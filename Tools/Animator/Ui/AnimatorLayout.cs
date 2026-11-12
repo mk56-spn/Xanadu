@@ -251,7 +251,7 @@ public static partial class AnimatorLayout
         Vector2 size)
     {
         Entity button = ui.IconButton(fallback, $"{IconDir}{icon}.svg", size);
-        button.AddComponent(new ToolAction(kind));
+        button.AddComponent(ToolAction.Of(kind));
         AnimatorTooltips.Attach(button, kind);
         return button;
     }
@@ -331,7 +331,7 @@ public static partial class AnimatorLayout
             label,
             new Vector2(width, AnimatorTimelineModel.HeaderHeight),
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(kind, argument));
+        button.AddComponent(ToolAction.Of(kind, argument));
         AnimatorTooltips.Attach(button, kind, argument);
         return button;
     }
@@ -380,7 +380,7 @@ public static partial class AnimatorLayout
         int fontSize = UiTheme.FontSize)
     {
         Entity button = ui.Button(label, size, fontSize: fontSize);
-        button.AddComponent(new ToolAction(kind));
+        button.AddComponent(ToolAction.Of(kind));
         AnimatorTooltips.Attach(button, kind);
         return button;
     }

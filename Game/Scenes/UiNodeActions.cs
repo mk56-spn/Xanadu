@@ -17,7 +17,7 @@ public static class UiNodeActions
 
     /// <summary>Runs a scene action when the button is pressed.</summary>
     public static UiNode On(this UiNode node, SceneActionId action) =>
-        node.With(new SceneCommand(action));
+        node.With(UiCommand.Of(action));
 }
 
 /// <summary>

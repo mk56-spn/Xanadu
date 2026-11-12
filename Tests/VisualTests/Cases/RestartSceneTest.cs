@@ -83,10 +83,10 @@ public sealed class RestartSceneTest : SceneTest
     private void ClickRetry()
     {
         foreach (Entity entity in Context.Entities
-                     .Query<SceneCommand, Position>()
+                     .Query<UiCommand, Position>()
                      .ToEntityList())
         {
-            if (entity.GetComponent<SceneCommand>().Action !=
+            if (entity.GetComponent<UiCommand>().As<SceneActionId>() !=
                 SceneActionId.Retry)
             {
                 continue;
@@ -106,7 +106,7 @@ public sealed class RestartSceneTest : SceneTest
 
     private bool PauseVisible()
     {
-        return Context.Entities.Query<ScenePause>().Count > 0;
+        return Context.Scenes.PauseOpen;
     }
 
     private static Vector2 WorldPosition(Entity entity, Vector2 local)

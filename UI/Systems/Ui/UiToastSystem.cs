@@ -10,7 +10,7 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Ui;
 
 /// <summary>General-purpose timed toast with pop-in and fade-out animation.</summary>
-public sealed class ToastSystem : QuerySystem<Toast>
+public sealed class ToastSystem : BaseSystem
 {
     private const float PopInSeconds = 0.16f;
     private const float FadeOutSeconds = 0.28f;
@@ -34,6 +34,16 @@ public sealed class ToastSystem : QuerySystem<Toast>
     private readonly Vector2 _home;
     private readonly float _maxWidth;
     private readonly Entity _toast;
+    private string _message = "";
+    private float _age;
+    private float _duration;
+    private bool _active;
+
+    /// <summary>The toast's entity: its panel and text.</summary>
+    public Entity Entity => _toast;
+
+    /// <summary>Whether a message is up, popping in, showing or fading out.</summary>
+    public bool Active => _active;
 
     public ToastSystem(
         EntityStore entities,
@@ -50,7 +60,6 @@ public sealed class ToastSystem : QuerySystem<Toast>
             new Color(PanelColor, 0f),
             "");
         _toast.AddComponent(new TextStyle(FontSize, new Color(TextColor, 0f)));
-        _toast.AddComponent(new Toast());
         UiLayout.SetHidden(_toast, true);
     }
 
@@ -83,18 +92,17 @@ public sealed class ToastSystem : QuerySystem<Toast>
     public static float ReadingTime(string message) =>
         Math.Max(DefaultDuration, message.Length * SecondsPerCharacter);
 
-    protected override void OnUpdate()
+    protected override void OnUpdateGroup()
     {
-        if (_toast.IsNull || !_toast.HasComponent<Toast>())
+        if (_toast.IsNull)
             return;
 
-        CommandBuffer buffer = CommandBuffer;
         if (_status is { } status)
         {
             _status = null;
             Begin(status, ReadingTime(status));
         }
-        else if (!_toast.GetComponent<Toast>().Active)
+        else if (!_active)
         {
             if (_queue.Count == 0)
                 return;
@@ -103,56 +111,53 @@ public sealed class ToastSystem : QuerySystem<Toast>
             Begin(message, duration);
         }
 
-        // Showing the toast moved its components, so take the reference after it.
-        ref Toast toast = ref _toast.GetComponent<Toast>();
-        toast.Age += Tick.deltaTime;
+        _age += Tick.deltaTime;
 
-        float total = PopInSeconds + toast.Duration + FadeOutSeconds;
+        float total = PopInSeconds + _duration + FadeOutSeconds;
         float alpha;
         float offsetY;
 
-        if (toast.Age < PopInSeconds)
+        if (_age < PopInSeconds)
         {
-            float t = toast.Age / PopInSeconds;
+            float t = _age / PopInSeconds;
             alpha = t;
             offsetY = (1f - t) * 10f;
         }
-        else if (toast.Age < PopInSeconds + toast.Duration)
+        else if (_age < PopInSeconds + _duration)
         {
             alpha = 1f;
             offsetY = 0f;
         }
-        else if (toast.Age < total)
+        else if (_age < total)
         {
-            float t = (toast.Age - PopInSeconds - toast.Duration) /
+            float t = (_age - PopInSeconds - _duration) /
                       FadeOutSeconds;
             alpha = 1f - t;
             offsetY = -t * 8f;
         }
         else
         {
-            toast.Active = false;
+            _active = false;
             SetVisual(string.Empty, _home, 0f);
-            Mark(buffer);
-            UiLayout.SetHidden(_toast, buffer, true);
+            Mark();
+            UiLayout.SetHidden(_toast, true);
             return;
         }
 
         SetVisual(
-            toast.Message,
+            _message,
             _home + new Vector2(0, offsetY),
             alpha);
-        Mark(buffer);
+        Mark();
     }
 
     private void Begin(string message, float duration)
     {
         UiLayout.SetHidden(_toast, false);
-        ref Toast toast = ref _toast.GetComponent<Toast>();
-        toast.Message = message;
-        toast.Age = 0f;
-        toast.Duration = Math.Max(0.1f, duration);
-        toast.Active = true;
+        _message = message;
+        _age = 0f;
+        _duration = Math.Max(0.1f, duration);
+        _active = true;
         Fit(message);
         SetVisual(message, _home, 0f);
     }
@@ -188,9 +193,9 @@ public sealed class ToastSystem : QuerySystem<Toast>
         style.Color = new Color(TextColor, TextColor.A * alpha);
     }
 
-    private void Mark(CommandBuffer buffer)
+    private void Mark()
     {
-        buffer.AddTag<Dirty>(_toast.Id);
-        buffer.AddTag<Moved>(_toast.Id);
+        _toast.AddTag<Dirty>();
+        _toast.AddTag<Moved>();
     }
 }

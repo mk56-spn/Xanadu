@@ -74,7 +74,7 @@ public static partial class AnimatorLayout
             new string(shorter ? '◀' : '▶', arrows),
             new Vector2(ClipLengthArrowWidth, ClipLengthRowHeight),
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(
+        button.AddComponent(ToolAction.Of(
             shorter ? ToolActionKind.DurationDown : ToolActionKind.DurationUp,
             seconds.ToString(CultureInfo.InvariantCulture)));
         button.AddComponent(new UiTooltip(
@@ -177,7 +177,7 @@ public static partial class AnimatorLayout
         UiDropdownControl dropdown = menu.DropdownList(button, labels);
         for (int i = 0; i < entries.Length; i++)
         {
-            dropdown.Options[i].AddComponent(new ToolAction(entries[i].Kind));
+            dropdown.Options[i].AddComponent(ToolAction.Of(entries[i].Kind));
             AnimatorTooltips.Attach(dropdown.Options[i], entries[i].Kind);
         }
     }
@@ -258,7 +258,7 @@ public static partial class AnimatorLayout
         {
             Entity option = menu.Button(label, new Vector2(BoneMenuSize.X - 8, 28),
                 fontSize: UiTheme.SmallFontSize);
-            option.AddComponent(new ToolAction(kind));
+            option.AddComponent(ToolAction.Of(kind));
             AnimatorTooltips.Attach(option, kind);
         }
         menu.End();
@@ -321,13 +321,13 @@ public static partial class AnimatorLayout
         refs.Ui.KeyMenu = menu.Current;
         var size = new Vector2(KeyMenuSize.X - 8, 28);
         refs.Ui.KeyMenuAdd = menu.Button("ADD KEY", size, fontSize: UiTheme.SmallFontSize);
-        refs.Ui.KeyMenuAdd.AddComponent(new ToolAction(ToolActionKind.AddKey));
+        refs.Ui.KeyMenuAdd.AddComponent(ToolAction.Of(ToolActionKind.AddKey));
         AnimatorTooltips.Attach(refs.Ui.KeyMenuAdd, ToolActionKind.AddKey);
         refs.Ui.KeyMenuDelete = menu.Button("DEL KEY", size, fontSize: UiTheme.SmallFontSize);
-        refs.Ui.KeyMenuDelete.AddComponent(new ToolAction(ToolActionKind.DeleteKey));
+        refs.Ui.KeyMenuDelete.AddComponent(ToolAction.Of(ToolActionKind.DeleteKey));
         AnimatorTooltips.Attach(refs.Ui.KeyMenuDelete, ToolActionKind.DeleteKey);
         Entity selectAll = menu.Button("SELECT ALL", size, fontSize: UiTheme.SmallFontSize);
-        selectAll.AddComponent(new ToolAction(ToolActionKind.SelectAllKeys));
+        selectAll.AddComponent(ToolAction.Of(ToolActionKind.SelectAllKeys));
         AnimatorTooltips.Attach(selectAll, ToolActionKind.SelectAllKeys);
         menu.End();
     }
@@ -401,7 +401,7 @@ public static partial class AnimatorLayout
 
         Entity reset = menu.Button("RESET", new Vector2(inner, row),
             fontSize: UiTheme.SmallFontSize);
-        reset.AddComponent(new ToolAction(ToolActionKind.ResetTransform));
+        reset.AddComponent(ToolAction.Of(ToolActionKind.ResetTransform));
         AnimatorTooltips.Attach(reset, ToolActionKind.ResetTransform);
         menu.End();
     }

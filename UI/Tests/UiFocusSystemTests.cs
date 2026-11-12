@@ -142,7 +142,7 @@ public sealed class UiFocusSystemTests
         Press(Key.Tab);
         Frame();
 
-        var edges = _store.Query<UiFocusRingEdge>().ToEntityList();
+        var edges = _focus.RingEdges;
         Assert.That(edges.Count, Is.EqualTo(4));
         foreach (Entity edge in edges)
         {
@@ -184,7 +184,7 @@ public sealed class UiFocusSystemTests
 
     private bool RingVisible()
     {
-        foreach (Entity edge in _store.Query<UiFocusRingEdge>().ToEntityList())
+        foreach (Entity edge in _focus.RingEdges)
         {
             if (!UiLayout.IsHidden(edge))
                 return true;

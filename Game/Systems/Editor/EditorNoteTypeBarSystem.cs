@@ -13,7 +13,7 @@ namespace Xanadu.Systems.Editor;
 /// and movement notes. Pressing one picks the key
 /// new notes get; the picked swatch stays bright and the rest dim.
 /// </summary>
-public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
+public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
 {
     private static readonly Color DimTo = new(0.08f, 0.1f, 0.16f);
     private const float Dimming = 0.6f;
@@ -53,7 +53,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<EditorButton>
 
         Query.ForEachEntity((ref button, entity) =>
         {
-            if (button.Kind != EditorButtonKind.NoteType)
+            if (!button.Is(EditorButtonKind.NoteType))
                 return;
 
             var action = (KeybindAction)button.Arg;

@@ -67,10 +67,3 @@ public struct EasePickerParts
     public Entity Dot;
     public Entity RailDot;
 }
-
-/// <summary>A curve thumbnail of one picker; pressing it picks the curve.</summary>
-public struct EasePickerCell(EasePreset preset, Entity picker) : IComponent
-{
-    public EasePreset Preset = preset;
-    public Entity Picker = picker;
-}

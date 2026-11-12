@@ -131,7 +131,7 @@ public static class ParticleEditorPanel
         float width,
         string tooltip) =>
         row.Button(label, UiType.Caption).Size(width, Row)
-            .With(new ParticleEditorAction(kind, editor))
+            .With(UiCommand.Of(kind, owner: editor))
             .Tooltip(tooltip);
 
     private static Entity Field(UiNode row, ParticleEditorFieldKind kind, Entity editor, float width, string tooltip) =>

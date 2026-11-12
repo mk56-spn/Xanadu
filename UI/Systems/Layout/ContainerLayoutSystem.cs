@@ -9,13 +9,19 @@ using Position = Xanadu.Ecs.Position;
 namespace Xanadu.Systems.Layout;
 
 /// <summary>
-/// Resolves every native <see cref="UiContainer"/> each frame. Auto-sized
-/// containers are measured bottom-up so nested containers settle in one pass,
-/// then all containers stack their children using padding, spacing, and
-/// cross-axis alignment. Children tagged <see cref="LayoutIgnore"/> are skipped.
+/// Resolves every native <see cref="UiContainer"/> each frame, in two passes.
+/// Measuring goes bottom-up: auto-sized containers fit their content, deepest
+/// first, so nested containers settle in one frame. Placing goes top-down: a
+/// container sizes its <see cref="UiFlex"/> children (grow, stretch, min and
+/// max) before they place their own, and a child it resized is placed again
+/// the same frame. Children tagged <see cref="LayoutIgnore"/> are skipped.
 /// </summary>
-public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
+public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 {
+    private readonly List<Entity> _children = new();
+    private readonly List<Vector2> _sizes = new();
+    private readonly List<Entity> _resized = new();
+
     public ContainerLayoutSystem()
     {
         Filter.AllTags(Tags.Get<LayoutDirty>());
@@ -27,14 +33,13 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         if (containers.Count == 0)
             return;
 
-        // Children must be measured before their auto-sized parents.
-        containers.Sort(static (left, right) =>
-            Depth(right).CompareTo(Depth(left)));
-
         CommandBuffer buffer = CommandBuffer;
+        var queued = new HashSet<Entity>(containers);
+
+        // Measure: children before their auto-sized parents.
+        containers.Sort(static (left, right) => Depth(right).CompareTo(Depth(left)));
 
         // A resize reaches its auto-sized ancestors this frame, however deep the tree.
-        var queued = new HashSet<Entity>(containers);
         for (int i = 0; i < containers.Count; i++)
         {
             Entity entity = containers[i];
@@ -53,11 +58,27 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             }
         }
 
-        foreach (Entity entity in containers)
-            Layout(entity, buffer);
+        // Place: parents before children, so a child they resize is placed in its new size.
+        containers.Reverse();
+        for (int i = 0; i < containers.Count; i++)
+        {
+            _resized.Clear();
+            Layout(containers[i], buffer);
+            foreach (Entity child in _resized)
+            {
+                if (!queued.Add(child))
+                    continue;
+
+                int depth = Depth(child);
+                int at = i + 1;
+                while (at < containers.Count && Depth(containers[at]) <= depth)
+                    at++;
+                containers.Insert(at, child);
+            }
+        }
     }
 
-    /// <summary>Fits an auto-sized container to its content; true when its size changed.</summary>
+    /// <summary>Fits an auto-sized container to its content; true when the size it asks for changed.</summary>
     private static bool Resize(Entity entity, CommandBuffer buffer)
     {
         UiContainer container = entity.GetComponent<UiContainer>();
@@ -68,10 +89,27 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             return false;
 
         ref Rectangle rectangle = ref entity.GetComponent<Rectangle>();
+        bool hasFlex = entity.TryGetComponent(out UiFlex flex);
+
+        // Inside a stack the parent sizes it; it only says what it would like.
+        if (hasFlex && IsLayoutChild(entity) && entity.Parent.HasComponent<UiContainer>())
+        {
+            Vector2 natural = new(
+                container.AutoWidth ? contentSize.X : flex.Natural.X,
+                container.AutoHeight ? contentSize.Y : flex.Natural.Y);
+            if (natural == flex.Natural)
+                return false;
+
+            entity.GetComponent<UiFlex>().Natural = natural;
+            return true;
+        }
+
         Vector2 currentSize = rectangle.Bounds.Size;
         Vector2 size = new(
             container.AutoWidth ? contentSize.X : currentSize.X,
             container.AutoHeight ? contentSize.Y : currentSize.Y);
+        if (hasFlex)
+            size = flex.Clamp(size);
 
         if (size == currentSize)
             return false;
@@ -117,6 +155,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             return true;
         }
 
+        bool horizontal = container.Direction == StackDirection.Horizontal;
         float main = 0;
         float cross = 0;
         int count = 0;
@@ -126,15 +165,9 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             if (!IsLayoutChild(child))
                 continue;
 
-            Vector2 childSize = SlotSize(child, container.Direction);
-            main += container.Direction == StackDirection.Horizontal
-                ? childSize.X
-                : childSize.Y;
-            cross = Mathf.Max(
-                cross,
-                container.Direction == StackDirection.Horizontal
-                    ? childSize.Y
-                    : childSize.X);
+            Vector2 childSize = SlotSize(child, NaturalSize(child), container.Direction);
+            main += horizontal ? childSize.X : childSize.Y;
+            cross = Mathf.Max(cross, horizontal ? childSize.Y : childSize.X);
             count++;
         }
 
@@ -144,13 +177,11 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         main += container.Padding * 2;
         cross += container.Padding * 2;
 
-        size = container.Direction == StackDirection.Horizontal
-            ? new Vector2(main, cross)
-            : new Vector2(cross, main);
+        size = horizontal ? new Vector2(main, cross) : new Vector2(cross, main);
         return true;
     }
 
-    private static void Layout(Entity entity, CommandBuffer buffer)
+    private void Layout(Entity entity, CommandBuffer buffer)
     {
         UiContainer container = entity.GetComponent<UiContainer>();
         Rectangle rectangle = entity.GetComponent<Rectangle>();
@@ -161,37 +192,32 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
             return;
         }
 
+        bool horizontal = container.Direction == StackDirection.Horizontal;
+        SizeChildren(entity, container, rectangle, buffer);
+
         float total = 0;
-        int count = 0;
-
-        foreach (Entity child in entity.ChildEntities)
+        for (int i = 0; i < _children.Count; i++)
         {
-            if (!IsLayoutChild(child))
-                continue;
-
-            Vector2 childSize = SlotSize(child, container.Direction);
-            total += container.Direction == StackDirection.Horizontal
-                ? childSize.X
-                : childSize.Y;
-            count++;
+            Vector2 slot = SlotSize(_children[i], _sizes[i], container.Direction);
+            total += horizontal ? slot.X : slot.Y;
         }
 
-        if (count > 1)
-            total += container.Spacing * (count - 1);
+        if (_children.Count > 1)
+            total += container.Spacing * (_children.Count - 1);
 
         float cursor = StartOffset(container, rectangle, total);
 
-        foreach (Entity child in entity.ChildEntities)
+        for (int i = 0; i < _children.Count; i++)
         {
-            if (!IsLayoutChild(child))
-                continue;
+            Entity child = _children[i];
+            Vector2 childSize = _sizes[i];
+            Resized(child, childSize, buffer);
 
             ref Position position = ref child.GetComponent<Position>();
-            Vector2 childSize = child.GetComponent<Rectangle>().Bounds.Size;
-            Vector2 slotSize = SlotSize(child, container.Direction);
+            Vector2 slotSize = SlotSize(child, childSize, container.Direction);
             Vector2 target;
 
-            if (container.Direction == StackDirection.Horizontal)
+            if (horizontal)
             {
                 target = new Vector2(
                     cursor + childSize.X / 2,
@@ -208,7 +234,7 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 
             // A skewed vertical stack flows along its slanted sides: the higher a
             // child sits, the further right.
-            if (container.Skew != 0 && container.Direction == StackDirection.Vertical)
+            if (container.Skew != 0 && !horizontal)
                 target.X -= Mathf.Tan(container.Skew) * target.Y;
 
             if (position.Value == target)
@@ -221,114 +247,17 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         buffer.RemoveTag<LayoutDirty>(entity.Id);
     }
 
-    private static void LayoutGrid(
-        Entity entity,
-        UiContainer container,
-        Rectangle rectangle,
-        CommandBuffer buffer)
+    /// <summary>Gives a child its laid-out size; a resized container is placed again after this one.</summary>
+    private void Resized(Entity child, Vector2 size, CommandBuffer buffer)
     {
-        Grid grid = Grid.Of(entity, container);
-        Vector2 size = rectangle.Bounds.Size;
-        float left = container.Main switch
-        {
-            StackMainAlignment.Start => -size.X / 2 + container.Padding,
-            StackMainAlignment.End => size.X / 2 - container.Padding - grid.Size.X,
-            _ => -grid.Size.X / 2,
-        };
-        float top = container.Cross switch
-        {
-            StackCrossAlignment.Start => -size.Y / 2 + container.Padding,
-            StackCrossAlignment.End => size.Y / 2 - container.Padding - grid.Size.Y,
-            _ => -grid.Size.Y / 2,
-        };
+        ref Rectangle rect = ref child.GetComponent<Rectangle>();
+        if (rect.Bounds.Size == size)
+            return;
 
-        int index = 0;
-        foreach (Entity child in entity.ChildEntities)
-        {
-            if (!IsLayoutChild(child))
-                continue;
-
-            Vector2 cell = grid.CellOrigin(index, container, left, top);
-            Vector2 cellSize = grid.CellSize(index);
-            Vector2 target = cell + cellSize / 2;
-            index++;
-
-            ref Position position = ref child.GetComponent<Position>();
-            if (position.Value == target)
-                continue;
-
-            position.Value = target;
-            buffer.AddTag<Moved>(child.Id);
-        }
-
-        buffer.RemoveTag<LayoutDirty>(entity.Id);
-    }
-
-    /// <summary>A grid's column widths and row heights, and the size they add up to.</summary>
-    private readonly struct Grid
-    {
-        private readonly float[] _columns;
-        private readonly float[] _rows;
-        private readonly int _columnCount;
-
-        private Grid(float[] columns, float[] rows, int columnCount, Vector2 size)
-        {
-            _columns = columns;
-            _rows = rows;
-            _columnCount = columnCount;
-            Size = size;
-        }
-
-        public Vector2 Size { get; }
-
-        public static Grid Of(Entity entity, UiContainer container)
-        {
-            var sizes = new List<Vector2>();
-            foreach (Entity child in entity.ChildEntities)
-            {
-                if (IsLayoutChild(child))
-                    sizes.Add(child.GetComponent<Rectangle>().Bounds.Size);
-            }
-
-            int columnCount = container.Columns;
-            int rowCount = (sizes.Count + columnCount - 1) / columnCount;
-            var columns = new float[Mathf.Min(columnCount, sizes.Count)];
-            var rows = new float[rowCount];
-            for (int i = 0; i < sizes.Count; i++)
-            {
-                columns[i % columnCount] = Mathf.Max(columns[i % columnCount], sizes[i].X);
-                rows[i / columnCount] = Mathf.Max(rows[i / columnCount], sizes[i].Y);
-            }
-
-            float width = 0;
-            foreach (float column in columns)
-                width += column;
-            float height = 0;
-            foreach (float row in rows)
-                height += row;
-            if (columns.Length > 1)
-                width += container.Spacing * (columns.Length - 1);
-            if (rows.Length > 1)
-                height += container.RowSpacing * (rows.Length - 1);
-
-            return new Grid(columns, rows, columnCount, new Vector2(width, height));
-        }
-
-        public Vector2 CellSize(int index) =>
-            new(_columns[index % _columnCount], _rows[index / _columnCount]);
-
-        public Vector2 CellOrigin(int index, UiContainer container, float left, float top)
-        {
-            int column = index % _columnCount;
-            int row = index / _columnCount;
-            float x = left + column * container.Spacing;
-            for (int i = 0; i < column; i++)
-                x += _columns[i];
-            float y = top + row * container.RowSpacing;
-            for (int i = 0; i < row; i++)
-                y += _rows[i];
-            return new Vector2(x, y);
-        }
+        rect.Bounds = new Rect2(-size / 2, size);
+        buffer.AddTag<Dirty>(child.Id);
+        if (child.HasComponent<UiContainer>())
+            _resized.Add(child);
     }
 
     private static float StartOffset(
@@ -367,9 +296,9 @@ public sealed class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
         };
     }
 
-    private static Vector2 SlotSize(Entity child, StackDirection direction)
+    /// <summary>The room a child takes in the stack: its size, plus an open dropdown's list.</summary>
+    private static Vector2 SlotSize(Entity child, Vector2 size, StackDirection direction)
     {
-        Vector2 size = child.GetComponent<Rectangle>().Bounds.Size;
         if (!child.HasComponent<Dropdown>())
             return size;
 

@@ -5,7 +5,12 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Ui;
 
-/// <summary>Handles click-to-toggle ECS buttons and keeps their labels in sync.</summary>
+/// <summary>
+/// Handles click-to-toggle ECS buttons and keeps their labels in sync. A flip
+/// is announced with the entity's native <c>OnComponentChanged</c> (an Update
+/// of <see cref="Toggle"/>); owners subscribe on the toggle they built (see
+/// <see cref="UiToggles"/>) and keep the value in their own model.
+/// </summary>
 public sealed class ToggleSystem : QuerySystem<Toggle, Text>
 {
     protected override void OnUpdate()
@@ -15,13 +20,18 @@ public sealed class ToggleSystem : QuerySystem<Toggle, Text>
         Query.ForEachEntity((ref toggle, ref text, entity) =>
         {
             bool pressed = entity.Tags.Has<Pressed>();
-            if (pressed && !toggle.Held)
+            bool flipped = pressed && !toggle.Held;
+            if (flipped)
             {
                 toggle.Value = !toggle.Value;
-                buffer.AddTag<ToggleChanged>(entity.Id);
                 buffer.AddTag<Dirty>(entity.Id);
             }
             toggle.Held = pressed;
+
+            // Written back through the store so its owner hears it: the native
+            // ComponentChanged event (Update) on the entity, at playback.
+            if (flipped)
+                buffer.AddComponent(entity.Id, toggle);
 
             string expected = toggle.Value ? toggle.OnText : toggle.OffText;
             if (text.Value != expected)

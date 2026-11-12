@@ -79,6 +79,9 @@ public enum StackCrossAlignment
     Start,
     Center,
     End,
+
+    /// <summary>Every child fills the cross axis inside the padding, as if each were <see cref="UiFlex.Stretch"/>.</summary>
+    Stretch,
 }
 
 /// <summary>Placement of the stacked children along the container's main axis.</summary>
@@ -150,6 +153,49 @@ public struct UiContainer(
 
     /// <summary>The container's corners, clockwise from the top left, with the skew applied.</summary>
     public static Vector2[] Corners(Rect2 bounds, float skew) => UiOutline.Points(bounds, skew, 0);
+}
+
+/// <summary>
+/// How a node sizes inside its parent's stack. <see cref="Natural"/> is the
+/// size it asks for (what the author set, or an auto container's content);
+/// the parent starts from it, gives growing children a share of the room left
+/// on the main axis, stretches stretching ones across, and clamps the result to
+/// <see cref="Min"/> and <see cref="Max"/>. Layout writes the result to the
+/// node's <see cref="Rectangle"/> and never touches <see cref="Natural"/>, so
+/// it settles the same way however often it runs. Grids ignore it.
+/// </summary>
+public struct UiFlex : IComponent
+{
+    /// <summary>Weight of the main-axis room left over this child takes; zero keeps its natural size.</summary>
+    public float Grow;
+
+    /// <summary>Fills the parent's cross axis inside its padding.</summary>
+    public bool Stretch;
+
+    /// <summary>Smallest size per axis; zero is no floor.</summary>
+    public Vector2 Min;
+
+    /// <summary>Largest size per axis; zero or less is no cap.</summary>
+    public Vector2 Max;
+
+    /// <summary>The size the node asks for before growing or stretching.</summary>
+    public Vector2 Natural;
+
+    public UiFlex(Vector2 natural)
+    {
+        Natural = natural;
+    }
+
+    /// <summary><paramref name="size"/> held inside the min and max.</summary>
+    public readonly Vector2 Clamp(Vector2 size) => new(Clamp(size.X, Min.X, Max.X), Clamp(size.Y, Min.Y, Max.Y));
+
+    /// <summary>One axis held inside its min and max; a min beats a max.</summary>
+    public static float Clamp(float value, float min, float max)
+    {
+        if (max > 0 && value > max)
+            value = max;
+        return value < min ? min : value;
+    }
 }
 
 /// <summary>An outline drawn around a container or rectangle, following its skew.</summary>

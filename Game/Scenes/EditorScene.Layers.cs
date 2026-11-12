@@ -185,11 +185,11 @@ public static class EditorSceneLayers
             .Entity;
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(kind, -1))
+            .With(EditorButton.Of(kind, -1))
             .Tooltip(less);
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(kind, 1))
+            .With(EditorButton.Of(kind, 1))
             .Tooltip(more);
         return readout;
     }

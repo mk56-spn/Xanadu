@@ -32,9 +32,3 @@ public struct UiWheel : IComponent
     /// <summary>Gap between neighbouring wedges, as its angle at the rim in radians. Its width stays the same towards the hub.</summary>
     public float Gap;
 }
-
-/// <summary>Set for one frame when the user selects a different wheel wedge.</summary>
-public struct UiWheelChanged(int index) : IComponent
-{
-    public int Index = index;
-}

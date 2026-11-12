@@ -189,10 +189,10 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
     private void ClickPreview()
     {
         foreach (Entity entity in Context.Entities
-                     .Query<EditorButton, Position>()
+                     .Query<UiCommand, Position>()
                      .ToEntityList())
         {
-            if (entity.GetComponent<EditorButton>().Kind != EditorButtonKind.Preview)
+            if (entity.GetComponent<UiCommand>().As<EditorButtonKind>() != EditorButtonKind.Preview)
                 continue;
 
             Context.Pointer.Click(UiTransform.WorldPosition(
@@ -206,10 +206,7 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
 
     private bool PauseVisible()
     {
-        foreach (Entity entity in Context.Entities.Query<ScenePause>().ToEntityList())
-            return !UiLayout.IsHidden(entity);
-
-        return false;
+        return Context.Scenes.PauseOpen;
     }
 
     private string EditorPath()
@@ -222,19 +219,13 @@ public sealed class EditorPreviewSaveSceneTest : SceneTest
 
     private void ClickLeave()
     {
-        foreach (Entity entity in Context.Entities.Query<ScenePause>().ToEntityList())
-        {
-            Entity leave = entity.GetComponent<ScenePause>().Leave;
-            if (leave.IsNull)
-                continue;
+        Entity leave = Context.Scenes.Pause.Leave;
+        if (leave.IsNull)
+            throw new SceneTestAssertionException("Leave level button missing");
 
-            Context.Pointer.Click(UiTransform.WorldPosition(
-                leave,
-                leave.GetComponent<Position>().Value));
-            return;
-        }
-
-        throw new SceneTestAssertionException("Leave level button missing");
+        Context.Pointer.Click(UiTransform.WorldPosition(
+            leave,
+            leave.GetComponent<Position>().Value));
     }
 
     private void CloseOverlay()

@@ -92,7 +92,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         CapturePreviewPath();
         DestroyScene();
 
-        _sceneRoot = _entities.CreateEntity(new SceneRoot(next));
+        _sceneRoot = _entities.CreateEntity();
 
         var context = new SceneBuildContext(
             _entities,

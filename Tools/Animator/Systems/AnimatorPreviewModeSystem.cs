@@ -117,7 +117,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
 
     private static void PaintToggle(Entity button, bool loop, bool slow, bool paths, bool attacks)
     {
-        if (!button.TryGetComponent(out ToolAction action))
+        if (!button.TryGetToolAction(out ToolAction action))
             return;
 
         bool? lit = action.Kind switch

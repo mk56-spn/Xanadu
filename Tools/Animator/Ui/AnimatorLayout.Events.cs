@@ -40,7 +40,7 @@ public static partial class AnimatorLayout
 
         Entity delete = menu.Button("DELETE EVENT", new Vector2(inner, ChainRow),
             fontSize: UiTheme.SmallFontSize);
-        delete.AddComponent(new ToolAction(ToolActionKind.DeleteEvent));
+        delete.AddComponent(ToolAction.Of(ToolActionKind.DeleteEvent));
         AnimatorTooltips.Attach(delete, ToolActionKind.DeleteEvent);
         menu.End();
     }

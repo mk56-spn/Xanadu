@@ -39,7 +39,8 @@ public sealed class EditorFocusSceneTest : SceneTest
         AddAssert(
             "the focus ring is visible",
             () => Context.Entities
-                .Query<UiFocusRingEdge>()
+                .Query<Layer>()
+                .HasValue<Layer, int>(UiLayers.Focus)
                 .ToEntityList()
                 .Any(edge => !UiLayout.IsHidden(edge)));
 

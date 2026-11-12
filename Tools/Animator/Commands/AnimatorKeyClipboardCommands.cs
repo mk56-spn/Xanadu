@@ -37,7 +37,7 @@ public static class AnimatorKeyClipboardCommands
             return;
         }
 
-        ref AnimatorKeyClipboard clipboard = ref session.GetComponent<AnimatorKeyClipboard>();
+        ref AnimatorKeyClipboard clipboard = ref session.GetComponent<AnimatorSessionState>().KeyClipboard;
         clipboard.Keys = samples;
         clipboard.Refs = keys;
         clipboard.Anchor = anchor;
@@ -51,7 +51,7 @@ public static class AnimatorKeyClipboardCommands
     /// <summary>Pastes the copied key sets at the playhead, moved back if they would overrun the clip.</summary>
     public static void Paste(Entity session)
     {
-        AnimatorKeyClipboard clipboard = session.GetComponent<AnimatorKeyClipboard>();
+        AnimatorKeyClipboard clipboard = session.GetComponent<AnimatorSessionState>().KeyClipboard;
         XafClip? clip = CurrentClip(session);
         if (clip is null || clipboard.Keys is not { Count: > 0 } samples)
         {

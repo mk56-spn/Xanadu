@@ -190,7 +190,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Session.GetComponent<AnimatorModes>().AutoKey = true;
         SelectBone(1);
         Runtime.Seek(1f);
-        var history = Session.GetComponent<AnimatorHistory>().History;
+        var history = Session.GetComponent<AnimatorSessionState>().History.History;
         var track = new XafTrack(XafChannelTarget.Bone, "torso");
 
         Ui.InspectRotationSlider.AddTag<Pressed>();

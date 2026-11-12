@@ -88,7 +88,7 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
 
         Click(PresetButton(EasePreset.Linear));
 
-        Assert.That(Session.GetComponent<AnimatorHistory>().History.CanUndo, Is.False);
+        Assert.That(Session.GetComponent<AnimatorSessionState>().History.History.CanUndo, Is.False);
     }
 
     [Test]

@@ -7,25 +7,9 @@ public struct UiChamfer(float size) : Friflo.Engine.ECS.IComponent
     public float Size = size;
 }
 
-/// <summary>Draws a rectangle or container as a diamond: a square standing on a corner, with right angles.</summary>
-public struct UiDiamond : Friflo.Engine.ECS.IComponent;
-
 /// <summary>The outline of a rectangle after skewing it and cutting its top right corner.</summary>
 public static class UiOutline
 {
-    /// <summary>The four midpoints of a rectangle's sides, clockwise from the top.</summary>
-    public static Vector2[] Diamond(Rect2 bounds)
-    {
-        Vector2 centre = bounds.GetCenter();
-        return
-        [
-            new(centre.X, bounds.Position.Y),
-            new(bounds.End.X, centre.Y),
-            new(centre.X, bounds.End.Y),
-            new(bounds.Position.X, centre.Y),
-        ];
-    }
-
     /// <summary>
     /// Corners clockwise from the top left. A skew leans the top edge right of
     /// the bottom by that angle; a chamfer replaces the top right corner with

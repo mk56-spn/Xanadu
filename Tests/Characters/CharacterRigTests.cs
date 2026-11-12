@@ -50,7 +50,7 @@ public sealed class CharacterRigTests : EcsSystemTest
     }
 
     [Test]
-    public void AClipEventBecomesAnEntityForOneFrame()
+    public void AClipEventFiresForOneFrame()
     {
         XafEventAuthoring.Add(_files.Package!.Clips.Find(clip => clip.Id == "idle")!, 0.5f, "step");
         Entity player = Player();
@@ -59,10 +59,11 @@ public sealed class CharacterRigTests : EcsSystemTest
         for (int frame = 0; frame < 60; frame++)
         {
             Frame();
-            foreach (Entity fired in Store.Query<CharacterRigEvent>().ToEntityList())
+            if (!player.TryGetComponent(out CharacterRig rig))
+                continue;
+            foreach (XafFiredEvent fired in rig.Runtime.Fired)
             {
-                CharacterRigEvent item = fired.GetComponent<CharacterRigEvent>();
-                Assert.That((item.Character, item.Clip, item.Name), Is.EqualTo((player, "idle", "step")));
+                Assert.That((fired.Clip, fired.Name), Is.EqualTo(("idle", "step")));
                 seen++;
             }
         }
@@ -115,7 +116,7 @@ public sealed class CharacterRigTests : EcsSystemTest
         Entity player = Player();
         Frame(3);
 
-        Assert.That(player.Tags.Has<CharacterRigMissing>(), Is.True);
+        Assert.That(player.HasComponent<CharacterRig>(), Is.False);
         Assert.That(player.Tags.Has<CharacterRigVisible>(), Is.False);
         Assert.That(_files.Loaded, Has.Count.EqualTo(1));
     }

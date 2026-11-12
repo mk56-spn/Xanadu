@@ -6,12 +6,6 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Debug;
 
-/// <summary>What a cell was asked to show, which its text may be a shortened form of.</summary>
-public struct DebugCell : IComponent
-{
-    public string Source;
-}
-
 /// <summary>One column of a <see cref="DebugTable"/>; a text past <see cref="MaxWidth"/> is cut short.</summary>
 public readonly record struct DebugColumn(string Title, TextAlign Align, float MaxWidth = float.MaxValue);
 
@@ -33,6 +27,9 @@ public sealed class DebugTable
     private readonly DebugColumn[] _columns;
     private readonly float[] _widths;
     private readonly UiNode _table;
+
+    /// <summary>What each row's cells were asked to show, which their text may be a shortened form of.</summary>
+    private readonly List<string[]> _sources = new();
 
     public DebugTable(UiNode parent, params DebugColumn[] columns)
     {
@@ -59,17 +56,20 @@ public sealed class DebugTable
         while (RowCount < count)
             AddRow();
         while (RowCount > count)
+        {
             UiLayout.DeleteSubtree(_table.Entity.ChildEntities[_table.Entity.ChildCount - 1]);
+            _sources.RemoveAt(_sources.Count - 1);
+        }
     }
 
     public void Set(int row, int column, string text)
     {
         Entity cell = Row(row).ChildEntities[column];
-        ref DebugCell shown = ref cell.GetComponent<DebugCell>();
-        if (shown.Source == text)
+        string[] shown = _sources[row + 1];
+        if (shown[column] == text)
             return;
 
-        shown.Source = text;
+        shown[column] = text;
         text = UiTextFit.Cut(text, FontSize, _columns[column].MaxWidth);
         UiText.Set(cell, text);
 
@@ -94,9 +94,11 @@ public sealed class DebugTable
         for (int i = 0; i < _columns.Length; i++)
         {
             row.Text("", FontSize, DebugPalette.Text, _columns[i].Align)
-                .Size(_widths[i], RowHeight)
-                .With(new DebugCell { Source = "" });
+                .Size(_widths[i], RowHeight);
         }
+        string[] sources = new string[_columns.Length];
+        System.Array.Fill(sources, "");
+        _sources.Add(sources);
         return row.Entity;
     }
 

@@ -72,9 +72,6 @@ public struct PlayerPath(List<PlayerPathSample> samples, Vector2 hitboxSize) : I
     public Vector2 HitboxSize = hitboxSize;
 }
 
-/// <summary>Marks the header button that shows or hides the preview's path.</summary>
-public struct PlayerPathToggle : ITag;
-
 /// <summary>
 /// The switch for the preview's path. The header button's <see cref="Toggle"/>
 /// is the state; it starts on, so coming back from a preview always shows the
@@ -85,20 +82,17 @@ public static class PlayerPathSwitch
     public const string Label = "PATH";
     public const float ToggleWidth = 64f;
 
+    /// <summary>The switch's name in its store (<see cref="UiToggles.Switch"/>).</summary>
+    public const string Id = "player-path";
+
     public static Entity Attach(Entity button)
     {
         button.AddComponent(new Toggle(Label, Label, true));
-        button.AddTag<PlayerPathToggle>();
+        button.Switch(Id);
         button.AddComponent(new UiTooltip("Show or hide the player's path from the last preview"));
         return button;
     }
 
     /// <summary>Whether to draw the path; an editor with no button draws it.</summary>
-    public static bool IsVisible(EntityStore store)
-    {
-        foreach (Entity toggle in store.Query<Toggle>().AllTags(Tags.Get<PlayerPathToggle>()).Entities)
-            return toggle.GetComponent<Toggle>().Value;
-
-        return true;
-    }
+    public static bool IsVisible(EntityStore store) => UiToggles.On(store, Id, none: true);
 }

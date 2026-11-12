@@ -43,9 +43,9 @@ public sealed class XifEditorTests : EcsSystemTest
 
     private Entity ButtonOf(XifEditorActionKind kind)
     {
-        foreach (Entity entity in Store.Query<XifEditorAction>().ToEntityList())
+        foreach ((Entity entity, XifEditorActionKind buttonKind, _) in UiCommand.All<XifEditorActionKind>(Store))
         {
-            if (entity.GetComponent<XifEditorAction>().Kind == kind)
+            if (buttonKind == kind)
                 return entity;
         }
         throw new InvalidOperationException(kind.ToString());

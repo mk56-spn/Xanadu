@@ -97,13 +97,13 @@ public static class SongTimingScene
         header.Button("+ CHANGE", UiType.Body, SceneUi.ButtonColor)
             .Size(160, RowHeight)
             .Tooltip("Add a change four bars after the last section, at its tempo")
-            .With(new SongTempoButton(SongTempoAction.Add));
+            .With(UiCommand.Of(SongTempoAction.Add));
         header.Button("▲", UiType.Body, SceneUi.MutedButtonColor)
             .Size(RowHeight, RowHeight)
-            .With(new SongTempoButton(SongTempoAction.ScrollUp));
+            .With(UiCommand.Of(SongTempoAction.ScrollUp));
         header.Button("▼", UiType.Body, SceneUi.MutedButtonColor)
             .Size(RowHeight, RowHeight)
-            .With(new SongTempoButton(SongTempoAction.ScrollDown));
+            .With(UiCommand.Of(SongTempoAction.ScrollDown));
 
         UiNode empty = ui.Text(
                 "One tempo for the whole song. + CHANGE adds a section with its own BPM.",
@@ -127,7 +127,7 @@ public static class SongTimingScene
             Entity remove = row.Button("X", UiType.Body, SceneUi.MutedButtonColor)
                 .Size(RowHeight, RowHeight)
                 .Tooltip("Remove this change")
-                .With(new SongTempoButton(SongTempoAction.Remove, slot))
+                .With(UiCommand.Of(SongTempoAction.Remove, slot))
                 .Entity;
             rows[slot] = new SongTempoRowUi(row.Entity, at, position, bpmField, bar, remove);
         }
@@ -137,7 +137,7 @@ public static class SongTimingScene
             .At(new Vector2(stage.Center.X, ActionsY));
         actions.Button("SAVE", UiType.Label, SceneUi.ButtonColor)
             .Size(ActionWidth, UiMetrics.Control.Lg)
-            .With(new SongTimingSave());
+            .With(UiCommand.Of(SongTempoAction.Save));
         actions.Button("ADD SONG…", UiType.Label, SceneUi.MutedButtonColor)
             .Size(ActionWidth, UiMetrics.Control.Lg)
             .On(SceneActionId.AddSong);
@@ -172,5 +172,5 @@ public static class SongTimingScene
         ui.Button(label, UiType.Body, SceneUi.MutedButtonColor)
             .Size(AdjustWidth, AdjustHeight)
             .At(new Vector2(stage.Center.X + side * AdjustOffset, y))
-            .With(new SongTimingAdjust(kind, delta));
+            .With(UiCommand.Of(kind, delta));
 }

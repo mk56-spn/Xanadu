@@ -58,9 +58,9 @@ public sealed class ParticleEditorTests : EcsSystemTest
 
     private void Click(ParticleEditorActionKind kind)
     {
-        foreach (Entity button in Store.Query<ParticleEditorAction>().WithDisabled().ToEntityList())
+        foreach ((Entity button, ParticleEditorActionKind buttonKind, _) in UiCommand.All<ParticleEditorActionKind>(Store))
         {
-            if (button.GetComponent<ParticleEditorAction>().Kind != kind)
+            if (buttonKind != kind)
                 continue;
             button.AddTag<Pressed>();
             Frame();

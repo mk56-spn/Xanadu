@@ -18,10 +18,9 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
     {
         get
         {
-            foreach (Entity entity in Store.Query<Toggle>().AllTags(Tags.Get<ViewportSnapToggle>()).Entities)
-                return entity;
-            Assert.Fail("no snap button");
-            return default;
+            Entity entity = UiToggles.FindSwitch(Store, ViewportSnap.Id);
+            Assert.That(entity.IsNull, Is.False, "no snap button");
+            return entity;
         }
     }
 

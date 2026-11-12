@@ -76,7 +76,7 @@ public static partial class AnimatorLayout
     {
         Entity button = ui.Button(label, new Vector2(width, PreviewControl), PreviewButton,
             fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(kind, argument));
+        button.AddComponent(ToolAction.Of(kind, argument));
         button.AddTag<AnimatorPreviewBarButton>();
         AnimatorTooltips.Attach(button, kind, argument);
         return button;

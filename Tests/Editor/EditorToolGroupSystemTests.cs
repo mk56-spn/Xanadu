@@ -35,7 +35,7 @@ public sealed class EditorToolGroupSystemTests : EcsSystemTest
     {
         flyout = Store.CreateEntity();
         Entity icon = Store.CreateEntity(new Text(""));
-        Entity button = Store.CreateEntity(new EditorButton(EditorButtonKind.ToolGroup, index));
+        Entity button = Store.CreateEntity(EditorButton.Of(EditorButtonKind.ToolGroup, index));
         button.AddComponent(new EditorToolGroup(index, flyout, icon));
         return button;
     }

@@ -45,8 +45,7 @@ public sealed class PlayerMovementSystemTests
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1_000, 1_000)),
             new Playfield(1_000, 1_000),
             new Playhead(0, 120, 0, true),
-            new PhysicsBody(body),
-            new Momentum(System.Numerics.Vector2.Zero));
+            new PhysicsBody(body));
     }
 
     [TearDown]

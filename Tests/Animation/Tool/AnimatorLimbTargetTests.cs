@@ -135,9 +135,9 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     public void AnEditThatChangesNothingLeavesNoUndoStep()
     {
         Orbit();
-        int steps = Session.GetComponent<AnimatorHistory>().History.UndoCount;
+        int steps = Session.GetComponent<AnimatorSessionState>().History.History.UndoCount;
         AnimatorHistoryCommands.Edit(Session, () => { });
-        Assert.That(Session.GetComponent<AnimatorHistory>().History.UndoCount, Is.EqualTo(steps));
+        Assert.That(Session.GetComponent<AnimatorSessionState>().History.History.UndoCount, Is.EqualTo(steps));
     }
 
     [Test]
@@ -304,12 +304,12 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Runtime.Seek(0f);
         Runtime.SetPaused(true);
         Vector2 center = target.Center;
-        int steps = Session.GetComponent<AnimatorHistory>().History.UndoCount;
+        int steps = Session.GetComponent<AnimatorSessionState>().History.History.UndoCount;
 
         Drag(Screen(target, center), Screen(target, center) + new Vector2(30f, 0f));
 
         Assert.That(Clip.Targets[0].Center.X, Is.GreaterThan(center.X + 1f));
-        Assert.That(Session.GetComponent<AnimatorHistory>().History.UndoCount, Is.EqualTo(steps + 1));
+        Assert.That(Session.GetComponent<AnimatorSessionState>().History.History.UndoCount, Is.EqualTo(steps + 1));
     }
 
     [Test]

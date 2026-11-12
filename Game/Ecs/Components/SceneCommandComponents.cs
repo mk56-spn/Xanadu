@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 
 namespace Xanadu.Ecs;
 
-/// <summary>Scene-scoped button/action identifiers.</summary>
+/// <summary>Scene-scoped button/action identifiers, carried as a <see cref="UiCommand"/>.</summary>
 public enum SceneActionId
 {
     None,
@@ -24,12 +24,4 @@ public enum SceneActionId
     WatchReplay,
     AddSong,
     DeleteLevel,
-}
-
-/// <summary>Data-only command attached to a button or action entity.</summary>
-public struct SceneCommand(SceneActionId action) : IComponent
-{
-    public SceneActionId Action = action;
-    public string Text = "";
-    public int Value;
 }

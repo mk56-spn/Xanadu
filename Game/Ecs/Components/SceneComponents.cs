@@ -50,16 +50,9 @@ public struct SceneBackground(SceneBackgroundKind kind) : IComponent
     public SceneBackgroundKind Kind = kind;
 }
 
-/// <summary>Marks the root entity that owns a scene's entity subtree.</summary>
-public struct SceneRoot(SceneKind scene) : IComponent
-{
-    public SceneKind Scene = scene;
-}
-
+/// <summary>A profile button's command; its <see cref="UiCommand.Text"/> is the profile id.</summary>
 public enum SceneActionKind
 {
-    /// <summary>Changes to <see cref="SceneAction.Target"/>.</summary>
-    Go,
     /// <summary>Selects a local profile and continues to the main menu.</summary>
     SelectProfile,
     /// <summary>Creates a new local profile and opens the screen that edits it.</summary>
@@ -68,34 +61,30 @@ public enum SceneActionKind
     EditProfile,
 }
 
-/// <summary>What a menu button does when it is pressed.</summary>
-public struct SceneAction : IComponent
+/// <summary>
+/// What a menu button does when it is pressed, as a <see cref="UiCommand"/>: a
+/// <see cref="SceneKind"/> command goes to that scene, a
+/// <see cref="SceneActionKind"/> one acts on a profile.
+/// </summary>
+public static class SceneAction
 {
-    public SceneActionKind Kind;
+    public static UiCommand Go(SceneKind target) => UiCommand.Of(target);
 
-    /// <summary>The scene a <see cref="SceneActionKind.Go"/> button changes to.</summary>
-    public SceneKind Target;
+    public static UiCommand SelectProfile(string profileId) =>
+        UiCommand.Of(SceneActionKind.SelectProfile, text: profileId);
 
-    /// <summary>The profile a profile button acts on.</summary>
-    public string ProfileId;
+    public static UiCommand CreateProfile() => UiCommand.Of(SceneActionKind.CreateProfile);
 
-    public static SceneAction Go(SceneKind target) => new() { Kind = SceneActionKind.Go, Target = target };
-
-    public static SceneAction SelectProfile(string profileId) =>
-        new() { Kind = SceneActionKind.SelectProfile, ProfileId = profileId };
-
-    public static SceneAction CreateProfile() => new() { Kind = SceneActionKind.CreateProfile };
-
-    public static SceneAction EditProfile(string profileId) =>
-        new() { Kind = SceneActionKind.EditProfile, ProfileId = profileId };
+    public static UiCommand EditProfile(string profileId) =>
+        UiCommand.Of(SceneActionKind.EditProfile, text: profileId);
 
     /// <summary>The menu buttons of one kind, hidden ones included.</summary>
     public static System.Collections.Generic.List<Entity> All(EntityStore store, SceneActionKind kind)
     {
         var found = new System.Collections.Generic.List<Entity>();
-        foreach (Entity entity in store.Query<SceneAction>().WithDisabled().ToEntityList())
+        foreach ((Entity entity, SceneActionKind each, _) in UiCommand.All<SceneActionKind>(store))
         {
-            if (entity.GetComponent<SceneAction>().Kind == kind)
+            if (each == kind)
                 found.Add(entity);
         }
 
@@ -206,30 +195,30 @@ public struct SceneConfirmation(
 }
 
 /// <summary>The song-select right-click menu and its two actions.</summary>
-public struct SceneSongMenu(Entity timing, Entity delete) : IComponent
+public readonly struct SceneSongMenu(Entity timing, Entity delete)
 {
-    public Entity Timing = timing;
-    public Entity Delete = delete;
+    public readonly Entity Timing = timing;
+    public readonly Entity Delete = delete;
 }
 
 /// <summary>The delete-level confirmation opened from the song-select menu.</summary>
-public struct SceneDeleteLevel(Entity confirm, Entity cancel) : IComponent
+public readonly struct SceneDeleteLevel(Entity confirm, Entity cancel)
 {
-    public Entity Confirm = confirm;
-    public Entity Cancel = cancel;
+    public readonly Entity Confirm = confirm;
+    public readonly Entity Cancel = cancel;
 }
 
-/// <summary>Gameplay pause overlay state.</summary>
-public struct ScenePause(
+/// <summary>The gameplay pause overlay's parts.</summary>
+public readonly struct ScenePause(
     Entity title,
     Entity message,
     Entity resume,
     Entity retry,
-    Entity leave) : IComponent
+    Entity leave)
 {
-    public Entity Title = title;
-    public Entity Message = message;
-    public Entity Resume = resume;
-    public Entity Retry = retry;
-    public Entity Leave = leave;
+    public readonly Entity Title = title;
+    public readonly Entity Message = message;
+    public readonly Entity Resume = resume;
+    public readonly Entity Retry = retry;
+    public readonly Entity Leave = leave;
 }

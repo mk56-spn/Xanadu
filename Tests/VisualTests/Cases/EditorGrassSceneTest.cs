@@ -69,7 +69,7 @@ public sealed class EditorGrassSceneTest : SceneTest
         {
             foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.Place))
             {
-                if (button.GetComponent<EditorButton>().Arg == (int)EditorPlacementMode.Grass)
+                if (button.GetComponent<UiCommand>().Arg == (int)EditorPlacementMode.Grass)
                     Click(button);
             }
         });
@@ -96,7 +96,7 @@ public sealed class EditorGrassSceneTest : SceneTest
         int arg = EditorGrassPanelSystem.StepArg(setting, sign);
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.GrassStep))
         {
-            if (button.GetComponent<EditorButton>().Arg == arg)
+            if (button.GetComponent<UiCommand>().Arg == arg)
                 return button;
         }
 

@@ -18,7 +18,6 @@ public sealed class InputSystemGroup : SystemGroup
         DisplaySettings display)
         : base("Input")
     {
-        Add(new VSyncToggleSystem(display));
         Add(new WindowModeButtonSystem(display));
         Add(scenes);
         Add(new KeybindUiSystem(keybinds));

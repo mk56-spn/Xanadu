@@ -21,7 +21,7 @@ public sealed class KeybindUiSystemTests
 
         Entity button = store.CreateEntity(
             new Text(""),
-            new KeybindButton(KeybindAction.Action1));
+            UiCommand.Of(KeybindAction.Action1));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("S"));

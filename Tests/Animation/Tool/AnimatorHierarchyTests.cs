@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
@@ -33,9 +34,9 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     private List<string> ClipLabels()
     {
         var options = new List<(int Value, string Label)>();
-        foreach (Entity option in Store.Query<ToolAction, DropdownOption>().WithDisabled().ToEntityList())
+        foreach (Entity option in Store.Query<UiCommand, DropdownOption>().WithDisabled().ToEntityList().Where(entity => entity.HasToolAction()))
         {
-            if (option.GetComponent<ToolAction>().Kind == ToolActionKind.Clip)
+            if (option.GetToolAction().Kind == ToolActionKind.Clip)
             {
                 options.Add((option.GetComponent<DropdownOption>().Value,
                     option.GetComponent<Text>().Value));

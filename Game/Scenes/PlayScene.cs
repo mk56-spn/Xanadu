@@ -77,8 +77,7 @@ public static class PlayScene
             new Position(new Vector2(
                 origin.X + fieldWidth / 2,
                 origin.Y + fieldHeight - playerSize.Y / 2)),
-            new Character(1f),
-            new Momentum(System.Numerics.Vector2.Zero));
+            new Character(1f));
 
         playfieldEntity.AddComponent(new PlayCamera(viewport));
         playfieldEntity.AddComponent(LevelShaders.Create());
@@ -108,8 +107,6 @@ public static class PlayScene
             playerPosition.Value = playfieldEntity
                 .GetComponent<PlayfieldView>()
                 .PlayfieldToScreen(spawn);
-            ref Momentum momentum = ref playfieldEntity.GetComponent<Momentum>();
-            momentum.Value = point.Momentum;
         }
 
         PlayHudBuilder.Build(

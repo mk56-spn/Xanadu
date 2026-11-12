@@ -4,6 +4,7 @@ using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Ui;
 using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Host.Tools;
 
@@ -32,6 +33,12 @@ internal interface IToolStage : IDisposable
     /// <summary>A kept stage's tab closed; it stays as it is, out of sight, until shown again.</summary>
     void Hidden() { }
 
+    /// <summary>
+    /// Its room moved or changed size (another tab's panel came or went, say).
+    /// Stages that only read the area they were made with can ignore it.
+    /// </summary>
+    void Resized(Rect2 area) { }
+
     /// <summary>Records the stage's own GPU passes, before the canvas draws (for stages that render offscreen).</summary>
     void Render(MoonWorks.Graphics.CommandBuffer commands) { }
 }
@@ -42,7 +49,7 @@ internal interface IToolTab
     /// <summary>The tab label.</summary>
     string Name { get; }
 
-    /// <summary>True to drop the side panel and lay out the whole body (stage and panel room) itself.</summary>
+    /// <summary>True to drop the side panel, so the stage's room is the whole body.</summary>
     bool FullWidth => false;
 
     /// <summary>Short lines shown at the top of the side panel.</summary>
@@ -61,7 +68,9 @@ internal interface IToolTab
 /// <summary>
 /// The shell every tabbed tool shares (Labs, the dev tools): a strip of tabs
 /// along the top, the open tab's notes and controls in an ECS side panel, and
-/// its drawing on a stage to the right. Leaving a tab frees its stage and
+/// its drawing on a stage to the right. It is all containers: the tabs share
+/// the strip (each capped), the panel has a fixed width, and the stage is a
+/// growing slot whose laid-out box the stage draws in. Leaving a tab frees its stage and
 /// opening one builds it fresh, so every tab starts clean, unless the tab
 /// keeps it (<see cref="IToolTab.Keep"/>). A tool only says what its tabs are
 /// and how to make a tab's stage, and can send the user to a tab (<see cref="Open"/>).
@@ -83,11 +92,13 @@ internal abstract class TabbedToolApp : HostApp
 
     private readonly IToolTab[] _tabs;
     private Entity _strip;
-    private Entity _frame;
-    private Rect2 _area;
 
-    /// <summary>The panel's and the stage's room together, for tabs that lay out their own (<see cref="IToolTab.FullWidth"/>).</summary>
-    private Rect2 _fullArea;
+    /// <summary>The growing slot the stage draws in; it fills the body when the tab has no panel.</summary>
+    private Entity _slot;
+    private Entity _frame;
+
+    /// <summary>The slot's box as the shown stage last heard it.</summary>
+    private Rect2 _area;
     private int _shown = -1;
 
     /// <summary>Each tab's stage and its canvas item, while it has one.</summary>
@@ -121,37 +132,29 @@ internal abstract class TabbedToolApp : HostApp
 
     private void Build()
     {
-        UiStage stage = UiStage.Full;
-        UiNode ui = UiNode.Layer(Entities, default, UiLayers.Base, null, stage);
+        UiNode ui = UiNode.Layer(Entities, default, UiLayers.Base, null, UiStage.Full);
+        UiNode page = ui.Page().Pad(Margin).Gap(StripGap).Cross(StackCrossAlignment.Stretch);
 
-        float tabsY = StripGap + TabHeight / 2;
-        float bodyTop = StripGap * 2 + TabHeight;
-        var body = new Rect2(Margin, bodyTop, PanelWidth, stage.Height - bodyTop - Margin);
-        float stageLeft = body.End.X + Margin;
-        _area = new Rect2(stageLeft, bodyTop, stage.Width - stageLeft - Margin, body.Size.Y);
-        _fullArea = new Rect2(Margin, bodyTop, stage.Width - Margin * 2, body.Size.Y);
         // Every tab fits on the strip, however many there are.
-        float gap = UiMetrics.Space.Sm;
-        float tabWidth = MathF.Min(MaxTabWidth, (stage.Width - Margin * 2 - gap * (_tabs.Length - 1)) / _tabs.Length);
-
-        UiNode strip = ui.Row().Gap(UiMetrics.Space.Sm).AnchorLeft().At(new Vector2(Margin, tabsY));
+        UiNode strip = page.Row().Gap(UiMetrics.Space.Sm);
         _strip = strip;
+
+        UiNode body = page.Row().Gap(Margin).Cross(StackCrossAlignment.Stretch).Grow();
         var buttons = new Entity[_tabs.Length];
         var bodies = new Entity[_tabs.Length];
-        _frame = ui.Rect(Palette.SurfaceDeep).Box(_area).Border(Palette.BorderStrong);
 
         for (int i = 0; i < _tabs.Length; i++)
         {
             IToolTab tab = _tabs[i];
-            buttons[i] = strip.Button(tab.Name, UiType.Small).Size(tabWidth, TabHeight);
+            buttons[i] = strip.Button(tab.Name, UiType.Small).Size(0, TabHeight).Grow().MaxWidth(MaxTabWidth);
             if (tab.FullWidth)
             {
-                // Nothing to show beside the stage: an empty body keeps the tabs' bookkeeping.
-                bodies[i] = ui.Column().At(body.GetCenter()).Hidden();
+                // Nothing to show beside the stage: an empty body, out of the flow, keeps the tabs' bookkeeping.
+                bodies[i] = ui.Column().IgnoreLayout().Hidden();
                 continue;
             }
 
-            UiNode panel = ui.Panel().Size(body.Size).At(body.GetCenter()).Hidden();
+            UiNode panel = body.Panel().Width(PanelWidth).Hidden();
             panel.Text(tab.Name, UiType.Section, Palette.Accent);
             foreach (string line in tab.Notes)
                 panel.Text(line, UiType.Small, Palette.TextMuted);
@@ -159,12 +162,17 @@ internal abstract class TabbedToolApp : HostApp
             bodies[i] = panel;
         }
 
-        _strip.AddComponent(new UiTabs(buttons, bodies, body.GetCenter()));
+        UiNode slot = body.Column().Cross(StackCrossAlignment.Stretch).Grow();
+        _slot = slot;
+        _frame = slot.Rect(Palette.SurfaceDeep).Grow().Border(Palette.BorderStrong);
+
+        _strip.AddComponent(new UiTabs(buttons, bodies, Vector2.Zero));
     }
 
     protected sealed override void Tick(float delta, float time)
     {
         ShowSelected();
+        Follow();
         Stage?.Update(new ToolFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, Pointer.TakeWheel()));
     }
 
@@ -173,6 +181,10 @@ internal abstract class TabbedToolApp : HostApp
     {
         int selected = _strip.GetComponent<UiTabs>().Selected;
         if (selected == _shown)
+            return;
+
+        // The stage is made in its slot's box, so wait for the panels' switch to be laid out.
+        if (!UiLayout.Settled(_slot))
             return;
 
         if (_shown >= 0)
@@ -184,7 +196,8 @@ internal abstract class TabbedToolApp : HostApp
             _items[selected] = CanvasServer.Current.CreateItem();
             CanvasServer.Current.SetParent(_items[selected], Canvas.RootRid);
             CanvasServer.Current.SetZIndex(_items[selected], StageZ);
-            _stages[selected] = CreateStage(selected, _items[selected], _tabs[selected].FullWidth ? _fullArea : _area);
+            _area = UiLayout.Box(_slot);
+            _stages[selected] = CreateStage(selected, _items[selected], _area);
         }
         else
         {
@@ -194,6 +207,20 @@ internal abstract class TabbedToolApp : HostApp
         _stages[selected]!.Shown();
         // A full-width tab draws its own frame.
         UiLayout.SetHidden(_frame, _tabs[selected].FullWidth);
+    }
+
+    /// <summary>Tells the shown stage when its slot's box changes.</summary>
+    private void Follow()
+    {
+        if (Stage is not { } stage || !UiLayout.Settled(_slot))
+            return;
+
+        Rect2 box = UiLayout.Box(_slot);
+        if (box == _area)
+            return;
+
+        _area = box;
+        stage.Resized(box);
     }
 
     /// <summary>A kept tab's stage is hidden; any other is disposed and its item freed.</summary>

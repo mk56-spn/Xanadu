@@ -25,7 +25,6 @@ public static partial class TestContent
 
         var runtime = new AnimatorRuntime(package);
         runtime.Play(ContactClip.Idle.Id(), 0f);
-        player.RemoveTag<CharacterRigMissing>();
         player.AddComponent(new CharacterRig(runtime));
     }
 }

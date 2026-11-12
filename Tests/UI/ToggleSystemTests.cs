@@ -26,13 +26,12 @@ public sealed class ToggleSystemTests
                 Palette.Muted,
                 Colors.White),
             new FillColor(Palette.Muted),
-            new VSyncToggle(),
             Tags.Get<Pressed>());
+        toggle.OnToggled(display.SetVSync);
 
         var root = new SystemRoot(store);
         root.Add(new ToggleSystem());
         root.Add(new ButtonVisualSystem());
-        root.Add(new VSyncToggleSystem(display));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         root.Update(new UpdateTick(1f / 60f, 1));

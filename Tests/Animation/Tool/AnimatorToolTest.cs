@@ -88,9 +88,9 @@ public abstract class AnimatorToolTest : EcsSystemTest
     {
         // The button on screen wins over a twin in a hidden bar or menu.
         Entity hidden = default;
-        foreach (Entity entity in Store.Query<ToolAction>().WithDisabled().ToEntityList())
+        foreach (Entity entity in ToolActions.All(Store))
         {
-            ToolAction action = entity.GetComponent<ToolAction>();
+            ToolAction action = entity.GetToolAction();
             if (action.Kind != kind || action.Argument != argument)
                 continue;
 
@@ -111,9 +111,9 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected List<Entity> Buttons(ToolActionKind kind)
     {
         var found = new List<Entity>();
-        foreach (Entity entity in Store.Query<ToolAction>().WithDisabled().ToEntityList())
+        foreach (Entity entity in ToolActions.All(Store))
         {
-            if (entity.GetComponent<ToolAction>().Kind == kind)
+            if (entity.GetToolAction().Kind == kind)
                 found.Add(entity);
         }
 
@@ -166,9 +166,9 @@ public abstract class AnimatorToolTest : EcsSystemTest
     /// <summary>The shared ease picker's thumbnail for a curve.</summary>
     protected Entity EaseCell(Xanadu.Timeline.EasePreset preset)
     {
-        foreach (Entity entity in Store.Query<EasePickerCell>().WithDisabled().ToEntityList())
+        foreach ((Entity entity, Xanadu.Timeline.EasePreset cellPreset, _) in UiCommand.All<Xanadu.Timeline.EasePreset>(Store))
         {
-            if (entity.GetComponent<EasePickerCell>().Preset == preset)
+            if (cellPreset == preset)
                 return entity;
         }
 

@@ -151,7 +151,7 @@ public static partial class SongSelectScene
             16,
             Colors.White,
             clickable: true);
-        emptyHint.AddComponent(new SceneCommand(SceneActionId.Edit));
+        emptyHint.AddComponent(UiCommand.Of(SceneActionId.Edit));
         return new ListViews(
             tiles,
             thumb,

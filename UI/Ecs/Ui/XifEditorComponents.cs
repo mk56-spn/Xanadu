@@ -60,13 +60,6 @@ public enum XifEditorFieldKind
     Texture,
 }
 
-/// <summary>A button of one XIF editor, and which editor it belongs to.</summary>
-public struct XifEditorAction(XifEditorActionKind kind, Entity editor) : IComponent
-{
-    public XifEditorActionKind Kind = kind;
-    public Entity Editor = editor;
-}
-
 /// <summary>A text field of one XIF editor; typed values are applied when it loses focus.</summary>
 public struct XifEditorField(XifEditorFieldKind kind, Entity editor) : IComponent
 {

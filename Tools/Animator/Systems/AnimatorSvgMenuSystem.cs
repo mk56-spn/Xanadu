@@ -123,7 +123,7 @@ public sealed class AnimatorSvgMenuSystem(
                 menu.Choices[i].Label,
                 size,
                 fontSize: UiTheme.SmallFontSize);
-            row.AddComponent(new ToolAction(ToolActionKind.AttachSvg, i.ToString()));
+            row.AddComponent(ToolAction.Of(ToolActionKind.AttachSvg, i.ToString()));
             // The choice's label is the group name, which is what will be attached or drawn.
             row.AddComponent(new UiTooltip(
                 menu.ForChain ? $"Draw each chain segment as {menu.Choices[i].Label}" : $"Attach {menu.Choices[i].Label}"));

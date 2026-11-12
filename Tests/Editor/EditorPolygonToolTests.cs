@@ -40,7 +40,7 @@ public sealed class EditorPolygonToolTests
 
         // The editor starts with snapping off, so points land where they are clicked.
         Entity snap = _store.CreateEntity(new Toggle(ViewportSnap.Label, ViewportSnap.Label, false));
-        snap.AddTag<ViewportSnapToggle>();
+        snap.Switch(ViewportSnap.Id);
     }
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));

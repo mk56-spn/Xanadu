@@ -28,7 +28,6 @@ public sealed class PlayerBodySystemTests
             new Player(Player.DefaultSize),
             new Position(new Vector2(500, 300)),
             new Character(1f),
-            new Momentum(System.Numerics.Vector2.Zero),
             new PlaySession(status));
 
         root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));
@@ -64,8 +63,7 @@ public sealed class PlayerBodySystemTests
         Entity player = store.CreateEntity(
             new Player(new Vector2(30, 100)),
             new Position(new Vector2(500, 300)),
-            new Character(1f),
-            new Momentum(System.Numerics.Vector2.Zero));
+            new Character(1f));
 
         root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));
         Assert.That(player.HasComponent<PhysicsBody>(), Is.True);

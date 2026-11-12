@@ -68,14 +68,14 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
             Entity toggle = ui.Button("",
                 new Vector2(AnimatorLayout.FlowToggleWidth, AnimatorLayout.FlowRowHeight),
                 fontSize: UiTheme.SmallFontSize);
-            toggle.AddComponent(new ToolAction(ToolActionKind.AllowTransition, clip.Id));
+            toggle.AddComponent(ToolAction.Of(ToolActionKind.AllowTransition, clip.Id));
             AnimatorTooltips.Attach(toggle, ToolActionKind.AllowTransition, clip.Id);
 
             Entity entry = ui.Button(clip.Id.ToUpperInvariant(),
                 new Vector2(AnimatorLayout.FlowListWidth - AnimatorLayout.FlowToggleWidth - 4,
                     AnimatorLayout.FlowRowHeight),
                 fontSize: UiTheme.SmallFontSize);
-            entry.AddComponent(new ToolAction(ToolActionKind.SelectTransition, clip.Id));
+            entry.AddComponent(ToolAction.Of(ToolActionKind.SelectTransition, clip.Id));
             AnimatorTooltips.Attach(entry, ToolActionKind.SelectTransition, clip.Id);
             ui.End();
         }
@@ -98,7 +98,7 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         {
             foreach (Entity button in row.ChildEntities)
             {
-                if (!button.TryGetComponent(out ToolAction action))
+                if (!button.TryGetToolAction(out ToolAction action))
                     continue;
 
                 string to = action.Argument;
@@ -175,13 +175,13 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         }
 
         string curveName = rule?.Curve.ToString() ?? "";
-        foreach (Entity button in Query.Store.Query<ToolAction>().WithDisabled().ToEntityList())
+        foreach (Entity button in ToolActions.All(Query.Store))
         {
             // The preview bar paints its own buttons in its own colours.
             if (button.Tags.Has<AnimatorPreviewBarButton>())
                 continue;
 
-            ToolAction action = button.GetComponent<ToolAction>();
+            ToolAction action = button.GetToolAction();
             switch (action.Kind)
             {
                 case ToolActionKind.TransitionCurve:

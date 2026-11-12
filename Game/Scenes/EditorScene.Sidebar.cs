@@ -71,7 +71,7 @@ public static class EditorSceneSidebar
                 ToolButton(flyout, size, tool.Icon, ToolTooltip(tool), EditorPlacementKeybinds.LabelFor(tool.Mode), EditorButton.Place(tool.Mode));
 
             // The corner mark says the button opens more tools.
-            (UiNode button, Entity icon) = ToolButton(strip, size, group.Icon ?? group.Tools[0].Icon, group.Name, "◢", new EditorButton(EditorButtonKind.ToolGroup, index));
+            (UiNode button, Entity icon) = ToolButton(strip, size, group.Icon ?? group.Tools[0].Icon, group.Name, "◢", EditorButton.Of(EditorButtonKind.ToolGroup, index));
             button.With(new EditorToolGroup(index, flyout.Entity, icon));
         }
     }
@@ -102,7 +102,7 @@ public static class EditorSceneSidebar
         string icon,
         string tooltip,
         string corner,
-        EditorButton action)
+        UiCommand action)
     {
         // The button is a container so it can hold its mark in a corner beside the icon.
         UiNode button = parent.Column()
@@ -161,7 +161,6 @@ public static class EditorSceneSidebar
         EditorSceneGroups.BuildGroupGrid(groupBody, editor, inner, UiCollapsibleControl.HeaderOf(groups.Entity));
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
-        editor.AddComponent(new EditorSidebarLayout(panel.Entity));
     }
 
     /// <summary>The selected blocks' outline: its width, where 0 is none, and its own colour.</summary>
@@ -192,14 +191,14 @@ public static class EditorSceneSidebar
             .Size(inner - height * 2 - valueWidth - UiTheme.ContainerSpacing * 3, height);
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(EditorButtonKind.OutlineStep, -1))
+            .With(EditorButton.Of(EditorButtonKind.OutlineStep, -1))
             .Tooltip("Thinner outline; at 0 there is none");
         Entity width = row.Text("0", 14, SceneUi.TextColor, TextAlign.Center)
             .Size(valueWidth, height)
             .Entity;
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(EditorButtonKind.OutlineStep, 1))
+            .With(EditorButton.Of(EditorButtonKind.OutlineStep, 1))
             .Tooltip("Thicker outline");
 
         editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
@@ -266,11 +265,11 @@ public static class EditorSceneSidebar
             .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
         row.Button("-", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(EditorButtonKind.TextSize, -1))
+            .With(EditorButton.Of(EditorButtonKind.TextSize, -1))
             .Tooltip("Smaller text");
         row.Button("+", 13, SceneUi.MutedButtonColor)
             .Size(height, height)
-            .With(new EditorButton(EditorButtonKind.TextSize, 1))
+            .With(EditorButton.Of(EditorButtonKind.TextSize, 1))
             .Tooltip("Bigger text");
 
         editor.AddComponent(new EditorTextPanel(section.Entity, field, size));
@@ -301,11 +300,11 @@ public static class EditorSceneSidebar
                 .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
             row.Button("-", 13, SceneUi.MutedButtonColor)
                 .Size(height, height)
-                .With(new EditorButton(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, -1)))
+                .With(EditorButton.Of(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, -1)))
                 .Tooltip(less);
             row.Button("+", 13, SceneUi.MutedButtonColor)
                 .Size(height, height)
-                .With(new EditorButton(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, 1)))
+                .With(EditorButton.Of(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, 1)))
                 .Tooltip(more);
         }
 
@@ -338,7 +337,7 @@ public static class EditorSceneSidebar
                 .Main(StackMainAlignment.Center)
                 .Cross(StackCrossAlignment.Center)
                 .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
-                .With(new EditorButton(EditorButtonKind.BlockSize, (int)size))
+                .With(EditorButton.Of(EditorButtonKind.BlockSize, (int)size))
                 .Tooltip(size switch
                 {
                     BlockBrushSize.Quarter => "A quarter block: half a cell wide and half a cell high",
@@ -412,7 +411,7 @@ public static class EditorSceneSidebar
             .With(new EditorReadout(EditorReadoutKind.Diagonal));
         diagonalRow.Button("TOGGLE", 12, SceneUi.MutedButtonColor)
             .Size(80, 28)
-            .With(new EditorButton(EditorButtonKind.Diagonal))
+            .With(EditorButton.Of(EditorButtonKind.Diagonal))
             .Tooltip("A rhombus note turns the pressed way 45° clockwise: up becomes up-right");
 
         BuildGrassPanel(panel, editor, inner);

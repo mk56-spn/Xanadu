@@ -27,7 +27,7 @@ public static class EditorButtons
         ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
         foreach (Entity button in EditorButton.All(entities, kind))
         {
-            int arg = button.GetComponent<EditorButton>().Arg;
+            int arg = button.GetComponent<UiCommand>().Arg;
             if (button.Tags.Has<Pressed>())
                 placement = choose(placement, arg);
 

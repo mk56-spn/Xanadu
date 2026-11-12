@@ -26,7 +26,6 @@ public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
 
             entity.RemoveComponent<CharacterRig>();
             entity.RemoveComponent<CharacterMotion>();
-            entity.RemoveTag<CharacterRigMissing>();
             entity.RemoveTag<CharacterRigVisible>();
             if (path is null)
             {
@@ -37,10 +36,7 @@ public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
             entity.AddComponent(new CharacterRigSource(path));
             XafPackage? package = files.Load(path);
             if (package is null)
-            {
-                entity.AddTag<CharacterRigMissing>();
                 continue;
-            }
 
             var runtime = new AnimatorRuntime(package);
             if (!runtime.Play(ContactClip.Idle.Id(), 0f) && package.Clips.Count > 0)

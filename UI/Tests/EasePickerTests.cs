@@ -60,9 +60,9 @@ public sealed class EasePickerTests : EcsSystemTest
 
     private Entity Cell(EasePreset preset)
     {
-        foreach (Entity cell in Store.Query<EasePickerCell>().WithDisabled().ToEntityList())
+        foreach ((Entity cell, EasePreset cellPreset, _) in UiCommand.All<EasePreset>(Store))
         {
-            if (cell.GetComponent<EasePickerCell>().Preset == preset)
+            if (cellPreset == preset)
                 return cell;
         }
 

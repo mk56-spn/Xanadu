@@ -29,6 +29,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private Entity _stateEntity;
     private Entity _confirmationPanel;
     private Entity _pausePanel;
+    private ScenePause _pause;
     private Entity _transitionPanel;
     private Entity _sceneRoot;
     private Entity _background;
@@ -127,6 +128,20 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private ISceneController? CurrentController =>
         _stateEntity.IsNull ? null : _controllers.Get(Current);
+
+    /// <summary>The pause overlay, its parts, and whether it is showing.</summary>
+    public Entity PausePanel => _pausePanel;
+    public ScenePause Pause => _pause;
+    public bool PauseOpen => IsPauseVisible();
+
+    /// <summary>The song-select right-click menu and the delete confirmation it opens.</summary>
+    public Entity SongMenuPanel => _songMenu;
+    public SceneSongMenu SongMenu => _songMenuParts;
+    public Entity DeleteLevelPanel => _deleteLevelPanel;
+    public SceneDeleteLevel DeleteLevel => _deleteLevel;
+
+    /// <summary>The entity that owns the current scene's subtree.</summary>
+    public Entity Root => _sceneRoot;
 
     public SceneKind Current =>
         _stateEntity.IsNull

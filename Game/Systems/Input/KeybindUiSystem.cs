@@ -6,8 +6,8 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Input;
 
-/// <summary>Refreshes keybind buttons from the settings model.</summary>
-public sealed class KeybindUiSystem : QuerySystem<KeybindButton>
+/// <summary>Refreshes keybind buttons, whose command is a <see cref="KeybindAction"/>, from the settings model.</summary>
+public sealed class KeybindUiSystem : QuerySystem<UiCommand>
 {
     private readonly KeybindSettings _keybinds;
 
@@ -20,14 +20,14 @@ public sealed class KeybindUiSystem : QuerySystem<KeybindButton>
     {
         CommandBuffer buffer = CommandBuffer;
 
-        Query.ForEachEntity((ref button, entity) =>
+        Query.ForEachEntity((ref command, entity) =>
         {
-            if (!entity.HasComponent<Text>())
+            if (!command.Is(out KeybindAction action) || !entity.HasComponent<Text>())
                 return;
 
-            string value = _keybinds.Capturing == button.Action
+            string value = _keybinds.Capturing == action
                 ? "PRESS A KEY..."
-                : KeybindSettings.KeyLabel(_keybinds.Get(button.Action));
+                : KeybindSettings.KeyLabel(_keybinds.Get(action));
 
             ref Text text = ref entity.GetComponent<Text>();
             if (text.Value == value)

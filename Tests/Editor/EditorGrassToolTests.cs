@@ -60,7 +60,7 @@ public sealed class EditorGrassToolTests
     private void Press(GrassSetting setting, int sign)
     {
         Entity button = _store.CreateEntity(
-            new EditorButton(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, sign)));
+            EditorButton.Of(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, sign)));
         button.AddTag<Pressed>();
         Frame();
         button.DeleteEntity();

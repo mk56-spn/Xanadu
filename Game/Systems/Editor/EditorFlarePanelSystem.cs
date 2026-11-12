@@ -49,7 +49,7 @@ public sealed class EditorFlarePanelSystem(EditorHistory history)
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.FlareStep))
         {
             if (_presses.Started(button))
-                Step(editor, selection, first, button.GetComponent<EditorButton>().Arg);
+                Step(editor, selection, first, button.GetComponent<UiCommand>().Arg);
         }
 
         LevelFlare shown = first.IsNull

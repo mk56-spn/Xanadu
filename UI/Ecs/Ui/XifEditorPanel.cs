@@ -108,7 +108,7 @@ public static class XifEditorPanel
         float width,
         string tooltip) =>
         row.Button(label, UiType.Caption).Size(width, Row)
-            .With(new XifEditorAction(kind, editor))
+            .With(UiCommand.Of(kind, owner: editor))
             .Tooltip(tooltip);
 
     private static Entity Field(UiNode row, XifEditorFieldKind kind, Entity editor, float width, string tooltip) =>

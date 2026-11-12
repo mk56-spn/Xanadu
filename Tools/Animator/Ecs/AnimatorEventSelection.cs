@@ -7,7 +7,7 @@ namespace Xanadu.Tools.Animator;
 /// selection so picking an event does not drop what is being posed. It only
 /// counts while its clip is the one open.
 /// </summary>
-public struct AnimatorEventSelection : IComponent
+public struct AnimatorEventSelection
 {
     public string Clip;
     public int Index;

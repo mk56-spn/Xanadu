@@ -9,7 +9,7 @@ namespace Xanadu.Systems.Editor;
 /// cost steps with its − and + buttons, inside the barrier limits
 /// (<see cref="BarCosts.With"/>), and the rhombus button turns diagonal on and off.
 /// </summary>
-public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
+public sealed class EditorContactCostSystem : QuerySystem<UiCommand>
 {
     private static readonly EditorReadoutKind[] BarReadouts =
     {
@@ -40,14 +40,14 @@ public sealed class EditorContactCostSystem : QuerySystem<EditorButton>
 
         foreach (Entity entity in Query.ToEntityList())
         {
-            EditorButton button = entity.GetComponent<EditorButton>();
-            if (button.Kind is not (EditorButtonKind.ContactCost or EditorButtonKind.Diagonal))
+            UiCommand button = entity.GetComponent<UiCommand>();
+            if (button.As<EditorButtonKind>() is not (EditorButtonKind.ContactCost or EditorButtonKind.Diagonal))
                 continue;
 
             if (!_presses.Started(entity))
                 continue;
 
-            if (button.Kind == EditorButtonKind.Diagonal)
+            if (button.Is(EditorButtonKind.Diagonal))
             {
                 state.Diagonal = !state.Diagonal;
                 continue;

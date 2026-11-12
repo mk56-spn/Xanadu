@@ -100,11 +100,8 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 
     private static bool IsFocusable(Entity entity)
     {
-        if (entity.Tags.Has<UiDisabled>() || entity.Tags.Has<FocusIgnore>())
+        if (entity.Tags.Has<UiDisabled>())
             return false;
-
-        if (entity.Tags.Has<Focusable>())
-            return true;
 
         return entity.HasComponent<ButtonVisual>() ||
                entity.HasComponent<TextField>() ||
@@ -308,6 +305,9 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
             synthetic.RemoveTag<Pressed>();
         _syntheticId = 0;
     }
+
+    /// <summary>The focus ring's four edge entities.</summary>
+    public IReadOnlyList<Entity> RingEdges => _ring.Edges;
 
     private void UpdateRing(CommandBuffer buffer)
     {

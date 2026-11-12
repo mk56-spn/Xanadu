@@ -80,42 +80,36 @@ public enum EditorButtonKind
     Align,
 }
 
-/// <summary>An ECS editor button: what it does, and the value it does it with.</summary>
-public struct EditorButton(EditorButtonKind kind, int arg = 0) : IComponent
+/// <summary>
+/// Editor buttons: a <see cref="UiCommand"/> whose id is an <see cref="EditorButtonKind"/>
+/// and whose <see cref="UiCommand.Arg"/> is the value it acts with, such as a
+/// placement mode, note key or step.
+/// </summary>
+public static class EditorButton
 {
-    public EditorButtonKind Kind = kind;
+    public static UiCommand Of(EditorButtonKind kind, int arg = 0) => UiCommand.Of(kind, arg);
 
-    /// <summary>The kind's value, such as a placement mode, note key or step; see <see cref="EditorButtonKind"/>.</summary>
-    public int Arg = arg;
+    public static UiCommand Place(EditorPlacementMode mode) => Of(EditorButtonKind.Place, (int)mode);
 
-    public static EditorButton Place(EditorPlacementMode mode) => new(EditorButtonKind.Place, (int)mode);
+    public static UiCommand NoteType(KeybindAction action) => Of(EditorButtonKind.NoteType, (int)action);
 
-    public static EditorButton NoteType(KeybindAction action) => new(EditorButtonKind.NoteType, (int)action);
-
-    public static EditorButton Strength(DashStrength strength) => new(EditorButtonKind.DashStrength, (int)strength);
+    public static UiCommand Strength(DashStrength strength) => Of(EditorButtonKind.DashStrength, (int)strength);
 
     /// <summary>Steps <paramref name="bar"/>'s contact cost by <paramref name="step"/> (+1 or -1).</summary>
-    public static EditorButton ContactCost(int bar, int step) => new(EditorButtonKind.ContactCost, (bar + 1) * step);
+    public static UiCommand ContactCost(int bar, int step) => Of(EditorButtonKind.ContactCost, (bar + 1) * step);
 
     /// <summary>The editor buttons of one kind, hidden ones included.</summary>
     public static List<Entity> All(EntityStore store, EditorButtonKind kind)
     {
         var found = new List<Entity>();
-        foreach (var (buttons, chunk) in AllButtons.GetValue(store, static s => s.Query<EditorButton>().WithDisabled()).Chunks)
+        foreach ((Entity entity, EditorButtonKind each, _) in UiCommand.All<EditorButtonKind>(store))
         {
-            System.Span<EditorButton> span = buttons.Span;
-            for (int i = 0; i < span.Length; i++)
-            {
-                if (span[i].Kind == kind)
-                    found.Add(chunk.EntityAt(i));
-            }
+            if (each == kind)
+                found.Add(entity);
         }
 
         return found;
     }
-
-    /// <summary>Every editor button, hidden ones included: kept per store, as this runs every frame.</summary>
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EntityStore, ArchetypeQuery<EditorButton>> AllButtons = new();
 }
 
 public enum EditorReadoutKind

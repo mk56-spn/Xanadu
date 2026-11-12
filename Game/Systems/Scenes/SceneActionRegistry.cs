@@ -9,7 +9,7 @@ public readonly record struct SceneActionContext(
     SceneSystem Scenes,
     EntityStore Entities,
     Entity Entity,
-    SceneCommand Command);
+    SceneActionId Action);
 
 /// <summary>Scene-scoped command handlers, registered by static scene action classes.</summary>
 public sealed class SceneActionRegistry
@@ -30,7 +30,7 @@ public sealed class SceneActionRegistry
         SceneActionContext context)
     {
         if (!_handlers.TryGetValue(
-                (scene, context.Command.Action),
+                (scene, context.Action),
                 out Action<SceneActionContext>? handler))
         {
             return false;

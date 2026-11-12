@@ -42,6 +42,10 @@ public sealed class ShaderTunerSystem(
     private readonly Dictionary<string, float[]> _applied = new();
     private int _index;
     private Entity _layer;
+
+    // The panel's colour pickers and buttons, rebuilt with it.
+    private readonly List<(Entity Picker, string Uniform, Color Default)> _pickers = new();
+    private readonly List<(Entity Button, ShaderTunerAction Action)> _buttons = new();
     private readonly OverlayLatch _latch = new(new KeyboardToggleSource(keyboard, key));
 
     /// <param name="Material">The one material this target tunes.</param>
@@ -86,6 +90,8 @@ public sealed class ShaderTunerSystem(
     private void Build()
     {
         _applied.Clear();
+        _pickers.Clear();
+        _buttons.Clear();
         ShaderTarget target = _targets[_index];
 
         UiBuilder ui = UiBuilder.Begin(entities).Layer(UiLayers.ShaderTuner);
@@ -242,7 +248,7 @@ public sealed class ShaderTunerSystem(
         track.AddComponent(new ShaderParam(uniform.Name, channel, defaultValue));
     }
 
-    private static void AddColorPicker(
+    private void AddColorPicker(
         UiBuilder ui,
         ShaderUniform uniform,
         float[] value,
@@ -262,12 +268,10 @@ public sealed class ShaderTunerSystem(
             part.AddTag<LayoutIgnore>();
         ui.End();
 
-        parts[0].AddComponent(new ShaderColorParam(
-            uniform.Name,
-            new Color(defaults[0], defaults[1], defaults[2], defaults[3])));
+        _pickers.Add((parts[0], uniform.Name, new Color(defaults[0], defaults[1], defaults[2], defaults[3])));
     }
 
-    private static void AddButton(UiBuilder ui, string label, ShaderTunerAction action)
+    private void AddButton(UiBuilder ui, string label, ShaderTunerAction action)
     {
         Entity button = ui.RectEntity(
             Vector2.Zero,
@@ -277,7 +281,7 @@ public sealed class ShaderTunerSystem(
             takesInput: true);
         button.AddComponent(new TextStyle(UiType.Body, DebugPalette.ControlText));
         button.AddComponent(ButtonVisual.Create(DebugPalette.Control));
-        button.AddComponent(new ShaderTunerButton(action));
+        _buttons.Add((button, action));
     }
 
     private static Entity Label(UiBuilder ui, float width, string text, int fontSize, Color color) =>
@@ -299,10 +303,9 @@ public sealed class ShaderTunerSystem(
             }
         });
 
-        foreach (Entity picker in entities.Query<UiColorPicker, ShaderColorParam>().ToEntityList())
+        foreach ((Entity picker, string uniform, _) in _pickers)
         {
-            ShaderColorParam param = picker.GetComponent<ShaderColorParam>();
-            if (!values.TryGetValue(param.Uniform, out float[]? channels))
+            if (!values.TryGetValue(uniform, out float[]? channels))
                 continue;
 
             Color color = picker.GetComponent<UiColorPicker>().Color;
@@ -340,14 +343,13 @@ public sealed class ShaderTunerSystem(
 
     private void HandleButtons()
     {
-        foreach (Entity button in entities
-                     .Query<ShaderTunerButton>()
-                     .WithDisabled()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
+        foreach ((Entity button, ShaderTunerAction action) in _buttons.ToArray())
         {
+            if (button.IsNull || !button.Tags.Has<Pressed>())
+                continue;
+
             button.RemoveTag<Pressed>();
-            switch (button.GetComponent<ShaderTunerButton>().Action)
+            switch (action)
             {
                 case ShaderTunerAction.Reset:
                     ResetSliders();
@@ -383,8 +385,8 @@ public sealed class ShaderTunerSystem(
             slider.GetComponent<UiSlider>().Value = slider.GetComponent<ShaderParam>().Default;
         }
 
-        foreach (Entity picker in entities.Query<UiColorPicker, ShaderColorParam>().ToEntityList())
-            picker.GetComponent<UiColorPicker>().Color = picker.GetComponent<ShaderColorParam>().Default;
+        foreach ((Entity picker, _, Color defaultColor) in _pickers)
+            picker.GetComponent<UiColorPicker>().Color = defaultColor;
     }
 
     private void Close()
@@ -392,5 +394,7 @@ public sealed class ShaderTunerSystem(
         UiLayout.DeleteSubtree(_layer);
         _layer = default;
         _targets.Clear();
+        _pickers.Clear();
+        _buttons.Clear();
     }
 }

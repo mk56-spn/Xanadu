@@ -9,7 +9,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>Executes the ECS editor toolbar and keeps its labels current.</summary>
-public sealed class EditorButtonSystem : QuerySystem<EditorButton>
+public sealed class EditorButtonSystem : QuerySystem<UiCommand>
 {
     private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
@@ -36,8 +36,8 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
 
         Query.ForEachEntity((ref button, entity) =>
         {
-            if (_presses.Started(entity))
-                Apply(button.Kind, editor);
+            if (button.Is(out EditorButtonKind kind) && _presses.Started(entity))
+                Apply(kind, editor);
         });
     }
 
@@ -46,9 +46,9 @@ public sealed class EditorButtonSystem : QuerySystem<EditorButton>
         Playhead playhead = editor.GetComponent<Playhead>();
         EditorMetronome metronome = editor.GetComponent<EditorMetronome>();
 
-        foreach (Entity entity in _entities.Query<EditorButton, Text>().ToEntityList())
+        foreach (Entity entity in _entities.Query<UiCommand, Text>().ToEntityList())
         {
-            EditorButtonKind kind = entity.GetComponent<EditorButton>().Kind;
+            EditorButtonKind kind = entity.GetComponent<UiCommand>().As<EditorButtonKind>();
             string label = kind switch
             {
                 EditorButtonKind.Play => playhead.Playing ? "II" : "▶",

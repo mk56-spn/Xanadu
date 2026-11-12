@@ -194,6 +194,37 @@ public static class UiLayout
         }
     }
 
+    /// <summary>
+    /// A node's laid-out box in its layer's space (design pixels for a full-stage
+    /// layer). Non-UI drawing that lives in a container slot reads its room here,
+    /// and follows it when it changes, rather than computing it.
+    /// </summary>
+    public static Rect2 Box(Entity entity)
+    {
+        Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
+        Vector2 at = entity.TryGetComponent(out Position position) ? position.Value : Vector2.Zero;
+        return new Rect2(UiTransform.WorldPosition(entity, at) + bounds.Position, bounds.Size);
+    }
+
+    /// <summary>True once no container above or at the node is waiting to be laid out, so <see cref="Box"/> is current.</summary>
+    public static bool Settled(Entity entity)
+    {
+        for (Entity at = entity; !at.IsNull; at = at.Parent)
+        {
+            if (at.Tags.Has<LayoutDirty>())
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>True when a container's stack places the node, so nothing else should move it.</summary>
+    public static bool InFlow(Entity entity)
+    {
+        Entity parent = entity.Parent;
+        return !parent.IsNull && parent.HasComponent<UiContainer>() && !entity.Tags.Has<LayoutIgnore>();
+    }
+
     private static void MarkParentDirty(Entity entity)
     {
         Entity parent = entity.Parent;

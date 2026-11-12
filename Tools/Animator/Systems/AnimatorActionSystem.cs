@@ -7,7 +7,7 @@ using Xanadu.Tools.Animator.Commands;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>Runs the <see cref="ToolAction"/> of each entity on the frame it is first pressed.</summary>
-public sealed class AnimatorActionSystem : QuerySystem<ToolAction>
+public sealed class AnimatorActionSystem : QuerySystem<UiCommand>
 {
     private readonly HashSet<int> _held = new();
     private readonly List<ToolAction> _requests = new();
@@ -20,6 +20,9 @@ public sealed class AnimatorActionSystem : QuerySystem<ToolAction>
         _requests.Clear();
         foreach (Entity entity in Query.ToEntityList())
         {
+            if (!ToolAction.From(entity.GetComponent<UiCommand>(), out ToolAction action))
+                continue;
+
             bool pressed = entity.Tags.Has<Pressed>();
             bool wasHeld = _held.Contains(entity.Id);
             if (pressed)
@@ -28,7 +31,7 @@ public sealed class AnimatorActionSystem : QuerySystem<ToolAction>
                 _held.Remove(entity.Id);
 
             if (pressed && !wasHeld)
-                _requests.Add(entity.GetComponent<ToolAction>());
+                _requests.Add(action);
         }
 
         if (_requests.Count == 0)

@@ -73,7 +73,7 @@ public sealed class EditorPolygonSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.Place))
         {
-            if (button.GetComponent<EditorButton>().Arg == (int)mode)
+            if (button.GetComponent<UiCommand>().Arg == (int)mode)
                 return button;
         }
 

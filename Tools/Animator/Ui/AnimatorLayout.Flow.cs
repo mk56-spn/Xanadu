@@ -79,7 +79,7 @@ public static partial class AnimatorLayout
         string argument = "")
     {
         Entity button = ui.Button(label, size, fontSize: UiTheme.SmallFontSize);
-        button.AddComponent(new ToolAction(kind, argument));
+        button.AddComponent(ToolAction.Of(kind, argument));
         AnimatorTooltips.Attach(button, kind, argument);
         return button;
     }

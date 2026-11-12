@@ -2,19 +2,12 @@ using Friflo.Engine.ECS;
 
 namespace Xanadu.Ecs;
 
+/// <summary>A step button on the timing screen; its command's <see cref="UiCommand.Arg"/> is the step.</summary>
 public enum SongTimingAdjustKind
 {
     Bpm,
     Offset,
 }
-
-public struct SongTimingAdjust(SongTimingAdjustKind kind, int delta) : IComponent
-{
-    public SongTimingAdjustKind Kind = kind;
-    public int Delta = delta;
-}
-
-public struct SongTimingSave : IComponent;
 
 public struct SongTimingView(Entity title, Entity bpm, Entity offset) : IComponent
 {
@@ -50,17 +43,15 @@ public struct SongTimingField(SongTimingFieldKind kind, int slot = 0) : ICompone
     public int Slot = slot;
 }
 
+/// <summary>
+/// The timing screen's other buttons. Remove's command <see cref="UiCommand.Arg"/>
+/// is its row slot in the BPM changes list.
+/// </summary>
 public enum SongTempoAction
 {
     Add,
     Remove,
     ScrollUp,
     ScrollDown,
-}
-
-/// <summary>A button of the BPM changes list; <see cref="Slot"/> is the row slot for Remove.</summary>
-public struct SongTempoButton(SongTempoAction action, int slot = 0) : IComponent
-{
-    public SongTempoAction Action = action;
-    public int Slot = slot;
+    Save,
 }

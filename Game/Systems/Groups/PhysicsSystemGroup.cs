@@ -4,7 +4,7 @@ using Xanadu.Systems.Physics;
 
 namespace Xanadu.Systems.Groups;
 
-/// <summary>Applies character momentum and advances the external Box2D world.</summary>
+/// <summary>Advances the external Box2D world.</summary>
 public sealed class PhysicsSystemGroup : SystemGroup
 {
     public PhysicsSystemGroup(Box2DPhysicsWorld physics, EntityStore entities)
@@ -12,7 +12,6 @@ public sealed class PhysicsSystemGroup : SystemGroup
     {
         Add(new BlockBodySystem(physics, entities));
         Add(new PlayerBodySystem(physics));
-        Add(new CharacterMomentumSystem());
         Add(new PlayerSpeedCapSystem());
         Add(new FrictionBarSystem(physics));
         Add(new PhysicsStepSystem(physics));

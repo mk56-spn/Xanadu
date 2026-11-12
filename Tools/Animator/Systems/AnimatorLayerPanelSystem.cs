@@ -49,7 +49,7 @@ public sealed class AnimatorLayerPanelSystem(IVisualRidFactory visuals)
             new Vector2(AnimatorLayout.LayerRowWidth - (ArrowWidth + Gap) * 2, height),
             UiTheme.PanelAlt);
         label.AddComponent(new TextAlignment(TextAlign.Left));
-        label.AddComponent(new ToolAction(ToolActionKind.SelectAttachment));
+        label.AddComponent(ToolAction.Of(ToolActionKind.SelectAttachment));
         label.AddComponent(new UiTooltip("Select this art"));
         Arrow(ui, "▲", ToolActionKind.MoveLayerForward, height);
         Arrow(ui, "▼", ToolActionKind.MoveLayerBack, height);
@@ -59,7 +59,7 @@ public sealed class AnimatorLayerPanelSystem(IVisualRidFactory visuals)
     private static void Arrow(UiBuilder ui, string glyph, ToolActionKind kind, float height)
     {
         Entity arrow = ui.Button(glyph, new Vector2(ArrowWidth, height), UiTheme.ButtonMuted);
-        arrow.AddComponent(new ToolAction(kind));
+        arrow.AddComponent(ToolAction.Of(kind));
         AnimatorTooltips.Attach(arrow, kind);
     }
 
@@ -96,8 +96,8 @@ public sealed class AnimatorLayerPanelSystem(IVisualRidFactory visuals)
 
     private static void SetAction(Entity button, ToolActionKind kind, string argument)
     {
-        ToolAction action = button.GetComponent<ToolAction>();
+        ToolAction action = button.GetToolAction();
         if (action.Kind != kind || action.Argument != argument)
-            button.AddComponent(new ToolAction(kind, argument));
+            button.AddComponent(ToolAction.Of(kind, argument));
     }
 }

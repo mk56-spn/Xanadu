@@ -241,9 +241,6 @@ public struct EditorGroupPiece(EditorGroupPart part, int row = 0) : IComponent
     public int Row = row;
 }
 
-/// <summary>Marks the view bar button that shows or hides the group tags on items.</summary>
-public struct GroupTagsToggle : ITag;
-
 /// <summary>
 /// The switch for the group tags drawn beside items (<c>EditorGroupTagsDrawer</c>).
 /// The bar button's <see cref="Toggle"/> is the state, and it
@@ -253,17 +250,17 @@ public static class GroupTagsSwitch
 {
     public const string Label = "TAGS";
 
+    /// <summary>The switch's name in its store (<see cref="UiToggles.Switch"/>).</summary>
+    public const string Id = "group-tags";
+
     public static Entity Attach(Entity button)
     {
         button.AddComponent(new Toggle(Label, Label, false));
-        button.AddTag<GroupTagsToggle>();
+        button.Switch(Id);
         button.AddComponent(new UiTooltip("Show each item's groups beside it, as G1, G2 …"));
         return button;
     }
 
     /// <summary>Whether to draw the tags; an editor with no button draws none.</summary>
-    public static bool IsOn(EntityStore store)
-    {
-        return store.ToggleOn<GroupTagsToggle>();
-    }
+    public static bool IsOn(EntityStore store) => UiToggles.On(store, Id, none: false);
 }

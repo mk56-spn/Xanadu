@@ -39,7 +39,7 @@ public static class AnimatorSession
             new TimelineView(1f),
             new AnimatorTracks { Expanded = new HashSet<XafTrack>() },
             AnimatorBoneMenu.Closed,
-            new AnimatorClipboard());
+            new AnimatorSessionState { Event = AnimatorEventSelection.None });
         session.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(new AnimatorTimelineHost(session)));
         session.AddComponent(new AnimatorKeyMenu());
         session.AddComponent(new AnimatorClipLength());
@@ -49,7 +49,6 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorSvgMenu { Choices = new() });
         session.AddComponent(AnimatorHover.None);
         session.AddComponent(AnimatorPreviewView.Default);
-        session.AddComponent(new AnimatorKeyClipboard());
         session.AddComponent(new AnimatorSequence());
         session.AddComponent(new AnimatorAttackCycle());
         session.AddComponent(AnimatorMetronome.Default);
@@ -58,15 +57,11 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });
         session.AddComponent(new AnimatorCloths { Simulation = new XafClothSimulation() });
         session.AddComponent(new AnimatorPreviewMode());
-        session.AddComponent(AnimatorEventSelection.None);
         session.AddComponent(new AnimatorMeshPick());
         session.AddComponent(AnimatorWeightPaint.Default);
         session.AddComponent(new UiMarqueeBox());
         session.AddComponent(new AnimatorPlants { Held = new List<AnimatorPlant>() });
-        session.AddComponent(new AnimatorHistory
-        {
-            History = AnimatorHistoryCommands.CreateHistory(session),
-        });
+        session.GetComponent<AnimatorSessionState>().History.History = AnimatorHistoryCommands.CreateHistory(session);
         return session;
     }
 
@@ -99,7 +94,7 @@ public static class AnimatorSession
         session.GetComponent<AnimatorClipLength>() = new AnimatorClipLength();
         session.GetComponent<AnimatorNewClipDialog>() = new AnimatorNewClipDialog();
         session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
-        session.GetComponent<AnimatorEventSelection>() = AnimatorEventSelection.None;
+        session.GetComponent<AnimatorSessionState>().Event = AnimatorEventSelection.None;
         session.GetComponent<AnimatorMeshPick>() = new AnimatorMeshPick();
         session.GetComponent<AnimatorPlants>().Held.Clear();
         AnimatorHistoryCommands.Clear(session);

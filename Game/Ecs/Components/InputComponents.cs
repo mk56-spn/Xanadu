@@ -3,20 +3,8 @@ using Xanadu.Settings;
 
 namespace Xanadu.Ecs;
 
-/// <summary>Settings button that captures a new key for an action.</summary>
-public struct KeybindButton(KeybindAction action) : IComponent
-{
-    public KeybindAction Action = action;
-}
-
-/// <summary>Settings button that toggles vertical sync.</summary>
-public struct VSyncToggle : IComponent;
-
 /// <summary>Settings button that cycles the window mode: windowed, fullscreen, borderless.</summary>
 public struct WindowModeButton : IComponent
 {
     public bool Held;
 }
-
-/// <summary>Settings button that toggles the editor saving levels as they are edited.</summary>
-public struct EditorAutosaveToggle : IComponent;

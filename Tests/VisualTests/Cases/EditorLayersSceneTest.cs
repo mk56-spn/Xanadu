@@ -141,7 +141,7 @@ public sealed class EditorLayersSceneTest : SceneTest
     }
 
     private Entity TagsButton() =>
-        Context.Entities.Query<Toggle>().AllTags(Tags.Get<GroupTagsToggle>()).ToEntityList()[0];
+        UiToggles.FindSwitch(Context.Entities, GroupTagsSwitch.Id);
 
     private void Click(Entity entity) =>
         Context.Pointer.Click(UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value));

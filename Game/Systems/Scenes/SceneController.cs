@@ -115,26 +115,23 @@ public sealed class SceneControllerRegistry
                 return;
 
             bool changed = false;
-            foreach (Entity entity in system.Entities
-                         .Query<SongTimingAdjust>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
+            foreach ((Entity entity, SongTimingAdjustKind kind, UiCommand adjust) in UiCommand.All<SongTimingAdjustKind>(system.Entities))
             {
-                SongTimingAdjust adjust = entity.GetComponent<SongTimingAdjust>();
-                changed |= adjust.Kind == SongTimingAdjustKind.Bpm
-                    ? SongTempoEdits.SetBase(song, bpm: song.Bpm + adjust.Delta)
-                    : SongTempoEdits.SetBase(song, offsetMs: song.OffsetMs + adjust.Delta);
+                if (!entity.Tags.Has<Pressed>())
+                    continue;
+
+                changed |= kind == SongTimingAdjustKind.Bpm
+                    ? SongTempoEdits.SetBase(song, bpm: song.Bpm + adjust.Arg)
+                    : SongTempoEdits.SetBase(song, offsetMs: song.OffsetMs + adjust.Arg);
                 break;
             }
 
-            foreach (Entity entity in system.Entities.Query<SongTempoButton>().ToEntityList())
+            foreach ((Entity entity, SongTempoAction action, UiCommand button) in UiCommand.All<SongTempoAction>(system.Entities))
             {
-                if (!_presses.Started(entity))
+                if (action == SongTempoAction.Save || !_presses.Started(entity))
                     continue;
 
-                SongTempoButton button = entity.GetComponent<SongTempoButton>();
-                switch (button.Action)
+                switch (action)
                 {
                     case SongTempoAction.Add:
                         int added = SongTempoEdits.Add(song);
@@ -143,7 +140,7 @@ public sealed class SceneControllerRegistry
                         changed = true;
                         break;
                     case SongTempoAction.Remove:
-                        changed |= SongTempoEdits.Remove(song, _scroll + button.Slot);
+                        changed |= SongTempoEdits.Remove(song, _scroll + button.Arg);
                         break;
                     case SongTempoAction.ScrollUp:
                         _scroll--;
@@ -158,15 +155,11 @@ public sealed class SceneControllerRegistry
             changed |= CommitFields(system.Entities, song);
 
             bool savePressed = false;
-            foreach (Entity entity in system.Entities
-                         .Query<SongTimingSave>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
+            Entity save = UiCommand.Find(system.Entities, SongTempoAction.Save);
+            if (!save.IsNull && save.Tags.Has<Pressed>())
             {
                 savePressed = true;
-                entity.RemoveTag<Pressed>();
-                break;
+                save.RemoveTag<Pressed>();
             }
 
             if (changed || savePressed)
@@ -281,17 +274,15 @@ public sealed class SceneControllerRegistry
         public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Profiles, c.Visuals);
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
-            foreach (Entity entity in system.Entities
-                         .Query<SceneAction>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
+            foreach ((Entity entity, SceneActionKind kind, UiCommand action) in UiCommand.All<SceneActionKind>(system.Entities))
             {
-                SceneAction action = entity.GetComponent<SceneAction>();
-                switch (action.Kind)
+                if (!entity.Tags.Has<Pressed>())
+                    continue;
+
+                switch (kind)
                 {
                     case SceneActionKind.SelectProfile:
-                        if (system.Profiles.Select(action.ProfileId))
+                        if (system.Profiles.Select(action.Text))
                             state.Pending = SceneKind.Main;
                         return;
                     case SceneActionKind.CreateProfile:
@@ -299,7 +290,7 @@ public sealed class SceneControllerRegistry
                         state.Pending = SceneKind.ProfileEdit;
                         return;
                     case SceneActionKind.EditProfile:
-                        if (system.Profiles.Select(action.ProfileId))
+                        if (system.Profiles.Select(action.Text))
                             state.Pending = SceneKind.ProfileEdit;
                         return;
                 }
@@ -373,13 +364,12 @@ public sealed class SceneControllerRegistry
 
         public void HandleActions(SceneSystem system, ref SceneState state)
         {
-            foreach (Entity entity in system.Entities
-                         .Query<KeybindButton>()
-                         .WithDisabled()
-                         .AllTags(Tags.Get<Pressed>())
-                         .ToEntityList())
+            foreach ((Entity entity, KeybindAction action, _) in UiCommand.All<KeybindAction>(system.Entities))
             {
-                system.Keybinds.BeginCapture(entity.GetComponent<KeybindButton>().Action);
+                if (!entity.Tags.Has<Pressed>())
+                    continue;
+
+                system.Keybinds.BeginCapture(action);
                 return;
             }
         }

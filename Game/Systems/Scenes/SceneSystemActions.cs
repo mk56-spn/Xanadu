@@ -20,17 +20,16 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (state.Pending != state.Current)
             return;
 
-        foreach (Entity entity in _entities
-                     .Query<SceneCommand>()
-                     .WithDisabled()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
+        foreach ((Entity entity, SceneActionId action, _) in UiCommand.All<SceneActionId>(_entities))
         {
+            if (!entity.Tags.Has<Pressed>())
+                continue;
+
             var context = new SceneActionContext(
                 this,
                 _entities,
                 entity,
-                entity.GetComponent<SceneCommand>());
+                action);
             if (_actionRegistry.TryInvoke(state.Current, context))
             {
                 entity.RemoveTag<Pressed>();
@@ -38,15 +37,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             }
         }
 
-        foreach (Entity entity in _entities
-                     .Query<SceneAction>()
-                     .WithDisabled()
-                     .AllTags(Tags.Get<Pressed>())
-                     .ToEntityList())
+        foreach ((Entity entity, SceneKind target, _) in UiCommand.All<SceneKind>(_entities))
         {
-            SceneAction action = entity.GetComponent<SceneAction>();
-            SceneKind target = action.Target;
-            if (action.Kind != SceneActionKind.Go || target == SceneKind.None)
+            if (!entity.Tags.Has<Pressed>() || target == SceneKind.None)
                 continue;
 
             // Timing needs a song already chosen (song select chooses it).

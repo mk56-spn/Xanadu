@@ -36,7 +36,7 @@ public sealed class EditorLayerInspectorSystem(EditorHistory history)
         {
             if (_presses.Started(button) && !first.IsNull)
             {
-                int step = button.GetComponent<EditorButton>().Arg;
+                int step = button.GetComponent<UiCommand>().Arg;
                 string? problem = EditorBufferGuard.Moving(
                     editor.Store,
                     selection,
@@ -51,13 +51,13 @@ public sealed class EditorLayerInspectorSystem(EditorHistory history)
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.ZStep))
         {
             if (_presses.Started(button) && !first.IsNull)
-                Edit(() => EditorLayerEdits.StepZ(selection, button.GetComponent<EditorButton>().Arg));
+                Edit(() => EditorLayerEdits.StepZ(selection, button.GetComponent<UiCommand>().Arg));
         }
 
         foreach (Entity button in EditorButton.All(editor.Store, EditorButtonKind.ShaderSourceStep))
         {
             if (_presses.Started(button) && !first.IsNull)
-                Edit(() => EditorLayerEdits.StepShaderSource(selection, button.GetComponent<EditorButton>().Arg, Groups(editor)));
+                Edit(() => EditorLayerEdits.StepShaderSource(selection, button.GetComponent<UiCommand>().Arg, Groups(editor)));
         }
 
         if (first.IsNull)

@@ -36,7 +36,7 @@ public static class AnimatorPoseCommands
         for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
             pose[document.Package.Skeleton.Bones[i].Id] = document.Runtime.Pose.Bones[i];
 
-        session.GetComponent<AnimatorClipboard>().Pose = pose;
+        session.GetComponent<AnimatorSessionState>().Clipboard.Pose = pose;
         AnimatorSession.SetStatus(session, $"COPIED POSE AT {document.Runtime.CurrentTime:0.00}s");
     }
 
@@ -47,7 +47,7 @@ public static class AnimatorPoseCommands
     /// </summary>
     public static void PastePose(Entity session)
     {
-        Dictionary<string, XafTransform>? copied = session.GetComponent<AnimatorClipboard>().Pose;
+        Dictionary<string, XafTransform>? copied = session.GetComponent<AnimatorSessionState>().Clipboard.Pose;
         if (copied is null)
         {
             AnimatorSession.SetStatus(session, "COPY A POSE FIRST");

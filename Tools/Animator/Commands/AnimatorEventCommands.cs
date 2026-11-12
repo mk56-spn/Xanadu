@@ -10,7 +10,7 @@ public static class AnimatorEventCommands
     public static int Selected(Entity session, out XafClip? clip)
     {
         clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
-        AnimatorEventSelection selection = session.GetComponent<AnimatorEventSelection>();
+        AnimatorEventSelection selection = session.GetComponent<AnimatorSessionState>().Event;
         return clip is not null && selection.Clip == clip.Id && selection.Index >= 0 &&
                selection.Index < clip.Events.Count
             ? selection.Index
@@ -18,7 +18,7 @@ public static class AnimatorEventCommands
     }
 
     public static void Select(Entity session, string clip, int index) =>
-        session.GetComponent<AnimatorEventSelection>() = new AnimatorEventSelection { Clip = clip, Index = index };
+        session.GetComponent<AnimatorSessionState>().Event = new AnimatorEventSelection { Clip = clip, Index = index };
 
     /// <summary>Adds an event at the playhead, selects it and pauses, as one undo step.</summary>
     public static void Add(Entity session) =>
@@ -49,7 +49,7 @@ public static class AnimatorEventCommands
 
             string name = clip.Events[index].Name;
             XafEventAuthoring.Remove(clip, index);
-            session.GetComponent<AnimatorEventSelection>() = AnimatorEventSelection.None;
+            session.GetComponent<AnimatorSessionState>().Event = AnimatorEventSelection.None;
             AnimatorSession.SetStatus(session, $"DELETED EVENT {name.ToUpperInvariant()}");
         });
 

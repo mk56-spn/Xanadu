@@ -60,7 +60,7 @@ public sealed class AnimatorBoneMenuTests : AnimatorToolTest
     {
         foreach (Entity child in Ui.BoneMenu.ChildEntities)
         {
-            if (child.GetComponent<ToolAction>().Kind == kind)
+            if (child.GetToolAction().Kind == kind)
                 return child;
         }
 

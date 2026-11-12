@@ -9,8 +9,7 @@ public sealed class UiWheelControl(Entity wheel)
 
     public int Selected => SelectedIndex(Wheel);
 
-    public void Select(int index, bool raiseChanged = true) =>
-        SetSelected(Wheel, index, raiseChanged);
+    public void Select(int index) => SetSelected(Wheel, index);
 
     /// <summary>Selected wedge index, or -1 when the entity is not a wheel.</summary>
     public static int SelectedIndex(Entity wheel)
@@ -23,14 +22,9 @@ public sealed class UiWheelControl(Entity wheel)
 
     /// <summary>
     /// Selects a wedge index (wrapped into range). Returns false when the
-    /// selection was already there. Consumers reflecting their own state into
-    /// the wheel pass <paramref name="raiseChanged"/> as false so they do not
-    /// echo their own change back as a new event.
+    /// selection was already there.
     /// </summary>
-    public static bool SetSelected(
-        Entity wheel,
-        int index,
-        bool raiseChanged = true)
+    public static bool SetSelected(Entity wheel, int index)
     {
         if (wheel.IsNull || !wheel.HasComponent<UiWheel>())
             return false;
@@ -45,8 +39,6 @@ public sealed class UiWheelControl(Entity wheel)
 
         wheel.GetComponent<UiWheel>().Selected = wrapped;
         wheel.AddTag<Dirty>();
-        if (raiseChanged)
-            wheel.AddComponent(new UiWheelChanged(wrapped));
         return true;
     }
 }

@@ -4,77 +4,171 @@ using System.Linq;
 
 namespace Xanadu.Tools.Atlas;
 
-/// <summary>How alike two components are: by their fields' types and by the types that use them, each 0 to 1.</summary>
-internal readonly record struct Match(int A, int B, float Shape, float Users)
+/// <summary>
+/// How alike two types are, each 0 to 1: their fields' types (shape), the types
+/// using them (users), and the types they use (uses). A signal neither type
+/// has anything for (two fieldless types, say) is NaN and left out of the score.
+/// </summary>
+internal readonly record struct Match(int A, int B, float Shape, float Users, float Uses)
 {
-    /// <summary>The two, evenly.</summary>
-    public float Score => (Shape + Users) / 2;
+    /// <summary>The signals both have something for, evenly.</summary>
+    public float Score
+    {
+        get
+        {
+            float sum = 0;
+            int count = 0;
+            foreach (float signal in (ReadOnlySpan<float>)[Shape, Users, Uses])
+            {
+                if (!float.IsNaN(signal))
+                {
+                    sum += signal;
+                    count++;
+                }
+            }
+
+            return count == 0 ? 0 : sum / count;
+        }
+    }
+
+    /// <summary>A signal as a percentage, or a dash when neither type has anything for it.</summary>
+    public static string Percent(float signal) => float.IsNaN(signal) ? " —" : $"{signal * 100:0}%";
 }
 
 /// <summary>
-/// Component types that could be one type: the same field types (shape), and
-/// the same types reading them (users). Both are overlaps over unions, so 1 is
-/// identical and 0 is nothing shared. Field names don't count, so
-/// <c>{ float Value }</c> and <c>{ float Amount }</c> are the same shape.
+/// Types that could be one type: the same field types (shape), the same types
+/// using them (users), and the same types they use (uses). The three mean the
+/// same for every kind, so components, systems and classes are all compared
+/// fairly: components mostly by shape and users, systems mostly by what they use. Both are overlaps over unions, so 1 is identical
+/// and 0 is nothing shared. Field names don't count, so <c>{ float Value }</c>
+/// and <c>{ float Amount }</c> are the same shape.
+/// <para>
+/// It knows nothing of kinds: the caller says which kinds make up the pool
+/// (components only, or components against classes, or everything), and only
+/// types in the pool are compared. Only pairs that share a field type or a
+/// user are scored, since every other pair scores zero.
+/// </para>
 /// </summary>
 internal sealed class Similarity
 {
     private readonly CodeMap _map;
-    private readonly List<CodeNode> _components;
     private readonly Dictionary<int, HashSet<int>> _users = new();
+    private readonly Dictionary<int, HashSet<int>> _uses = new();
     private readonly Dictionary<int, Dictionary<string, int>> _shapes = new();
-    private readonly Dictionary<int, List<Match>> _like = new();
-    private List<Match>? _pairs;
+    private readonly Dictionary<(int Id, int Pool), List<Match>> _like = new();
+    private readonly Dictionary<int, List<Match>> _pairs = new();
 
     public Similarity(CodeMap map)
     {
         _map = map;
-        _components = map.Nodes.Where(n => n.Kind == NodeKind.Component).ToList();
-        foreach (CodeNode node in _components)
+        foreach (CodeNode node in map.Nodes)
         {
             _users[node.Id] = node.In.Values.SelectMany(set => set).ToHashSet();
+            _uses[node.Id] = node.Out.Values.SelectMany(set => set).ToHashSet();
             _shapes[node.Id] = node.Fields.GroupBy(f => f.Type).ToDictionary(g => g.Key, g => g.Count());
         }
     }
 
-    public Match Compare(int a, int b) => new(a, b, Shape(_shapes[a], _shapes[b]), Users(a, b));
+    public Match Compare(int a, int b) =>
+        new(a, b, Shape(_shapes[a], _shapes[b]), Overlap(_users[a], _users[b], a, b), Overlap(_uses[a], _uses[b], a, b));
 
-    /// <summary>Every other component against one, most alike first; ones sharing nothing left out.</summary>
-    public List<Match> Like(int id)
+    /// <summary>Every other type of the pool's kinds against one, most alike first; ones sharing nothing left out.</summary>
+    public List<Match> Like(int id, IReadOnlySet<NodeKind> pool)
     {
-        if (!_like.TryGetValue(id, out var list))
+        int key = Key(pool);
+        if (!_like.TryGetValue((id, key), out var list))
         {
-            list = _components.Where(n => n.Id != id).Select(n => Compare(id, n.Id))
+            list = Neighbours(id, pool).Select(other => Compare(id, other))
                 .Where(m => m.Score > 0).OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.B].Name, StringComparer.OrdinalIgnoreCase).ToList();
-            _like[id] = list;
+            _like[(id, key)] = list;
         }
 
         return list;
     }
 
-    /// <summary>The most alike pairs of all components, best first.</summary>
-    public List<Match> Pairs(int count = 400)
+    /// <summary>The most alike pairs among the pool's kinds, best first.</summary>
+    public List<Match> Pairs(IReadOnlySet<NodeKind> pool, int count = 400)
     {
-        if (_pairs is null)
+        int key = Key(pool);
+        if (!_pairs.TryGetValue(key, out var pairs))
         {
             var all = new List<Match>();
-            for (int i = 0; i < _components.Count; i++)
+            foreach (CodeNode node in _map.Nodes)
             {
-                for (int j = i + 1; j < _components.Count; j++)
+                if (!pool.Contains(node.Kind))
+                    continue;
+
+                foreach (int other in Neighbours(node.Id, pool))
                 {
-                    Match match = Compare(_components[i].Id, _components[j].Id);
-                    if (match.Score > 0)
-                        all.Add(match);
+                    if (other > node.Id)
+                    {
+                        Match match = Compare(node.Id, other);
+                        if (match.Score > 0)
+                            all.Add(match);
+                    }
                 }
             }
 
-            _pairs = all.OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.A].Name, StringComparer.OrdinalIgnoreCase).Take(count).ToList();
+            pairs = all.OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.A].Name, StringComparer.OrdinalIgnoreCase).Take(count).ToList();
+            _pairs[key] = pairs;
         }
 
-        return _pairs;
+        return pairs;
     }
 
-    /// <summary>Field types shared, counting repeats, over field types either has. Fieldless types share no shape.</summary>
+    /// <summary>The pool's types sharing a field type, a user or a used type with <paramref name="id"/>: the only ones that can score.</summary>
+    private HashSet<int> Neighbours(int id, IReadOnlySet<NodeKind> pool)
+    {
+        var found = new HashSet<int>();
+        foreach (int user in _users[id])
+            found.UnionWith(_uses[user]);
+
+        foreach (int used in _uses[id])
+            found.UnionWith(_users[used]);
+
+        foreach (string type in _shapes[id].Keys)
+        {
+            foreach (int same in ByFieldType().GetValueOrDefault(type, []))
+                found.Add(same);
+        }
+
+        found.Remove(id);
+        found.RemoveWhere(other => !pool.Contains(_map.Nodes[other].Kind));
+        return found;
+    }
+
+    private Dictionary<string, List<int>>? _byFieldType;
+
+    /// <summary>Which types have a field of each type, built once.</summary>
+    private Dictionary<string, List<int>> ByFieldType()
+    {
+        if (_byFieldType is null)
+        {
+            _byFieldType = new Dictionary<string, List<int>>();
+            foreach (var (id, shape) in _shapes)
+            {
+                foreach (string type in shape.Keys)
+                {
+                    if (!_byFieldType.TryGetValue(type, out var ids))
+                        _byFieldType[type] = ids = new List<int>();
+                    ids.Add(id);
+                }
+            }
+        }
+
+        return _byFieldType;
+    }
+
+    /// <summary>A pool as a bit set of kinds, for the caches.</summary>
+    private static int Key(IReadOnlySet<NodeKind> pool)
+    {
+        int key = 0;
+        foreach (NodeKind kind in pool)
+            key |= 1 << (int)kind;
+        return key;
+    }
+
+    /// <summary>Field types shared, counting repeats, over field types either has; NaN for two fieldless types.</summary>
     private static float Shape(Dictionary<string, int> a, Dictionary<string, int> b)
     {
         int both = 0, either = 0;
@@ -85,15 +179,14 @@ internal sealed class Similarity
             either += Math.Max(x, y);
         }
 
-        return either == 0 ? 0 : (float)both / either;
+        return either == 0 ? float.NaN : (float)both / either;
     }
 
-    /// <summary>Types using both over types using either, the two themselves left out.</summary>
-    private float Users(int a, int b)
+    /// <summary>Links both have over links either has, the two themselves left out; NaN when neither has any.</summary>
+    private static float Overlap(HashSet<int> x, HashSet<int> y, int a, int b)
     {
-        HashSet<int> x = _users[a], y = _users[b];
-        int both = x.Count(id => id != b && y.Contains(id));
+        int both = x.Count(id => id != b && id != a && y.Contains(id));
         int either = x.Union(y).Count(id => id != a && id != b);
-        return either == 0 ? 0 : (float)both / either;
+        return either == 0 ? float.NaN : (float)both / either;
     }
 }

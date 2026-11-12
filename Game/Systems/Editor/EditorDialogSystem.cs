@@ -63,10 +63,10 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         HoldForSong(editor);
         OpenRequested(editor);
 
-        foreach (Entity button in entities.Query<EditorDialogButton>().WithDisabled().ToEntityList())
+        foreach ((Entity button, EditorDialogAction action, UiCommand command) in UiCommand.All<EditorDialogAction>(entities))
         {
             if (PressedNow(button))
-                Act(editor, button.GetComponent<EditorDialogButton>());
+                Act(editor, action, command.Arg);
         }
 
         Entity colorDialog = EditorDialogs.Find(entities, EditorDialogKind.MapColor);
@@ -141,18 +141,19 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         }
     }
 
-    private void Act(Entity editor, EditorDialogButton button)
+    /// <param name="arg">For a list row, which row.</param>
+    private void Act(Entity editor, EditorDialogAction action, int arg)
     {
         ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
         int slot = dialogs.Shader;
-        switch (button.Action)
+        switch (action)
         {
             case EditorDialogAction.Close:
                 EditorDialogs.Dismiss(entities);
                 break;
 
             case EditorDialogAction.PickSong:
-                dialogs.Song = button.Arg;
+                dialogs.Song = arg;
                 ShowSongPick(ref dialogs);
                 break;
             case EditorDialogAction.UseSong:
@@ -178,7 +179,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
                 break;
 
             case EditorDialogAction.PickShader:
-                dialogs.Shader = button.Arg;
+                dialogs.Shader = arg;
                 FillShaders(editor);
                 break;
             case EditorDialogAction.ImportShader:
@@ -451,7 +452,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
             rows.Add(content.Button("", 13, RowIdle)
                 .Size(width, EditorSceneDialogs.DialogListRowHeight)
                 .Align(TextAlign.Left)
-                .With(new EditorDialogButton(action, i + first))
+                .With(UiCommand.Of(action, i + first))
                 .Entity);
         }
 

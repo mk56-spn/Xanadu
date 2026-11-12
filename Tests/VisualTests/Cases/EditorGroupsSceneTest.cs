@@ -573,10 +573,10 @@ public sealed class EditorGroupsSceneTest : SceneTest
     private EditorViewBar ViewBar() => Editor().GetComponent<EditorViewBar>();
 
     private Entity GridSnapToggle() =>
-        Context.Entities.Query<Toggle>().AllTags(Tags.Get<ViewportSnapToggle>()).WithDisabled().ToEntityList()[0];
+        UiToggles.FindSwitch(Context.Entities, ViewportSnap.Id);
 
     private Entity MusicSnapToggle() =>
-        Context.Entities.Query<Toggle>().AllTags(Tags.Get<EditorMusicSnapToggle>()).WithDisabled().ToEntityList()[0];
+        UiToggles.FindSwitch(Context.Entities, EditorMusicSnap.Id);
 
     private Entity Cell(int index)
     {
@@ -593,7 +593,7 @@ public sealed class EditorGroupsSceneTest : SceneTest
     {
         foreach (Entity button in EditorButton.All(Context.Entities, EditorButtonKind.LayerStep))
         {
-            if (button.GetComponent<EditorButton>().Arg == arg)
+            if (button.GetComponent<UiCommand>().Arg == arg)
                 return button;
         }
 
@@ -634,9 +634,9 @@ public sealed class EditorGroupsSceneTest : SceneTest
 
     private Entity EaseCell(EasePreset preset)
     {
-        foreach (Entity entity in Context.Entities.Query<EasePickerCell>().WithDisabled().ToEntityList())
+        foreach ((Entity entity, EasePreset cellPreset, _) in UiCommand.All<EasePreset>(Context.Entities))
         {
-            if (entity.GetComponent<EasePickerCell>().Preset == preset)
+            if (cellPreset == preset)
                 return entity;
         }
 

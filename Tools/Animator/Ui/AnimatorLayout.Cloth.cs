@@ -73,7 +73,7 @@ public static partial class AnimatorLayout
 
         Entity delete = menu.Button("DELETE CLOTH", new Vector2(inner, ChainRow),
             fontSize: UiTheme.SmallFontSize);
-        delete.AddComponent(new ToolAction(ToolActionKind.DeleteCloth));
+        delete.AddComponent(ToolAction.Of(ToolActionKind.DeleteCloth));
         AnimatorTooltips.Attach(delete, ToolActionKind.DeleteCloth);
         menu.End();
     }

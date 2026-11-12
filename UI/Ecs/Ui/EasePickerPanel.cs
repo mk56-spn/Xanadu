@@ -138,7 +138,7 @@ public static class EasePickerPanel
     {
         UiNode cell = row.Row().Size(CellSize).Fill(Cell).Input()
             .With(ButtonVisual.Create(Cell))
-            .With(new EasePickerCell(preset, picker))
+            .With(UiCommand.Of(preset, owner: picker))
             .Tooltip($"{EaseNames.Label(preset)}: {EaseNames.Describe(preset)}{host.TooltipNote(preset)}");
 
         Entity thumb = cell.Shape(CurvePoints(preset, ThumbSize, 24), Clear, Stroke, 1.5f, closed: false);

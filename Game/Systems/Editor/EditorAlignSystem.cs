@@ -38,7 +38,7 @@ public sealed class EditorAlignSystem(EditorHistory history) : QuerySystem<NoteS
                 continue;
 
             EditorSnapshot before = history.Capture();
-            if (SelectionAlign.Apply(selection, (AlignEdge)button.GetComponent<EditorButton>().Arg))
+            if (SelectionAlign.Apply(selection, (AlignEdge)button.GetComponent<UiCommand>().Arg))
                 history.Record(before, history.Capture());
         }
     }

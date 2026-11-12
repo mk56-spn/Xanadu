@@ -61,7 +61,7 @@ public sealed class EditorContactCostSystemTests : EcsSystemTest
     {
         Entity readout = Store.CreateEntity(new Text(""), new EditorReadout(EditorReadoutKind.Diagonal));
         Entity editor = Store.CreateEntity(new EditorPlacement());
-        Entity toggle = Store.CreateEntity(new EditorButton(EditorButtonKind.Diagonal));
+        Entity toggle = Store.CreateEntity(EditorButton.Of(EditorButtonKind.Diagonal));
 
         Root.Add(new EditorContactCostSystem(Store));
         Frame();

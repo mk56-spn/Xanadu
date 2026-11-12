@@ -63,7 +63,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .Size(LeaveWidth, ActionHeight)
             .On(SceneActionId.Leave);
 
-        root.With(new ScenePause(title, message, resume, retry, leave));
+        _pause = new ScenePause(title, message, resume, retry, leave);
         _pausePanel = root.Entity;
     }
 
@@ -72,7 +72,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_pausePanel.IsNull)
             return false;
 
-        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
+        ScenePause pause = _pause;
 
         if (UiLayout.IsHidden(_pausePanel))
             return false;
@@ -107,7 +107,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_pausePanel.IsNull)
             return;
 
-        ref ScenePause pause = ref _pausePanel.GetComponent<ScenePause>();
+        ScenePause pause = _pause;
 
         if (!UiLayout.IsHidden(_pausePanel))
             return;

@@ -44,9 +44,9 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
     private Entity Button(EditorButtonKind kind)
     {
-        foreach (Entity entity in Store.Query<EditorButton>().ToEntityList())
+        foreach (Entity entity in Store.Query<UiCommand>().ToEntityList())
         {
-            if (entity.GetComponent<EditorButton>().Kind == kind)
+            if (entity.GetComponent<UiCommand>().As<EditorButtonKind>() == kind)
                 return entity;
         }
         throw new AssertionException($"No {kind} button.");
@@ -80,11 +80,11 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     {
         // The strip holds the lone tools and the group buttons; grouped tools sit in flyouts.
         var tools = new System.Collections.Generic.List<Rect2>();
-        foreach (Entity entity in Store.Query<EditorButton>().ToEntityList())
+        foreach (Entity entity in Store.Query<UiCommand>().ToEntityList())
         {
-            EditorButton button = entity.GetComponent<EditorButton>();
-            bool inStrip = button.Kind == EditorButtonKind.ToolGroup ||
-                           (button.Kind == EditorButtonKind.Place &&
+            UiCommand button = entity.GetComponent<UiCommand>();
+            bool inStrip = button.As<EditorButtonKind>() == EditorButtonKind.ToolGroup ||
+                           (button.As<EditorButtonKind>() == EditorButtonKind.Place &&
                             Area(entity).Position.X < EditorShellMetrics.ToolStripWidth);
             if (inStrip)
                 tools.Add(Area(entity));
@@ -111,7 +111,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
     {
         var modes = new System.Collections.Generic.List<EditorPlacementMode>();
         foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
-            modes.Add((EditorPlacementMode)entity.GetComponent<EditorButton>().Arg);
+            modes.Add((EditorPlacementMode)entity.GetComponent<UiCommand>().Arg);
 
         Assert.That(modes, Is.Unique);
         Assert.That(modes, Is.EquivalentTo(System.Enum.GetValues<EditorPlacementMode>()));
@@ -142,7 +142,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
         foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
         {
-            var mode = (EditorPlacementMode)entity.GetComponent<EditorButton>().Arg;
+            var mode = (EditorPlacementMode)entity.GetComponent<UiCommand>().Arg;
             string key = Xanadu.Editor.EditorPlacementKeybinds.LabelFor(mode);
             Assert.That(entity.GetComponent<UiTooltip>().Text, Does.EndWith(key.Length > 0 ? $"({key})" : ""));
             if (key.Length == 0)
@@ -306,8 +306,11 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
     private Entity SidebarPanel()
     {
-        foreach (Entity entity in Store.Query<EditorSidebarLayout>().ToEntityList())
-            return entity.GetComponent<EditorSidebarLayout>().Panel;
+        foreach (Entity entity in Store.Query<UiCollapsible>().ToEntityList())
+        {
+            if (entity.GetComponent<UiCollapsible>().Title == "SELECTION")
+                return entity.Parent;
+        }
         throw new AssertionException("No sidebar.");
     }
 }

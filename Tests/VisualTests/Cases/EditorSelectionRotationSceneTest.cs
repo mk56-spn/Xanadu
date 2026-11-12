@@ -20,7 +20,7 @@ public sealed class EditorSelectionRotationSceneTest : SceneTest
         AddUntilStep(
             "wait for the snap switch",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  Context.Entities.Query<Toggle>().AllTags(Tags.Get<ViewportSnapToggle>()).WithDisabled().Count == 1);
+                  !UiToggles.FindSwitch(Context.Entities, ViewportSnap.Id).IsNull);
 
         AddStep("select a block and two notes", () =>
         {

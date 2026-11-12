@@ -267,6 +267,10 @@ public readonly partial struct UiNode
 
         SetBounds(size);
 
+        // What the node asks its stack for follows what the author set.
+        if (_entity.HasComponent<UiFlex>())
+            _entity.GetComponent<UiFlex>().Natural = size;
+
         if (_entity.TryGetComponent(out UiContainer container))
         {
             bool changed = false;

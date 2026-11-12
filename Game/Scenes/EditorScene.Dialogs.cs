@@ -73,7 +73,7 @@ public static class EditorSceneDialogs
     private static UiNode DialogButton(UiNode row, string label, float width, EditorDialogAction action, bool muted = false) =>
         row.Button(label, 13, muted ? SceneUi.MutedButtonColor : SceneUi.EditorButtonColor)
             .Size(width, DialogButtonHeight)
-            .With(new EditorDialogButton(action));
+            .With(UiCommand.Of(action));
 
     /// <summary>A scrolled list whose rows the dialog system adds as it fills it.</summary>
     private static Entity DialogList(UiNode panel, float width, float height)

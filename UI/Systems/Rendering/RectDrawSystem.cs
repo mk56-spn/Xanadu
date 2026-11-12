@@ -33,15 +33,7 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
             bool hasContainer = entity.TryGetComponent(out UiContainer container);
             float skew = hasContainer ? container.Skew : 0;
             float chamfer = entity.TryGetComponent(out UiChamfer cut) ? cut.Size : 0;
-            bool diamond = entity.HasComponent<UiDiamond>();
-            if (diamond)
-            {
-                _canvas.DrawPolygon(
-                    visual.Value,
-                    UiOutline.Diamond(rect.Bounds),
-                    fillColor.Value);
-            }
-            else if (skew != 0 || chamfer > 0)
+            if (skew != 0 || chamfer > 0)
             {
                 _canvas.DrawPolygon(
                     visual.Value,
@@ -57,9 +49,7 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
                 border.Color.A > 0 &&
                 border.Width > 0)
             {
-                Vector2[] outline = diamond
-                    ? UiOutline.Diamond(rect.Bounds)
-                    : UiOutline.Points(rect.Bounds, skew, chamfer);
+                Vector2[] outline = UiOutline.Points(rect.Bounds, skew, chamfer);
                 _canvas.DrawPolyline(
                     visual.Value,
                     [.. outline, outline[0]],

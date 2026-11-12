@@ -89,7 +89,7 @@ public sealed class EditorLayersTests
 
     private void Press(EditorButtonKind kind, int arg)
     {
-        Entity button = _store.CreateEntity(new EditorButton(kind, arg));
+        Entity button = _store.CreateEntity(EditorButton.Of(kind, arg));
         Press(button);
         button.DeleteEntity();
     }

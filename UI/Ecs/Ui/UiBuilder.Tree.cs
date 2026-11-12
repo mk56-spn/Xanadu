@@ -163,8 +163,7 @@ public sealed partial class UiBuilder
         label.AddTag<UiTreeLabel>();
         for (int column = 0; column < (state.CellWidths?.Length ?? 0); column++)
         {
-            Text(CellText(row.Item, column), new Vector2(state.CellWidths![column], state.RowHeight), align: TextAlign.Right)
-                .AddTag<UiTreeCell>();
+            Text(CellText(row.Item, column), new Vector2(state.CellWidths![column], state.RowHeight), align: TextAlign.Right);
         }
         if (row.HasChildren)
             disclosure.AddTag<UiTreeDisclosure>();

@@ -98,7 +98,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
     {
         foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.NoteType))
         {
-            if ((KeybindAction)entity.GetComponent<EditorButton>().Arg != action)
+            if ((KeybindAction)entity.GetComponent<UiCommand>().Arg != action)
                 continue;
 
             Context.Pointer.Click(UiTransform.WorldPosition(
@@ -111,7 +111,7 @@ public sealed class EditorDropdownSceneTest : SceneTest
     {
         foreach (Entity entity in EditorButton.All(Context.Entities, EditorButtonKind.Place))
         {
-            if ((EditorPlacementMode)entity.GetComponent<EditorButton>().Arg != mode)
+            if ((EditorPlacementMode)entity.GetComponent<UiCommand>().Arg != mode)
                 continue;
 
             Context.Pointer.Click(WorldPosition(entity, entity.GetComponent<Position>().Value));
@@ -121,9 +121,9 @@ public sealed class EditorDropdownSceneTest : SceneTest
 
     private void ClickEditorButton(EditorButtonKind kind)
     {
-        foreach (Entity entity in Context.Entities.Query<EditorButton>().ToEntityList())
+        foreach (Entity entity in Context.Entities.Query<UiCommand>().ToEntityList())
         {
-            if (entity.GetComponent<EditorButton>().Kind != kind)
+            if (entity.GetComponent<UiCommand>().As<EditorButtonKind>() != kind)
                 continue;
 
             Context.Pointer.Click(UiTransform.WorldPosition(

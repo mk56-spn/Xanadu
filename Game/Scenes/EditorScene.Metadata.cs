@@ -55,7 +55,7 @@ public static class EditorSceneMetadata
             .AddComponent(new EditorSongLabel());
         songRow.Button("CHANGE", 12, SceneUi.MutedButtonColor)
             .Size(94, 28)
-            .With(new EditorButton(EditorButtonKind.LoadSong))
+            .With(EditorButton.Of(EditorButtonKind.LoadSong))
             .Tooltip("Pick the song this level is played to");
 
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.LevelName));
@@ -245,11 +245,11 @@ public static class EditorSceneMetadata
 
         row.Button("EDIT", 12, SceneUi.MutedButtonColor)
             .Size(80, 28)
-            .With(new EditorButton(edit));
+            .With(EditorButton.Of(edit));
 
         row.Button("RESET", 12, SceneUi.MutedButtonColor)
             .Size(76, 28)
-            .With(new EditorButton(reset))
+            .With(EditorButton.Of(reset))
             .Tooltip("Use the theme's stage colour");
     }
 }

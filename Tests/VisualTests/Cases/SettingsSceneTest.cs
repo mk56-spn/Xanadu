@@ -45,14 +45,14 @@ public sealed class SettingsSceneTest : SceneTest
             () => VisualAssert.HasText(Context.Entities, "KEYBINDS"));
         AddAssert(
             "VSync toggle exists",
-            () => Context.Entities.Query<VSyncToggle>().Count == 1);
+            () => Context.Entities.Query<Toggle>().Count == 2);
         AddAssert(
             "VSync state is shown",
             () => VisualAssert.HasText(Context.Entities, "V-SYNC: ON") ||
                   VisualAssert.HasText(Context.Entities, "V-SYNC: OFF"));
         AddAssert(
             "seven keybind rows exist",
-            () => Context.Entities.Query<KeybindButton>().Count ==
+            () => UiCommand.All<KeybindAction>(Context.Entities).Count ==
                   KeybindSettings.Actions.Length);
         AddAssert(
             "content layer is above background",
@@ -88,7 +88,7 @@ public sealed class SettingsSceneTest : SceneTest
 
     private bool KeybindsAreOnContentLayer()
     {
-        foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
+        foreach ((Entity button, _, _) in UiCommand.All<KeybindAction>(Context.Entities))
         {
             if (button.GetComponent<Drawable>().ZIndex != UiLayers.Menu)
                 return false;
@@ -110,7 +110,7 @@ public sealed class SettingsSceneTest : SceneTest
         if (content.IsNull)
             return false;
 
-        foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
+        foreach ((Entity button, _, _) in UiCommand.All<KeybindAction>(Context.Entities))
         {
             Entity parent = button.Parent;
             bool inside = false;
@@ -135,7 +135,7 @@ public sealed class SettingsSceneTest : SceneTest
 
     private bool KeybindsAreAnimated()
     {
-        foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
+        foreach ((Entity button, _, _) in UiCommand.All<KeybindAction>(Context.Entities))
         {
             if (!button.HasComponent<ButtonVisual>())
                 return false;
@@ -146,7 +146,7 @@ public sealed class SettingsSceneTest : SceneTest
 
     private bool KeybindRectanglesAreNonEmpty()
     {
-        foreach (Entity button in Context.Entities.Query<KeybindButton>().ToEntityList())
+        foreach ((Entity button, _, _) in UiCommand.All<KeybindAction>(Context.Entities))
         {
             Rectangle bounds = button.GetComponent<Rectangle>();
             if (bounds.Bounds.Size.X <= 0 || bounds.Bounds.Size.Y <= 0)

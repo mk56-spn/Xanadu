@@ -55,7 +55,7 @@ public static partial class AnimatorLayout
     private static void TargetButton(UiBuilder ui, string label, string verb, Vector2 size, int fontSize)
     {
         Entity button = ui.Button(label, size, fontSize: fontSize);
-        button.AddComponent(new ToolAction(ToolActionKind.LimbTarget, verb));
+        button.AddComponent(ToolAction.Of(ToolActionKind.LimbTarget, verb));
         AnimatorTooltips.Attach(button, ToolActionKind.LimbTarget, verb);
     }
 

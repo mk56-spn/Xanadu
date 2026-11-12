@@ -18,7 +18,7 @@ public static class AnimatorHistoryCommands
     /// <summary>Runs an edit and records it; nested edits record once, as the outermost.</summary>
     public static void Edit(Entity session, Action edit)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         if (history.Depth > 0)
         {
             edit();
@@ -42,7 +42,7 @@ public static class AnimatorHistoryCommands
     }
 
     public static void BeginGesture(Entity session) =>
-        session.GetComponent<AnimatorHistory>().Gesture = Snapshot(session);
+        session.GetComponent<AnimatorSessionState>().History.Gesture = Snapshot(session);
 
     /// <summary>
     /// Runs an edit as part of the open gesture: it is not recorded on its own,
@@ -50,7 +50,7 @@ public static class AnimatorHistoryCommands
     /// </summary>
     public static void DuringGesture(Entity session, Action edit)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         history.Depth++;
         try
         {
@@ -65,7 +65,7 @@ public static class AnimatorHistoryCommands
     /// <summary>Records the drag; edits made by <paramref name="last"/> land in the same step.</summary>
     public static void EndGesture(Entity session, Action? last = null)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         if (history.Gesture is not { } before)
         {
             if (last is not null)
@@ -91,7 +91,7 @@ public static class AnimatorHistoryCommands
 
     public static void Undo(Entity session)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         history.Gesture = null;
         AnimatorSession.SetStatus(session, history.History.Undo() ? "UNDO" : "NOTHING TO UNDO");
         AnimatorFileCommands.RefreshDirty(session);
@@ -99,7 +99,7 @@ public static class AnimatorHistoryCommands
 
     public static void Redo(Entity session)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         history.Gesture = null;
         AnimatorSession.SetStatus(session, history.History.Redo() ? "REDO" : "NOTHING TO REDO");
         AnimatorFileCommands.RefreshDirty(session);
@@ -107,7 +107,7 @@ public static class AnimatorHistoryCommands
 
     public static void Clear(Entity session)
     {
-        ref AnimatorHistory history = ref session.GetComponent<AnimatorHistory>();
+        ref AnimatorHistory history = ref session.GetComponent<AnimatorSessionState>().History;
         history.History.Clear();
         history.Gesture = null;
     }

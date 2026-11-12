@@ -42,15 +42,15 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
     {
         ref EasePicker picker = ref panel.GetComponent<EasePicker>();
         IEasePickerHost host = picker.Host;
-        List<Entity> cells = Cells(panel);
+        List<(Entity Entity, EasePreset Id, UiCommand Command)> cells = UiCommand.All<EasePreset>(Query.Store, panel);
 
         // Presses first, hidden or not, so one landing as the picker hides is still let go.
         bool closed = _presses.Started(picker.Parts.Close);
         EasePreset? pressed = null;
-        foreach (Entity cell in cells)
+        foreach ((Entity cell, EasePreset cellPreset, _) in cells)
         {
             if (_presses.Started(cell))
-                pressed = cell.GetComponent<EasePickerCell>().Preset;
+                pressed = cellPreset;
         }
 
         if (host.Open && pressed is { } preset)
@@ -101,24 +101,12 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
             Mathf.Clamp(corner.Y, bounds.Position.Y, Mathf.Max(bounds.Position.Y, bounds.End.Y - size.Y)));
     }
 
-    private List<Entity> Cells(Entity panel)
-    {
-        var cells = new List<Entity>();
-        foreach (Entity cell in Query.Store.Query<EasePickerCell, ButtonVisual>().WithDisabled().ToEntityList())
-        {
-            if (cell.GetComponent<EasePickerCell>().Picker.Id == panel.Id)
-                cells.Add(cell);
-        }
-
-        return cells;
-    }
-
     /// <summary>Lights the selection's curve; hidden cells too, so the picker opens already lit.</summary>
-    private static void Light(List<Entity> cells, EasePreset? current)
+    private static void Light(List<(Entity Entity, EasePreset Id, UiCommand Command)> cells, EasePreset? current)
     {
-        foreach (Entity cell in cells)
+        foreach ((Entity cell, EasePreset preset, _) in cells)
         {
-            bool on = current == cell.GetComponent<EasePickerCell>().Preset;
+            bool on = current == preset;
             Color target = on ? EasePickerPanel.Lit : EasePickerPanel.Cell;
             ref ButtonVisual visual = ref cell.GetComponent<ButtonVisual>();
             if (visual.Normal == target)
@@ -130,17 +118,17 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
     }
 
     /// <summary>The curve whose thumbnail the pointer is over, if any.</summary>
-    private static EasePreset? Hovered(List<Entity> cells)
+    private static EasePreset? Hovered(List<(Entity Entity, EasePreset Id, UiCommand Command)> cells)
     {
         EasePreset? hovered = null;
         float best = 0.5f;
-        foreach (Entity cell in cells)
+        foreach ((Entity cell, EasePreset preset, _) in cells)
         {
             float amount = cell.GetComponent<ButtonVisual>().HoverAmount;
             if (amount > best)
             {
                 best = amount;
-                hovered = cell.GetComponent<EasePickerCell>().Preset;
+                hovered = preset;
             }
         }
 

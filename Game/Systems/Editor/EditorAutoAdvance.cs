@@ -4,9 +4,6 @@ using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Editor;
 
-/// <summary>Marks the header button that turns auto-advance on and off.</summary>
-public struct EditorAutoAdvanceToggle : ITag;
-
 /// <summary>
 /// Moves the playhead on by one snap after a note is placed, so a run of notes
 /// can be laid down click after click. The header button's <see cref="Toggle"/>
@@ -17,18 +14,18 @@ public static class EditorAutoAdvance
     public const string Label = "ADV";
     public const float ToggleWidth = 64f;
 
+    /// <summary>The switch's name in its store (<see cref="UiToggles.Switch"/>).</summary>
+    public const string Id = "editor-auto-advance";
+
     public static Entity Attach(Entity button)
     {
         button.AddComponent(new Toggle(Label, Label, false));
-        button.AddTag<EditorAutoAdvanceToggle>();
+        button.Switch(Id);
         button.AddComponent(new UiTooltip("Move the playhead on one snap after placing a note"));
         return button;
     }
 
-    public static bool IsOn(EntityStore store)
-    {
-        return store.ToggleOn<EditorAutoAdvanceToggle>();
-    }
+    public static bool IsOn(EntityStore store) => UiToggles.On(store, Id, none: false);
 
     /// <summary>After a note at <paramref name="placedMs"/>, seeks to the next snap when auto-advance is on.</summary>
     public static void AfterPlacing(EntityStore store, Entity editor, long placedMs)

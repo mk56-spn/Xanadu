@@ -135,7 +135,7 @@ public sealed class AnimatorHierarchySystem(
         for (int i = 0; i < control.Options.Count; i++)
         {
             control.Options[i].AddComponent(
-                new ToolAction(ToolActionKind.Clip, package.Clips[i].Id));
+                ToolAction.Of(ToolActionKind.Clip, package.Clips[i].Id));
             AnimatorTooltips.Attach(
                 control.Options[i], ToolActionKind.Clip, package.Clips[i].Id);
         }
@@ -165,10 +165,9 @@ public sealed class AnimatorHierarchySystem(
         string label = current.ToUpperInvariant();
         UiText.Set(button, label);
 
-        foreach (Entity option in Query.Store.Query<ToolAction, ButtonVisual, DropdownOption>().WithDisabled().ToEntityList())
+        foreach (Entity option in Query.Store.Query<UiCommand, ButtonVisual, DropdownOption>().WithDisabled().ToEntityList())
         {
-            ToolAction action = option.GetComponent<ToolAction>();
-            if (action.Kind != ToolActionKind.Clip)
+            if (!option.TryGetToolAction(out ToolAction action) || action.Kind != ToolActionKind.Clip)
                 continue;
 
             Color target = action.Argument == current ? Selected : UiTheme.DropdownOption;
@@ -286,7 +285,7 @@ public sealed class AnimatorHierarchySystem(
         // Styled like a tree row, so the four sections of the list read as one list.
         Entity entry = ui.Button(label, size, UiTheme.PanelAlt);
         entry.AddComponent(new TextAlignment(TextAlign.Left));
-        entry.AddComponent(new ToolAction(kind, argument));
+        entry.AddComponent(ToolAction.Of(kind, argument));
         AnimatorTooltips.Attach(entry, kind, argument);
     }
 
@@ -305,10 +304,10 @@ public sealed class AnimatorHierarchySystem(
 
         foreach (Entity child in list.ChildEntities)
         {
-            if (!child.HasComponent<ToolAction>() || !child.HasComponent<ButtonVisual>())
+            if (!child.HasToolAction() || !child.HasComponent<ButtonVisual>())
                 continue;
 
-            Color target = isSelected(child.GetComponent<ToolAction>())
+            Color target = isSelected(child.GetToolAction())
                 ? Selected
                 : UiTheme.PanelAlt;
             ref ButtonVisual visual = ref child.GetComponent<ButtonVisual>();

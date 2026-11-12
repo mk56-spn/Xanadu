@@ -49,8 +49,21 @@ public struct AnimatorTracks : IComponent
     public HashSet<XafTrack>? Expanded;
 }
 
+/// <summary>
+/// The session's plain editing state that no system queries: undo history,
+/// the two clipboards and the picked clip event. One component for all of it,
+/// so each new bit of state is a field here, not a component of its own.
+/// </summary>
+public struct AnimatorSessionState : IComponent
+{
+    public AnimatorHistory History;
+    public AnimatorClipboard Clipboard;
+    public AnimatorKeyClipboard KeyClipboard;
+    public AnimatorEventSelection Event;
+}
+
 /// <summary>A copied pose, by bone id, waiting to be pasted.</summary>
-public struct AnimatorClipboard : IComponent
+public struct AnimatorClipboard
 {
     public System.Collections.Generic.Dictionary<string, XafTransform>? Pose;
 }
@@ -71,7 +84,7 @@ public struct AnimatorStatus : IComponent
 public readonly record struct AnimatorSnapshot(XafPackage Package, XafPose Pose, string Clip, float Time);
 
 /// <summary>Document snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
-public struct AnimatorHistory : IComponent
+public struct AnimatorHistory
 {
     public UndoHistory<AnimatorSnapshot> History;
 

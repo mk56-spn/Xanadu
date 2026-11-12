@@ -36,7 +36,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private const float MenuMargin = 8;
 
     private Entity _songMenu;
+    private SceneSongMenu _songMenuParts;
     private Entity _deleteLevelPanel;
+    private SceneDeleteLevel _deleteLevel;
     private bool _wasSecondary;
 
     private void BuildSongMenu()
@@ -64,7 +66,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 SceneUi.MutedButtonColor)
             .Size(SongMenuItemWidth, SongMenuItemHeight)
             .Entity;
-        menu.With(new SceneSongMenu(timing, delete));
+        _songMenuParts = new SceneSongMenu(timing, delete);
         _songMenu = menu.Entity;
 
         UiNode confirm = ui.Column()
@@ -102,7 +104,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             .Size(DeleteActionWidth, DeleteActionHeight)
             .Entity;
 
-        confirm.With(new SceneDeleteLevel(yes, no));
+        _deleteLevel = new SceneDeleteLevel(yes, no);
         _deleteLevelPanel = confirm.Entity;
     }
 
@@ -111,8 +113,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_songMenu.IsNull || _deleteLevelPanel.IsNull)
             return false;
 
-        ref SceneDeleteLevel confirm =
-            ref _deleteLevelPanel.GetComponent<SceneDeleteLevel>();
+        SceneDeleteLevel confirm = _deleteLevel;
         if (!UiLayout.IsHidden(_deleteLevelPanel))
         {
             if (IsPressed(confirm.Confirm))
@@ -131,7 +132,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return true;
         }
 
-        ref SceneSongMenu menu = ref _songMenu.GetComponent<SceneSongMenu>();
+        SceneSongMenu menu = _songMenuParts;
         if (!UiLayout.IsHidden(_songMenu))
         {
             if (IsPressed(menu.Timing))

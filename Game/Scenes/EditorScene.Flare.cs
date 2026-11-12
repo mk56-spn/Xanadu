@@ -55,11 +55,11 @@ internal static class EditorSceneFlarePanel
                 .Size(inner - (RowHeight + UiTheme.ContainerSpacing) * 2, RowHeight);
             row.Button("-", 13, SceneUi.MutedButtonColor)
                 .Size(RowHeight, RowHeight)
-                .With(new EditorButton(EditorButtonKind.FlareStep, EditorFlarePanelSystem.StepArg(setting, -1)))
+                .With(EditorButton.Of(EditorButtonKind.FlareStep, EditorFlarePanelSystem.StepArg(setting, -1)))
                 .Tooltip(less);
             row.Button("+", 13, SceneUi.MutedButtonColor)
                 .Size(RowHeight, RowHeight)
-                .With(new EditorButton(EditorButtonKind.FlareStep, EditorFlarePanelSystem.StepArg(setting, 1)))
+                .With(EditorButton.Of(EditorButtonKind.FlareStep, EditorFlarePanelSystem.StepArg(setting, 1)))
                 .Tooltip(more);
         }
     }

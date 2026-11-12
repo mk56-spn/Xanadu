@@ -60,11 +60,10 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     private void RunActions(Entity panel, ref ParticleEditor editor)
     {
         var requests = new List<ParticleEditorActionKind>();
-        foreach (Entity button in Query.Store.Query<ParticleEditorAction>().WithDisabled().ToEntityList())
+        foreach ((Entity button, ParticleEditorActionKind kind, _) in UiCommand.All<ParticleEditorActionKind>(Query.Store, panel))
         {
-            ParticleEditorAction action = button.GetComponent<ParticleEditorAction>();
-            if (action.Editor.Id == panel.Id && _presses.Started(button))
-                requests.Add(action.Kind);
+            if (_presses.Started(button))
+                requests.Add(kind);
         }
 
         foreach (ParticleEditorActionKind kind in requests)

@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tools.Animator;
 
@@ -263,9 +265,56 @@ public enum ToolActionKind
     TogglePathWindow,
 }
 
-/// <summary>Command carried by a pressable UI entity.</summary>
-public struct ToolAction(ToolActionKind kind, string argument = "") : IComponent
+/// <summary>
+/// An animator command, run by keys, menus and buttons. On a pressable entity it
+/// rides as a <see cref="UiCommand"/> (see <see cref="Of"/>), its argument as the
+/// command's <see cref="UiCommand.Text"/>; <see cref="ToolActions"/> reads it back.
+/// </summary>
+public struct ToolAction(ToolActionKind kind, string argument = "")
 {
     public ToolActionKind Kind = kind;
     public string Argument = argument;
+
+    /// <summary>The command a button carries to run this action when pressed.</summary>
+    public static UiCommand Of(ToolActionKind kind, string argument = "") => UiCommand.Of(kind, text: argument);
+
+    /// <summary>The action a command carries, if it is an animator one.</summary>
+    public static bool From(in UiCommand command, out ToolAction action)
+    {
+        if (!command.Is(out ToolActionKind kind))
+        {
+            action = default;
+            return false;
+        }
+
+        action = new ToolAction(kind, command.Text ?? "");
+        return true;
+    }
+}
+
+/// <summary>Reads <see cref="ToolAction"/>s off entities, where they ride as <see cref="UiCommand"/>s.</summary>
+public static class ToolActions
+{
+    public static bool TryGetToolAction(this Entity entity, out ToolAction action)
+    {
+        action = default;
+        return entity.TryGetComponent(out UiCommand command) && ToolAction.From(command, out action);
+    }
+
+    public static bool HasToolAction(this Entity entity) => entity.TryGetToolAction(out _);
+
+    /// <summary>The entity's action; throws when it has none.</summary>
+    public static ToolAction GetToolAction(this Entity entity) =>
+        entity.TryGetToolAction(out ToolAction action)
+            ? action
+            : throw new System.InvalidOperationException($"{entity} carries no animator action.");
+
+    /// <summary>Every entity carrying an animator action, hidden ones included.</summary>
+    public static List<Entity> All(EntityStore store)
+    {
+        var found = new List<Entity>();
+        foreach ((Entity entity, ToolActionKind _, UiCommand _) in UiCommand.All<ToolActionKind>(store))
+            found.Add(entity);
+        return found;
+    }
 }

@@ -48,12 +48,12 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
         {
             foreach (Entity button in row.ChildEntities)
             {
-                if (button.GetComponent<ToolAction>().Kind == ToolActionKind.SelectTransition)
+                if (button.GetToolAction().Kind == ToolActionKind.SelectTransition)
                     rows.Add(button);
             }
         }
 
-        Assert.That(rows.ConvertAll(row => row.GetComponent<ToolAction>().Argument),
+        Assert.That(rows.ConvertAll(row => row.GetToolAction().Argument),
             Is.EqualTo(new[] { "jump", "landing" }));
         Assert.That(Label(Ui.FlowTitle), Is.EqualTo("FROM IDLE"));
 

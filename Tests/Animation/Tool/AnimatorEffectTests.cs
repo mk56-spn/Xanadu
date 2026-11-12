@@ -45,9 +45,9 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
 
         int before = Package.Effects[0].Item.Primitives[0].Points.Count;
         int effectsVersion = Session.GetComponent<AnimatorDocument>().EffectsVersion;
-        foreach (Friflo.Engine.ECS.Entity button in Store.Query<XifEditorAction>().ToEntityList())
+        foreach ((Friflo.Engine.ECS.Entity button, XifEditorActionKind kind, _) in UiCommand.All<XifEditorActionKind>(Store))
         {
-            if (button.GetComponent<XifEditorAction>().Kind == XifEditorActionKind.InsertPoint)
+            if (kind == XifEditorActionKind.InsertPoint)
                 Click(button);
         }
 

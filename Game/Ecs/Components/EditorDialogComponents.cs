@@ -59,13 +59,6 @@ public enum EditorDialogAction
     FieldShaderOff,
 }
 
-/// <summary>A button in an editor dialog: what it does, and for a list row, which row.</summary>
-public struct EditorDialogButton(EditorDialogAction action, int arg = 0) : IComponent
-{
-    public EditorDialogAction Action = action;
-    public int Arg = arg;
-}
-
 /// <summary>The editor dialogs' parts and what each is showing, on the editor entity.</summary>
 public struct EditorDialogs() : IComponent
 {
