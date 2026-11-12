@@ -26,6 +26,13 @@ internal readonly record struct ShaderEditorBoxes(Rect2 Code, Rect2 Bar, Rect2 P
 /// pauses, shown by an <see cref="IEditorPreview"/>. It owns no layout: its
 /// owner hands it boxes (<see cref="Place"/>) and tells it again when they move.
 /// Shared by the shader tool and the lab's editor tabs.
+/// <para>
+/// Going to a library name's declaration (F12, Ctrl+click) opens its module in
+/// a tab of its own over the code. A library tab is read-only until the first
+/// try at an edit is answered yes; Ctrl+S there writes the module and compiles
+/// the shader again. The shader's own tab is always first: its text is what
+/// compiles, owns the problems and the clips, and is what <see cref="Text"/> is.
+/// </para>
 /// </summary>
 internal sealed class ShaderCodeEditor : IDisposable
 {
@@ -45,7 +52,52 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <summary>The UI text editor the code lives in; the input and drawing are its systems'.</summary>
     private readonly Entity _editor;
     private readonly SlangEditorHost _host;
-    private readonly SlangCompletions _completions;
+    private SlangCompletions _completions;
+    private SlangLibraryDeclarations _declarations;
+
+    /// <summary>One open text: the shader's own (first, no path) or a library module's.</summary>
+    private sealed class Tab(string label, string? path, TextBuffer buffer, TextHistory history, string disk)
+    {
+        public readonly string Label = label;
+        public readonly string? Path = path;
+        public readonly TextBuffer Buffer = buffer;
+        public readonly TextHistory History = history;
+        public string Disk = disk;
+        public int Scroll;
+        public bool ReadOnly = path is not null;
+
+        /// <summary>Whether a module's text differs from its file, worked out again only when it changes.</summary>
+        public bool Dirty
+        {
+            get
+            {
+                if (Path is null)
+                    return false;
+                if (_dirtyVersion != Buffer.Version)
+                {
+                    _dirtyVersion = Buffer.Version;
+                    _dirty = Buffer.Text != Disk;
+                }
+
+                return _dirty;
+            }
+        }
+
+        private int _dirtyVersion = -1;
+        private bool _dirty;
+
+        public void Saved()
+        {
+            Disk = Buffer.Text;
+            _dirtyVersion = -1;
+        }
+    }
+
+    private readonly List<Tab> _tabs = new();
+    private int _open;
+    private readonly EditorTabs _strip;
+    private LibraryPlace? _goTo;
+    private Tab Main => _tabs[0];
     private readonly CompletionPopup _popup;
     private readonly HoverPopup _hover;
     private List<SlangProblem> _shownProblems = [];
@@ -69,9 +121,10 @@ internal sealed class ShaderCodeEditor : IDisposable
     {
         _preview = boxes.Preview;
         _pointer = _preview.GetCenter();
+        (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
 
         // Made first, so everything after draws over the code.
-        _editor = TextEditors.Create(entities, parent, boxes.Code, text);
+        _editor = TextEditors.Create(entities, parent, code, text);
         _view = preview(Child(parent));
         _view.Place(_preview);
         Handle chromeItem = Child(parent);
@@ -82,7 +135,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         _timeline = new ClipTimeline(entities) { Area = clipsBox, Scrubs = _view.TakesClock };
         _timeline.Jump += (line, column) =>
         {
-            _editor.GetComponent<TextEditor>().Buffer.Place(line, column);
+            Show(0);
+            Main.Buffer.Place(line, column);
             Focus();
         };
         _timeline.Released += Focus;
@@ -95,23 +149,184 @@ internal sealed class ShaderCodeEditor : IDisposable
         string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
-        IEnumerable<string> sources = Directory.Exists(library) ? Directory.EnumerateFiles(library, "*.slang").Select(File.ReadAllText) : [];
-        _completions = SlangCompletions.FromSources(
+        (_completions, _declarations) = ReadLibrary();
+        // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
+        _hover = new HoverPopup(canvas, Child(parent), code);
+        _popup = new CompletionPopup(canvas, Child(parent), code);
+        _strip = new EditorTabs(canvas, Child(parent)) { Area = strip, Code = code };
+        _host = new SlangEditorHost(hints, _popup) { Save = Save, GoElsewhere = GoElsewhere };
+        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
+        editor.Host = _host;
+        _tabs.Add(new Tab(_view.Label, null, editor.Buffer, editor.History, ""));
+    }
+
+    /// <summary>The library's completions and where its names are declared, from the modules as they are on disk.</summary>
+    private (SlangCompletions, SlangLibraryDeclarations) ReadLibrary()
+    {
+        List<(string Path, string Text)> modules = SlangShaders.LibraryModules();
+        string folder = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
+        // Completions read the modules under xanadu/, as imported; the umbrella module only re-exports them.
+        IEnumerable<string> sources = modules.Where(m => Path.GetDirectoryName(m.Path) == folder).Select(m => m.Text);
+        var completions = SlangCompletions.FromSources(
             _view.Prelude.Length > 0 ? sources.Append(_view.Prelude) : sources,
             ShaderConstants.Library,
             _view.Provided);
-        // Made last, so the boxes draw over the code and everything round it; the list over a hover box.
-        _hover = new HoverPopup(canvas, Child(parent), boxes.Code);
-        _popup = new CompletionPopup(canvas, Child(parent), boxes.Code);
-        _host = new SlangEditorHost(hints, _popup) { Save = () => SaveRequested?.Invoke() };
-        _editor.GetComponent<TextEditor>().Host = _host;
+        return (completions, SlangLibraryDeclarations.FromModules(modules));
     }
 
-    /// <summary>The text as it is now.</summary>
-    public string Text => _editor.GetComponent<TextEditor>().Buffer.Text;
+    /// <summary>The tab strip off the top of the code's box.</summary>
+    private static (Rect2 Strip, Rect2 Code) SplitCode(Rect2 code)
+    {
+        var strip = new Rect2(code.Position, new Vector2(code.Size.X, EditorTabs.Height));
+        return (strip, new Rect2(code.Position.X, strip.End.Y, code.Size.X, Math.Max(0, code.Size.Y - EditorTabs.Height)));
+    }
 
-    /// <summary>Goes up with every edit.</summary>
-    public int Version => _editor.GetComponent<TextEditor>().Buffer.Version;
+    /// <summary>The name at the caret isn't declared in the open text: the library's declaration of it, opened next frame.</summary>
+    private bool GoElsewhere(TextBuffer buffer)
+    {
+        string line = buffer.Lines[buffer.Line];
+        LibraryPlace? found = _declarations.Find(line, buffer.Column);
+        if (found is null && buffer.Column > 0)
+            found = _declarations.Find(line, buffer.Column - 1);
+        _goTo = found ?? _goTo;
+        return found is not null;
+    }
+
+    /// <summary>Opens a library module in its tab (made the first time), the caret on the place, its line a third of the way down.</summary>
+    private void Open(LibraryPlace place)
+    {
+        int index = _tabs.FindIndex(tab => tab.Path == place.Path);
+        if (index < 0)
+        {
+            string? text = SlangShaders.LibraryModules().Find(m => m.Path == place.Path).Text;
+            if (text is null)
+                return;
+            var buffer = new TextBuffer();
+            buffer.Load(text);
+            string label = Path.GetRelativePath(SlangShaders.LibraryPath ?? "", place.Path).Replace('\\', '/');
+            _tabs.Add(new Tab(label, place.Path, buffer, new TextHistory(buffer), text));
+            index = _tabs.Count - 1;
+        }
+
+        Show(index);
+        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
+        editor.Buffer.Place(place.Line, place.Column);
+        editor.Layout.Scroll = Math.Max(0, place.Line - editor.Layout.VisibleRows / 3);
+    }
+
+    /// <summary>Puts a tab's text in the editor, keeping where the last one was scrolled to.</summary>
+    private void Show(int index)
+    {
+        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
+        if (index == _open)
+            return;
+        _popup.Dismiss(editor.Buffer);
+        _tabs[_open].Scroll = editor.Layout.Scroll;
+        _open = index;
+        Tab tab = _tabs[index];
+        editor.Buffer = tab.Buffer;
+        editor.History = tab.History;
+        editor.Layout.Scroll = tab.Scroll;
+        editor.ReadOnly = tab.ReadOnly;
+        editor.Dragging = false;
+        _host.ReadOnly = tab.ReadOnly;
+        _host.Forget();
+    }
+
+    /// <summary>Closes a library tab, asking first when it has unsaved changes.</summary>
+    private void Close(int index)
+    {
+        if (index <= 0 || index >= _tabs.Count)
+            return;
+        void Drop()
+        {
+            if (_open == index)
+                Show(index - 1);
+            else if (_open > index)
+                _open--;
+            _tabs.RemoveAt(index);
+        }
+
+        if (_tabs[index].Dirty)
+            _strip.Question = new EditorQuestion($"Close {_tabs[index].Label}?", "Its unsaved changes will be lost.", "DISCARD", Drop);
+        else
+            Drop();
+    }
+
+    /// <summary>Ctrl+S: a library tab writes its module and the shader compiles again; the shader's own goes to the owner.</summary>
+    private void Save()
+    {
+        Tab tab = _tabs[_open];
+        if (tab.Path is null)
+        {
+            SaveRequested?.Invoke();
+            return;
+        }
+
+        if (!tab.Dirty)
+            return;
+        if (!SlangShaders.WriteLibraryModule(tab.Path, tab.Buffer.Text, out string? error))
+        {
+            (_status, _statusColour) = ($"{tab.Label} not saved: {error}", Palette.DangerBright);
+            return;
+        }
+
+        tab.Saved();
+        (_completions, _declarations) = ReadLibrary();
+        // The shader imports what was just written: compile it again.
+        _compiledVersion = -1;
+        _sinceEdit = Settle;
+    }
+
+    /// <summary>An edit was tried on a read-only library tab: ask whether to allow it.</summary>
+    private void AskToEdit()
+    {
+        Tab tab = _tabs[_open];
+        _strip.Question = new EditorQuestion(
+            $"Edit {tab.Label}?", "It is the shared library: every shader that imports it changes.", "EDIT ANYWAY", () =>
+            {
+                tab.ReadOnly = false;
+                if (_tabs[_open] == tab)
+                {
+                    _editor.GetComponent<TextEditor>().ReadOnly = false;
+                    _host.ReadOnly = false;
+                }
+
+                Focus();
+            });
+    }
+
+    /// <summary>Answers the open question from a press or Enter / Esc; true while one is open (the pointer is its).</summary>
+    private bool Ask(in ToolFrame frame, bool pressed)
+    {
+        if (_strip.Question is not { } question)
+            return false;
+        bool? answer = pressed ? _strip.AnswerAt(frame.Mouse) : null;
+        if (frame.Inputs is { } inputs)
+        {
+            if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Return) || inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.KeypadEnter))
+                answer = true;
+            else if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Escape))
+                answer = false;
+        }
+
+        if (answer is { } yes)
+        {
+            _strip.Question = null;
+            if (yes)
+                question.OnYes();
+            else
+                Focus();
+        }
+
+        return true;
+    }
+
+    /// <summary>The shader's text as it is now (its own tab's, whichever is open).</summary>
+    public string Text => Main.Buffer.Text;
+
+    /// <summary>Goes up with every edit of the shader's text.</summary>
+    public int Version => Main.Buffer.Version;
 
     /// <summary>Ctrl+S in the code. Without a handler the key does nothing.</summary>
     public event Action? SaveRequested;
@@ -145,10 +360,13 @@ internal sealed class ShaderCodeEditor : IDisposable
     public void Place(ShaderEditorBoxes boxes)
     {
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
-        editor.Layout.Area = boxes.Code;
-        CanvasServer.Current.SetCustomRect(editor.Item, true, boxes.Code);
-        _hover.Bounds = boxes.Code;
-        _popup.Bounds = boxes.Code;
+        (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
+        editor.Layout.Area = code;
+        CanvasServer.Current.SetCustomRect(editor.Item, true, code);
+        _hover.Bounds = code;
+        _popup.Bounds = code;
+        _strip.Area = strip;
+        _strip.Code = code;
 
         // The pointer keeps its place on the preview as a fraction of it.
         Vector2 at = (_pointer - _preview.Position) / _preview.Size;
@@ -169,13 +387,25 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <param name="pointerFree">False while the owner has the pointer (dragging its divider): no slider or problem takes it.</param>
     public void Update(in ToolFrame frame, bool pointerFree = true)
     {
-        TextEditor editor = _editor.GetComponent<TextEditor>();
-        TextBuffer buffer = editor.Buffer;
-        TextEditorFrame did = editor.Frame;
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;
-        if (pointerFree)
-            Point(frame, buffer, pressed);
+        TextEditorFrame did = _editor.GetComponent<TextEditor>().Frame;
+        bool asking = Ask(frame, pressed && pointerFree);
+        if (!asking && did.Refused && _tabs[_open].ReadOnly)
+            AskToEdit();
+        if (_goTo is { } place)
+        {
+            _goTo = null;
+            Open(place);
+        }
+
+        if (pointerFree && !asking)
+            Point(frame, pressed);
+
+        TextEditor editor = _editor.GetComponent<TextEditor>();
+        TextBuffer buffer = editor.Buffer;
+        bool onMain = _open == 0;
+        _host.Problems = onMain ? _shownProblems : [];
 
         if (did.SteppedHistory && _popup.Open)
             _popup.Dismiss(buffer);
@@ -185,20 +415,21 @@ internal sealed class ShaderCodeEditor : IDisposable
             _popup.Dismiss(buffer);
         else if (!_host.IsRenaming)
             _popup.Follow(buffer, _completions, edited: did.Edited && !did.SteppedHistory);
-        _sinceEdit = did.Edited ? 0 : _sinceEdit + frame.Delta;
+        _sinceEdit = did.Edited && onMain ? 0 : _sinceEdit + frame.Delta;
         bool quiet = !_popup.Open && !frame.Held && !did.Edited;
         _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
         Finish();
-        if (_compiling is null && _compiledVersion != buffer.Version && _sinceEdit >= Settle)
-            Compile(buffer);
+        TextBuffer main = Main.Buffer;
+        if (_compiling is null && _compiledVersion != main.Version && _sinceEdit >= Settle)
+            Compile(main);
 
-        // The clips follow the text as it is typed, not the last compile.
-        if (_clipsVersion != buffer.Version)
+        // The clips follow the shader's text as it is typed, not the last compile.
+        if (_clipsVersion != main.Version)
         {
-            _clipsVersion = buffer.Version;
-            _timeline.Use(SlangClips.Find(buffer.Lines));
-            _tuning.UseStandIns(PlayStandIns.Needed(buffer.Text));
+            _clipsVersion = main.Version;
+            _timeline.Use(SlangClips.Find(main.Lines));
+            _tuning.UseStandIns(PlayStandIns.Needed(main.Text));
         }
 
         PressPlayKeys(frame);
@@ -221,6 +452,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         _tuning.Draw();
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
+        _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
     }
 
     /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
@@ -248,16 +480,25 @@ internal sealed class ShaderCodeEditor : IDisposable
         }
     }
 
-    /// <summary>The sliders, and a click on a problem in the list jumping the editor to it.</summary>
-    private void Point(in ToolFrame frame, TextBuffer buffer, bool pressed)
+    /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it.</summary>
+    private void Point(in ToolFrame frame, bool pressed)
     {
         // A held slider takes the pointer from everything else.
         if (_tuning.Point(frame.Mouse, frame.Held, pressed))
             return;
 
-        if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem)
+        if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
         {
-            buffer.Place(problem.Line - 1, problem.Column - 1);
+            if (tab.Close)
+                Close(tab.Tab);
+            else
+                Show(tab.Tab);
+            Focus();
+        }
+        else if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem)
+        {
+            Show(0);
+            Main.Buffer.Place(problem.Line - 1, problem.Column - 1);
             Focus();
         }
     }
@@ -310,13 +551,13 @@ internal sealed class ShaderCodeEditor : IDisposable
 
         if (error is not null)
         {
-            _host.Problems = _shownProblems = WithLint(SlangProblems.Parse(error, _view.Label, source.Split('\n')));
+            _shownProblems = WithLint(SlangProblems.Parse(error, _view.Label, source.Split('\n')));
             int count = _shownProblems.Count;
             (_status, _statusColour) = ($"{count} problem{(count == 1 ? "" : "s")}", Palette.DangerBright);
             return;
         }
 
-        _host.Problems = _shownProblems = WithLint([]);
+        _shownProblems = WithLint([]);
         _tuning.Use(build!.Params);
         _everCompiled = true;
         int warnings = _lint.Count;

@@ -25,6 +25,10 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// boxed and typing changes them all. Enter, or the caret leaving the name, keeps
 /// the new name; Esc puts the old one back.
 /// </para>
+/// <para>
+/// F12, or Ctrl+click, on a name the code declares puts the caret on its declaration;
+/// a name declared elsewhere (the library's) goes to <see cref="GoElsewhere"/>.
+/// </para>
 /// </summary>
 internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) : ITextEditorHost
 {
@@ -76,6 +80,19 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
 
     /// <summary>Ctrl+S in the code; null leaves the key to nobody.</summary>
     public Action? Save { get; init; }
+
+    /// <summary>Go to the declaration of the name at the caret when this text doesn't declare it; true when there is one.</summary>
+    public Func<TextBuffer, bool>? GoElsewhere { get; init; }
+
+    /// <summary>The text can't be edited: F2 doesn't start a rename.</summary>
+    public bool ReadOnly { get; set; }
+
+    /// <summary>Drops what was worked out for the text, after another text was put in the editor.</summary>
+    public void Forget()
+    {
+        _rename = null;
+        _fadedVersion = -1;
+    }
 
     /// <summary>A rename under way: the name as it was, as it is now, and its places (the caret's one first).</summary>
     private sealed class Renaming(string original, List<(int Line, int Column)> places)
@@ -231,6 +248,9 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
             return Save is not null;
         }
 
+        if (key == Key.F12)
+            return GoToDeclaration(buffer);
+
         if (key == Key.F2)
         {
             StartRename(buffer);
@@ -328,12 +348,30 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
 
     public bool TakePress(TextBuffer buffer, Vector2 point) => popup.Click(buffer, point);
 
+    public bool TakeCtrlClick(TextBuffer buffer) => GoToDeclaration(buffer);
+
     public string LineComment => "//";
+
+    /// <summary>Puts the caret at the start of the declaration of the name at (or just before) it; false when the code doesn't declare one.</summary>
+    private bool GoToDeclaration(TextBuffer buffer)
+    {
+        var found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column);
+        if (found is null && buffer.Column > 0)
+            found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column - 1);
+        if (found is not { } at)
+            return GoElsewhere?.Invoke(buffer) == true;
+        _rename = null;
+        popup.Dismiss(buffer);
+        buffer.Place(at.Line, at.Column);
+        return true;
+    }
 
     /// <summary>Starts renaming the name at (or just before) the caret, if the code declares it.</summary>
     private void StartRename(TextBuffer buffer)
     {
         _rename = null;
+        if (ReadOnly)
+            return;
         var found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column);
         if (found is null && buffer.Column > 0)
             found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column - 1);

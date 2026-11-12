@@ -244,6 +244,48 @@ public sealed class SlangRenameTests
 
         Assert.That(Places(code, 0, 14)?.Count, Is.EqualTo(2));
     }
+
+    [Test]
+    public void ALocalGoesToItsOwnFunctionsDeclaration()
+    {
+        const string code = """
+            float a() { float x = 1; return x; }
+            float b() { float x = 2; return x; }
+            """;
+
+        Assert.That(SlangRename.Declaration(code.Split('\n'), 1, 32), Is.EqualTo((1, 18)));
+    }
+
+    [Test]
+    public void AShadowedUniformGoesToTheLocal()
+    {
+        const string code = """
+            uniform float speed;
+            float a() { return speed; }
+            float b() { float speed = 1; return speed; }
+            """;
+
+        string[] lines = code.Split('\n');
+        Assert.That(SlangRename.Declaration(lines, 1, 20), Is.EqualTo((0, 14)));
+        Assert.That(SlangRename.Declaration(lines, 2, 37), Is.EqualTo((2, 18)));
+    }
+
+    [Test]
+    public void AFieldGoesToItsStruct()
+    {
+        const string code = """
+            struct State { float2 light; };
+            float a(State s) { return s.light.x; }
+            """;
+
+        string[] lines = code.Split('\n');
+        Assert.That(SlangRename.Declaration(lines, 1, 28), Is.EqualTo((0, 22)));
+        Assert.That(SlangRename.Declaration(lines, 1, 9), Is.EqualTo((0, 7)));
+    }
+
+    [Test]
+    public void ALibraryNameHasNoDeclarationHere() =>
+        Assert.That(SlangRename.Declaration(["float a() { return sin(1); }"], 0, 20), Is.Null);
 }
 
 /// <summary>Colouring: tokens, and brackets paired with their owners.</summary>
@@ -478,5 +520,55 @@ public sealed class SlangLoopsTests
         const string code = "for (int i = 0; i < 2; i++)\n{\n    for (int i = 0; i < 3; i++)\n        x += i;\n}";
         var found = SlangLoops.Find(code.Split('\n'));
         Assert.That(found.Where(f => f.Line >= 2).All(f => f.Depth == 1), Is.True);
+    }
+}
+
+
+public sealed class SlangLibraryDeclarationsTests
+{
+    private static readonly SlangLibraryDeclarations Library = SlangLibraryDeclarations.FromModules(
+    [
+        ("lib/xanadu/ease.slang", """
+            // ease.out(t) eases
+            module ease;
+            public namespace ease
+            {
+                public float out(float t) { return t; }
+            }
+            public float out(float t) { return 1 - t; }
+            """),
+        ("lib/xanadu/anim.slang", """
+            module anim;
+            public struct Clip : IThing
+            {
+                public float start;
+                public __init(float s) { start = s; }
+            }
+            public static const float TAU = 6.28;
+            """),
+    ]);
+
+    [Test]
+    public void ANameAfterADotGoesToTheOneInsideWhatIsBeforeIt() =>
+        Assert.That(Library.Find("x = ease.out(t);", 10), Is.EqualTo(new LibraryPlace("lib/xanadu/ease.slang", 4, 17)));
+
+    [Test]
+    public void APlainNameGoesToTheTopOne() =>
+        Assert.That(Library.Find("x = out(t);", 5), Is.EqualTo(new LibraryPlace("lib/xanadu/ease.slang", 6, 13)));
+
+    [Test]
+    public void StructsFieldsConstantsAndModulesAreFound()
+    {
+        Assert.That(Library.Find("Clip c;", 1), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 1, 14)));
+        Assert.That(Library.Find("c.start", 3), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 3, 17)));
+        Assert.That(Library.Find("float t = TAU;", 11), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 6, 26)));
+        Assert.That(Library.Find("import xanadu.anim;", 15), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 0, 0)));
+    }
+
+    [Test]
+    public void NamesInCommentsAndUnknownNamesAreNot()
+    {
+        Assert.That(Library.Find("x = sin(t);", 5), Is.Null);
+        Assert.That(Library.Find("x = eases(t);", 5), Is.Null);
     }
 }

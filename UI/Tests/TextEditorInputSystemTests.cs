@@ -151,6 +151,28 @@ public sealed class TextEditorInputSystemTests : EcsSystemTest
         }
     }
 
+    [Test]
+    public void AReadOnlyEditorRefusesEditsButStillMoves()
+    {
+        Entity editor = TextEditors.Create(Store, default, Area, "ab");
+        editor.GetComponent<TextEditor>().ReadOnly = true;
+        Frame();
+        _entry.Typed = "x";
+        Frame();
+        Assert.That(editor.GetComponent<TextEditor>().Frame.Refused, Is.True);
+
+        _keyboard.Down.Add(Key.Right);
+        Frame();
+        _keyboard.Down.Clear();
+        _keyboard.Down.Add(Key.Backspace);
+        Frame();
+
+        TextEditor after = editor.GetComponent<TextEditor>();
+        Assert.That(after.Buffer.Text, Is.EqualTo("ab"));
+        Assert.That(after.Buffer.Column, Is.EqualTo(1));
+        Assert.That(after.Frame.Refused, Is.True);
+    }
+
     private sealed class ScriptedPointer : IPointerInputSource
     {
         public PointerInput Current;

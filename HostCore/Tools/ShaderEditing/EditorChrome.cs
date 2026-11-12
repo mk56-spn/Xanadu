@@ -36,6 +36,7 @@ internal sealed class EditorChrome
     [
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
         "Tab / Shift+Tab indent lines · Ctrl+/ comments · Ctrl+arrows and Ctrl+Backspace go by word · F2 renames.",
+        "F12 or Ctrl+click goes to a declaration; the library opens in a tab, read-only until you say yes.",
         "Drag the bar left of the preview to resize it.",
     ];
 

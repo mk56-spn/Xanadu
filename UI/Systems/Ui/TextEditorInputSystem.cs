@@ -11,10 +11,10 @@ namespace Xanadu.Systems.Ui;
 /// <summary>
 /// Edits the focused <see cref="TextEditor"/>: typing, the caret keys (repeating
 /// when held), Shift to select, Ctrl+A/C/X/V, Ctrl+Z/Y (and Ctrl+Shift+Z) for
-/// undo, Enter keeping the indent, Tab to the next indent step; Esc, F2 and
+/// undo, Enter keeping the indent, Tab to the next indent step; Esc, F2, F12 and
 /// Ctrl+S go only to the owner. The pointer works
 /// on every editor: a press focuses the one it lands in (and unfocuses the rest),
-/// a click places the caret, a double click selects a word, a drag selects, and
+/// a click places the caret (with Ctrl, the owner may then go somewhere), a double click selects a word, a drag selects, and
 /// the wheel scrolls. The owner's <see cref="ITextEditorHost"/> sees keys, typing
 /// and presses first.
 /// </summary>
@@ -36,11 +36,11 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
 
     private static readonly Key[] Watched =
     [
-        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z, Key.Slash, Key.KpDivide,
+        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.F12, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z, Key.Slash, Key.KpDivide,
     ];
 
     /// <summary>Keys the editor itself does nothing with, passed to its owner once per press.</summary>
-    private static readonly Key[] OwnersOnly = [Key.Escape, Key.F2];
+    private static readonly Key[] OwnersOnly = [Key.Escape, Key.F2, Key.F12];
 
     private readonly IPointerInputSource _pointer;
     private readonly IKeyboardState _keyboard;
@@ -79,7 +79,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             TextBuffer buffer = editor.Buffer;
             int version = buffer.Version;
             (int, int) caret = (buffer.Line, buffer.Column);
-            bool breaksRun = false, stepped = false;
+            bool breaksRun = false, stepped = false, refused = false;
 
             bool focused = entity.Tags.Has<TextEditorFocused>();
             // Focus changes are tags, so they wait for the command buffer: a tag moves the component.
@@ -94,7 +94,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             if (focused)
             {
                 anyFocused = true;
-                Keys(ref editor, delta, ref breaksRun, ref stepped);
+                Keys(ref editor, delta, ref breaksRun, ref stepped, ref refused);
             }
 
             if (!stepped)
@@ -102,7 +102,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
 
             bool edited = buffer.Version != version;
             bool moved = caret != (buffer.Line, buffer.Column);
-            editor.Frame = new TextEditorFrame(edited, moved, stepped);
+            editor.Frame = new TextEditorFrame(edited, moved, stepped, refused);
             if (edited || moved)
             {
                 editor.SinceCaretMove = 0;
@@ -164,6 +164,12 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
                 editor.LastClick = twice ? -1 : _clock;
                 editor.LastClickAt = hit;
                 editor.Dragging = !twice;
+                bool ctrl = input.Ctrl || _keyboard.IsPressed(Key.Ctrl) || _keyboard.IsPressed(Key.Meta);
+                if (!twice && ctrl && editor.Host?.TakeCtrlClick(buffer) == true)
+                {
+                    editor.Dragging = false;
+                    editor.LastClick = -1;
+                }
             }
 
             Scroll(ref editor, input);
@@ -187,7 +193,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
         }
     }
 
-    private void Keys(ref TextEditor editor, float delta, ref bool breaksRun, ref bool stepped)
+    private void Keys(ref TextEditor editor, float delta, ref bool breaksRun, ref bool stepped, ref bool refused)
     {
         TextBuffer buffer = editor.Buffer;
         ITextEditorHost? host = editor.Host;
@@ -195,6 +201,12 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
         bool shift = _keyboard.IsPressed(Key.Shift);
         ITextEntry entry = HostPlatform.TextEntry;
         string typed = entry.Claimed ? entry.TakeTyped() : "";
+
+        if (editor.ReadOnly)
+        {
+            ReadOnlyKeys(ref editor, delta, typed, ctrl, shift, ref refused);
+            return;
+        }
 
         // Undo and redo take the whole frame, so nothing else edits around them.
         if (ctrl && (_pressed.Contains(Key.Z) || _pressed.Contains(Key.Y)))
@@ -241,7 +253,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
         if (ctrl && _pressed.Contains(Key.S))
             breaksRun |= host?.TakeKey(buffer, Key.S, shift, ctrl) == true;
 
-        // Keys only an owner has a use for (F2: rename in a code editor).
+        // Keys only an owner has a use for (F2: rename, F12: go to a declaration in a code editor).
         foreach (Key key in OwnersOnly)
         {
             if (_pressed.Contains(key))
@@ -260,6 +272,42 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             }
 
             breaksRun |= Press(editor, key, shift, ctrl);
+        }
+
+        if (_pressed.Contains(Key.Home))
+            buffer.Home(shift);
+        if (_pressed.Contains(Key.End))
+            buffer.End(shift);
+    }
+
+    /// <summary>Keys for a read-only editor: moves, selecting, copying and the owner's keys go ahead; anything that edits is refused.</summary>
+    private void ReadOnlyKeys(ref TextEditor editor, float delta, string typed, bool ctrl, bool shift, ref bool refused)
+    {
+        TextBuffer buffer = editor.Buffer;
+        ITextEditorHost? host = editor.Host;
+        refused |= typed.Length > 0 && !ctrl;
+        refused |= ctrl && (_pressed.Contains(Key.Z) || _pressed.Contains(Key.Y) || _pressed.Contains(Key.X) || _pressed.Contains(Key.V)
+                            || _pressed.Contains(Key.Slash) || _pressed.Contains(Key.KpDivide));
+        if (ctrl && _pressed.Contains(Key.A))
+            buffer.SelectAll();
+        if (ctrl && _pressed.Contains(Key.C) && buffer.HasSelection)
+            HostPlatform.TextEntry.Clipboard = buffer.SelectedText;
+        if (ctrl && _pressed.Contains(Key.S))
+            host?.TakeKey(buffer, Key.S, shift, ctrl);
+        foreach (Key key in OwnersOnly)
+        {
+            if (_pressed.Contains(key))
+                host?.TakeKey(buffer, key, shift, ctrl);
+        }
+
+        foreach (Key key in Repeating)
+        {
+            if (!Fires(key, delta))
+                continue;
+            if (key is Key.Backspace or Key.Delete or Key.Enter or Key.KpEnter or Key.Tab)
+                refused = true;
+            else
+                Press(editor, key, shift, ctrl);
         }
 
         if (_pressed.Contains(Key.Home))

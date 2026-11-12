@@ -105,6 +105,41 @@ public static class SlangShaders
             ? ShaderChains.FromSources(Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText))
             : new ShaderChains();
 
+    /// <summary>Every library module's full path and text, in path order; none when the library isn't there.</summary>
+    public static List<(string Path, string Text)> LibraryModules() =>
+        LibraryPath is { } library && Directory.Exists(library)
+            ? Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Order(StringComparer.Ordinal)
+                .Select(file => (file, File.ReadAllText(file))).ToList()
+            : [];
+
+    /// <summary>
+    /// Writes one library module (a path from <see cref="LibraryModules"/>), so the next compile
+    /// imports it as written; false (and the message) when the disk refuses or the path isn't the library's.
+    /// </summary>
+    public static bool WriteLibraryModule(string path, string text, out string? error)
+    {
+        string full = Path.GetFullPath(path);
+        if (LibraryPath is not { } library || !full.StartsWith(Path.GetFullPath(library), StringComparison.Ordinal))
+        {
+            error = "not a library module";
+            return false;
+        }
+
+        try
+        {
+            File.WriteAllText(full, text);
+            // The cache key holds the library's hash: it has to be taken again.
+            _libraryHash = null;
+            error = null;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
     /// <summary>
     /// Where compiled shaders are kept between runs (SPIR-V plus reflection),
     /// keyed by a hash of the source, the entry, the flags, every library module

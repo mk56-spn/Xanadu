@@ -12,7 +12,8 @@ namespace Xanadu.Slang;
 /// at the top (a uniform, a function, a struct) is the whole file's, except in
 /// functions that declare their own. A field of the code's own struct is its
 /// declaration and every <c>.field</c>. Names the code doesn't declare (the
-/// library's, the host's, Slang's) can't be renamed.
+/// library's, the host's, Slang's) can't be renamed. The same places give a
+/// name's declaration, for going to it.
 /// </summary>
 public static partial class SlangRename
 {
@@ -30,7 +31,29 @@ public static partial class SlangRename
     /// Every place (line, column) of the name at a column, the one there included, or null when
     /// there is no name there or the code doesn't declare it.
     /// </summary>
-    public static (string Name, List<(int Line, int Column)> Places)? Find(IReadOnlyList<string> lines, int line, int column)
+    public static (string Name, List<(int Line, int Column)> Places)? Find(IReadOnlyList<string> lines, int line, int column) =>
+        Resolve(lines, line, column) is { } found ? (found.Name, found.Places.Select(index => Place(found.Code, index)).ToList()) : null;
+
+    /// <summary>
+    /// Where the name at a column is declared (line, column of the name there), or null when
+    /// there is no name there or the code doesn't declare it.
+    /// </summary>
+    public static (int Line, int Column)? Declaration(IReadOnlyList<string> lines, int line, int column)
+    {
+        if (Resolve(lines, line, column) is not { } found)
+            return null;
+        // The first of its places that declares it: a field's in its struct, a local's in its function.
+        foreach (int index in found.Places)
+        {
+            if (found.Declarations.Contains(index))
+                return Place(found.Code, index);
+        }
+
+        return null;
+    }
+
+    /// <summary>The name at a column, the code with comments and strings blanked, its places as offsets and where it is declared.</summary>
+    private static (string Name, string Code, List<int> Places, List<int> Declarations)? Resolve(IReadOnlyList<string> lines, int line, int column)
     {
         string text = string.Join('\n', lines);
         // Comments and strings become spaces, so offsets stay the same and nothing in them matches.
@@ -83,7 +106,7 @@ public static partial class SlangRename
 
         if (!found.Contains(start))
             return null;
-        return (name, found.Select(index => Place(code, index)).ToList());
+        return (name, code, found, declarations);
     }
 
     /// <summary>A top-level block: from <see cref="Start"/> (just after the ; or } before it) through its { at <see cref="Open"/> to <see cref="End"/>.</summary>

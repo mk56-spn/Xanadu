@@ -26,6 +26,12 @@ public struct TextEditor : IComponent
     /// <summary>Colours, marks and first look at keys and presses; null for plain text.</summary>
     public ITextEditorHost? Host;
 
+    /// <summary>
+    /// The caret moves, selects and copies, but nothing edits: typing, cutting, pasting, undo and the
+    /// editing keys are refused (<see cref="TextEditorFrame.Refused"/>), and the host never sees them.
+    /// </summary>
+    public bool ReadOnly;
+
     /// <summary>The canvas item it draws into, clipped to its area.</summary>
     public Handle Item;
 
@@ -49,8 +55,8 @@ public struct TextEditor : IComponent
 /// <summary>The text editor that keys and typing go to.</summary>
 public struct TextEditorFocused : ITag;
 
-/// <summary>What happened to a text editor in the input system this frame, for its owner.</summary>
-public readonly record struct TextEditorFrame(bool Edited, bool CaretMoved, bool SteppedHistory);
+/// <summary>What happened to a text editor in the input system this frame, for its owner; <see cref="Refused"/>: an edit was tried on a read-only one.</summary>
+public readonly record struct TextEditorFrame(bool Edited, bool CaretMoved, bool SteppedHistory, bool Refused = false);
 
 /// <summary>A place in the text.</summary>
 public readonly record struct TextCell(int Line, int Column);
@@ -110,6 +116,9 @@ public interface ITextEditorHost
 
     /// <summary>A press inside the editor's area before it places the caret (a popup over the text); true when taken.</summary>
     bool TakePress(TextBuffer buffer, Vector2 point) => false;
+
+    /// <summary>A Ctrl+click, once the caret is placed at it (go to what is there); true when taken.</summary>
+    bool TakeCtrlClick(TextBuffer buffer) => false;
 
     /// <summary>What starts a line comment in this text (<c>//</c>), for Ctrl+/; null where there are none.</summary>
     string? LineComment => null;
