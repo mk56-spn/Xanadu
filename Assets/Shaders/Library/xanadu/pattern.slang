@@ -1,9 +1,10 @@
-// xanadu.pattern: grids, lines and checkers as shapes, in pixels. Like any
+// xanadu.pattern: grids, lines, stripes and checkers as shapes, in pixels. Like any
 // shape they sit on the quad's centre until moved, and draw with filled,
 // stroked or c.paint:
 //
 //     c.paint(Grid(1, 40), colours.white);                 // 1px lines every 40px, one through the centre
 //     c.paint(Checker(32).rotated(time * 0.2), colours.gold);
+//     c.paint(Stripes(24), colours.gold);                   // diagonal bands, half and half
 //     Tile cell = pattern.tile(90);                         // repeat one shape in tiles
 module pattern;
 import xanadu.math;
@@ -70,6 +71,28 @@ public struct Rows : IShape
     public __init(float width, float spacing) { this.width = width; this.spacing = spacing; }
 
     public float local(float2 p) { return offGrid(p, float2(spacing)).y - width * 0.5; }
+}
+
+/// Diagonal bands repeating every `size` px across them, each band `fill` of that
+/// (0.5: band and gap alike), one band through the centre. rotated turns them
+/// further (-0.785 for upright, 0.785 for level). A shape.
+///
+///     c.paint(Stripes(24), colours.gold);                              // even stripes
+///     c.paint(Stripes(40, 0.25).moved(float2(time * 30, 0)), colours.white);  // thin, sliding
+public struct Stripes : IShape
+{
+    public Placement placement = Placement();
+    public float size;
+    public float fill;
+
+    public __init(float size, float fill = 0.5) { this.size = size; this.fill = fill; }
+
+    public float local(float2 p)
+    {
+        // Distance across the bands: along the diagonal.
+        float across = (p.x + p.y) * 0.70710678;
+        return abs(across - size * round(across / size)) - size * saturate(fill) * 0.5;
+    }
 }
 
 /// A checkerboard of squares `size` across, with corners meeting at the

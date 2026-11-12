@@ -43,6 +43,7 @@ public sealed class SlangShadersTests
     [TestCase("colour c = colours.black; c.paint(Grid(2, float2(80, 40)).moved(float2(20, 0)).rotated(0.5), colours.gold); return c;")]
     [TestCase("return Columns(2, 24).filled() + Rows(2, 24).stroked(1);")]
     [TestCase("colour c = colours.black; c.paint(Checker(64, 2).rotated(0.3), colours.gold); return c;")]
+    [TestCase("colour c = colours.black; c.paint(Stripes(24), colours.gold); c.paint(Stripes(40, 0.25).rotated(-0.785).moved(float2(10, 0))); return c;")]
     [TestCase("Tile t = pattern.tile(90); return Circle(10).filled(t.local);")]
     public void PatternsAreShapesCentredOnTheQuad(string body)
     {

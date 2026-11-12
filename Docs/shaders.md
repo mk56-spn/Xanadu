@@ -356,7 +356,7 @@ return c;
 
 ## 10. Patterns, gradients, easing, curves
 
-**Patterns are shapes.** `Grid`, `Columns`, `Rows` and `Checker` sit on the
+**Patterns are shapes.** `Grid`, `Columns`, `Rows`, `Stripes` and `Checker` sit on the
 quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 `anchored`, `filled`, `stroked` and `c.paint` all work on them.
 
@@ -364,6 +364,7 @@ quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 |---|---|
 | `Grid(width, spacing)` | graph paper: lines across and down, `width` thick and `spacing` apart, one of each through the centre. A `float2` spacing gives oblong cells. `c.paint(Grid(1, 40), colours.white)` draws 1px white lines every 40px. |
 | `Columns(width, spacing)` / `Rows(width, spacing)` | upright or level lines only, one through the centre. |
+| `Stripes(size, fill = 0.5)` | diagonal bands repeating every `size` px across them, each band `fill` of that, one through the centre. `rotated` turns them further. `c.paint(Stripes(24), colours.gold)` draws even gold stripes. |
 | `Checker(size, levels = 0)` | squares `size` across, corners meeting at the centre; filled on every other one. `levels` (0 to 3) splits each square into a smaller checker again. |
 
 `pattern.tile(size)` cuts the quad into tiles from its centre and gives a

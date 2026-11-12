@@ -1,7 +1,7 @@
 // xanadu: every shipped library module at once (`import xanadu;`).
 //
 // Global: ItemInput and friends (stage), PI, TAU, mod, rotate, random (math),
-// the shapes (Circle, Box, …; shape; Grid, Checker, …; pattern), the
+// the shapes (Circle, Box, …; shape; Grid, Stripes, Checker, …; pattern), the
 // gradients (Linear, Radial, Conical; gradient), Bezier (curve), colour and its paint
 // (colour, paint), clock, Clip and Keys (anim). Everything else is under its own
 // name: colours., sdf., anchor., ease., eases., blend., gradient., pattern., sprite.,
