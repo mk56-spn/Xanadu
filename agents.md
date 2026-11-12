@@ -174,7 +174,5 @@ git-ignored ones.
 - `Docs/host.md` — the MoonWorks host: decisions, renderer, shaders, tools,
   perf tooling (GPU times, Autopsy) and what is left for later.
 - `Tests/VisualTests/README.md` — the scene-test harness, its step model and flags.
-- `Docs/ui-fluent-architecture.md` — the `UiNode` design, the rules the
-  migration settled on, and its open questions. This is the house style.
-- `Docs/ui-best-practices.md` — the current house style on one worked example
-  (tool tab, pooled list, connectors, `Fit`, commands); Atlas is the full-size one.
+- `Docs/ui-best-practices.md` — the UI house style: the `UiNode` model, the API at
+  a glance, its defaults, and one worked example; Atlas is the full-size one.

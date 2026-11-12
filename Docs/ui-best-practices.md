@@ -1,13 +1,59 @@
 # UI best practices, by example
 
-The current house style for ECS UI, shown on one small tool. Atlas
-(`Tools/DevTools/Atlas/`) is the full-size reference: it is built exactly this
-way. The rules behind it are in `agents.md` (UI) and
-`Docs/ui-fluent-architecture.md`.
+The house style for ECS UI: the model, then one small tool built with it.
+Atlas (`Tools/DevTools/Atlas/`) is the full-size reference: it is built exactly
+this way. The rules are also in `agents.md` (UI). The API lives in
+`UI/Ecs/Ui/UiNode*.cs`, `UiSurface.cs`, `UiStage.cs` and `UiEdge.cs`.
 
 **If the library is missing something you need, ask before adding it.** Do not
 hard code around the gap with hand-placed rects, raw canvas draws or your own
 pointer reading. Every piece below started as such a gap.
+
+## The model
+
+UI is ECS entities built through `UiNode`. Three rules:
+
+1. **A node is the handle.** `UiNode` wraps one `Entity` and converts to it
+   implicitly, so anything that takes an entity takes a node. Whatever you
+   create is returned, so what you build is what you keep and change later.
+2. **Children belong to the node they are called on.** There is no cursor, no
+   stack and no `End()`: `panel.Text(...)` is always a child of `panel`. Extend a
+   subtree later through its kept node, or `UiNode.Wrap(entity)` for one built
+   elsewhere.
+3. **Identity in the call, decoration chained.** `Text(value, size)`,
+   `Button(label, size)`; then `.Gap()`, `.Fill…`, `.Tooltip()` and the rest edit
+   components in place, mark them dirty and return the node. `With<T>`, `Tag<T>`,
+   `Without<T>` and `Untag<T>` are the escape hatches for a tool's own state.
+
+`UiBuilder` is the low-level factory under `UiNode`; the only direct caller is
+the F2 shader tuner (a debug overlay). Nothing new uses it.
+
+### At a glance
+
+| | Calls |
+| --- | --- |
+| Roots | `UiNode.Layer(store, parent, UiLayers.X)`, `.Page()`, `.Cover()`, `UiNode.Wrap(entity)` |
+| Structure | `.Row()` `.Column()` `.Grid(n)` `.Panel()` `.Edge(UiEdge.X)` `.List(...)` `.Collapsible(...)` |
+| Content | `.Text` `.Button` `.IconButton` `.Rect` `.Image` `.Shape` `.Dropdown` `.Meter` `.Connector` |
+| Flex (on the child) | `.Grow(w)` `.Stretch()` `.MinWidth` `.MaxWidth` `.MinHeight` `.MaxHeight` |
+| Geometry | `.Size(w, h)` `.Width(w)` `.Height(h)` `.AutoSize()` `.IgnoreLayout()` `.Anchor(UiEdge)` |
+| Stack | `.Gap` `.Pad` `.Main(...)` `.Cross(...)` `.Clip()` |
+| Look (roles) | `.Primary()` `.Secondary()` `.Quiet()` `.Danger()` `.Chosen(on)` `.Solid()` `.Backing()` `.AccentText()` `.DimText()` `.CategoryTone(i)` `.CategoryFill(i)` `.CategoryText(i)` `.Theme(roles)` |
+| Text | `.Fit()` `.Align(...)` `.Bold()` `.Mono()` `.SetText(s)` |
+| Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` |
+
+### Defaults
+
+- Stacks have no fill, size to their children and start at the top/left
+  (`Main(Start)`); `.Fill…` or a role says when a stack should paint.
+- Text and buttons are measured from `UiTextMetrics` (with insets and slack, as
+  a box one glyph short drops that glyph); `.Size()` pins one.
+- `.Size()` on an auto-sized node cancels the auto sizing; `.Width()` leaves the
+  height automatic.
+- `.Panel()` brings the panel fill, padding and spacing.
+- Layers, sizes and type: `UiLayers.*`, `UiMetrics.*`, `UiType.*`. Author
+  against the 1920×1080 `UiStage` (`Page()`, `Stage.Bounds`); the host scales it,
+  so a screen never reads the window size.
 
 ## The example: a type browser tab
 
@@ -142,5 +188,8 @@ internal sealed class BrowserStage : IToolStage
   end are hidden by the list itself.
 - **Colours tell kinds apart through `Categories`.** The tool maps its kinds to
   category indices in one place (`KindCategory` in Atlas); the theme owns hues.
+- **HUD positions are data.** The play HUD's places are `HudLayout` entries the
+  player drags and saves; they stay explicit rather than stacked. That is the one
+  place coordinates are right.
 - **Verify with one screenshot.** `./run.sh <exe> --shot=<scratch path>`; scratch
   files never go in the repo.
