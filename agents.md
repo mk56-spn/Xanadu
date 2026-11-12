@@ -56,7 +56,7 @@ Working examples of the slice this project uses: `Docs/ecs/README.md`.
 
 UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
 `TakesInput`, `Toggle`, … — rendered by the `Xanadu.Ui` systems. Write new UI as a
-tree of specs (`Xanadu.Ui.Tree`: `new Column { Children = { … } }`, added with
+tree of specs (`Xanadu.Ui.Tree`: `new Column(gap: Space.Md) { a, b }`, added with
 `parent.Add(spec)`) so the code has the screen's shape, and change it afterwards
 through the built nodes (`UiNode`); see `Docs/ui-best-practices.md`. `UiBuilder` is the low-level factory behind it; the only direct caller
 left is the F2 shader tuner (a debug overlay).

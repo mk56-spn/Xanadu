@@ -6,76 +6,112 @@ using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ui.Tree;
 
-/// <summary>Text, measured to fit unless sized; <see cref="Fit"/> cuts it to a box layout gives it.</summary>
-public sealed class Label(string text = "", int size = UiType.Body) : UiSpec
+/// <summary>
+/// Text in <paramref name="type"/>'s size, measured to fit unless sized. With
+/// <paramref name="fit"/> it asks for no width and is cut, with an ellipsis, to
+/// whatever room layout gives it (<see cref="UiNode.Fit"/>).
+/// </summary>
+public sealed class Label(
+    string text = "",
+    int type = UiType.Body,
+    Ink ink = Ink.Normal,
+    TextAlign? align = null,
+    bool fit = false,
+    bool bold = false,
+    bool mono = false,
+    float? width = null,
+    float? height = null,
+    float grow = 0,
+    bool stretch = false,
+    string? tip = null)
+    : UiSpec(width, height, null, grow, stretch, null, null, tip)
 {
-    public TextRole Role { get; init; }
-    public TextAlign? Align { get; init; }
-
-    /// <summary>Cut with an ellipsis to its laid-out width (<see cref="UiNode.Fit"/>).</summary>
-    public bool Fit { get; init; }
-
-    public bool Bold { get; init; }
-    public bool Mono { get; init; }
-
     protected override UiNode Create(UiNode parent)
     {
-        UiNode node = parent.Text(text, size);
-        if (Role == TextRole.Dim)
+        UiNode node = parent.Text(text, type);
+        if (ink == Ink.Dim)
             node.DimText();
-        else if (Role == TextRole.Accent)
+        else if (ink == Ink.Accent)
             node.AccentText();
-        if (Align is { } align)
-            node.Align(align);
-        if (Fit)
+        if (align is { } where)
+            node.Align(where);
+        if (fit)
             node.Fit();
-        if (Bold)
+        if (bold)
             node.Bold();
-        if (Mono)
+        if (mono)
             node.Mono();
         return node;
     }
 }
 
-/// <summary>A button sized to its label; give it a <see cref="UiSpec.Command"/> to do something.</summary>
-public sealed class Button(string label, int size = UiType.Label) : UiSpec
+/// <summary>A button sized to its label in <paramref name="type"/>'s size; give it a <paramref name="cmd"/> to do something.</summary>
+public sealed class Button(
+    string label,
+    int type = UiType.Label,
+    Tone? tone = null,
+    UiCommand? cmd = null,
+    string? tip = null,
+    float? width = null,
+    float? height = null,
+    float grow = 0,
+    bool stretch = false)
+    : UiSpec(width, height, null, grow, stretch, tone, cmd, tip)
 {
-    protected override UiNode Create(UiNode parent) => parent.Button(label, size);
+    protected override UiNode Create(UiNode parent) => parent.Button(label, type);
 }
 
-/// <summary>A plain rectangle: a swatch, a stripe, a divider. Fill it with a <see cref="UiSpec.Tone"/>, a <see cref="Category"/> or <see cref="UiSpec.Style"/>.</summary>
-public sealed class Box : UiSpec
+/// <summary>A plain rectangle: a swatch, a stripe, a divider. Fill it with a <paramref name="tone"/> or a <paramref name="category"/>'s colour.</summary>
+public sealed class Box(
+    float? width = null,
+    float? height = null,
+    Vector2? size = null,
+    int? category = null,
+    Tone? tone = null,
+    float grow = 0,
+    bool stretch = false)
+    : UiSpec(width, height, size, grow, stretch, tone)
 {
-    /// <summary>Filled with this category's colour (<see cref="UiThemeRoles.Categories"/>).</summary>
-    public int? Category { get; init; }
-
     protected override UiNode Create(UiNode parent)
     {
         UiNode node = parent.Rect(default);
-        if (Category is { } category)
-            node.CategoryFill(category);
+        if (category is { } index)
+            node.CategoryFill(index);
         return node;
     }
 }
 
 /// <summary>A meter showing <paramref name="share"/> (<see cref="UiNode.Meter"/>); size it.</summary>
-public sealed class Meter(float share) : UiSpec
+public sealed class Meter(
+    float share,
+    Vector2? size = null,
+    float? width = null,
+    float? height = null,
+    float grow = 0,
+    string? tip = null)
+    : UiSpec(width, height, size, grow, tip: tip)
 {
     protected override UiNode Create(UiNode parent) => parent.Meter(share);
 }
 
 /// <summary>A text field the host types into while it has focus; read and write its <see cref="TextField"/>.</summary>
-public sealed class Field(string value = "", int size = UiType.Label) : UiSpec
+public sealed class Field(
+    string value = "",
+    int type = UiType.Label,
+    bool numeric = false,
+    Vector2? size = null,
+    float? width = null,
+    float grow = 0,
+    string? tip = null)
+    : UiSpec(width, null, size, grow, tip: tip)
 {
-    public bool Numeric { get; init; }
-
     // The field systems give it its fill, focused or not.
     protected override UiNode Create(UiNode parent) =>
         parent.Rect(default, "")
             .Input()
-            .With(new TextStyle(size, parent.Roles.Text))
+            .With(new TextStyle(type, parent.Roles.Text))
             .Align(TextAlign.Left)
-            .With(new TextField(value, Numeric));
+            .With(new TextField(value, numeric));
 }
 
 /// <summary>A line joining two built nodes, in a category's colour (<see cref="UiNode.Connector"/>). Add it before what it joins.</summary>
@@ -85,7 +121,14 @@ public sealed class Connector(Entity from, Entity to, int category) : UiSpec
 }
 
 /// <summary>Anything the specs don't cover, built with the fluent calls: <c>new Custom(p =&gt; p.Dropdown(...))</c>.</summary>
-public sealed class Custom(Func<UiNode, UiNode> build) : UiSpec
+public sealed class Custom(
+    Func<UiNode, UiNode> build,
+    float? width = null,
+    float? height = null,
+    float grow = 0,
+    bool stretch = false,
+    string? tip = null)
+    : UiSpec(width, height, null, grow, stretch, tip: tip)
 {
     protected override UiNode Create(UiNode parent) => build(parent);
 }

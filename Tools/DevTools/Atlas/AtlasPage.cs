@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Ecs;
 using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Tree;
 using static Xanadu.Theme.UiMetrics;
+using static Xanadu.Ui.Tree.UiSpecs;
 
 namespace Xanadu.Tools.Atlas;
 
@@ -35,6 +35,9 @@ internal sealed partial class AtlasStage
     private const float MeterWidth = 110;
     private const float BudgetLabelWidth = 110;
     private const float BudgetCountWidth = 80;
+
+    /// <summary>Atlas's most repeated shape: take the room, children stretched across.</summary>
+    private static readonly Flex Fill = new(Grow: 1, Cross: Cross.Stretch);
 
     // Header.
     private readonly Button[] _views = new Button[3];
@@ -71,31 +74,14 @@ internal sealed partial class AtlasStage
 
     private void BuildPage(UiNode body)
     {
-        body.Add(new Column
+        body.Add(new Column(Fill, gap: Space.Md)
         {
-            Grow = 1,
-            Cross = StackCrossAlignment.Stretch,
-            Gap = Space.Md,
-            Children =
+            Header(),
+            Bar(),
+            new Row(Fill, gap: Space.Xl)
             {
-                Header(),
-                Bar(),
-                new Row
-                {
-                    Grow = 1,
-                    Cross = StackCrossAlignment.Stretch,
-                    Gap = Space.Xl,
-                    Children =
-                    {
-                        TypeList(),
-                        new Column
-                        {
-                            Grow = 1,
-                            Cross = StackCrossAlignment.Stretch,
-                            Children = { Focus(), Compare(), Similar(), Empty() },
-                        },
-                    },
-                },
+                TypeList(),
+                new Column(Fill) { Focus(), Compare(), Similar(), Empty() },
             },
         });
 
@@ -111,153 +97,93 @@ internal sealed partial class AtlasStage
     {
         (string assembly, int components, int tags) = _heaviest;
         string exe = assembly.Replace("Xanadu.", "");
-        return new Row
+        return new Row(gap: Space.Sm)
         {
-            Gap = Space.Sm,
-            Children =
+            new Label("ATLAS", UiType.Heading, ink: Ink.Accent),
+            (_views[0] = new Button("FOCUS", cmd: Cmd(AtlasCommand.View, (int)View.Focus), tip: "one type: what points at it, and what it points at")),
+            (_views[1] = new Button("COMPARE", cmd: Cmd(AtlasCommand.View, (int)View.Compare),
+                tip: "two types side by side: what each touches alone, and what both touch; the list then picks the second")),
+            (_views[2] = new Button("SIMILAR", cmd: Cmd(AtlasCommand.View, (int)View.Similar),
+                tip: "types that could be one: same field types, same users and same uses, among the kinds the top bar shows; pick a type to see the ones like it")),
+            new Button("BACK", tone: Tone.Secondary, cmd: Cmd(AtlasCommand.Back), tip: "back to the last type"),
+            Enum.GetValues<NodeKind>().Select(kind => Remember(_kinds, new KindChip(kind))),
+            new Spacer(),
+            new Column(gap: Space.Xs)
             {
-                new Label("ATLAS", UiType.Heading) { Role = TextRole.Accent },
-                (_views[(int)View.Focus] = ViewButton(View.Focus, "FOCUS", "one type: what points at it, and what it points at")),
-                (_views[(int)View.Compare] = ViewButton(View.Compare, "COMPARE",
-                    "two types side by side: what each touches alone, and what both touch; the list then picks the second")),
-                (_views[(int)View.Similar] = ViewButton(View.Similar, "SIMILAR",
-                    "types that could be one: same field types, same users and same uses, among the kinds the top bar shows; pick a type to see the ones like it")),
-                new Button("BACK")
-                {
-                    Tone = Tone.Secondary,
-                    Command = UiCommand.Of(AtlasCommand.Back),
-                    Tooltip = "back to the last type",
-                },
-                Enum.GetValues<NodeKind>().Select(kind => Remember(_kinds, new KindChip(kind))),
-                new Spacer(),
-                new Column
-                {
-                    Gap = Space.Xs,
-                    Children =
-                    {
-                        Budget("COMPONENTS", components, CodeMap.MaxComponents, exe, "component types; one more than the limit makes CreateEntity throw"),
-                        Budget("TAGS", tags, CodeMap.MaxTags, exe, "tag types; past the limit tags silently share bits and queries go wrong"),
-                    },
-                },
+                Budget("COMPONENTS", components, CodeMap.MaxComponents, exe, "component types; one more than the limit makes CreateEntity throw"),
+                Budget("TAGS", tags, CodeMap.MaxTags, exe, "tag types; past the limit tags silently share bits and queries go wrong"),
             },
         };
     }
-
-    private static Button ViewButton(View view, string label, string hint) =>
-        new(label) { Command = UiCommand.Of(AtlasCommand.View, (int)view), Tooltip = hint };
 
     /// <summary>
     /// One of the ECS's hard limits: types of one sort in the heaviest exe against
     /// Friflo's 255. Amber past three quarters, red past nine tenths.
     /// </summary>
-    private static Row Budget(string label, int count, int max, string exe, string why) => new()
-    {
-        Gap = Space.Sm,
-        Tooltip = $"{count} {why}. Counted for {exe} with what it references, the heaviest exe, Friflo's own included; the limit is per process.",
-        Children =
+    private static Row Budget(string label, int count, int max, string exe, string why) =>
+        new(gap: Space.Sm, tip: $"{count} {why}. Counted for {exe} with what it references, the heaviest exe, Friflo's own included; the limit is per process.")
         {
-            new Label(label, UiType.Small) { Role = TextRole.Dim, Width = BudgetLabelWidth },
-            new Meter((float)count / max) { Size = new Vector2(MeterWidth, Space.Sm) },
-            new Label($"{count} / {max}", UiType.Small) { Width = BudgetCountWidth },
-        },
-    };
+            new Label(label, UiType.Small, ink: Ink.Dim, width: BudgetLabelWidth),
+            new Meter((float)count / max, size: new Vector2(MeterWidth, Space.Sm)),
+            new Label($"{count} / {max}", UiType.Small, width: BudgetCountWidth),
+        };
 
     private Row Bar()
     {
         string built = string.Join("  ·  ", _map.Assemblies.Select(a => $"{a.Name.Replace("Xanadu.", "")} {a.Built:HH:mm}"));
-        return new Row
+        return new Row(gap: Space.Sm)
         {
-            Gap = Space.Sm,
-            Children =
-            {
-                (_search = new Field { Size = new Vector2(ListWidth, Control.Sm), Tooltip = "type to find a type; Escape clears it" }),
-                new Label("SORT", UiType.Small) { Role = TextRole.Dim },
-                // Built with the arrow the chosen sort shows, so the measured box fits it.
-                Sorts.Select((sort, i) => _sorts[i] = new Button(sort.Label + " ▼", UiType.Small)
-                {
-                    Command = UiCommand.Of(AtlasCommand.Sort, (int)sort.Mode),
-                }),
-                new Label($"{_map.Nodes.Count} types from the last builds: {built}", UiType.Small)
-                {
-                    Role = TextRole.Dim,
-                    Grow = 1,
-                    Fit = true,
-                    Tooltip = built,
-                },
-            },
+            (_search = new Field(size: new Vector2(ListWidth, Control.Sm), tip: "type to find a type; Escape clears it")),
+            new Label("SORT", UiType.Small, ink: Ink.Dim),
+            // Built with the arrow the chosen sort shows, so the measured box fits it.
+            Sorts.Select((sort, i) => _sorts[i] = new Button(sort.Label + " ▼", UiType.Small, cmd: Cmd(AtlasCommand.Sort, (int)sort.Mode))),
+            new Label($"{_map.Nodes.Count} types from the last builds: {built}", UiType.Small, ink: Ink.Dim, grow: 1, fit: true, tip: built),
         };
     }
 
     // ---- the list -------------------------------------------------------------------
 
-    private Column TypeList() => new()
+    private Column TypeList() => new(width: ListWidth, cross: Cross.Stretch, gap: Space.Xs)
     {
-        Width = ListWidth,
-        Cross = StackCrossAlignment.Stretch,
-        Gap = Space.Xs,
-        Children =
+        (_list = new PooledList(CardHeight, CardGap, changed: FillList, grow: 1)
         {
-            (_list = new PooledList(CardHeight, CardGap)
+            Row = _ =>
             {
-                Grow = 1,
-                Changed = FillList,
-                Row = _ =>
-                {
-                    var used = new Label("", UiType.Small) { Role = TextRole.Dim, Align = TextAlign.Right, Width = UsedWidth, Stretch = true };
-                    var card = new TypeCard(AtlasCommand.Pick) { Grow = 1 };
-                    _listRows.Add((used, card));
-                    return [used, card];
-                },
-            }),
-            (_listFoot = new Label("", UiType.Caption) { Role = TextRole.Dim }),
-        },
+                var used = new Label("", UiType.Small, ink: Ink.Dim, align: Align.Right, width: UsedWidth, stretch: true);
+                var card = new TypeCard(AtlasCommand.Pick, grow: 1);
+                _listRows.Add((used, card));
+                return [used, card];
+            },
+        }),
+        (_listFoot = new Label("", UiType.Caption, ink: Ink.Dim)),
     };
 
     // ---- FOCUS ----------------------------------------------------------------------
 
-    private Row Focus() => _focusView = new Row
+    private Row Focus() => _focusView = new Row(Fill)
     {
-        Grow = 1,
-        Cross = StackCrossAlignment.Stretch,
-        Children =
-        {
-            (_focusLines = new Column { Free = true }),
-            Side(_in, incoming: true),
-            new Spacer(),
-            new Column
-            {
-                Width = BigCardWidth,
-                Stretch = true,
-                Main = StackMainAlignment.Center,
-                Children = { (_centre = new BigCard(BigCardWidth)) },
-            },
-            new Spacer(),
-            Side(_out, incoming: false),
-        },
+        (_focusLines = new Column(free: true)),
+        Side(_in, incoming: true),
+        new Spacer(),
+        new Column(width: BigCardWidth, stretch: true, main: Main.Center) { (_centre = new BigCard(BigCardWidth)) },
+        new Spacer(),
+        Side(_out, incoming: false),
     };
 
-    private Column Side(FocusSide side, bool incoming) => new()
+    private Column Side(FocusSide side, bool incoming) => new(width: SideWidth, cross: Cross.Stretch, gap: Space.Xs)
     {
-        Width = SideWidth,
-        Cross = StackCrossAlignment.Stretch,
-        Gap = Space.Xs,
-        Children =
+        (side.Empty = new Label("", UiType.Body, ink: Ink.Dim, align: Align.Center, stretch: true)),
+        (side.List = new PooledList(CardHeight, CardGap, changed: () => FillSide(side, incoming), grow: 1)
         {
-            (side.Empty = new Label("", UiType.Body) { Role = TextRole.Dim, Align = TextAlign.Center, Stretch = true }),
-            (side.List = new PooledList(CardHeight, CardGap)
+            Row = _ =>
             {
-                Grow = 1,
-                Changed = () => FillSide(side, incoming),
-                Row = _ =>
-                {
-                    var heading = new Label("", UiType.Small) { Grow = 1, Stretch = true };
-                    var card = new TypeCard(AtlasCommand.Go) { Grow = 1 };
-                    side.Rows.Add((heading, card));
-                    return [heading, card];
-                },
-            }),
-            (side.Foot = new Label("", UiType.Caption) { Role = TextRole.Dim }),
-        },
+                var heading = new Label("", UiType.Small, grow: 1, stretch: true);
+                var card = new TypeCard(AtlasCommand.Go, grow: 1);
+                side.Rows.Add((heading, card));
+                return [heading, card];
+            },
+        }),
+        (side.Foot = new Label("", UiType.Caption, ink: Ink.Dim)),
     };
 
     private void JoinFocus()
@@ -271,74 +197,34 @@ internal sealed partial class AtlasStage
 
     // ---- COMPARE --------------------------------------------------------------------
 
-    private Column Compare() => _compareView = new Column
+    private Column Compare() => _compareView = new Column(Fill, gap: Space.Sm, hidden: true)
     {
-        Grow = 1,
-        Cross = StackCrossAlignment.Stretch,
-        Gap = Space.Sm,
-        Hidden = true,
-        Children =
-        {
-            (_compareTitle = new Label("", UiType.Label) { Align = TextAlign.Center, Stretch = true, Fit = true }),
-            new Row
+        (_compareTitle = new Label("", UiType.Label, align: Align.Center, stretch: true, fit: true)),
+        new Row(Fill, gap: Space.Xl)
             {
-                Grow = 1,
-                Cross = StackCrossAlignment.Stretch,
-                Gap = Space.Xl,
-                Children =
+                (_compareLines = new Column(free: true)),
+                ComparePart(_onlyA, AtlasCommand.Go, _onlyAHead = Heading()),
+                new Column(width: CompareCardWidth, stretch: true, main: Main.Center, gap: Space.Md)
                 {
-                    (_compareLines = new Column { Free = true }),
-                    ComparePart(_onlyA, AtlasCommand.Go, _onlyAHead = Heading()),
-                    new Column
-                    {
-                        Width = CompareCardWidth,
-                        Stretch = true,
-                        Main = StackMainAlignment.Center,
-                        Gap = Space.Md,
-                        Children =
-                        {
-                            (_aCard = new BigCard(CompareCardWidth)),
-                            new Button("SWAP")
-                            {
-                                Tone = Tone.Secondary,
-                                Stretch = true,
-                                Command = UiCommand.Of(AtlasCommand.Swap),
-                                Tooltip = "swap the two",
-                            },
-                        },
-                    },
-                    ComparePart(_shared, AtlasCommand.Go, new Label("BOTH", UiType.Small) { Role = TextRole.Accent }),
-                    new Column
-                    {
-                        Width = CompareCardWidth,
-                        Stretch = true,
-                        Main = StackMainAlignment.Center,
-                        Children = { (_bCard = new BigCard(CompareCardWidth)) },
-                    },
-                    ComparePart(_onlyB, AtlasCommand.GoSecond, _onlyBHead = Heading()),
+                    (_aCard = new BigCard(CompareCardWidth)),
+                    new Button("SWAP", tone: Tone.Secondary, stretch: true, cmd: Cmd(AtlasCommand.Swap), tip: "swap the two"),
                 },
+                ComparePart(_shared, AtlasCommand.Go, new Label("BOTH", UiType.Small, ink: Ink.Accent)),
+                new Column(width: CompareCardWidth, stretch: true, main: Main.Center) { (_bCard = new BigCard(CompareCardWidth)) },
+                ComparePart(_onlyB, AtlasCommand.GoSecond, _onlyBHead = Heading()),
             },
-        },
     };
 
-    private static Label Heading() => new("", UiType.Small) { Role = TextRole.Dim, Fit = true };
+    private static Label Heading() => new("", UiType.Small, ink: Ink.Dim, fit: true);
 
-    private Column ComparePart(CompareColumn column, AtlasCommand press, Label heading) => new()
+    private Column ComparePart(CompareColumn column, AtlasCommand press, Label heading) => new(Fill, gap: Space.Xs)
     {
-        Grow = 1,
-        Cross = StackCrossAlignment.Stretch,
-        Gap = Space.Xs,
-        Children =
+        heading,
+        (column.List = new PooledList(CardHeight, CardGap, changed: () => FillCompare(column), grow: 1)
         {
-            heading,
-            (column.List = new PooledList(CardHeight, CardGap)
-            {
-                Grow = 1,
-                Changed = () => FillCompare(column),
-                Row = _ => [Remember(column.Rows, new TypeCard(press) { Grow = 1 })],
-            }),
-            (column.Foot = new Label("", UiType.Caption) { Role = TextRole.Dim }),
-        },
+            Row = _ => [Remember(column.Rows, new TypeCard(press, grow: 1))],
+        }),
+        (column.Foot = new Label("", UiType.Caption, ink: Ink.Dim)),
     };
 
     private void JoinCompare()
@@ -358,40 +244,29 @@ internal sealed partial class AtlasStage
 
     // ---- SIMILAR --------------------------------------------------------------------
 
-    private Column Similar() => _similarView = new Column
+    private Column Similar() => _similarView = new Column(Fill, gap: Space.Sm, hidden: true)
     {
-        Grow = 1,
-        Cross = StackCrossAlignment.Stretch,
-        Gap = Space.Sm,
-        Hidden = true,
-        Children =
-        {
-            (_similarTitle = new Label("", UiType.Label) { Stretch = true, Fit = true }),
-            (_similarList = new PooledList(CardHeight, CardGap)
+        (_similarTitle = new Label("", UiType.Label, stretch: true, fit: true)),
+            (_similarList = new PooledList(CardHeight, CardGap, changed: FillSimilar, grow: 1)
             {
-                Grow = 1,
-                Changed = FillSimilar,
                 Row = _ =>
                 {
                     var row = new SimilarRow(
-                        new TypeCard(AtlasCommand.Pair) { Width = SimilarCardWidth },
-                        new TypeCard(AtlasCommand.Pair) { Width = SimilarCardWidth },
-                        new Label("", UiType.Body) { Width = ScoreWidth },
-                        new Label("", UiType.Small) { Role = TextRole.Dim, Width = BreakdownWidth, Fit = true },
-                        new Label("", UiType.Small) { Role = TextRole.Dim, Grow = 1, Fit = true });
+                        new TypeCard(AtlasCommand.Pair, width: SimilarCardWidth),
+                        new TypeCard(AtlasCommand.Pair, width: SimilarCardWidth),
+                        new Label("", UiType.Body, width: ScoreWidth),
+                        new Label("", UiType.Small, ink: Ink.Dim, width: BreakdownWidth, fit: true),
+                        new Label("", UiType.Small, ink: Ink.Dim, grow: 1, fit: true));
                     _similarRows.Add(row);
                     return [row.A, row.B, row.Score, row.Breakdown, row.Fields];
                 },
             }),
-            (_similarFoot = new Label("", UiType.Caption) { Role = TextRole.Dim }),
-        },
+            (_similarFoot = new Label("", UiType.Caption, ink: Ink.Dim)),
     };
 
-    private Column Empty() => _empty = new Column
+    private Column Empty() => _empty = new Column(grow: 1, main: Main.Center)
     {
-        Grow = 1,
-        Main = StackMainAlignment.Center,
-        Children = { (_emptyText = new Label("", UiType.Section) { Role = TextRole.Dim, Align = TextAlign.Center, Stretch = true }) },
+        (_emptyText = new Label("", UiType.Section, ink: Ink.Dim, align: Align.Center, stretch: true)),
     };
 
     private static T Remember<T>(List<T> into, T item)

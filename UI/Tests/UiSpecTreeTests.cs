@@ -38,18 +38,12 @@ public sealed class UiSpecTreeTests
         Row header;
         Column page = Layer().Add(new Column
         {
-            Children =
+            (header = new Row
             {
-                (header = new Row
-                {
-                    Children =
-                    {
-                        (title = new Label("ATLAS")),
-                        new Button("BACK"),
-                    },
-                }),
-                (note = new Label("types")),
-            },
+                (title = new Label("ATLAS")),
+                new Button("BACK"),
+            }),
+            (note = new Label("types")),
         });
 
         Assert.That(header.Node.Entity.Parent, Is.EqualTo(page.Node.Entity));
@@ -65,13 +59,10 @@ public sealed class UiSpecTreeTests
         bool showBack = false;
         Row row = Layer().Add(new Row
         {
-            Children =
-            {
-                new Label("first"),
-                Enumerable.Range(0, 3).Select(i => new Label($"chip {i}")),
-                showBack ? new Button("BACK") : null,
-                new Label("last"),
-            },
+            new Label("first"),
+            Enumerable.Range(0, 3).Select(i => new Label($"chip {i}")),
+            showBack ? new Button("BACK") : null,
+            new Label("last"),
         });
 
         string[] texts = row.Node.Entity.ChildEntities.ToArray()
@@ -80,15 +71,21 @@ public sealed class UiSpecTreeTests
     }
 
     [Test]
-    public void SharedSettingsReachTheBuiltNode()
+    public void ASpecInsideAStackIsOneChildNotASequence()
     {
-        Button button = Layer().Add(new Button("GO")
+        Row outer = Layer().Add(new Row
         {
-            Command = UiCommand.Of(TestCommand.Go, 7),
-            Tooltip = "go there",
-            Grow = 2,
-            Hidden = true,
+            new Column { new Label("a"), new Label("b") },
+            new Label("c"),
         });
+
+        Assert.That(outer.Node.Entity.ChildCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void ConstructorSettingsReachTheBuiltNode()
+    {
+        Button button = Layer().Add(new Button("GO", cmd: UiSpecs.Cmd(TestCommand.Go, 7), tip: "go there", grow: 2) { Hidden = true });
 
         Entity entity = button.Node.Entity;
         Assert.That(entity.GetComponent<UiCommand>().Is(TestCommand.Go), Is.True);
@@ -100,12 +97,24 @@ public sealed class UiSpecTreeTests
     }
 
     [Test]
+    public void AFlexPresetGivesWayToTheStacksOwnArguments()
+    {
+        var fill = new Flex(Grow: 1, Cross: Cross.Stretch);
+        Column column = Layer().Add(new Column(fill, grow: 3, hidden: true));
+
+        Entity entity = column.Node.Entity;
+        Assert.That(entity.GetComponent<UiFlex>().Grow, Is.EqualTo(3));
+        Assert.That(entity.GetComponent<UiContainer>().Cross, Is.EqualTo(StackCrossAlignment.Stretch));
+        Assert.That(UiLayout.IsHidden(entity), Is.True);
+    }
+
+    [Test]
     public void APooledListBuildsEachRowFromItsTemplate()
     {
         var names = new System.Collections.Generic.List<Label>();
         PooledList list = Layer().Add(new PooledList(24, 4)
         {
-            Row = _ => [new Box { Width = 4 }, Remember(names, new Label("") { Fit = true, Grow = 1 })],
+            Row = _ => [new Box(width: 4), Remember(names, new Label("", fit: true, grow: 1))],
         });
 
         int pool = UiLists.Pool(list.Node);
