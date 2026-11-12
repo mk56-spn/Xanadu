@@ -15,6 +15,8 @@ namespace Xanadu.Systems.Ui;
 /// alone so game shortcuts keep working while a control has focus.
 /// The ring is a keyboard affordance only: a pointer gives focus without it,
 /// and pressing a control that already has focus dismisses it.
+/// While a text editor has focus Tab and Enter are its own (indent, new line),
+/// so neither moves focus nor presses anything.
 /// </summary>
 public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
 {
@@ -23,6 +25,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
     private readonly IKeyboardState? _keyboard;
     private readonly Vector2 _screen;
     private readonly UiFocusRing _ring;
+    private readonly ArchetypeQuery _typing;
 
     private Entity _focused;
     private bool _keyboardFocus;
@@ -46,6 +49,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         Filter.AllTags(Tags.Get<TakesInput>());
 
         _ring = new UiFocusRing(entities, visuals);
+        _typing = entities.Query().AllTags(Tags.Get<TextEditorFocused>());
     }
 
     protected override void OnUpdate()
@@ -196,6 +200,13 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
     {
         if (_keyboard is null)
             return;
+        if (_typing.Count > 0)
+        {
+            // Held through the editor's keys, so letting go there doesn't count as a fresh press here.
+            _tabHeld = _keyboard.IsPressed(Key.Tab);
+            _activateHeld = _keyboard.IsPressed(Key.Enter) || _keyboard.IsPressed(Key.KpEnter);
+            return;
+        }
 
         bool tab = _keyboard.IsPressed(Key.Tab);
         if (tab && !_tabHeld)

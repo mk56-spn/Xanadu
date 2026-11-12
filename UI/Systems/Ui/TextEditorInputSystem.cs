@@ -36,7 +36,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
 
     private static readonly Key[] Watched =
     [
-        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z,
+        .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z, Key.Slash, Key.KpDivide,
     ];
 
     /// <summary>Keys the editor itself does nothing with, passed to its owner once per press.</summary>
@@ -224,6 +224,13 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             }
         }
 
+        // Ctrl+/: comment the lines out, or back in, when the text has line comments.
+        if (ctrl && (_pressed.Contains(Key.Slash) || _pressed.Contains(Key.KpDivide)) && host?.LineComment is { Length: > 0 } marker)
+        {
+            buffer.ToggleComment(marker);
+            breaksRun = true;
+        }
+
         if (ctrl && _pressed.Contains(Key.V) && entry.Clipboard is { Length: > 0 } clip)
         {
             buffer.Insert(clip);
@@ -252,7 +259,7 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
                 continue;
             }
 
-            breaksRun |= Press(editor, key, shift);
+            breaksRun |= Press(editor, key, shift, ctrl);
         }
 
         if (_pressed.Contains(Key.Home))
@@ -261,12 +268,19 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             buffer.End(shift);
     }
 
-    /// <summary>A key's edit or move; with Shift held, moves extend the selection. True for an edit that is its own undo step.</summary>
-    private static bool Press(in TextEditor editor, Key key, bool shift)
+    /// <summary>
+    /// A key's edit or move; with Shift held, moves extend the selection, with Ctrl Left, Right,
+    /// Backspace and Delete go a word at a time. True for an edit that is its own undo step.
+    /// </summary>
+    private static bool Press(in TextEditor editor, Key key, bool shift, bool ctrl)
     {
         TextBuffer buffer = editor.Buffer;
         switch (key)
         {
+            case Key.Left when ctrl: buffer.MoveWord(-1, shift); break;
+            case Key.Right when ctrl: buffer.MoveWord(1, shift); break;
+            case Key.Backspace when ctrl: buffer.DeleteWord(-1); return true;
+            case Key.Delete when ctrl: buffer.DeleteWord(1); return true;
             case Key.Left: buffer.MoveColumn(-1, shift); break;
             case Key.Right: buffer.MoveColumn(1, shift); break;
             case Key.Up: buffer.MoveLine(-1, shift); break;
@@ -278,7 +292,13 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             case Key.Enter or Key.KpEnter:
                 buffer.NewLine();
                 return true;
-            case Key.Tab: buffer.Insert(new string(' ', TextBuffer.Indent - buffer.Column % TextBuffer.Indent)); break;
+            case Key.Tab when shift:
+                buffer.OutdentLines();
+                return true;
+            case Key.Tab when buffer.HasSelection:
+                buffer.IndentLines();
+                return true;
+            case Key.Tab: buffer.IndentLines(); break;
         }
 
         return false;

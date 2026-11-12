@@ -7,7 +7,8 @@ namespace Xanadu.Ui.Editing;
 /// Text as lines, with one caret and the editing any text editor needs: typing,
 /// new lines that keep the indentation,
 /// Backspace that removes a whole indent step, Delete, and caret moves that
-/// remember the column when passing short lines. A selection runs from an
+/// remember the column when passing short lines; word moves and word deletes,
+/// indenting and outdenting whole lines, and turning lines into comments and back. A selection runs from an
 /// anchor to the caret; moves that extend keep the anchor, other moves drop it,
 /// and any edit replaces what is selected.
 /// </summary>
@@ -319,6 +320,187 @@ public sealed class TextBuffer
             Column = from + text.Length;
         _wantedColumn = Column;
         Version++;
+    }
+
+    /// <summary>
+    /// The lines an edit of whole lines covers: the selection's, or the caret's. A selection ending at
+    /// the very start of a line leaves that line out (dragging down to just below a block).
+    /// </summary>
+    private (int First, int Last) SelectedLines()
+    {
+        if (!HasSelection)
+            return (Line, Line);
+        var (start, end) = Selection;
+        return (start.Line, end.Column == 0 && end.Line > start.Line ? end.Line - 1 : end.Line);
+    }
+
+    /// <summary>
+    /// Tab: with a selection, every line it covers moves right one indent step (nothing is replaced);
+    /// otherwise spaces up to the next step at the caret.
+    /// </summary>
+    public void IndentLines()
+    {
+        if (!HasSelection)
+        {
+            Insert(new string(' ', Indent - Column % Indent));
+            return;
+        }
+
+        var (first, last) = SelectedLines();
+        ShiftLines(first, last, line => _lines[line].Trim().Length == 0 ? 0 : Indent);
+    }
+
+    /// <summary>Shift+Tab: every line the selection covers (or the caret's) back one indent step, as far as its spaces go.</summary>
+    public void OutdentLines()
+    {
+        var (first, last) = SelectedLines();
+        ShiftLines(first, last, line =>
+        {
+            int spaces = _lines[line].Length - _lines[line].TrimStart(' ').Length;
+            return -Math.Min(spaces, spaces % Indent == 0 ? Indent : spaces % Indent);
+        });
+    }
+
+    /// <summary>
+    /// Adds <paramref name="by"/> spaces at the start of each line (or takes them away when negative),
+    /// keeping the caret and anchor on the same text.
+    /// </summary>
+    private void ShiftLines(int first, int last, Func<int, int> by)
+    {
+        bool changed = false;
+        for (int line = first; line <= last; line++)
+        {
+            int shift = by(line);
+            if (shift == 0)
+                continue;
+            changed = true;
+            _lines[line] = shift > 0 ? new string(' ', shift) + _lines[line] : _lines[line][-shift..];
+            if (Line == line)
+                Column = Math.Max(0, Column + shift);
+            if (Anchor is { } anchor && anchor.Line == line && (anchor.Column > 0 || shift < 0))
+                Anchor = (line, Math.Max(0, anchor.Column + shift));
+        }
+
+        if (!changed)
+            return;
+        _wantedColumn = Column;
+        Version++;
+    }
+
+    /// <summary>
+    /// Ctrl+/: the lines the selection covers (or the caret's) become comments, each starting
+    /// <paramref name="marker"/> and a space at their shared indent; when every line with text
+    /// already is one, the markers come off instead. Blank lines are left alone.
+    /// </summary>
+    public void ToggleComment(string marker)
+    {
+        var (first, last) = SelectedLines();
+        var lines = new List<int>();
+        for (int line = first; line <= last; line++)
+        {
+            if (_lines[line].Trim().Length > 0)
+                lines.Add(line);
+        }
+
+        if (lines.Count == 0)
+            return;
+        bool commented = lines.TrueForAll(line => _lines[line].TrimStart(' ').StartsWith(marker, StringComparison.Ordinal));
+        int indent = int.MaxValue;
+        foreach (int line in lines)
+            indent = Math.Min(indent, _lines[line].Length - _lines[line].TrimStart(' ').Length);
+
+        foreach (int line in lines)
+        {
+            string text = _lines[line];
+            int at, length;
+            if (commented)
+            {
+                at = text.Length - text.TrimStart(' ').Length;
+                length = marker.Length + (text.Length > at + marker.Length && text[at + marker.Length] == ' ' ? 1 : 0);
+                _lines[line] = text[..at] + text[(at + length)..];
+                length = -length;
+            }
+            else
+            {
+                at = indent;
+                length = marker.Length + 1;
+                _lines[line] = text[..at] + marker + " " + text[at..];
+            }
+
+            // Text after the marker's place moves with it; a caret inside a removed marker goes to where it was.
+            int Moved(int column) => column < at ? column : Math.Max(at, column + length);
+            if (Line == line)
+                Column = Moved(Column);
+            if (Anchor is { } anchor && anchor.Line == line)
+                Anchor = (line, Moved(anchor.Column));
+        }
+
+        _wantedColumn = Column;
+        Version++;
+    }
+
+    /// <summary>
+    /// Where a word move from the caret lands: past any spaces, then past a run of word characters
+    /// or of symbols; at a line's end or start it crosses to the next or previous line.
+    /// </summary>
+    private (int Line, int Column) WordStop(int direction)
+    {
+        int line = Line, column = Column;
+        string text = _lines[line];
+        if (direction < 0)
+        {
+            if (column == 0)
+                return line > 0 ? (line - 1, _lines[line - 1].Length) : (line, 0);
+            while (column > 0 && text[column - 1] == ' ')
+                column--;
+            if (column > 0)
+            {
+                int kind = Kind(text[column - 1]);
+                while (column > 0 && Kind(text[column - 1]) == kind && kind != 1)
+                    column--;
+            }
+        }
+        else
+        {
+            if (column == text.Length)
+                return line + 1 < _lines.Count ? (line + 1, 0) : (line, column);
+            while (column < text.Length && text[column] == ' ')
+                column++;
+            if (column < text.Length)
+            {
+                int kind = Kind(text[column]);
+                while (column < text.Length && Kind(text[column]) == kind && kind != 1)
+                    column++;
+            }
+        }
+
+        return (line, column);
+    }
+
+    /// <summary>Ctrl+Left or Right: a word at a time. Without extending, a selection collapses to its side first.</summary>
+    public void MoveWord(int direction, bool extend = false)
+    {
+        if (!extend && HasSelection)
+        {
+            MoveColumn(direction);
+            return;
+        }
+
+        Extend(extend);
+        (Line, Column) = WordStop(direction);
+        _wantedColumn = Column;
+    }
+
+    /// <summary>Ctrl+Backspace or Delete: the word before or after the caret (and the spaces next to it), or the selection.</summary>
+    public void DeleteWord(int direction)
+    {
+        if (DeleteSelection())
+            return;
+        (int line, int column) = WordStop(direction);
+        if ((line, column) == (Line, Column))
+            return;
+        Anchor = (line, column);
+        DeleteSelection();
     }
 
     /// <summary>Puts the caret at a line and column, clamped to the text; extending keeps the selection's anchor.</summary>

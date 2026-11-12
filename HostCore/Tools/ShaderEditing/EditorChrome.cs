@@ -35,7 +35,8 @@ internal sealed class EditorChrome
     public string[] Help { get; set; } =
     [
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
-        "F2 renames · drag the bar left of the preview to resize it.",
+        "Tab / Shift+Tab indent lines · Ctrl+/ comments · Ctrl+arrows and Ctrl+Backspace go by word · F2 renames.",
+        "Drag the bar left of the preview to resize it.",
     ];
 
     private readonly IRectCanvas _canvas;

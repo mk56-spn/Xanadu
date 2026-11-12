@@ -114,6 +114,30 @@ public sealed class TextEditorInputSystemTests : EcsSystemTest
         Assert.That(editor.GetComponent<TextEditor>().Buffer.Lines, Has.Count.EqualTo(1));
     }
 
+    [Test]
+    public void CtrlSlashCommentsOnlyWhereTheHostHasLineComments()
+    {
+        Entity plain = TextEditors.Create(Store, default, Area, "ab");
+        _keyboard.Down.Add(Key.Ctrl);
+        _keyboard.Down.Add(Key.Slash);
+        Frame();
+        Assert.That(plain.GetComponent<TextEditor>().Buffer.Text, Is.EqualTo("ab"));
+
+        plain.DeleteEntity();
+        _keyboard.Down.Clear();
+        Frame();
+        Entity code = TextEditors.Create(Store, default, Area, "ab", new Comments());
+        _keyboard.Down.Add(Key.Ctrl);
+        _keyboard.Down.Add(Key.Slash);
+        Frame();
+        Assert.That(code.GetComponent<TextEditor>().Buffer.Text, Is.EqualTo("// ab"));
+    }
+
+    private sealed class Comments : ITextEditorHost
+    {
+        public string LineComment => "//";
+    }
+
     private sealed class TakesEnter : ITextEditorHost
     {
         public int Taken;

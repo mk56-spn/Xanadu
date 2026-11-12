@@ -110,6 +110,9 @@ public interface ITextEditorHost
 
     /// <summary>A press inside the editor's area before it places the caret (a popup over the text); true when taken.</summary>
     bool TakePress(TextBuffer buffer, Vector2 point) => false;
+
+    /// <summary>What starts a line comment in this text (<c>//</c>), for Ctrl+/; null where there are none.</summary>
+    string? LineComment => null;
 }
 
 /// <summary>

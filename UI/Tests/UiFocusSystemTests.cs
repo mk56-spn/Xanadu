@@ -67,6 +67,25 @@ public sealed class UiFocusSystemTests
     }
 
     [Test]
+    public void TabAndEnterAreAFocusedTextEditorsOwn()
+    {
+        Entity editor = _store.CreateEntity();
+        editor.AddTag<TextEditorFocused>();
+        Press(Key.Tab);
+        Frame();
+        Assert.That(_first.Tags.Has<Focused>(), Is.False);
+
+        editor.RemoveTag<TextEditorFocused>();
+        Press(Key.Tab);
+        Frame();
+        Assert.That(_first.Tags.Has<Focused>(), Is.True);
+
+        editor.AddTag<TextEditorFocused>();
+        Press(Key.Enter);
+        Assert.That(_store.GetEntityById(_first.Id).Tags.Has<Pressed>(), Is.False);
+    }
+
+    [Test]
     public void DisabledButtonsAreSkippedByTabAndInput()
     {
         _first.AddTag<UiDisabled>();
