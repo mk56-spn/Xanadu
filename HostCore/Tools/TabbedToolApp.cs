@@ -1,7 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Groups;
 using Xanadu.Systems.Ui;
 using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -127,6 +129,11 @@ internal abstract class TabbedToolApp : HostApp
         _stages = new IToolStage?[tabs.Length];
         _items = new Handle[tabs.Length];
         _bodies = new Entity[tabs.Length];
+
+        // Stages describe timelines (the shader editor's clips); the shared group reads their presses.
+        var systems = new SystemRoot(Entities, title);
+        systems.Add(new TimelineSystemGroup(Pointer, Pointer));
+        UseSystems(systems);
         Build();
         if (openTab >= 0 && openTab < _tabs.Length)
             _strip.GetComponent<UiTabs>().Selected = openTab;

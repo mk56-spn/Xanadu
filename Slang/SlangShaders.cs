@@ -204,11 +204,25 @@ public static class SlangShaders
         }
     }
 
+    /// <summary>
+    /// A <c>float2</c> uniform a tool may declare in a body to drive its clock: when
+    /// it is there the wrapper sets <c>time</c> from its x and <c>beat</c> from its y,
+    /// so a timeline can scrub what the shader sees. The lab's shader editor does.
+    /// </summary>
+    public const string ClockOverride = "xanaduClock";
+
+    /// <summary>Whether a body declares <see cref="ClockOverride"/>.</summary>
+    public static bool DrivesClock(string source) =>
+        System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), $@"\buniform\s+float2\s+{ClockOverride}\b");
+
     /// <summary>The generated module around one effect body; a chain would add one namespace per effect.</summary>
     /// <param name="stateBinding">The fragment binding for kept state, or -1 when the effect keeps none.</param>
     public static string Wrap(string name, string source, int stateBinding = -1)
     {
         (string imports, string code, string label) = Split(name, source);
+        string clock = DrivesClock(source)
+            ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y; i.time = time; shading.time = time;"
+            : "";
         // Read once per pixel, before shade, into a static the body sees as `state`.
         string state = stateBinding < 0 ? "" : $$"""
             [[vk::binding({{stateBinding}}, 2)]] StructuredBuffer<State> xanaduStateIn;
@@ -233,6 +247,7 @@ public static class SlangShaders
             {
                 {{load}}
                 ItemInput i = input(v);
+                {{clock}}
                 i.colour = effect0::shade({{arguments}});
                 return i.colour;
             }
@@ -247,6 +262,7 @@ public static class SlangShaders
     public static string WrapUpdate(string name, string source)
     {
         (string imports, string code, string label) = Split(name, source);
+        string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -265,6 +281,7 @@ public static class SlangShaders
             void xanaduUpdate()
             {
                 time = xanaduUpdateFrame.time;
+                {{clock}}
                 effect0::State s = xanaduStateOut[0];
                 effect0::update(s, xanaduUpdateFrame.dt);
                 xanaduStateOut[0] = s;

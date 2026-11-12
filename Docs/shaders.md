@@ -38,11 +38,12 @@ overload.
 8. [Distances by hand: `sdf.`](#8-distances-by-hand-sdf)
 9. [Painting a picture in layers](#9-painting-a-picture-in-layers)
 10. [Patterns, gradients, easing, curves](#10-patterns-gradients-easing-curves)
-11. [Maths and random numbers](#11-maths-and-random-numbers)
-12. [Reading textures and the screen](#12-reading-textures-and-the-screen)
-13. [Keeping state between frames](#13-keeping-state-between-frames)
-14. [Trying things out](#14-trying-things-out)
-15. [Pitfalls](#15-pitfalls)
+11. [Animating: clocks, clips and keys](#11-animating-clocks-clips-and-keys)
+12. [Maths and random numbers](#12-maths-and-random-numbers)
+13. [Reading textures and the screen](#13-reading-textures-and-the-screen)
+14. [Keeping state between frames](#14-keeping-state-between-frames)
+15. [Trying things out](#15-trying-things-out)
+16. [Pitfalls](#16-pitfalls)
 
 ---
 
@@ -74,7 +75,7 @@ float4 shade(Canvas canvas)
   - `[Default(…)]` gives the starting value. It can name library constants:
     `[Default(colours.gold)]`, `[Default(PI, 2)]`.
   - `[Instance]` marks a value a group's item-shader track may animate per
-    item.
+    item. Motion that belongs to the effect itself is a clip (§11).
   - A four-channel value named like a colour (`tint`, `…colour`, `…color`)
     gets a colour picker in the tuners.
 - **Which pixel:** `shade` runs once per pixel of the quad being drawn and
@@ -404,7 +405,134 @@ and `elastic` overshoot).
 **`Bezier(start, control1, control2, end)`** is a cubic curve. `.at(t)` gives
 its point and `.tangent(t)` its direction, for `t` in 0..1.
 
-## 11. Maths and random numbers
+## 11. Animating: clocks, clips and keys
+
+`xanadu.anim` makes animation a value, the way shapes are. A **clock** says
+where time comes from, a **clip** is a span of time on a clock, and **keys**
+are values along a clip. A clip reads its clock by itself, as a shape reads the
+pixel, so nothing is passed down. It is all sums on the clock: seeking back,
+scrubbing and pausing show exactly the frame they land on, and no kept state
+(§14) is needed.
+
+```slang
+Clock loop = clock.looped(2.4);
+Clip slide = loop.clip(0, 0.5).eased(eases.outCubic);
+Clip spin  = slide.then(0.4).eased(eases.inOutSine);
+
+Box card = Box(float2(160, 90), 18);
+card.move(float2(slide.mixed(-300, 0), 0));
+card.rotate(spin.mixed(0, PI / 2));
+```
+
+**Clocks**
+
+| Call | What it is |
+|---|---|
+| `clock` | Seconds since the game started (the same as `time`). |
+| `clock.beats` | Song beats, from the song's timing (BPM changes included). The shader editor counts them at 120 BPM. |
+| `clock.since(keys.action1)` | Seconds since a play key was last pressed: a clip on it plays each time the key goes down. |
+| `clock.since(events.hit)` | Seconds since a play event last happened (below): a clip on it plays on each one. |
+| `.looped(length)` | A copy that wraps every `length` seconds (or beats). |
+| `.now`, `.count`, `.total` | Where it is inside its loop, how many loops are done, and its reading before any loop. |
+| `.clip(start, length)` | A clip on this clock. |
+
+**Clips.** Every builder returns a changed copy, so one clip can seed many:
+
+| Call | What it does |
+|---|---|
+| `.eased(eases.outBack)` | An easing. `eases.` holds one value per `ease.` function. |
+| `.delayed(by)` | Starts later. |
+| `.staggered(index, step)` | Starts `index × step` later: per tile, per ring, per copy. |
+| `.bounced()` | Plays forward then back, taking twice as long. |
+| `.reversed()` | Plays 1 to 0. |
+| `.then(length)` | A new clip starting where this one ends. |
+
+Read one with `.progress` (eased 0..1, held at 0 before and 1 after),
+`.linear` (without the easing), `.mixed(from, to)` (floats, vectors or
+colours), `.started` and `.finished`. `.at(t)` is the way out: progress at a
+reading of the clock you give it.
+
+**Play keys.** `keys.` names the game's seven keys: `left`, `right`, `up`,
+`down` (S D K L by default) and `action1`, `action2`, `action3` (F Space J),
+plus `anyDirection` and `anyAction` for whichever of those went down last.
+They follow the player's keybinds. `keys.left.since` is the seconds since that
+key was last pressed (1e6 when it never has been), and
+`keys.left.pressedWithin(0.1)` asks whether it was just now:
+
+```slang
+Clip flash = clock.since(keys.action1).clip(0, 0.35).eased(eases.outQuad);
+c.paint(Circle(flash.mixed(40, 160)), colours.white.withAlpha(1 - flash.progress));
+```
+
+In a level the presses are the ones the play input reads, while a run is
+playing. In the lab, click the preview so the code lets go of the keyboard,
+then S D K L and F Space J press them. Presses run on real time: scrubbing
+the timeline doesn't move them.
+
+**The run** (`xanadu.play`, part of `import xanadu`). Plain values:
+
+| Value | What it is |
+|---|---|
+| `player.position` | The player's centre in the quad's pixels from its middle, like `canvas.centred`. `player.screen` is the same on the target. |
+| `player.velocity`, `player.speed` | Pixels a second, on the target. |
+| `player.onPlayfield` | Where it is on the playfield, 0..1 from the top-left. |
+| `player.grounded` / `inAir`, `dashing`, `holding` / `skidding`, `dead` | Its state; `holding` is the HOLD ground mode (F8). |
+| `player.lastMove` | The way the last dash or momentum note sent it, unit length. |
+| `score.accuracy` (0..1), `score.combo`, `score.maxCombo`, `score.points` (0..1,000,000) | How the run is going. |
+| `score.judgement` | The last judgement: `judgements.flawlessPlus` … `judgements.miss`, `judgements.contact`. |
+| `song.progress` (0..1), `song.seconds`, `song.beats`, `song.bpm` | The song. |
+| `song.untilNote` | Seconds until the next note is due (1e6 when none is left). |
+| `contact.bars`, `contact.fill`, `contact.cap` | Contact's three bars: counts, 0..1 full, and the most each holds (5). |
+
+Events, for `clock.since(...)` or read straight off with `.since` and
+`.within(seconds)`: `events.hit` (any hit), `miss`, one per judgement
+(`flawlessPlus`, `flawless`, `clean`, `fair`, `deficient`, `terrible`),
+`judged` (any judgement, misses and failed barriers too), `comboBroken`,
+`dash`, `momentum`, `moved` (either), `songStart`, `countdownDone`, `death`,
+`barrierPaid`, `barrierFailed` and `barrier` (either). Like keys, they run on
+real time.
+
+```slang
+Clip pulse = clock.since(events.hit).clip(0, 0.3).eased(eases.outBack);
+float near = 1 - saturate(length(player.position) / 400);
+c.paint(Circle(pulse.mixed(30, 60)).moved(player.position), colours.gold.withAlpha(near));
+```
+
+In the shader editor there is no game, so the editor stands in: the pointer
+on the preview is the player (its speed is the velocity), F fakes a FLAWLESS
+hit, Space a FLAWLESS+, J a miss (breaking the combo), S D K L a dash that
+way; accuracy, combo and score follow those. The timeline is the song, with a
+note on every beat. Standing, the ground mode, death and Contact's bars are
+sliders under STAND-INS in the values column, shown once the code reads them.
+Song start fakes on the timeline going round; countdown, death, momentum and
+barriers aren't faked.
+
+**Keys** hold values at points along a clip's progress, up to 8. Each key's
+easing shapes the stretch arriving at it; `T` is `float`, `float2`, `float3`
+or `colour`:
+
+```slang
+Clip trip = clock.looped(3).clip(0.2, 2.2).eased(eases.inOutSine);
+Keys<float2> path = Keys<float2>(float2(-180, 60))
+    .to(0.5, float2(0, -90), eases.outQuad)
+    .to(1, float2(180, 60), eases.inQuad);
+dot.move(path.at(trip));
+```
+
+**The timeline.** The shader editor reads every `Clip` local out of the code
+as it is typed and shows it on a timeline under the preview: a row per clip,
+named after it, its span shaped by its easing and repeated round its loop,
+keys read at it as diamonds, and a clip staggered by a pixel's value followed
+by fading copies. A clip on a play key's press or a play event starts from where on the
+timeline it last happened, or says what it is waiting for. Numbers, number locals and plain sums are worked out; a
+clip whose start or length comes from a uniform or the pixel is listed with a
+`?` but not drawn. In the lab the timeline is the shader's clock: it plays
+round the clips' loops, a press on the ruler scrubs (and pauses), the button
+on the left plays and pauses, and a press on a clip's name puts the caret on
+it. In the shader tool, whose effects keep the host's time, it follows that
+time.
+
+## 12. Maths and random numbers
 
 | Name | What it is |
 |---|---|
@@ -422,7 +550,7 @@ Slang's own functions are all there too: `sin`, `cos`, `atan2`, `lerp`,
 `smoothstep`, `step`, `saturate`, `clamp`, `frac`, `floor`, `length`, `dot`,
 `normalize`, `pow`, `exp`, `fwidth`, …
 
-## 12. Reading textures and the screen
+## 13. Reading textures and the screen
 
 - **`sampleItem(uv)`** reads the item's own texture (as straight colour).
 - **`sampleScreen(screenUv, lod = 0)`** reads what has already been drawn on
@@ -449,7 +577,7 @@ return sampleScreen(i.screenUv + push / frame.screen);
   c.paint(note.filled(cell.local), colours.white);
   ```
 
-## 13. Keeping state between frames
+## 14. Keeping state between frames
 
 `shade` runs once per pixel and forgets everything when the frame ends. To keep
 something from frame to frame, such as a light that trails the pointer,
@@ -487,7 +615,7 @@ float4 shade(Canvas canvas)
 
 See `Tools/Labs/Examples/flashlight.slang`.
 
-## 14. Trying things out
+## 15. Trying things out
 
 - **Shader playground** (`./run.sh labs`, first tab): edit
   `Tools/Labs/Playground/playground.slang` in any editor. Every save
@@ -510,13 +638,15 @@ See `Tools/Labs/Examples/flashlight.slang`.
     thing (a local only in its function, a field at every `.field`): type the
     new name, Enter keeps it, Esc puts the old one back
   - a slider for every uniform
+  - the clips in the code on a timeline under the preview, which drives the
+    shader's clock: scrub, play and pause, click a name to jump to it (§11)
   - a bar between the code and the preview that drags to resize them; the
     preview stays 16:9, so effects can be watched at different sizes
   - selection, copy and paste, undo and redo.
 - **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
-  metaballs, a shape badge, a screen ripple and a flashlight, each a slot shader.
+  metaballs, a shape badge, a screen ripple, a flashlight and clips, each a slot shader.
 
-## 15. Pitfalls
+## 16. Pitfalls
 
 - **Locals start as noise.** `colour c;` isn't black or transparent: it's
   whatever was left over, and the pixel comes out garbled. Give every local a

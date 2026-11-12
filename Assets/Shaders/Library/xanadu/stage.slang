@@ -56,6 +56,31 @@ public struct ItemVaryings
     public float2 local : TEXCOORD1;
 };
 
+/// The play state, as the host hands it over each frame (xanadu.play reads it:
+/// `player.`, `score.`, `song.`, `contact.`, `events.`). Target pixels; seconds.
+/// Only ever add, at the end.
+public struct PlayFrame
+{
+    /// The player's centre (xy) and velocity a second (zw).
+    public float4 player;
+    /// The playfield: top-left corner (xy) and size (zw).
+    public float4 playfield;
+    /// 1 or 0: grounded, dashing, ground mode HOLD (0 is SKID), dead.
+    public float4 state;
+    /// The way the last dash or momentum note sent the player (xy).
+    public float4 moves;
+    /// Accuracy 0..1, combo, best combo, score 0..1,000,000.
+    public float4 score;
+    /// The last judgement (as the game numbers them), song progress 0..1.
+    public float4 judgement;
+    /// Contact's three bars, and the most each holds.
+    public float4 contact;
+    /// Song beat, seconds until the next note (1e6 when none), song seconds, BPM.
+    public float4 song;
+    /// Seconds since each event (Event.id), 1e6 when it never happened.
+    public float4 events[5];
+};
+
 /// Per-frame values the host sets once.
 public struct Frame
 {
@@ -64,6 +89,12 @@ public struct Frame
     /// 1 when the item's texture holds premultiplied colour (a buffered group's
     /// image); input() and sampleItem() hand effects straight colour either way.
     public float itemPremultiplied;
+    /// Seconds since each play key was last pressed (1e6 when never):
+    /// left, right, up, down; then the three action keys and a spare.
+    public float4 directionKeys;
+    public float4 actionKeys;
+    /// The play state (xanadu.play).
+    public PlayFrame play;
 };
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
@@ -167,6 +198,23 @@ public static ItemInput shading = {};
 /// `shade` runs, and before `update` for kept state.
 public static float time = 0.0;
 
+/// Song beats since the song started, for `clock.beats`: from the song's
+/// timing in a level, from its timeline in the shader editor.
+public static float beat = 0.0;
+
+/// Seconds since each play key was last pressed, from the frame: `keys.` in
+/// xanadu.anim reads them. Set before `shade` runs; 1e6 in `update`.
+public static float4 directionKeys = float4(1e6);
+public static float4 actionKeys = float4(1e6);
+
+/// The play state from the frame, for xanadu.play. Set before `shade` runs;
+/// at rest (every event never) in `update`.
+public static PlayFrame playState = {
+    float4(0.0), float4(0.0, 0.0, 1.0, 1.0), float4(0.0), float4(0.0), float4(1.0, 0.0, 0.0, 0.0),
+    float4(0.0), float4(0.0, 0.0, 0.0, 5.0), float4(0.0, 1e6, 0.0, 120.0),
+    { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) }
+};
+
 public ItemInput input(ItemVaryings v)
 {
     ItemInput i;
@@ -178,6 +226,10 @@ public ItemInput input(ItemVaryings v)
     i.screenUv = v.position.xy / frame.screen;
     i.time = frame.time;
     time = frame.time;
+    directionKeys = frame.directionKeys;
+    actionKeys = frame.actionKeys;
+    playState = frame.play;
+    beat = frame.play.song.x;
     i.canvas = canvasOf(v);
     shading = i;
     return i;

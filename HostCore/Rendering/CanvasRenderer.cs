@@ -41,7 +41,38 @@ internal sealed class CanvasRenderer : IDisposable
 
     /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct FrameUniforms { public float Width, Height, Time, ItemPremultiplied; }
+    private struct FrameUniforms
+    {
+        public float Width, Height, Time, ItemPremultiplied;
+
+        /// <summary>Seconds since each play key's last press (<see cref="Xanadu.Rendering.ShaderKeys"/>): the directions, then the actions and a spare.</summary>
+        public Vector4 DirectionKeys, ActionKeys;
+
+        /// <summary>xanadu.stage's <c>PlayFrame</c>: <see cref="Xanadu.Rendering.ShaderPlay"/> as a shader reads it.</summary>
+        public Vector4 Player, Playfield, PlayerState, Moves, Score, Judgement, Contact, Song;
+        public Vector4 Events0, Events1, Events2, Events3, Events4;
+
+        public static FrameUniforms Now(float width, float height, float time) => new()
+        {
+            Width = width, Height = height, Time = time,
+            DirectionKeys = new Vector4(ShaderKeys.Since(0), ShaderKeys.Since(1), ShaderKeys.Since(2), ShaderKeys.Since(3)),
+            ActionKeys = new Vector4(ShaderKeys.Since(4), ShaderKeys.Since(5), ShaderKeys.Since(6), ShaderKeys.Never),
+            Player = new Vector4(ShaderPlay.Position.X, ShaderPlay.Position.Y, ShaderPlay.Velocity.X, ShaderPlay.Velocity.Y),
+            Playfield = new Vector4(ShaderPlay.PlayfieldCorner.X, ShaderPlay.PlayfieldCorner.Y, ShaderPlay.PlayfieldSize.X, ShaderPlay.PlayfieldSize.Y),
+            PlayerState = new Vector4(Flag(ShaderPlay.Grounded), Flag(ShaderPlay.Dashing), Flag(ShaderPlay.GroundHold), Flag(ShaderPlay.Dead)),
+            Moves = new Vector4(ShaderPlay.LastMove.X, ShaderPlay.LastMove.Y, 0, 0),
+            Score = new Vector4(ShaderPlay.Accuracy, ShaderPlay.Combo, ShaderPlay.MaxCombo, ShaderPlay.Score),
+            Judgement = new Vector4(ShaderPlay.LastJudgement, ShaderPlay.SongProgress, 0, 0),
+            Contact = new Vector4(ShaderPlay.ContactBars.X, ShaderPlay.ContactBars.Y, ShaderPlay.ContactBars.Z, ShaderPlay.ContactCap),
+            Song = new Vector4(ShaderPlay.Beat, ShaderPlay.UntilNote, ShaderPlay.SongSeconds, ShaderPlay.Bpm),
+            Events0 = Events(0), Events1 = Events(4), Events2 = Events(8), Events3 = Events(12), Events4 = Events(16),
+        };
+
+        private static float Flag(bool on) => on ? 1 : 0;
+
+        private static Vector4 Events(int first) => new(
+            ShaderPlay.SinceSlot(first), ShaderPlay.SinceSlot(first + 1), ShaderPlay.SinceSlot(first + 2), ShaderPlay.SinceSlot(first + 3));
+    }
 
     /// <summary>A kept-state effect's update's uniform buffer 0 (SlangShaders.WrapUpdate).</summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -420,7 +451,7 @@ internal sealed class CanvasRenderer : IDisposable
             return;
         }
 
-        var frame = new FrameUniforms { Width = _width, Height = _height, Time = time };
+        var frame = FrameUniforms.Now(_width, _height, time);
         commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
         commands.PushFragmentUniformData(frame, 0);
         Begin(pass);

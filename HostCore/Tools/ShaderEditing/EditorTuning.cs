@@ -36,6 +36,9 @@ internal sealed class EditorTuning
     private readonly List<(Rect2 Track, string Name, int Channel)> _tracks = new();
     private (string Name, int Channel)? _dragging;
 
+    /// <summary>The play values the code reads that the editor stands in for (<see cref="PlayStandIns"/>), under the shader's own.</summary>
+    private readonly List<(string Name, int Channels, bool Colour)> _standIns = new();
+
     public EditorTuning(IRectCanvas canvas, Handle item, Rect2 area, IEnumerable<string> filledByLab)
     {
         _canvas = canvas;
@@ -66,6 +69,24 @@ internal sealed class EditorTuning
             }
         }
     }
+
+    /// <summary>Shows a slider for each stand-in the code needs; one dropped keeps its value for when it comes back.</summary>
+    public void UseStandIns(List<PlayStandIns.Slider> needed)
+    {
+        _standIns.Clear();
+        foreach (PlayStandIns.Slider slider in needed)
+        {
+            _standIns.Add((slider.Name, slider.Channels, false));
+            if (!_tuned.ContainsKey(slider.Name))
+                _tuned[slider.Name] = slider.Default;
+            for (int c = 0; c < slider.Channels; c++)
+                _ranges.TryAdd(Key(slider.Name, c), (slider.Min, slider.Max));
+        }
+    }
+
+    /// <summary>A stand-in's value: its slider's, or <paramref name="fallback"/> in every channel before it ever had one.</summary>
+    public Vector4 StandIn(string name, float fallback) =>
+        _tuned.TryGetValue(name, out Vector4 value) ? value : new Vector4(fallback);
 
     /// <summary>Puts the tuned values on a material.</summary>
     public void Apply(CanvasMaterial material)
@@ -116,10 +137,21 @@ internal sealed class EditorTuning
         if (_values.Count == 0)
         {
             _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "declare a uniform to tune it here", Palette.TextMuted, 14);
-            return;
+            y += Row;
         }
 
-        foreach ((string name, int channels, bool colour) in _values)
+        y = DrawSliders(_values, y);
+        if (_standIns.Count == 0 || y + Row * 2 > Area.End.Y)
+            return;
+
+        y += 4;
+        _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "STAND-INS  (the run, faked)", Palette.TextDim, 13);
+        DrawSliders(_standIns, y + Row + 2);
+    }
+
+    private float DrawSliders(List<(string Name, int Channels, bool Colour)> values, float y)
+    {
+        foreach ((string name, int channels, bool colour) in values)
         {
             for (int c = 0; c < channels && y + Row <= Area.End.Y; c++)
             {
@@ -128,6 +160,8 @@ internal sealed class EditorTuning
                 y += Row;
             }
         }
+
+        return y;
     }
 
     private void DrawSlider(string label, string name, int channel, bool colour, float y)

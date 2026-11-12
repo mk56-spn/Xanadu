@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Rendering;
 using Xanadu.Systems;
 using Xanadu.Systems.Canvas;
 using Xanadu.Theme;
@@ -34,6 +35,11 @@ internal sealed class ShaderCodeEditor : IDisposable
     private readonly EditorChrome _chrome;
     private readonly EditorTuning _tuning;
     private readonly IEditorPreview _view;
+    private readonly ClipTimeline _timeline;
+    private readonly PlayStandIns _standIns = new();
+    private readonly IRectCanvas _canvas;
+    private readonly Handle _chromeItem;
+    private int _clipsVersion = -1;
     private Rect2 _preview;
 
     /// <summary>The UI text editor the code lives in; the input and drawing are its systems'.</summary>
@@ -70,11 +76,22 @@ internal sealed class ShaderCodeEditor : IDisposable
         _view.Place(_preview);
         Handle chromeItem = Child(parent);
         IRectCanvas canvas = HostPlatform.NewCanvas();
-        _chrome = new EditorChrome(canvas, chromeItem, boxes.Bar, boxes.Preview, boxes.Side) { Divider = boxes.Divider };
+        _canvas = canvas;
+        _chromeItem = chromeItem;
+        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side);
+        _timeline = new ClipTimeline(entities) { Area = clipsBox, Scrubs = _view.TakesClock };
+        _timeline.Jump += (line, column) =>
+        {
+            _editor.GetComponent<TextEditor>().Buffer.Place(line, column);
+            Focus();
+        };
+        _timeline.Released += Focus;
+        _chrome = new EditorChrome(canvas, chromeItem, boxes.Bar, boxes.Preview, side) { Divider = boxes.Divider };
         _chrome.Help = [.. _view.Help, .. _chrome.Help];
         // The room for sliders ends above the help, so it is worked out again now the help is longer.
-        _chrome.Resize(boxes.Bar, boxes.Preview, boxes.Side);
-        _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea, _view.Provided.Select(value => value.Name));
+        _chrome.Resize(boxes.Bar, boxes.Preview, side);
+        _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea,
+            _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
         string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
@@ -115,6 +132,15 @@ internal sealed class ShaderCodeEditor : IDisposable
         return item;
     }
 
+    /// <summary>The column under the preview split: the clip timeline on top, the problems and the rest under it.</summary>
+    private static (Rect2 Clips, Rect2 Others) UnderPreview(Rect2 side)
+    {
+        const float Gap = 8;
+        var clips = new Rect2(side.Position, new Vector2(side.Size.X, ClipTimeline.Height));
+        var rest = new Rect2(side.Position.X, clips.End.Y + Gap, side.Size.X, Math.Max(0, side.Size.Y - ClipTimeline.Height - Gap));
+        return (clips, rest);
+    }
+
     /// <summary>Moves everything to new boxes: the code, the preview quad (so the shader sees its new size), the column and the popups' bounds.</summary>
     public void Place(ShaderEditorBoxes boxes)
     {
@@ -130,7 +156,9 @@ internal sealed class ShaderCodeEditor : IDisposable
         _pointer = _preview.Position + at * _preview.Size;
         _view.Place(_preview);
 
-        _chrome.Resize(boxes.Bar, boxes.Preview, boxes.Side);
+        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side);
+        _timeline.Area = clipsBox;
+        _chrome.Resize(boxes.Bar, boxes.Preview, side);
         _chrome.Divider = boxes.Divider;
         _tuning.Area = _chrome.TuningArea;
     }
@@ -159,15 +187,29 @@ internal sealed class ShaderCodeEditor : IDisposable
             _popup.Follow(buffer, _completions, edited: did.Edited && !did.SteppedHistory);
         _sinceEdit = did.Edited ? 0 : _sinceEdit + frame.Delta;
         bool quiet = !_popup.Open && !frame.Held && !did.Edited;
-        _hover.Follow(buffer, _completions, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
+        _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
         Finish();
         if (_compiling is null && _compiledVersion != buffer.Version && _sinceEdit >= Settle)
             Compile(buffer);
 
+        // The clips follow the text as it is typed, not the last compile.
+        if (_clipsVersion != buffer.Version)
+        {
+            _clipsVersion = buffer.Version;
+            _timeline.Use(SlangClips.Find(buffer.Lines));
+            _tuning.UseStandIns(PlayStandIns.Needed(buffer.Text));
+        }
+
+        PressPlayKeys(frame);
+        _timeline.Advance(frame.Delta, _view.TakesClock ? null : frame.Time);
+        (float seconds, float beats) = _timeline.Clock;
+        _view.UseClock(seconds, beats);
+
         // The pointer counts only over the preview; elsewhere the shader keeps where it last was (the middle at first).
         if (_preview.HasPoint(frame.Mouse))
             _pointer = frame.Mouse;
+        _standIns.Update(frame.Delta, _pointer, _preview, _timeline.Progress, seconds, beats, _tuning);
         _view.Update(frame, _pointer, _tuning);
 
         _chrome.Draw(new EditorState(
@@ -175,9 +217,35 @@ internal sealed class ShaderCodeEditor : IDisposable
             PreviewStale: _shownProblems.Exists(problem => !problem.Warning) || !_everCompiled,
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
+        _timeline.Draw(_canvas, _chromeItem);
         _tuning.Draw();
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
+    }
+
+    /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
+    private static readonly MoonWorks.Input.KeyCode[] PlayKeys =
+    [
+        MoonWorks.Input.KeyCode.S, MoonWorks.Input.KeyCode.D, MoonWorks.Input.KeyCode.K, MoonWorks.Input.KeyCode.L,
+        MoonWorks.Input.KeyCode.F, MoonWorks.Input.KeyCode.Space, MoonWorks.Input.KeyCode.J,
+    ];
+
+    /// <summary>
+    /// While the code doesn't have the keys (a press on the preview took them),
+    /// the play keys are the shader's: <c>keys.</c> sees their presses.
+    /// </summary>
+    private void PressPlayKeys(in ToolFrame frame)
+    {
+        if (frame.Inputs is not { } inputs || _editor.Tags.Has<TextEditorFocused>())
+            return;
+        for (int key = 0; key < PlayKeys.Length; key++)
+        {
+            if (inputs.Keyboard.IsPressed(PlayKeys[key]))
+            {
+                ShaderKeys.Press(key);
+                _standIns.Pressed(key);
+            }
+        }
     }
 
     /// <summary>The sliders, and a click on a problem in the list jumping the editor to it.</summary>
@@ -273,6 +341,7 @@ internal sealed class ShaderCodeEditor : IDisposable
     public void Dispose()
     {
         TextEditors.Delete(_editor);
+        _timeline.Dispose();
         _view.Dispose();
     }
 }

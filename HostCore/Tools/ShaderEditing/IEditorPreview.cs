@@ -43,6 +43,16 @@ internal interface IEditorPreview : IDisposable
     /// <summary>Every frame: the pointer (on the preview, or where it last was) and the sliders' values.</summary>
     void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning);
 
+    /// <summary>
+    /// Whether the shader reads the clock the editor's clip timeline hands it
+    /// (<see cref="UseClock"/>), so scrubbing the timeline moves it. A preview
+    /// that keeps the host's time shows the timeline following that time instead.
+    /// </summary>
+    bool TakesClock => false;
+
+    /// <summary>Every frame before <see cref="Update"/>: the time the shader should see, in seconds and song beats.</summary>
+    void UseClock(float seconds, float beats) { }
+
     /// <summary>The preview's own GPU passes, before the canvas draws.</summary>
     void Render(MoonWorks.Graphics.CommandBuffer commands) { }
 }

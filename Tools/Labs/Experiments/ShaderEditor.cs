@@ -63,7 +63,7 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         private const float SideWidth = 720;
 
         /// <summary>The least the code and the column can be dragged down to; the column also keeps room under the preview.</summary>
-        private const float MinCode = 360, MinSide = 280, MinUnderPreview = 260;
+        private const float MinCode = 360, MinSide = 280, MinUnderPreview = 260 + ClipTimeline.Height;
 
         private readonly ShaderCodeEditor _code;
         private readonly Rect2 _area;
