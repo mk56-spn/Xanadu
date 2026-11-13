@@ -680,15 +680,37 @@ See `Tools/Labs/Examples/flashlight.slang`.
 - **Shader editor** (second tab): a code editor with
   - live problems under their lines
   - parameter hints
-  - completion: after a dot, and while typing a word; wherever a value starts
-    (after `=`, `(`, `,`, `return`, an operator) the shapes come up at once,
-    written in as `Box()` with the caret between the brackets;
-    and typing `shape` (from `sha`) anywhere lists them all; at the top level, `shade`
-    and `update` come whole with their signature and body (`update` with a
-    `State` if there is none yet)
-  - where a colour is given (`colour c = `, `c = ` for a colour, `[Default(`
-    on a colour uniform) the named colours come up at once, written in as
-    `colours.name`
+  - completion follows a few rules, so a new wish is a new rule (or a tag in
+    the library), never a special case (`Slang/SlangCompletions*.cs`; each rule
+    is a row in `SlangCompletionsTests.Rules`):
+    - **after a dot:** the scope's members, its interfaces' and a vector's
+      components
+    - **while typing a word:** the code's names, what the host provides, the
+      library's top-level names, Slang's types, intrinsics and keywords
+    - **families:** every interface is a family of the structs that implement
+      it. Typing its word from three letters (`sha` → shapes, `gra` →
+      gradients) or its name (`IGr`) lists them all first, written in as
+      `Linear()` with the caret between the brackets
+    - **what the value wants:** where a value starts (after `=`, `(`, `,`,
+      `return`, an operator), what makes the wanted type comes up at once: the
+      named colours (as `colours.name`) for a colour, the family for an
+      interface, the struct for a struct. The wanted type comes from what is
+      assigned to (`colour c = `, `t.colour = `), a `[Default(` uniform, or the
+      parameter of the call being written (`c.paint(` wants a shape or a
+      gradient; its next argument a colour). A number or vector can come from
+      anything, so it, and anything unknown, gets the shapes
+    - **snippets:** `shade` and `update` whole at the top level (`update` with a
+      `State` if there is none yet); `if`, `for`, `uniform` whole at a line's
+      start
+    - **ranking:** snippets, then what the value wants, then families, then the
+      rest; within each, prefix before humps (`oB` → `outBounce`) before
+      inside (from three letters); the code's names first, then alphabetical.
+      Nothing comes up once the word is complete as written
+    - **tags:** `/// @hidden` above a library name keeps it out (host plumbing
+      like `input`)
+  - hovering says what a thing is and what it returns: functions and methods
+    with their parameters and result (`rotated` on a Circle returns a Circle),
+    a struct's constructor, the code's own functions, `let`s built from a type
   - F2 on a name the code declares renames it everywhere it means the same
     thing (a local only in its function, a field at every `.field`): type the
     new name, Enter keeps it, Esc puts the old one back

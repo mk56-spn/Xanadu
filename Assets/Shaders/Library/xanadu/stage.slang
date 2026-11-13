@@ -29,6 +29,7 @@
 //     float4 shade(Canvas canvas) { return tint * (canvas.centred.x > 0 ? 1 : 0); }
 module stage;
 
+/// @hidden
 public static const int VERSION = 1;
 
 /// A field's value when the material doesn't set one: up to four numbers.
@@ -194,6 +195,7 @@ public struct ItemInput
 
 /// The quad under a pixel: uv's change per target pixel, inverted, gives the
 /// quad's sides in pixels, and walking back from this pixel by its uv gives the corner.
+/// @hidden
 public Canvas canvasOf(ItemVaryings v)
 {
     Canvas c;
@@ -222,6 +224,7 @@ public Canvas canvasOf(ItemVaryings v)
 
 /// The pixel being shaded: input() keeps it here, so shapes can default to it
 /// (`circle.filled()` is `circle.filled(canvas.centred)`).
+/// @hidden
 public static ItemInput shading = {};
 
 /// Seconds since the game started, the same clock as frame.time, for any
@@ -247,6 +250,7 @@ public static PlayFrame playState = {
     float4(0.0, 1.0, 0.0, 0.0)
 };
 
+/// @hidden
 public ItemInput input(ItemVaryings v)
 {
     ItemInput i;

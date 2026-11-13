@@ -332,4 +332,100 @@ public sealed class SlangCompletionsTests
         string? box = _completions.Describe("Box b = Box(10);", 1, ["Box b = Box(10);"], out _)?[^1].Doc;
         Assert.That(box, Does.Contain("Also every IShape's:"));
     }
+
+    // ---- The rules (Docs/shaders.md, "Completion"): one row per behaviour asked for --------------
+
+    private const string Body = "float4 shade(Canvas canvas)\n{\n    ";
+
+    /// <summary>
+    /// The rule book as rows: the code with the caret at its end, the names that must come first
+    /// (in that order), and names that mustn't be offered at all. Every tweak asked for becomes a row.
+    /// </summary>
+    [TestCase(Body + "let g = grad", new[] { "Conical", "Diamond", "Focal", "Linear", "Radial", "Reflected", "Spiral", "Square", "gradient" }, new string[0],
+        TestName = "Family word: typing grad lists every gradient, then the gradient namespace")]
+    [TestCase(Body + "IGra", new[] { "Conical", "Diamond" }, new string[0],
+        TestName = "Family: typing the interface's own name lists its structs")]
+    [TestCase(Body + "let s = sha", new[] { "Arc", "Box" }, new string[0],
+        TestName = "Family word: typing sha lists the shapes")]
+    [TestCase(Body + "colour c = colours.black;\n    c.paint(", new[] { "Arc" }, new[] { "gold" },
+        TestName = "Expected type: paint's first argument wants a shape or a gradient, not a colour")]
+    [TestCase(Body + "colour c = colours.black;\n    c.paint(Circle(4), ", new[] { "aliceBlue" }, new[] { "Arc" },
+        TestName = "Expected type: paint's second argument wants a colour (or a Look)")]
+    [TestCase(Body + "Box b = ", new[] { "Box" }, new[] { "Circle" },
+        TestName = "Expected type: a struct's declaration offers that struct")]
+    [TestCase(Body + "let s = ", new[] { "Arc", "Box" }, new[] { "Linear" },
+        TestName = "Default: an untyped value offers the shapes")]
+    [TestCase(Body + "float d = ", new[] { "Arc" }, new string[0],
+        TestName = "Default: a number can come from anything, so it offers the shapes")]
+    [TestCase(Body + "let e = ease.oB", new[] { "outBack", "outBounce" }, new string[0],
+        TestName = "Humps: oB finds outBack and outBounce")]
+    [TestCase(Body + "let e = ease.inOQ", new[] { "inOutQuad", "inOutQuart", "inOutQuint" }, new string[0],
+        TestName = "Humps: inOQ finds the inOut quads")]
+    [TestCase(Body + "let v = VERS", new string[0], new[] { "VERSION" },
+        TestName = "Tag: @hidden library names are never offered")]
+    [TestCase(Body + "let v = inpu", new string[0], new[] { "input" },
+        TestName = "Tag: @hidden input() is host plumbing")]
+    public void Rules(string code, string[] first, string[] absent)
+    {
+        List<string> names = Names(code);
+        Assert.That(names.Take(first.Length), Is.EqualTo(first), string.Join(", ", names.Take(first.Length + 4)));
+        foreach (string name in absent)
+            Assert.That(names, Does.Not.Contain(name));
+    }
+
+    [Test]
+    public void ACompleteWordIsLeftAlone()
+    {
+        Assert.That(At(Body + "let s = Box"), Is.Null);
+        // The value would change (colours.gold), so gold still offers it.
+        Assert.That(At(Body + "colour c = gold")?.Select(c => c.Text), Does.Contain("colours.gold"));
+    }
+
+    [Test]
+    public void FamilyMembersAreWrittenInAsCalls()
+    {
+        Assert.That(At(Body + "let g = grad")!.First().Text, Is.EqualTo("Conical($)"));
+    }
+
+    // ---- Hover says what a thing returns -----------------------------------------------------------
+
+    private Completion Hover(string line, string word, params string[] before)
+    {
+        string[] code = [.. before, line];
+        return _completions.Describe(line, line.IndexOf(word, StringComparison.Ordinal), code, out _)![^1];
+    }
+
+    [Test]
+    public void HoveringAConstructorSaysItMakesTheType()
+    {
+        Assert.That(Hover("let c = Circle(40);", "Circle").Header, Does.EndWith("→ Circle"));
+    }
+
+    [Test]
+    public void HoveringAPlacingMethodSaysItReturnsTheReceiversType()
+    {
+        Assert.That(Hover("    let r = c.rotated(1);", "rotated", "let c = Circle(40);").Header, Does.EndWith("→ Circle"));
+        Assert.That(Hover("    let r = g.repeated(2);", "repeated", "let g = Linear(40);").Header, Does.EndWith("→ Spread<Linear>"));
+        // The completion list says the same.
+        Assert.That(At("float4 shade()\n{\n    let c = Circle(40);\n    c.rot")!.Find(m => m.Name == "rotated").Detail, Does.EndWith("→ Circle"));
+    }
+
+    [Test]
+    public void HoveringTheCodesOwnFunctionSaysWhatItReturns()
+    {
+        Assert.That(Hover("float glow(float2 p, float r) { return 1; }", "glow").Header, Is.EqualTo("glow(float2 p, float r) → float"));
+    }
+
+    [Test]
+    public void HoveringAnIntrinsicSaysWhatItReturns()
+    {
+        Assert.That(Hover("float l = length(v);", "length").Header, Is.EqualTo("length(v) → float"));
+        Assert.That(Hover("float l = lerp(a, b, t);", "lerp").Header, Is.EqualTo("lerp(a, b, t) → a's type"));
+    }
+
+    [Test]
+    public void HoveringALetBuiltFromATypeShowsTheType()
+    {
+        Assert.That(Hover("    s.filled();", "s", "let s = Circle(40);").Header, Does.StartWith("Circle s"));
+    }
 }
