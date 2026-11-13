@@ -58,6 +58,9 @@ public static class ShaderPlay
     /// <summary>The playfield on the target: its top-left corner and size, in pixels.</summary>
     public static Vector2 PlayfieldCorner, PlayfieldSize = Vector2.One;
 
+    /// <summary>Target pixels per playfield unit, for the chart's positions (<see cref="ShaderChart"/>).</summary>
+    public static float PixelsPerUnit = 1;
+
     public static bool Grounded, Dashing, Dead;
 
     /// <summary>The ground mode is HOLD (F8); false is SKID.</summary>
@@ -114,6 +117,7 @@ public static class ShaderPlay
         Array.Clear(HappenedAt);
         Position = Velocity = LastMove = PlayfieldCorner = Vector2.Zero;
         PlayfieldSize = Vector2.One;
+        PixelsPerUnit = 1;
         Grounded = Dashing = Dead = GroundHold = false;
         Accuracy = 1;
         Combo = MaxCombo = Score = LastJudgement = SongProgress = Beat = SongSeconds = 0;

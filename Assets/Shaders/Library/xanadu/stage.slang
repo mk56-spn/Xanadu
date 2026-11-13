@@ -8,7 +8,8 @@
 // uniform buffers in set 3. The host owns samplers 0 (the item's texture) and 1
 // (the screen copy, see sampleScreen) and uniform buffer 0 (the frame); an
 // effect's own textures start at sampler 2 and its values live in uniform
-// buffer 1, a struct named however it likes:
+// buffer 1, a struct named however it likes. The run's chart (`chart`) is the
+// storage buffer after the last sampler:
 //
 //     struct Params { [Default(1)] float speed; float4 tint; };
 //     [[vk::binding(1, 3)]] ConstantBuffer<Params> params;
@@ -79,6 +80,25 @@ public struct PlayFrame
     public float4 song;
     /// Seconds since each event (Event.id), 1e6 when it never happened.
     public float4 events[5];
+    /// The chart: how many notes `chart` holds (x), target pixels per playfield unit (y).
+    public float4 chart;
+};
+
+/// One note of the run's chart, as the host hands it over (xanadu.play reads it:
+/// `notes.`). Playfield units; song seconds. Only ever add, at the end.
+public struct ChartNote
+{
+    /// Where it is placed (xy), before any group moves it.
+    public float4 place;
+    /// Its colour.
+    public float4 colour;
+    /// When it is due (x), its kind (y), its action key (z), its index (w).
+    public float4 timing;
+    /// When it was judged (x, 1e6 while waiting), the judgement (y), how early
+    /// (-) or late (+) in milliseconds (z), its state (w: 0 waiting, 1 hit, 2 missed).
+    public float4 result;
+    /// Where it was when judged, groups' moves included (xy).
+    public float4 judged;
 };
 
 /// Per-frame values the host sets once.
@@ -100,6 +120,17 @@ public struct Frame
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
 [[vk::binding(1, 2)]] public Sampler2D screenTexture;
 [[vk::binding(0, 3)]] public ConstantBuffer<Frame> frame;
+
+// The chart sits right after an effect's samplers (SDL_GPU puts storage buffers
+// there), so where depends on how many textures the effect declares: the host
+// says, when it compiles the effect. Read it through `notes.` in xanadu.play.
+#ifndef XANADU_CHART_BINDING
+#define XANADU_CHART_BINDING 2
+#endif
+#ifndef XANADU_CHART_SET
+#define XANADU_CHART_SET 2
+#endif
+[[vk::binding(XANADU_CHART_BINDING, XANADU_CHART_SET)]] public StructuredBuffer<ChartNote> chart;
 
 /// The quad being drawn, as it lands on the target, in target pixels (y down).
 /// Worked out from how uv changes from pixel to pixel, so it is exact for any
@@ -212,7 +243,8 @@ public static float4 actionKeys = float4(1e6);
 public static PlayFrame playState = {
     float4(0.0), float4(0.0, 0.0, 1.0, 1.0), float4(0.0), float4(0.0), float4(1.0, 0.0, 0.0, 0.0),
     float4(0.0), float4(0.0, 0.0, 0.0, 5.0), float4(0.0, 1e6, 0.0, 120.0),
-    { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) }
+    { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) },
+    float4(0.0, 1.0, 0.0, 0.0)
 };
 
 public ItemInput input(ItemVaryings v)

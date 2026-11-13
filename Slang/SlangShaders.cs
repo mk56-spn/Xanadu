@@ -26,7 +26,7 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
 
     public ShaderParam[] Params { get; } = parameters;
 
-    /// <summary>Read-only storage buffers after the samplers: 1 for an effect that keeps state, else 0.</summary>
+    /// <summary>Read-only storage buffers after the samplers: the chart (every effect body), then kept state when it keeps any.</summary>
     public int StorageBuffers { get; } = storageBuffers;
 
     /// <summary>Bytes in one element of the structured buffer it binds (a kept <c>State</c>); 0 for none.</summary>
@@ -172,19 +172,23 @@ public static class SlangShaders
         if (updates && !keepsState)
             throw new InvalidOperationException($"{name}: update() and kept state work only in the lab for now.");
 
-        int stateBinding = updates ? StateBinding(source) : -1;
-        CompiledShader fragment = CompileWrapped(Wrap(name, source, stateBinding), "xanaduFragment", "fragment", 2, 3);
-        if (!updates)
-            return fragment;
-
-        if (fragment.Samplers.Length != stateBinding)
+        // Storage buffers follow the samplers: the chart, then any kept state.
+        int chartBinding = StorageBinding(source);
+        int stateBinding = updates ? chartBinding + 1 : -1;
+        CompiledShader fragment = CompileWrapped(
+            Wrap(name, source, stateBinding), "xanaduFragment", "fragment", 2, 3, ChartDefines(chartBinding, 2));
+        if (fragment.Samplers.Length != chartBinding)
             throw new InvalidOperationException(
-                $"{name}: kept state expected {stateBinding} samplers before it but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 2 up, with no gaps.");
+                $"{name}: expected {chartBinding} samplers before the chart buffer but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 2 up, with no gaps.");
 
-        CompiledShader update = CompileWrapped(WrapUpdate(name, source), "xanaduUpdate", "compute", 0, 2);
+        if (!updates)
+            return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 1);
+
+        // Compute: the chart is the read-only buffer of set 0, the state the read-write one of set 1.
+        CompiledShader update = CompileWrapped(WrapUpdate(name, source), "xanaduUpdate", "compute", 0, 2, ChartDefines(0, 0));
         if (update.StateBytes > MaxStateBytes)
             throw new InvalidOperationException($"{name}: State takes {update.StateBytes} bytes; it may take at most {MaxStateBytes}.");
-        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 1)
+        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 2)
         {
             Update = update,
         };
@@ -203,11 +207,11 @@ public static class SlangShaders
             @"//[^\n]*", "");
 
     /// <summary>
-    /// Where the state buffer goes in the fragment's set 2: SDL_GPU puts storage
-    /// buffers after the samplers, which are the host's two plus the effect's own
-    /// <c>[[vk::binding(n, 2)]]</c> textures.
+    /// Where the first storage buffer (the chart) goes in the fragment's set 2:
+    /// SDL_GPU puts storage buffers after the samplers, which are the host's two
+    /// plus the effect's own <c>[[vk::binding(n, 2)]]</c> textures.
     /// </summary>
-    private static int StateBinding(string source)
+    private static int StorageBinding(string source)
     {
         int next = 2;
         foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
@@ -224,14 +228,19 @@ public static class SlangShaders
     public static CompiledShader CompileWholeEffect(string name, string source) =>
         CompileWrapped($"#line 1 \"{name.Replace("\"", "'")}\"\n{source}", "shade", "fragment", 2, 3, bindGlobals: false);
 
-    private static CompiledShader CompileWrapped(string code, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals = true)
+    /// <summary>Where xanadu.stage declares the chart buffer, which moves with each effect's textures.</summary>
+    private static string[] ChartDefines(int binding, int set) =>
+        [$"XANADU_CHART_BINDING={binding}", $"XANADU_CHART_SET={set}"];
+
+    private static CompiledShader CompileWrapped(
+        string code, string entry, string stage, int samplerSpace, int uniformSpace, string[]? defines = null, bool bindGlobals = true)
     {
         Directory.CreateDirectory(ReflectionFolder);
         string file = Path.Combine(ReflectionFolder, Guid.NewGuid().ToString("N") + ".slang");
         File.WriteAllText(file, code);
         try
         {
-            return CompileReflected(file, entry, stage, samplerSpace, uniformSpace, bindGlobals);
+            return CompileReflected(file, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines);
         }
         finally
         {
@@ -354,12 +363,14 @@ public static class SlangShaders
     /// <paramref name="uniformSpace"/> are the stage's descriptor sets (§3: 2 and 3
     /// for fragment, 0 and 1 for vertex). Throws with Slang's message on an error.
     /// </summary>
-    public static CompiledShader CompileReflected(string path, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals = false)
+    public static CompiledShader CompileReflected(
+        string path, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals = false, string[]? defines = null)
     {
+        defines ??= [];
         string? cached = null;
         if (CacheFolder is { } folder)
         {
-            string key = CacheKey(File.ReadAllText(path), $"{entry}|{stage}|{samplerSpace}|{uniformSpace}|{bindGlobals}");
+            string key = CacheKey(File.ReadAllText(path), $"{entry}|{stage}|{samplerSpace}|{uniformSpace}|{bindGlobals}|{string.Join(';', defines)}");
             cached = Path.Combine(folder, key);
             if (File.Exists(cached + ".spv") && File.Exists(cached + ".json"))
             {
@@ -368,7 +379,7 @@ public static class SlangShaders
             }
         }
 
-        CompiledShader compiled = CompileFresh(path, entry, stage, samplerSpace, uniformSpace, bindGlobals, out string reflection);
+        CompiledShader compiled = CompileFresh(path, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines, out string reflection);
         if (cached is not null)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
@@ -400,11 +411,18 @@ public static class SlangShaders
         return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString())));
     }
 
-    private static CompiledShader CompileFresh(string path, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals, out string reflectionJson)
+    private static CompiledShader CompileFresh(
+        string path, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals, string[] defines, out string reflectionJson)
     {
         Directory.CreateDirectory(ReflectionFolder);
         string json = Path.Combine(ReflectionFolder, Guid.NewGuid().ToString("N") + ".json");
         List<string> args = Arguments(path, entry, stage);
+        foreach (string define in defines)
+        {
+            args.Add("-D");
+            args.Add(define);
+        }
+
         args.Add("-reflection-json");
         args.Add(json);
         if (bindGlobals)
@@ -460,7 +478,8 @@ public static class SlangShaders
                 continue;
 
             bool buffer = type.TryGetProperty("baseShape", out JsonElement shape) && shape.GetString() == "structuredBuffer";
-            if (buffer && type.TryGetProperty("resultType", out JsonElement element) && element.TryGetProperty("sizes", out JsonElement sizes))
+            if (buffer && name.Contains("xanaduState", StringComparison.Ordinal) &&
+                type.TryGetProperty("resultType", out JsonElement element) && element.TryGetProperty("sizes", out JsonElement sizes))
                 foreach (JsonElement size in sizes.EnumerateArray())
                     stateBytes = Math.Max(stateBytes, size.GetProperty("value").GetInt32());
             if (space == samplerSpace && kind == "resource" && !buffer)

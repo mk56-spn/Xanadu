@@ -52,6 +52,9 @@ internal sealed class CanvasRenderer : IDisposable
         public Vector4 Player, Playfield, PlayerState, Moves, Score, Judgement, Contact, Song;
         public Vector4 Events0, Events1, Events2, Events3, Events4;
 
+        /// <summary>The chart's note count and pixels per playfield unit (<see cref="ShaderChart"/>).</summary>
+        public Vector4 Chart;
+
         public static FrameUniforms Now(float width, float height, float time) => new()
         {
             Width = width, Height = height, Time = time,
@@ -66,6 +69,7 @@ internal sealed class CanvasRenderer : IDisposable
             Contact = new Vector4(ShaderPlay.ContactBars.X, ShaderPlay.ContactBars.Y, ShaderPlay.ContactBars.Z, ShaderPlay.ContactCap),
             Song = new Vector4(ShaderPlay.Beat, ShaderPlay.UntilNote, ShaderPlay.SongSeconds, ShaderPlay.Bpm),
             Events0 = Events(0), Events1 = Events(4), Events2 = Events(8), Events3 = Events(12), Events4 = Events(16),
+            Chart = new Vector4(ShaderChart.Count, ShaderPlay.PixelsPerUnit, 0, 0),
         };
 
         private static float Flag(bool on) => on ? 1 : 0;
@@ -127,6 +131,11 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly Dictionary<CanvasMaterial, Buffer> _states = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<CanvasMaterial> _updated = new(ReferenceEqualityComparer.Instance);
     private readonly TransferBuffer _zeros;
+
+    /// <summary>The run's chart (<see cref="ShaderChart"/>), bound to every effect after its samplers; one blank note when there is none.</summary>
+    private Buffer? _chart;
+    private TransferBuffer? _chartTransfer;
+    private int _chartCapacity, _chartVersion = -1;
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
     public Dictionary<ulong, Texture> Textures { get; } = new();
@@ -201,6 +210,8 @@ internal sealed class CanvasRenderer : IDisposable
         Build();
         using (commands.Scope("upload vertices"))
             Upload(commands);
+        using (commands.Scope("upload chart"))
+            UploadChart(commands);
 
         // The particles and kept state move by the frame's time, before any pass draws them.
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
@@ -442,6 +453,34 @@ internal sealed class CanvasRenderer : IDisposable
         commands.EndCopyPass(copy);
     }
 
+    /// <summary>Copies the chart to the GPU when it has changed since the last frame; grows the buffer to fit.</summary>
+    private void UploadChart(CommandBuffer commands)
+    {
+        if (_chart is not null && _chartVersion == ShaderChart.Version)
+            return;
+
+        _chartVersion = ShaderChart.Version;
+        int count = Math.Max(1, ShaderChart.Count);
+        if (_chart is null || count > _chartCapacity)
+        {
+            _chart?.Dispose();
+            _chartTransfer?.Dispose();
+            _chartCapacity = Math.Max(count, _chartCapacity * 2);
+            _chart = Buffer.Create<ChartNote>(_device, "chart",
+                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, (uint)_chartCapacity);
+            _chartTransfer = TransferBuffer.Create<ChartNote>(_device, "chart upload", TransferBufferUsage.Upload, (uint)_chartCapacity);
+        }
+
+        Span<ChartNote> mapped = _chartTransfer!.Map<ChartNote>(cycle: true);
+        mapped[..count].Clear();
+        ShaderChart.Notes.CopyTo(mapped);
+        _chartTransfer.Unmap();
+
+        CopyPass copy = commands.BeginCopyPass();
+        copy.UploadToBuffer<ChartNote>(_chartTransfer, _chart, 0, 0, (uint)count, cycle: true);
+        commands.EndCopyPass(copy);
+    }
+
     private void Draw(CommandBuffer commands, Job job, float time)
     {
         RenderPass pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, job.Clear));
@@ -521,8 +560,10 @@ internal sealed class CanvasRenderer : IDisposable
             }
 
             pass.BindFragmentSamplers(samplers[..count]);
-            if (effect.Compiled.StorageBuffers > 0 && batch.Material is { } kept && _states.TryGetValue(kept, out Buffer? state))
-                pass.BindFragmentStorageBuffers(state);
+            if (effect.Compiled.StorageBuffers > 1 && batch.Material is { } kept && _states.TryGetValue(kept, out Buffer? state))
+                pass.BindFragmentStorageBuffers(_chart!, state);
+            else if (effect.Compiled.StorageBuffers > 0)
+                pass.BindFragmentStorageBuffers(_chart!);
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, batch.Material, batch.Owner?.InstanceValues);
             pass.DrawPrimitives(batch.Count, 1, batch.Start, 0);
@@ -564,6 +605,7 @@ internal sealed class CanvasRenderer : IDisposable
                 PushParams(commands, compiled, material, null, compute: true);
             ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
             pass.BindComputePipeline(update);
+            pass.BindStorageBuffers(_chart!);
             pass.Dispatch(1, 1, 1);
             commands.EndComputePass(pass);
         }
@@ -670,5 +712,7 @@ internal sealed class CanvasRenderer : IDisposable
             target.Dispose();
         _buffer?.Dispose();
         _transfer?.Dispose();
+        _chart?.Dispose();
+        _chartTransfer?.Dispose();
     }
 }

@@ -64,7 +64,12 @@ The rest is under "Later" (§6).
 - **Bindings:** the host owns sampler 0 (the item's texture), sampler 1 (the
   screen copy) and uniform buffer 0 (the frame). An effect's own textures
   start at sampler 2 (by name, from `CanvasMaterial.Textures`) and its values
-  are uniform buffer 1, a struct of any name.
+  are uniform buffer 1, a struct of any name. The run's chart (`chart`,
+  `ChartNote` per note; `notes.` in xanadu.play) is the first storage buffer,
+  right after the last sampler: `SlangShaders` works out the slot from the
+  effect's texture bindings and passes it as `XANADU_CHART_BINDING`.
+  `CanvasRenderer` uploads `ShaderChart` when its version moves and binds it
+  for every effect (one blank note when there is no chart).
 - **Vertex and fragment compile separately** and meet when the pipeline is
   built, so any vertex choice pairs with any fragment choice. Almost no player
   writes a vertex stage (the user's estimate: 99% never will); vertex needs are
@@ -410,7 +415,8 @@ host fills; tests leave the headless defaults.
     float dt)` gets a 1 KB storage buffer per material. `CanvasRenderer`
     runs `update` once a frame as a one-thread compute pass
     (`SlangShaders.WrapUpdate`), and the fragment reads it as `state`, its
-    storage buffer placed after its samplers. `CanvasMaterial.KeepsState`
+    storage buffer placed after the chart. In `update` the chart is compute's
+    read-only buffer 0. `CanvasMaterial.KeepsState`
     gates it; level materials leave it off, so `update` is a compile error
     there.
   - **Shader editor** (tab 1; the start of the in-game shader editor): a

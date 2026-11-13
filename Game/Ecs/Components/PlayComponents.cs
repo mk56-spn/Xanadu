@@ -196,9 +196,13 @@ public struct NotePop(
     Vector2 position,
     Color color,
     float radius,
-    float lifetime = 0.22f) : IComponent
+    float lifetime = 0.22f,
+    int chartIndex = -1) : IComponent
 {
     public Note Note = note;
+
+    /// <summary>The note's place in the run's chart (<see cref="ChartIndex"/>), for effects drawn from it; -1 for none.</summary>
+    public int ChartIndex = chartIndex;
     public Vector2 Position = position;
     public Color Color = color;
     public float Radius = radius;
@@ -349,4 +353,18 @@ public struct ContactCounterHud(Entity first, Entity second, Entity third) : ICo
 public struct MoveKey(Xanadu.Settings.KeybindAction key) : IComponent
 {
     public Xanadu.Settings.KeybindAction Key = key;
+}
+
+/// <summary>
+/// A note's place in the run's chart (<c>ShaderChart</c>, <c>notes[i]</c> in
+/// shaders): set on each note when a level is played, so judging it can write
+/// its result there.
+/// </summary>
+public struct ChartIndex(int index) : IComponent
+{
+    public int Index = index;
+
+    /// <summary>The note's place in the chart, or -1 for a note that isn't in it.</summary>
+    public static int Of(Entity note) =>
+        !note.IsNull && note.TryGetComponent(out ChartIndex chart) ? chart.Index : -1;
 }

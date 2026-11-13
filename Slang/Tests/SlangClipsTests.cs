@@ -138,4 +138,23 @@ public sealed class SlangClipsTests
     [TestCase(11, 0.5f, 0.96875f)]
     public void EasingsMatchTheLibrary(int id, float t, float eased) =>
         Assert.That(SlangClips.Ease(id, t), Is.EqualTo(eased).Within(1e-4));
+
+    [Test]
+    public void ANoteClockShowsAsEachJudgement()
+    {
+        SlangClip[] clips = Find("""
+            uniform float hit_note;
+            float4 shade(Canvas canvas)
+            {
+                Note note = notes[int(hit_note + 0.5)];
+                Clip life = clock.since(note).clip(0, 0.26);
+                Clip first = clock.since(notes[0]).clip(0.1, 0.2);
+                return colours.gold * life.progress * first.progress;
+            }
+            """);
+
+        Assert.That(clips.Select(c => c.Name), Is.EqualTo(new[] { "life", "first" }));
+        Assert.That(clips.Select(c => c.Pressed - SlangClips.FirstEvent), Is.All.EqualTo(SlangClips.NoteJudged));
+        Assert.That((clips[0].Start, clips[0].Length), Is.EqualTo((0.0, 0.26)));
+    }
 }

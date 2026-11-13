@@ -18,12 +18,19 @@ public static partial class PlayfieldRenderer
     /// <summary>Share of the pop the white flash at its start lasts.</summary>
     private const float FlashShare = 0.35f;
 
+    /// <summary>How wide the hit bar starts, as a share of the note's diameter.</summary>
+    private const float BarWidth = 1.4f;
+
+    /// <summary>The shader that draws the hit bar from the chart.</summary>
+    public const string HitBarShader = "Assets/Shaders/hit_bar.slang";
+
     /// <summary>
     /// Draws a recently hit note where it was: a white flash over the note,
-    /// the note's own shape swelling and fading out, and a thick shockwave
-    /// that races out from its edge and thins as it goes.
+    /// the note's own shape swelling and fading out, a thick shockwave that
+    /// races out from its edge and thins as it goes, and, given the
+    /// <paramref name="field"/>, a bar of light up and down it through the note.
     /// </summary>
-    public static void DrawNotePop(IRectCanvas canvas, Handle rid, Entity entity)
+    public static void DrawNotePop(IRectCanvas canvas, Handle rid, Entity entity, Rect2? field = null)
     {
         NotePop pop = entity.GetComponent<NotePop>();
         float t = Math.Clamp(pop.Age / Math.Max(0.01f, pop.Lifetime), 0f, 1f);
@@ -34,6 +41,9 @@ public static partial class PlayfieldRenderer
             pop.Color.B,
             pop.Color.A * alpha);
         float radius = NotePopRadius(pop.Radius, t);
+
+        if (field is { } bounds)
+            DrawHitBar(canvas, rid, pop, bounds);
 
         DrawNoteBody(canvas, rid, pop.Note, pop.Position, radius, color);
 
@@ -54,6 +64,24 @@ public static partial class PlayfieldRenderer
                 pop.Radius * (0.9f + 0.4f * swell),
                 new Color(1f, 1f, 1f, 0.75f * flash * flash));
         }
+    }
+
+    /// <summary>
+    /// The hit bar, drawn by <see cref="HitBarShader"/> from the chart: one
+    /// column the height of the field, centred on the note and as wide as the
+    /// bar starts, told which note it is for. The shader does the rest.
+    /// </summary>
+    private static void DrawHitBar(IRectCanvas canvas, Handle rid, NotePop pop, Rect2 field)
+    {
+        if (pop.ChartIndex < 0)
+            return;
+
+        float half = pop.Radius * BarWidth;
+        canvas.SelectCommonShader(HitBarShader);
+        canvas.NewRun();
+        canvas.SetShaderValue("hit_note", new Vector4(pop.ChartIndex, 0, 0, 0), 1);
+        canvas.DrawRect(rid, new Rect2(pop.Position.X - half, field.Position.Y, half * 2, field.Size.Y), Colors.White);
+        canvas.SelectCommonShader("");
     }
 
     /// <summary>The note's radius after <paramref name="t"/> of its pop, 0..1: a fast, soft swell.</summary>

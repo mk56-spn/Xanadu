@@ -121,7 +121,8 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 if (entity.HasComponent<ScoreState>())
                 {
                     ref ScoreState score = ref entity.GetComponent<ScoreState>();
-                    PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
+                    Judgement judgement = PlayScoring.Apply(ref score, movement.TimeMs - judgedTime);
+                    PlayChart.Judge(noteEntity, judgement, movement.TimeMs - judgedTime);
                     score.JudgementPosition = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, movement.Position));
                     score.JudgementTimeMs = playhead.TimeMs;
                     _entities.CreateEntity(

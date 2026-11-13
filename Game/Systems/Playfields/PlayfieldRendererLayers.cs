@@ -328,7 +328,7 @@ public static partial class PlayfieldRenderer
                     DrawNote(canvas, rid, entity, view, frame.Playhead, frame.SelectedNote);
                 break;
             case PlayfieldDrawKind.NotePop:
-                DrawNotePop(canvas, rid, entity);
+                DrawNotePop(canvas, rid, entity, FieldRect(frame.View, frame.Playfield));
                 break;
             case PlayfieldDrawKind.DashTrail:
                 DrawDashTrail(canvas, rid, entity);

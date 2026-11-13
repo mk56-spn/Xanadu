@@ -96,6 +96,7 @@ public static class PlayScene
         playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
         LevelDocumentMapper.Apply(entities, playfieldEntity, document, song);
+        PlayChart.Load(entities);
 
         if (start is StartPoint point)
         {

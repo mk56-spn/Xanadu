@@ -124,14 +124,16 @@ public namespace keys
 }
 
 /// Where time comes from: seconds (`clock`), song beats (`clock.beats`) or the
-/// seconds since a key was pressed (`clock.since(keys.left)`) or an event
-/// happened (`clock.since(events.hit)`), running on or wrapping round a loop
+/// seconds since a key was pressed (`clock.since(keys.left)`), an event
+/// happened (`clock.since(events.hit)`) or a note was judged
+/// (`clock.since(notes[i])`), running on or wrapping round a loop
 /// (`clock.looped(2)`).
 public struct Clock
 {
     internal bool inBeats;
 
-    /// The key it counts from (Key.id), an event (1000 + Event.id), or -1 for the song's time.
+    /// The key it counts from (Key.id), an event (1000 + Event.id), a note's
+    /// judgement (1000000 + Note.index), or -1 for the song's time.
     internal int key;
 
     /// How long one loop is, in the clock's own units; 0 never wraps.
@@ -153,13 +155,23 @@ public struct Clock
     /// A clock counting seconds from when an event last happened: 0 as it does.
     public Clock since(Event happened) { Clock c = Clock(false, loop); c.key = 1000 + happened.id; return c; }
 
+    /// A clock counting song seconds from when a note was judged: 0 as it is
+    /// hit or missed, 1e6 while it waits (`clock.since(notes[i])`).
+    public Clock since(Note judged) { Clock c = Clock(false, loop); c.key = 1000000 + judged.index; return c; }
+
     /// A copy that wraps every `length` seconds (or beats).
     public Clock looped(float length) { Clock c = this; c.loop = length; return c; }
 
     /// The clock's reading before any loop: seconds or beats since the start, or since its key's press.
     public property float total
     {
-        get { return key >= 1000 ? Event(key - 1000).since : key >= 0 ? Key(key).since : inBeats ? beat : time; }
+        get
+        {
+            return key >= 1000000 ? Note(key - 1000000).sinceJudged
+                : key >= 1000 ? Event(key - 1000).since
+                : key >= 0 ? Key(key).since
+                : inBeats ? beat : time;
+        }
     }
 
     /// Where the clock is now: inside its loop when it has one.

@@ -39,6 +39,8 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
                 KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
             EffectLayer.From(noteEntity));
 
+        // Read before the hit takes the note away.
+        int chartIndex = ChartIndex.Of(noteEntity);
         if (!actions.Hit(ref score, noteEntity, offsetMs, playfield, action))
             return false;
 
@@ -48,7 +50,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         HitGhostSystem.Spawn(context.Entities, playfield);
         CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
 
-        HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius);
+        HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius, chartIndex);
         return true;
     }
 

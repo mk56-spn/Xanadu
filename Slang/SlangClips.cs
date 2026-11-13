@@ -94,6 +94,12 @@ public static partial class SlangClips
     /// <summary>Where events start in <see cref="SlangClip.Pressed"/>'s numbering (the library's Clock does the same).</summary>
     public const int FirstEvent = 1000;
 
+    /// <summary>
+    /// The event a note's clock (<c>clock.since(notes[i])</c>) is drawn as: any
+    /// judgement, since every hit or miss judges a note.
+    /// </summary>
+    public const int NoteJudged = 8;
+
     /// <summary>The <c>events.</c> names with the library's <c>Event</c> ids (the game's <c>ShaderEvent</c>; 100 and up are "either of").</summary>
     public static readonly (string Name, int Id)[] Events =
     [
@@ -148,6 +154,9 @@ public static partial class SlangClips
 
     private sealed record EventValue(int Id);
 
+    /// <summary>A note of the chart (<c>notes[i]</c>, a <c>Note</c> variable): which one is up to the running shader.</summary>
+    private sealed record NoteValue;
+
     private sealed record ClipValue(ClockValue Clock, double Start, double Length, int Easing, bool Bounced, bool Reversed, double StaggerStep)
     {
         public double End => Start + (Bounced ? Length * 2 : Length);
@@ -166,7 +175,7 @@ public static partial class SlangClips
     /// <summary>A namespace or type name on its way to a member (<c>eases.</c>).</summary>
     private sealed record Name(string Text);
 
-    [GeneratedRegex(@"(?<![\w.])(?:(?:static\s+)?const\s+)?(Clip|Clock|float|int|let|var|Keys\s*<\s*\w+\s*>)\s+([A-Za-z_]\w*)\s*=")]
+    [GeneratedRegex(@"(?<![\w.])(?:(?:static\s+)?const\s+)?(Clip|Clock|Note|float|int|let|var|Keys\s*<\s*\w+\s*>)\s+([A-Za-z_]\w*)\s*=")]
     private static partial Regex Declaration();
 
     [GeneratedRegex(@"\b([A-Za-z_]\w*)\s*\.\s*at\s*\(\s*([A-Za-z_]\w*)\s*(?:\.\s*progress\s*)?\)")]
@@ -203,8 +212,10 @@ public static partial class SlangClips
                 value = Unknown.Value;
             }
 
-            values[name] = value;
             string type = match.Groups[1].Value;
+            if (type == "Note")
+                value = new NoteValue();
+            values[name] = value;
             if (value is ClipValue clip && type is "Clip" or "let" or "var")
                 clips.Add((name, match.Groups[2].Index, clip));
         }
@@ -375,6 +386,12 @@ public static partial class SlangClips
                 throw new FormatException();
 
             string name = Word();
+            if (name == "notes" && Peek() == '[')
+            {
+                _at = Close(text, _at, '[', ']');
+                return new NoteValue();
+            }
+
             if (name == "Keys" && Peek() == '<')
             {
                 _at = text.IndexOf('>', _at) is var close and >= 0 ? close + 1 : throw new FormatException();
@@ -433,6 +450,8 @@ public static partial class SlangClips
                         ("beats", null) => clock with { Beats = true, Key = -1 },
                         ("since", [KeyValue pressed]) => new ClockValue(false, clock.Loop, pressed.Id),
                         ("since", [EventValue happened]) => new ClockValue(false, clock.Loop, FirstEvent + happened.Id),
+                        // Which note is the shader's business; the timeline draws it from each judgement.
+                        ("since", [NoteValue]) => new ClockValue(false, clock.Loop, FirstEvent + NoteJudged),
                         ("looped", [double length]) => clock with { Loop = length },
                         ("looped", [_]) => clock with { Loop = double.NaN },
                         ("clip", [var start, var length]) => new ClipValue(clock, Number(start), Number(length), 0, false, false, 0),
@@ -467,6 +486,21 @@ public static partial class SlangClips
         }
 
         private static double Number(object value) => value is double number ? number : double.NaN;
+
+        /// <summary>Just past the bracket that closes the one at <paramref name="at"/>.</summary>
+        private static int Close(string text, int at, char open, char close)
+        {
+            int depth = 0;
+            for (int i = at; i < text.Length; i++)
+            {
+                if (text[i] == open)
+                    depth++;
+                else if (text[i] == close && --depth == 0)
+                    return i + 1;
+            }
+
+            throw new FormatException();
+        }
 
         private List<object> Arguments()
         {

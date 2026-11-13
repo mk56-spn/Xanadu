@@ -24,15 +24,18 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
             if (mode.Kind != PlayfieldKind.Play)
                 return;
 
+            // On the target: the camera moves the playfield layer by its shift.
+            Vector2 shift = entity.TryGetComponent(out PlayCamera camera) ? camera.Shift : Vector2.Zero;
             Vector2 at = entity.TryGetComponent(out PlayerSmoothing smoothing) ? smoothing.Drawn : position.Value;
-            ShaderPlay.Position = at;
+            ShaderPlay.Position = at - shift;
             ShaderPlay.Velocity = entity.TryGetComponent(out PhysicsBody body)
                 ? Box2DPhysicsWorld.ToScreen(body.Body.LinearVelocity)
                 : Vector2.Zero;
 
             if (entity.TryGetComponent(out Playfield playfield))
             {
-                ShaderPlay.PlayfieldCorner = view.ScreenOrigin;
+                ShaderPlay.PlayfieldCorner = view.ScreenOrigin - shift;
+                ShaderPlay.PixelsPerUnit = view.Scale;
                 ShaderPlay.PlayfieldSize = new Vector2(playfield.Width, playfield.Height) * view.Scale;
                 ShaderPlay.Grounded = PlayerGround.TryStanding(entity, view, playfield, position.Value, out _);
             }

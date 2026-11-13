@@ -23,7 +23,8 @@ public sealed class PlayNoteActions
         KeybindAction action)
     {
         Note note = noteEntity.GetComponent<Note>();
-        PlayScoring.Apply(ref score, offsetMs);
+        Judgement judgement = PlayScoring.Apply(ref score, offsetMs);
+        PlayChart.Judge(noteEntity, judgement, offsetMs);
 
         // A neutral note loads the bar of the action key it was hit with.
         if (note.Kind == NoteKind.Neutral &&

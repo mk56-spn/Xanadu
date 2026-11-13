@@ -116,8 +116,29 @@ public sealed class SlangShadersTests
 
         CompiledShader compiled = SlangShaders.CompileEffectBody("test", body, keepsState: true);
         Assert.That(compiled.Update, Is.Not.Null);
-        Assert.That(compiled.StorageBuffers, Is.EqualTo(1));
+        // The chart, then the kept state.
+        Assert.That(compiled.StorageBuffers, Is.EqualTo(2));
         Assert.That(compiled.Update!.StateBytes, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void EveryEffectReadsTheChartAfterItsTextures()
+    {
+        const string body = """
+            import xanadu;
+            [[vk::binding(2, 2)]] Sampler2D extra;
+            float4 shade(Canvas canvas)
+            {
+                Note next = notes.dueAfter(song.seconds);
+                Clip pop = clock.since(notes[0]).clip(0, 0.3);
+                return extra.Sample(float2(0.5)) * next.colour * pop.progress;
+            }
+            """;
+
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test", body);
+        Assert.That(compiled.Samplers, Has.Length.EqualTo(3));
+        Assert.That(compiled.StorageBuffers, Is.EqualTo(1));
+        Assert.That(SpirvScan.Binds(compiled.Spirv, set: 2, binding: 3), Is.True);
     }
 
     [Test]

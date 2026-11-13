@@ -40,6 +40,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
                 continue;
 
             entity.AddTag<NoteMissed>();
+            PlayChart.Judge(entity, Judgement.Miss, note.TimeMs - judgedTime);
             PlayScoring.Mark(Judgement.Miss, comboBroken: score.Combo > 0);
             score.Combo = 0;
             score.HasJudgement = true;

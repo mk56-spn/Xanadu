@@ -433,6 +433,7 @@ card.rotate(spin.mixed(0, PI / 2));
 | `clock.beats` | Song beats, from the song's timing (BPM changes included). The shader editor counts them at 120 BPM. |
 | `clock.since(keys.action1)` | Seconds since a play key was last pressed: a clip on it plays each time the key goes down. |
 | `clock.since(events.hit)` | Seconds since a play event last happened (below): a clip on it plays on each one. |
+| `clock.since(notes[i])` | Song seconds since a note of the chart was judged (below): 0 as it is hit or missed, 1e6 while it waits. |
 | `.looped(length)` | A copy that wraps every `length` seconds (or beats). |
 | `.now`, `.count`, `.total` | Where it is inside its loop, how many loops are done, and its reading before any loop. |
 | `.clip(start, length)` | A clip on this clock. |
@@ -499,11 +500,51 @@ float near = 1 - saturate(length(player.position) / 400);
 c.paint(Circle(pulse.mixed(30, 60)).moved(player.position), colours.gold.withAlpha(near));
 ```
 
+**The chart.** `notes.` is the whole chart of the run, every note from the
+start, with each one's result written in as it is judged. It lives on the GPU
+for the whole run, so a shader can look at any note, past or coming:
+
+| Call | What it is |
+|---|---|
+| `notes.count` | How many notes the chart has (0 with no chart, and in `update`). |
+| `notes[i]` | Note `i`, by time. |
+| `notes.dueAfter(seconds)` | The first note due at or after then: `notes.dueAfter(song.seconds)` is the next one. |
+| `note.time`, `note.until` | Song seconds it is due, and seconds until then (negative once past). |
+| `note.kind`, `note.key`, `note.colour` | `noteKinds.hit` … `noteKinds.wall`, the action key it asks for (0..2), its colour. |
+| `note.place`, `note.screen`, `note.position` | Where it is placed: playfield units, target pixels, and the quad's pixels from its middle. Groups' moves aren't in these. |
+| `note.waiting`, `hit`, `missed`, `judged` | How it went. |
+| `note.judgement`, `note.error` | The judgement (`judgements.`), and how early (−) or late (+) it was hit, in milliseconds. |
+| `note.sinceJudged` | Song seconds since it was judged; 1e6 while it waits. `clock.since(note)` is a clock on it. |
+| `note.judgedScreen`, `note.judgedPosition` | Where it was when judged, groups' moves included. |
+
+A note's clock runs on the song, not real time, so pausing holds it and a
+seek shows the frame it lands on. The game's hit bar is one quad per hit,
+told its note's index, and everything else comes from here
+(`Assets/Shaders/hit_bar.slang`):
+
+```slang
+uniform float hit_note;
+
+float4 shade(Canvas canvas)
+{
+    Note note = notes[int(hit_note + 0.5)];
+    Clip life = clock.since(note).clip(0, 0.26);
+    if (!note.hit || life.finished)
+        return colours.transparent;
+    ...
+}
+```
+
+The timeline draws a clip on a note's clock from each judgement, as it does
+`events.judged`, since it can't know which note the shader will pick.
+
 In the shader editor there is no game, so the editor stands in: the pointer
 on the preview is the player (its speed is the velocity), F fakes a FLAWLESS
 hit, Space a FLAWLESS+, J a miss (breaking the combo), S D K L a dash that
 way; accuracy, combo and score follow those. The timeline is the song, with a
-note on every beat. Standing, the ground mode, death and Contact's bars are
+note on every beat: a chart of 64 notes zig-zagging across the preview, and F,
+Space or J judges the one on the nearest beat. It starts over each time the
+timeline goes round. Standing, the ground mode, death and Contact's bars are
 sliders under STAND-INS in the values column, shown once the code reads them.
 Song start fakes on the timeline going round; countdown, death, momentum and
 barriers aren't faked.

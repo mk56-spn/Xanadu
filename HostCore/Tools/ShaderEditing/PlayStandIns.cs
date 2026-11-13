@@ -11,9 +11,11 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// it is edited, with no game behind it: the pointer on the preview is the
 /// player, the play keys fake what happens (F a hit, Space a FLAWLESS+, J a
 /// miss, S D K L a dash that way), the timeline is the song with a note on
-/// every beat, and what can't be faked that way (standing, dead, the ground
-/// mode, Contact's bars) is a slider in the values column, shown once the code
-/// reads it. The only writer of <see cref="ShaderPlay"/> in the tools.
+/// every beat (a <see cref="ShaderChart"/> zig-zagging across the preview; a
+/// faked hit or miss judges the nearest one), and what can't be faked that way
+/// (standing, dead, the ground mode, Contact's bars) is a slider in the values
+/// column, shown once the code reads it. The only writer of
+/// <see cref="ShaderPlay"/> and <see cref="ShaderChart"/> in the tools.
 /// </summary>
 internal sealed class PlayStandIns
 {
@@ -37,12 +39,18 @@ internal sealed class PlayStandIns
     private Vector2? _last;
     private Vector2 _velocity;
     private double _lastProgress;
+    private float _seconds, _beats;
+    private Vector2 _chartSize;
+
+    /// <summary>How many notes the fake chart has: one a beat.</summary>
+    private const int ChartBeats = 64;
 
     /// <summary>How the lab fakes an event, for the timeline's rows that wait on one.</summary>
     public static string HowToFake(int happened) => happened switch
     {
         0 => "F or Space in the preview",
-        1 or 8 or 9 => "J in the preview",
+        1 or 9 => "J in the preview",
+        8 => "F, Space or J in the preview",
         2 => "Space in the preview",
         3 => "F in the preview",
         10 or 100 => "S D K L in the preview",
@@ -74,6 +82,7 @@ internal sealed class PlayStandIns
         }
 
         ShaderPlay.Mark(ShaderEvent.Judged);
+        JudgeNearest(key == ShaderKeys.FirstAction + 2 ? 7 : key == ShaderKeys.FirstAction + 1 ? 1 : 2);
         if (key == ShaderKeys.FirstAction + 2)
         {
             _misses++;
@@ -105,12 +114,18 @@ internal sealed class PlayStandIns
 
         if (progress < _lastProgress - 0.5)
             ShaderPlay.Mark(ShaderEvent.SongStart);
+        // A fresh chart each time round, and when the preview changes size.
+        if (progress < _lastProgress - 0.5 || preview.Size != _chartSize)
+            LoadChart(preview.Size);
         _lastProgress = progress;
+        _seconds = seconds;
+        _beats = beats;
 
         ShaderPlay.Position = pointer;
         ShaderPlay.Velocity = _velocity;
         ShaderPlay.PlayfieldCorner = preview.Position;
         ShaderPlay.PlayfieldSize = preview.Size;
+        ShaderPlay.PixelsPerUnit = 1;
         ShaderPlay.Dashing = ShaderPlay.Since(ShaderEvent.Dash) < DashSeconds;
         ShaderPlay.Grounded = tuning.StandIn("player.grounded", 1).X > 0.5f;
         ShaderPlay.GroundHold = tuning.StandIn("player.holding", 0).X > 0.5f;
@@ -129,5 +144,46 @@ internal sealed class PlayStandIns
         ShaderPlay.Bpm = (float)ClipTimeline.LabBpm;
         // A note on every beat.
         ShaderPlay.UntilNote = (MathF.Ceiling(beats) - beats) * 60f / (float)ClipTimeline.LabBpm;
+    }
+
+    /// <summary>A note on every beat, zig-zagging across the preview: its units are the preview's pixels.</summary>
+    private void LoadChart(Vector2 size)
+    {
+        _chartSize = size;
+        float secondsPerBeat = 60f / (float)ClipTimeline.LabBpm;
+        var chart = new ChartNote[ChartBeats];
+        for (int i = 0; i < chart.Length; i++)
+        {
+            float across = (i % 8 + 0.5f) / 8f;
+            float down = i % 2 == 0 ? 0.35f : 0.65f;
+            Vector4 colour = (i % 3) switch
+            {
+                0 => new Vector4(1f, 0.35f, 0.55f, 1f),
+                1 => new Vector4(1f, 0.8f, 0.3f, 1f),
+                _ => new Vector4(0.45f, 0.85f, 0.4f, 1f),
+            };
+            chart[i] = new ChartNote
+            {
+                Place = new Vector4(size.X * across, size.Y * down, 0, 0),
+                Colour = colour,
+                Timing = new Vector4(i * secondsPerBeat, 0, i % 3, i),
+            };
+        }
+
+        ShaderChart.Load(chart);
+    }
+
+    /// <summary>A faked hit or miss judges the note on the nearest beat, if it still waits.</summary>
+    private void JudgeNearest(float judgement)
+    {
+        int index = (int)MathF.Round(_beats);
+        if (index < 0 || index >= ShaderChart.Count || ShaderChart.Notes[index].Result.W != ShaderChart.Waiting)
+            return;
+
+        ChartNote note = ShaderChart.Notes[index];
+        bool missed = judgement == 7;
+        ShaderChart.Judge(
+            index, _seconds, judgement, (_seconds - note.Timing.X) * 1000f,
+            missed ? ShaderChart.Missed : ShaderChart.Hit, new Vector2(note.Place.X, note.Place.Y));
     }
 }

@@ -15,10 +15,10 @@ public static class HitEffects
     /// is the note's entity, or null for a note that is not an item.
     /// </summary>
     public static void Spawn(EntityStore entities, Entity playfield, Entity source, Note note, Vector2 position,
-        Color color, float radius)
+        Color color, float radius, int chartIndex = -1)
     {
         entities.CreateEntity(
-            new NotePop(note, position, color, radius, PlayfieldRenderer.NotePopLifetime),
+            new NotePop(note, position, color, radius, PlayfieldRenderer.NotePopLifetime, chartIndex),
             EffectLayer.From(source));
         // The sparks come off the player's body, thrown on the way the hit
         // travels, from the note through the player; the pop stays on the note.
@@ -38,7 +38,8 @@ public static class HitEffects
         float radius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
         Color color = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
         EffectLayer layer = EffectLayer.From(noteEntity);
-        entities.CreateEntity(new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime), layer);
+        entities.CreateEntity(
+            new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime, ChartIndex.Of(noteEntity)), layer);
         Vector2 way = PlayerMovementSystem.DashDirectionVector(heading);
         entities.CreateEntity(new ParticleBurst(at, GameParticles.Hit, color, heading: way));
     }

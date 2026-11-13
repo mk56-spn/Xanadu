@@ -200,3 +200,124 @@ public struct Contact
 };
 
 public static const Contact contact = Contact();
+
+
+/// Kinds of note as the game numbers them, for `Note.kind`.
+public namespace noteKinds
+{
+    public static const int hit = 0;
+    public static const int neutral = 1;
+    public static const int dash = 2;
+    public static const int momentum = 3;
+    public static const int contact = 4;
+    public static const int wall = 5;
+}
+
+/// One note of the run's chart: where and when it is, and how it was played.
+/// Get one from `notes.` (`notes[i]`, `notes.dueAfter(song.seconds)`), or by
+/// the index a quad was drawn with.
+public struct Note
+{
+    /// Its place in the chart, by time.
+    public int index;
+
+    public __init(int index) { this.index = index; }
+
+    /// Whether the chart has it: false past the end, or with no chart.
+    public property bool exists { get { return index >= 0 && index < notes.count; } }
+
+    /// The chart's record of it (`ChartNote` in xanadu.stage).
+    public property ChartNote data { get { return exists ? chart[index] : chart[0]; } }
+
+    /// Song seconds it is due.
+    public property float time { get { return data.timing.x; } }
+
+    /// Seconds until it is due: negative once it is past.
+    public property float until { get { return time - song.seconds; } }
+
+    /// What kind it is: `noteKinds.hit`, `noteKinds.dash`, ….
+    public property int kind { get { return int(data.timing.y); } }
+
+    /// The action key it asks for (0, 1, 2), for the kinds that ask for one.
+    public property int key { get { return int(data.timing.z); } }
+
+    public property float4 colour { get { return data.colour; } }
+
+    /// Where it is placed, in playfield units; groups' moves are not in it.
+    public property float2 place { get { return data.place.xy; } }
+
+    /// Where it is placed, on the target in pixels.
+    public property float2 screen { get { return onTarget(place); } }
+
+    /// Where it is placed, in the quad's pixels from its middle (like `player.position`).
+    public property float2 position { get { return inQuad(screen); } }
+
+    /// Not judged yet.
+    public property bool waiting { get { return data.result.w < 0.5; } }
+
+    /// Hit, at any judgement.
+    public property bool hit { get { return abs(data.result.w - 1.0) < 0.5; } }
+
+    /// Missed.
+    public property bool missed { get { return data.result.w > 1.5; } }
+
+    /// Hit or missed.
+    public property bool judged { get { return !waiting; } }
+
+    /// The judgement it got: `judgements.flawless`, `judgements.miss`, …; `judgements.none` while waiting.
+    public property int judgement { get { return int(data.result.y); } }
+
+    /// How early (-) or late (+) it was hit, in milliseconds.
+    public property float error { get { return data.result.z; } }
+
+    /// Song seconds since it was judged; 1e6 while it waits. Time clips from it
+    /// as from a clock: `Clip pop = clip(note.sinceJudged, 0, 0.3)`.
+    public property float sinceJudged { get { return judged ? song.seconds - data.result.x : 1e6; } }
+
+    /// Where it was when judged, groups' moves included, on the target in pixels.
+    public property float2 judgedScreen { get { return onTarget(data.judged.xy); } }
+
+    /// Where it was when judged, in the quad's pixels from its middle.
+    public property float2 judgedPosition { get { return inQuad(judgedScreen); } }
+};
+
+/// A playfield point on the target, in pixels.
+public float2 onTarget(float2 place) { return playState.playfield.xy + place * playState.chart.y; }
+
+/// A target pixel in the quad's pixels from its middle, as `canvas.centred` measures.
+public float2 inQuad(float2 screen) { return (shading.canvas.uvAt(screen) - 0.5) * shading.canvas.size; }
+
+/// The whole chart of the run, every note from the start, results included.
+/// Read it through `notes.`:
+///
+///     for (int n = 0; n < notes.count; n++)
+///         if (notes[n].hit) glow += exp(-notes[n].sinceJudged * 4) * ring(notes[n].judgedPosition);
+public struct Notes
+{
+    internal int unused;
+
+    public __init() { unused = 0; }
+
+    /// How many notes the chart has; 0 with no chart (and in `update`).
+    public property int count { get { return int(playState.chart.x); } }
+
+    public __subscript(int index) -> Note { get { return Note(index); } }
+
+    /// The first note due at or after `seconds` (`notes.dueAfter(song.seconds)` is the next one); one past the end when none is.
+    public Note dueAfter(float seconds)
+    {
+        int low = 0, high = count;
+        while (low < high)
+        {
+            int middle = (low + high) / 2;
+            if (chart[middle].timing.x < seconds)
+                low = middle + 1;
+            else
+                high = middle;
+        }
+
+        return Note(low);
+    }
+};
+
+public static const Notes notes = Notes();
