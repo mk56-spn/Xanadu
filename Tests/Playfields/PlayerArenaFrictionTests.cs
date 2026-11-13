@@ -31,7 +31,8 @@ public sealed class PlayerArenaFrictionTests
     [TearDown]
     public void TearDown() => _physics.Dispose();
 
-    private Body Player(float y, float speed)
+    /// <summary>A player at <paramref name="y"/> moving sideways; <paramref name="grip"/> is whether a friction bar has turned the ground's grip on.</summary>
+    private Body Player(float y, float speed, bool grip = false)
     {
         Body body = _physics.CreateDynamicBox(new Vector2(500, y), new Vector2(30, 100));
         body.SetLinearVelocity(new Vector2(speed, 0f));
@@ -40,7 +41,8 @@ public sealed class PlayerArenaFrictionTests
             new Position(new Vector2(500, y)),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1_000, 1_000)),
             new Playfield(1_000, 1_000),
-            new PhysicsBody(body));
+            new PhysicsBody(body),
+            new PlayerFriction { On = grip });
         return body;
     }
 
@@ -104,7 +106,7 @@ public sealed class PlayerArenaFrictionTests
     [TestCase(120, 1f / 240f)]
     public void TheFloorSlowsASlideTheSameAtAnyFrameRate(int frames, float delta)
     {
-        Body body = Player(Floor, 5f);
+        Body body = Player(Floor, 5f, grip: true);
 
         Run(frames, delta);
 
@@ -116,11 +118,21 @@ public sealed class PlayerArenaFrictionTests
     [TestCase(-1f)]
     public void ASlideStopsWithoutReversing(float speed)
     {
-        Body body = Player(Floor, speed);
+        Body body = Player(Floor, speed, grip: true);
 
         Run(120, 1f / 60f);
 
         Assert.That(body.LinearVelocity.X, Is.Zero);
+    }
+
+    [Test]
+    public void WithoutGripASlideKeepsItsSpeed()
+    {
+        Body body = Player(Floor, 5f);
+
+        Run(120, 1f / 60f);
+
+        Assert.That(body.LinearVelocity.X, Is.EqualTo(5f));
     }
 
     [Test]
