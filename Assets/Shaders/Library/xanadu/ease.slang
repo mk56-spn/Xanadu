@@ -143,7 +143,12 @@ public namespace ease
         return t < 0.5 ? inBounce(t * 2.0) / 2.0 : 1.0 - inBounce((1.0 - t) * 2.0) / 2.0;
     }
 
-    /// An easing by number (0 linear … 30 inOutBounce), as the editor stores them.
+    /// smoothstep's curve, 3t² - 2t³: gentle at both ends, like inOutCubic but softer.
+    public float smooth(float t) {
+        return t * t * (3.0 - 2.0 * t);
+    }
+
+    /// An easing by number (0 linear … 30 inOutBounce, 31 smooth), as the editor stores them.
     public float by(int easing, float progress) {
         switch (easing) {
             case 0: return linear(progress);
@@ -177,6 +182,7 @@ public namespace ease
             case 28: return inBounce(progress);
             case 29: return outBounce(progress);
             case 30: return inOutBounce(progress);
+            case 31: return smooth(progress);
         }
         return progress; // Default to linear
     }

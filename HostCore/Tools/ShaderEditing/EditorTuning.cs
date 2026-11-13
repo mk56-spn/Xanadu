@@ -34,6 +34,12 @@ internal sealed class EditorTuning
     private readonly Dictionary<string, Vector4> _tuned = new();
     private readonly Dictionary<string, (float Min, float Max)> _ranges = new();
     private readonly List<(Rect2 Track, string Name, int Channel)> _tracks = new();
+
+    /// <summary>The <c>uniform bool</c>s: a switch each instead of a slider.</summary>
+    private readonly HashSet<string> _switches = new();
+
+    /// <summary>Each switch's box as last drawn, for presses.</summary>
+    private readonly List<(Rect2 Box, string Name)> _switchBoxes = new();
     private (string Name, int Channel)? _dragging;
 
     /// <summary>The play values the code reads that the editor stands in for (<see cref="PlayStandIns"/>), under the shader's own.</summary>
@@ -58,6 +64,10 @@ internal sealed class EditorTuning
 
             int channels = Math.Clamp(param.Size / 4, 1, 4);
             bool colour = channels == 4 && UniformRanges.IsColourName(param.Name);
+            if (param.IsBool)
+                _switches.Add(param.Name);
+            else
+                _switches.Remove(param.Name);
             _values.Add((param.Name, channels, colour));
             if (!_tuned.ContainsKey(param.Name))
                 _tuned[param.Name] = param.Default;
@@ -106,6 +116,15 @@ internal sealed class EditorTuning
 
         if (pressed)
         {
+            foreach ((Rect2 box, string name) in _switchBoxes)
+            {
+                if (box.HasPoint(pointer))
+                {
+                    _tuned[name] = _tuned[name] with { X = _tuned[name].X > 0.5f ? 0 : 1 };
+                    return true;
+                }
+            }
+
             foreach ((Rect2 track, string name, int channel) in _tracks)
             {
                 if (new Rect2(track.Position.X - 6, track.Position.Y, track.Size.X + 12, track.Size.Y).HasPoint(pointer))
@@ -131,6 +150,7 @@ internal sealed class EditorTuning
     public void Draw()
     {
         _tracks.Clear();
+        _switchBoxes.Clear();
         float y = Area.Position.Y;
         _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "VALUES", Palette.TextDim, 13);
         y += Row + 2;
@@ -153,6 +173,13 @@ internal sealed class EditorTuning
     {
         foreach ((string name, int channels, bool colour) in values)
         {
+            if (_switches.Contains(name) && y + Row <= Area.End.Y)
+            {
+                DrawSwitch(name, y);
+                y += Row;
+                continue;
+            }
+
             for (int c = 0; c < channels && y + Row <= Area.End.Y; c++)
             {
                 string label = channels == 1 ? name : $"{name}.{(colour ? "rgba" : "xyzw")[c]}";
@@ -182,6 +209,18 @@ internal sealed class EditorTuning
         _canvas.DrawTextMono(
             _item, new Rect2(track.End.X + 8, y, ValueWidth, Row), value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
             Palette.Text, TextSize, TextAlign.Left);
+    }
+
+    /// <summary>A uniform bool: its name, then one button that reads ON (bright blue) or OFF.</summary>
+    private void DrawSwitch(string name, float y)
+    {
+        bool on = _tuned[name].X > 0.5f;
+        float left = Area.Position.X;
+        var box = new Rect2(left + LabelWidth, y + 3, 64, Row - 6);
+        _switchBoxes.Add((box, name));
+        _canvas.DrawTextMono(_item, new Rect2(left - 4, y, LabelWidth, Row), name, Palette.TextMuted, TextSize, TextAlign.Left);
+        _canvas.DrawRect(_item, box, on ? Palette.Primary : Palette.Muted);
+        _canvas.DrawTextMono(_item, box, on ? "ON" : "OFF", on ? Palette.TextBright : Palette.TextMuted, TextSize, TextAlign.Center);
     }
 
     private static Color ChannelColour(int channel) => channel switch

@@ -16,12 +16,6 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
-| Is a clip playing now? Only `started` and `finished`, so the port wrote `c.started && !c.finished` | missing | Ashanoha (clips) | `clip.playing` |
-| A fade over part of a clip (`smoothstep(0.8, 0.2, t)` inside a one-second scene) | missing | Ashanoha (clips) | `clip.part(from, to)`: a clip over that stretch of this one, so it shows on the timeline too |
-| No smoothstep easing: `smoothstep(0, 1, clip.linear)` by hand | missing | Ashanoha (clips) | `eases.smooth` (3t² − 2t³) |
-| XS003 flags a local passed to an `out` parameter (`float3 near; map(uv, near, …)`) as read before set | editor | Ashanoha | the lint treats an `out` argument as an assignment |
-| The timeline shows 6 clip rows; `light` and `grow` (rows 7 and 8) aren't visible | editor | Ashanoha (clips) | check the rows scroll or the lane list grows; show every clip |
-| A switch uniform (`as_shadertoy`) is a 0..1 slider | editor | every port | `uniform bool` shown as a toggle |
 | Nearest point and distance to the cell edge over a fixed set of points (`map`, `normalmap`: 70 lines of loops) | missing | Ashanoha | maybe `pattern.voronoi(position, points)` over an array: nearest point and edge distance; wait for a second shader that wants it |
 
 ## Fixed
@@ -44,3 +38,9 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gamma by hand (`pow(rgb, 1.0 / 2.2)`) | Ashanoha | `c.gammaCorrect(g)`, `c.gammaCorrected(g)` |
 | `if (a != b)` on vectors: Slang's "expected bool, got vector<bool,2>" | Ashanoha | the editor says to wrap it in `any(…)` / `all(…)`; §17 row |
 | A port's own `#define PI` against the library's | Ashanoha | §17 row |
+| Is a clip playing now? (`c.started && !c.finished`) | Ashanoha (clips) | `clip.playing` |
+| A fade over part of a clip | Ashanoha (clips) | `clip.part(from, to)`, on the timeline too |
+| No smoothstep easing | Ashanoha (clips) | `eases.smooth`, `ease.smooth(t)` |
+| XS003 flagged a local filled through an `out` parameter | Ashanoha | the lint reads an `out` argument of the code's own function as an assignment |
+| The timeline showed 6 rows; later clips scrolled out of sight | Ashanoha (clips) | it grows a row per clip up to 12, then scrolls; the key guide gives way so the values keep room |
+| A switch uniform was a 0..1 slider | every port | `uniform bool` gets an ON/OFF switch |

@@ -33,11 +33,17 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
     private const float LabelWidth = 120;
     private const float BarWidth = 6;
 
-    /// <summary>Rows shown at once; more scroll.</summary>
-    public const int Rows = 6;
+    /// <summary>Rows it always has room for, and the most it grows to before the rest scroll.</summary>
+    public const int MinRows = 6, MaxRows = 12;
+
+    /// <summary>Rows shown at once: one per clip, from <see cref="MinRows"/> up to <see cref="MaxRows"/>; more scroll.</summary>
+    public int Rows => Math.Clamp(_clips.Count, MinRows, MaxRows);
 
     /// <summary>The height the timeline wants.</summary>
-    public const float Height = RulerHeight + Rows * RowHeight + 6;
+    public const float MinHeight = RulerHeight + MinRows * RowHeight + 6;
+
+    /// <summary>The height it wants for the clips it has: every one shown, up to <see cref="MaxRows"/>.</summary>
+    public float Height => RulerHeight + Rows * RowHeight + 6;
 
     /// <summary>The longest common loop worked out before the window falls back to the longest loop alone.</summary>
     private const double MostWindow = 16;

@@ -495,16 +495,18 @@ card.rotate(spin.mixed(0, PI / 2));
 
 | Call | What it does |
 |---|---|
-| `.eased(eases.outBack)` | An easing. `eases.` holds one value per `ease.` function. |
+| `.eased(eases.outBack)` | An easing. `eases.` holds one value per `ease.` function, and `eases.smooth` is smoothstep's curve. |
 | `.delayed(by)` | Starts later. |
 | `.staggered(index, step)` | Starts `index × step` later: per tile, per ring, per copy. |
 | `.bounced()` | Plays forward then back, taking twice as long. |
 | `.reversed()` | Plays 1 to 0. |
 | `.then(length)` | A new clip starting where this one ends. |
+| `.part(from, to)` | A new clip over that stretch of this one (fractions of it, 0..1), linear: a fade inside a scene. `smoothstep(0.8, 0.2, scene.linear)` is `scene.part(0.2, 0.8).eased(eases.smooth).mixed(1, 0)`. It shows on the timeline too. |
 
 Read one with `.progress` (eased 0..1, held at 0 before and 1 after),
 `.linear` (without the easing), `.mixed(from, to)` (floats, vectors or
-colours), `.started` and `.finished`. `.at(t)` is the way out: progress at a
+colours), `.started`, `.finished` and `.playing` (started, not yet finished:
+which scene is on). `.at(t)` is the way out: progress at a
 reading of the clock you give it.
 
 **Play keys.** `keys.` names the game's seven keys: `left`, `right`, `up`,
@@ -763,7 +765,9 @@ See `Tools/Labs/Examples/flashlight.slang`.
   - F2 on a name the code declares renames it everywhere it means the same
     thing (a local only in its function, a field at every `.field`): type the
     new name, Enter keeps it, Esc puts the old one back
-  - a slider for every uniform
+  - a slider for every uniform; a `uniform bool` gets an ON/OFF switch
+    (give it `[Default(1)]` to start on: `Default` takes numbers)
+  - the clip timeline grows a row per clip up to 12, then scrolls
   - the clips in the code on a timeline under the preview, which drives the
     shader's clock: scrub, play and pause, click a name to jump to it (§11)
   - a bar between the code and the preview that drags to resize them; the

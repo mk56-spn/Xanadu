@@ -125,6 +125,29 @@ public sealed class SlangLintTests
     }
 
     [Test]
+    public void ALocalFilledByAnOutParameterIsFine()
+    {
+        const string code = """
+            void map(float2 uv, out float3 near, inout float3 seen)
+            {
+                near = float3(uv, 0);
+                seen += near;
+            }
+
+            float4 shade()
+            {
+                float3 near, seen;
+                map(float2(0, 0), near, seen);
+                return float4(near, 1);
+            }
+            """;
+
+        // near goes to an out parameter and is filled; seen goes to an inout one, which reads it.
+        SlangProblem problem = SlangLint.Check(code, Types).Single();
+        Assert.That(problem.Message, Does.Contain("seen"));
+    }
+
+    [Test]
     public void ALocalGivenAValueFirstIsFine()
     {
         Assert.That(SlangLint.Check("""

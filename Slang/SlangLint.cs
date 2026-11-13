@@ -15,7 +15,8 @@ namespace Xanadu.Slang;
 /// <item>XS003: a local declared without a value (<c>colour c;</c>) whose first
 /// use reads it. Slang leaves locals as whatever was there, so the result is
 /// noise. A first use that assigns it, or one of its fields (<c>c = …</c>,
-/// <c>t.id = …</c>), is fine.</item>
+/// <c>t.id = …</c>), is fine, and so is passing it alone to an <c>out</c> parameter
+/// of a function the code declares (<c>map(uv, near, neighbor)</c>), which fills it.</item>
 /// <item>XS004: <c>mouse</c> passed to <c>anchor</c>/<c>anchored</c>. Anchors are
 /// fractions of the quad; <c>mouse</c> is pixels, so the shape lands far off the
 /// stage. <c>move(mouse)</c> is what was meant.</item>
@@ -55,7 +56,8 @@ public static partial class SlangLint
                 if (!use.Success)
                     continue;
                 int after = match.Index + match.Length + use.Index + use.Length;
-                if (AssignedAfter().IsMatch(code[after..Math.Min(code.Length, after + 200)]))
+                if (AssignedAfter().IsMatch(code[after..Math.Min(code.Length, after + 200)])
+                    || OutArgument(code, match.Index + match.Length + use.Index, after))
                     continue;
 
                 (int line, int column) = Place(code, at);
@@ -192,6 +194,48 @@ public static partial class SlangLint
     }
 
     /// <summary>Each declared name, with its place in the source.</summary>
+    /// <summary>
+    /// Whether the name between <paramref name="start"/> and <paramref name="end"/> is a whole argument
+    /// of a call to a function the code declares, at a parameter declared <c>out</c>.
+    /// </summary>
+    private static bool OutArgument(string code, int start, int end)
+    {
+        int depth = 0, index = 0, open = -1;
+        for (int i = start - 1; i >= 0 && open < 0; i--)
+        {
+            char c = code[i];
+            if (c is ')' or ']' or '}')
+                depth++;
+            else if (c is '(' or '[' or '{' && depth > 0)
+                depth--;
+            else if (c == '(')
+                open = i;
+            else if (c is '{' or ';')
+                return false;
+            else if (c == ',' && depth == 0)
+                index++;
+        }
+
+        // The argument must be the name alone: nothing but space between it and the commas or brackets round it.
+        int before = start - 1;
+        while (before > open && char.IsWhiteSpace(code[before]))
+            before--;
+        int next = end;
+        while (next < code.Length && char.IsWhiteSpace(code[next]))
+            next++;
+        if (open < 0 || (code[before] != ',' && before != open) || next >= code.Length || code[next] is not (',' or ')'))
+            return false;
+
+        Match callee = Regex.Match(code[..open], @"([A-Za-z_]\w*)\s*$");
+        if (!callee.Success)
+            return false;
+        Match declared = Regex.Match(code, $@"\b[A-Za-z_]\w*\s+{Regex.Escape(callee.Groups[1].Value)}\s*\(([^)]*)\)\s*\{{");
+        if (!declared.Success)
+            return false;
+        string[] parameters = declared.Groups[1].Value.Split(',');
+        return index < parameters.Length && Regex.IsMatch(parameters[index], @"^\s*out\b");
+    }
+
     private static IEnumerable<(int At, string Name)> Names(Match match)
     {
         Group names = match.Groups[2];

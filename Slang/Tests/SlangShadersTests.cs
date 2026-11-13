@@ -81,6 +81,18 @@ public sealed class SlangShadersTests
     }
 
     [Test]
+    public void ABoolUniformIsASwitch()
+    {
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test",
+            "import xanadu;\n[Default(1)] uniform bool glow;\nuniform bool other;\nfloat4 shade(Canvas canvas) { return glow && !other ? 1 : 0; }");
+
+        ShaderParam glow = compiled.Params.Single(p => p.Name == "glow");
+        Assert.That(glow.IsBool, Is.True);
+        Assert.That(glow.Default.X, Is.EqualTo(1));
+        Assert.That(compiled.Params.Single(p => p.Name == "other").Default.X, Is.EqualTo(0));
+    }
+
+    [Test]
     public void AShapesDistanceDefaultsToThePixelBeingShaded()
     {
         Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",

@@ -32,7 +32,17 @@ internal sealed class EditorChrome
     private static readonly Color Badge = new(0.04f, 0.06f, 0.13f, 0.85f);
 
     /// <summary>The lines under the problems: the editor's own keys; the stage puts its preview's lines before them.</summary>
-    public string[] Help { get; set; } =
+    public string[] Help
+    {
+        get => _help;
+        set
+        {
+            _help = value;
+            Resize(_bar, _preview, _side);
+        }
+    }
+
+    private string[] _help =
     [
         "Shift selects · drag · double-click a word · Ctrl+A/C/X/V · Ctrl+Z/Y · wheel · click a problem to jump.",
         "Tab / Shift+Tab indent lines · Ctrl+/ comments · Ctrl+arrows and Ctrl+Backspace go by word · F2 renames.",
@@ -61,9 +71,20 @@ internal sealed class EditorChrome
         _preview = preview;
         _side = side;
         float tuningTop = side.Position.Y + Pad + Row + 4 + ProblemRows * Row + Pad;
-        float helpTop = side.End.Y - Pad - Help.Length * Row;
-        TuningArea = new Rect2(side.Position.X + Pad, tuningTop, side.Size.X - Pad * 2, helpTop - Pad - tuningTop);
+        // The key guide gives way, a line at a time from its end, so the values keep room.
+        _helpShown = Help.Length;
+        while (_helpShown > 0 && HelpTop(side) - Pad - tuningTop < MinTuningRows * Row)
+            _helpShown--;
+        TuningArea = new Rect2(side.Position.X + Pad, tuningTop, side.Size.X - Pad * 2, Math.Max(0, HelpTop(side) - Pad - tuningTop));
     }
+
+    /// <summary>Rows the values always get before the key guide gives way: the header and a few values.</summary>
+    private const int MinTuningRows = 5;
+
+    /// <summary>How many of the key guide's lines fit.</summary>
+    private int _helpShown;
+
+    private float HelpTop(Rect2 side) => side.End.Y - Pad - _helpShown * Row;
 
     /// <summary>Where the value sliders go: between the problems and the key guide.</summary>
     public Rect2 TuningArea { get; private set; }
@@ -99,7 +120,7 @@ internal sealed class EditorChrome
         y += Row + 4;
 
         _problemRows.Clear();
-        float helpTop = _side.End.Y - Pad - Help.Length * Row;
+        float helpTop = HelpTop(_side);
         float problemsEnd = y + ProblemRows * Row;
         if (state.Problems.Count == 0)
             _canvas.DrawTextStyledLeft(_item, new Rect2(_side.Position.X + Pad, y, _side.Size.X, Row), "none", Palette.TextMuted, 14);
@@ -117,7 +138,7 @@ internal sealed class EditorChrome
             y += Row;
         }
 
-        for (int i = 0; i < Help.Length; i++)
+        for (int i = 0; i < _helpShown; i++)
         {
             _canvas.DrawTextStyledLeft(
                 _item, new Rect2(_side.Position.X + Pad, helpTop + i * Row, _side.Size.X - Pad * 2, Row), Help[i], Palette.TextMuted, 13);

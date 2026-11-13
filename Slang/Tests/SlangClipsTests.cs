@@ -28,6 +28,21 @@ public sealed class SlangClipsTests
     }
 
     [Test]
+    public void APartOfAClipSitsInsideIt()
+    {
+        SlangClip[] clips = Find("""
+            Clock loop = clock.looped(13);
+            Clip scene = loop.clip(3, 1);
+            Clip fade = scene.part(0.2, 0.8).eased(eases.smooth);
+            """);
+
+        SlangClip fade = clips.Single(c => c.Name == "fade");
+        Assert.That(fade.Start, Is.EqualTo(3.2).Within(1e-9));
+        Assert.That(fade.Length, Is.EqualTo(0.6).Within(1e-9));
+        Assert.That(SlangClips.Easings[fade.Easing], Is.EqualTo("smooth"));
+    }
+
+    [Test]
     public void ThenAndDelayedFollowOnFromTheClipBefore()
     {
         SlangClip[] clips = Find("""
@@ -136,6 +151,7 @@ public sealed class SlangClipsTests
     [TestCase(0, 0.3f, 0.3f)]
     [TestCase(2, 0.5f, 0.75f)]
     [TestCase(11, 0.5f, 0.96875f)]
+    [TestCase(31, 0.25f, 0.15625f)]
     public void EasingsMatchTheLibrary(int id, float t, float eased) =>
         Assert.That(SlangClips.Ease(id, t), Is.EqualTo(eased).Within(1e-4));
 

@@ -71,6 +71,8 @@ public namespace eases
     public static const Ease inBounce = Ease(28);
     public static const Ease outBounce = Ease(29);
     public static const Ease inOutBounce = Ease(30);
+    /// smoothstep's curve (3t² - 2t³): smoothstep(0, 1, t) as an easing.
+    public static const Ease smooth = Ease(31);
 }
 
 /// A play key: a direction (S D K L by default) or an action key (F Space J).
@@ -256,6 +258,14 @@ public struct Clip
 
     /// Whether its clock has passed its end.
     public property bool finished { get { return clock.now >= end; } }
+
+    /// Whether the clock is inside it now: started and not yet finished.
+    public property bool playing { get { return started && !finished; } }
+
+    /// A new clip over the stretch of this one from `from` to `to` (fractions of its span, 0..1),
+    /// linear, on the same clock: a fade inside a scene. smoothstep(0.8, 0.2, scene.linear) is
+    /// scene.part(0.2, 0.8).eased(eases.smooth).reversed().progress.
+    public Clip part(float from, float to) { return Clip(clock, start + from * span, (to - from) * span); }
 
     /// From one value to another by its progress.
     public float mixed(float from, float to) { return lerp(from, to, progress); }

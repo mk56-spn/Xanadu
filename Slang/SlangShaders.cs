@@ -8,7 +8,8 @@ using Slangc.NET;
 namespace Xanadu.Slang;
 
 /// <summary>One value an effect reads from its <c>Params</c> block: where it sits, how big, and its default.</summary>
-public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default);
+/// <param name="IsBool">A <c>uniform bool</c>: an on/off switch, held as 0 or 1 (and written as an int, like <paramref name="IsInt"/>).</param>
+public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default, bool IsBool = false);
 
 /// <summary>
 /// A compiled entry point and what reflection says it binds: how many
@@ -544,12 +545,17 @@ public static class SlangShaders
                 if (attribute.GetProperty("name").GetString() == "Default")
                 {
                     float[] values = attribute.GetProperty("arguments").EnumerateArray()
-                        .Select(a => a.ValueKind == JsonValueKind.Number ? a.GetSingle() : 0f).ToArray();
+                        .Select(a => a.ValueKind switch
+                        {
+                            JsonValueKind.Number => a.GetSingle(),
+                            JsonValueKind.True => 1f,
+                            _ => 0f,
+                        }).ToArray();
                     fallback = new Vector4(At(values, 0), At(values, 1), At(values, 2), At(values, 3));
                 }
 
         return new ShaderParam(field.GetProperty("name").GetString() ?? "", offset, size,
-            scalar is "int32" or "uint32" or "bool", fallback);
+            scalar is "int32" or "uint32" or "bool", fallback, scalar == "bool");
     }
 
     private static float At(float[] values, int index) => index < values.Length ? values[index] : 0f;

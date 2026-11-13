@@ -83,6 +83,7 @@ public static partial class SlangClips
         "inElastic", "outElastic", "inOutElastic",
         "inBack", "outBack", "inOutBack",
         "inBounce", "outBounce", "inOutBounce",
+        "smooth",
     ];
 
     /// <summary>The <c>keys.</c> names, numbered as the library's <c>Key</c> (and the game's keybinds).</summary>
@@ -132,6 +133,10 @@ public static partial class SlangClips
         t = Math.Clamp(t, 0f, 1f);
         if (id <= 0 || id >= Easings.Length)
             return t;
+
+        // smoothstep's curve, after the Penner families.
+        if (id == 31)
+            return t * t * (3f - 2f * t);
 
         int family = (id - 1) / 3;
         var direction = (CurveDirection)((id - 1) % 3);
@@ -470,6 +475,9 @@ public static partial class SlangClips
                         ("bounced", []) => clip with { Bounced = true },
                         ("reversed", []) => clip with { Reversed = !clip.Reversed },
                         ("then", [var length]) => new ClipValue(clip.Clock, clip.End, Number(length), 0, false, false, clip.StaggerStep),
+                        ("part", [var from, var to]) => new ClipValue(
+                            clip.Clock, clip.Start + Number(from) * (clip.End - clip.Start), (Number(to) - Number(from)) * (clip.End - clip.Start),
+                            0, false, false, clip.StaggerStep),
                         _ => Unknown.Value,
                     };
 

@@ -43,6 +43,9 @@ internal sealed class ShaderCodeEditor : IDisposable
     private readonly EditorTuning _tuning;
     private readonly IEditorPreview _view;
     private readonly ClipTimeline _timeline;
+
+    /// <summary>The boxes it was last placed in, to lay out again when the timeline wants another height.</summary>
+    private ShaderEditorBoxes _boxes;
     private readonly PlayStandIns _standIns = new();
     private readonly IRectCanvas _canvas;
     private readonly Handle _chromeItem;
@@ -131,7 +134,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         IRectCanvas canvas = HostPlatform.NewCanvas();
         _canvas = canvas;
         _chromeItem = chromeItem;
-        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side);
+        _boxes = boxes;
+        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side, ClipTimeline.MinHeight);
         _timeline = new ClipTimeline(entities) { Area = clipsBox, Scrubs = _view.TakesClock };
         _timeline.Jump += (line, column) =>
         {
@@ -348,17 +352,18 @@ internal sealed class ShaderCodeEditor : IDisposable
     }
 
     /// <summary>The column under the preview split: the clip timeline on top, the problems and the rest under it.</summary>
-    private static (Rect2 Clips, Rect2 Others) UnderPreview(Rect2 side)
+    private static (Rect2 Clips, Rect2 Others) UnderPreview(Rect2 side, float timeline)
     {
         const float Gap = 8;
-        var clips = new Rect2(side.Position, new Vector2(side.Size.X, ClipTimeline.Height));
-        var rest = new Rect2(side.Position.X, clips.End.Y + Gap, side.Size.X, Math.Max(0, side.Size.Y - ClipTimeline.Height - Gap));
+        var clips = new Rect2(side.Position, new Vector2(side.Size.X, timeline));
+        var rest = new Rect2(side.Position.X, clips.End.Y + Gap, side.Size.X, Math.Max(0, side.Size.Y - timeline - Gap));
         return (clips, rest);
     }
 
     /// <summary>Moves everything to new boxes: the code, the preview quad (so the shader sees its new size), the column and the popups' bounds.</summary>
     public void Place(ShaderEditorBoxes boxes)
     {
+        _boxes = boxes;
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
         editor.Layout.Area = code;
@@ -374,7 +379,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         _pointer = _preview.Position + at * _preview.Size;
         _view.Place(_preview);
 
-        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side);
+        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side, _timeline.Height);
         _timeline.Area = clipsBox;
         _chrome.Resize(boxes.Bar, boxes.Preview, side);
         _chrome.Divider = boxes.Divider;
@@ -428,7 +433,11 @@ internal sealed class ShaderCodeEditor : IDisposable
         if (_clipsVersion != main.Version)
         {
             _clipsVersion = main.Version;
+            float height = _timeline.Height;
             _timeline.Use(SlangClips.Find(main.Lines));
+            // More clips, more rows: the column under the preview makes room.
+            if (_timeline.Height != height)
+                Place(_boxes);
             _tuning.UseStandIns(PlayStandIns.Needed(main.Text));
         }
 
