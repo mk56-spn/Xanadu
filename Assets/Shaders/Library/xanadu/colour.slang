@@ -11,6 +11,7 @@
 //                                  brighten, saturateBy, contrast, tint, shiftHue
 //                                  (and inverted, greyed, … for a changed copy)
 module colour;
+import xanadu.math;
 
 /// A colour: just a float4 (r, g, b, a, straight alpha) under a name that says what it holds.
 public typealias colour = float4;
@@ -75,6 +76,13 @@ public extension float4
     /// A copy with the rgb moved towards `to`'s by `amount` (0 none, 1 all the way).
     public colour tinted(colour to, float amount) { return colour(lerp(this.rgb, to.rgb, amount), this.a); }
 
+    /// Encodes it for the screen: rgb to the power 1 / `gamma` (lighter mid-tones), as shaders that
+    /// work in linear light finish with pow(rgb, 1.0 / 2.2).
+    [mutating] public void gammaCorrect(float gamma = 2.2) { this = gammaCorrected(gamma); }
+
+    /// A copy encoded for the screen: rgb to the power 1 / `gamma`.
+    public colour gammaCorrected(float gamma = 2.2) { return colour(pow(max(this.rgb, 0.0), 1.0 / gamma), this.a); }
+
     /// Turns the hue round by `turns` (1 is all the way round, back where it started), keeping how bright it is.
     [mutating] public void shiftHue(float turns) { this = hueShifted(turns); }
 
@@ -98,6 +106,22 @@ public namespace colours
         float4 k = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
         float3 p = abs(frac(float3(hue) + k.xyz) * 6.0 - k.www);
         return colour(value * lerp(k.xxx, saturate(p - k.xxx), saturation), 1.0);
+    }
+
+    /// Inigo Quilez's cosine palette: a + b·cos(TAU·(c·t + d)), each per channel. `a` is the
+    /// middle, `b` how far it swings, `c` how many times round per unit of t, `d` each channel's
+    /// head start (in turns). colours.palette(t, 0.5, 0.5, 1, float3(0, 0.33, 0.67)) is a rainbow.
+    public colour palette(float t, float3 a, float3 b, float3 c, float3 d)
+    {
+        return colour(a + b * cos(TAU * (c * t + d)), 1.0);
+    }
+
+    /// The commonest cosine palette: a smooth rainbow round t (a whole turn every 1), the
+    /// channels a third of a turn apart, `middle` ± `swing`. cos(float3(0, 2, 4) * PI / 3 + x) * s + m
+    /// is colours.rainbow(x / TAU, m, s).
+    public colour rainbow(float t, float middle = 0.5, float swing = 0.5)
+    {
+        return palette(t, float3(middle), float3(swing), float3(1.0), float3(0.0, 1.0 / 3.0, 2.0 / 3.0));
     }
 
     /// The hue at full saturation and value, cycling red, green, blue as it goes 0..1.

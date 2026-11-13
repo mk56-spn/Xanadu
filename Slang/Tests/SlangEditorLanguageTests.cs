@@ -9,6 +9,21 @@ namespace Xanadu.Slang.Tests;
 public sealed class SlangProblemsTests
 {
     [Test]
+    public void AVectorComparisonUsedAsAConditionIsExplained()
+    {
+        const string output = """
+            error[E30019]: type mismatch in expression
+             --> mine:5:11
+              |
+            5 | if (a != b)
+              |       ^^ expected an expression of type 'bool', got 'vector<bool,2>'
+            """;
+        SlangProblem problem = SlangProblems.Parse(output, "mine").Single();
+        Assert.That(problem.Line, Is.EqualTo(5));
+        Assert.That(problem.Message, Does.Contain("any(…)"));
+    }
+
+    [Test]
     public void TheRustcStyleGivesLineColumnAndTheCaretsWords()
     {
         const string output = """

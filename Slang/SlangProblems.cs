@@ -71,7 +71,7 @@ public static partial class SlangProblems
                     message = caret.Groups[1].Value.Trim();
             }
 
-            problems.Add(new SlangProblem(line, column, message, header.Groups[1].Value == "warning"));
+            problems.Add(new SlangProblem(line, column, Explained(message), header.Groups[1].Value == "warning"));
         }
 
         if (code is not null)
@@ -87,6 +87,16 @@ public static partial class SlangProblems
             problems.Add(new SlangProblem(0, 1, output.Trim().Split('\n')[0], false));
         return problems;
     }
+
+    /// <summary>A vector where one true or false was wanted: <c>if (a != b)</c> on float2s.</summary>
+    [GeneratedRegex(@"expected an expression of type 'bool', got 'vector<bool,\s*\d>'")]
+    private static partial Regex VectorCondition();
+
+    /// <summary>Slang's wording where it misleads someone coming from GLSL, said plainly.</summary>
+    private static string Explained(string message) =>
+        VectorCondition().IsMatch(message)
+            ? "comparing vectors gives one true or false per component here (GLSL gives one): wrap it in any(…) for \"differ anywhere\" or all(…) for \"equal everywhere\""
+            : message;
 
     /// <summary>
     /// Slang finds a missing ; only at the next token, often lines on. When that token starts its

@@ -144,6 +144,12 @@ colour mixed = top.over(bottom);         // straight-alpha "over"
   shows each one's swatch in completion.
 - **`colours.hsv(h, s, v)`** and **`colours.hue(h)`** (full saturation and
   value) give opaque colours.
+- **`colours.palette(t, a, b, c, d)`:** Inigo Quilez's cosine palette,
+  `a + b·cos(TAU·(c·t + d))` per channel; **`colours.rainbow(t, middle = 0.5,
+  swing = 0.5)`** is the common one, the channels a third of a turn apart.
+- **`c.gammaCorrect(g = 2.2)`** / **`c.gammaCorrected(g)`:** rgb to the power
+  1 / g, for code that works in linear light and finishes with
+  `pow(rgb, 1.0 / 2.2)`.
 - **`c.withAlpha(a)`:** the same colour with another alpha; **`c.withRgb(rgb)`**
   the same alpha with another rgb.
 - **Changing the rgb, keeping the alpha:** each as a verb that changes the
@@ -389,12 +395,21 @@ quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 | `Stripes(size, fill = 0.5)` | diagonal bands repeating every `size` px across them, each band `fill` of that, one through the centre. `rotated` turns them further. `c.paint(Stripes(24), colours.gold)` draws even gold stripes. |
 | `Checker(size, levels = 0)` | squares `size` across, corners meeting at the centre; filled on every other one. `levels` (0 to 3) splits each square into a smaller checker again. |
 
+`pattern.slice(count)` folds space into `count` slices round the centre, like
+a kaleidoscope: draw one thing at `slice.local` and it repeats in every slice.
+The first is centred straight up (or on a `facing` direction you give);
+`slice.index` counts them clockwise and `rotate(v, slice.turn)` takes a
+direction from the first slice back out. `pattern.slice(position, count)` does
+it at any point.
+
 `pattern.tile(size)` cuts the quad into tiles from its centre and gives a
 `Tile`: `.local` is the pixel's place in its tile (centred there), `.id` is
 which tile. Draw one shape at `.local` and it repeats; seed randomness with
 `.id`. `pattern.tile(size, anchor.topLeft)` puts that point of a tile on the
 centre instead (a corner, as GLSL's `fract(uv * n)` cuts them); `.local` is
-still from the tile's own centre; `.centre` is where the tile's middle is, so
+still from the tile's own centre; a `float2` size makes oblong tiles
+(`pattern.tile(float2(80, 40))`, or with a place, `pattern.tile(position,
+float2(80, 40), anchor.topLeft)`); `.centre` is where the tile's middle is, so
 `length(tile.centre)` is how far out the tile sits. `pattern.tile(position, size)` does the same at any point, for tiles
 that move or layer.
 
@@ -811,5 +826,10 @@ bottom-left, y up.
 | `smoothstep(w, 0.0, d)`, `1.0 - smoothstep(-w, w, d)` | `s.feathered(w)`, `s.filled(2 * w)` |
 | `col *= k`, `mix(col, vec3(1), t)` | `col.brighten(k)`, `col.tint(colours.white, t)` (§3) |
 | `fragColor.a` | shadertoy shows rgb and ignores alpha; our stage blends by it, so return alpha 1 to look the same |
-| `#define NAME value` | `static const float NAME = value;` |
+| `#define NAME value` | `static const float NAME = value;`, but drop `PI` and `TAU`: the library has both |
+| `a != b`, `a == b` on vectors in a condition | `any(a != b)`, `all(a == b)`: in Slang a vector comparison gives one bool per component |
+| `pmod(p, n)`: `atan`, `floor` and a rotate to fold space into n slices | `pattern.slice(p, n)`: `.local`, `.index`, and `.turn` to rotate back |
+| `mod(p, size) - size * 0.5` with oblong cells | `pattern.tile(p, size, anchor.topLeft).local` with a `float2` size |
+| `cos(float3(0, 2, 4) * PI / 3 + x) * s + m`, `a + b * cos(TAU * (c * t + d))` | `colours.rainbow(x / TAU, m, s)`, `colours.palette(t, a, b, c, d)` |
+| `pow(col, vec3(1.0 / 2.2))` | `c.gammaCorrect()` |
 | `out` and `inout` parameters, structs | the same in Slang |

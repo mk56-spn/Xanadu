@@ -22,6 +22,18 @@ public struct Tile
     public float2 centre;
 };
 
+/// Where a point falls when space is folded into slices round a point (pattern.slice).
+public struct Slice
+{
+    /// The point turned into the first slice: one thing drawn here repeats in every slice.
+    public float2 local;
+    /// Which slice, 0 to count - 1, clockwise (y down) from the first.
+    public float index;
+    /// How far this slice is turned from the first, in radians: rotate(v, slice.turn) takes
+    /// something from the first slice's space (a direction, a normal) back out.
+    public float turn;
+};
+
 /// How far p is from the nearest multiple of `spacing`, on each axis.
 float2 offGrid(float2 p, float2 spacing) { return abs(p - spacing * round(p / spacing)); }
 
@@ -143,7 +155,13 @@ public namespace pattern
     public Tile tile(float size) { return tile(shading.canvas.centred, size); }
 
     /// Space cut into tiles `size` across, at `position`: for tiles that move, scale or layer.
-    public Tile tile(float2 position, float size)
+    public Tile tile(float2 position, float size) { return tile(position, float2(size)); }
+
+    /// Oblong tiles `size` wide and high, from the quad's centre.
+    public Tile tile(float2 size) { return tile(shading.canvas.centred, size); }
+
+    /// Oblong tiles `size` wide and high, at `position`.
+    public Tile tile(float2 position, float2 size)
     {
         Tile t;
         t.id = round(position / size);
@@ -152,15 +170,38 @@ public namespace pattern
         return t;
     }
 
+    /// Oblong tiles `size` wide and high with `place` of a tile (anchor.topLeft, …) on the origin, at `position`.
+    public Tile tile(float2 position, float2 size, float2 place)
+    {
+        Tile t = tile(position - place * size, size);
+        t.centre += place * size;
+        return t;
+    }
+
     /// Tiles `size` across with `place` of a tile on the quad's centre (anchor.topLeft: a corner
     /// there, as GLSL's fract(uv * n) cuts them); .local is still from the tile's own centre.
     public Tile tile(float size, float2 place) { return tile(shading.canvas.centred, size, place); }
 
     /// Tiles `size` across with `place` of a tile (anchor.topLeft, …) on the origin, at `position`.
-    public Tile tile(float2 position, float size, float2 place)
+    public Tile tile(float2 position, float size, float2 place) { return tile(position, float2(size), place); }
+
+    /// Space folded into `count` equal slices round the quad's centre, like a kaleidoscope: draw
+    /// one thing at slice.local and it repeats in every slice. The first slice is centred on
+    /// `facing` (straight up by default); slice.index counts them clockwise (y down).
+    public Slice slice(float count, float2 facing = float2(0.0, -1.0)) { return slice(shading.canvas.centred, count, facing); }
+
+    /// Space folded into `count` slices round the origin, at `position` (see slice(count)).
+    public Slice slice(float2 position, float count, float2 facing = float2(0.0, -1.0))
     {
-        Tile t = tile(position - place * size, size);
-        t.centre += place * size;
-        return t;
+        float2 f = normalize(facing);
+        float split = TAU / count;
+        // The angle from facing to the point, then which slice that falls in, the first centred on facing.
+        float angle = atan2(f.x * position.y - f.y * position.x, dot(f, position));
+        float index = floor(angle / split + 0.5);
+        Slice s;
+        s.turn = index * split;
+        s.index = mod(index, count);
+        s.local = rotate(position, -s.turn);
+        return s;
     }
 }

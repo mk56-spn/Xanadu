@@ -16,12 +16,6 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
-| Folding space into n slices round a point (`pmod`, the kaleidoscope trick) | missing | Ashanoha | `pattern.slice(count)` / `pattern.slice(position, count)`: a Tile-like result, the point turned into the first slice and which slice |
-| Oblong tiles: `mod(uv, float2(1, h)) - half` by hand, `pattern.tile` only takes a square size | missing | Ashanoha | `pattern.tile(float2 size, …)` overloads |
-| iq's cosine palette (`cos(float3(0, 2, 4) * PI / 3 + t) * a + b`), in nearly every shadertoy | missing | Ashanoha | `colours.palette(t, a, b, c, d)` (a + b·cos(TAU·(c·t + d))) and `colours.rainbow(t)` for the common one |
-| Gamma by hand: `pow(c.rgb, 1.0 / 2.2)` | unreadable | Ashanoha | `c.gammaCorrect(g = 2.2)` / `c.gammaCorrected(g)` |
-| GLSL's `!=` on vectors is one bool, Slang's one per component (`if (a != b)` needs `any`) | editor | Ashanoha | a §17 row, and a lint warning on a vector comparison used as a condition |
-| The library's `PI`/`TAU` clash with a port's own `#define PI` | unreadable | Ashanoha | a §17 row: drop them, the library has both |
 | Nearest point and distance to the cell edge over a fixed set of points (`map`, `normalmap`: 70 lines of loops) | missing | Ashanoha | maybe `pattern.voronoi(position, points)` over an array: nearest point and edge distance; wait for a second shader that wants it |
 
 ## Fixed
@@ -38,3 +32,9 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | A tile's middle (`floor(pos) + 0.5`) came out as `tile.id - 0.5` | diamond ripple | `tile.centre` |
 | A repeating ramp by hand (`2.0 * fract(x * 0.5)`) | diamond ripple | `saw(x, period)`, `triangle(x, period)` |
 | Porting conventions worked out each time (y up, `mat2` order, uv scales, alpha) | diamond ripple | shaders.md §17 "From shadertoy" |
+| Folding space into slices round a point (`pmod`) | Ashanoha | `pattern.slice(count)`: `.local`, `.index`, `.turn` |
+| Oblong tiles by hand | Ashanoha | `pattern.tile` with a `float2` size |
+| iq's cosine palette by hand | Ashanoha | `colours.palette(t, a, b, c, d)`, `colours.rainbow(t, middle, swing)` |
+| Gamma by hand (`pow(rgb, 1.0 / 2.2)`) | Ashanoha | `c.gammaCorrect(g)`, `c.gammaCorrected(g)` |
+| `if (a != b)` on vectors: Slang's "expected bool, got vector<bool,2>" | Ashanoha | the editor says to wrap it in `any(…)` / `all(…)`; §17 row |
+| A port's own `#define PI` against the library's | Ashanoha | §17 row |

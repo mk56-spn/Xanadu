@@ -70,6 +70,9 @@ public sealed class SlangShadersTests
     [TestCase("return Circle(20).feathered(8) + sdf.feathered(Box(float2(30)).distance(), 4);")]
     [TestCase("Tile t = pattern.tile(40, anchor.topLeft); Tile u = pattern.tile(canvas.centred, 40, anchor.top); return Circle(10).filled(t.local) + Circle(5).filled(u.local);")]
     [TestCase("Tile t = pattern.tile(40, anchor.topLeft); return length(t.centre) / 40 + saw(time, 4) + triangle(time);")]
+    [TestCase("Slice s = pattern.slice(6); Slice f = pattern.slice(canvas.centred, 5, float2(1, 0)); float2 back = rotate(s.local, s.turn); return Circle(10).filled(s.local + float2(0, -60)) + f.index + back.x;")]
+    [TestCase("Tile t = pattern.tile(float2(80, 40)); Tile u = pattern.tile(canvas.centred, float2(60, 30), anchor.topLeft); return Box(float2(20)).filled(t.local) + length(u.centre);")]
+    [TestCase("colour c = colours.rainbow(time, 1, 0.25); c.gammaCorrect(); return c.tinted(colours.palette(time, float3(0.5), float3(0.5), float3(1), float3(0, 0.33, 0.67)), 0.5).gammaCorrected(2.4);")]
     [TestCase("float v = sin01(1.0) + cos01(2.0) + remapped(0.5, float2(0, 1), float2(0.25, 0.75)); v.contrast(0.7); return v.contrasted(1.2);")]
     public void TheGapsFromPortingAreFilled(string body)
     {
