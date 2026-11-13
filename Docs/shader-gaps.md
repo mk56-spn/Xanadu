@@ -16,9 +16,6 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
-| A tile's middle: `length(floor(pos) + 0.5 - centre)` became `length(tile.id - 0.5)` with corner tiles | unreadable | diamond ripple | `tile.centre`: where the tile's middle is, in pixels from the origin |
-| A repeating ramp: `2.0 * fract(x * 0.5)` | unreadable | diamond ripple | `saw(x, period)` (0..1, then back to 0) and `triangle(x, period)` (0..1..0) |
-| Porting conventions worked out each time: GLSL's y up, `mat2` column-major (which way `m * uv` turns), uv over width or height, shadertoy ignoring the alpha | unreadable | diamond ripple | a "From shadertoy" section in shaders.md: each GLSL idiom beside ours |
 
 ## Fixed
 
@@ -31,3 +28,6 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Corner-on-centre tiles (`fract(uv * n)`) needed a half-tile shift | pulse dots | `pattern.tile(size, anchor.topLeft)` |
 | Remapping by hand (`sin(x) * 0.5 + 0.5`, `x * 0.5 + 0.25`) | pulse dots | `sin01`, `cos01`, `remapped(x, from, to)` |
 | Contrast on a plain number (`lerp(v, 0.5, 0.3)`) | pulse dots | `v.contrast(f)`, `v.contrasted(f)` |
+| A tile's middle (`floor(pos) + 0.5`) came out as `tile.id - 0.5` | diamond ripple | `tile.centre` |
+| A repeating ramp by hand (`2.0 * fract(x * 0.5)`) | diamond ripple | `saw(x, period)`, `triangle(x, period)` |
+| Porting conventions worked out each time (y up, `mat2` order, uv scales, alpha) | diamond ripple | shaders.md §17 "From shadertoy" |

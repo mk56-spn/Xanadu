@@ -16,6 +16,12 @@ public float sin01(float x) { return sin(x) * 0.5 + 0.5; }
 /// A cosine from 0 to 1 instead of -1 to 1: cos(x) * 0.5 + 0.5. 1 at x = 0.
 public float cos01(float x) { return cos(x) * 0.5 + 0.5; }
 
+/// A ramp from 0 to 1 every `period`, dropping back to 0: frac(x / period).
+public float saw(float x, float period = 1.0) { return frac(x / period); }
+
+/// Up from 0 to 1 and back down every `period`, 0 at x = 0.
+public float triangle(float x, float period = 1.0) { return 1.0 - abs(2.0 * frac(x / period) - 1.0); }
+
 /// x moved from the range `from` (low, high) to the range `to`, in proportion; not held
 /// inside it: remapped(sin(t), float2(-1, 1), float2(0.25, 0.75)).
 public float remapped(float x, float2 from, float2 to)

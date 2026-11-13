@@ -14,8 +14,12 @@ import xanadu.shape;
 /// Where a point falls when space is cut into tiles: its place in the tile (centred) and which tile.
 public struct Tile
 {
+    /// The point in its tile, from the tile's middle.
     public float2 local;
+    /// Which tile: whole numbers, (0, 0) for the one the origin sits in.
     public float2 id;
+    /// Where the tile's middle is, from the origin: length(tile.centre) is how far out the tile is.
+    public float2 centre;
 };
 
 /// How far p is from the nearest multiple of `spacing`, on each axis.
@@ -143,7 +147,8 @@ public namespace pattern
     {
         Tile t;
         t.id = round(position / size);
-        t.local = position - size * t.id;
+        t.centre = size * t.id;
+        t.local = position - t.centre;
         return t;
     }
 
@@ -152,5 +157,10 @@ public namespace pattern
     public Tile tile(float size, float2 place) { return tile(shading.canvas.centred, size, place); }
 
     /// Tiles `size` across with `place` of a tile (anchor.topLeft, …) on the origin, at `position`.
-    public Tile tile(float2 position, float size, float2 place) { return tile(position + place * -size, size); }
+    public Tile tile(float2 position, float size, float2 place)
+    {
+        Tile t = tile(position - place * size, size);
+        t.centre += place * size;
+        return t;
+    }
 }

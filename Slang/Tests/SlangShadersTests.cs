@@ -69,6 +69,7 @@ public sealed class SlangShadersTests
 
     [TestCase("return Circle(20).feathered(8) + sdf.feathered(Box(float2(30)).distance(), 4);")]
     [TestCase("Tile t = pattern.tile(40, anchor.topLeft); Tile u = pattern.tile(canvas.centred, 40, anchor.top); return Circle(10).filled(t.local) + Circle(5).filled(u.local);")]
+    [TestCase("Tile t = pattern.tile(40, anchor.topLeft); return length(t.centre) / 40 + saw(time, 4) + triangle(time);")]
     [TestCase("float v = sin01(1.0) + cos01(2.0) + remapped(0.5, float2(0, 1), float2(0.25, 0.75)); v.contrast(0.7); return v.contrasted(1.2);")]
     public void TheGapsFromPortingAreFilled(string body)
     {

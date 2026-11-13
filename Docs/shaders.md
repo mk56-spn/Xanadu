@@ -44,6 +44,7 @@ overload.
 14. [Keeping state between frames](#14-keeping-state-between-frames)
 15. [Trying things out](#15-trying-things-out)
 16. [Pitfalls](#16-pitfalls)
+17. [From shadertoy](#17-from-shadertoy)
 
 ---
 
@@ -393,7 +394,8 @@ quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 which tile. Draw one shape at `.local` and it repeats; seed randomness with
 `.id`. `pattern.tile(size, anchor.topLeft)` puts that point of a tile on the
 centre instead (a corner, as GLSL's `fract(uv * n)` cuts them); `.local` is
-still from the tile's own centre. `pattern.tile(position, size)` does the same at any point, for tiles
+still from the tile's own centre; `.centre` is where the tile's middle is, so
+`length(tile.centre)` is how far out the tile sits. `pattern.tile(position, size)` does the same at any point, for tiles
 that move or layer.
 
 **Gradients** are centred, then placed, too: make one, place it with
@@ -618,6 +620,8 @@ time.
 | `mod(x, y)` | GLSL's mod: the remainder takes the divisor's sign (HLSL's `fmod` truncates) |
 | `rotate(position, angle)` | a point turned round the origin, clockwise on screen like shapes |
 | `sin01(x)`, `cos01(x)` | a sine or cosine from 0 to 1: `sin(x) * 0.5 + 0.5` |
+| `saw(x, period = 1)` | a ramp 0 to 1 every `period`, dropping back to 0: `frac(x / period)` |
+| `triangle(x, period = 1)` | up 0 to 1 and back down every `period`, 0 at 0 |
 | `remapped(x, from, to)` | `x` moved from one range to another in proportion, ranges as `float2(low, high)`, not clamped: `remapped(v, float2(0, 1), float2(0.25, 0.75))` |
 | `v.contrast(f)` / `v.contrasted(f)` | a number's distance from 0.5 scaled, as a colour's contrast: `lerp(v, 0.5, 0.3)` is `v.contrasted(0.7)` |
 | `random(seed)` | a repeatable number in 0..1. `seed` is a `float` or `float2`. |
@@ -780,3 +784,32 @@ See `Tools/Labs/Examples/flashlight.slang`.
   `move(mouse)`. The shader editor warns about it (XS004).
 - **A shape's anchor follows the quad.** `anchor(…)` reads the quad's size when
   it's called, so call it inside `shade`, not at file level.
+
+## 17. From shadertoy
+
+Porting a GLSL shader: each habit beside ours. Our space is pixels from the
+quad's centre, **y down**; shadertoy's `fragCoord` is pixels from the
+bottom-left, y up.
+
+| Shadertoy | Here |
+|---|---|
+| `void mainImage(out vec4 fragColor, in vec2 fragCoord)` | `float4 shade(Canvas canvas)`, returning the colour |
+| `iResolution.xy` | `canvas.size` |
+| `iTime` | `time` |
+| `iMouse.xy` | `mouse` in the lab (pixels from the centre, like `canvas.centred`); the button (`iMouse.z`) isn't there yet |
+| `fragCoord / iResolution.xy` | `i.uv`, but y runs down: `float2(i.uv.x, 1 - i.uv.y)` for his |
+| `(fragCoord - 0.5 * iResolution.xy) / iResolution.y` | `canvas.centred / canvas.size.y`, y down (negate `.y` where it matters) |
+| `(2.0 * fragCoord - iResolution.xy) / min(iResolution.x, iResolution.y)` | `canvas.centred * (2.0 / min(canvas.size.x, canvas.size.y))`, y down |
+| `vec2`, `vec3`, `mat2` | `float2`, `float3`, `float2x2` |
+| `mix`, `fract`, `atan(y, x)` | `lerp`, `frac`, `atan2(y, x)` (one-argument `atan` is the same) |
+| `mod(x, y)` | `mod(x, y)`, the library's GLSL one; Slang's `fmod` truncates instead |
+| `mat2(c, -s, s, c) * p` with `c, s` of `a` | `rotate(p, a)`: the same picture once y is flipped. `p * mat2(…)` (vector first) is `rotate(p, -a)` |
+| `fract(uv * n) - 0.5` | `pattern.tile(size, anchor.topLeft).local / size`, `size` the tile in pixels; `floor(uv * n)` is `tile.id` shifted, `floor(uv * n) + 0.5` is `tile.centre / size` |
+| `sin(x) * 0.5 + 0.5`, `fract(x / p)` | `sin01(x)`, `saw(x, p)`; `triangle(x, p)` for up and down |
+| `a * k + b` to move a range | `remapped(a, float2(from), float2(to))` |
+| `length(p) - r` and friends | `Circle(r).distance(p)`, the shapes (§4) |
+| `smoothstep(w, 0.0, d)`, `1.0 - smoothstep(-w, w, d)` | `s.feathered(w)`, `s.filled(2 * w)` |
+| `col *= k`, `mix(col, vec3(1), t)` | `col.brighten(k)`, `col.tint(colours.white, t)` (§3) |
+| `fragColor.a` | shadertoy shows rgb and ignores alpha; our stage blends by it, so return alpha 1 to look the same |
+| `#define NAME value` | `static const float NAME = value;` |
+| `out` and `inout` parameters, structs | the same in Slang |
