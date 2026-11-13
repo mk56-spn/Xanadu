@@ -16,6 +16,9 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
+| A tile's middle: `length(floor(pos) + 0.5 - centre)` became `length(tile.id - 0.5)` with corner tiles | unreadable | diamond ripple | `tile.centre`: where the tile's middle is, in pixels from the origin |
+| A repeating ramp: `2.0 * fract(x * 0.5)` | unreadable | diamond ripple | `saw(x, period)` (0..1, then back to 0) and `triangle(x, period)` (0..1..0) |
+| Porting conventions worked out each time: GLSL's y up, `mat2` column-major (which way `m * uv` turns), uv over width or height, shadertoy ignoring the alpha | unreadable | diamond ripple | a "From shadertoy" section in shaders.md: each GLSL idiom beside ours |
 
 ## Fixed
 
