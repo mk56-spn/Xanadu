@@ -17,6 +17,7 @@ import xanadu.shape;
 
 /// A gradient: how far along it a point is, in its own space. Placed like a
 /// shape (IPlaced), so move, rotate, scale and anchor work on it.
+/// @fits float colour
 public interface IGradient : IPlaced
 {
     /// How far along a point in the gradient's own space is: 0 at its start, 1 at its end, unclamped.

@@ -109,6 +109,9 @@ public sealed partial class SlangCompletions
         /// <summary>Makes the type the caret's value wants (a named colour for a colour, a shape for an IShape).</summary>
         Expected,
 
+        /// <summary>A family that can make the wanted type through a method (a gradient's coloured() for a colour).</summary>
+        Fits,
+
         /// <summary>A member of the family the typed word names (grad → the gradients).</summary>
         Family,
 
@@ -133,12 +136,15 @@ public sealed partial class SlangCompletions
     /// <summary>
     /// The one ordering: by tier, then fit, then the code's and the host's names before the
     /// library's, then alphabetically. A name offered twice keeps its best place (snippets may share
-    /// a name). Nothing is offered once the typed word is complete as written (Enter must stay a
-    /// new line), except snippets, which add more than the word.
+    /// a name). Too much beats nothing: the list only goes once the typed word is complete as
+    /// written and nothing longer starts with it (then Enter must stay a new line); snippets,
+    /// which add more than the word, always stay.
     /// </summary>
     private static List<Completion>? Ranked(Caret caret, List<Offer> offers)
     {
-        if (caret.Typed.Length > 0 && offers.Exists(o => o.Completion.Kind != CompletionKind.Snippet && Complete(o.Completion, caret.Typed)))
+        if (caret.Typed.Length > 0
+            && offers.Exists(o => o.Completion.Kind != CompletionKind.Snippet && Complete(o.Completion, caret.Typed))
+            && !offers.Exists(o => o.Fit != Fit.None && o.Completion.Name.Length > caret.Typed.Length))
             offers.RemoveAll(o => o.Completion.Kind != CompletionKind.Snippet);
 
         var found = new List<Completion>();

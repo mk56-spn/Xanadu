@@ -116,6 +116,8 @@ public interface IPlaced
     public property Placement placement { get; set; }
 }
 
+/// A shape: a signed distance, centred, then placed. Drawn with filled, stroked, outlined, haloed or c.paint.
+/// @fits float
 public interface IShape : IPlaced
 {
     /// Signed distance from p in the shape's own space, before its placement: negative inside.

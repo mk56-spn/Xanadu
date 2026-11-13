@@ -81,13 +81,23 @@ public sealed partial class SlangCompletions
     /// <summary>
     /// Where a value starts, what makes the type it wants comes up at once, written in whole:
     /// named colours as colours.name for a colour, every member of a family for an interface,
-    /// the struct itself for a struct; the shapes when nothing says what is wanted.
+    /// the struct itself for a struct; then the families whose <c>@fits</c> names the type (gradients
+    /// for a colour, shapes and gradients for a float). When nothing says what is wanted, the
+    /// shapes, then every family that fits anything: too much beats nothing.
     /// </summary>
     private void OfferExpected(Caret caret, List<Offer> offers)
     {
         if (!caret.Value || caret.NewName)
             return;
         IEnumerable<string> wants = caret.Wants.Count > 0 ? caret.Wants : [DefaultFamily];
+        foreach ((string face, string[] fits) in _fits)
+        {
+            if (caret.Wants.Count > 0 ? !caret.Wants.Any(fits.Contains) : face == DefaultFamily)
+                continue;
+            foreach (Completion member in Family(face))
+                offers.Add(new Offer(member, Tier.Fits, Matching(member.Name, caret.Typed, int.MaxValue)));
+        }
+
         foreach (string type in wants)
         {
             if (type == "colour")

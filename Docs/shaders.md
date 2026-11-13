@@ -697,17 +697,21 @@ See `Tools/Labs/Examples/flashlight.slang`.
       interface, the struct for a struct. The wanted type comes from what is
       assigned to (`colour c = `, `t.colour = `), a `[Default(` uniform, or the
       parameter of the call being written (`c.paint(` wants a shape or a
-      gradient; its next argument a colour). A number or vector can come from
-      anything, so it, and anything unknown, gets the shapes
+      gradient; its next argument a colour). After those, every family whose
+      interface's `@fits` names the type: gradients for a colour (their
+      `coloured()`), shapes and gradients for a float. Anything unknown gets the
+      shapes, then every other family. Too much beats nothing
     - **snippets:** `shade` and `update` whole at the top level (`update` with a
       `State` if there is none yet); `if`, `for`, `uniform` whole at a line's
       start
-    - **ranking:** snippets, then what the value wants, then families, then the
-      rest; within each, prefix before humps (`oB` → `outBounce`) before
-      inside (from three letters); the code's names first, then alphabetical.
-      Nothing comes up once the word is complete as written
-    - **tags:** `/// @hidden` above a library name keeps it out (host plumbing
-      like `input`)
+    - **ranking:** snippets, then what the value wants, then what fits it, then
+      families, then the rest; within each, prefix before humps (`oB` →
+      `outBounce`) before inside (from three letters); the code's names first,
+      then alphabetical. The list only goes once the word is complete and
+      nothing longer matches (`Box` still shows `ChamferBox`, `CornerBox`)
+    - **tags** in the library: `/// @hidden` keeps a name out (host plumbing
+      like `input`); `/// @fits float colour` on an interface offers its family
+      where those types are wanted
   - hovering says what a thing is and what it returns: functions and methods
     with their parameters and result (`rotated` on a Circle returns a Circle),
     a struct's constructor, the code's own functions, `let`s built from a type

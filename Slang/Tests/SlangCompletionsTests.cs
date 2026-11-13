@@ -285,7 +285,7 @@ public sealed class SlangCompletionsTests
         Assert.That(typed?.Text, Is.EqualTo("for (int i = 0; i < $; i++)\n    {\n        \n    }"));
         Assert.That(For(At("float4 shade(Canvas canvas)\n{\n    fo")), Is.Not.Null);
         // At the top level a for is no statement.
-        Assert.That(For(At("import xanadu;\nfor")), Is.Null);
+        Assert.That(At("import xanadu;\nfor")?.Exists(c => c is { Name: "for", Kind: CompletionKind.Snippet }) ?? false, Is.False);
     }
 
     [Test]
@@ -353,8 +353,8 @@ public sealed class SlangCompletionsTests
         TestName = "Expected type: paint's second argument wants a colour (or a Look)")]
     [TestCase(Body + "Box b = ", new[] { "Box" }, new[] { "Circle" },
         TestName = "Expected type: a struct's declaration offers that struct")]
-    [TestCase(Body + "let s = ", new[] { "Arc", "Box" }, new[] { "Linear" },
-        TestName = "Default: an untyped value offers the shapes")]
+    [TestCase(Body + "let s = ", new[] { "Arc", "Box" }, new string[0],
+        TestName = "Default: an untyped value offers the shapes first")]
     [TestCase(Body + "float d = ", new[] { "Arc" }, new string[0],
         TestName = "Default: a number can come from anything, so it offers the shapes")]
     [TestCase(Body + "let e = ease.oB", new[] { "outBack", "outBounce" }, new string[0],
@@ -374,9 +374,26 @@ public sealed class SlangCompletionsTests
     }
 
     [Test]
+    public void TooMuchBeatsNothing()
+    {
+        // An untyped value gets the gradients after the shapes.
+        List<string> untyped = Names(Body + "let s = ");
+        Assert.That(untyped.IndexOf("Linear"), Is.GreaterThan(untyped.IndexOf("Star6")));
+        // A colour gets the named colours, then the gradients (their coloured() makes one).
+        List<string> colour = Names(Body + "colour c = ");
+        Assert.That(colour[0], Is.EqualTo("aliceBlue"));
+        Assert.That(colour, Does.Contain("Linear"));
+        Assert.That(colour, Does.Not.Contain("Circle"));
+        // A complete word with longer ones after it keeps the list: x, then xy.
+        Assert.That(Names("float4 shade()\n{\n    float3 v;\n    v.x"), Is.EqualTo(new[] { "x", "xy" }));
+    }
+
+    [Test]
     public void ACompleteWordIsLeftAlone()
     {
-        Assert.That(At(Body + "let s = Box"), Is.Null);
+        Assert.That(At(Body + "let s = Star6"), Is.Null);
+        // Longer names with it inside keep the list (too much beats nothing), the word itself first.
+        Assert.That(Names(Body + "let s = Box"), Is.EqualTo(new[] { "Box", "ChamferBox", "CornerBox" }));
         // The value would change (colours.gold), so gold still offers it.
         Assert.That(At(Body + "colour c = gold")?.Select(c => c.Text), Does.Contain("colours.gold"));
     }

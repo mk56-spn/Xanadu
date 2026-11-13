@@ -54,8 +54,8 @@ public sealed partial class SlangCompletions
 
         /// <summary>
         /// The types the value wants, as declared (<c>colour</c> stays colour), only those a rule can
-        /// make: colour, the library's interfaces and structs, the code's structs. Empty when unknown,
-        /// or when it is a plain number or vector, which almost anything can make.
+        /// make: colour, the library's interfaces and structs, the code's structs, and what a family's
+        /// <c>@fits</c> names (float). Empty when unknown.
         /// </summary>
         public IReadOnlyList<string> Wants { get; init; } = [];
     }
@@ -229,8 +229,8 @@ public sealed partial class SlangCompletions
         return wanted;
     }
 
-    /// <summary>Whether a rule can offer something that makes the type: a colour, a library interface or struct, a code struct.</summary>
+    /// <summary>Whether a rule can offer something that makes the type: a colour, a library interface or struct, a code struct, or a family that fits it.</summary>
     private bool Makeable(string type) =>
-        type == "colour" || _interfaceNames.Contains(type) || _code.Scopes.ContainsKey(type)
+        type == "colour" || _interfaceNames.Contains(type) || _fits.Values.Any(fits => fits.Contains(type)) || _code.Scopes.ContainsKey(type)
         || _globals.Exists(g => g.Kind == CompletionKind.Type && g.Name == type && !_aliases.ContainsKey(type));
 }

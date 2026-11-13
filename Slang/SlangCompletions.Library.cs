@@ -32,6 +32,12 @@ public sealed partial class SlangCompletions
     /// <summary>The library's interfaces (IShape, IGradient, …): each is a family of the structs that implement it.</summary>
     private readonly HashSet<string> _interfaceNames = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// What each family can make through a method, from its interface's <c>/// @fits</c> tag
+    /// (a shape's filled() is a float; a gradient's amount() a float, its coloured() a colour).
+    /// </summary>
+    private readonly Dictionary<string, string[]> _fits = new(StringComparer.Ordinal);
+
     /// <summary>Each call's overloads by scope ("" for top level, a struct for its constructors) and name: their parameter types, generic ones as their constraint.</summary>
     private readonly Dictionary<(string Scope, string Name), List<string[]>> _parameters = new();
 
@@ -122,7 +128,11 @@ public sealed partial class SlangCompletions
             string kind = match.Groups[1].Value;
             spans.Add((match.Index + match.Length, end, name, kind));
             if (kind == "interface")
+            {
                 _interfaceNames.Add(name);
+                if (TagValue(original, match.Index, "fits") is { } fits)
+                    _fits[name] = fits.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            }
             if (kind is "struct" or "interface" && match.Groups[3].Success)
                 _interfaces[name] = match.Groups[3].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
         }
@@ -345,7 +355,14 @@ public sealed partial class SlangCompletions
     /// Whether the <c>///</c> lines above a declaration carry <c>@tag</c>. The tags:
     /// <c>@hidden</c>, host plumbing never offered (it still describes on hover).
     /// </summary>
-    private static bool Tagged(string source, int index, string tag)
+    private static bool Tagged(string source, int index, string tag) => TagValue(source, index, tag) is not null;
+
+    /// <summary>
+    /// What follows <c>@tag</c> in the <c>///</c> lines above a declaration ("" for a bare tag), or null
+    /// without it. The tags: <c>@hidden</c> (never offered), <c>@fits types</c> on an interface (its
+    /// family is offered where those types are wanted).
+    /// </summary>
+    private static string? TagValue(string source, int index, string tag)
     {
         int end = index == 0 ? -1 : source.LastIndexOf('\n', index - 1);
         while (end > 0)
@@ -353,13 +370,14 @@ public sealed partial class SlangCompletions
             int start = source.LastIndexOf('\n', end - 1) + 1;
             string text = source[start..end].Trim();
             if (!text.StartsWith("///", StringComparison.Ordinal) && !text.StartsWith('['))
-                return false;
-            if (Regex.IsMatch(text, @"^///\s*@" + tag + @"\b"))
-                return true;
+                return null;
+            Match found = Regex.Match(text, @"^///\s*@" + tag + @"\b(.*)$");
+            if (found.Success)
+                return found.Groups[1].Value.Trim();
             end = start - 1;
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>
