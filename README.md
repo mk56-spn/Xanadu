@@ -48,3 +48,9 @@ Built on [MoonWorks](https://github.com/MoonsideGames/MoonWorks) (SDL_GPU),
 [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS) and
 [Slang](https://shader-slang.org). Third-party licences are in `LICENSES/` and
 `External/`.
+
+## Licence
+
+Xanadu's code is licensed under the GNU General Public License, version 3 only
+(`GPL-3.0-only`); see `LICENSE`. Parts can be offered under MIT on request.
+Third-party code, fonts and libraries keep their own licences, listed above.
