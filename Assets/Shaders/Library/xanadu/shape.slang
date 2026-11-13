@@ -77,6 +77,33 @@ public namespace sdf
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
     public float haloed(float d, float reach, float falloff = 1.0) { return pow(1.0 - saturate(abs(d) / reach), falloff); }
 
+    /// A shadow hugging the edge on both sides: 0 at the edge, rising to 1 away from it, 63% of
+    /// the way there `reach` units out (1 - e^(-|d|/reach), the shape of fog falloff). Multiply a
+    /// colour by it: c.brighten(sdf.shadowed(d, 80)).
+    public float shadowed(float d, float reach) { return 1.0 - exp(-abs(d) / max(reach, 1e-5)); }
+
+    /// Contour lines, bands at equal distance from the edge `spacing` units apart, like a map's
+    /// height lines: 1 on a line, 1 - `depth` halfway between. Multiply a colour by it:
+    /// c.brighten(sdf.contoured(d, 20)).
+    public float contoured(float d, float spacing, float depth = 0.4)
+    {
+        return 1.0 - depth * (0.5 - 0.5 * cos(TAU * d / max(spacing, 1e-5)));
+    }
+
+    /// The distance field drawn the way Inigo Quilez draws one: orange outside, blue inside, a
+    /// shadow hugging the edge `reach` units deep, contour lines and a white edge, all scaled from
+    /// `reach` (his numbers: contours reach × 0.25 apart, the edge line reach × 0.06). The default
+    /// suits pixels; in his units (the shorter side 2 across) it is 1/6. For seeing any distance.
+    public float4 shown(float d, float reach = 80.0)
+    {
+        float3 rgb = d > 0.0 ? float3(0.9, 0.6, 0.3) : float3(0.65, 0.85, 1.0);
+        rgb *= shadowed(d, reach);
+        rgb *= contoured(d, reach * 6.0 * TAU / 150.0);
+        float edge = reach * 0.06;
+        rgb = lerp(rgb, float3(1.0), stroked(d, edge, edge));
+        return float4(rgb, 1.0);
+    }
+
     /// Both together, melted over `blend` units: a smooth min (Quilez's polynomial smin).
     public float melted(float a, float b, float blend)
     {

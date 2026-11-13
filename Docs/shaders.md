@@ -294,6 +294,9 @@ When you build a distance yourself (in a loop, from a formula, from
 | `sdf.filled(d, soft = 1)` | as `filled` |
 | `sdf.stroked(d, width, soft = 1)` | as `stroked` |
 | `sdf.haloed(d, reach, falloff = 1)` | as `haloed` |
+| `sdf.shadowed(d, reach)` | a shadow hugging the edge on both sides: 0 at it, 63% back to 1 by `reach` out (`1 - exp(-\|d\| / reach)`); multiply a colour by it |
+| `sdf.contoured(d, spacing, depth = 0.4)` | contour lines `spacing` apart: 1 on a line, `1 - depth` between; multiply a colour by it |
+| `sdf.shown(d, reach = 80)` | the field drawn as Inigo Quilez draws one (orange out, blue in, the two above, a white edge), all scaled from `reach`: for seeing any distance |
 | `sdf.melted(a, b, blend)` | smooth union (a smooth min) |
 | `sdf.meltedAnd(a, b, blend)` | smooth intersection (a smooth max) |
 | `sdf.meltedMinus(a, b, blend)` | `a` with `b` cut out, smoothly |

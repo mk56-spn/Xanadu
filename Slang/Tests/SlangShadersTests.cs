@@ -59,6 +59,14 @@ public sealed class SlangShadersTests
             "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
     }
 
+    [TestCase("return sdf.shown(Circle(100).distance());")]
+    [TestCase("float d = Box(float2(80)).distance(); colour c = colours.gold; c.brighten(sdf.shadowed(d, 80)); c.brighten(sdf.contoured(d, 20)); return c;")]
+    public void DistancesCanBeShown(string body)
+    {
+        Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
+            "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
+    }
+
     [Test]
     public void AShapesDistanceDefaultsToThePixelBeingShaded()
     {
