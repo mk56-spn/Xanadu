@@ -99,7 +99,7 @@ public static partial class SongSelectScene
 
         bool blocked = catalog.Count > 0 &&
             catalog[state.Selected].IsBlocked;
-        RefreshActions(ref state, !blocked, catalog.Count > 0);
+        RefreshActions(ref state, !blocked, catalog.Count > 0 && !catalog[state.Selected].IsCatalogOnly);
     }
 
     /// <summary>

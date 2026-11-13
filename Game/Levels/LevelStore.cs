@@ -137,8 +137,11 @@ public static class LevelStore
         variant.ToDocument(mapset.Version, mapset.SongId, mapset.Shaders);
 
     /// <summary>A level with its song opened from the library, ready to play or preview.</summary>
-    public static LevelEntry Entry(string path, LevelDocument document) =>
-        new(path, document, SongStore.Shared.Open(document.SongId));
+    public static LevelEntry Entry(string path, LevelDocument document)
+    {
+        LoadedSong? song = SongStore.Shared.Open(document.SongId);
+        return new LevelEntry(path, document, song, song is null ? SongStore.Shared.Find(document.SongId) : null);
+    }
 
     /// <summary>Loads every valid level from user data and the bundled Levels folder.</summary>
     public static List<LevelEntry> List()
@@ -148,6 +151,7 @@ public static class LevelStore
 
         AddFrom(Xanadu.Storage.GamePaths.Full(LevelsFolder));
         AddFrom(Xanadu.Storage.GamePaths.Full(FallbackFolder));
+        AddUndownloaded();
 
         entries.Sort(static (left, right) =>
         {
@@ -166,6 +170,20 @@ public static class LevelStore
         });
 
         return entries;
+
+        // Songs the catalog knows whose audio isn't here and no level of ours
+        // uses: listed greyed out, so the player sees what exists.
+        void AddUndownloaded()
+        {
+            var used = new HashSet<string>(entries.Select(entry => entry.Document.SongId), StringComparer.Ordinal);
+            foreach (SongDocument song in SongStore.Shared.LoadAll())
+            {
+                if (used.Contains(song.Id) || SongStore.Shared.Open(song.Id) is not null)
+                    continue;
+
+                entries.Add(new LevelEntry("", new LevelDocument { Name = song.Title, SongId = song.Id }, Known: song));
+            }
+        }
 
         void AddFrom(string directory)
         {

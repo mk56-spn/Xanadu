@@ -253,7 +253,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private void DeleteSelectedLevel()
     {
         LevelEntry? entry = SelectedLevel;
-        if (entry is null)
+        if (entry is null || entry.IsCatalogOnly)
             return;
 
         LevelStore.Delete(entry.Path);

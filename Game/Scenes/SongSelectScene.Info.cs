@@ -79,7 +79,7 @@ public static partial class SongSelectScene
         string difficulty = entry is null ? "" : MapsetName(entry).Trim().ToUpperInvariant();
         string genre = entry?.Song?.Genre?.Trim().ToUpperInvariant() ?? "";
         string title = entry is null ? "" : SongTitle(entry);
-        string artist = entry?.Song?.Artist ?? "";
+        string artist = entry?.SongArtist ?? "";
 
         SceneUi.SetText(state.InfoDifficulty, difficulty);
         Color plate = difficulty.Length == 0 ? Transparent : ChipStroke[0];

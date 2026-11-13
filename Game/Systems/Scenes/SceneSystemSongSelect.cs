@@ -40,6 +40,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         if (_stateEntity.IsNull)
             return false;
 
+        // A song that isn't downloaded can't be mapped yet.
+        if (CurrentController is SongSelectController { SelectedEntry.IsBlocked: true })
+            return false;
+
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         string path = state.SelectedLevelPath;
         LevelEntry? entry = LoadEntry(path);

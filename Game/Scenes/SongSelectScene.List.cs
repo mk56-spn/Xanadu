@@ -50,6 +50,10 @@ public static partial class SongSelectScene
     private const float RowBorder = 3;
     private static readonly Color RowBorderColor = new("#999999");
 
+    /// <summary>A row whose song the catalog knows but that isn't downloaded: its name and song in grey.</summary>
+    private static readonly Color MissingName = new("#6b6b6b");
+    private static readonly Color MissingSong = new("#565656");
+
     private const float TrackTop = 345.748f;
     private const float TrackBottom = 738.57f;
     private const float TrackX = 40.991f;
@@ -305,11 +309,13 @@ public static partial class SongSelectScene
                 Interpolate(RowTop, slot));
             Place(state.Tiles[row], corner + RowSize / 2);
 
+            // A song that isn't downloaded is greyed out: there, but not playable.
+            bool missing = valid && catalog[index].IsBlocked;
             SetTileColor(state.Tiles[row], Fade(RowColor, alpha * RowOpacity));
-            SetBorderColor(state.Tiles[row], Fade(RowBorderColor, alpha * RowOpacity));
-            UiText.SetColor(TileName(state, row), Fade(Colors.White, alpha));
-            UiText.SetColor(TileSong(state, row), Fade(Gold, alpha));
-            SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), alpha));
+            SetBorderColor(state.Tiles[row], Fade(RowBorderColor, alpha * RowOpacity * (missing ? 0.5f : 1f)));
+            UiText.SetColor(TileName(state, row), Fade(missing ? MissingName : Colors.White, alpha));
+            UiText.SetColor(TileSong(state, row), Fade(missing ? MissingSong : Gold, alpha));
+            SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), missing ? 0f : alpha));
         }
 
         VerticalSlider slider = ListSlider(state);
@@ -394,7 +400,7 @@ public static partial class SongSelectScene
                 : entry.Document.Name;
 
     private static string SongTitle(LevelEntry? entry) =>
-        entry is null ? "" : entry.Song?.Title ?? "SONG MISSING";
+        entry is null ? "" : entry.SongTitle ?? "SONG MISSING";
 
     private static string Fit(string text, int max) =>
         text.Length <= max ? text : text[..(max - 1)] + "…";
