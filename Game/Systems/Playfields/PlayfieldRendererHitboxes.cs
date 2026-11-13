@@ -32,6 +32,14 @@ public static partial class PlayfieldRenderer
             var screen = new Rect2(
                 view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position)),
                 block.Size * view.Scale);
+            if (block.Slope != BlockSlope.Off)
+            {
+                Vector2[] corners = Block.RampCorners(screen.Position, screen.Size, block.Slope);
+                for (int i = 0; i < corners.Length; i++)
+                    canvas.DrawLine(rid, corners[i], corners[(i + 1) % corners.Length], DebugPalette.BlockHitbox, 2f);
+                continue;
+            }
+
             DrawHitbox(canvas, rid, screen, DebugPalette.BlockHitbox);
             if (block.OneWay != BlockOneWay.Off)
                 canvas.DrawRect(rid, OneWayEdge(screen, block.OneWay), DebugPalette.BlockHitbox);

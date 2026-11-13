@@ -39,7 +39,7 @@ public static class PlayerGround
         foreach (Entity blockEntity in player.Store.Query<Block>().ToEntityList())
         {
             Block block = blockEntity.GetComponent<Block>();
-            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up))
+            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up) || block.Slope != BlockSlope.Off)
                 continue;
 
             Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.Position));
@@ -77,7 +77,7 @@ public static class PlayerGround
         foreach (Entity blockEntity in player.Store.Query<Block>().ToEntityList())
         {
             Block block = blockEntity.GetComponent<Block>();
-            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up))
+            if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up) || block.Slope != BlockSlope.Off)
                 continue;
 
             Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.Position));

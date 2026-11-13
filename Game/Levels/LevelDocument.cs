@@ -255,6 +255,9 @@ public sealed class BlockDocument : ItemDocument
 
     /// <summary>The groups whose colour fades reach the outline.</summary>
     public uint OutlineGroups { get; set; } = Xanadu.Ecs.Block.AllGroups;
+
+    /// <summary>A ramp, as a <see cref="Xanadu.Ecs.BlockSlope"/>; 0 is a box.</summary>
+    public int Slope { get; set; }
 }
 
 /// <summary>Serializable spike tile data: a hazard that kills on contact.</summary>

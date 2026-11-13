@@ -47,10 +47,10 @@ public sealed class BlockBodySystem : QuerySystem<Block>
             if (block.Size.X <= 0 || block.Size.Y <= 0)
                 return;
 
-            Body body = _physics.CreateStaticBox(
-                view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Center)),
-                block.Size * view.Scale,
-                oneWay: block.OneWay);
+            Vector2 centre = view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Center));
+            Body body = block.Slope == BlockSlope.Off
+                ? _physics.CreateStaticBox(centre, block.Size * view.Scale, oneWay: block.OneWay)
+                : _physics.CreateStaticRamp(centre, block.Size * view.Scale, block.Slope);
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
         });
     }

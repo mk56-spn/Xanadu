@@ -215,6 +215,8 @@ public struct NotePop(
 /// fading out over <see cref="Lifetime"/>. Layout space, like the player, so it
 /// stays put while the camera scrolls. The rig draw system poses it from the
 /// character on the frame it appears; a player without a rig leaves its box.
+/// An action hit launches it: it flies <see cref="Launch"/> from where it was
+/// left, easing out, while the character stays put.
 /// </summary>
 public struct HitGhost(Entity player, Vector2 center, Vector2 size, float lifetime = HitGhost.DefaultLifetime) : IComponent
 {
@@ -228,6 +230,12 @@ public struct HitGhost(Entity player, Vector2 center, Vector2 size, float lifeti
     public Vector2 Size = size;
     public float Age;
     public float Lifetime = lifetime;
+
+    /// <summary>Where the copy was left.</summary>
+    public Vector2 Start = center;
+
+    /// <summary>How far the copy flies over its life, easing out; zero stays put.</summary>
+    public Vector2 Launch;
 
     /// <summary>The copy's opacity now: <see cref="StartAlpha"/>, easing out to nothing.</summary>
     public readonly float Alpha

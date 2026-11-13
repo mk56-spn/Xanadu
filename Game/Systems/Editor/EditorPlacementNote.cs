@@ -30,6 +30,7 @@ public static class EditorPlacementNote
                 EditorPlacementMode.Dash => NoteKind.Dash,
                 EditorPlacementMode.Momentum => NoteKind.Momentum,
                 EditorPlacementMode.Contact => NoteKind.Contact,
+                EditorPlacementMode.Wall => NoteKind.Wall,
                 _ => NoteKind.Hit,
             },
             dashStrength: placement.Strength,

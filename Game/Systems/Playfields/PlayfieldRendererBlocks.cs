@@ -68,6 +68,16 @@ public static partial class PlayfieldRenderer
             canvas.DrawRect(rid, OneWayEdge(screen, oneWay), strip);
     }
 
+    /// <summary>A ramp: the half of its box under the diagonal, filled, with its outline round all three edges.</summary>
+    private static void DrawRamp(IRectCanvas canvas, Handle rid, Rect2 screen, Block block, float scale, Color fill, Color outline)
+    {
+        Vector2[] corners = Block.RampCorners(screen.Position, screen.Size, block.Slope);
+        canvas.DrawPolygon(rid, corners, fill);
+        float width = Mathf.Max(block.OutlineWidth * scale, 1f);
+        for (int i = 0; i < corners.Length; i++)
+            canvas.DrawLine(rid, corners[i], corners[(i + 1) % corners.Length], outline, width);
+    }
+
     /// <summary>Whether any playfield in the store is playing rather than being edited.</summary>
     public static bool IsPlaying(EntityStore entities)
     {
@@ -106,6 +116,13 @@ public static partial class PlayfieldRenderer
             block.Size * view.Scale);
         Color outline = GroupOutlineColor.For(entity, block);
         Color fill = GroupColor.For(entity, BlockFill);
+        if (block.Slope != BlockSlope.Off)
+        {
+            DrawRamp(canvas, rid, screen, block, view.Scale, fill, selected ? BlockSelectedEdge : outline);
+            canvas.SelectShader(0);
+            return;
+        }
+
         DrawBlockBody(canvas, rid, screen, block.OutlineWidth * view.Scale, fill, outline, block.OneWay);
 
         Color edge = outline;

@@ -7,7 +7,7 @@ namespace Xanadu.Systems.Playfields;
 /// How a press matches a note. Action keys hit action notes: a coloured note
 /// needs its own key, a neutral note takes any of the three. Direction keys hit
 /// directional notes, which carry no way of their own: the key pressed is the
-/// way, turned 45° clockwise on a rhombus. Contact barriers take no press.
+/// way, turned 45° clockwise on a rhombus. Contact barriers and wall notes take no press: touching them is enough.
 /// </summary>
 public static class NoteRules
 {
@@ -18,7 +18,7 @@ public static class NoteRules
     public static bool IsMovement(NoteKind kind) => kind is NoteKind.Dash or NoteKind.Momentum;
 
     /// <summary>Kinds that count towards the note total and are judged.</summary>
-    public static bool IsScored(NoteKind kind) => kind != NoteKind.Contact;
+    public static bool IsScored(NoteKind kind) => kind is not (NoteKind.Contact or NoteKind.Wall);
 
     /// <summary>Whether this press can hit the note.</summary>
     public static bool Matches(Note note, KeybindAction action) => note.Kind switch

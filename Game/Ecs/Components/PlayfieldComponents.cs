@@ -160,6 +160,12 @@ public enum NoteKind
     Dash,
     Momentum,
     Contact,
+
+    /// <summary>
+    /// A flat note embedded on a wall. Touching it on its beat sticks the
+    /// player to the wall, sliding down (<see cref="Xanadu.Systems.Playfields.WallSlideSystem"/>).
+    /// </summary>
+    Wall,
 }
 
 /// <summary>The eight ways a directional note can send the player, clockwise from up.</summary>
@@ -393,6 +399,19 @@ public enum BlockOneWay
 }
 
 /// <summary>
+/// A block cut into a ramp: the solid half under the diagonal of its box. Up
+/// right rises to the right (the box's bottom-left corner to its top-right);
+/// up left the other way. Landing on the ramp slides the player down it at one
+/// speed, the same for every slope (<see cref="Xanadu.Systems.Physics.SlopeSlideSystem"/>).
+/// </summary>
+public enum BlockSlope
+{
+    Off,
+    UpRight,
+    UpLeft,
+}
+
+/// <summary>
 /// Static level geometry in playfield coordinates. Blocks never move in play;
 /// they are there so the player collides with them.
 /// </summary>
@@ -403,7 +422,8 @@ public struct Block(
     float outlineWidth = Block.DefaultOutlineWidth,
     Color? outlineColor = null,
     uint fillGroups = Block.AllGroups,
-    uint outlineGroups = Block.AllGroups) : IComponent
+    uint outlineGroups = Block.AllGroups,
+    BlockSlope slope = BlockSlope.Off) : IComponent
 {
     public const float DefaultOutlineWidth = 3f;
     public const float MaxOutlineWidth = 32f;
@@ -434,11 +454,26 @@ public struct Block(
     /// <summary>The groups whose colour fades reach the outline; only groups the block is in count.</summary>
     public uint OutlineGroups = outlineGroups;
 
+    /// <summary>Off for a box; otherwise the block is a ramp.</summary>
+    public BlockSlope Slope = slope;
+
     public readonly Vector2 Center => Position + Size / 2;
 
     public readonly Vector2 End => Position + Size;
 
     public readonly Rect2 Bounds => new(Position, Size);
+
+    /// <summary>
+    /// A ramp's three corners in a box at <paramref name="topLeft"/> of
+    /// <paramref name="size"/>, y down: the two bottom corners and the high one.
+    /// </summary>
+    public static Vector2[] RampCorners(Vector2 topLeft, Vector2 size, BlockSlope slope)
+    {
+        Vector2 bottomLeft = topLeft + new Vector2(0, size.Y);
+        Vector2 bottomRight = topLeft + size;
+        Vector2 high = slope == BlockSlope.UpRight ? topLeft + new Vector2(size.X, 0) : topLeft;
+        return [bottomLeft, bottomRight, high];
+    }
 }
 
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>

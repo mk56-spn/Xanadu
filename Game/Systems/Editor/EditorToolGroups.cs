@@ -26,6 +26,7 @@ public static class EditorToolGroups
             new(EditorPlacementMode.Dash, "➜", "Dash notes: the player picks the way"),
             new(EditorPlacementMode.Momentum, "M", "Momentum notes: the player picks the way"),
             new(EditorPlacementMode.Contact, "◎", "Contact barriers"),
+            new(EditorPlacementMode.Wall, "▮", "Wall notes: set one on a wall's face; touched on its beat, the player sticks and slides down"),
         }),
         new("Start points", new EditorTool[] { new(EditorPlacementMode.Start, "⚑", "Start points") }),
         new("Blocks", new EditorTool[] { new(EditorPlacementMode.Blocks, "■", "Blocks") }),

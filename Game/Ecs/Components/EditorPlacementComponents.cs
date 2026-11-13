@@ -19,6 +19,9 @@ public enum EditorPlacementMode
     Momentum,
     Start,
     Contact,
+
+    /// <summary>A wall note: a flat note set on a wall that the player sticks to and slides down.</summary>
+    Wall,
     Blocks,
     Spikes,
     Text,

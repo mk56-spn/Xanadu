@@ -40,6 +40,10 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 CycleOneWay(editor);
                 return true;
 
+            case EditorCommandType.CycleSlope:
+                CycleSlope(editor);
+                return true;
+
             case EditorCommandType.CopySelection:
                 CopySelection(editor);
                 return true;
@@ -115,16 +119,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
     /// </summary>
     private void CycleOneWay(Entity editor)
     {
-        if (!editor.HasComponent<NoteSelection>())
-            return;
-
-        var blocks = new List<Entity>();
-        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
-        {
-            if (EditorItems.IsItem(entity) && entity.HasComponent<Block>())
-                blocks.Add(entity);
-        }
-
+        List<Entity> blocks = SelectedBlocks(editor);
         if (blocks.Count == 0)
             return;
 
@@ -135,6 +130,41 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         foreach (Entity block in blocks)
             block.GetComponent<Block>().OneWay = next;
         context.History.Record(before, context.History.Capture());
+    }
+
+    /// <summary>
+    /// Steps the selected blocks through box, ramp rising right and ramp rising
+    /// left, as one undo step, all taking the shape after the first one's.
+    /// </summary>
+    private void CycleSlope(Entity editor)
+    {
+        List<Entity> blocks = SelectedBlocks(editor);
+        if (blocks.Count == 0)
+            return;
+
+        BlockSlope next = blocks[0].GetComponent<Block>().Slope == BlockSlope.UpLeft
+            ? BlockSlope.Off
+            : blocks[0].GetComponent<Block>().Slope + 1;
+        EditorSnapshot before = context.History.Capture();
+        foreach (Entity block in blocks)
+            block.GetComponent<Block>().Slope = next;
+        context.History.Record(before, context.History.Capture());
+    }
+
+    /// <summary>The blocks among the editor's selection.</summary>
+    private static List<Entity> SelectedBlocks(Entity editor)
+    {
+        var blocks = new List<Entity>();
+        if (!editor.HasComponent<NoteSelection>())
+            return blocks;
+
+        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
+        {
+            if (EditorItems.IsItem(entity) && entity.HasComponent<Block>())
+                blocks.Add(entity);
+        }
+
+        return blocks;
     }
 
     private static bool TryCaptureSelection(

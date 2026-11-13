@@ -139,6 +139,7 @@ public static class LevelSerializer
             block.Groups ??= new();
             block.Shader = validShader(block.Shader);
             block.OneWay = block.OneWay is >= 0 and <= (int)Xanadu.Ecs.BlockOneWay.Left ? block.OneWay : 0;
+            block.Slope = block.Slope is >= 0 and <= (int)Xanadu.Ecs.BlockSlope.UpLeft ? block.Slope : 0;
             block.OutlineWidth = Math.Clamp(block.OutlineWidth, 0f, Xanadu.Ecs.Block.MaxOutlineWidth);
         }
         foreach (SpikeDocument spike in chart.Spikes)

@@ -33,6 +33,9 @@ public enum EditorShortcut
     FlipHorizontal,
     FlipVertical,
     CycleOneWay,
+
+    /// <summary>Steps the selected blocks through box, ramp up right and ramp up left.</summary>
+    CycleSlope,
     MoveLeft,
     MoveRight,
 
@@ -175,6 +178,7 @@ public static class EditorShortcuts
             new(new KeyChord(Key.H), EditorShortcut.FlipHorizontal, field),
             new(new KeyChord(Key.V), EditorShortcut.FlipVertical, field),
             new(new KeyChord(Key.O), EditorShortcut.CycleOneWay, field),
+            new(new KeyChord(Key.L), EditorShortcut.CycleSlope, field),
             new(new KeyChord(Key.Delete), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Backspace), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Left), EditorShortcut.MoveLeft, field),

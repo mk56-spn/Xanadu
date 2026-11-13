@@ -89,6 +89,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 ShaderPlay.Mark(movement.Kind == NoteKind.Dash ? ShaderEvent.Dash : ShaderEvent.Momentum);
                 ShaderPlay.LastMove = DashDirectionVector(heading);
                 GroundStepSystem.Cancel(entity, buffer);
+                WallSlideSystem.End(entity, buffer);
                 // Before the note moves the player, so the copy stays where it hit.
                 HitGhostSystem.Spawn(_entities, entity);
                 Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));

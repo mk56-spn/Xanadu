@@ -73,6 +73,8 @@ public sealed class CharacterRigGhosts(Handle layer, Func<Handle, IAttachmentVis
             copy.Visuals.ApplyCloths(package, cloths, placement);
             copy.Visuals.ApplyEffects(pose, XafRig.WorldEffects(package, pose, bones), placement);
             copy.Order = _captures++;
+            copy.Left = ghost.Center;
+            CanvasServer.Current.SetTransform(copy.Root, Transform2D.Identity);
             SetAlpha(copy, ghost.Alpha);
             CanvasServer.Current.SetVisible(copy.Root, true);
             _live[entity.Id] = copy;
@@ -94,6 +96,9 @@ public sealed class CharacterRigGhosts(Handle layer, Func<Handle, IAttachmentVis
             }
 
             SetAlpha(copy, state.Alpha);
+            // A launched copy flies off from where it was posed.
+            if (state.Center != copy.Left)
+                CanvasServer.Current.SetTransform(copy.Root, new Transform2D(new Vector2(1, 0), new Vector2(0, 1), state.Center - copy.Left));
         }
 
         if (gone is null)
@@ -175,5 +180,8 @@ public sealed class CharacterRigGhosts(Handle layer, Func<Handle, IAttachmentVis
         public IAttachmentVisuals Visuals { get; } = visuals;
         public XafPackage? Package { get; set; }
         public long Order { get; set; }
+
+        /// <summary>Where its ghost was when it was posed.</summary>
+        public Vector2 Left { get; set; }
     }
 }

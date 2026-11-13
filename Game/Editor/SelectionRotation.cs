@@ -29,7 +29,8 @@ public readonly record struct RotationStart(
     Vector2 Momentum,
     float Degrees = 0f,
     BlockOneWay OneWay = BlockOneWay.Off,
-    Xanadu.Items.Xif? Shape = null);
+    Xanadu.Items.Xif? Shape = null,
+    BlockSlope Slope = BlockSlope.Off);
 
 /// <summary>
 /// Turns a group of playfield items around their shared centre. Anything with
@@ -143,7 +144,10 @@ public static class SelectionRotation
         BlockOneWay oneWay = entity.HasComponent<Block>()
             ? entity.GetComponent<Block>().OneWay
             : BlockOneWay.Off;
-        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, facing, momentum, degrees, oneWay, shape);
+        BlockSlope slope = entity.HasComponent<Block>()
+            ? entity.GetComponent<Block>().Slope
+            : BlockSlope.Off;
+        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, facing, momentum, degrees, oneWay, shape, slope);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
@@ -212,6 +216,10 @@ public static class SelectionRotation
             ref Block block = ref entity.GetComponent<Block>();
             block.Position = GridPlacement.Settle(center - start.Size / 2, start.Size, playfield, snap);
             block.OneWay = FlippedOneWay(start.OneWay, horizontal);
+            // A ramp mirrored side to side rises the other way; upside down it stays a floor ramp.
+            block.Slope = horizontal && start.Slope != BlockSlope.Off
+                ? (start.Slope == BlockSlope.UpRight ? BlockSlope.UpLeft : BlockSlope.UpRight)
+                : start.Slope;
             return;
         }
 

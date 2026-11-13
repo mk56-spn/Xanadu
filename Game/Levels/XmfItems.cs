@@ -101,7 +101,9 @@ internal static class XmfItems
         writer.Write(block.Y);
         writer.Write(block.Width);
         writer.Write(block.Height);
-        writer.Write((byte)block.OneWay);
+        // The slope rides in the high half of the one-way byte, so maps saved
+        // before slopes existed read as boxes.
+        writer.Write((byte)(block.OneWay | block.Slope << 4));
         writer.Write(block.OutlineWidth);
         writer.Write(block.OutlineColor);
         writer.Write(block.FillGroups);
@@ -114,13 +116,17 @@ internal static class XmfItems
         block.Y = reader.ReadSingle();
         block.Width = reader.ReadSingle();
         block.Height = reader.ReadSingle();
-        block.OneWay = reader.ReadByte();
+        byte sides = reader.ReadByte();
+        block.OneWay = sides & 0x0F;
+        block.Slope = sides >> 4;
         block.OutlineWidth = reader.ReadSingle();
         block.OutlineColor = reader.ReadUInt32();
         block.FillGroups = reader.ReadUInt32();
         block.OutlineGroups = reader.ReadUInt32();
         if (block.OneWay > (int)BlockOneWay.Left)
             throw new FormatException("XMF block has an unknown one-way side.");
+        if (block.Slope > (int)BlockSlope.UpLeft)
+            throw new FormatException("XMF block has an unknown slope.");
     }
 
     internal static void WriteSpike(BinaryWriter writer, SpikeDocument spike)

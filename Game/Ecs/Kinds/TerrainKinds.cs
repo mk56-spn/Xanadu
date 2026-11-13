@@ -82,6 +82,7 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
         OutlineColor = block.OutlineColor.ToRgba32(),
         FillGroups = block.FillGroups,
         OutlineGroups = block.OutlineGroups,
+        Slope = (int)block.Slope,
     };
 
     protected override Block FromDocument(BlockDocument block) => new(
@@ -91,7 +92,8 @@ public sealed class BlockItemKind : ItemKind<Block, BlockDocument>
         block.OutlineWidth,
         new Color(block.OutlineColor),
         block.FillGroups,
-        block.OutlineGroups);
+        block.OutlineGroups,
+        (BlockSlope)block.Slope);
 }
 
 /// <summary>Spikes: grid boxes that kill on contact, their tip turned freely within the box.</summary>

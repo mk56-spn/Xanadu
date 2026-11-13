@@ -110,6 +110,9 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.CycleOneWay:
                 _commands.Enqueue(EditorCommand.CycleOneWay());
                 break;
+            case EditorShortcut.CycleSlope:
+                _commands.Enqueue(EditorCommand.CycleSlope());
+                break;
             case EditorShortcut.MoveLeft:
                 _commands.Enqueue(EditorCommand.MoveSelection(-1));
                 break;
@@ -148,6 +151,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             EditorPlacementMode.Blocks => "Place blocks",
             EditorPlacementMode.Spikes => "Place spikes",
             EditorPlacementMode.Contact => "Place contact barrier",
+            EditorPlacementMode.Wall => "Place wall note",
             EditorPlacementMode.Text => "Place text",
             EditorPlacementMode.Grass => "Place grass",
             EditorPlacementMode.Flare => "Place flare",

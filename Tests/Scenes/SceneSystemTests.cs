@@ -617,11 +617,11 @@ public sealed partial class SceneSystemTests
     }
 
     [Test]
-    public void PlaySceneStartsThePlayerOnTheFloor()
+    public void PlaySceneStartsThePlayerAtTheTopToFallIn()
     {
         var document = new LevelDocument
         {
-            Name = "Floor Level",
+            Name = "Fall Level",
             PlayfieldWidth = 1000,
             PlayfieldHeight = 1000,
         };
@@ -635,11 +635,10 @@ public sealed partial class SceneSystemTests
         Player player = playfield.GetComponent<Player>();
         Vector2 position = playfield.GetComponent<Xanadu.Ecs.Position>().Value;
 
-        float floor = view.ScreenOrigin.Y + field.Height * view.Scale;
         float centerX = view.ScreenOrigin.X + field.Width * view.Scale / 2;
         Assert.That(position.X, Is.EqualTo(centerX).Within(0.5f));
-        Assert.That(position.Y + player.Size.Y / 2,
-            Is.EqualTo(floor).Within(0.5f));
+        Assert.That(position.Y - player.Size.Y / 2,
+            Is.EqualTo(view.ScreenOrigin.Y).Within(0.5f));
     }
 
     [Test]

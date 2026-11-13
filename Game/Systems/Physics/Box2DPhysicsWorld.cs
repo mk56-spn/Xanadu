@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using Box2DSharp.Dynamics.Contacts;
@@ -160,6 +161,27 @@ public sealed class Box2DPhysicsWorld : IDisposable
         };
 
         body.CreateFixture(fixtureDef);
+        return body;
+    }
+
+    /// <summary>
+    /// A static ramp filling the half of a box under its diagonal
+    /// (<see cref="Block.RampCorners"/>). Frictionless: the slope slide sets
+    /// the speed on it.
+    /// </summary>
+    public Body CreateStaticRamp(Vector2 centerPixels, Vector2 sizePixels, BlockSlope slope)
+    {
+        Body body = _world.CreateBody(new BodyDef
+        {
+            BodyType = BodyType.StaticBody,
+            Position = ToPhysics(centerPixels),
+            Awake = true,
+        });
+
+        Vector2[] corners = Block.RampCorners(-sizePixels / 2, sizePixels, slope);
+        var shape = new PolygonShape();
+        shape.Set(corners.Select(corner => corner / PixelsPerMeter).ToArray());
+        body.CreateFixture(new FixtureDef { Shape = shape, Density = 0f, Friction = 0f, Restitution = 0f });
         return body;
     }
 

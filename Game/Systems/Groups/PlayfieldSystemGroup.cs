@@ -9,6 +9,7 @@ using Xanadu.Systems.Characters;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Particles;
+using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Replays;
 
@@ -91,6 +92,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
         Add(new GroundStepSystem());
         Add(new GroundModeSystem(keybinds, keyboard, groundToggle));
+        Add(new SlopeSlideSystem());
+        Add(new WallSlideSystem(entities, offsets));
         Add(new ContactBarrierSystem(entities, offsets));
         Add(new TrailAgeSystem<HitTrail>());
         Add(new NotePopSystem());

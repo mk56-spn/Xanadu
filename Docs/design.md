@@ -56,6 +56,30 @@
     - To consider: should a friction field stop you on the x axis at the same point regardless of entry speed?
 - **Option 2 — hold:** to keep moving on the ground, you must hold the direction key you hit the directional note with.
 
+### Stationary character
+
+- The character standing still is a long-standing problem.
+- **Opening:** the character falls into the map.
+- **Slopes:** landing on a slope snaps you to a set speed.
+    - The speed is not decided by the mapper (slope speeds varying per map would be awful to play).
+- **Wall slide:** a new action surface lets you slide down walls.
+    - It's a flat note embedded onto a surface. Making it look good is the mapper's job.
+    - Its hitbox protrudes a little from the surface. Hit it and you stick to the wall, and wall particles trigger.
+- Slopes and wall slides keep you engaged during slow sections.
+- **Action notes** give a little impulse.
+    - Being reconsidered: should action notes move the character for real?
+    - Alternative: the shadow attack that already comes out of you actually launches itself in the note's direction.
+    - Trying the ghosts for now.
+- An impulse cancels a dash's hang.
+- Accepted: early-era mapping will look bad in retrospect.
+
+#### Built for testing (defaults to confirm)
+
+- Opening: she starts at the top of the field and falls when the song starts. Start points still place her.
+- Slopes: a block can be a ramp (L in the editor). One speed for every slope, snapped to on the surface, downhill.
+- Wall slide: a wall note kind, touched within its beat's window. No press, not scored. Slide speed fixed, snapped to on contact. Ends on landing, when the wall ends, or on a directional note.
+- Action notes: the hit ghost launches toward the note and a little past it; the character stays.
+
 ### Action notes
 
 - Coloured action notes come in 3 colours. Each action key hits one colour.
@@ -165,3 +189,6 @@ None open.
 - Does a barrier fail also break combo?
 - Ground option 2: what happens when you let go — stop at once, or slow down? Is the hold judged?
 - Option B: judged as one note or two (chords count each note)?
+- Slopes: one speed for every slope, or does it follow the slope's angle?
+- Wall note: should it be judged (scored) like a note, or stay a touch like a Contact barrier?
+- Action notes: after the ghost trial, should they move the character for real?

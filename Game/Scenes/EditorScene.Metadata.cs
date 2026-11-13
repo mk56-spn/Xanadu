@@ -164,6 +164,7 @@ public static class EditorSceneMetadata
             "R                      Rotate selection a quarter turn",
             "H / V                  Flip selection across / up and down",
             "O                      Make selected blocks one-way",
+            "L                      Make selected blocks ramps (right, left, off)",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo (or CTRL+SHIFT+Z)",
             "CTRL+S                 Save",
