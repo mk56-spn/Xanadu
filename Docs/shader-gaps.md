@@ -16,6 +16,12 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
+| Is a clip playing now? Only `started` and `finished`, so the port wrote `c.started && !c.finished` | missing | Ashanoha (clips) | `clip.playing` |
+| A fade over part of a clip (`smoothstep(0.8, 0.2, t)` inside a one-second scene) | missing | Ashanoha (clips) | `clip.part(from, to)`: a clip over that stretch of this one, so it shows on the timeline too |
+| No smoothstep easing: `smoothstep(0, 1, clip.linear)` by hand | missing | Ashanoha (clips) | `eases.smooth` (3t² − 2t³) |
+| XS003 flags a local passed to an `out` parameter (`float3 near; map(uv, near, …)`) as read before set | editor | Ashanoha | the lint treats an `out` argument as an assignment |
+| The timeline shows 6 clip rows; `light` and `grow` (rows 7 and 8) aren't visible | editor | Ashanoha (clips) | check the rows scroll or the lane list grows; show every clip |
+| A switch uniform (`as_shadertoy`) is a 0..1 slider | editor | every port | `uniform bool` shown as a toggle |
 | Nearest point and distance to the cell edge over a fixed set of points (`map`, `normalmap`: 70 lines of loops) | missing | Ashanoha | maybe `pattern.voronoi(position, points)` over an array: nearest point and edge distance; wait for a second shader that wants it |
 
 ## Fixed
