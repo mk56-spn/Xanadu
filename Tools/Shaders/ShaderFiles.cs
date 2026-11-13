@@ -17,6 +17,9 @@ internal static class ShaderFiles
 {
     private const string Root = "Assets/Shaders";
 
+    /// <summary>The effect drawn behind every preview, so ones that read what is behind them (frosted glass) have something to show.</summary>
+    public const string Backdrop = Root + "/Misc/ShaderBackground.slang";
+
     public static ShaderFile[] All()
     {
         string root = GamePaths.Full(Root);

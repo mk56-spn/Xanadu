@@ -166,7 +166,7 @@ internal sealed class ShaderToolApp : HostApp
         _boxes = Boxes();
         string label = file.Name + ".slang";
         _code = new ShaderCodeEditor(Entities, _codeItem, _boxes, text,
-            item => new WholeEffectPreview(Renderer.Pipelines, item, label));
+            item => new EffectPreview(Renderer.Pipelines, item, label));
         _code.SaveRequested += Save;
         _seenVersion = -1;
 

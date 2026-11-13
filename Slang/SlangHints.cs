@@ -49,6 +49,9 @@ public sealed partial class SlangHints
     /// <summary>The library's type aliases (<c>colour</c>): other names for built-in types, so coloured as those are.</summary>
     public HashSet<string> Aliases { get; } = new();
 
+    /// <summary>The attributes the library declares (<c>DefaultAttribute</c> → <c>Default</c>), for colouring apart from Slang's.</summary>
+    public HashSet<string> Attributes { get; } = new();
+
     /// <summary>The library's namespaces (<c>color</c>, <c>ease</c>, …), for colouring.</summary>
     public HashSet<string> Namespaces { get; } = new();
 
@@ -77,7 +80,11 @@ public sealed partial class SlangHints
         source = WithoutComments(source);
         var structs = Struct().Matches(source).Select(match => (match.Index, Name: match.Groups[1].Value)).ToList();
         foreach (var declared in structs)
+        {
             Types.Add(declared.Name);
+            if (declared.Name.Length > "Attribute".Length && declared.Name.EndsWith("Attribute", StringComparison.Ordinal))
+                Attributes.Add(declared.Name[..^"Attribute".Length]);
+        }
         foreach (Match alias in TypeAlias().Matches(source))
             Aliases.Add(alias.Groups[1].Value);
         foreach (Match name in NamespaceDeclaration().Matches(source))

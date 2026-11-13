@@ -20,6 +20,9 @@ public enum TokenKind
     Number,
     Text,
     Attribute,
+
+    /// <summary>An attribute the library declares (<c>[Default]</c>, <c>[Instance]</c>), apart from Slang's own.</summary>
+    LibraryAttribute,
     Comment,
 }
 
@@ -54,7 +57,9 @@ public static class SlangSyntax
         "ItemInput", "ItemVaryings",
     ];
 
-    public static List<Token> Tokens(string line, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases = null)
+    public static List<Token> Tokens(
+        string line, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases = null,
+        IReadOnlySet<string>? attributes = null)
     {
         var tokens = new List<Token>();
         int i = 0;
@@ -87,13 +92,14 @@ public static class SlangSyntax
                 continue;
             }
 
-            // [Default(1)] and friends: the attribute's name in brackets.
+            // [Default(1)] and friends: the attribute's name in brackets, the library's apart from Slang's.
             if (c == '[' && i + 1 < line.Length && char.IsLetter(line[i + 1]))
             {
                 int name = i + 1;
                 while (name < line.Length && (char.IsLetterOrDigit(line[name]) || line[name] == '_'))
                     name++;
-                tokens.Add(new Token(start, name, TokenKind.Attribute));
+                bool ours = attributes is not null && attributes.Contains(line[(i + 1)..name]);
+                tokens.Add(new Token(start, name, ours ? TokenKind.LibraryAttribute : TokenKind.Attribute));
                 i = name;
                 continue;
             }

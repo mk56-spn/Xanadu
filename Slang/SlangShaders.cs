@@ -220,14 +220,6 @@ public static class SlangShaders
         return next;
     }
 
-    /// <summary>
-    /// Compiles a whole shipped effect from its text, as it would compile from
-    /// its file (entry <c>shade</c>), for editing one before it is saved.
-    /// Slang's errors name <paramref name="name"/> and the file's own lines.
-    /// </summary>
-    public static CompiledShader CompileWholeEffect(string name, string source) =>
-        CompileWrapped($"#line 1 \"{name.Replace("\"", "'")}\"\n{source}", "shade", "fragment", 2, 3, bindGlobals: false);
-
     /// <summary>Where xanadu.stage declares the chart buffer, which moves with each effect's textures.</summary>
     private static string[] ChartDefines(int binding, int set) =>
         [$"XANADU_CHART_BINDING={binding}", $"XANADU_CHART_SET={set}"];

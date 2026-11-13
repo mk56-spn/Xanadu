@@ -2,15 +2,12 @@
 // readable: the screen read at a blurrier mip, with the panel's own colour laid
 // over it by its alpha. The host builds the screen's mips through a Gaussian
 // filter, so one read of a low level is already smooth.
-import xanadu.stage;
+import xanadu;
 
-struct Params { [Default(3)] float lod; };
-[[vk::binding(1, 3)]] ConstantBuffer<Params> params;
+[Default(3)] uniform float lod;
 
-[shader("fragment")]
-float4 shade(ItemVaryings v) : SV_Target
+float4 shade(ItemInput i)
 {
-    ItemInput i = input(v);
-    float3 behind = sampleScreen(i.screenUv, params.lod).rgb;
+    float3 behind = sampleScreen(i.screenUv, lod).rgb;
     return float4(lerp(behind, i.colour.rgb, i.colour.a), 1.0);
 }

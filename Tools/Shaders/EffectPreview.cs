@@ -9,41 +9,61 @@ using Xanadu.Systems.Canvas;
 namespace Xanadu.Tools.Shaders;
 
 /// <summary>
-/// A whole shipped effect (its own <c>shade(ItemVaryings v)</c>) on a 16:9 quad,
-/// compiled from the text being edited, not the file. Textures it declares
-/// past the item's own draw white until the tool can feed them.
+/// A shipped effect on a 16:9 quad, compiled from the text being edited, not
+/// the file, through the same wrapper as level shaders (its <c>shade</c> takes
+/// <c>Canvas</c> and/or <c>ItemInput</c>). Textures it declares
+/// past the item's own draw white until the tool can feed them. Behind it the
+/// backdrop effect (<see cref="ShaderFiles.Backdrop"/>) fills the same quad, so
+/// an effect that reads the screen shows what it does to something.
 /// </summary>
-internal sealed class WholeEffectPreview(CanvasPipelines pipelines, Handle item, string label) : IEditorPreview
+internal sealed class EffectPreview : IEditorPreview
 {
+    private readonly CanvasPipelines _pipelines;
+    private readonly Handle _backdrop;
+    private readonly Handle _item;
+    private readonly string _label;
     private CanvasMaterial? _material;
 
-    public string Label => label;
+    /// <param name="item">Draws the backdrop; the effect goes in a child of it, so it draws over.</param>
+    public EffectPreview(CanvasPipelines pipelines, Handle item, string label)
+    {
+        _pipelines = pipelines;
+        _backdrop = item;
+        _label = label;
+        _item = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(_item, item);
+        CanvasServer.Current.SetMaterial(_backdrop, new CanvasMaterial(ShaderFiles.Backdrop));
+    }
+
+    public string Label => _label;
 
     public IEnumerable<(string Name, string Type, string? Note)> Provided => [];
 
     public string[] Help =>
     [
-        "A whole effect: [shader(\"fragment\")] float4 shade(ItemVaryings v) is its entry; import xanadu.* for the library.",
+        "An effect: uniforms and float4 shade(Canvas canvas), as in a level shader; ItemInput i gives uv, colour and the rest.",
         "Ctrl+S saves to the file. Picking another shader keeps these edits until the tool closes.",
     ];
 
     public PreviewBuild Compile(string source) =>
-        new(source, SlangShaders.CompileWholeEffect(Label, source).Params);
+        new(source, SlangShaders.CompileEffectBody(Label, source).Params);
 
     public string Show(PreviewBuild build)
     {
         CanvasMaterial? previous = _material;
-        _material = CanvasMaterial.FromEffect(Label, (string)build.Result);
-        CanvasServer.Current.SetMaterial(item, _material);
+        _material = CanvasMaterial.FromSource(Label, (string)build.Result);
+        CanvasServer.Current.SetMaterial(_item, _material);
         if (previous is not null)
-            pipelines.Forget(previous);
+            _pipelines.Forget(previous);
         return "";
     }
 
     public void Place(Rect2 area)
     {
-        CanvasServer.Current.Clear(item);
-        CanvasServer.Current.AddRect(item, area, Colors.White);
+        CanvasServer.Current.Clear(_backdrop);
+        CanvasServer.Current.AddRect(_backdrop, area, Colors.White);
+        CanvasServer.Current.Clear(_item);
+        CanvasServer.Current.AddRect(_item, area, Colors.White);
     }
 
     public void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning)
@@ -55,6 +75,7 @@ internal sealed class WholeEffectPreview(CanvasPipelines pipelines, Handle item,
     public void Dispose()
     {
         if (_material is not null)
-            pipelines.Forget(_material);
+            _pipelines.Forget(_material);
+        CanvasServer.Current.Free(_item);
     }
 }

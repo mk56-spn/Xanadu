@@ -52,7 +52,11 @@ public sealed partial class SlangLibraryDeclarations
             if (name.Value is "__init" or "__subscript")
                 continue;
             (int line, int column) = Place(code, name.Index);
-            Note(name.Value, ScopeOf(scopes, name.Index), new LibraryPlace(path, line, column));
+            var place = new LibraryPlace(path, line, column);
+            Note(name.Value, ScopeOf(scopes, name.Index), place);
+            // An attribute's struct is used by its short name: DefaultAttribute is [Default].
+            if (name.Value.Length > "Attribute".Length && name.Value.EndsWith("Attribute", StringComparison.Ordinal))
+                Note(name.Value[..^"Attribute".Length], ScopeOf(scopes, name.Index), place);
         }
     }
 

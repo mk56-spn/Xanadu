@@ -48,6 +48,8 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         [TokenKind.Number] = new("#f78c6c"),
         [TokenKind.Text] = new("#c3e88d"),
         [TokenKind.Attribute] = new("#a0a8c4"),
+        // Ours stand apart from Slang's: [Default], [Instance] and any the library adds.
+        [TokenKind.LibraryAttribute] = new("#ff9cac"),
         [TokenKind.Comment] = new("#6b7a99"),
     };
 
@@ -135,7 +137,7 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         return null;
     }
 
-    private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases);
+    private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases, hints.Attributes);
 
     public void Prepare(TextBuffer buffer, List<TextCell> boxed)
     {

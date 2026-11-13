@@ -60,7 +60,7 @@ The rest is under "Later" (§6).
   `canvas`: the quad being drawn as it lands on the target, in pixels: `size`,
   `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `centred`, `aspect`,
   `uvAt(pixel)`; worked out from uv derivatives, exact for any 0..1 quad), `input(v)`,
-  `sampleItem`, `sampleScreen(uv, lod)` and `[Default(...)]`.
+  `sampleItem`, `sampleScreen(uv, lod)`, `[Default(...)]` and `[Instance]`.
 - **Bindings:** the host owns sampler 0 (the item's texture), sampler 1 (the
   screen copy) and uniform buffer 0 (the frame). An effect's own textures
   start at sampler 2 (by name, from `CanvasMaterial.Textures`) and its values
@@ -266,9 +266,11 @@ host fills; tests leave the headless defaults.
   entry and flags, every library module, and the Slangc.NET version. Shipped
   effects compile at start (`WarmShipped`); a level's slots when it appears
   (`WarmLevelShaders`). Blend variants are pipeline state, made on first use.
-- **Shipped effects** are `.slang` files under `Assets/Shaders`, each a
-  fragment entry point `shade` (note background, flare, rainbow, frosted
-  glass, text gradient, colour picker, editor waveform).
+- **Shipped effects** are `.slang` files under `Assets/Shaders` (note
+  background, flare, rainbow, frosted glass, text gradient, colour picker,
+  editor waveform), written exactly as level shader slots are (below) and
+  compiled through the same wrapper, so the lab, the shader tool and the game
+  read one form.
 - **Level shader slots** hold an effect body: global `uniform`s (tagged
   `[Instance]` when a group's item-shader track may key them, with
   `[Default(...)]`s) and a `float4 shade(…)` taking any of `Canvas` and

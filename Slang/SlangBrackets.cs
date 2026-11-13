@@ -40,7 +40,7 @@ public static class SlangBrackets
                     continue;
 
                 // [Default(…)]: the attribute token starts with its '['.
-                bool attribute = inside is { Kind: TokenKind.Attribute } token && token.Start == column && c == '[';
+                bool attribute = inside is { Kind: TokenKind.Attribute or TokenKind.LibraryAttribute } token && token.Start == column && c == '[';
                 if (inside is not null && !attribute)
                 {
                     last = (line, column, -1);
@@ -49,7 +49,7 @@ public static class SlangBrackets
 
                 if (c is '(' or '[' or '{')
                 {
-                    TokenKind? owner = attribute ? TokenKind.Attribute
+                    TokenKind? owner = attribute ? inside!.Value.Kind
                         : c == '{' ? BraceOwner(brackets, last, tokens, text, column)
                         : Before(tokens, text, column);
                     open.Push((brackets.Count, c == '(' ? ')' : c == '[' ? ']' : '}'));
@@ -103,7 +103,7 @@ public static class SlangBrackets
         return word?.Kind switch
         {
             TokenKind.Width2 or TokenKind.Width3 or TokenKind.Width4 or TokenKind.Type => TokenKind.Type,
-            TokenKind.LibraryType or TokenKind.Function or TokenKind.Keyword or TokenKind.Attribute => word.Value.Kind,
+            TokenKind.LibraryType or TokenKind.Function or TokenKind.Keyword or TokenKind.Attribute or TokenKind.LibraryAttribute => word.Value.Kind,
             _ => null,
         };
     }

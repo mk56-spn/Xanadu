@@ -73,9 +73,7 @@ internal sealed class CanvasPipelines : IDisposable
         {
             try
             {
-                effect = Make(material.Whole
-                    ? SlangShaders.CompileWholeEffect(material.Shader, source)
-                    : SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
             }
             catch (Exception exception)
             {
@@ -89,7 +87,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     private static string SourceKey(Xanadu.Systems.Canvas.CanvasMaterial material, string source) =>
-        (material.Whole ? "whole:" : material.KeepsState ? "state:" : "source:") + source;
+        (material.KeepsState ? "state:" : "source:") + source;
 
     /// <summary>The effect at a path in the game folder (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
     public CanvasEffect Effect(string path)
@@ -117,7 +115,8 @@ internal sealed class CanvasPipelines : IDisposable
 
         try
         {
-            return Make(SlangShaders.CompileReflected(file, "shade", "fragment", samplerSpace: 2, uniformSpace: 3));
+            // Written as level shaders are: the same wrapper calls its shade.
+            return Make(SlangShaders.CompileEffectBody(path, File.ReadAllText(file)));
         }
         catch (Exception exception)
         {

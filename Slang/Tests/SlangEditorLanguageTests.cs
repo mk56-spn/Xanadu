@@ -316,6 +316,25 @@ public sealed class SlangSyntaxTests
     }
 
     [Test]
+    public void TheLibrarysAttributesStandApartFromSlangs()
+    {
+        var ours = new HashSet<string> { "Instance", "Default" };
+        List<Token> tokens = SlangSyntax.Tokens("[Instance] [shader(\"vertex\")] [Default(1)]", LibraryTypes, Namespaces, attributes: ours);
+
+        Assert.That(tokens.Where(t => t.Kind is TokenKind.Attribute or TokenKind.LibraryAttribute).Select(t => t.Kind),
+            Is.EqualTo(new[] { TokenKind.LibraryAttribute, TokenKind.Attribute, TokenKind.LibraryAttribute }));
+    }
+
+    [Test]
+    public void HintsFindTheLibrarysAttributesByTheirShortNames()
+    {
+        var hints = new SlangHints();
+        hints.Read("[__AttributeUsage(_AttributeTargets.Function)]\npublic struct InstanceAttribute\n{\n};\npublic struct Attribute {};");
+
+        Assert.That(hints.Attributes, Is.EquivalentTo(new[] { "Instance" }));
+    }
+
+    [Test]
     public void TokensDontOverlapAndStayInOrder()
     {
         List<Token> tokens = Tokens("float4 c = lerp(a, b, 0.5); /* x */");
@@ -564,6 +583,11 @@ public sealed class SlangLibraryDeclarationsTests
         Assert.That(Library.Find("float t = TAU;", 11), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 6, 26)));
         Assert.That(Library.Find("import xanadu.anim;", 15), Is.EqualTo(new LibraryPlace("lib/xanadu/anim.slang", 0, 0)));
     }
+
+    [Test]
+    public void AnAttributeGoesToItsStruct() =>
+        Assert.That(SlangLibraryDeclarations.FromModules([("lib/stage.slang", "public struct InstanceAttribute\n{\n};")]).Find("[Instance]", 3),
+            Is.EqualTo(new LibraryPlace("lib/stage.slang", 0, 14)));
 
     [Test]
     public void NamesInCommentsAndUnknownNamesAreNot()

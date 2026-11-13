@@ -5,21 +5,17 @@
 // fixed multiple of time, averages each band over it from two sums apiece (as
 // WaveformData.Average does), and shows the shortest band that reaches it, so
 // the bands read as overlaid bars, tallest behind.
-import xanadu.stage;
+import xanadu;
 
-struct Params
-{
-    // Window start and end (ms), ms per column, audio lag (ms).
-    float4 wave_window;
-    // Steps per ms, steps, texels per row of the sums texture.
-    float4 wave_data;
-    // Ruler height (px), tallest half-bar (px), mid scale, high scale.
-    float4 wave_box;
-    float4 wave_low;
-    float4 wave_mid;
-    float4 wave_high;
-};
-[[vk::binding(1, 3)]] ConstantBuffer<Params> params;
+// Window start and end (ms), ms per column, audio lag (ms).
+uniform float4 wave_window;
+// Steps per ms, steps, texels per row of the sums texture.
+uniform float4 wave_data;
+// Ruler height (px), tallest half-bar (px), mid scale, high scale.
+uniform float4 wave_box;
+uniform float4 wave_low;
+uniform float4 wave_mid;
+uniform float4 wave_high;
 
 float3 sumsAt(int index, int row)
 {
@@ -29,34 +25,33 @@ float3 sumsAt(int index, int row)
 // The running sums at a time, between steps by how far into the step it is.
 float3 runningAt(float timeMs)
 {
-    float steps = params.wave_data.y;
-    int row = int(params.wave_data.z);
-    float position = clamp(timeMs * params.wave_data.x, 0.0, steps);
+    float steps = wave_data.y;
+    int row = int(wave_data.z);
+    float position = clamp(timeMs * wave_data.x, 0.0, steps);
     int step = min(int(position), int(steps) - 1);
     float3 a = sumsAt(step, row);
     float3 b = sumsAt(step + 1, row);
     return a + (b - a) * (position - float(step));
 }
 
-[shader("fragment")]
-float4 shade(ItemVaryings v) : SV_Target
+float4 shade(ItemInput i)
 {
-    // The texture holds numbers, not colour: input() would sample it, so read the varyings directly.
-    float4 window = params.wave_window;
-    float time = lerp(window.x, window.y, v.uv.x);
+    // The texture holds numbers, not colour: i.colour has it mixed in, so the vertex colour is read alone.
+    float4 window = wave_window;
+    float time = lerp(window.x, window.y, i.uv.x);
     float column = floor(time / window.z);
     float start = column * window.z + window.w;
     float end = start + window.z;
 
-    float3 average = (runningAt(end) - runningAt(start)) / (window.z * params.wave_data.x);
-    float3 half = average * float3(1.0, params.wave_box.z, params.wave_box.w) * params.wave_box.y;
-    float y = abs((v.uv.y - 0.5) * params.wave_box.x);
+    float3 average = (runningAt(end) - runningAt(start)) / (window.z * wave_data.x);
+    float3 half = average * float3(1.0, wave_box.z, wave_box.w) * wave_box.y;
+    float y = abs((i.uv.y - 0.5) * wave_box.x);
 
     // The shortest band covering the pixel is the one on top; on a tie the later band, as drawn last.
     float4 colour = float4(0.0);
     float shortest = 1e30;
-    if (half.x >= 0.5 && y <= half.x && half.x <= shortest) { shortest = half.x; colour = params.wave_low; }
-    if (half.y >= 0.5 && y <= half.y && half.y <= shortest) { shortest = half.y; colour = params.wave_mid; }
-    if (half.z >= 0.5 && y <= half.z && half.z <= shortest) { shortest = half.z; colour = params.wave_high; }
-    return colour * v.colour;
+    if (half.x >= 0.5 && y <= half.x && half.x <= shortest) { shortest = half.x; colour = wave_low; }
+    if (half.y >= 0.5 && y <= half.y && half.y <= shortest) { shortest = half.y; colour = wave_mid; }
+    if (half.z >= 0.5 && y <= half.z && half.z <= shortest) { shortest = half.z; colour = wave_high; }
+    return colour * i.vertexColour;
 }
