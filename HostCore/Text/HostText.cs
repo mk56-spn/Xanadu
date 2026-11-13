@@ -27,6 +27,14 @@ internal sealed unsafe class HostText : IDisposable
     private const string SansPath = "Assets/Fonts/SourceSans3-Variable.ttf";
     private const string MonoPath = "Assets/Fonts/JetBrainsMono-Regular.ttf";
 
+    /// <summary>Tried in order for characters the main faces lack: symbols, then emoji (drawn in one colour), then JetBrains Mono.</summary>
+    private static readonly string[] FallbackPaths =
+    [
+        "Assets/Fonts/NotoSansSymbols2-Regular.ttf",
+        "Assets/Fonts/NotoSansSymbols-Variable.ttf",
+        "Assets/Fonts/NotoEmoji-Regular.ttf",
+    ];
+
     /// <summary>One glyph image: its face, size, glyph, and what was made of it.</summary>
     private readonly record struct Key(int Face, int Size, uint Glyph, GlyphLook Look, float A, float B);
 
@@ -48,12 +56,26 @@ internal sealed unsafe class HostText : IDisposable
 
         byte[] sans = File.ReadAllBytes(GamePaths.Full(SansPath));
         byte[] mono = File.ReadAllBytes(GamePaths.Full(MonoPath));
-        _faces =
-        [
-            new FontFace(library, sans, 0, "Source Sans 3", weight: 400),
-            new FontFace(library, sans, 1, "Source Sans 3 Bold", weight: 700),
-            new FontFace(library, mono, 2, "JetBrains Mono"),
-        ];
+        var faces = new List<FontFace>
+        {
+            new(library, sans, 0, "Source Sans 3", weight: 400),
+            new(library, sans, 1, "Source Sans 3 Bold", weight: 700),
+            new(library, mono, 2, "JetBrains Mono"),
+        };
+        var fallbacks = new FontFace[FallbackPaths.Length];
+        for (int i = 0; i < fallbacks.Length; i++)
+        {
+            string path = FallbackPaths[i];
+            fallbacks[i] = new FontFace(
+                library, File.ReadAllBytes(GamePaths.Full(path)), faces.Count + i, Path.GetFileNameWithoutExtension(path), weight: 400);
+        }
+
+        // Mono last: it has the box-drawing lines (┃ └) the others lack.
+        FontFace[] chain = [.. fallbacks, faces[(int)FontKind.Mono]];
+        foreach (FontFace face in faces)
+            face.Fallbacks = chain;
+        faces.AddRange(fallbacks);
+        _faces = faces.ToArray();
         Atlas = new TextAtlas(device, registerTexture);
     }
 
@@ -83,10 +105,10 @@ internal sealed unsafe class HostText : IDisposable
                 continue;
 
             AtlasGlyph glyph = glowRadius > 0
-                ? Glyph(face, size, shaped.Index, GlyphLook.Glow, glowRadius, glowIntensity)
+                ? Glyph(shaped.Face, size, shaped.Index, GlyphLook.Glow, glowRadius, glowIntensity)
                 : outline > 0
-                    ? Glyph(face, size, shaped.Index, GlyphLook.Outline, outline, 0)
-                    : Glyph(face, size, shaped.Index, GlyphLook.Fill, 0, 0);
+                    ? Glyph(shaped.Face, size, shaped.Index, GlyphLook.Outline, outline, 0)
+                    : Glyph(shaped.Face, size, shaped.Index, GlyphLook.Fill, 0, 0);
             if (glyph.IsEmpty)
                 continue;
 
@@ -113,7 +135,7 @@ internal sealed unsafe class HostText : IDisposable
             if (shaped.Index == 0)
                 continue;
 
-            GlyphBitmap bitmap = face.Render(shaped.Index, size, 0);
+            GlyphBitmap bitmap = shaped.Face.Render(shaped.Index, size, 0);
             if (bitmap.Width == 0 || bitmap.Height == 0)
                 continue;
 

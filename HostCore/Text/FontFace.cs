@@ -9,8 +9,8 @@ using HbFont = HarfBuzzSharp.Font;
 
 namespace Xanadu.Host.Text;
 
-/// <summary>One glyph placed by shaping: its index in the font and its pen offset, in pixels.</summary>
-internal readonly record struct ShapedGlyph(uint Index, float X, float Y);
+/// <summary>One glyph placed by shaping: the face it comes from (a fallback's for a character the main face lacks), its index there, and its pen offset, in pixels.</summary>
+internal readonly record struct ShapedGlyph(FontFace Face, uint Index, float X, float Y);
 
 /// <summary>A glyph's coverage as FreeType rendered it: one byte per pixel, and where it sits against the pen.</summary>
 internal readonly record struct GlyphBitmap(int Width, int Height, int Left, int Top, byte[] Coverage);
@@ -37,6 +37,15 @@ internal sealed unsafe class FontFace : IDisposable
     public int Id { get; }
 
     public string Name { get; }
+
+    /// <summary>
+    /// Faces tried, in order, for a character this one lacks (symbols, emoji),
+    /// as Godot fell back to other fonts; a character none has stays in this face.
+    /// </summary>
+    public FontFace[] Fallbacks { get; set; } = [];
+
+    /// <summary>Whether the font has a glyph for <paramref name="codepoint"/>.</summary>
+    public bool Has(int codepoint) => FT_Get_Char_Index(_face, (nuint)codepoint) != 0;
 
     public FontFace(FT_LibraryRec_* library, byte[] data, int id, string name, float? weight = null)
     {
@@ -146,7 +155,62 @@ internal sealed unsafe class FontFace : IDisposable
         return width;
     }
 
+    /// <summary>
+    /// Shapes the text in runs, each in the first face that has its characters:
+    /// this one, else a fallback. Spaces and marks stay in the run before them.
+    /// </summary>
     private float ShapeUncached(string text, int size, List<ShapedGlyph> glyphs)
+    {
+        if (Fallbacks.Length == 0)
+            return ShapeRun(text, size, 0, glyphs);
+
+        float pen = 0;
+        int runStart = 0;
+        FontFace? runFace = null;
+        int index = 0;
+        foreach (System.Text.Rune rune in text.EnumerateRunes())
+        {
+            FontFace face = runFace is not null && Joins(rune) ? runFace : For(rune.Value);
+            if (runFace is not null && face != runFace)
+            {
+                pen += runFace.ShapeRun(text[runStart..index], size, pen, glyphs);
+                runStart = index;
+            }
+
+            runFace = face;
+            index += rune.Utf16SequenceLength;
+        }
+
+        if (runFace is not null)
+            pen += runFace.ShapeRun(text[runStart..], size, pen, glyphs);
+        return pen;
+    }
+
+    /// <summary>Spaces, joiners, variation selectors and marks go with the run they follow.</summary>
+    private static bool Joins(System.Text.Rune rune) =>
+        System.Text.Rune.IsWhiteSpace(rune) ||
+        System.Text.Rune.GetUnicodeCategory(rune) is
+            System.Globalization.UnicodeCategory.NonSpacingMark or
+            System.Globalization.UnicodeCategory.EnclosingMark or
+            System.Globalization.UnicodeCategory.Format ||
+        rune.Value is >= 0xFE00 and <= 0xFE0F;
+
+    private FontFace For(int codepoint)
+    {
+        if (Has(codepoint))
+            return this;
+
+        foreach (FontFace fallback in Fallbacks)
+        {
+            if (fallback.Has(codepoint))
+                return fallback;
+        }
+
+        return this;
+    }
+
+    /// <summary>Shapes one run in this face, its pen starting at <paramref name="start"/>; returns its advance.</summary>
+    private float ShapeRun(string text, int size, float start, List<ShapedGlyph> glyphs)
     {
         _hbFont.SetScale(size * 64, size * 64);
         using var buffer = new HbBuffer();
@@ -160,7 +224,7 @@ internal sealed unsafe class FontFace : IDisposable
         for (int i = 0; i < infos.Length; i++)
         {
             GlyphPosition p = positions[i];
-            glyphs.Add(new ShapedGlyph(infos[i].Codepoint, pen + p.XOffset / 64f, -p.YOffset / 64f));
+            glyphs.Add(new ShapedGlyph(this, infos[i].Codepoint, start + pen + p.XOffset / 64f, -p.YOffset / 64f));
             pen += p.XAdvance / 64f;
         }
 
