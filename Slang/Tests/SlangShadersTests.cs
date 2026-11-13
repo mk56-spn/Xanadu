@@ -50,6 +50,22 @@ public sealed class SlangShadersTests
             "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
     }
 
+    [TestCase("colour c = colours.gold; c.invert(); c.grey(); c.brighten(1.2); c.saturateBy(1.5); c.contrast(1.1); c.tint(colours.navy, 0.3); c.shiftHue(0.25); return c;")]
+    [TestCase("return colours.gold.inverted().greyed().brightened(0.8).saturatedBy(0.5).contrasted(2).tinted(colours.red, 0.5).hueShifted(0.5).withRgb(float3(1, 0, 0));")]
+    [TestCase("float l = colours.gold.luminance(); return l;")]
+    public void ColoursChangeTheirRgbAndKeepTheirAlpha(string body)
+    {
+        Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
+            "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
+    }
+
+    [Test]
+    public void AShapesDistanceDefaultsToThePixelBeingShaded()
+    {
+        Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
+            "import xanadu;\nfloat4 shade(Canvas canvas) { return Circle(40).moved(float2(20, 0)).melted(Box(float2(30)), 10).distance(); }"));
+    }
+
     [TestCase("colour c = colours.black; c.paint(Grid(1, 40), colours.white); return c;")]
     [TestCase("colour c = colours.black; c.paint(Grid(2, float2(80, 40)).moved(float2(20, 0)).rotated(0.5), colours.gold); return c;")]
     [TestCase("return Columns(2, 24).filled() + Rows(2, 24).stroked(1);")]

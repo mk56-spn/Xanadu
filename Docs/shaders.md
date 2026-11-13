@@ -143,7 +143,23 @@ colour mixed = top.over(bottom);         // straight-alpha "over"
   shows each one's swatch in completion.
 - **`colours.hsv(h, s, v)`** and **`colours.hue(h)`** (full saturation and
   value) give opaque colours.
-- **`c.withAlpha(a)`:** the same colour with another alpha.
+- **`c.withAlpha(a)`:** the same colour with another alpha; **`c.withRgb(rgb)`**
+  the same alpha with another rgb.
+- **Changing the rgb, keeping the alpha:** each as a verb that changes the
+  colour (`c.invert()`) or a past participle that gives a changed copy
+  (`c.inverted()`):
+
+  | Change | Copy | Does |
+  |---|---|---|
+  | `invert()` | `inverted()` | 1 − rgb |
+  | `grey()` | `greyed()` | just how bright it looks (`c.luminance()`, Rec. 709) |
+  | `brighten(f)` | `brightened(f)` | rgb × f |
+  | `saturateBy(f)` | `saturatedBy(f)` | 0 grey, 1 as is, above 1 more vivid (`saturate` is Slang's own) |
+  | `contrast(f)` | `contrasted(f)` | 0 flat mid grey, 1 as is, above 1 punchier |
+  | `tint(to, t)` | `tinted(to, t)` | rgb towards `to`'s by `t` |
+  | `shiftHue(turns)` | `hueShifted(turns)` | hue turned round; 1 is all the way |
+
+  Anything else: `c.rgb` is a plain `float3`, so `c.rgb = pow(c.rgb, 2.0)`.
 - **`top.over(bottom)`:** lays one colour on another by `top`'s alpha.
 - **Building a picture:** for that, `paint` (§9) is usually what you want.
 
@@ -266,7 +282,7 @@ pointer.
 | `s.haloed(reach, falloff = 1)` / `s.haloed(position, reach, falloff)` | 1 at the edge, fading to 0 `reach` pixels away on both sides; higher `falloff` is tighter |
 | `s.outlined(width, soft = 1)` / `s.outlined(position, width, soft)` | 1 on a line `width` wide just **inside** the edge, so the shape keeps its size (`stroked` is centred on the edge, half outside) |
 | `box.outlined(sides, width, soft = 1)` / `box.outlined(position, sides, width, soft)` | `Box` only: `outlined` on just the chosen sides, joined with `\|`: `side.top \| side.left`, or `side.all`. A chosen side ends at the corner's diagonal where it meets one that isn't |
-| `s.distance(position)` | the signed distance itself: negative inside, in pixels |
+| `s.distance()` / `s.distance(position)` | the signed distance itself: negative inside, in pixels |
 
 ## 8. Distances by hand: `sdf.`
 

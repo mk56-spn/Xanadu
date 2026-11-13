@@ -502,6 +502,9 @@ public extension<S : IShape> S
         return local(at.toLocal(position)) * at.scale;
     }
 
+    /// distance at the pixel being shaded, from the quad's centre.
+    public float distance() { return distance(shading.canvas.centred); }
+
     /// `count` copies in a circle, each `radius` out from the centre.
     public Repeated<S> repeated(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }
 

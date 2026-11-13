@@ -7,6 +7,9 @@
 //     colours.hue(h)               the hue at full saturation and value
 //     top.over(bottom)             straight-alpha "over"
 //     colours.black.withAlpha(0.5) the same colour, another alpha
+//     c.brighten(1.2); c.greyed()  rgb changes, the alpha kept: invert, grey,
+//                                  brighten, saturateBy, contrast, tint, shiftHue
+//                                  (and inverted, greyed, … for a changed copy)
 module colour;
 
 /// A colour: just a float4 (r, g, b, a, straight alpha) under a name that says what it holds.
@@ -25,6 +28,65 @@ public extension float4
         if (a == 0.0)
             return colour(0.0);
         return colour((top.rgb * top.a + bottom.rgb * bottom.a * (1.0 - top.a)) / a, a);
+    }
+
+    // ---- Changing the rgb, keeping the alpha -------------------------------------
+    // Verbs change the colour (c.invert()); past participles give a changed copy (c.inverted()).
+
+    /// The same alpha with another rgb: c.withRgb(c.rgb * 0.5).
+    public colour withRgb(float3 rgb) { return colour(rgb, this.a); }
+
+    /// How bright it looks, 0..1: the rgb weighted as the eye weighs it (Rec. 709).
+    public float luminance() { return dot(this.rgb, float3(0.2126, 0.7152, 0.0722)); }
+
+    /// Turns it into its opposite: 1 - rgb.
+    [mutating] public void invert() { this = colour(1.0 - this.rgb, this.a); }
+
+    /// A copy turned into its opposite: 1 - rgb.
+    public colour inverted() { return colour(1.0 - this.rgb, this.a); }
+
+    /// Takes its colour away, leaving how bright it looks.
+    [mutating] public void grey() { this = colour(float3(luminance()), this.a); }
+
+    /// A copy with its colour taken away, leaving how bright it looks.
+    public colour greyed() { return colour(float3(luminance()), this.a); }
+
+    /// Multiplies the rgb by `factor`: above 1 brighter, below darker, 0 black.
+    [mutating] public void brighten(float factor) { this = colour(this.rgb * factor, this.a); }
+
+    /// A copy with the rgb multiplied by `factor`: above 1 brighter, below darker.
+    public colour brightened(float factor) { return colour(this.rgb * factor, this.a); }
+
+    /// Scales how colourful it is: 0 grey, 1 as it is, above 1 more vivid.
+    [mutating] public void saturateBy(float factor) { this = saturatedBy(factor); }
+
+    /// A copy scaled in how colourful it is: 0 grey, 1 as it is, above 1 more vivid.
+    public colour saturatedBy(float factor) { return colour(lerp(float3(luminance()), this.rgb, factor), this.a); }
+
+    /// Scales how far the rgb is from mid grey: 0 flat grey, 1 as it is, above 1 punchier.
+    [mutating] public void contrast(float factor) { this = contrasted(factor); }
+
+    /// A copy with the rgb's distance from mid grey scaled: 0 flat grey, 1 as it is, above 1 punchier.
+    public colour contrasted(float factor) { return colour((this.rgb - 0.5) * factor + 0.5, this.a); }
+
+    /// Moves the rgb towards `to`'s by `amount` (0 none, 1 all the way); its own alpha kept.
+    [mutating] public void tint(colour to, float amount) { this = tinted(to, amount); }
+
+    /// A copy with the rgb moved towards `to`'s by `amount` (0 none, 1 all the way).
+    public colour tinted(colour to, float amount) { return colour(lerp(this.rgb, to.rgb, amount), this.a); }
+
+    /// Turns the hue round by `turns` (1 is all the way round, back where it started), keeping how bright it is.
+    [mutating] public void shiftHue(float turns) { this = hueShifted(turns); }
+
+    /// A copy with the hue turned round by `turns` (1 is all the way round).
+    public colour hueShifted(float turns)
+    {
+        // Rotating the rgb round the grey axis (1, 1, 1).
+        float angle = turns * 6.28318530718;
+        float3 k = float3(0.57735026919);
+        float c = cos(angle), s = sin(angle);
+        float3 rgb = this.rgb * c + cross(k, this.rgb) * s + k * dot(k, this.rgb) * (1.0 - c);
+        return colour(rgb, this.a);
     }
 }
 
