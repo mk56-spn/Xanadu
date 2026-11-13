@@ -74,9 +74,11 @@ public static class PlayScene
             new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play),
             new Player(playerSize),
+            // The top of the field, for a level with no notes; PlayerDropIn
+            // moves her above the first note. A start point puts her where it says.
             new Position(new Vector2(
                 origin.X + fieldWidth / 2,
-                origin.Y + fieldHeight - playerSize.Y / 2)),
+                origin.Y + playerSize.Y / 2)),
             new Character(1f));
 
         playfieldEntity.AddComponent(new PlayCamera(viewport));
@@ -112,6 +114,17 @@ public static class PlayScene
         PlayHudBuilder.Build(
             entities, root, playfieldEntity, screen, document, song, origin, viewport,
             fieldHeight, visuals, start?.TimeMs ?? 0);
+
+        // Without a start point she drops in onto the first note; a start point
+        // fades her in where it says, from a standstill.
+        ref PlaySession session = ref playfieldEntity.GetComponent<PlaySession>();
+        if (start is null &&
+            PlayerDropIn.Aim(document, playfieldEntity, session.StartTimeMs, out Vector2 dropSpawn, out long dropStartMs))
+        {
+            playfieldEntity.GetComponent<Position>().Value = dropSpawn;
+            session.DropStartMs = dropStartMs;
+            session.DropSpeed = PlayerDropIn.EntrySpeed;
+        }
 
         if (replay is not null)
             playfieldEntity.AddComponent(new ReplayPlayer(replay));

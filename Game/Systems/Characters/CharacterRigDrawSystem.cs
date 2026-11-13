@@ -4,6 +4,8 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Systems.Canvas;
+using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Characters;
@@ -15,10 +17,13 @@ namespace Xanadu.Systems.Characters;
 /// Verlet chains, such as hair, are simulated in rig space from its animated
 /// bones, so they swing with the animation. With <paramref name="ghosts"/>, a
 /// character that hits a note also leaves a fading copy of its art behind.
+/// With <paramref name="layer"/>, the canvas item the art is drawn under, the
+/// art fades in as the player drops into a run (<see cref="PlayerDropIn"/>).
 /// </summary>
 public sealed class CharacterRigDrawSystem(
     Func<IAttachmentVisuals> createVisuals,
-    CharacterRigGhosts? ghosts = null)
+    CharacterRigGhosts? ghosts = null,
+    Handle layer = default)
     : QuerySystem<CharacterRig, Player, Position>
 {
     private readonly Dictionary<int, Instance> _instances = new();
@@ -39,6 +44,8 @@ public sealed class CharacterRigDrawSystem(
             }
 
             _seen.Add(entity.Id);
+            if (layer != default)
+                CanvasServer.Current.SetModulate(layer, new Color(1f, 1f, 1f, PlayerDropIn.Alpha(entity)));
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
             XafPackage package = runtime.Package;
             Transform2D[] bones = XafRig.WorldBones(package, runtime.Pose);

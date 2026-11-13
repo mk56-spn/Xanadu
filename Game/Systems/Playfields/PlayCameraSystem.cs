@@ -10,7 +10,8 @@ namespace Xanadu.Systems.Playfields;
 /// Keeps the player in view on a playfield bigger than the screen: the camera
 /// eases towards centring the player, stops at the field's edges, jumps
 /// straight there when the player does (a wrap, a restart, a seek), and shakes
-/// briefly when a note is hit.
+/// briefly when a note is hit. While the player drops into a run, it holds on
+/// the first note instead.
 /// </summary>
 public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position, PlayfieldView, Playfield>
 {
@@ -83,6 +84,13 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
         float delta = Tick.deltaTime;
         Query.ForEachEntity((ref camera, ref player, ref position, ref view, ref playfield, entity) =>
         {
+            if (!camera.DroppedIn && DropFocus(ref camera, entity, view, out Vector2 focus))
+            {
+                camera.Offset = Target(camera, focus, view, playfield);
+                camera.Placed = true;
+                return;
+            }
+
             Vector2 target = Target(camera, PlayerSmoothing.DrawnPosition(entity), view, playfield);
             bool jumped = (target - camera.Offset).Length() > camera.Viewport.Size.Length() / 3;
             camera.Offset = !camera.Placed || jumped
@@ -98,5 +106,58 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
                 ? new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * KickPixels * camera.Kick
                 : Vector2.Zero;
         });
+    }
+
+    /// <summary>
+    /// Where the view looks while the player drops in: the run's first note, so
+    /// it is on screen through the countdown and she falls into frame onto it.
+    /// The hold ends, for good, once that note is hit or its time comes; false
+    /// then, and for a run with no note ahead.
+    /// </summary>
+    private static bool DropFocus(ref PlayCamera camera, Entity entity, PlayfieldView view, out Vector2 focus)
+    {
+        focus = default;
+        if (!entity.TryGetComponent(out PlaySession session) || !entity.TryGetComponent(out Playhead playhead))
+        {
+            camera.DroppedIn = true;
+            return false;
+        }
+
+        if (camera.DropNote.IsNull && !camera.Placed)
+            camera.DropNote = FirstNote(entity.Store, session.StartTimeMs);
+
+        if (camera.DropNote.IsNull || !camera.DropNote.HasComponent<Note>())
+        {
+            camera.DroppedIn = true;
+            return false;
+        }
+
+        Note note = camera.DropNote.GetComponent<Note>();
+        if (session.Started && playhead.TimeMs >= note.TimeMs)
+        {
+            camera.DroppedIn = true;
+            return false;
+        }
+
+        focus = view.PlayfieldToScreen(GroupOffset.Shown(camera.DropNote, note.Position));
+        return true;
+    }
+
+    /// <summary>The earliest note at or after <paramref name="fromMs"/>, or a null entity when there is none.</summary>
+    private static Entity FirstNote(EntityStore store, long fromMs)
+    {
+        Entity first = default;
+        long firstMs = long.MaxValue;
+        foreach (Entity note in store.Query<Note>().ToEntityList())
+        {
+            long timeMs = note.GetComponent<Note>().TimeMs;
+            if (timeMs >= fromMs && timeMs < firstMs)
+            {
+                first = note;
+                firstMs = timeMs;
+            }
+        }
+
+        return first;
     }
 }

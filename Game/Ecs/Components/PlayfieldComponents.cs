@@ -121,6 +121,12 @@ public struct PlayCamera(Rect2 viewport) : IComponent
     /// <summary>False until the camera first jumps onto the player.</summary>
     public bool Placed;
 
+    /// <summary>The run's first note, which the view holds on while the player drops in.</summary>
+    public Entity DropNote;
+
+    /// <summary>True once the drop-in is over and the view follows the player.</summary>
+    public bool DroppedIn;
+
     /// <summary>A hit's kick, 1 at its peak, easing to 0.</summary>
     public float Kick;
 

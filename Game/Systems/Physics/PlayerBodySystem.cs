@@ -2,6 +2,7 @@ using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Systems.Playfields;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Systems.Physics;
@@ -29,17 +30,24 @@ public sealed class PlayerBodySystem : QuerySystem<Player, Position>
             if (entity.HasComponent<PhysicsBody>())
                 return;
 
-            if (entity.TryGetComponent<PlaySession>(out PlaySession session) &&
-                !session.Started)
-            {
+            bool playing = entity.TryGetComponent<PlaySession>(out PlaySession session);
+            if (playing && !PlayerDropIn.Begun(entity))
                 return;
-            }
+
+            // A run drops in already falling. A frame can land after the drop's
+            // start, so the body starts as far into the fall as the song is.
+            float late = playing ? PlayerDropIn.Elapsed(entity) : 0f;
+            if (playing)
+                position.Value.Y += PlayerDropIn.Fallen(session.DropSpeed, late);
 
             Body body = _physics.CreateDynamicBox(
                 position.Value,
                 player.Size,
                 CharacterMass,
                 PlayerFriction.IsOn(entity) ? CharacterFriction : 0f);
+
+            if (playing)
+                body.SetLinearVelocity(new Vector2(0f, session.DropSpeed + Box2DPhysicsWorld.DefaultGravity * late));
 
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
             buffer.AddComponent(entity.Id, new PlayerSmoothing(position.Value));

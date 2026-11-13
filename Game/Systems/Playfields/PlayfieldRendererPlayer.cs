@@ -38,8 +38,16 @@ public static partial class PlayfieldRenderer
                 center - size / 2,
                 size);
 
-            canvas.DrawRect(rid, bounds, PlayerColor);
-            canvas.DrawBorder(rid, bounds, QueueColor, 2);
+            float alpha = PlayerDropIn.Alpha(entity);
+            if (alpha <= 0f)
+                return;
+
+            Color fill = PlayerColor;
+            Color border = QueueColor;
+            fill.A *= alpha;
+            border.A *= alpha;
+            canvas.DrawRect(rid, bounds, fill);
+            canvas.DrawBorder(rid, bounds, border, 2);
             return;
         }
     }

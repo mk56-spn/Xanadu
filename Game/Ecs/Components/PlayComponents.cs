@@ -37,6 +37,12 @@ public struct PlaySession(
     public float FadeDuration = 1.5f;
     public long StartTimeMs = startTimeMs;
 
+    /// <summary>When the player drops in (see <c>PlayerDropIn</c>); hidden and without a body before it.</summary>
+    public long DropStartMs = startTimeMs;
+
+    /// <summary>The downward speed, in metres per second, the player drops in with.</summary>
+    public float DropSpeed;
+
     /// <summary>Where skipping the song's entrance lands, or -1 when nothing follows.</summary>
     public long SkipToMs = skipToMs;
 
