@@ -54,6 +54,9 @@ public struct CharacterMotion : IComponent
 
     /// <summary>Screen Y of the player's centre last frame; up is negative.</summary>
     public float LastY;
+
+    /// <summary>Seconds since the last puff of dust off the feet while sliding.</summary>
+    public float SinceSlideDust;
 }
 
 /// <summary>

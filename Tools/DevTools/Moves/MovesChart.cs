@@ -57,7 +57,7 @@ internal static class MovesChart
             new("LANDING", "SKID keeps the sideways speed she landed with. Lands feet first on blocks (the body tucks in the air)."),
             new("ACTION MOVE?", "Trying the ghost launch for now. Should action notes move her for real later?", Status: MoveStatus.Open),
         ]),
-        new("DASH HANG", "After a dash: gravity off half a beat (100–350 ms), then eases back over the same.",
+        new("DASH HANG", "After a dash: gravity off a quarter beat (50–175 ms), then eases back over the same.",
         [
             new("DASH", "Restarts the hang from the new dash note's time."),
             new("MOMENTUM", "Ends the hang at once; gravity full."),

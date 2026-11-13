@@ -27,6 +27,9 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// <summary>Sideways speed, in pixels per second, below which a slide ends; lower than the start so it cannot flicker.</summary>
     public const float SlideStopSpeed = 30f;
 
+    /// <summary>Seconds between puffs of dust off the feet while sliding.</summary>
+    public const float SlideDustSeconds = 0.06f;
+
     /// <summary>A dash is instant, so a jump is held this long before it can turn into a fall.</summary>
     public const float JumpHoldSeconds = 0.3f;
 
@@ -94,6 +97,10 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             motion.LastY = y;
 
             CharacterMotionState next = Next(motion, rising, OnFloor(entity, y), SidewaysSpeed(entity), runtime);
+            if (next == CharacterMotionState.Sliding)
+                SlideDust(entity, ref motion, delta);
+            else
+                motion.SinceSlideDust = SlideDustSeconds;
             // A second jump while still jumping replays the jump from the start.
             bool rejump = freshRise && motion.State == CharacterMotionState.Jumping;
             if (next == motion.State && !rejump)
@@ -111,6 +118,24 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             motion.StateTime = 0f;
             Play(runtime, next, restart: rejump);
         }
+    }
+
+    /// <summary>
+    /// Puffs dust off the feet while sliding, thrown back against the way she
+    /// travels; the first puff goes off as the slide starts.
+    /// </summary>
+    private static void SlideDust(Entity entity, ref CharacterMotion motion, float delta)
+    {
+        motion.SinceSlideDust += delta;
+        if (motion.SinceSlideDust < SlideDustSeconds)
+            return;
+
+        motion.SinceSlideDust = 0f;
+        float way = entity.TryGetComponent(out PhysicsBody body) ? Math.Sign(body.Body.LinearVelocity.X) : 0f;
+        Vector2 size = entity.GetComponent<Player>().Size;
+        Vector2 feet = entity.GetComponent<Position>().Value + new Vector2(0, size.Y / 2);
+        entity.Store.CreateEntity(new ParticleBurst(
+            feet, GameParticles.Landing, area: new Vector2(size.X * 0.4f, 4f), heading: new Vector2(-way, -0.6f)));
     }
 
     /// <summary>Whether a change of state is touching down: from the air onto the floor.</summary>

@@ -9,12 +9,12 @@ namespace Xanadu.Tests.Playfields;
 public sealed class DashHangTests
 {
     [Test]
-    public void TheHangIsHalfABeatHeldAndHalfABeatEasing()
+    public void TheHangIsAQuarterBeatHeldAndAQuarterBeatEasing()
     {
         DashHang hang = DashHangSystem.For(TempoMap.Single(120, 0), 0, 0);
 
-        Assert.That(hang.HoldMs, Is.EqualTo(250f));
-        Assert.That(hang.EaseMs, Is.EqualTo(250f));
+        Assert.That(hang.HoldMs, Is.EqualTo(125f));
+        Assert.That(hang.EaseMs, Is.EqualTo(125f));
     }
 
     [Test]

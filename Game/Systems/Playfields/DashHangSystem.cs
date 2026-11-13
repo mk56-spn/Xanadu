@@ -26,14 +26,14 @@ public struct DashHang(long startMs, float holdMs, float easeMs) : IComponent
 
 /// <summary>
 /// Holds the player in the air after a dash instead of dropping it: gravity is
-/// off for half a beat from the dash note, then eases back in over the next
-/// half. The beat is read from the song's timing, so the hang fits the tempo.
+/// off for a quarter beat from the dash note, then eases back in over the
+/// next quarter. The beat is read from the song's timing, so the hang fits the tempo.
 /// </summary>
 public sealed class DashHangSystem : QuerySystem<DashHang, PhysicsBody, Playhead>
 {
     /// <summary>The shortest and longest the hang holds, so very fast or slow songs stay playable.</summary>
-    public const float MinHoldMs = 100f;
-    public const float MaxHoldMs = 350f;
+    public const float MinHoldMs = 50f;
+    public const float MaxHoldMs = 175f;
 
     protected override void OnUpdate()
     {
@@ -70,11 +70,11 @@ public sealed class DashHangSystem : QuerySystem<DashHang, PhysicsBody, Playhead
         return t * t * (3f - 2f * t);
     }
 
-    /// <summary>The hang for a dash note at <paramref name="noteTimeMs"/>: half a beat held, half a beat easing out.</summary>
+    /// <summary>The hang for a dash note at <paramref name="noteTimeMs"/>: a quarter beat held, a quarter beat easing out.</summary>
     public static DashHang For(TempoMap tempo, long startMs, long noteTimeMs)
     {
-        float half = (float)(TempoMap.BeatMs(tempo.At(noteTimeMs).Bpm) / 2);
-        float hold = Math.Clamp(half, MinHoldMs, MaxHoldMs);
+        float quarter = (float)(TempoMap.BeatMs(tempo.At(noteTimeMs).Bpm) / 4);
+        float hold = Math.Clamp(quarter, MinHoldMs, MaxHoldMs);
         return new DashHang(startMs, hold, hold);
     }
 
