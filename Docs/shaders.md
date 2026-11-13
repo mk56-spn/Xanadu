@@ -379,21 +379,34 @@ that move or layer.
 | Gradient | Is |
 |---|---|
 | `Linear(length)` | left (0) to right (1) across `length` pixels, centred on the quad. `rotated(PI / 2)` runs it top to bottom. |
-| `Radial(radius)` | out from the centre (0) to a circle `radius` pixels round it (1). |
-| `Conical()` | round the centre: 0 pointing right, clockwise (y down) round to 1. Rotate it to start elsewhere. |
+| `Reflected(length)` | a linear gradient mirrored about its middle: 0 on an upright line through the centre, 1 at `length / 2` either side. |
+| `Radial(radius)` | out from the centre (0) to a circle `radius` pixels round it (1). A float2 `radius` makes an ellipse. |
+| `Focal(radius, focus)` | a radial gradient whose 0 sits at `focus` (pixels from the centre, kept inside the circle) instead of the centre: SVG's fx, fy. |
+| `Conical()` | round the centre (conic, angular, sweep): 0 pointing right, clockwise (y down) round to 1. Rotate it to start elsewhere. |
+| `Diamond(radius)` | out from the centre in diamonds, to the one whose corners are `radius` away. |
+| `Square(radius)` | out from the centre in squares, to the one whose sides are `radius` away; a float2 makes oblongs. |
+| `Spiral(pitch, arms = 1)` | round and out at once: a whole turn every `pitch` pixels out, wrapping 0..1; `arms` spirals together. |
 
 Using one:
 
 - `c.paint(g, from, to)` lays it over the colour `c`, `from` fading to `to`,
   with an optional blend: `c.paint(Radial(200), colours.gold, colours.transparent, blend.screen)`.
-- `g.coloured(from, to)` gives that colour at the pixel.
+- `g.coloured(from, to)` gives that colour at the pixel; `g.coloured(a, b, c)`
+  and `g.coloured(a, b, c, d)` spread three or four stops evenly.
 - `g.amount()` gives how far along it the pixel is, 0..1, for `lerp`,
   `ease.` or anything else.
-- Both take a point first (`g.amount(position)`) for a position the library
-  can't know.
+- All of them take a point first (`g.amount(position)`) for a position the
+  library can't know.
+- `g.repeated(times)` starts it again past its end (CSS's `repeating-…`), and
+  `g.mirrored(times)` runs it back and forth (SVG's `reflect`); either runs it
+  `times` over its length: `Radial(40).repeated(1)` is rings 40 px apart.
 
-`gradient.square(position, centre, edge)` (outwards in squares) is still a
-plain function for now.
+Plain functions under `gradient.`:
+
+- `gradient.stops(t, a, b, c)` and `(t, a, b, c, d)`: evenly spaced stops for
+  any `t`; `gradient.stops(t, float3(at), from, via, to)` puts them at `at`.
+- `gradient.corners(topLeft, topRight, bottomLeft, bottomRight)`: a colour per
+  corner of the quad, blended across it (or `(uv, …)` for any uv).
 
 **`ease.`** holds Robert Penner's easings: 0..1 in, eased 0..1 out (`back`
 and `elastic` overshoot).

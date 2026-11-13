@@ -1,7 +1,6 @@
+import xanadu;
 
-
-[fragment]
-float4 shade(ItemVaryings v) : SV_Target
+float4 shade()
 {
     colour c = colours.blue;
 

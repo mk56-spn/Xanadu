@@ -2,7 +2,7 @@
 //
 // Global: ItemInput and friends (stage), PI, TAU, mod, rotate, random (math),
 // the shapes (Circle, Box, …; shape; Grid, Stripes, Checker, …; pattern), the
-// gradients (Linear, Radial, Conical; gradient), Bezier (curve), colour and its paint
+// gradients (Linear, Radial, Conical, Diamond, Spiral, …; gradient), Bezier (curve), colour and its paint
 // (colour, paint), clock, Clip and Keys (anim). Everything else is under its own
 // name: colours., sdf., anchor., ease., eases., blend., gradient., pattern., sprite.,
 // and the run being played: player., score., song., contact., events. (play).

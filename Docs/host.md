@@ -303,7 +303,7 @@ host fills; tests leave the headless defaults.
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.Blend` (a `blend.Mode` for the colours, a `blend.Alpha` for the alpha) with presets `blend.screen` and 11 more, `blend.behind`, `blend.erase`, and `.behind` / `.erasing` / `.over`; `blend.composite`; the bare colour formulas under `blend.colours.` |
   | `xanadu.pattern` | the shapes `Grid`, `Columns`, `Rows`, `Stripes`, `Checker`; `pattern.tile` (→ `Tile`) |
-  | `xanadu.gradient` | `IGradient` and `Linear`, `Radial`, `Conical`; `gradient.square` |
+  | `xanadu.gradient` | `IGradient` and `Linear`, `Reflected`, `Radial`, `Focal`, `Conical`, `Diamond`, `Square`, `Spiral`; `repeated` / `mirrored` spreads; `gradient.stops`, `gradient.corners` |
   | `xanadu.curve` | `Bezier(a, b, c, d)` with `.at(t)` and `.tangent(t)` |
   | `xanadu.paint` | `c.paint(shape or coverage, colour, blend)` / `c.painted(…)`, `c.erase(shape or coverage)` / `c.erased(…)`, `c.paint(shape, Look(fill, outline, width))`: a picture in layers |
   | `xanadu` | re-exports all of the above, plus the stage |

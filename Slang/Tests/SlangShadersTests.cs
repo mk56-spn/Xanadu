@@ -33,6 +33,17 @@ public sealed class SlangShadersTests
     [TestCase("colour c = colours.black; c.paint(Radial(200).anchored(anchor.top), colours.gold, colours.transparent, blend.screen); return c;")]
     [TestCase("return Conical().rotated(0.5).moved(float2(10, 0)).amount();")]
     [TestCase("return Radial(100).coloured(colours.white, colours.black) * Circle(80).filled();")]
+    [TestCase("return Radial(float2(200, 80)).rotated(0.3).amount();")]
+    [TestCase("return Reflected(300).rotated(PI / 4).coloured(colours.black, colours.white);")]
+    [TestCase("return Diamond(120).coloured(colours.gold, colours.navy, colours.black);")]
+    [TestCase("return Square(float2(160, 90)).coloured(colours.red, colours.orange, colours.yellow, colours.white);")]
+    [TestCase("return Focal(200, float2(-60, -40)).moved(float2(10, 0)).amount();")]
+    [TestCase("return Spiral(80, 3).rotated(0.5).amount();")]
+    [TestCase("colour c = colours.black; c.paint(Radial(40).repeated(1), colours.white, colours.black); return c;")]
+    [TestCase("return Linear(100).mirrored(3).rotated(0.2).coloured(colours.white, colours.black);")]
+    [TestCase("return Conical().repeated(4).amount();")]
+    [TestCase("return gradient.stops(Linear(400).amount(), float3(0.2, 0.5, 0.8), colours.navy, colours.purple, colours.orange);")]
+    [TestCase("return gradient.corners(colours.red, colours.green, colours.blue, colours.white);")]
     public void GradientsAreCentredThenPlaced(string body)
     {
         Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
