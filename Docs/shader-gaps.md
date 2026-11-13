@@ -16,10 +16,6 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
-| Soft edge on one side only: `smoothstep(w, 0, d)` fades outwards from the edge, `filled` fades across it | missing | pulse dots | `sdf.feathered(d, width)` and `s.feathered(width)`: 1 inside, fading to 0 `width` outside |
-| Tiles with a corner on the centre (`fract(uv * n)`): ours are centred, so a port shifts by half a tile | unreadable | pulse dots | `pattern.tile(size, anchor.topLeft)`: which point of the tile sits on the centre |
-| `sin(x) * 0.5 + 0.5` and `x * 0.5 + 0.25`: remapping by hand | unreadable | pulse dots | `wave(x)` (a 0..1 sine) and `remapped(x, from, to)` in math |
-| Contrast on a plain number: `lerp(v, 0.5, 0.3)` | unreadable | pulse dots | maybe `contrasted` on floats too; low value |
 
 ## Fixed
 
@@ -28,3 +24,7 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Colour changes by hand (`col *= …`) | iq disk | rgb ops: `brighten`, `tint`, `contrast`, … (`colour.slang`) |
 | Distance-field colouring by hand (`1 - exp(-6·abs(d))`, `0.8 + 0.2·cos(150·d)`) | iq disk | `sdf.shadowed`, `sdf.contoured`, `sdf.shown` |
 | No `distance()` at the shaded pixel | iq disk | `s.distance()` |
+| Soft edge fading outwards only (`smoothstep(w, 0, d)`) | pulse dots | `s.feathered(width)`, `sdf.feathered(d, width)` |
+| Corner-on-centre tiles (`fract(uv * n)`) needed a half-tile shift | pulse dots | `pattern.tile(size, anchor.topLeft)` |
+| Remapping by hand (`sin(x) * 0.5 + 0.5`, `x * 0.5 + 0.25`) | pulse dots | `sin01`, `cos01`, `remapped(x, from, to)` |
+| Contrast on a plain number (`lerp(v, 0.5, 0.3)`) | pulse dots | `v.contrast(f)`, `v.contrasted(f)` |

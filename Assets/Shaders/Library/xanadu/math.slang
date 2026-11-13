@@ -10,6 +10,28 @@ public float2 mod(float2 x, float2 y) { return x - y * floor(x / y); }
 public float2 mod(float2 x, float y) { return x - y * floor(x / y); }
 public float3 mod(float3 x, float3 y) { return x - y * floor(x / y); }
 
+/// A sine from 0 to 1 instead of -1 to 1: sin(x) * 0.5 + 0.5. 0.5 at x = 0, rising first.
+public float sin01(float x) { return sin(x) * 0.5 + 0.5; }
+
+/// A cosine from 0 to 1 instead of -1 to 1: cos(x) * 0.5 + 0.5. 1 at x = 0.
+public float cos01(float x) { return cos(x) * 0.5 + 0.5; }
+
+/// x moved from the range `from` (low, high) to the range `to`, in proportion; not held
+/// inside it: remapped(sin(t), float2(-1, 1), float2(0.25, 0.75)).
+public float remapped(float x, float2 from, float2 to)
+{
+    return to.x + (x - from.x) / (from.y - from.x) * (to.y - to.x);
+}
+
+public extension float
+{
+    /// Scales how far it is from 0.5: 0 flat 0.5, 1 as it is, above 1 punchier (as a colour's contrast).
+    [mutating] public void contrast(float factor) { this = (this - 0.5) * factor + 0.5; }
+
+    /// A copy scaled in how far it is from 0.5: 0 flat 0.5, 1 as it is, above 1 punchier.
+    public float contrasted(float factor) { return (this - 0.5) * factor + 0.5; }
+}
+
 /// p turned round the origin by angle radians, clockwise on screen (y down), as shapes turn.
 public float2 rotate(float2 position, float angle)
 {

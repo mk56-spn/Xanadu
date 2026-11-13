@@ -146,4 +146,11 @@ public namespace pattern
         t.local = position - size * t.id;
         return t;
     }
+
+    /// Tiles `size` across with `place` of a tile on the quad's centre (anchor.topLeft: a corner
+    /// there, as GLSL's fract(uv * n) cuts them); .local is still from the tile's own centre.
+    public Tile tile(float size, float2 place) { return tile(shading.canvas.centred, size, place); }
+
+    /// Tiles `size` across with `place` of a tile (anchor.topLeft, …) on the origin, at `position`.
+    public Tile tile(float2 position, float size, float2 place) { return tile(position + place * -size, size); }
 }

@@ -77,6 +77,10 @@ public namespace sdf
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
     public float haloed(float d, float reach, float falloff = 1.0) { return pow(1.0 - saturate(abs(d) / reach), falloff); }
 
+    /// 1 inside, fading to 0 `width` units outside the edge: a soft edge that only grows outwards
+    /// (filled fades across the edge instead, half in, half out). smoothstep(width, 0, d).
+    public float feathered(float d, float width) { return 1.0 - smoothstep(0.0, max(width, 1e-5), d); }
+
     /// A shadow hugging the edge on both sides: 0 at the edge, rising to 1 away from it, 63% of
     /// the way there `reach` units out (1 - e^(-|d|/reach), the shape of fog falloff). Multiply a
     /// colour by it: c.brighten(sdf.shadowed(d, 80)).
@@ -561,6 +565,12 @@ public extension<S : IShape> S
 
     /// 1 on a line `width` wide along the edge, 0 elsewhere.
     public float stroked(float2 position, float width, float soft = 1.0) { return sdf.stroked(distance(position), width, soft); }
+
+    /// 1 inside, fading to 0 `width` units outside the edge (filled fades across it instead).
+    public float feathered(float2 position, float width) { return sdf.feathered(distance(position), width); }
+
+    /// feathered at the pixel being shaded, from the quad's centre.
+    public float feathered(float width) { return feathered(shading.canvas.centred, width); }
 
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
     public float haloed(float2 position, float reach, float falloff = 1.0) { return sdf.haloed(distance(position), reach, falloff); }

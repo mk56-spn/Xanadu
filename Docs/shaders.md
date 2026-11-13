@@ -279,6 +279,7 @@ pointer.
 |---|---|
 | `s.filled(soft = 1)` / `s.filled(position, soft)` | 1 inside, 0 outside, the edge smoothed over `soft` pixels. A big `soft` makes a blurred shadow. |
 | `s.stroked(width, soft = 1)` / `s.stroked(position, width, soft)` | 1 on a line `width` wide along the edge |
+| `s.feathered(width)` / `s.feathered(position, width)` | 1 inside, fading to 0 `width` pixels **outside** the edge (`filled` fades across it, half in, half out) |
 | `s.haloed(reach, falloff = 1)` / `s.haloed(position, reach, falloff)` | 1 at the edge, fading to 0 `reach` pixels away on both sides; higher `falloff` is tighter |
 | `s.outlined(width, soft = 1)` / `s.outlined(position, width, soft)` | 1 on a line `width` wide just **inside** the edge, so the shape keeps its size (`stroked` is centred on the edge, half outside) |
 | `box.outlined(sides, width, soft = 1)` / `box.outlined(position, sides, width, soft)` | `Box` only: `outlined` on just the chosen sides, joined with `\|`: `side.top \| side.left`, or `side.all`. A chosen side ends at the corner's diagonal where it meets one that isn't |
@@ -294,6 +295,7 @@ When you build a distance yourself (in a loop, from a formula, from
 | `sdf.filled(d, soft = 1)` | as `filled` |
 | `sdf.stroked(d, width, soft = 1)` | as `stroked` |
 | `sdf.haloed(d, reach, falloff = 1)` | as `haloed` |
+| `sdf.feathered(d, width)` | as `feathered`: `smoothstep(width, 0, d)` |
 | `sdf.shadowed(d, reach)` | a shadow hugging the edge on both sides: 0 at it, 63% back to 1 by `reach` out (`1 - exp(-\|d\| / reach)`); multiply a colour by it |
 | `sdf.contoured(d, spacing, depth = 0.4)` | contour lines `spacing` apart: 1 on a line, `1 - depth` between; multiply a colour by it |
 | `sdf.shown(d, reach = 80)` | the field drawn as Inigo Quilez draws one (orange out, blue in, the two above, a white edge), all scaled from `reach`: for seeing any distance |
@@ -389,7 +391,9 @@ quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 `pattern.tile(size)` cuts the quad into tiles from its centre and gives a
 `Tile`: `.local` is the pixel's place in its tile (centred there), `.id` is
 which tile. Draw one shape at `.local` and it repeats; seed randomness with
-`.id`. `pattern.tile(position, size)` does the same at any point, for tiles
+`.id`. `pattern.tile(size, anchor.topLeft)` puts that point of a tile on the
+centre instead (a corner, as GLSL's `fract(uv * n)` cuts them); `.local` is
+still from the tile's own centre. `pattern.tile(position, size)` does the same at any point, for tiles
 that move or layer.
 
 **Gradients** are centred, then placed, too: make one, place it with
@@ -613,6 +617,9 @@ time.
 | `PI`, `TAU` | π and 2π |
 | `mod(x, y)` | GLSL's mod: the remainder takes the divisor's sign (HLSL's `fmod` truncates) |
 | `rotate(position, angle)` | a point turned round the origin, clockwise on screen like shapes |
+| `sin01(x)`, `cos01(x)` | a sine or cosine from 0 to 1: `sin(x) * 0.5 + 0.5` |
+| `remapped(x, from, to)` | `x` moved from one range to another in proportion, ranges as `float2(low, high)`, not clamped: `remapped(v, float2(0, 1), float2(0.25, 0.75))` |
+| `v.contrast(f)` / `v.contrasted(f)` | a number's distance from 0.5 scaled, as a colour's contrast: `lerp(v, 0.5, 0.3)` is `v.contrasted(0.7)` |
 | `random(seed)` | a repeatable number in 0..1. `seed` is a `float` or `float2`. |
 | `random2(seed)`, `random3(seed)` | two or three independent numbers in 0..1 for a `float2` seed |
 
