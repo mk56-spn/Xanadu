@@ -48,6 +48,24 @@ public static partial class PlayfieldRenderer
         Color tint,
         BlendMode blend = BlendMode.Add)
     {
+        Vector2[] corners = TurnedBox.Corners(flare.Bounds, flare.RotationDegrees);
+        for (int i = 0; i < corners.Length; i++)
+            corners[i] = view.PlayfieldToScreen(corners[i]);
+        DrawFlareQuad(canvas, rid, flare, corners, tint, blend);
+    }
+
+    /// <summary>
+    /// A flare's light over four screen corners, clockwise from the top left
+    /// of its unturned box; its own position and box are not used.
+    /// </summary>
+    public static void DrawFlareQuad(
+        IRectCanvas canvas,
+        Handle rid,
+        LevelFlare flare,
+        ReadOnlySpan<Vector2> screenCorners,
+        Color tint,
+        BlendMode blend = BlendMode.Add)
+    {
         canvas.SelectCommonShader(FlareShaderPath, blend);
         canvas.NewRun();
         canvas.SetShaderValue("flare_box", new Vector4(flare.Width / 2, flare.Height / 2, flare.Axes, flare.Thickness), 4);
@@ -55,11 +73,10 @@ public static partial class PlayfieldRenderer
         canvas.SetShaderValue("flare_tint", new Vector4(tint.R, tint.G, tint.B, tint.A), 4);
         canvas.SetShaderValue("flare_shape", new Vector4(flare.Falloff, flare.Heat, 0, 0), 2);
 
-        Vector2[] corners = TurnedBox.Corners(flare.Bounds, flare.RotationDegrees);
         ReadOnlySpan<int> order = [0, 1, 2, 0, 2, 3];
         for (int i = 0; i < order.Length; i++)
         {
-            FlarePoints[i] = view.PlayfieldToScreen(corners[order[i]]);
+            FlarePoints[i] = screenCorners[order[i]];
             FlareUvs[i] = FlareCorners[order[i]];
             FlareColors[i] = Colors.White;
         }
@@ -67,6 +84,46 @@ public static partial class PlayfieldRenderer
         canvas.DrawTriangles(rid, FlarePoints, FlareColors, FlareUvs);
         canvas.SelectCommonShader("");
         canvas.SelectShader(0);
+    }
+
+    /// <summary>How long and how tall a dash flare's box is at its fullest, in screen pixels.</summary>
+    public static readonly Vector2 DashFlareSize = new(520f, 300f);
+
+    /// <summary>
+    /// A dash flare at its age: the box swells fast to full size and the
+    /// light flashes past full brightness, then both settle as it fades.
+    /// </summary>
+    public static void DrawDashFlare(IRectCanvas canvas, Handle rid, Entity entity)
+    {
+        DashFlare burst = entity.GetComponent<DashFlare>();
+        float t = Math.Clamp(burst.Age / Math.Max(burst.Lifetime, 0.001f), 0f, 1f);
+        float swell = 1f - (1f - t) * (1f - t) * (1f - t);
+        float fade = (1f - t) * (1f - t);
+        Vector2 size = DashFlareSize * (0.35f + 0.85f * swell);
+
+        LevelFlare flare = new()
+        {
+            Width = size.X,
+            Height = size.Y,
+            Axes = 2,
+            Thickness = 0.06f,
+            Falloff = 1.2f,
+            Core = 0.22f * (1f - 0.5f * t),
+            Halo = 0.8f,
+            Glow = 0.45f,
+            Intensity = 2.4f * fade,
+            Heat = 0.85f,
+        };
+
+        Span<Vector2> corners = stackalloc Vector2[4];
+        Vector2 along = Vector2.UnitX.Rotated(Mathf.DegToRad(burst.AngleDegrees));
+        Vector2 across = new(-along.Y, along.X);
+        Vector2 half = size / 2;
+        corners[0] = burst.Position - along * half.X - across * half.Y;
+        corners[1] = burst.Position + along * half.X - across * half.Y;
+        corners[2] = burst.Position + along * half.X + across * half.Y;
+        corners[3] = burst.Position - along * half.X + across * half.Y;
+        DrawFlareQuad(canvas, rid, flare, corners, burst.Color);
     }
 
     /// <summary>The upright box around a flare's turned box, on screen.</summary>

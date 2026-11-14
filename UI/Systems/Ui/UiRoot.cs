@@ -51,6 +51,7 @@ public sealed class UiRoot : SystemRoot, IDisposable
             screen,
             tooltips: tooltips));
         input.Add(new TextEditorInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel));
+        input.Add(new BoardInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel));
         Add(input);
 
         Add(_app);
@@ -59,6 +60,7 @@ public sealed class UiRoot : SystemRoot, IDisposable
         var draw = new SystemGroup("UiDraw");
         draw.Add(new PresentationSystemGroup(Canvas));
         draw.Add(new TextEditorDrawSystem(Canvas));
+        draw.Add(new BoardDrawSystem(Canvas));
         Add(draw);
 
         if (overlays)

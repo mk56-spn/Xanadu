@@ -98,6 +98,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new TrailAgeSystem<HitTrail>());
         Add(new NotePopSystem());
         Add(new TrailAgeSystem<DashTrail>());
+        Add(new TrailAgeSystem<DashFlare>());
         Add(new HitGhostSystem());
         Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(
@@ -118,6 +119,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new CharacterRigLoadSystem(rigFiles));
             Add(new CharacterMotionSystem());
             Add(new CharacterAttackSystem());
+            Add(new CharacterBumpSystem());
             Add(new CharacterRigAnimateSystem());
             Add(new CharacterRigDrawSystem(
                 () => new SvgAttachmentVisuals(_characters.Handle),

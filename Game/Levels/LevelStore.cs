@@ -42,19 +42,6 @@ public static class LevelStore
         }
     }
 
-    public static string DefaultPath(string name)
-    {
-        string safe = new(name
-            .Where(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '_')
-            .ToArray());
-
-        safe = safe.Trim();
-        if (string.IsNullOrEmpty(safe))
-            safe = "untitled";
-
-        return Path.Combine(Directory, safe + XmfBinary.Extension);
-    }
-
     public static string NextUnnamedPath() => NextUnnamedPath(Directory);
 
     public static string NextUnnamedPath(string directory)
@@ -125,6 +112,9 @@ public static class LevelStore
         }
         catch (Exception)
         {
+            // The save is about to replace this file. Keep the unreadable one beside
+            // it so any other variants in it are not lost along with it.
+            File.Copy(path, path + ".unreadable", overwrite: true);
             return null;
         }
     }

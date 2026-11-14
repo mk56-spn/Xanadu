@@ -6,7 +6,7 @@ namespace Xanadu.Storage;
 /// <summary>
 /// The one place paths become real ones. A relative path is under the game
 /// folder (<c>Assets/Shaders/flare.slang</c>); <c>user://</c> is the player's
-/// folder (<c>~/.local/share/xanadu</c>); an absolute path comes
+/// folder (<c>~/.local/share/xanadu</c>, <c>%APPDATA%\xanadu</c> on Windows); an absolute path comes
 /// back unchanged. Hosts set the folders with <see cref="UseRoots"/>; otherwise
 /// they are found on first use.
 /// </summary>
@@ -16,8 +16,11 @@ public static class GamePaths
 
     private static (string Game, string User)? _roots;
 
-    /// <summary>The file that marks the game folder.</summary>
+    /// <summary>The file that marks the game folder in the source tree.</summary>
     public const string RootMarker = "Xanadu.sln";
+
+    /// <summary>The file that marks the game folder in an exported build (export.sh writes it).</summary>
+    public const string ExportMarker = "xanadu-game";
 
     /// <summary>
     /// The game folder above the running exe (or the working directory), for
@@ -40,7 +43,8 @@ public static class GamePaths
     private static (string Game, string User) Roots => _roots ??= (FindGameFolder(), UserFolder("xanadu"));
 
     /// <summary>Whether <paramref name="folder"/> is the game folder.</summary>
-    public static bool IsGameFolder(string folder) => File.Exists(Path.Combine(folder, RootMarker));
+    public static bool IsGameFolder(string folder) =>
+        File.Exists(Path.Combine(folder, RootMarker)) || File.Exists(Path.Combine(folder, ExportMarker));
 
     /// <summary>Sets the game folder (relative paths) and the folder <c>user://</c> means.</summary>
     public static void UseRoots(string game, string user) => _roots = (game, user);
@@ -48,12 +52,17 @@ public static class GamePaths
     /// <summary>The folder relative paths are under.</summary>
     public static string GameFolder => Roots.Game;
 
-    /// <summary>A player's folder by name under the data home (<c>$XDG_DATA_HOME</c>, else <c>~/.local/share</c>).</summary>
+    /// <summary>
+    /// A player's folder by name under the data home: <c>$XDG_DATA_HOME</c>, else
+    /// <c>~/.local/share</c>; on Windows <c>%APPDATA%</c>, unless XDG_DATA_HOME is set.
+    /// </summary>
     public static string UserFolder(string name) =>
         Path.Combine(
             Environment.GetEnvironmentVariable("XDG_DATA_HOME") is { Length: > 0 } data
                 ? data
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"),
+                : OperatingSystem.IsWindows()
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share"),
             name);
 
     /// <summary>The real path: a relative one under the game folder, <c>user://</c> under the player's, an absolute one as it is.</summary>

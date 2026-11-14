@@ -64,6 +64,8 @@ public sealed class ProfileStore
         string baseName = string.IsNullOrWhiteSpace(name)
             ? $"Player {Profiles.Count + 1}"
             : name.Trim();
+        if (baseName.Length > MaxNameLength)
+            baseName = baseName[..MaxNameLength].TrimEnd();
 
         var profile = new UserProfile
         {

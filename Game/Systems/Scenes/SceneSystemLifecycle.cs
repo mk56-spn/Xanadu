@@ -202,6 +202,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity pop in _entities.Query<NotePop>().ToEntityList())
             pop.DeleteEntity();
 
+        foreach (Entity flare in _entities.Query<DashFlare>().ToEntityList())
+            flare.DeleteEntity();
+
         Xanadu.Rendering.ShaderChart.Clear();
 
         foreach (Entity ghost in _entities.Query<HitGhost>().ToEntityList())

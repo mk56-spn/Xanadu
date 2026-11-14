@@ -9,6 +9,8 @@ public sealed class TrackTimer
     private long _nowMicros;
     private long _playStartMicros;
     private bool _running;
+    // The part of a microsecond the integer rewind left over, carried so it does not drift.
+    private long _rewindRemainder;
 
     public long NowMicros => _running ? _nowMicros - _playStartMicros : 0;
 
@@ -18,6 +20,7 @@ public sealed class TrackTimer
     {
         _nowMicros = nowMicros;
         _playStartMicros = nowMicros - offsetMicros;
+        _rewindRemainder = 0;
         _running = true;
     }
 
@@ -27,8 +30,9 @@ public sealed class TrackTimer
             return;
 
         long delta = nowMicros - _nowMicros;
-        long deltaPlay = delta * (100 - speedPercent) / 100;
-        _playStartMicros += deltaPlay;
+        long scaled = delta * (100 - speedPercent) + _rewindRemainder;
+        _playStartMicros += scaled / 100;
+        _rewindRemainder = scaled % 100;
         _nowMicros = nowMicros;
     }
 

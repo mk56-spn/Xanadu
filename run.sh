@@ -10,7 +10,7 @@
 #   ./run.sh shaders [args]       -> the shader tool: shipped effects, edited beside their preview (--open=<name> …)
 #   ./run.sh showcase [args]      -> the UI showcase
 #   ./run.sh visual-tests [args]  -> the visual test browser (--visual-test=<slug> --visual-test-exit …)
-#   ./run.sh devtools [args]      -> Atlas, Autopsy and Moves, one tab each; builds the projects Atlas reads first, then refreshes ~/.cache/xanadu/atlas.txt (the map as greppable text)
+#   ./run.sh devtools [args]      -> Atlas, Autopsy, Moves and Arch, one tab each; builds the projects Atlas reads first, then refreshes ~/.cache/xanadu/atlas.txt (the map as greppable text)
 #   ./run.sh devtools atlas [args]    -> opens on ATLAS, a chart of what types touch what
 #                                        (--focus=<type>, --compare=A,B, --sort=used, --dump=<type>)
 #   ./run.sh devtools autopsy [args]  -> opens on AUTOPSY, each exe's last launch (--methods, --dump[=app])
@@ -18,6 +18,7 @@
 #                                 -> runs that target with the CPU sampler on, then opens
 #                                    AUTOPSY on METHODS once it closes
 #   ./run.sh devtools moves           -> opens on MOVES, the character's move system charted by hand
+#   ./run.sh devtools arch            -> opens on ARCH, the architecture as it should be, drawn by hand on a board (Docs/architecture.xab)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"

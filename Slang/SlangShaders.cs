@@ -120,7 +120,9 @@ public static class SlangShaders
     public static bool WriteLibraryModule(string path, string text, out string? error)
     {
         string full = Path.GetFullPath(path);
-        if (LibraryPath is not { } library || !full.StartsWith(Path.GetFullPath(library), StringComparison.Ordinal))
+        if (LibraryPath is not { } library || !full.StartsWith(
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(library)) + Path.DirectorySeparatorChar,
+                StringComparison.Ordinal))
         {
             error = "not a library module";
             return false;
@@ -150,8 +152,10 @@ public static class SlangShaders
 
     private static string? _libraryHash;
 
+    // One shared folder: every file in it has a fresh GUID name and is deleted after use,
+    // so launches neither collide nor leave a folder each behind.
     private static readonly string ReflectionFolder =
-        Path.Combine(Path.GetTempPath(), $"xanadu-slang-{System.Environment.ProcessId}");
+        Path.Combine(Path.GetTempPath(), "xanadu-slang");
 
     /// <summary>
     /// Compiles a level shader's effect body (Docs/host.md §5.5):

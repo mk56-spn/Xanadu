@@ -57,6 +57,57 @@ public static class PlayerGround
     }
 
     /// <summary>
+    /// Seconds until a player centred at <paramref name="centre"/>, moving at
+    /// <paramref name="velocity"/> and pulled by <paramref name="gravity"/>
+    /// (screen pixels, per second and per second squared), comes down on the
+    /// floor or a flat block top, looking no further than <paramref name="within"/>;
+    /// null when she won't in that time. Ramps don't count: landing on one is a slide.
+    /// </summary>
+    public static float? TimeToLand(
+        Entity player,
+        PlayfieldView view,
+        Playfield playfield,
+        Vector2 centre,
+        Vector2 velocity,
+        float gravity,
+        float within)
+    {
+        const float step = 1f / 120f;
+        Vector2 size = player.GetComponent<Player>().Size;
+        float floorFeet = view.ScreenOrigin.Y + playfield.Height * view.Scale;
+        Vector2 at = centre;
+        for (float time = step; time <= within + step * 0.5f; time += step)
+        {
+            velocity.Y += gravity * step;
+            Vector2 next = at + velocity * step;
+            float feetBefore = at.Y + size.Y / 2;
+            float feetAfter = next.Y + size.Y / 2;
+            if (feetAfter > feetBefore)
+            {
+                if (feetAfter >= floorFeet)
+                    return time;
+
+                foreach (Entity blockEntity in player.Store.Query<Block>().ToEntityList())
+                {
+                    Block block = blockEntity.GetComponent<Block>();
+                    if (block.OneWay is not (BlockOneWay.Off or BlockOneWay.Up) || block.Slope != BlockSlope.Off)
+                        continue;
+
+                    Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.Position));
+                    Vector2 bottomRight = view.PlayfieldToScreen(GroupOffset.Shown(blockEntity, block.End));
+                    bool overlapsX = next.X + size.X / 2 > topLeft.X && next.X - size.X / 2 < bottomRight.X;
+                    if (overlapsX && feetBefore <= topLeft.Y && feetAfter >= topLeft.Y)
+                        return time;
+                }
+            }
+
+            at = next;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// True when a falling player whose body's bottom is raised by
     /// <paramref name="raised"/> lands on a block top this frame: the full box's
     /// bottom was above the top at <paramref name="lastFeet"/> and has reached

@@ -57,6 +57,12 @@ public struct CharacterMotion : IComponent
 
     /// <summary>Seconds since the last puff of dust off the feet while sliding.</summary>
     public float SinceSlideDust;
+
+    /// <summary>
+    /// How far she is into bracing for a landing she is about to make, 0 to 1:
+    /// the landing clip's first pose laid over her fall (<c>CharacterMotionSystem.Brace</c>).
+    /// </summary>
+    public float Brace;
 }
 
 /// <summary>
@@ -73,3 +79,26 @@ public struct CharacterAttack : IComponent
     public float StateTime;
 }
 
+
+/// <summary>
+/// A rigged player's last bump into a block's side or underside, for the
+/// flinch it shows (<see cref="Xanadu.Systems.Characters.CharacterBumpSystem"/>).
+/// Purely visual: the physics never feels it.
+/// </summary>
+public struct CharacterBump : IComponent
+{
+    /// <summary>Which way the block pushed, on screen: from the block towards the player.</summary>
+    public Vector2 Normal;
+
+    /// <summary>How hard the bump was, 0 to 1.</summary>
+    public float Strength;
+
+    /// <summary>Seconds since the bump; past <c>CharacterBumpSystem.Seconds</c> it shows nothing.</summary>
+    public float Age;
+
+    /// <summary>The sides touching last frame (<c>CharacterBumpSystem</c>'s bits), so only a new touch bumps.</summary>
+    public int Touching;
+
+    /// <summary>The body's velocity last frame, in pixels per second; this frame's is already stopped by the block.</summary>
+    public Vector2 LastVelocity;
+}

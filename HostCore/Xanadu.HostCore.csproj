@@ -11,6 +11,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Xanadu.HostCore</AssemblyName>
     <RootNamespace>Xanadu.Host</RootNamespace>
+    <!-- Lets an exe's RuntimeIdentifier (-r win-x64) reach this project, so it picks that platform's native libraries. -->
+    <IsRidAgnostic>false</IsRidAgnostic>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Xanadu.Host" />
@@ -35,12 +37,24 @@
   <ItemGroup>
     <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Shaders" />
   </ItemGroup>
-  <!-- Native libraries from External/fetch-moonlibs.sh, copied next to every exe that references this. -->
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <None Include="../External/moonlibs/lib64/*" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  <!--
+    Native libraries from External/fetch-moonlibs.sh (or .ps1), copied next to every exe that
+    references this. The set follows the platform being built for: the RuntimeIdentifier when
+    one is given (dotnet build -r win-x64 from Linux works), else the machine building.
+  -->
+  <PropertyGroup>
+    <MoonlibsPlatform Condition="$(RuntimeIdentifier.StartsWith('win'))">win64</MoonlibsPlatform>
+    <MoonlibsPlatform Condition="$(RuntimeIdentifier.StartsWith('linux'))">lib64</MoonlibsPlatform>
+    <MoonlibsPlatform Condition="'$(MoonlibsPlatform)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">win64</MoonlibsPlatform>
+    <MoonlibsPlatform Condition="'$(MoonlibsPlatform)' == '' And $([MSBuild]::IsOSPlatform('Linux'))">lib64</MoonlibsPlatform>
+    <MoonlibsCheckFile Condition="'$(MoonlibsPlatform)' == 'win64'">SDL3.dll</MoonlibsCheckFile>
+    <MoonlibsCheckFile Condition="'$(MoonlibsPlatform)' == 'lib64'">libSDL3.so.0</MoonlibsCheckFile>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(MoonlibsPlatform)' != ''">
+    <None Include="../External/moonlibs/$(MoonlibsPlatform)/*" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
-  <Target Name="CheckMoonlibs" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Linux')) And !Exists('../External/moonlibs/lib64/libSDL3.so.0')">
-    <Error Text="MoonWorks native libraries are missing: run External/fetch-moonlibs.sh" />
+  <Target Name="CheckMoonlibs" BeforeTargets="Build" Condition="'$(MoonlibsPlatform)' != '' And !Exists('../External/moonlibs/$(MoonlibsPlatform)/$(MoonlibsCheckFile)')">
+    <Error Text="MoonWorks native libraries for $(MoonlibsPlatform) are missing: run External/fetch-moonlibs.sh (Linux) or External/fetch-moonlibs.ps1 (Windows)" />
   </Target>
   <!--
     The GPU timing layer (Native/gpu_times_layer.c, Rendering/GpuTimes.cs): built with gcc against
@@ -49,7 +63,7 @@
   -->
   <PropertyGroup>
     <GpuTimesLayer>$(MSBuildThisFileDirectory)obj/native/libxanadu_gpu_times.so</GpuTimesLayer>
-    <BuildGpuTimes Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('../External/vulkan-headers/include/vulkan/vk_layer.h')">true</BuildGpuTimes>
+    <BuildGpuTimes Condition="'$(MoonlibsPlatform)' == 'lib64' And Exists('../External/vulkan-headers/include/vulkan/vk_layer.h')">true</BuildGpuTimes>
   </PropertyGroup>
   <Target Name="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildGpuTimes)' == 'true'" Inputs="Native/gpu_times_layer.c" Outputs="$(GpuTimesLayer)">
     <MakeDir Directories="$(MSBuildThisFileDirectory)obj/native" />

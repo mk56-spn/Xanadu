@@ -32,6 +32,7 @@ public enum PlayfieldDrawKind : byte
     StartPoint,
     NotePop,
     DashTrail,
+    DashFlare,
     HitTrail,
 }
 
@@ -70,6 +71,7 @@ public static class PlayfieldDrawList
         AddNotes(entities, into);
         AddEffects<NotePop>(entities, into, PlayfieldDrawKind.NotePop);
         AddEffects<DashTrail>(entities, into, PlayfieldDrawKind.DashTrail);
+        AddEffects<DashFlare>(entities, into, PlayfieldDrawKind.DashFlare);
         AddEffects<HitTrail>(entities, into, PlayfieldDrawKind.HitTrail);
         into.Sort();
 

@@ -32,8 +32,14 @@ public static class GameParticles
     /// <summary>Embers drifting up off a friction bar; white, so the burst's tint gives them the bar's colour.</summary>
     public const string Ember = "ember";
 
+    /// <summary>
+    /// Note glyphs thrown out where a dash lands that brake hard and then drift
+    /// down slowly, turning, like falling leaves; white, so the burst's tint gives them the note's colour.
+    /// </summary>
+    public const string DashLeaf = "dash-leaf";
+
     /// <summary>Every name above, which the library must hold for gameplay to look right.</summary>
-    public static readonly string[] All = { Landing, Dash, Hit, DashStreak, Shatter, Ember };
+    public static readonly string[] All = { Landing, Dash, Hit, DashStreak, Shatter, Ember, DashLeaf };
 }
 
 /// <summary>

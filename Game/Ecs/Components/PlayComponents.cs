@@ -271,6 +271,36 @@ public struct DashTrail(
     float IAgingTrail.Lifetime => Lifetime;
 }
 
+/// <summary>
+/// A flare that goes off where a dash lands: a star of light laid along the
+/// dash, swelling fast and fading over <see cref="Lifetime"/>. Screen space.
+/// </summary>
+public struct DashFlare(
+    Vector2 position,
+    Color color,
+    float angleDegrees,
+    float lifetime = DashFlare.DefaultLifetime) : IComponent, IAgingTrail
+{
+    public const float DefaultLifetime = 0.4f;
+
+    public Vector2 Position = position;
+    public Color Color = color;
+
+    /// <summary>The way the dash went, clockwise from right, in degrees; the long streak lies along it.</summary>
+    public float AngleDegrees = angleDegrees;
+
+    public float Age;
+    public float Lifetime = lifetime;
+
+    float IAgingTrail.Age
+    {
+        readonly get => Age;
+        set => Age = value;
+    }
+
+    float IAgingTrail.Lifetime => Lifetime;
+}
+
 /// <summary>Playable character families. v2 has Contact only; more come later.</summary>
 public enum CharacterKind
 {

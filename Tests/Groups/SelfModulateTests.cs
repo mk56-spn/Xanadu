@@ -224,11 +224,12 @@ public sealed class SelfModulateTests : EcsSystemTest
     }
 
     [Test]
-    public void UntintedLevelsHaveNoColourChunk()
+    public void ItemColoursRoundTripThroughTheItemHeader()
     {
+        // Colour sits in every item header, so tinted and plain levels are the same size.
         var plain = new LevelDocument { Notes = { new NoteDocument() } };
         var tinted = new LevelDocument { Notes = { new NoteDocument { SelfModulate = Colors.Red.ToRgba32() } } };
-        Assert.That(XmfBinary.Write(tinted).Length, Is.GreaterThan(XmfBinary.Write(plain).Length));
+        Assert.That(XmfBinary.Read(XmfBinary.Write(tinted)).Notes[0].SelfModulate, Is.EqualTo(Colors.Red.ToRgba32()));
         Assert.That(XmfBinary.Read(XmfBinary.Write(plain)).Notes[0].SelfModulate, Is.EqualTo(SelfModulate.White));
     }
 

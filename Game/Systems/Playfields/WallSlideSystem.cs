@@ -64,30 +64,13 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
             }
 
             long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(entity, _offsets);
-            foreach (Entity noteEntity in entities.Query<Note>().ToEntityList())
-            {
-                Note note = noteEntity.GetComponent<Note>();
-                if (note.Kind != NoteKind.Wall)
-                    continue;
+            WallTouch touch = entities.Cached<Note>().EachEntity(
+                new WallTouch(entities, view, buffer, centre, player.Size, judgedTime, window));
+            if (touch.Id == 0)
+                return;
 
-                long early = note.TimeMs - judgedTime;
-                if (early < -window)
-                {
-                    buffer.DeleteEntity(noteEntity.Id);
-                    continue;
-                }
-
-                if (Math.Abs(early) > window || NoteFade.Alpha(note, judgedTime) <= 0)
-                    continue;
-
-                Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-                if (!Touches(HitBox(noteScreen, view), centre, player.Size))
-                    continue;
-
-                Stick(entity, body, player.Size, noteScreen.X, centre, buffer);
-                buffer.DeleteEntity(noteEntity.Id);
-                break;
-            }
+            Stick(entity, body, player.Size, touch.Screen.X, centre, buffer);
+            buffer.DeleteEntity(touch.Id);
         });
     }
 
@@ -150,22 +133,7 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
     /// <summary>Whether a block's side lies along <paramref name="face"/> beside the player's centre, so there is still wall to slide on.</summary>
     public static bool WallBeside(EntityStore store, PlayfieldView view, float face, Vector2 centre, Vector2 size)
     {
-        float slack = size.X / 2;
-        foreach (Entity entity in store.Query<Block>().ToEntityList())
-        {
-            Block block = entity.GetComponent<Block>();
-            if (block.Slope != BlockSlope.Off)
-                continue;
-
-            Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position));
-            Vector2 bottomRight = view.PlayfieldToScreen(GroupOffset.Shown(entity, block.End));
-            bool alongside = centre.Y >= topLeft.Y && centre.Y <= bottomRight.Y;
-            bool onFace = Math.Abs(topLeft.X - face) <= slack || Math.Abs(bottomRight.X - face) <= slack;
-            if (alongside && onFace)
-                return true;
-        }
-
-        return false;
+        return store.Cached<Block>().EachEntity(new BlockFace(store, view, face, centre, size.X / 2)).Found;
     }
 
     /// <summary>Takes the player off its wall, as a dash or momentum note does.</summary>
@@ -177,4 +145,63 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
 
     private static bool IsWaiting(Entity entity) =>
         entity.TryGetComponent(out PlaySession session) && (!session.Started || session.Finished || session.Died);
+
+    /// <summary>
+    /// The first live wall note in the window whose hitbox the player touches.
+    /// Wall notes whose window has passed are deleted on the way.
+    /// </summary>
+    private struct WallTouch(
+        EntityStore store,
+        PlayfieldView view,
+        CommandBuffer buffer,
+        Vector2 centre,
+        Vector2 size,
+        long judgedTime,
+        long window) : IEachEntity<Note>
+    {
+        public int Id;
+        public Vector2 Screen;
+
+        public void Execute(ref Note note, int id)
+        {
+            if (Id != 0 || note.Kind != NoteKind.Wall)
+                return;
+
+            long early = note.TimeMs - judgedTime;
+            if (early < -window)
+            {
+                buffer.DeleteEntity(id);
+                return;
+            }
+
+            if (Math.Abs(early) > window || NoteFade.Alpha(note, judgedTime) <= 0)
+                return;
+
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(store.GetEntityById(id), note.Position));
+            if (!Touches(HitBox(noteScreen, view), centre, size))
+                return;
+
+            Id = id;
+            Screen = noteScreen;
+        }
+    }
+
+    /// <summary>Whether any flat block has a side along <paramref name="face"/> beside <paramref name="centre"/>.</summary>
+    private struct BlockFace(EntityStore store, PlayfieldView view, float face, Vector2 centre, float slack) : IEachEntity<Block>
+    {
+        public bool Found;
+
+        public void Execute(ref Block block, int id)
+        {
+            if (Found || block.Slope != BlockSlope.Off)
+                return;
+
+            Entity entity = store.GetEntityById(id);
+            Vector2 topLeft = view.PlayfieldToScreen(GroupOffset.Shown(entity, block.Position));
+            Vector2 bottomRight = view.PlayfieldToScreen(GroupOffset.Shown(entity, block.End));
+            bool alongside = centre.Y >= topLeft.Y && centre.Y <= bottomRight.Y;
+            bool onFace = Math.Abs(topLeft.X - face) <= slack || Math.Abs(bottomRight.X - face) <= slack;
+            Found = alongside && onFace;
+        }
+    }
 }

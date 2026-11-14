@@ -32,6 +32,7 @@ internal static class LabExperiments
 {
     public static ILabExperiment[] All(LabsOptions options) =>
     [
+        new Experiments.GameplayLab(),
         new Experiments.ShaderPlayground(options.Shader),
         Experiments.ShaderEditor.Effects(options.EditorFile),
         new Experiments.ParticleBursts(),

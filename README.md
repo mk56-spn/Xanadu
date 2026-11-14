@@ -17,40 +17,48 @@ written by AI, mainly DeepSeek and Claude, under my direction.
 The game's earlier life, three years of mostly hand-written attempts, is at
 [Xanadu-Legacy](https://github.com/mk56-spn/Xanadu-Legacy).
 
-## Running it
+## Playing it
 
-Linux, .NET 10 SDK (`global.json` pins 10.0.x).
+You need a 64-bit Linux or Windows 11 machine with a GPU that supports Vulkan.
+Current NVIDIA, AMD and Intel drivers do. You also need the
+[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Linux is where
+the game is made and tested; Windows works but has had little play.
+
+On Linux, from the repo folder:
 
 ```bash
-External/fetch-moonlibs.sh   # once after cloning: the native libraries (SDL3 and friends)
-./run.sh                     # a menu of everything that can be launched
+External/fetch-moonlibs.sh   # once after cloning: downloads SDL3 and friends
 ./run.sh game                # the game
 ./run.sh editor              # the level editor
-./run.sh labs                # shader playground, shader editor and GPU experiments
 ```
 
-`./run.sh` lists every target and its flags at the top of the script.
+On Windows, in PowerShell from the repo folder:
 
-## Where things are
+```powershell
+External\fetch-moonlibs.ps1   # once after cloning: downloads SDL3 and friends
+.\run.ps1 game                # the game
+.\run.ps1 editor              # the level editor
+```
 
-| Folder | What's in it |
-| --- | --- |
-| `Core`, `UI`, `HostCore` | The engine: maths, the ECS UI, and the MoonWorks host every exe shares |
-| `Slang` | The shader layer: compiling effect bodies, and the code editor's completion, lint and the rest. Tested on its own |
-| `Game` | The game, its editor and its exe |
-| `Tools` | Labs, the animator, the dev tools (the atlas and the frame autopsy) |
-| `Tests` | Unit and visual tests |
-| `Assets` | Shaders (the Slang library players write against), fonts, icons, audio, particles, the song catalog |
-| `External` | Vendored MoonWorks and the fetch scripts for native libraries |
-| `Docs` | The design and architecture docs: start with `Docs/design.md` and `Docs/host.md` |
+If PowerShell blocks the scripts, run them as
+`powershell -ExecutionPolicy Bypass -File <script> …`.
 
-Built on [MoonWorks](https://github.com/MoonsideGames/MoonWorks) (SDL_GPU),
-[Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS) and
-[Slang](https://shader-slang.org). Third-party licences are in `LICENSES/` and
-`External/`.
+### First launch
+
+No music or levels come with the game. The songs listed in song select have no
+audio, so they can't be played. To add your own, use **ADD SONG…** on the song
+timing screen.
+
+Your songs, levels, profiles, replays and settings are kept in
+`~/.local/share/xanadu` on Linux and `%APPDATA%\xanadu` on Windows.
 
 ## Licence
 
+Built on [MoonWorks](https://github.com/MoonsideGames/MoonWorks) (SDL_GPU),
+[Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS) and
+[Slang](https://shader-slang.org).
+
 Xanadu's code is licensed under the GNU General Public License, version 3 only
 (`GPL-3.0-only`); see `LICENSE`. Parts can be offered under MIT on request.
-Third-party code, fonts and libraries keep their own licences, listed above.
+Third-party code, fonts and libraries keep their own licences, listed in
+`LICENSES/` and `External/`.

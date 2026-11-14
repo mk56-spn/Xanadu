@@ -5,7 +5,7 @@ using Xanadu.Tools.Atlas;
 using Xanadu.Tools.Autopsy;
 using Xanadu.Tools.DevTools;
 
-// dotnet run --project Tools/DevTools [atlas|autopsy|moves] [flags]   -> opens on that tab (atlas by default)
+// dotnet run --project Tools/DevTools [atlas|autopsy|moves|arch] [flags]   -> opens on that tab (atlas by default)
 //
 // atlas --focus=TextEditor   -> opens on that type          atlas --compare=A,B    -> comparing two types
 // atlas --sort=used          -> sorted: name, used, uses, type or project; --sort=used- flips it
@@ -23,12 +23,13 @@ var sort = AtlasStage.SortMode.Name;
 bool reverse = false, similar = false, methods = false;
 string root = FindRoot();
 int first = 0;
-if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "moves")
+if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "moves" or "arch")
 {
     tab = args[0] switch
     {
         "atlas" => DevToolsApp.AtlasTab,
         "autopsy" => DevToolsApp.AutopsyTab,
+        "arch" => DevToolsApp.ArchTab,
         _ => DevToolsApp.MovesTab,
     };
     first = 1;

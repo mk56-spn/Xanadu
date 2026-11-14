@@ -39,9 +39,7 @@ public static class AutopsyStore
     public static void Save(FrameAutopsy autopsy)
     {
         string file = Path.Combine(Folder, autopsy.App + XfaBinary.Extension);
-        string temporary = file + ".tmp";
-        BinaryFile.Save(temporary, XfaBinary.Write(autopsy));
-        File.Move(temporary, file, overwrite: true);
+        BinaryFile.Save(file, XfaBinary.Write(autopsy));
         // A trace from an earlier launch would be read as this one's.
         if (!autopsy.HasTrace)
             DeleteTrace(autopsy.App);

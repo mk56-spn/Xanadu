@@ -2,7 +2,9 @@ using System.IO;
 
 namespace Xanadu.Storage;
 
-/// <summary>Writes a whole binary file, making its directory when it is missing.</summary>
+/// <summary>Writes a whole binary file, making its directory when it is missing.
+/// The bytes go to a temporary file first and are moved over the real one, so a crash
+/// or full disk mid-write leaves the old file whole.</summary>
 public static class BinaryFile
 {
     public static void Save(string path, byte[] data)
@@ -10,6 +12,18 @@ public static class BinaryFile
         string? directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);
-        File.WriteAllBytes(path, data);
+
+        string temporary = path + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, data);
+            File.Move(temporary, path, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(temporary))
+                File.Delete(temporary);
+            throw;
+        }
     }
 }

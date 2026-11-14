@@ -34,7 +34,7 @@ public sealed class ReplayFileTests
         Assert.That(read.LevelId, Is.EqualTo(replay.LevelId));
         Assert.That(read.LevelName, Is.EqualTo("Mortal Coil — Character Test"));
         Assert.That(read.SongId, Is.EqualTo(replay.SongId));
-        Assert.That(read.Player, Is.EqualTo("dhs"));
+        Assert.That(read.Player, Is.EqualTo("player"));
         Assert.That(read.RecordedAt, Is.EqualTo(replay.RecordedAt));
         Assert.That(read.NoteCount, Is.EqualTo(120));
         Assert.That(read.Result, Is.EqualTo(replay.Result));
@@ -145,7 +145,7 @@ public sealed class ReplayFileTests
         "5c3478c5261946bd9eb2a79713adad17",
         "Mortal Coil — Character Test",
         "cfd622f1f39b48cf8d13c84b10f44694",
-        "dhs",
+        "player",
         DateTimeOffset.FromUnixTimeMilliseconds(1_790_000_000_123),
         120,
         new ReplayResult(987_654, 0.9731, 88, 117, 120, 60, 30, 20, 5, 1, 1, 3),

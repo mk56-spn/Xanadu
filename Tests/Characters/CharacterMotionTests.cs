@@ -44,6 +44,37 @@ public sealed class CharacterMotionTests : EcsSystemTest
     }
 
     [Test]
+    public void ADashEndingOnTheGroundComesOutThroughTheLanding()
+    {
+        Entity player = Player(Floor);
+        Root.Update(new UpdateTick(1f / 240f, 0));
+        player.AddComponent(new CharacterBump { Age = CharacterBumpSystem.Seconds });
+
+        CharacterMotionSystem.DashExit(player, new Vector2(250, 0));
+        Root.Update(new UpdateTick(1f / 240f, 0));
+
+        Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
+        AnimatorRuntime runtime = player.GetComponent<CharacterRig>().Runtime;
+        // This rig crossfades, so the landing may still be fading in.
+        Assert.That(runtime.IsCrossfading ? runtime.NextClip : runtime.CurrentClip, Is.EqualTo(ContactClip.Landing.Id()));
+        Assert.That(player.GetComponent<CharacterBump>().Normal, Is.EqualTo(new Vector2(1, 0)));
+    }
+
+    [Test]
+    public void ADashEndingInTheAirOnlyCarriesHerUpperBody()
+    {
+        Entity player = Player(Floor - 200);
+        Root.Update(new UpdateTick(1f / 240f, 0));
+        player.AddComponent(new CharacterBump { Age = CharacterBumpSystem.Seconds });
+        CharacterMotionState before = State(player);
+
+        CharacterMotionSystem.DashExit(player, new Vector2(0, -250));
+
+        Assert.That(State(player), Is.EqualTo(before));
+        Assert.That(player.GetComponent<CharacterBump>().Age, Is.EqualTo(0f));
+    }
+
+    [Test]
     public void ASlowRiseIsAJumpEvenWhenAFrameMovesLessThanAPixel()
     {
         Entity player = Player(Floor - 150);

@@ -11,8 +11,10 @@ using Xanadu.Ecs.Storage;
 namespace Xanadu.Levels;
 
 /// <summary>
-/// The song library, and the only code that touches it on disk. The catalog is
-/// a permanent fixture of the project (<c>Assets/song-catalog.json</c>); the
+/// The song library, and the only code that touches it on disk. The game points
+/// the catalog at <c>Assets/song-catalog.json</c>, a permanent fixture of the
+/// project; a store built without a catalog path uses <c>catalog.json</c> under
+/// <see cref="Root"/>. The
 /// audio lives outside the codebase in <c>user://songs</c>, one folder per song
 /// id. The catalog is read once and kept; the store's own writes update it.
 /// Everything else asks <see cref="Shared"/>: <see cref="Open"/> for a song to
@@ -34,7 +36,7 @@ public sealed class SongStore
     private SongDocument[]? _catalog;
 
     /// <summary>
-    /// The game's library. The bootstrap sets it once Godot paths are known;
+    /// The game's library. The bootstrap sets it once the game paths are known;
     /// tests may swap in one of their own.
     /// </summary>
     public static SongStore Shared
@@ -81,13 +83,6 @@ public sealed class SongStore
             ? null
             : LoadAll().FirstOrDefault(song => song.Id == id);
 
-    public SongDocument? FindByHash(string contentHash) =>
-        string.IsNullOrWhiteSpace(contentHash)
-            ? null
-            : LoadAll().FirstOrDefault(song =>
-                string.Equals(song.ContentHash, contentHash,
-                    StringComparison.OrdinalIgnoreCase));
-
     private LoadedSong? Open(SongDocument song)
     {
         string file = AudioFile(song);
@@ -123,8 +118,8 @@ public sealed class SongStore
         songs.OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase).ToArray();
 
     /// <summary>
-    /// Copies <paramref name="sourcePath"/> into the song library. If the same
-    /// audio was imported before, the existing song is returned instead.
+    /// Copies <paramref name="sourcePath"/> into the song library as a new song.
+    /// Importing the same audio twice makes two songs; the hash is only recorded.
     /// </summary>
     public LoadedSong Import(
         string sourcePath,

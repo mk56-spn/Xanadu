@@ -18,6 +18,9 @@ namespace Xanadu.Systems.Playfields;
 /// </summary>
 public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
 {
+    private readonly ArchetypeQuery<Note> _open =
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
+
     public bool Mine(KeybindAction action, Entity playfield)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
@@ -33,43 +36,31 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         float mineSize = PlayfieldRenderer.MineSize * view.Scale;
         long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
-        foreach (Entity entity in context.Entities.Query<Mine>().ToEntityList())
-        {
-            Mine mine = entity.GetComponent<Mine>();
-            if (Math.Abs(mine.TimeMs - judgedTime) > window)
-                continue;
+        TouchedMine touched = context.Entities.Cached<Mine>().EachEntity(
+            new TouchedMine(context.Entities, view, playerRect, judgedTime, playhead.TimeMs, mineSize, window));
+        if (touched.Id == 0)
+            return false;
 
-            if (MineFade.Alpha(mine, playhead.TimeMs) <= 0)
-                continue;
+        Entity entity = context.Entities.GetEntityById(touched.Id);
+        score.AccuracyPenalty +=
+            ScoreRules.MineAccuracyPenalty * score.TotalNotes;
+        PlayScoring.Mark(Judgement.Mine, comboBroken: score.Combo > 0);
+        score.Combo = 0;
+        score.HasJudgement = true;
+        score.LastJudgement = Judgement.Mine;
+        score.JudgementPosition = touched.Screen;
+        score.JudgementTimeMs = playhead.TimeMs;
 
-            Vector2 mineScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, mine.Position));
-            var mineRect = new Rect2(
-                mineScreen - new Vector2(mineSize / 2, mineSize / 2),
-                new Vector2(mineSize, mineSize));
-            if (!playerRect.Intersects(mineRect))
-                continue;
-
-            score.AccuracyPenalty +=
-                ScoreRules.MineAccuracyPenalty * score.TotalNotes;
-            PlayScoring.Mark(Judgement.Mine, comboBroken: score.Combo > 0);
-            score.Combo = 0;
-            score.HasJudgement = true;
-            score.LastJudgement = Judgement.Mine;
-            score.JudgementPosition = mineScreen;
-            score.JudgementTimeMs = playhead.TimeMs;
-
-            context.Entities.CreateEntity(
-                new HitTrail(
-                    mineScreen,
-                    Palette.DangerBright,
-                    KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
-                EffectLayer.From(entity));
-            entity.DeleteEntity();
-            return true;
-        }
-
-        return false;
+        context.Entities.CreateEntity(
+            new HitTrail(
+                touched.Screen,
+                Palette.DangerBright,
+                KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
+            EffectLayer.From(entity));
+        entity.DeleteEntity();
+        return true;
     }
+
 
     public void Note(KeybindAction action, Entity playfield)
     {
@@ -88,40 +79,15 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             ? playerCharacter.Kind
             : null;
 
-        Entity hit = default;
-        Note hitNote = default;
-        long bestError = long.MaxValue;
-        long bestOffset = 0;
-
-        foreach (Entity entity in context.Entities.Query<Note>().ToEntityList())
-        {
-            if (entity.Tags.Has<NoteMissed>())
-                continue;
-
-            Note note = entity.GetComponent<Note>();
-            if (!NoteRules.IsAction(note.Kind) || !NoteRules.Matches(note, action))
-                continue;
-
-            long offset = note.TimeMs - judgedTime;
-            long error = Math.Abs(offset);
-            if (error > missWindow || error >= bestError)
-                continue;
-
-            if (NoteFade.Alpha(note, judgedTime) <= 0)
-                continue;
-
-            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
-            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
-                continue;
-
-            bestError = error;
-            bestOffset = offset;
-            hit = entity;
-            hitNote = note;
-        }
-
-        if (hit.IsNull)
+        NearestNote nearest = _open.EachEntity(
+            new NearestNote(context.Entities, view, action, playerScreen, character, judgedTime, missWindow));
+        if (nearest.Id == 0)
             return;
+
+        Entity hit = context.Entities.GetEntityById(nearest.Id);
+        Note hitNote = hit.GetComponent<Note>();
+        long bestOffset = nearest.Offset;
+
 
         hits.Note(
             action,
@@ -133,5 +99,75 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             view,
             playerScreen,
             playhead.TimeMs);
+    }
+
+    /// <summary>The first live mine in the window whose box overlaps the player.</summary>
+    private struct TouchedMine(
+        EntityStore store,
+        PlayfieldView view,
+        Rect2 playerRect,
+        long judgedTime,
+        long playheadTime,
+        float mineSize,
+        long window) : IEachEntity<Mine>
+    {
+        public int Id;
+        public Vector2 Screen;
+
+        public void Execute(ref Mine mine, int id)
+        {
+            if (Id != 0 || Math.Abs(mine.TimeMs - judgedTime) > window)
+                return;
+
+            if (MineFade.Alpha(mine, playheadTime) <= 0)
+                return;
+
+            Vector2 mineScreen = view.PlayfieldToScreen(GroupOffset.Shown(store.GetEntityById(id), mine.Position));
+            var mineRect = new Rect2(
+                mineScreen - new Vector2(mineSize / 2, mineSize / 2),
+                new Vector2(mineSize, mineSize));
+            if (!playerRect.Intersects(mineRect))
+                return;
+
+            Id = id;
+            Screen = mineScreen;
+        }
+    }
+
+    /// <summary>The open action note matching the key that is nearest in time, in reach and visible.</summary>
+    private struct NearestNote(
+        EntityStore store,
+        PlayfieldView view,
+        KeybindAction action,
+        Vector2 playerScreen,
+        CharacterKind? character,
+        long judgedTime,
+        long missWindow) : IEachEntity<Note>
+    {
+        public int Id;
+        public long Offset;
+        private long _bestError = long.MaxValue;
+
+        public void Execute(ref Note note, int id)
+        {
+            if (!NoteRules.IsAction(note.Kind) || !NoteRules.Matches(note, action))
+                return;
+
+            long offset = note.TimeMs - judgedTime;
+            long error = Math.Abs(offset);
+            if (error > missWindow || error >= _bestError)
+                return;
+
+            if (NoteFade.Alpha(note, judgedTime) <= 0)
+                return;
+
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(store.GetEntityById(id), note.Position));
+            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
+                return;
+
+            _bestError = error;
+            Offset = offset;
+            Id = id;
+        }
     }
 }

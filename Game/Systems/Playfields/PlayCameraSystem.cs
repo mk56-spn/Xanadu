@@ -146,18 +146,23 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
     /// <summary>The earliest note at or after <paramref name="fromMs"/>, or a null entity when there is none.</summary>
     private static Entity FirstNote(EntityStore store, long fromMs)
     {
-        Entity first = default;
-        long firstMs = long.MaxValue;
-        foreach (Entity note in store.Query<Note>().ToEntityList())
+        int id = store.Cached<Note>().EachEntity(new FirstNoteFrom(fromMs)).Id;
+        return id == 0 ? default : store.GetEntityById(id);
+    }
+
+    /// <summary>The earliest note at or after <paramref name="FromMs"/>.</summary>
+    private struct FirstNoteFrom(long FromMs) : IEachEntity<Note>
+    {
+        public int Id;
+        private long _firstMs = long.MaxValue;
+
+        public void Execute(ref Note note, int id)
         {
-            long timeMs = note.GetComponent<Note>().TimeMs;
-            if (timeMs >= fromMs && timeMs < firstMs)
+            if (note.TimeMs >= FromMs && note.TimeMs < _firstMs)
             {
-                first = note;
-                firstMs = timeMs;
+                Id = id;
+                _firstMs = note.TimeMs;
             }
         }
-
-        return first;
     }
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Xanadu.Ecs;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
+using Xanadu.Tools.Arch;
 using Xanadu.Tools.Atlas;
 using Xanadu.Tools.Autopsy;
 using Xanadu.Tools.Moves;
@@ -26,11 +27,12 @@ internal sealed record DevToolTab(string Name) : IToolTab
 /// The dev tools: one window for looking at the project, on the shared tabbed
 /// tool shell. ATLAS charts the project's types (what touches what); AUTOPSY
 /// takes apart the frames each exe saved when it last closed; MOVES charts
-/// the character's move system, by hand.
+/// the character's move system, by hand; ARCH is the architecture as it is
+/// meant to be, drawn by hand on an open board.
 /// </summary>
 internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
 {
-    public const int AtlasTab = 0, AutopsyTab = 1, MovesTab = 2;
+    public const int AtlasTab = 0, AutopsyTab = 1, MovesTab = 2, ArchTab = 3;
 
     private readonly DevToolsOptions _options;
 
@@ -41,7 +43,7 @@ internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
     private string? _pendingFocus;
 
     public DevToolsApp(HostWindowOptions window, DevToolsOptions options)
-        : base("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("MOVES")], options.Tab)
+        : base("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("MOVES"), new DevToolTab("ARCH")], options.Tab)
     {
         _options = options;
         _map = Task.Run(() => CodeMap.Read(options.Root));
@@ -57,6 +59,8 @@ internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
             return new AutopsyStage(context, parent, area, this, _options.Methods);
         if (tab == MovesTab)
             return new MovesStage();
+        if (tab == ArchTab)
+            return new ArchStage(_options.Root);
 
         AtlasOptions start = _pendingFocus is { } focus
             ? _options.Atlas with { Focus = focus, Compare = null, Similar = false }

@@ -9,17 +9,27 @@
 
 ### ECS in ten points
 
-1. **Queries have escalating execution forms — the query stays, the body swaps.**
-   `query.ForEachEntity(...)` is the default and pays a delegate per result. For
-   a hot query keep `store.Query<T>()` and change only how it executes: `[Query]`
-   with `Friflo.Engine.ECS.Generators` (generated chunk loop, no delegate;
-   analyzer-only package, not referenced yet),
-   `query.Each(struct : IEach<…>)` with `Friflo.Engine.ECS.Boost` (~3x and the
-   fastest non-SIMD form; already referenced),
-   `foreach (var (components, entities) in query.Chunks)` for manual work, and
-   `AsSpan256` / `StepSpan256` for the vectorized body (item 6 covers parallel).
-   Iterating `query.Entities` + `GetComponent` is much slower — only for tiny
-   results, and parallel pays off for arithmetic, not heavy structural changes.
+1. **Queries run through an `IEach` struct by default.** Write the loop body as
+   a `struct : IEach<…>` (`Execute(ref T1, …)`) or `IEachEntity<…>`
+   (`Execute(ref T1, …, int id)`, entity via `store.GetEntityById(id)`) and run
+   it with `query.Each(new S(…))` / `query.EachEntity(new S(…))`
+   (`Friflo.Engine.ECS.Boost`, referenced). Inputs go in as fields; `Each`
+   returns the struct, so results (best hit, count, found entity) come back on
+   it. The structs live at the bottom of the file, one per query, which keeps
+   every query in one boxed-off place. Only when max perf is needed, step down to
+   `foreach (var (components, entities) in query.Chunks)` and
+   `AsSpan256` / `StepSpan256` for a vectorized body (item 6 covers parallel).
+   `ForEachEntity` lambdas and `query.Entities` + `GetComponent` are legacy:
+   don't add new ones. Convert on touch: when a file is being edited anyway, its
+   loops move to `IEach` in that edit; never sweep untouched files for it. Parallel pays off for arithmetic, not heavy structural
+   changes.
+   **`ToEntityList()` only on queries of about a dozen entities or fewer**
+   (sessions, editors, panels, dialogs). It allocates and fills a new list on
+   every call and exists for structural changes in the middle of a loop. A query
+   that grows with content (notes, mines, blocks, spikes, items, buttons, UI
+   rectangles, `Store.Entities`) never uses it: run an `IEach` struct, and
+   defer changes through `CommandBuffer`. To find the
+   entity carrying a tag, query that tag; don't scan the store for it.
 2. **Archetypes.** Entities are grouped by their exact component/tag set
    (`Archetype`); a query only walks the matching groups.
 3. **Tags filter cheaply.** `Filter.AllTags`, `AnyTags`, `WithoutAllTags`,
@@ -58,8 +68,9 @@ UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
 `TakesInput`, `Toggle`, … — rendered by the `Xanadu.Ui` systems. Write new UI as a
 tree of specs (`Xanadu.Ui.Tree`: `new Column(gap: Space.Md) { a, b }`, added with
 `parent.Add(spec)`) so the code has the screen's shape, and change it afterwards
-through the built nodes (`UiNode`); see `Docs/ui-best-practices.md`. `UiBuilder` is the low-level factory behind it; the only direct caller
-left is the F2 shader tuner (a debug overlay).
+through the built nodes (`UiNode`); see `Docs/ui-best-practices.md`. `UiBuilder` is the low-level factory behind it; the direct callers
+left are the F2 shader tuner (a debug overlay) and the older animator panels
+(`Tools/Animator`), which are not to be copied.
 
 There is no widget toolkit: every control is ECS UI. Opening and saving files
 is the one thing handed to the OS, through the host's native dialog
@@ -133,7 +144,8 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 `External/fetch-moonlibs.sh` once (the native libraries).
 
 - **Build:** `dotnet build` on each project touched.
-- **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` and `dotnet test UI/Tests`.
+- **Tests:** `dotnet test Tests/Xanadu.Tests.csproj`, `dotnet test UI/Tests` and
+  `dotnet test Slang/Tests`.
   `Docs/host.md` §7 lists the failures that are already known.
 - **Perf:** `./run.sh devtools autopsy game|editor|labs|animator` records a launch and
   opens the frame autopsy (`Docs/host.md` §5.10).

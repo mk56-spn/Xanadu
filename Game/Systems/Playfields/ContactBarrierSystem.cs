@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
@@ -19,6 +20,8 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
 {
     private readonly EntityStore _entities;
     private readonly OffsetSettings _offsets;
+    private readonly ArchetypeQuery<Note> _open;
+    private readonly List<int> _reached = [];
 
     public ContactBarrierSystem(
         EntityStore entities,
@@ -26,6 +29,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
     {
         _entities = entities;
         _offsets = offsets ?? new OffsetSettings(persist: false);
+        _open = entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
     }
 
     protected override void OnUpdate()
@@ -47,35 +51,14 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
             Vector2 playerScreen = position.Value;
             long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(entity, _offsets);
 
-            foreach (Entity noteEntity in _entities.Query<Note>().ToEntityList())
+            _reached.Clear();
+            _open.EachEntity(new ReachedBarriers(_entities, view, buffer, _reached, playerScreen, contact, judgedTime, window));
+
+            foreach (int id in _reached)
             {
+                Entity noteEntity = _entities.GetEntityById(id);
                 Note note = noteEntity.GetComponent<Note>();
-                if (note.Kind != NoteKind.Contact ||
-                    noteEntity.Tags.Has<NoteMissed>())
-                {
-                    continue;
-                }
-
-                long delta = note.TimeMs - judgedTime;
-                if (delta < -window)
-                {
-                    // Barriers are checks, not scored notes; one the player
-                    // never reached simply leaves the field.
-                    buffer.DeleteEntity(noteEntity.Id);
-                    continue;
-                }
-
-                if (!contact ||
-                    Math.Abs(delta) > window ||
-                    NoteFade.Alpha(note, judgedTime) <= 0)
-                {
-                    continue;
-                }
-
                 Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-                if (!NoteReach.Contains(playerScreen, view, noteScreen, CharacterKind.Contact))
-                    continue;
-
                 ref ContactCounters counters = ref entity.GetComponent<ContactCounters>();
                 bool paid = counters.Consume(note.Costs);
                 if (paid)
@@ -104,5 +87,41 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
             return false;
 
         return !session.Started || session.Finished || session.Died;
+    }
+
+    /// <summary>
+    /// Open barriers in the window that the Contact player's reach touches.
+    /// Barriers whose window has passed are deleted on the way: they are
+    /// checks, not scored notes, so one the player never reached simply leaves.
+    /// </summary>
+    private readonly struct ReachedBarriers(
+        EntityStore store,
+        PlayfieldView view,
+        CommandBuffer buffer,
+        List<int> reached,
+        Vector2 playerScreen,
+        bool contact,
+        long judgedTime,
+        long window) : IEachEntity<Note>
+    {
+        public void Execute(ref Note note, int id)
+        {
+            if (note.Kind != NoteKind.Contact)
+                return;
+
+            long delta = note.TimeMs - judgedTime;
+            if (delta < -window)
+            {
+                buffer.DeleteEntity(id);
+                return;
+            }
+
+            if (!contact || Math.Abs(delta) > window || NoteFade.Alpha(note, judgedTime) <= 0)
+                return;
+
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(store.GetEntityById(id), note.Position));
+            if (NoteReach.Contains(playerScreen, view, noteScreen, CharacterKind.Contact))
+                reached.Add(id);
+        }
     }
 }

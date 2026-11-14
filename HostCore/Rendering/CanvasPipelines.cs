@@ -201,17 +201,18 @@ internal sealed class CanvasPipelines : IDisposable
     /// outside the library) with mix; called once at start, so screens and the
     /// playfield never compile one mid-song.
     /// </summary>
-    public void WarmShipped()
+    public void WarmShipped(Action<int, int>? progress = null)
     {
         string root = GamePaths.Full("Assets/Shaders");
         string library = Path.Combine(root, "Library");
-        foreach (string file in Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories))
+        string[] files = Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
+            .Where(file => !file.StartsWith(library, StringComparison.Ordinal))
+            .ToArray();
+        for (int i = 0; i < files.Length; i++)
         {
-            if (file.StartsWith(library, StringComparison.Ordinal))
-                continue;
-
-            string path = "Assets/Shaders/" + Path.GetRelativePath(root, file).Replace('\\', '/');
+            string path = "Assets/Shaders/" + Path.GetRelativePath(root, files[i]).Replace('\\', '/');
             Pipeline(Effect(path), BlendMode.Mix);
+            progress?.Invoke(i + 1, files.Length);
         }
     }
 

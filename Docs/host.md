@@ -163,7 +163,7 @@ The rest is under "Later" (§6).
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
   default 60), `--resolution=WxH`.
 - `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder, which every
-  relative path is under (`Assets/Shaders/flare.slang`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`).
+  relative path is under (`Assets/Shaders/flare.slang`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`; `%APPDATA%\xanadu` on Windows).
 
 ### 5.2 Seams the game draws through
 
@@ -554,12 +554,15 @@ No hurry; none of this is parity.
 ## 7. Verification
 
 - **Build:** `dotnet build` on each project touched.
-- **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` (~2300) and
-  `dotnet test UI/Tests`. Check for "Test Run Aborted"; `--blame-crash` finds
-  the culprit. Known failures that predate the port: friction, LayerPass,
-  SelfModulate, XmfBinary, key binding, `EveryButtonActionHasAKey`, two
-  `EditorPlayfieldDrawSystemTests`, `MapOffsetSettingsTests.ZeroLeavesNoEntry`.
-  Don't count them as regressions or fix them unasked.
+- **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` (~2300),
+  `dotnet test UI/Tests` and `dotnet test Slang/Tests`. Check for "Test Run
+  Aborted"; `--blame-crash` finds the culprit. Known failures (nine, checked
+  2026-11-14): `EveryButtonActionHasAKey`, two `EditorPlayfieldDrawSystemTests`,
+  `EditorToolSectionSystemTests.BlocksShowTheirSizeAndShape`,
+  `XmfBinaryTests.ALevelWithoutItemGeometryIsWrittenAsBefore`, LayerPass,
+  `PlayKeyTrailSystemTests.PressedKeyLightsAndReleasedKeyDecays`,
+  `SceneSystemTests.SettingsKeepsBackgroundBelowContent` and the key-binding
+  button test. Don't count them as regressions or fix them unasked.
 - **Visual:** one screenshot from `--shot` (or a visual test's
   `--visual-test-shot`), saved outside the repo (the session's scratchpad or a
   temp folder). Never commit images outside `Assets/`.

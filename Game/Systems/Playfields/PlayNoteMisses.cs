@@ -15,6 +15,10 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Marks notes whose miss window has passed and judges them.</summary>
 public sealed class PlayNoteMisses(PlayNoteContext context)
 {
+    private readonly ArchetypeQuery<Note> _open =
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
+    private readonly List<int> _late = [];
+
     public void Mark(Entity playfield)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
@@ -24,21 +28,13 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        foreach (Entity entity in context.Entities.Query<Note>().ToEntityList())
+        _late.Clear();
+        _open.EachEntity(new LateNotes(judgedTime, _late));
+
+        foreach (int id in _late)
         {
-            if (entity.Tags.Has<NoteMissed>())
-                continue;
-
+            Entity entity = context.Entities.GetEntityById(id);
             Note note = entity.GetComponent<Note>();
-            // Contact barriers are chart checks, not scored notes.
-            if (!NoteRules.IsScored(note.Kind))
-                continue;
-
-            long missWindow =
-                (long)ScoreRules.JudgementDeviation(Judgement.Miss);
-            if (note.TimeMs + missWindow >= judgedTime)
-                continue;
-
             entity.AddTag<NoteMissed>();
             PlayChart.Judge(entity, Judgement.Miss, note.TimeMs - judgedTime);
             PlayScoring.Mark(Judgement.Miss, comboBroken: score.Combo > 0);
@@ -49,6 +45,19 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.JudgementPosition = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
+        }
+    }
+
+    /// <summary>Scored notes still open whose miss window ended before <paramref name="JudgedTime"/>.</summary>
+    private readonly record struct LateNotes(long JudgedTime, List<int> Late) : IEachEntity<Note>
+    {
+        private static readonly long MissWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
+
+        public void Execute(ref Note note, int id)
+        {
+            // Contact barriers are chart checks, not scored notes.
+            if (NoteRules.IsScored(note.Kind) && note.TimeMs + MissWindow < JudgedTime)
+                Late.Add(id);
         }
     }
 }

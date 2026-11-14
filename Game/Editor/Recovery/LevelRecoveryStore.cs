@@ -61,7 +61,7 @@ public sealed class LevelRecoveryStore(string directory)
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
         file.Add((uint)ChunkId.Meta, meta);
         file.Add((uint)ChunkId.Map, XmfBinary.Write(level));
-        File.WriteAllBytes(PathFor(levelPath), file.ToArray());
+        BinaryFile.Save(PathFor(levelPath), file.ToArray());
     }
 
     /// <summary>The autosave for a level, or null if there is none or it cannot be read.</summary>
@@ -89,7 +89,7 @@ public sealed class LevelRecoveryStore(string directory)
             };
         }
         catch (Exception exception)
-            when (exception is IOException or FormatException or XmfFormatException)
+            when (exception is IOException or FormatException or XmfFormatException or ArgumentOutOfRangeException)
         {
             Xanadu.Diagnostics.GameLog.Error($"Ignoring unreadable recovery file '{path}': {exception.Message}");
             return null;

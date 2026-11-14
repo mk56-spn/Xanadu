@@ -71,6 +71,9 @@ internal abstract class HostApp : Game
     private static extern int GetThreadId();
     private bool _drawnSinceUpdate = true;
 
+    /// <summary>Shown while the host and the exe load; let go once the first real frame is drawn.</summary>
+    private HostSplash? _splash;
+
     protected Texture Target { get; }
     protected CanvasTree Canvas { get; } = new();
     protected CanvasRenderer Renderer { get; }
@@ -110,11 +113,16 @@ internal abstract class HostApp : Game
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
         UseGameRoots();
         HostWindowIcon.Apply(MainWindow.Handle);
+        // The window is up from here: everything below loads behind the splash.
+        _splash = new HostSplash(GraphicsDevice, MainWindow);
+        _splash.Show(0f, force: true);
         SlangShaders.LibraryPath = GamePaths.Full("Assets/Shaders/Library");
         ShaderConstants.Use(SlangShaders.LoadConstants());
         ShaderChains.Use(SlangShaders.LoadChains());
         SlangShaders.CacheFolder = GamePaths.Full("user://shader_cache_slang");
+        _splash.Show(0.1f);
         Renderer = new CanvasRenderer(GraphicsDevice, Canvas, TargetFormat, Width, Height);
+        _splash.Show(0.3f);
         Text = new HostText(GraphicsDevice, texture =>
         {
             ulong id = Canvas.MintRid().Id;
@@ -138,7 +146,8 @@ internal abstract class HostApp : Game
             Renderer.Textures[rid.Id] = GlyphStrips.Build(GraphicsDevice, Text, atlas);
             return rid;
         };
-        Renderer.Pipelines.WarmShipped();
+        // The slow step on a cold shader cache: one shader at a time, the bar moving with each.
+        Renderer.Pipelines.WarmShipped((done, total) => _splash.Show(0.35f + 0.5f * done / total));
         HostPlatform.DescribeMaterial = DescribeMaterial;
         HostPlatform.ApplyVSync = ApplyVSync;
         ApplyVSync(true);
@@ -159,6 +168,7 @@ internal abstract class HostApp : Game
                 Pointer,
                 tooltips: ui != HostUi.NoTooltips);
         }
+        _splash.Show(0.9f, force: true);
 
         // Every launch is recorded for the Autopsy tool and saved when the window closes.
         // Shot runs (visual tests) leave the last real launch alone unless XANADU_AUTOPSY=1.
@@ -407,6 +417,11 @@ internal abstract class HostApp : Game
         frame.Dispose();
 
         _frames++;
+        if (_splash is not null)
+        {
+            _splash.Dispose();
+            _splash = null;
+        }
         if (_screenshotRequested)
         {
             _screenshotRequested = false;
@@ -450,6 +465,7 @@ internal abstract class HostApp : Game
         SaveAutopsy();
         _sampler?.Stop();
         Shutdown();
+        _splash?.Dispose();
         _ui?.Dispose();
         Text.Dispose();
         Renderer.Dispose();

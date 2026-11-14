@@ -38,7 +38,7 @@ public sealed class CharacterRigLoadSystem(ICharacterRigFiles files)
             if (package is null)
                 continue;
 
-            var runtime = new AnimatorRuntime(package);
+            var runtime = new AnimatorRuntime(package) { Inertial = true };
             if (!runtime.Play(ContactClip.Idle.Id(), 0f) && package.Clips.Count > 0)
                 runtime.Play(package.Clips[0].Id, 0f);
             entity.AddComponent(new CharacterRig(runtime));

@@ -181,7 +181,4 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
 
         UiText.SetFill(bar.Marker, color, buffer);
     }
-
-    private static void Count(ref ScoreState score, Judgement judgement) =>
-        PlayScoring.Count(ref score, judgement);
 }

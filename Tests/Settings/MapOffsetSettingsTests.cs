@@ -47,7 +47,7 @@ public sealed class MapOffsetSettingsTests
         settings.Set("a", 0);
 
         Assert.That(new MapOffsetSettings(_path).Get("a"), Is.Zero);
-        Assert.That(new FileInfo(_path).Length, Is.EqualTo(8), "just the header");
+        Assert.That(new FileInfo(_path).Length, Is.EqualTo(9), "just the header: magic, version, a zero count");
     }
 
     [Test]

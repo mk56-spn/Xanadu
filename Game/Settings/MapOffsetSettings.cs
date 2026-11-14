@@ -65,7 +65,8 @@ public sealed class MapOffsetSettings
                 _offsets[id] = (short)Math.Clamp((int)reader.ReadInt16(), -MaxMs, MaxMs);
             }
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception)
+            when (exception is IOException or UnauthorizedAccessException or FormatException)
         {
             // A damaged file costs the player their map offsets, not their game.
             _offsets.Clear();

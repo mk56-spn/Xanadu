@@ -13,7 +13,6 @@ namespace Xanadu.Particles;
 public static class ParticleLibrary
 {
     private const string RelativePath = "Assets/Particles/particles.xpf";
-    private const string RootMarker = "Xanadu.sln";
 
     private static XpfLibrary? _shared;
 
@@ -100,7 +99,7 @@ public static class ParticleLibrary
              !string.IsNullOrEmpty(directory);
              directory = Path.GetDirectoryName(directory.TrimEnd('/', '\\')))
         {
-            if (File.Exists(Path.Combine(directory, RootMarker)))
+            if (Xanadu.Storage.GamePaths.IsGameFolder(directory))
                 return Path.Combine(directory, RelativePath);
         }
 

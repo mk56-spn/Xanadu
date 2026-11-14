@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Xanadu.Animation;
 
 /// <summary>Runtime state for one character animator instance.</summary>
-public sealed class AnimatorRuntime
+public sealed partial class AnimatorRuntime
 {
     private readonly Dictionary<string, XafClip> _clips =
         new(StringComparer.Ordinal);
@@ -96,6 +96,12 @@ public sealed class AnimatorRuntime
         if (_next is null ? _current.Id == clipId : _next.Id == clipId)
             return true;
 
+        if (Inertial)
+        {
+            SwitchInertially(clip, 0f, fadeSeconds);
+            return true;
+        }
+
         StartFade(clip, fadeSeconds, curve);
         return true;
     }
@@ -120,6 +126,9 @@ public sealed class AnimatorRuntime
             return false;
 
         (float fade, XafFadeCurve curve) = XafTransitions.Blend(Package, from, clipId);
+        // A hand-over the package names no fade for settles at the inertial default.
+        if (Inertial && XafTransitions.Find(Package, from, clipId) is null)
+            fade = InertialSeconds;
         return Play(clipId, fade, curve);
     }
 
@@ -132,6 +141,12 @@ public sealed class AnimatorRuntime
     {
         if (_current is null)
             return;
+
+        if (Inertial)
+        {
+            SwitchInertially(_current, 0f, InertialSeconds);
+            return;
+        }
 
         _currentTime = 0f;
         _currentStarted = true;
@@ -150,6 +165,7 @@ public sealed class AnimatorRuntime
 
         _currentTime = Math.Clamp(time, 0f, _current.Duration);
         _currentStarted = false;
+        ForgetShown();
         _next = null;
         _frozen = null;
         _nextTime = 0f;
@@ -182,6 +198,28 @@ public sealed class AnimatorRuntime
         }
 
         _additives.Add(new AdditiveLayer(clip, weight, Math.Max(0f, startTime), blend));
+    }
+
+    /// <summary>
+    /// Layers a clip held at <paramref name="time"/> into it, or moves one
+    /// already layered there, keeping its place among the layers: for a pose
+    /// that is set each frame rather than played, such as bracing for a landing.
+    /// </summary>
+    public void HoldLayer(string clipId, float weight, float time, XafLayerBlend blend)
+    {
+        if (!_clips.TryGetValue(clipId, out XafClip? clip))
+            return;
+
+        for (int i = 0; i < _additives.Count; i++)
+        {
+            if (_additives[i].Clip.Id == clipId)
+            {
+                _additives[i] = _additives[i] with { Weight = weight, Time = time, Blend = blend };
+                return;
+            }
+        }
+
+        _additives.Add(new AdditiveLayer(clip, weight, Math.Max(0f, time), blend));
     }
 
     /// <summary>The layer playing this clip, if one is.</summary>
@@ -231,6 +269,12 @@ public sealed class AnimatorRuntime
             ? _frozen
             : XafSampler.Sample(Package, _current, _currentTime);
         XafPose basePose = currentPose;
+        if (Inertial)
+        {
+            StepGap(delta);
+            ApplyGap(basePose);
+            RememberShown(basePose, delta);
+        }
 
         if (_next is not null)
         {

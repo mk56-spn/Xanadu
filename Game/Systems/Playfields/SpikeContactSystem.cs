@@ -40,19 +40,13 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
             Rect2 playerRect = PlayerTuck.Box(playfield, center);
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
 
-            foreach (Entity entity in _entities.Query<Spike>().ToEntityList())
-            {
-                SpikeTriangle hitbox = SpikeRules.ScreenHitbox(
-                    entity.GetComponent<Spike>(),
-                    GroupOffset.View(entity, view));
-                if (hitbox.Overlaps(playerRect))
-                {
-                    session.Died = true;
-                    ShaderPlay.Mark(ShaderEvent.Death);
-                    Shatter(playfield, player.Size);
-                    return;
-                }
-            }
+            if (!_entities.Cached<Spike>().EachEntity(new SpikeHit(_entities, view, playerRect)).Hit)
+                continue;
+
+            session.Died = true;
+            ShaderPlay.Mark(ShaderEvent.Death);
+            Shatter(playfield, player.Size);
+            return;
         }
     }
 
@@ -75,5 +69,17 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
         }
 
         CommandBuffer.AddTag<PlayerShattered>(playfield.Id);
+    }
+
+    /// <summary>Whether any spike's triangle overlaps the player's box.</summary>
+    private struct SpikeHit(EntityStore store, PlayfieldView view, Rect2 playerRect) : IEachEntity<Spike>
+    {
+        public bool Hit;
+
+        public void Execute(ref Spike spike, int id)
+        {
+            if (!Hit)
+                Hit = SpikeRules.ScreenHitbox(spike, GroupOffset.View(store.GetEntityById(id), view)).Overlaps(playerRect);
+        }
     }
 }

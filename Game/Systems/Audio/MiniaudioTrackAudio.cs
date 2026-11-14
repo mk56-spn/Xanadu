@@ -31,7 +31,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
         string path = Xanadu.Storage.GamePaths.Full(audioPath);
 
-        byte[] pathBytes = Encoding.UTF8.GetBytes(path);
+        byte[] pathBytes = Encoding.UTF8.GetBytes(path + '\0');
         fixed (byte* pathPtr = pathBytes)
         {
             ma_result result = ma.sound_init_from_file(

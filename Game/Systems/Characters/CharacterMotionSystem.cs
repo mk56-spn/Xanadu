@@ -30,6 +30,15 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
     /// <summary>Seconds between puffs of dust off the feet while sliding.</summary>
     public const float SlideDustSeconds = 0.06f;
 
+    /// <summary>
+    /// How long before she touches down she starts bracing for it, in seconds:
+    /// the landing's first pose eases in over her fall so she reaches for the
+    /// ground instead of meeting it stiff. Anything that would cut the fall
+    /// short (a dash, a momentum note) is an instant change anyway, so a brace
+    /// that never lands costs nothing.
+    /// </summary>
+    public const float BraceSeconds = 0.15f;
+
     /// <summary>A dash is instant, so a jump is held this long before it can turn into a fall.</summary>
     public const float JumpHoldSeconds = 0.3f;
 
@@ -96,7 +105,10 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             motion.LastRiseSpeed = UpwardSpeed(entity);
             motion.LastY = y;
 
-            CharacterMotionState next = Next(motion, rising, OnFloor(entity, y), SidewaysSpeed(entity), runtime);
+            bool onFloor = OnFloor(entity, y);
+            CharacterMotionState next = Next(motion, rising, onFloor, SidewaysSpeed(entity), runtime);
+            bool bracing = motion.Brace > 0f;
+            Brace(entity, ref motion, runtime, rising || onFloor ? CharacterMotionState.Grounded : next);
             if (next == CharacterMotionState.Sliding)
                 SlideDust(entity, ref motion, delta);
             else
@@ -116,8 +128,88 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
 
             motion.State = next;
             motion.StateTime = 0f;
-            Play(runtime, next, restart: rejump);
+            // Braced, the pose is already the landing's first; cut straight to it.
+            if (bracing && next == CharacterMotionState.Landing)
+                runtime.Play(ContactClip.Landing.Id(), 0f);
+            else
+                Play(runtime, next, restart: rejump);
         }
+    }
+
+    /// <summary>How hard the flinch is that carries her upper body on past where a dash puts her down, 0 to 1.</summary>
+    public const float DashExitCarry = 0.6f;
+
+    /// <summary>How quickly she drops into the landing's crouch out of a grounded dash, in seconds; a crossfade rig takes it as its fade.</summary>
+    public const float DashExitSettle = 0.12f;
+
+    /// <summary>
+    /// A dash just put the player down at its end, <paramref name="way"/> being
+    /// the way it went on screen. Her upper body is carried on past and springs
+    /// back (the bump flinch, pushed the way she went), and if the dash left
+    /// her on the ground she comes out of it through the landing clip from its
+    /// crouch, rather than standing there as if she had never moved. Changes
+    /// no components' presence, so it is safe from inside a query.
+    /// </summary>
+    public static void DashExit(Entity entity, Vector2 way)
+    {
+        if (way.LengthSquared() > 0f && entity.HasComponent<CharacterBump>())
+        {
+            ref CharacterBump bump = ref entity.GetComponent<CharacterBump>();
+            bump.Normal = Vector2.Normalize(way);
+            bump.Strength = DashExitCarry;
+            bump.Age = 0f;
+        }
+
+        if (!entity.TryGetComponent(out CharacterRig rig) || !entity.HasComponent<CharacterMotion>() ||
+            !rig.Runtime.Package.Has(ContactClip.Landing) ||
+            !OnFloor(entity, entity.GetComponent<Position>().Value.Y))
+        {
+            return;
+        }
+
+        ref CharacterMotion motion = ref entity.GetComponent<CharacterMotion>();
+        motion.State = CharacterMotionState.Landing;
+        motion.StateTime = 0f;
+        motion.Brace = 0f;
+        string landing = ContactClip.Landing.Id();
+        if (rig.Runtime.CurrentClip == landing && !rig.Runtime.IsCrossfading)
+            rig.Runtime.Restart();
+        else
+            rig.Runtime.Play(landing, DashExitSettle);
+        rig.Runtime.RemoveLayer(landing);
+    }
+
+    /// <summary>
+    /// Lays the landing's first pose over a fall that will touch down within
+    /// <see cref="BraceSeconds"/>, more of it the closer the ground; takes it
+    /// off again once she is not falling towards it.
+    /// </summary>
+    private static void Brace(Entity entity, ref CharacterMotion motion, AnimatorRuntime runtime, CharacterMotionState airborne)
+    {
+        string landing = ContactClip.Landing.Id();
+        float brace = 0f;
+        if (airborne is CharacterMotionState.Jumping or CharacterMotionState.Falling &&
+            runtime.Package.Has(ContactClip.Landing) &&
+            entity.TryGetComponent(out PhysicsBody body) &&
+            entity.TryGetComponent(out PlayfieldView view) &&
+            entity.TryGetComponent(out Playfield playfield))
+        {
+            float scale = Box2DPhysicsWorld.PixelsPerMeter;
+            Vector2 velocity = body.Body.LinearVelocity * scale;
+            float gravity = body.Body.World.Gravity.Y * scale * Box2DPhysicsWorld.GravityScale(body.Body);
+            if (velocity.Y > 0f &&
+                PlayerGround.TimeToLand(entity, view, playfield, entity.GetComponent<Position>().Value, velocity, gravity, BraceSeconds) is { } left)
+            {
+                float share = 1f - left / BraceSeconds;
+                brace = share * share * (3f - 2f * share);
+            }
+        }
+
+        motion.Brace = brace;
+        if (brace > 0f)
+            runtime.HoldLayer(landing, brace, 0f, XafLayerBlend.Override);
+        else
+            runtime.RemoveLayer(landing);
     }
 
     /// <summary>

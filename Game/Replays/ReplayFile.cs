@@ -140,6 +140,10 @@ public static class ReplayFile
         {
             throw new InvalidDataException("The replay file is truncated.", exception);
         }
+        catch (Exception exception) when (exception is FormatException or ArgumentOutOfRangeException)
+        {
+            throw new InvalidDataException("The replay file is damaged.", exception);
+        }
     }
 
     private static void WriteVarint(BinaryWriter writer, int value)

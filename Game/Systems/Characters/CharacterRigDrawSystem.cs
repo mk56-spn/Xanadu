@@ -28,6 +28,7 @@ public sealed class CharacterRigDrawSystem(
 {
     private readonly Dictionary<int, Instance> _instances = new();
     private readonly HashSet<int> _seen = new();
+    private XafPose? _flinched;
 
     protected override void OnUpdate()
     {
@@ -48,8 +49,11 @@ public sealed class CharacterRigDrawSystem(
                 CanvasServer.Current.SetModulate(layer, new Color(1f, 1f, 1f, PlayerDropIn.Alpha(entity)));
             AnimatorRuntime runtime = entity.GetComponent<CharacterRig>().Runtime;
             XafPackage package = runtime.Package;
-            Transform2D[] bones = XafRig.WorldBones(package, runtime.Pose);
-            Transform2D[] attachments = XafRig.WorldAttachments(package, runtime.Pose, bones);
+            bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
+            bool bumped = entity.TryGetComponent(out CharacterBump bump) && CharacterBumpSystem.Envelope(bump.Age) != 0f;
+            XafPose pose = bumped ? Flinched(runtime.Pose, package, bump, faceLeft) : runtime.Pose;
+            Transform2D[] bones = XafRig.WorldBones(package, pose);
+            Transform2D[] attachments = XafRig.WorldAttachments(package, pose, bones);
 
             if (!_instances.TryGetValue(entity.Id, out Instance? instance) ||
                 instance.Runtime != runtime)
@@ -72,18 +76,19 @@ public sealed class CharacterRigDrawSystem(
             Vector2 center = PlayerSmoothing.DrawnPosition(entity);
             if (entity.TryGetComponent(out PlayCamera camera))
                 center += camera.Subpixel;
-            bool faceLeft = entity.TryGetComponent(out CharacterFacing facing) && facing.Left;
             Transform2D placement = Placement(instance.RigBounds, center + new Vector2(0, size.Y / 2), Player.ArtHeight(size.Y), faceLeft);
+            if (bumped)
+                placement = CharacterBumpSystem.SquashAbout(bump, center) * placement;
             MeasureLift(entity, instance.RigBounds, instance.Visuals.Bounds(attachments), Player.ArtHeight(size.Y));
             instance.Visuals.Apply(attachments, placement);
-            instance.Visuals.ApplyStates(package, runtime.Pose, bones, attachments, placement);
+            instance.Visuals.ApplyStates(package, pose, bones, attachments, placement);
             instance.Chains.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyChains(package, instance.Chains, placement);
             instance.Cloths.Update(package, bones, Tick.deltaTime);
             instance.Visuals.ApplyCloths(package, instance.Cloths, placement);
-            instance.Visuals.ApplyEffects(runtime.Pose, XafRig.WorldEffects(package, runtime.Pose, bones), placement);
+            instance.Visuals.ApplyEffects(pose, XafRig.WorldEffects(package, pose, bones), placement);
             ghosts?.Capture(
-                entity, package, runtime.Pose, bones, attachments,
+                entity, package, pose, bones, attachments,
                 instance.Chains, instance.Cloths, instance.RigBounds, faceLeft);
             if (!entity.Tags.Has<CharacterRigVisible>())
                 entity.AddTag<CharacterRigVisible>();
@@ -133,6 +138,29 @@ public sealed class CharacterRigDrawSystem(
         var rigFeet = new Vector2(rigBounds.GetCenter().X, rigBounds.End.Y);
         var scaleXY = new Vector2(flip ? -scale : scale, scale);
         return new Transform2D(0f, scaleXY, 0f, feet - rigFeet * scaleXY);
+    }
+
+    /// <summary>
+    /// The pose with a bump's flinch on its upper body, in a copy kept for
+    /// reuse, so the runtime's own pose is never touched.
+    /// </summary>
+    private XafPose Flinched(XafPose source, XafPackage package, in CharacterBump bump, bool faceLeft)
+    {
+        if (_flinched is null || _flinched.Bones.Length != source.Bones.Length ||
+            _flinched.Attachments.Length != source.Attachments.Length || _flinched.Effects.Length != source.Effects.Length)
+        {
+            _flinched = source.Clone();
+        }
+        else
+        {
+            Array.Copy(source.Bones, _flinched.Bones, source.Bones.Length);
+            Array.Copy(source.Attachments, _flinched.Attachments, source.Attachments.Length);
+            Array.Copy(source.AttachmentStates, _flinched.AttachmentStates, source.AttachmentStates.Length);
+            Array.Copy(source.Effects, _flinched.Effects, source.Effects.Length);
+        }
+
+        CharacterBumpSystem.ApplyFlinch(package, _flinched, bump, faceLeft);
+        return _flinched;
     }
 
     private void ReleaseUnseen()

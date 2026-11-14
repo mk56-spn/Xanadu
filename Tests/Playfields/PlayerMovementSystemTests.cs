@@ -119,17 +119,19 @@ public sealed class PlayerMovementSystemTests
     }
 
     [Test]
-    public void ADashSetsOffASprayWhereItEnds()
+    public void ADashEndsInAFlareAndFallingLeaves()
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
         _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash));
         Press(KeybindAction.Left);
 
-        // The note's own sparks pop where it stood; the spray is the one on the body.
+        Vector2 end = _player.GetComponent<Position>().Value;
+        // The note's own sparks pop where it stood; the leaves are the ones where she comes out.
         Entity burst = _store.Query<ParticleBurst>().ToEntityList()
-            .Single(entity => entity.GetComponent<ParticleBurst>().Particle == GameParticles.Dash);
-        Assert.That(burst.GetComponent<ParticleBurst>().Area, Is.EqualTo(_player.GetComponent<Player>().Size));
-        Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(_player.GetComponent<Position>().Value));
+            .Single(entity => entity.GetComponent<ParticleBurst>().Particle == GameParticles.DashLeaf);
+        Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(end));
+        Entity flare = _store.Query<DashFlare>().ToEntityList().Single();
+        Assert.That(flare.GetComponent<DashFlare>().Position, Is.EqualTo(end));
     }
 
     [Test]

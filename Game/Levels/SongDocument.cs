@@ -42,7 +42,7 @@ public sealed class SongDocument
     /// <summary>Later tempo sections, each from its moment on (the song timing screen edits them).</summary>
     public List<TempoChangeDocument> TempoChanges { get; set; } = new();
 
-    /// <summary>SHA-256 of the source audio, used to reject duplicate imports.</summary>
+    /// <summary>SHA-256 of the source audio. Recorded only; duplicate imports are allowed.</summary>
     public string ContentHash { get; set; } = "";
 
     /// <summary>The song's whole timing as one map.</summary>

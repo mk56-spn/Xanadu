@@ -333,6 +333,9 @@ public static partial class PlayfieldRenderer
             case PlayfieldDrawKind.DashTrail:
                 DrawDashTrail(canvas, rid, entity);
                 break;
+            case PlayfieldDrawKind.DashFlare:
+                DrawDashFlare(canvas, rid, entity);
+                break;
             case PlayfieldDrawKind.HitTrail:
                 DrawHitTrail(canvas, rid, entity);
                 break;

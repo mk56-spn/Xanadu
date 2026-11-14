@@ -6,6 +6,7 @@ using Xanadu.Ecs;
 using Xanadu.Rendering;
 using Xanadu.Scoring;
 using Xanadu.Settings;
+using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Position = Xanadu.Ecs.Position;
@@ -99,9 +100,14 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, movement.Position));
                     ApplyDash(entity, ref body, ref position, screen, noteScreen, movement, heading, view, playhead, judgedTime, buffer);
                     // The path is told by a streak of particles, not a line.
-                    _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.6f, spray));
+                    _entities.CreateEntity(ParticleBurst.Streak(screen, position.Value, player.Size.X * 0.4f, spray));
+                    // Where she comes out: a flare goes off and leaves drift down.
+                    Vector2 travel = position.Value - screen;
+                    CharacterMotionSystem.DashExit(entity, travel);
+                    _entities.CreateEntity(
+                        new DashFlare(position.Value, spray, Mathf.RadToDeg(travel.Angle())), EffectLayer.From(noteEntity));
                     _entities.CreateEntity(new ParticleBurst(
-                        position.Value, GameParticles.Dash, spray, player.Size, heading: position.Value - screen));
+                        position.Value, GameParticles.DashLeaf, spray, player.Size * 0.6f));
                 }
                 else
                 {
@@ -227,41 +233,10 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
         out Entity resultEntity,
         out Note result)
     {
-        resultEntity = default;
-        result = default;
-        long bestError = long.MaxValue;
-        float bestDistance = float.MaxValue;
-
-        foreach (Entity entity in _entities.Query<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            if (!NoteRules.IsMovement(note.Kind) ||
-                !NoteRules.Matches(note, action) ||
-                entity.Tags.Has<NoteMissed>() ||
-                Math.Abs(note.TimeMs - judgedTime) > ActiveWindowMs ||
-                NoteFade.Alpha(note, judgedTime) <= 0)
-            {
-                continue;
-            }
-
-            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
-            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
-                continue;
-
-            long error = Math.Abs(note.TimeMs - judgedTime);
-            float distance = playerScreen.DistanceSquaredTo(noteScreen);
-            if (error > bestError ||
-                (error == bestError && distance >= bestDistance))
-            {
-                continue;
-            }
-
-            bestError = error;
-            bestDistance = distance;
-            resultEntity = entity;
-            result = note;
-        }
-
+        MovementNote found = _entities.Cached<Note>().EachEntity(
+            new MovementNote(_entities, view, action, playerScreen, character, judgedTime));
+        resultEntity = found.Id == 0 ? default : _entities.GetEntityById(found.Id);
+        result = found.Note;
         return !resultEntity.IsNull;
     }
 
@@ -315,5 +290,52 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
             _previous.Remove(key);
 
         return now && !was;
+    }
+
+    /// <summary>The open movement note matching the key, nearest in time then in distance, in reach and visible.</summary>
+    private struct MovementNote(
+        EntityStore store,
+        PlayfieldView view,
+        KeybindAction action,
+        Vector2 playerScreen,
+        CharacterKind? character,
+        long judgedTime) : IEachEntity<Note>
+    {
+        public int Id;
+        public Note Note;
+        private long _bestError = long.MaxValue;
+        private float _bestDistance = float.MaxValue;
+
+        public void Execute(ref Note note, int id)
+        {
+            if (!NoteRules.IsMovement(note.Kind) ||
+                !NoteRules.Matches(note, action) ||
+                Math.Abs(note.TimeMs - judgedTime) > ActiveWindowMs ||
+                NoteFade.Alpha(note, judgedTime) <= 0)
+            {
+                return;
+            }
+
+            Entity entity = store.GetEntityById(id);
+            if (entity.Tags.Has<NoteMissed>())
+                return;
+
+            Vector2 noteScreen = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
+            if (!NoteReach.Contains(playerScreen, view, noteScreen, character))
+                return;
+
+            long error = Math.Abs(note.TimeMs - judgedTime);
+            float distance = playerScreen.DistanceSquaredTo(noteScreen);
+            if (error > _bestError ||
+                (error == _bestError && distance >= _bestDistance))
+            {
+                return;
+            }
+
+            _bestError = error;
+            _bestDistance = distance;
+            Id = id;
+            Note = note;
+        }
     }
 }
