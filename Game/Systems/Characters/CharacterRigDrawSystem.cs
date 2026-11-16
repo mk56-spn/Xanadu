@@ -4,9 +4,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Color = Xanadu.Core.Maths.Color;
+using Handle = Xanadu.Core.Maths.Handle;
+using Position = Xanadu.Core.Position;
+using Rect2 = Xanadu.Core.Maths.Rect2;
+using Transform2D = Xanadu.Core.Maths.Transform2D;
 
 namespace Xanadu.Systems.Characters;
 

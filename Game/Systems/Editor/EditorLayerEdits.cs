@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Layering;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
-using Xanadu.Rendering;
 
 namespace Xanadu.Systems.Editor;
 

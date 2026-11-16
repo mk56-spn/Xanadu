@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// Makes the textures canvas items draw with, from pixels or image files.

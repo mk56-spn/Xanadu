@@ -2,9 +2,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Editor;
 
@@ -24,7 +27,7 @@ public sealed class EditorWheelSystemTests
         _commands = new EditorCommandBus();
         _wheel = new PointerLatch();
         _editor = _store.CreateEntity(
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, false, 5_000),
             new PlayfieldView(),
             new EditorViewNavigation(new Vector2(100, 100)));
         _root = new SystemRoot(_store);
@@ -43,11 +46,11 @@ public sealed class EditorWheelSystemTests
     [Test]
     public void WheelUpSeeksBackAndDownSeeksForward()
     {
-        _wheel.AddWheel(1, control: false, shift: false);
+        _wheel.AddWheel(1, false, false);
         Frame();
         Assert.That(TakeSeek(), Is.EqualTo(500));
 
-        _wheel.AddWheel(-1, control: false, shift: false);
+        _wheel.AddWheel(-1, false, false);
         Frame();
         Assert.That(TakeSeek(), Is.EqualTo(1_500));
         Assert.That(_wheel.Notches, Is.Zero);
@@ -56,7 +59,7 @@ public sealed class EditorWheelSystemTests
     [Test]
     public void ShiftSeeksFurther()
     {
-        _wheel.AddWheel(-1, control: false, shift: true);
+        _wheel.AddWheel(-1, false, true);
         Frame();
 
         Assert.That(TakeSeek(), Is.EqualTo(3_000));
@@ -65,8 +68,8 @@ public sealed class EditorWheelSystemTests
     [Test]
     public void NotchesInOneFrameAllCount()
     {
-        _wheel.AddWheel(-1, control: false, shift: false);
-        _wheel.AddWheel(-1, control: false, shift: false);
+        _wheel.AddWheel(-1, false, false);
+        _wheel.AddWheel(-1, false, false);
         Frame();
 
         Assert.That(TakeSeek(), Is.EqualTo(2_000));
@@ -75,7 +78,7 @@ public sealed class EditorWheelSystemTests
     [Test]
     public void ControlZoomsInsteadOfSeeking()
     {
-        _wheel.AddWheel(1, control: true, shift: false);
+        _wheel.AddWheel(1, true, false);
         Frame();
 
         Assert.That(_editor.GetComponent<EditorViewNavigation>().ZoomSteps, Is.EqualTo(1));
@@ -88,7 +91,7 @@ public sealed class EditorWheelSystemTests
         Entity field = _store.CreateEntity(new TextField());
         field.AddTag<TextFieldFocused>();
 
-        _wheel.AddWheel(1, control: false, shift: false);
+        _wheel.AddWheel(1, false, false);
         Frame();
 
         Assert.That(_commands.Count, Is.Zero);

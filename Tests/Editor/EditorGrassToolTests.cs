@@ -2,12 +2,17 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Editor;
 
@@ -107,8 +112,8 @@ public sealed class EditorGrassToolTests
 
         Click(new Vector2(300, 800));
 
-        GrassPatch[] patches = _store.Query<GrassPatch>().ToEntityList()
-            .Select(e => e.GetComponent<GrassPatch>()).ToArray();
+        GrassPatch[] patches = _store.Query<GrassPatch>().ToEntityList().Select(e => e.GetComponent<GrassPatch>())
+            .ToArray();
         Assert.That(patches, Has.Length.EqualTo(2));
         Assert.That(patches.All(p => p.Sway == GrassPatch.DefaultSway + GrassPatch.Step(GrassSetting.Sway)), Is.True);
         Assert.That(patches[0].Seed, Is.Not.EqualTo(patches[1].Seed));

@@ -1,4 +1,4 @@
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Every UI layer's draw order, bottom to top, and the one place to change it.

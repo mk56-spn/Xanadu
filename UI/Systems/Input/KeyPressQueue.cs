@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>One key press with the modifiers held for it; bindings match them exactly.</summary>
 public readonly record struct KeyChord(Key Key, bool Ctrl = false, bool Shift = false);

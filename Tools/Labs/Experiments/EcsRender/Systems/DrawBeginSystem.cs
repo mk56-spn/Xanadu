@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS.Systems;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>Starts the frame's draw list empty.</summary>
 internal sealed class DrawBeginSystem(DrawList list) : BaseSystem

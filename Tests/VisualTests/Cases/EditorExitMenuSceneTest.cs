@@ -1,9 +1,11 @@
+using Xanadu.Ui.Ecs;
+using Xanadu.Ecs.Components;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Editor;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.VisualTests;
 

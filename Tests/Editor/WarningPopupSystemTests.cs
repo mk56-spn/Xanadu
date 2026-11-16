@@ -1,11 +1,14 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
@@ -37,9 +40,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
         WarningPopup popup = _popup.GetComponent<WarningPopup>();
         Assert.That(UiLayout.IsHidden(_popup), Is.False);
         Assert.That(popup.Message.GetComponent<Text>().Value, Is.EqualTo("No song"));
-        Assert.That(
-            _popup.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(_popup.GetComponent<Position>().Value, Is.EqualTo(new Vector2(500, 500)));
         Assert.That(_editor.HasComponent<WarningRequest>(), Is.False);
     }
 
@@ -54,8 +55,7 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(UiLayout.IsHidden(_popup), Is.True);
-        Assert.That(
-            UiLayout.IsHidden(_popup), Is.True);
+        Assert.That(UiLayout.IsHidden(_popup), Is.True);
     }
 
     [Test]
@@ -71,6 +71,4 @@ public sealed class WarningPopupSystemTests : EcsSystemTest
 
         Assert.That(UiLayout.IsHidden(_popup), Is.True);
     }
-
-
 }

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A colour swatch that can be picked up: press it and drag, and its fill

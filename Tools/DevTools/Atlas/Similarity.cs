@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>
 /// How alike two types are, each 0 to 1: their fields' types (shape), the types

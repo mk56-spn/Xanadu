@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>A step button on the timing screen; its command's <see cref="UiCommand.Arg"/> is the step.</summary>
 public enum SongTimingAdjustKind

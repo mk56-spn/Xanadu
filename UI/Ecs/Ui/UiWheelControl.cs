@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Reads and drives a wheel created by <see cref="UiBuilder.Wheel"/>.</summary>
 public sealed class UiWheelControl(Entity wheel)

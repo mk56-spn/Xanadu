@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
-using Xanadu.Timeline;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// The clip length field and its six step buttons, opened from the CONFIG

@@ -9,22 +9,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="VisualTests/Harness/**/*.cs" />
-    <Compile Remove="VisualTests/Cases/**/*.cs" />
-    <Compile Remove="VisualTests/Program.cs" />
-    <Compile Remove="VisualTests/obj/**;VisualTests/bin/**" />
+    <Compile Remove="VisualTests/Harness/**/*.cs"/>
+    <Compile Remove="VisualTests/Cases/**/*.cs"/>
+    <Compile Remove="VisualTests/Program.cs"/>
+    <Compile Remove="VisualTests/obj/**;VisualTests/bin/**"/>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageReference Include="NUnit" Version="5.0.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0"/>
+    <PackageReference Include="NUnit" Version="5.0.0"/>
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.1"/>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Game/Xanadu.csproj" />
-    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
-    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
-    <ProjectReference Include="VisualTests/Xanadu.VisualTests.csproj" />
-    <ProjectReference Include="../Tools/Animator/Xanadu.AnimatorTool.csproj" />
+    <ProjectReference Include="../Game/Xanadu.csproj"/>
+    <ProjectReference Include="../Core/Xanadu.Core.csproj"/>
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj"/>
+    <ProjectReference Include="VisualTests/Xanadu.VisualTests.csproj"/>
+    <ProjectReference Include="../Tools/Animator/Xanadu.AnimatorTool.csproj"/>
   </ItemGroup>
-  <Import Project="../Core/Maths/Maths.props" />
+  <Import Project="../Core/Maths/Maths.props"/>
 </Project>

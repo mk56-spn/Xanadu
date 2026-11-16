@@ -2,10 +2,15 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Input;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Systems.Shaders;
 
@@ -52,7 +57,7 @@ public sealed class ShaderTunerSystem(
     /// <param name="Uniforms">Its tunable uniforms.</param>
     /// <param name="Title">The panel's heading for it.</param>
     private sealed record ShaderTarget(
-        Xanadu.Systems.Canvas.CanvasMaterial Material,
+        CanvasMaterial Material,
         List<ShaderUniform> Uniforms,
         string Title);
 
@@ -156,7 +161,7 @@ public sealed class ShaderTunerSystem(
         _targets.Clear();
         foreach (Entity entity in entities.Query<UiMaterial>().WithDisabled().ToEntityList())
         {
-            Xanadu.Systems.Canvas.CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
+            CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
             string path = material.Shader;
             if (path.Length == 0 || material.Source is not null)
                 continue;

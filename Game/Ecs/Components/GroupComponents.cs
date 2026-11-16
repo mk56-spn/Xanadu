@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>How many groups a level has. They are fixed slots, shown as a grid.</summary>
 public static class GroupLimits
@@ -85,7 +88,7 @@ public readonly record struct GroupEffect(
     /// it ends. The easing curve is applied to the fraction of the span. A
     /// cycling effect reads its current cycle (see <see cref="Amount"/>).
     /// </summary>
-    public float Progress(float seconds, Xanadu.Timeline.TempoMap? tempo = null)
+    public float Progress(float seconds, TempoMap? tempo = null)
     {
         if (Cycling && tempo is not null)
             return CycleAt(seconds, tempo).Progress;
@@ -100,7 +103,7 @@ public readonly record struct GroupEffect(
     /// How much of the effect applies: <see cref="Progress"/>, plus the whole
     /// cycles already done for a stacking move.
     /// </summary>
-    public float Amount(float seconds, Xanadu.Timeline.TempoMap? tempo = null)
+    public float Amount(float seconds, TempoMap? tempo = null)
     {
         if (!Cycling || tempo is null)
             return Progress(seconds, tempo);
@@ -109,10 +112,10 @@ public readonly record struct GroupEffect(
     }
 
     /// <summary>When the cycle playing at a time began, in seconds (the start itself without cycles).</summary>
-    public float CycleStart(float seconds, Xanadu.Timeline.TempoMap? tempo = null) =>
+    public float CycleStart(float seconds, TempoMap? tempo = null) =>
         Cycling && tempo is not null ? CycleAt(seconds, tempo).Start : Start;
     /// <summary>Cycle <paramref name="index"/>'s start and end in seconds (0 is the effect itself).</summary>
-    public (float Start, float End) CycleSpan(int index, Xanadu.Timeline.TempoMap tempo)
+    public (float Start, float End) CycleSpan(int index, TempoMap tempo)
     {
         double first = tempo.BeatAt(Start * 1000.0);
         double length = tempo.BeatAt(End * 1000.0) - first;
@@ -120,7 +123,7 @@ public readonly record struct GroupEffect(
         return ((float)(tempo.TimeAt(begin) / 1000.0), (float)(tempo.TimeAt(begin + length) / 1000.0));
     }
 
-    private (int Index, float Progress, float Start) CycleAt(float seconds, Xanadu.Timeline.TempoMap tempo)
+    private (int Index, float Progress, float Start) CycleAt(float seconds, TempoMap tempo)
     {
         double first = tempo.BeatAt(Start * 1000.0);
         double length = tempo.BeatAt(End * 1000.0) - first;
@@ -170,7 +173,7 @@ public sealed class GroupDefinition
     public List<ShaderKey> BufferKeys = new();
 
     /// <summary>How the buffer blends into its layer; static, like an item's blend (D17).</summary>
-    public Xanadu.Rendering.BlendMode BufferBlend = Xanadu.Rendering.BlendMode.Mix;
+    public BlendMode BufferBlend = BlendMode.Mix;
 
     public bool IsEmpty => Name.Length == 0 && Effects.Count == 0 && !HasShader && !Buffered;
 

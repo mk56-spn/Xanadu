@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 
@@ -12,7 +13,7 @@ public enum PlayabilityProblem
     TooFarSideways,
 
     /// <summary>The note is higher than gravity lets the player stay.</summary>
-    TooHigh,
+    TooHigh
 }
 
 public readonly record struct PlayabilityIssue(
@@ -31,10 +32,7 @@ public readonly record struct PlayabilityGeometry(
     float GravityPixelsPerSecondSquared,
     float WindowMs)
 {
-    public static PlayabilityGeometry For(
-        PlayfieldView view,
-        Playfield playfield,
-        float windowMs) => new(
+    public static PlayabilityGeometry For(PlayfieldView view, Playfield playfield, float windowMs) => new(
         view.ScreenOrigin,
         new Vector2(playfield.Width, playfield.Height) * view.Scale,
         view.Scale,
@@ -45,16 +43,16 @@ public readonly record struct PlayabilityGeometry(
 }
 
 /// <summary>
-/// Finds notes the player can never be touching. The player only moves by
-/// dashing, which teleports them a set distance from where they are, and
-/// otherwise just falls. So after each dash the player sits at one x (the
-/// field wraps sideways) and can only be at or below the height gravity gives
-/// them. A note outside that is unreachable no matter how well it is played.
+///     Finds notes the player can never be touching. The player only moves by
+///     dashing, which teleports them a set distance from where they are, and
+///     otherwise just falls. So after each dash the player sits at one x (the
+///     field wraps sideways) and can only be at or below the height gravity gives
+///     them. A note outside that is unreachable no matter how well it is played.
 /// </summary>
 /// <remarks>
-/// The check is deliberately generous so that it never cries wolf: the dash
-/// is assumed to land as late as the timing window allows, the fall may have
-/// any starting speed, and blocks are ignored. It only reports certainties.
+///     The check is deliberately generous so that it never cries wolf: the dash
+///     is assumed to land as late as the timing window allows, the fall may have
+///     any starting speed, and blocks are ignored. It only reports certainties.
 /// </remarks>
 public static class PlayabilityAnalyzer
 {
@@ -76,9 +74,7 @@ public static class PlayabilityAnalyzer
         });
 
         Vector2 half = geometry.PlayerSize / 2;
-        float floor = Math.Max(
-            geometry.Origin.Y + half.Y,
-            geometry.Origin.Y + geometry.FieldSize.Y - half.Y);
+        float floor = Math.Max(geometry.Origin.Y + half.Y, geometry.Origin.Y + geometry.FieldSize.Y - half.Y);
 
         // The player has fallen to the floor during the countdown.
         Vector2 player = new(
@@ -100,31 +96,29 @@ public static class PlayabilityAnalyzer
             float earliest = dashedAt == long.MinValue
                 ? 0
                 : Math.Max(0, note.TimeMs - geometry.WindowMs - dashedAt - DashHangSystem.MinHoldMs) / 1000f;
-            float highest = Math.Min(
-                floor,
-                player.Y + FallDistance(geometry.GravityPixelsPerSecondSquared, earliest));
+            float highest = Math.Min(floor, player.Y + FallDistance(geometry.GravityPixelsPerSecondSquared, earliest));
 
             bool reachable = false;
             if (sideways >= reach)
             {
-                issues.Add(new PlayabilityIssue(
-                    note.TimeMs,
-                    note.Position,
-                    PlayabilityProblem.TooFarSideways,
-                    (sideways - reach) / geometry.Scale));
+                issues.Add(
+                    new PlayabilityIssue(
+                        note.TimeMs,
+                        note.Position,
+                        PlayabilityProblem.TooFarSideways,
+                        (sideways - reach) / geometry.Scale));
             }
             else if (screen.Y + reach <= highest)
             {
-                issues.Add(new PlayabilityIssue(
-                    note.TimeMs,
-                    note.Position,
-                    PlayabilityProblem.TooHigh,
-                    (highest - (screen.Y + reach)) / geometry.Scale));
+                issues.Add(
+                    new PlayabilityIssue(
+                        note.TimeMs,
+                        note.Position,
+                        PlayabilityProblem.TooHigh,
+                        (highest - (screen.Y + reach)) / geometry.Scale));
             }
             else
-            {
                 reachable = true;
-            }
 
             if (note.Kind != NoteKind.Dash)
                 continue;
@@ -149,7 +143,7 @@ public static class PlayabilityAnalyzer
         return issues;
     }
 
-    /// <summary>Where the dash lands that a player reading ahead would take: the one nearest <paramref name="next"/>.</summary>
+    /// <summary>Where the dash lands that a player reading ahead would take: the one nearest <paramref name="next" />.</summary>
     private static Vector2 BestDash(Vector2 origin, AnalysedNote note, Vector2 next)
     {
         Vector2 best = origin;

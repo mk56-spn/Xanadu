@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Playfields;
@@ -13,53 +14,25 @@ public sealed class NoteReachTests
     [Test]
     public void NoteInsideTheSphereIsInReach()
     {
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(599, 500)),
-            Is.True);
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(500, 401)),
-            Is.True);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(599, 500)), Is.True);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(500, 401)), Is.True);
     }
 
     [Test]
     public void NoteBeyondTheSphereIsOutOfReach()
     {
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(601, 500)),
-            Is.False);
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(500, 399)),
-            Is.False);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(601, 500)), Is.False);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(500, 399)), Is.False);
     }
 
     [Test]
     public void ContactReachesTheEdgeOfTheNoteCircle()
     {
         Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(635, 500),
-                CharacterKind.Contact),
+            NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(635, 500), CharacterKind.Contact),
             Is.True);
         Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(1f),
-                new Vector2(637, 500),
-                CharacterKind.Contact),
+            NoteReach.Contains(new Vector2(500, 500), View(1f), new Vector2(637, 500), CharacterKind.Contact),
             Is.False);
     }
 
@@ -67,18 +40,10 @@ public sealed class NoteReachTests
     public void ContactEdgeReachScalesWithThePlayfield()
     {
         Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(0.5f),
-                new Vector2(567, 500),
-                CharacterKind.Contact),
+            NoteReach.Contains(new Vector2(500, 500), View(0.5f), new Vector2(567, 500), CharacterKind.Contact),
             Is.True);
         Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(0.5f),
-                new Vector2(569, 500),
-                CharacterKind.Contact),
+            NoteReach.Contains(new Vector2(500, 500), View(0.5f), new Vector2(569, 500), CharacterKind.Contact),
             Is.False);
     }
 
@@ -93,17 +58,7 @@ public sealed class NoteReachTests
     public void ReachScalesWithThePlayfield()
     {
         Assert.That(NoteReach.OnScreen(0.5f), Is.EqualTo(50f));
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(0.5f),
-                new Vector2(540, 500)),
-            Is.True);
-        Assert.That(
-            NoteReach.Contains(
-                new Vector2(500, 500),
-                View(0.5f),
-                new Vector2(560, 500)),
-            Is.False);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(0.5f), new Vector2(540, 500)), Is.True);
+        Assert.That(NoteReach.Contains(new Vector2(500, 500), View(0.5f), new Vector2(560, 500)), Is.False);
     }
 }

@@ -3,13 +3,17 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Replays;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -135,7 +139,7 @@ public sealed class MapOffsetSystemTests
         _global.Set(99);
         Entity play = _store.CreateEntity(
             new PlayOffset("level", default),
-            new Playhead(0, 120, 0, true, durationMs: 10_000),
+            new Playhead(0, 120, 0, true, 10_000),
             new PlaySession(default) { Started = true },
             new ReplayPlayer(Recorded(new ReplayOffset(0, 12), new ReplayOffset(500, 15))));
 
@@ -160,7 +164,7 @@ public sealed class MapOffsetSystemTests
         _global.Set(10);
         Entity play = _store.CreateEntity(
             new PlayOffset("level", default),
-            new Playhead(100, 120, 0, true, durationMs: 10_000),
+            new Playhead(100, 120, 0, true, 10_000),
             new PlaySession(default) { Started = true },
             ReplayRecorder.Create());
 
@@ -170,16 +174,27 @@ public sealed class MapOffsetSystemTests
         play.GetComponent<Playhead>().TimeMs = 200;
         root.Update(new UpdateTick(Delta, 0));
 
-        Assert.That(play.GetComponent<ReplayRecorder>().Offsets, Is.EqualTo(new[]
-        {
-            new ReplayOffset(100, 10),
-            new ReplayOffset(200, 13),
-        }));
+        Assert.That(
+            play.GetComponent<ReplayRecorder>().Offsets,
+            Is.EqualTo(
+                new[]
+                {
+                    new ReplayOffset(100, 10),
+                    new ReplayOffset(200, 13)
+                }));
     }
 
     private static Replay Recorded(params ReplayOffset[] offsets) => new(
-        "level", "Level", "song", "", DateTimeOffset.UnixEpoch, 0, default,
-        Array.Empty<ReplayEvent>(), -1, offsets);
+        "level",
+        "Level",
+        "song",
+        "",
+        DateTimeOffset.UnixEpoch,
+        0,
+        default,
+        Array.Empty<ReplayEvent>(),
+        -1,
+        offsets);
 
     private sealed class FakeKeys : IKeyboardState
     {

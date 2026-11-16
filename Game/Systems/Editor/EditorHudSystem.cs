@@ -2,9 +2,12 @@ using System;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Editor;
 
@@ -12,10 +15,10 @@ namespace Xanadu.Systems.Editor;
 public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead>
 {
     private readonly EntityStore _entities;
-    private readonly Xanadu.Systems.Ui.ToastSystem? _toasts;
+    private readonly ToastSystem? _toasts;
     private int _shownStatus;
 
-    public EditorHudSystem(EntityStore entities, Xanadu.Systems.Ui.ToastSystem? toasts = null)
+    public EditorHudSystem(EntityStore entities, ToastSystem? toasts = null)
     {
         _entities = entities;
         _toasts = toasts;

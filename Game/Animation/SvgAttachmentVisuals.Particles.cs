@@ -1,6 +1,8 @@
 using System.Collections.Generic;
-using Xanadu.Particles;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Systems.Particles;
+using Xanadu.Ui.Systems;
 
 namespace Xanadu.Animation;
 
@@ -32,7 +34,7 @@ public sealed partial class SvgAttachmentVisuals
             XafEffect effect = package.Effects[i];
             // Without the host's particles (tests) rig effects have nothing to stream into.
             if (effect.Particle.Length == 0 || ParticleLibrary.Find(effect.Particle) is not { } particle ||
-                Xanadu.Systems.HostPlatform.Particles is not { } server)
+                HostPlatform.Particles is not { } server)
                 continue;
 
             IParticleFlow instance = new ParticleStream(server, canvas, particle);

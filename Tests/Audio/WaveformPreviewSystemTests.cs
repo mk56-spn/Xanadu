@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 
@@ -42,9 +43,7 @@ public sealed class WaveformPreviewSystemTests
 
     private static string WriteWav()
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-preview-" + Guid.NewGuid().ToString("N") + ".wav");
+        string path = Path.Combine(Path.GetTempPath(), "writer-preview-" + Guid.NewGuid().ToString("N") + ".wav");
 
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);

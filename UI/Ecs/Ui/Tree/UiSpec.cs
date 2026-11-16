@@ -2,10 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ui.Tree;
+namespace Xanadu.Ui.Ecs.Ui.Tree;
 
 /// <summary>
 /// One node of a UI tree written as C# constructors and collection initializers,

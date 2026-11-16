@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
-using Xanadu.Ecs;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Tree;
-using static Xanadu.Theme.UiMetrics;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using static Xanadu.Core.Theme.UiMetrics;
 
-namespace Xanadu.Tools.Moves;
+namespace Xanadu.Tools.DevTools.Moves;
 
 /// <summary>
 /// Moves: the character's move system as a chart (<see cref="MovesChart"/>). A

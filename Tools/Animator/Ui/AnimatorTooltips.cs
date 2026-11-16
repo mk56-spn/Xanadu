@@ -1,9 +1,10 @@
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// One-line explanations for the animator's abbreviated buttons. Every button

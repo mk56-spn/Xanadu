@@ -42,13 +42,15 @@ public sealed class NoteGuidesTests
     [Test]
     public void TheGuideRunsThroughTheHubOfASimultaneousGroup()
     {
-        NoteGuides.Layout layout = NoteGuides.Build(new[]
-        {
-            Note(0, 0, -100),
-            Note(100, -50, 0),
-            Note(100, 50, 0),
-            Note(200, 0, 100),
-        }, Radius);
+        NoteGuides.Layout layout = NoteGuides.Build(
+            new[]
+            {
+                Note(0, 0, -100),
+                Note(100, -50, 0),
+                Note(100, 50, 0),
+                Note(200, 0, 100)
+            },
+            Radius);
 
         Assert.That(layout.Guides, Has.Count.EqualTo(2));
         Assert.That(layout.Guides[0].From, Is.EqualTo(new Vector2(0, -90)).Using<Vector2>(Close));
@@ -60,10 +62,12 @@ public sealed class NoteGuidesTests
     [Test]
     public void ThreeChordNotesShareOneHubAtTheirCentre()
     {
-        NoteGuides.Layout layout = NoteGuides.Build(new[]
-        {
-            Note(100, 0, 0), Note(100, 90, 0), Note(100, 0, 90),
-        }, Radius);
+        NoteGuides.Layout layout = NoteGuides.Build(
+            new[]
+            {
+                Note(100, 0, 0), Note(100, 90, 0), Note(100, 0, 90)
+            },
+            Radius);
 
         Assert.That(layout.Hubs, Has.Count.EqualTo(1));
         Assert.That(layout.Hubs[0].Center, Is.EqualTo(new Vector2(30, 30)).Using<Vector2>(Close));

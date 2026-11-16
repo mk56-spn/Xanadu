@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -76,21 +79,31 @@ public sealed class AnimatorMotionPathTests : AnimatorToolTest
     [Test]
     public void TurnsAreMeasuredBetweenTicks()
     {
-        Assert.That(AnimatorMotionPaths.TurnDegrees(new(0, 0), new(10, 0), new(20, 0)), Is.EqualTo(0f).Within(0.01f));
-        Assert.That(AnimatorMotionPaths.TurnDegrees(new(0, 0), new(10, 0), new(10, 10)), Is.EqualTo(90f).Within(0.01f));
-        Assert.That(AnimatorMotionPaths.TurnDegrees(new(0, 0), new(10, 0), new(0, 0)), Is.EqualTo(180f).Within(0.01f));
-        Assert.That(AnimatorMotionPaths.TurnDegrees(new(0, 0), new(0.1f, 0), new(0.1f, 0.1f)), Is.EqualTo(0f),
+        Assert.That(
+            AnimatorMotionPaths.TurnDegrees(new Vector2(0, 0), new Vector2(10, 0), new Vector2(20, 0)),
+            Is.EqualTo(0f).Within(0.01f));
+        Assert.That(
+            AnimatorMotionPaths.TurnDegrees(new Vector2(0, 0), new Vector2(10, 0), new Vector2(10, 10)),
+            Is.EqualTo(90f).Within(0.01f));
+        Assert.That(
+            AnimatorMotionPaths.TurnDegrees(new Vector2(0, 0), new Vector2(10, 0), new Vector2(0, 0)),
+            Is.EqualTo(180f).Within(0.01f));
+        Assert.That(
+            AnimatorMotionPaths.TurnDegrees(new Vector2(0, 0), new Vector2(0.1f, 0), new Vector2(0.1f, 0.1f)),
+            Is.EqualTo(0f),
             "a joint standing still has no direction to turn");
     }
 
     [Test]
     public void EditingFollowsTheSelectionAndPreviewTakesTheExtremities()
     {
-        var selection = AnimatorSelection.None;
+        AnimatorSelection selection = AnimatorSelection.None;
         selection.SelectOnlyBone(Torso);
 
-        Assert.That(AnimatorMotionPaths.Bones(Package, selection, preview: false), Is.EqualTo(new List<int> { Torso }));
-        Assert.That(AnimatorMotionPaths.Bones(Package, selection, preview: true), Is.EqualTo(new List<int> { Head }),
+        Assert.That(AnimatorMotionPaths.Bones(Package, selection, false), Is.EqualTo(new List<int> { Torso }));
+        Assert.That(
+            AnimatorMotionPaths.Bones(Package, selection, true),
+            Is.EqualTo(new List<int> { Head }),
             "the head is the fixture's only bone without children");
     }
 
@@ -99,10 +112,10 @@ public sealed class AnimatorMotionPathTests : AnimatorToolTest
     {
         AnimatorMotionPath path = HeadPath();
 
-        (int first, int last) = AnimatorMotionPaths.Span(path, windowed: true, playhead: 1f);
+        (int first, int last) = AnimatorMotionPaths.Span(path, true, 1f);
 
         Assert.That(path.Times[first], Is.EqualTo(0.5f).Within(AnimatorMotionPaths.Step));
         Assert.That(path.Times[last], Is.EqualTo(1.5f).Within(AnimatorMotionPaths.Step));
-        Assert.That(AnimatorMotionPaths.Span(path, windowed: false, playhead: 1f), Is.EqualTo((0, path.Points.Length - 1)));
+        Assert.That(AnimatorMotionPaths.Span(path, false, 1f), Is.EqualTo((0, path.Points.Length - 1)));
     }
 }

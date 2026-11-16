@@ -1,9 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>The pooled lists' half: a wheel notch moves a list by rows, and each list is kept fitted to its viewport.</summary>
 public sealed partial class ScrollSystem

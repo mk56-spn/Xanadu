@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Scoring;
 
 namespace Xanadu.Systems.Playfields;

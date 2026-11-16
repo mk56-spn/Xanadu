@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>A family of named easing curves: how the change is shaped, before its direction.</summary>
 public enum CurveFamily

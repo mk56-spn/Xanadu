@@ -1,14 +1,16 @@
-namespace Xanadu.Systems.Input;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// Typed characters and the clipboard, for UI that edits text itself (the
-/// <see cref="Xanadu.Ecs.TextEditor"/>) rather than through a native text field.
+/// <see cref="TextEditor"/>) rather than through a native text field.
 /// </summary>
 public interface ITextEntry
 {
     /// <summary>
     /// While true, characters typed wait in <see cref="TakeTyped"/> instead of
-    /// going to a focused <see cref="Xanadu.Ecs.TextField"/>.
+    /// going to a focused <see cref="TextField"/>.
     /// </summary>
     bool Claimed { get; set; }
 

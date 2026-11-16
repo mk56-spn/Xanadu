@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// The live Verlet simulation of the package's chains, so the preview shows

@@ -1,8 +1,13 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -27,7 +32,9 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
     private void SetSnap(bool on) => SnapButton.GetComponent<Toggle>().Value = on;
 
     private Vector2 Screen(Vector2 rig) =>
-        AnimatorGeometry.PreviewPlacement(AnimatorGeometry.PanelArea(Ui.Preview), Session.GetComponent<AnimatorPreviewView>()) * rig;
+        AnimatorGeometry.PreviewPlacement(
+            AnimatorGeometry.PanelArea(Ui.Preview),
+            Session.GetComponent<AnimatorPreviewView>()) * rig;
 
     /// <summary>Drags the root, whose position is its rig-space position, from the origin to a spot well clear of other joints.</summary>
     private Vector2 DragRootTo(Vector2 rig, bool shift = false)
@@ -71,7 +78,7 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
     public void ShiftDragsFreelyWithSnapOn()
     {
         SetSnap(true);
-        Assert.That(DragRootTo(new Vector2(127f, 53f), shift: true).DistanceTo(new Vector2(127f, 53f)), Is.LessThan(0.01f));
+        Assert.That(DragRootTo(new Vector2(127f, 53f), true).DistanceTo(new Vector2(127f, 53f)), Is.LessThan(0.01f));
     }
 
     [Test]
@@ -82,7 +89,7 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
     }
 
     private static Vector2 AnimatorSnap_ToGrid(Vector2 wanted, AnimatorSnapGuides guides) =>
-        Xanadu.Tools.Animator.Commands.AnimatorSnap.ToGrid(wanted, guides);
+        Tools.Animator.Commands.AnimatorSnap.ToGrid(wanted, guides);
 
     [Test]
     public void GridSnapAndAlignSitInTheViewBarNotTheHeader()
@@ -122,6 +129,7 @@ public sealed class AnimatorGridSnapTests : AnimatorToolTest
             if (entity.GetComponent<Toggle>().OffText == label)
                 return entity;
         }
+
         Assert.Fail($"no {label} toggle");
         return default;
     }

@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>Timeline zoom levels and the default six-second view.</summary>
 public static class TimelineZoom

@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The state every <see cref="UiNode"/> shares: the store, the layer it draws

@@ -2,9 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Systems.Groups;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -13,13 +19,11 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
 {
     protected override void AddSystems()
     {
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
 
-    private Vector2 OnRuler(float seconds) => new(
-        Model().XForSeconds(seconds),
-        Model().Ruler.Position.Y + 8);
+    private Vector2 OnRuler(float seconds) => new(Model().XForSeconds(seconds), Model().Ruler.Position.Y + 8);
 
     private void PressAt(Vector2 position)
     {
@@ -109,6 +113,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
             Pointer.Position = KeyPoint("head", time);
             Frame();
         }
+
         Release();
 
         Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 2f }).Within(0.0001f));
@@ -121,7 +126,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         {
             Target = XafChannelTarget.Bone,
             TargetId = "head",
-            Property = XafChannelProperty.TranslationX,
+            Property = XafChannelProperty.TranslationX
         };
         translation.Keyframes.Add(new XafKeyframe { Time = 1.5f, Value = 4f });
         Idle.Channels.Add(translation);
@@ -133,6 +138,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
             Pointer.Position = KeyPoint("head", time);
             Frame();
         }
+
         Release();
 
         Assert.That(translation.Keyframes, Has.Count.EqualTo(1));
@@ -230,8 +236,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         Assert.That(
             Model().Tracks,
             Has.Some.Matches<AnimatorTrackRow>(row =>
-                row.Track == new XafTrack(XafChannelTarget.Bone, "torso") &&
-                !row.IsChannel));
+                row.Track == new XafTrack(XafChannelTarget.Bone, "torso") && !row.IsChannel));
     }
 
     [Test]
@@ -342,6 +347,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
             Pointer.Wheel = -1;
             Frame();
         }
+
         Assert.That(Session.GetComponent<AnimatorTracks>().FirstRow, Is.EqualTo(max));
     }
 

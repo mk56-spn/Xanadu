@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// How the preview maps skeleton space to the panel: a uniform zoom and a pan

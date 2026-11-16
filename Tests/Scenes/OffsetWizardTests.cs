@@ -2,16 +2,21 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Layout;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -38,11 +43,7 @@ public sealed class OffsetWizardTests
         OffsetWizardScene.Build(_store, root);
 
         _root.Add(new ContainerLayoutSystem());
-        _root.Add(new OffsetWizardSystem(
-            _store,
-            _audio,
-            _settings,
-            _keyboard));
+        _root.Add(new OffsetWizardSystem(_store, _audio, _settings, _keyboard));
         Frame();
     }
 
@@ -119,7 +120,7 @@ public sealed class OffsetWizardTests
     public void TooFewTapsCannotBeApplied()
     {
         Press(Wizard().Start);
-        TapThrough(30d, taps: OffsetCalibration.MinimumTaps - 1);
+        TapThrough(30d, OffsetCalibration.MinimumTaps - 1);
         _audio.Stop();
         Frame();
 
@@ -251,9 +252,16 @@ public sealed class OffsetWizardTests
         public bool Resume() => CanPlay;
         public void Pause() => IsPlaying = false;
         public void Seek(float seconds) => Position = seconds;
-        public void SetVolume(float volume) { }
+
+        public void SetVolume(float volume)
+        {
+        }
+
         public void Stop() => IsPlaying = false;
-        public void Dispose() { }
+
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class FakeKeyboard : IKeyboardState
@@ -265,7 +273,7 @@ public sealed class OffsetWizardTests
         {
             Key.Space => Space,
             Key.Escape => Escape,
-            _ => false,
+            _ => false
         };
     }
 }

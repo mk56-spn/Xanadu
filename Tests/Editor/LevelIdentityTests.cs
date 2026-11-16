@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 
 namespace Xanadu.Tests.Editor;

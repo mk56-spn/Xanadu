@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Levels;
 using Xanadu.Ecs.Storage;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Timing;
 
@@ -32,11 +32,11 @@ public sealed class SongTempoEditsTests
         SongTempoEdits.Add(song);
         SongTempoEdits.Add(song);
 
-        Assert.That(SongTempoEdits.Set(song, 1, timeMs: 1_100, bpm: 128.5), Is.True);
+        Assert.That(SongTempoEdits.Set(song, 1, 1_100, 128.5), Is.True);
 
         Assert.That(song.TempoChanges[0].TimeMs, Is.EqualTo(1_500), "moved onto a whole beat and sorted first");
         Assert.That(song.TempoChanges[0].Bpm, Is.EqualTo(128.5));
-        Assert.That(SongTempoEdits.SetBase(song, bpm: 0.1), Is.True);
+        Assert.That(SongTempoEdits.SetBase(song, 0.1), Is.True);
         Assert.That(song.Bpm, Is.EqualTo(TempoMap.MinBpm), "clamped");
         Assert.That(SongTempoEdits.Remove(song, 0), Is.True);
         Assert.That(song.TempoChanges, Has.Count.EqualTo(1));
@@ -45,7 +45,7 @@ public sealed class SongTempoEditsTests
     [Test]
     public void ThePositionReadsAsBeatAndBar()
     {
-        TempoMap map = TempoMap.Single(120, 0);
+        var map = TempoMap.Single(120, 0);
 
         Assert.That(SongTempoEdits.Position(map, 8_000), Is.EqualTo("BEAT 17 · BAR 5.1"));
         Assert.That(SongTempoEdits.Position(map, 8_500), Is.EqualTo("BEAT 18 · BAR 5.2"));

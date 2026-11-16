@@ -3,9 +3,13 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 

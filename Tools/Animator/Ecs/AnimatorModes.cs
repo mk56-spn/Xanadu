@@ -1,8 +1,6 @@
 using Friflo.Engine.ECS;
 
-
-
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 public enum AnimatorMode
 {

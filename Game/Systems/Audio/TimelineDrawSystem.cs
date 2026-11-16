@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Audio;
 

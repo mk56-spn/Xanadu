@@ -28,13 +28,9 @@ public static class LevelValidator
 
             if (block.Width <= 0 || block.Height <= 0)
                 issues.Add($"Block {i + 1} has no size.");
-            else if (block.X < 0 ||
-                     block.Y < 0 ||
-                     block.X + block.Width > document.PlayfieldWidth ||
+            else if (block.X < 0 || block.Y < 0 || block.X + block.Width > document.PlayfieldWidth ||
                      block.Y + block.Height > document.PlayfieldHeight)
-            {
                 issues.Add($"Block {i + 1} is outside the playfield.");
-            }
         }
 
         for (int i = 0; i < document.Spikes.Count; i++)
@@ -43,13 +39,9 @@ public static class LevelValidator
 
             if (spike.Width <= 0 || spike.Height <= 0)
                 issues.Add($"Spike {i + 1} has no size.");
-            else if (spike.X < 0 ||
-                     spike.Y < 0 ||
-                     spike.X + spike.Width > document.PlayfieldWidth ||
+            else if (spike.X < 0 || spike.Y < 0 || spike.X + spike.Width > document.PlayfieldWidth ||
                      spike.Y + spike.Height > document.PlayfieldHeight)
-            {
                 issues.Add($"Spike {i + 1} is outside the playfield.");
-            }
         }
 
         for (int i = 0; i < document.Notes.Count; i++)
@@ -59,13 +51,8 @@ public static class LevelValidator
             if (note.TimeMs < 0)
                 issues.Add($"Note {i + 1} has a negative time.");
 
-            if (note.X < 0 ||
-                note.Y < 0 ||
-                note.X > document.PlayfieldWidth ||
-                note.Y > document.PlayfieldHeight)
-            {
+            if (note.X < 0 || note.Y < 0 || note.X > document.PlayfieldWidth || note.Y > document.PlayfieldHeight)
                 issues.Add($"Note {i + 1} is outside the playfield.");
-            }
         }
 
         foreach (GroupDocument group in document.Groups)

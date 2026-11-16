@@ -20,7 +20,7 @@ public sealed class TrackTimerTests
     public void StartOffsetIsApplied()
     {
         var timer = new TrackTimer();
-        timer.Start(1_000_000, offsetMicros: 250_000);
+        timer.Start(1_000_000, 250_000);
 
         Assert.That(timer.NowMs, Is.EqualTo(250));
     }

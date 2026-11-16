@@ -1,11 +1,11 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Systems.Input;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
-namespace Xanadu.Systems.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// Zooms a timeline: the wheel with Ctrl anywhere over it, or alone over a ruler

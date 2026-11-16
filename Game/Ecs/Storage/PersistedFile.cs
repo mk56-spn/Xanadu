@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Ecs.Storage;
 
@@ -64,6 +65,6 @@ public sealed class PersistedFile<T> where T : class
 
     private string ResolvePath() =>
         _path.StartsWith("user://", StringComparison.Ordinal)
-            ? Xanadu.Storage.GamePaths.Full(_path)
+            ? GamePaths.Full(_path)
             : _path;
 }

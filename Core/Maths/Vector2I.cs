@@ -1,11 +1,11 @@
+#nullable enable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-#nullable enable
-
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// 2-element structure that can be used to represent 2D grid coordinates or pairs of integers.

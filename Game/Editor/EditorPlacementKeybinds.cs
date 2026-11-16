@@ -1,10 +1,12 @@
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Editor;
 
 /// <summary>
-/// Keyboard shortcuts that choose the editor placement mode: the number keys,
-/// on the main row or the keypad, in tool order.
+///     Keyboard shortcuts that choose the editor placement mode: the number keys,
+///     on the main row or the keypad, in tool order.
 /// </summary>
 public static class EditorPlacementKeybinds
 {
@@ -19,7 +21,7 @@ public static class EditorPlacementKeybinds
         (Key.Key7, Key.Kp7, EditorPlacementMode.Contact),
         (Key.Key8, Key.Kp8, EditorPlacementMode.Mines),
         (Key.Key9, Key.Kp9, EditorPlacementMode.FrictionBar),
-        (Key.Key0, Key.Kp0, EditorPlacementMode.Text),
+        (Key.Key0, Key.Kp0, EditorPlacementMode.Text)
     };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)

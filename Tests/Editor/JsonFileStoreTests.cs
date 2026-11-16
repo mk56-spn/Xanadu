@@ -10,8 +10,7 @@ public sealed class JsonFileStoreTests
     [Test]
     public void SaveAndLoadRoundTripWithoutLeavingTemporaryFile()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(), "writer-json-" + System.Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-json-" + System.Guid.NewGuid().ToString("N"));
         string path = Path.Combine(directory, "value.json");
         try
         {
@@ -24,15 +23,14 @@ public sealed class JsonFileStoreTests
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 
     [Test]
     public void LoadAllSkipsMalformedFiles()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(), "writer-json-" + System.Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-json-" + System.Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
         {
@@ -46,7 +44,7 @@ public sealed class JsonFileStoreTests
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 

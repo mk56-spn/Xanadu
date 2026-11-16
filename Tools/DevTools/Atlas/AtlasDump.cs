@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>Atlas as text, without a window: a type's links, or the types most like one.</summary>
 internal static class AtlasDump

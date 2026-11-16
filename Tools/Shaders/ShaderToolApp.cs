@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Ui;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Handle = Xanadu.Core.Maths.Handle;
 
 namespace Xanadu.Tools.Shaders;
 

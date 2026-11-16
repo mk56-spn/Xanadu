@@ -1,12 +1,16 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Ui;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.UI;
 
@@ -33,8 +37,8 @@ public sealed class UiSliderSystemTests
     [Test]
     public void DraggingOneSliderLeavesTheOthersAlone()
     {
-        Frame(new Vector2(75, 100), pressed: true);
-        Frame(new Vector2(100, 100), pressed: true);
+        Frame(new Vector2(75, 100), true);
+        Frame(new Vector2(100, 100), true);
 
         Assert.That(_upper.GetComponent<UiSlider>().Value, Is.EqualTo(50f).Within(0.01f));
         Assert.That(_lower.GetComponent<UiSlider>().Value, Is.EqualTo(0f));
@@ -43,8 +47,8 @@ public sealed class UiSliderSystemTests
     [Test]
     public void DragKeepsFollowingAfterThePointerLeavesTheSlider()
     {
-        Frame(new Vector2(60, 100), pressed: true);
-        Frame(new Vector2(130, 180), pressed: true);
+        Frame(new Vector2(60, 100), true);
+        Frame(new Vector2(130, 180), true);
 
         Assert.That(_upper.GetComponent<UiSlider>().Value, Is.EqualTo(80f).Within(0.01f));
         Assert.That(_lower.GetComponent<UiSlider>().Value, Is.EqualTo(0f));
@@ -53,9 +57,9 @@ public sealed class UiSliderSystemTests
     [Test]
     public void ReleasingEndsTheDrag()
     {
-        Frame(new Vector2(60, 100), pressed: true);
-        Frame(new Vector2(60, 100), pressed: false);
-        Frame(new Vector2(140, 100), pressed: false);
+        Frame(new Vector2(60, 100), true);
+        Frame(new Vector2(60, 100), false);
+        Frame(new Vector2(140, 100), false);
 
         Assert.That(_upper.GetComponent<UiSlider>().Value, Is.EqualTo(10f).Within(0.01f));
     }
@@ -63,8 +67,8 @@ public sealed class UiSliderSystemTests
     [Test]
     public void PressingElsewhereAndSlidingOntoASliderDoesNotGrabIt()
     {
-        Frame(new Vector2(500, 500), pressed: true);
-        Frame(new Vector2(100, 100), pressed: true);
+        Frame(new Vector2(500, 500), true);
+        Frame(new Vector2(100, 100), true);
 
         Assert.That(_upper.GetComponent<UiSlider>().Value, Is.EqualTo(0f));
         Assert.That(_lower.GetComponent<UiSlider>().Value, Is.EqualTo(0f));

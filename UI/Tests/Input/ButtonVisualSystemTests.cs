@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Input;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Tests.UI.Input;
+namespace Xanadu.Ui.Tests.Input;
 
 [TestFixture]
 public sealed class ButtonVisualSystemTests : EcsSystemTest

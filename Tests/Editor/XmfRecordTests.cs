@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -71,7 +71,7 @@ public sealed class XmfRecordTests
     public void AnEmptyMapHasOnlyItsStringsAndMeta()
     {
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Empty" });
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         foreach (XmfChunk chunk in System.Enum.GetValues<XmfChunk>())
         {
@@ -123,7 +123,7 @@ public sealed class XmfRecordTests
     /// <summary>The map with each record of one list chunk passed through <paramref name="change"/>.</summary>
     private static byte[] RewriteChunk(byte[] map, XmfChunk target, System.Func<byte[], byte[]> change)
     {
-        ChunkReader reader = ChunkReader.Open(map, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(map, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
         var file = new ChunkWriter("XMF1"u8.ToArray(), XmfBinary.MajorVersion, XmfBinary.MinorVersion);
         foreach (XmfChunk id in System.Enum.GetValues<XmfChunk>())
         {

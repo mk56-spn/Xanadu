@@ -1,12 +1,13 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Debug;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Debug;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Xanadu.Systems.Groups;
+namespace Xanadu.Ui.Systems.Groups;
 
 /// <summary>Runs the F1 frame rate, the F3 ECS and system metrics and the F4 UI overlays.</summary>
 public sealed class DebugSystemGroup : SystemGroup, IDisposable
@@ -32,7 +33,7 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             paging,
             gpuMemory: HostPlatform.GpuMemory));
         Add(new FpsCounterSystem(new KeyOverlayToggleSource(DebugKeys.FrameRate, keyboard), store, fps));
-        _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
+        _uiOverlay = UiDebugOverlayGroup.Attach(
             this,
             canvas,
             parentCanvas,

@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using Xanadu.Core.Diagnostics;
+using Xanadu.Core.Storage;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>
 /// The one owner of the particle library file. The game, the particle editor,
@@ -78,7 +80,7 @@ public static class ParticleLibrary
         string? path = FilePath();
         if (path is null || !File.Exists(path))
         {
-            Xanadu.Diagnostics.GameLog.Warning($"No particle library at {path ?? RelativePath}; particles are off.");
+            GameLog.Warning($"No particle library at {path ?? RelativePath}; particles are off.");
             return new XpfLibrary();
         }
 
@@ -88,18 +90,18 @@ public static class ParticleLibrary
         }
         catch (Exception exception) when (exception is XpfFormatException or IOException or UnauthorizedAccessException)
         {
-            Xanadu.Diagnostics.GameLog.Error($"Particle library {path} could not be read: {exception.Message}");
+            GameLog.Error($"Particle library {path} could not be read: {exception.Message}");
             return new XpfLibrary();
         }
     }
 
     private static string? FilePath()
     {
-        for (string? directory = Xanadu.Storage.GamePaths.GameFolder;
+        for (string? directory = GamePaths.GameFolder;
              !string.IsNullOrEmpty(directory);
              directory = Path.GetDirectoryName(directory.TrimEnd('/', '\\')))
         {
-            if (Xanadu.Storage.GamePaths.IsGameFolder(directory))
+            if (GamePaths.IsGameFolder(directory))
                 return Path.Combine(directory, RelativePath);
         }
 

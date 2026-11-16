@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Recovery;
 using Xanadu.Levels;
 

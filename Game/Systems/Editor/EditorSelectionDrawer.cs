@@ -1,8 +1,12 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Editor;
 

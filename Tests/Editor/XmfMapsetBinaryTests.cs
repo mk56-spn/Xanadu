@@ -1,10 +1,10 @@
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Items;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -18,14 +18,15 @@ public sealed class XmfMapsetBinaryTests
         {
             Id = "mapset-1",
             Slug = "song-mapset",
-            SongId = "song-9",
+            SongId = "song-9"
         };
-        mapset.Shaders.Add(new ShaderDocument
-        {
-            Slot = 1,
-            Name = "Glow",
-            Source = "float4 shade(ItemInput i) { return i.colour; }",
-        });
+        mapset.Shaders.Add(
+            new ShaderDocument
+            {
+                Slot = 1,
+                Name = "Glow",
+                Source = "float4 shade(ItemInput i) { return i.colour; }"
+            });
 
         var easy = new XmfVariant { Id = "easy", Name = "Easy", PlayerShader = 1 };
         easy.Notes.Add(new NoteDocument { TimeMs = 100, X = 1, Y = 2 });
@@ -38,25 +39,27 @@ public sealed class XmfMapsetBinaryTests
             FieldShader = 1,
             BackgroundColor = "#20406080",
             OutsideColor = "#102030",
-            FrameColor = "#405060",
+            FrameColor = "#405060"
         };
-        hard.Notes.Add(new NoteDocument
-        {
-            TimeMs = 50,
-            X = 3,
-            Y = 4,
-            DashStrength = DashStrength.Double,
-            Momentum = 750f,
-        });
+        hard.Notes.Add(
+            new NoteDocument
+            {
+                TimeMs = 50,
+                X = 3,
+                Y = 4,
+                DashStrength = DashStrength.Double,
+                Momentum = 750f
+            });
         hard.Notes.Add(new NoteDocument { TimeMs = 150, X = 5, Y = 6 });
-        hard.Blocks.Add(new BlockDocument
-        {
-            OneWay = (int)Xanadu.Ecs.BlockOneWay.Up,
-            X = 10,
-            Y = 20,
-            Width = 100,
-            Height = 30,
-        });
+        hard.Blocks.Add(
+            new BlockDocument
+            {
+                OneWay = (int)BlockOneWay.Up,
+                X = 10,
+                Y = 20,
+                Width = 100,
+                Height = 30
+            });
         mapset.Variants.Add(hard);
 
         XmfMapset read = XmfBinary.ReadMapset(XmfBinary.WriteMapset(mapset));
@@ -84,18 +87,19 @@ public sealed class XmfMapsetBinaryTests
         Assert.That(readHard.Notes[0].Momentum, Is.EqualTo(750f));
         Assert.That(readHard.Notes[1].DashStrength, Is.EqualTo(DashStrength.Single));
         Assert.That(readHard.Blocks, Has.Count.EqualTo(1));
-        Assert.That(readHard.Blocks[0].OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Up));
+        Assert.That(readHard.Blocks[0].OneWay, Is.EqualTo((int)BlockOneWay.Up));
     }
 
     [Test]
     public void NormalizingAMapsetValidatesEveryVariantsShaderReferences()
     {
         var mapset = new XmfMapset();
-        mapset.Shaders.Add(new ShaderDocument
-        {
-            Slot = 1,
-            Source = "float4 shade(ItemInput i) { return i.colour; }",
-        });
+        mapset.Shaders.Add(
+            new ShaderDocument
+            {
+                Slot = 1,
+                Source = "float4 shade(ItemInput i) { return i.colour; }"
+            });
 
         var variant = new XmfVariant { PlayerShader = 1, FieldShader = 99 };
         variant.Notes.Add(new NoteDocument { Item = Xif.ForShader(1) });

@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Timeline;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Timeline;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Timeline;
+using Color = Xanadu.Core.Maths.Color;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 

@@ -1,12 +1,16 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -38,7 +42,8 @@ public sealed class AnimatorClothTests : AnimatorToolTest
     }
 
     private Transform2D Placement() =>
-        AnimatorGeometry.PreviewPlacement(AnimatorGeometry.PanelArea(Ui.Preview),
+        AnimatorGeometry.PreviewPlacement(
+            AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());
 
     private Transform2D[] World() => XafRig.WorldBones(Package, Runtime.Pose);
@@ -77,7 +82,9 @@ public sealed class AnimatorClothTests : AnimatorToolTest
         AnimatorClothCommands.Click(Session, at, Placement(), World());
 
         Assert.That(Dress.IsPinned(0, Dress.Rows - 1), Is.True);
-        Assert.That(Session.GetComponent<AnimatorCloths>().Picking, Is.EqualTo(AnimatorClothPick.Pins),
+        Assert.That(
+            Session.GetComponent<AnimatorCloths>().Picking,
+            Is.EqualTo(AnimatorClothPick.Pins),
             "pinning stays on for the next point");
 
         AnimatorClothCommands.Click(Session, at, Placement(), World());

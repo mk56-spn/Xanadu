@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Editing;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A whiteboard on a UI node: the <see cref="Board"/> it edits and what its

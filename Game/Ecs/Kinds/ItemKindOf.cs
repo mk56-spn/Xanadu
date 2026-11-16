@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Systems.Playfields;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>
 /// The parts of an <see cref="ItemKind"/> that follow from its component

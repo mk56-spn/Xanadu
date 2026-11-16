@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 public sealed partial class UiBuilder
 {

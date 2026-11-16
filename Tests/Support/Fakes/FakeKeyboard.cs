@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Tests.Support;
+namespace Xanadu.Tests.Support.Fakes;
 
 /// <summary>Deterministic keyboard state for input-system tests.</summary>
 public sealed class FakeKeyboard : IKeyboardState, IKeyPressSource

@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Replays;
 using Xanadu.Scenes;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 using Xanadu.Settings;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Scenes;
 

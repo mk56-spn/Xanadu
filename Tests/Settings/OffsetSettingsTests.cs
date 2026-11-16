@@ -11,9 +11,7 @@ public sealed class OffsetSettingsTests
     [Test]
     public void PersistsAndReloadsTheOffset()
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-offset-" + Guid.NewGuid().ToString("N") + ".json");
+        string path = Path.Combine(Path.GetTempPath(), "writer-offset-" + Guid.NewGuid().ToString("N") + ".json");
 
         try
         {

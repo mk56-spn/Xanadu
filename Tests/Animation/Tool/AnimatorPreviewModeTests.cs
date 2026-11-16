@@ -1,13 +1,17 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Layout;
 using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -95,8 +99,7 @@ public sealed class AnimatorPreviewModeTests : AnimatorToolTest
         Assert.That(after.Size, Is.EqualTo(before.Size));
         Assert.That(after.Position.X, Is.EqualTo(Shell().Viewport.Position.X).Within(0.5f));
         Assert.That(Session.GetComponent<AnimatorModes>().Kites, Is.True);
-        Assert.That(Ui.Inspector.GetComponent<Position>().Value,
-            Is.EqualTo(AnimatorLayout.InspectorCenter(Screen)));
+        Assert.That(Ui.Inspector.GetComponent<Position>().Value, Is.EqualTo(AnimatorLayout.InspectorCenter(Screen)));
     }
 
     [Test]
@@ -112,9 +115,13 @@ public sealed class AnimatorPreviewModeTests : AnimatorToolTest
     [Test]
     public void TabAndEscapeAreBound()
     {
-        Assert.That(AnimatorBindings.All, Has.Some.Matches<AnimatorBindings.Binding>(
-            b => b.Action.Kind == ToolActionKind.TogglePreviewMode && b.Key == Key.Tab));
-        Assert.That(AnimatorBindings.All, Has.Some.Matches<AnimatorBindings.Binding>(
-            b => b.Action.Kind == ToolActionKind.ExitPreviewMode && b.Key == Key.Escape));
+        Assert.That(
+            AnimatorBindings.All,
+            Has.Some.Matches<AnimatorBindings.Binding>(b =>
+                b.Action.Kind == ToolActionKind.TogglePreviewMode && b.Key == Key.Tab));
+        Assert.That(
+            AnimatorBindings.All,
+            Has.Some.Matches<AnimatorBindings.Binding>(b =>
+                b.Action.Kind == ToolActionKind.ExitPreviewMode && b.Key == Key.Escape));
     }
 }

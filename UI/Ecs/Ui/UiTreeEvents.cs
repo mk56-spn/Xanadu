@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Keeps the UI tree's derived state in step with the native tree. Parents hear

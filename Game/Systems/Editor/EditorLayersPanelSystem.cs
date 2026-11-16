@@ -2,12 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Rendering;
-using Xanadu.Theme;
+using Xanadu.Editor.History;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;

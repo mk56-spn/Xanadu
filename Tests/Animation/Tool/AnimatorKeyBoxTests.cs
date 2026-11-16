@@ -3,11 +3,17 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Groups;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -22,7 +28,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorKeyMenuSystem(Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
@@ -42,7 +48,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         {
             Target = XafChannelTarget.Bone,
             TargetId = bone,
-            Property = XafChannelProperty.Rotation,
+            Property = XafChannelProperty.Rotation
         };
         foreach (float time in times)
             channel.Keyframes.Add(new XafKeyframe { Time = time, Value = time });
@@ -101,12 +107,10 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         // 1.2f is 1200.00005 ms as a float, a hair past the 1200 ms window end.
         Idle.Duration = 1.2f;
         Idle.Channels.Add(Channel("root", 1.2f));
-        AnimatorTimelineModel model = AnimatorTimelineModel.Create(Session)!;
+        var model = AnimatorTimelineModel.Create(Session)!;
 
         Assert.That(model.IsVisible(1.2f), Is.True);
-        Assert.That(
-            model.KeysIn(model.Rows),
-            Has.Some.Matches<AnimatorKeyRef>(key => key.Time == 1.2f));
+        Assert.That(model.KeysIn(model.Rows), Has.Some.Matches<AnimatorKeyRef>(key => key.Time == 1.2f));
     }
 
     [Test]
@@ -161,9 +165,11 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     {
         SelectTorsoAndHead();
 
-        DragBox(At(TorsoTrack, 1.2f), At(TorsoTrack, 1.8f), shift: true);
+        DragBox(At(TorsoTrack, 1.2f), At(TorsoTrack, 1.8f), true);
 
-        Assert.That(Selected, Is.EquivalentTo(new[] { Ref(TorsoTrack, 0.5f), Ref(HeadTrack, 1f), Ref(TorsoTrack, 1.5f) }));
+        Assert.That(
+            Selected,
+            Is.EquivalentTo(new[] { Ref(TorsoTrack, 0.5f), Ref(HeadTrack, 1f), Ref(TorsoTrack, 1.5f) }));
     }
 
     [Test]
@@ -171,7 +177,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     {
         SelectTorsoAndHead();
 
-        DragBox(At(RootTrack, 0.25f), At(HeadTrack, 1.2f), shift: true);
+        DragBox(At(RootTrack, 0.25f), At(HeadTrack, 1.2f), true);
 
         Assert.That(Selected, Has.Count.EqualTo(2));
     }
@@ -373,7 +379,8 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
 
         Assert.That(Times(HeadTrack), Is.EqualTo(new[] { 0f, 1.5f, 2f }).Within(0.001f));
         Assert.That(Times(TorsoTrack), Is.EqualTo(new[] { 1f, 1.5f }).Within(0.001f));
-        Assert.That(Selected.Select(key => key.Time).OrderBy(time => time),
+        Assert.That(
+            Selected.Select(key => key.Time).OrderBy(time => time),
             Is.EqualTo(new[] { 1f, 1.5f }).Within(0.001f));
     }
 
@@ -405,7 +412,8 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
 
         Assert.That(Times(HeadTrack), Is.EqualTo(new[] { 0f, 2f }).Within(0.001f));
         Assert.That(Times(TorsoTrack), Is.EqualTo(new[] { 1.5f }).Within(0.001f));
-        Assert.That(Selected.Select(key => key.Time).OrderBy(time => time),
+        Assert.That(
+            Selected.Select(key => key.Time).OrderBy(time => time),
             Is.EqualTo(new[] { 1.5f, 2f }).Within(0.001f));
     }
 
@@ -495,11 +503,13 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
 
         // A zero-width box exactly on a key still touches it.
         Vector2 key = KeyPoint("head", 1f);
-        Assert.That(model.KeysIn(new Rect2(key.X, rows.Position.Y, 0, rows.Size.Y)),
+        Assert.That(
+            model.KeysIn(new Rect2(key.X, rows.Position.Y, 0, rows.Size.Y)),
             Is.EqualTo(new[] { Ref(HeadTrack, 1f) }));
 
         // A box between two rows touches neither row's keys when it misses their markers.
-        Assert.That(model.KeysIn(new Rect2(rows.Position.X, rows.Position.Y, 4, 4)).Select(k => k.Time),
+        Assert.That(
+            model.KeysIn(new Rect2(rows.Position.X, rows.Position.Y, 4, 4)).Select(k => k.Time),
             Is.EqualTo(new[] { 0f }));
     }
 }

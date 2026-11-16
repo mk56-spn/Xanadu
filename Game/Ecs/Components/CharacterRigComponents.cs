@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>XAF package to load and draw as this player's character.</summary>
 public struct CharacterRigSource(string path) : IComponent

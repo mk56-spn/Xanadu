@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Tests.UI.Rendering;
+namespace Xanadu.Ui.Tests.Rendering;
 
 [TestFixture]
 public sealed class PolylineTests

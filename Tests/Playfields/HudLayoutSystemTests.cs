@@ -1,14 +1,18 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -24,28 +28,18 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
         _canvas = new RecordingCanvas();
         _pointer = new ScriptedPointer();
         _keyboard = new FakeKeyboard();
-        Root.Add(new HudLayoutSystem(
-            _canvas,
-            _pointer,
-            _keyboard,
-            new HudLayoutSettings(persist: false)));
+        Root.Add(new HudLayoutSystem(_canvas, _pointer, _keyboard, new HudLayoutSettings(persist: false)));
     }
 
     [Test]
     public void DragMovesAndSavesTheWholeItem()
     {
-        Entity member = Store.CreateEntity(
-            new VisualRid(default),
-            new Position(new Vector2(100, 100)));
+        Entity member = Store.CreateEntity(new VisualRid(default), new Position(new Vector2(100, 100)));
         Entity playfield = Store.CreateEntity(
             new HudLayout(),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
         ref HudLayout layout = ref playfield.GetComponent<HudLayout>();
-        layout.Add(
-            "score",
-            new Vector2(100, 100),
-            new Rect2(80, 80, 40, 40),
-            member);
+        layout.Add("score", new Vector2(100, 100), new Rect2(80, 80, 40, 40), member);
 
         _keyboard.Press(Key.F7);
         _pointer.Current = new PointerInput(new Vector2(100, 100), true);
@@ -53,29 +47,21 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
         _pointer.Current = new PointerInput(new Vector2(140, 120), true);
         Frame();
 
-        Assert.That(member.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(140, 120)));
+        Assert.That(member.GetComponent<Position>().Value, Is.EqualTo(new Vector2(140, 120)));
     }
 
     [Test]
     public void RightClickTogglesItemVisibility()
     {
-        Entity member = Store.CreateEntity(
-            new VisualRid(default),
-            new Position(new Vector2(100, 100)));
+        Entity member = Store.CreateEntity(new VisualRid(default), new Position(new Vector2(100, 100)));
         Entity playfield = Store.CreateEntity(
             new HudLayout(),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
         ref HudLayout layout = ref playfield.GetComponent<HudLayout>();
-        HudItemLayout item = layout.Add(
-            "score",
-            new Vector2(100, 100),
-            new Rect2(80, 80, 40, 40),
-            member);
+        HudItemLayout item = layout.Add("score", new Vector2(100, 100), new Rect2(80, 80, 40, 40), member);
 
         _keyboard.Press(Key.F7);
-        _pointer.Current = new PointerInput(
-            new Vector2(100, 100), true, SecondaryPressed: true);
+        _pointer.Current = new PointerInput(new Vector2(100, 100), true, SecondaryPressed: true);
         Frame();
 
         Assert.That(item.Visible, Is.False);
@@ -108,12 +94,32 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
                 Hidden.Add(canvas);
         }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
-        public void Clear(Handle canvas) { }
-        public void DrawRect(Handle canvas, Rect2 bounds, Color color) { }
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
+
+        public void Clear(Handle canvas)
+        {
+        }
+
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
+        {
+        }
+
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+        {
+        }
+
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 }

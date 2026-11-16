@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Edits the focused <see cref="TextEditor"/>: typing, the caret keys (repeating

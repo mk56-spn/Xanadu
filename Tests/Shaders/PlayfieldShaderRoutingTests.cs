@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
-using Xanadu.Timeline;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Shaders;
 
@@ -42,9 +45,7 @@ public sealed class PlayfieldShaderRoutingTests
     public void ANoteWithTheCommonRainbowShaderIsDrawnUnderItAndItIsClearedAfterwards()
     {
         var store = new EntityStore();
-        store.CreateEntity(
-            new Note(1000, new Vector2(100, 100)),
-            new ItemCommonShader(CommonShaders.Paths[0]));
+        store.CreateEntity(new Note(1000, new Vector2(100, 100)), new ItemCommonShader(CommonShaders.Paths[0]));
         store.CreateEntity(new Note(1000, new Vector2(300, 100)));
         var canvas = new LogCanvas();
 
@@ -79,19 +80,17 @@ public sealed class PlayfieldShaderRoutingTests
             new Block(new Vector2(200, 200), new Vector2(50, 50)),
             new ItemGroups(ItemGroups.Bit(0)),
             new ItemShaderSource(0));
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         groups.Groups[0].Shader = 3;
-        groups.Groups[0].ShaderKeys.Add(new ShaderKey(
-            "tint", 0f, new Vector4(0.25f, 0.5f, 0.75f, 1f), 4, EasePreset.Linear));
+        groups.Groups[0].ShaderKeys
+            .Add(new ShaderKey("tint", 0f, new Vector4(0.25f, 0.5f, 0.75f, 1f), 4, EasePreset.Linear));
         var canvas = new LogCanvas();
 
         DrawItems(canvas, store, groups.Groups);
 
         Assert.That(canvas.Selections, Does.Contain(3));
         Assert.That(canvas.Sources, Does.Contain(0));
-        Assert.That(
-            canvas.Values,
-            Does.Contain(("tint", new Vector4(0.25f, 0.5f, 0.75f, 1f), 4)));
+        Assert.That(canvas.Values, Does.Contain(("tint", new Vector4(0.25f, 0.5f, 0.75f, 1f), 4)));
     }
 
     [Test]
@@ -103,7 +102,7 @@ public sealed class PlayfieldShaderRoutingTests
             new ItemGroups(ItemGroups.Bit(1)),
             new ItemShader(4),
             new ItemShaderSource(0));
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         groups.Groups[0].Shader = 3;
         var canvas = new LogCanvas();
 
@@ -119,8 +118,8 @@ public sealed class PlayfieldShaderRoutingTests
             canvas,
             default,
             store,
-            new PlayfieldItemFrame(View, Field, Head, 0f, Editor: false, Groups: groups),
-            drawWedge: null);
+            new PlayfieldItemFrame(View, Field, Head, 0f, false, Groups: groups),
+            null);
 
     private sealed class LogCanvas : IRectCanvas
     {
@@ -131,17 +130,14 @@ public sealed class PlayfieldShaderRoutingTests
         public List<int> SlotAtEachDraw { get; } = new();
         public List<string> CommonSelections { get; } = new();
         public List<string> CommonAtEachDraw { get; } = new();
-        public List<Xanadu.Rendering.BlendMode> Blends { get; } = new();
+        public List<BlendMode> Blends { get; } = new();
         public List<int> Sources { get; } = new();
         public List<(string Param, Vector4 Value, int Size)> Values { get; } = new();
 
         public void SetShaderValue(string param, Vector4 value, int size) =>
             Values.Add((param, value, size));
 
-        public void SelectShader(
-            int slot,
-            Xanadu.Rendering.BlendMode blend = Xanadu.Rendering.BlendMode.Mix,
-            int sourceGroup = -1)
+        public void SelectShader(int slot, BlendMode blend = BlendMode.Mix, int sourceGroup = -1)
         {
             _slot = slot;
             Selections.Add(slot);
@@ -149,33 +145,48 @@ public sealed class PlayfieldShaderRoutingTests
             Sources.Add(sourceGroup);
         }
 
-        public void SelectCommonShader(string path, Xanadu.Rendering.BlendMode blend = Xanadu.Rendering.BlendMode.Mix)
+        public void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix)
         {
             _commonPath = path;
             CommonSelections.Add(path);
             Blends.Add(blend);
         }
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Mark();
 
         public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Mark();
 
-        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(
+            Handle canvas,
+            ReadOnlySpan<Vector2> points,
+            Color color,
+            float width,
+            bool antialiased = true) =>
             Mark();
 
         public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Mark();
 
         public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Mark();
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
         public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) => Mark();
 

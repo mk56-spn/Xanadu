@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Diagnostics;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Replays;
 using Xanadu.Scenes;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 
@@ -73,7 +75,7 @@ public sealed partial class SceneSystem
             }
             catch (Exception exception)
             {
-                Xanadu.Diagnostics.GameLog.Error($"Could not save replay: {exception.Message}");
+                GameLog.Error($"Could not save replay: {exception.Message}");
             }
 
             return;

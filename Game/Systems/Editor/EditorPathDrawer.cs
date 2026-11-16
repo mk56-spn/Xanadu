@@ -1,10 +1,12 @@
+using Xanadu.Ui.Systems.Canvas;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
-using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 

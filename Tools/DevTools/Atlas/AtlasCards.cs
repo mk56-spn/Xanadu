@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Ui.Tree;
-using static Xanadu.Ui.Tree.UiSpecs;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>Atlas's own pieces, each a spec made of specs, and the groups of them its columns keep.</summary>
 internal sealed partial class AtlasStage

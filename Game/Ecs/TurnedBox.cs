@@ -1,4 +1,5 @@
 using System;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Ecs;
 

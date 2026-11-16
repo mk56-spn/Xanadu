@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -20,7 +21,7 @@ public sealed class EditorAnalysisSystemTests
         _editor = _store.CreateEntity(
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1920, 1080)),
             new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false, durationMs: 10_000),
+            new Playhead(0, 120, 0, false, 10_000),
             EditorAnalysis.Create());
         _root = new SystemRoot(_store);
         _root.Add(new EditorAnalysisSystem(_store));

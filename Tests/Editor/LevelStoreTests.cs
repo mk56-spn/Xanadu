@@ -12,9 +12,7 @@ public sealed class LevelStoreTests
     [Test]
     public void DeleteRemovesTheLevelFile()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-level-tests-" + Guid.NewGuid().ToString("N"));
         string path = Path.Combine(directory, "delete.xmf");
         try
         {
@@ -28,16 +26,14 @@ public sealed class LevelStoreTests
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 
     [Test]
     public void NextUnnamedPathUsesTheFirstFreeNumber()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-level-tests-" + Guid.NewGuid().ToString("N"));
 
         try
         {
@@ -45,23 +41,19 @@ public sealed class LevelStoreTests
             File.WriteAllText(Path.Combine(directory, "unnamed-1.xmf"), "{}");
             File.WriteAllText(Path.Combine(directory, "unnamed-2.xmf"), "{}");
 
-            Assert.That(
-                LevelStore.NextUnnamedPath(directory),
-                Is.EqualTo(Path.Combine(directory, "unnamed-3.xmf")));
+            Assert.That(LevelStore.NextUnnamedPath(directory), Is.EqualTo(Path.Combine(directory, "unnamed-3.xmf")));
         }
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 
     [Test]
     public void SaveThenLoadRoundTrips()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-level-tests-" + Guid.NewGuid().ToString("N"));
         string path = Path.Combine(directory, "level.xmf");
 
         try
@@ -71,14 +63,15 @@ public sealed class LevelStoreTests
                 Name = "Store Test",
                 BackgroundColor = "#204060",
                 OutsideColor = "#102030",
-                FrameColor = "#405060",
+                FrameColor = "#405060"
             };
-            document.Notes.Add(new NoteDocument
-            {
-                TimeMs = 500,
-                X = 100,
-                Y = 200,
-            });
+            document.Notes.Add(
+                new NoteDocument
+                {
+                    TimeMs = 500,
+                    X = 100,
+                    Y = 200
+                });
 
             LevelStore.Save(document, path);
             LevelDocument loaded = LevelStore.Load(path);
@@ -94,16 +87,14 @@ public sealed class LevelStoreTests
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 
     [Test]
     public void SavingADifferentLevelToTheSamePathKeepsBothAsVariants()
     {
-        string directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-level-tests-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "writer-level-tests-" + Guid.NewGuid().ToString("N"));
         string path = Path.Combine(directory, "mapset.xmf");
 
         try
@@ -128,7 +119,7 @@ public sealed class LevelStoreTests
         finally
         {
             if (Directory.Exists(directory))
-                Directory.Delete(directory, recursive: true);
+                Directory.Delete(directory, true);
         }
     }
 }

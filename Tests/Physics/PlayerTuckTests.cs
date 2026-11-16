@@ -1,6 +1,9 @@
+using Box2DSharp.Collision;
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 
@@ -52,12 +55,16 @@ public sealed class PlayerTuckTests
     public void ARaisedBottomKeepsTheTopAndTheMass()
     {
         using var physics = new Box2DPhysicsWorld();
-        var body = physics.CreateDynamicBox(new Vector2(100, 100), Size, mass: 1f);
+        Body body = physics.CreateDynamicBox(new Vector2(100, 100), Size, 1f);
         Box2DPhysicsWorld.RaiseBottom(body, Size, 40);
 
-        var box = body.FixtureList[0].GetAABB(0);
-        Assert.That(box.LowerBound.Y * Box2DPhysicsWorld.PixelsPerMeter, Is.EqualTo(100 - Size.Y / 2).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
-        Assert.That(box.UpperBound.Y * Box2DPhysicsWorld.PixelsPerMeter, Is.EqualTo(100 + Size.Y / 2 - 40).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
+        AABB box = body.FixtureList[0].GetAABB(0);
+        Assert.That(
+            box.LowerBound.Y * Box2DPhysicsWorld.PixelsPerMeter,
+            Is.EqualTo(100 - Size.Y / 2).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
+        Assert.That(
+            box.UpperBound.Y * Box2DPhysicsWorld.PixelsPerMeter,
+            Is.EqualTo(100 + Size.Y / 2 - 40).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
         Assert.That(body.Mass, Is.EqualTo(1f).Within(1e-4f));
     }
 

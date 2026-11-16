@@ -2,7 +2,7 @@ using System;
 using SkiaSharp;
 using Svg.Skia;
 
-namespace Xanadu.Animation;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>Straight-alpha RGBA8 pixels, rows top first.</summary>
 public sealed record RasterImage(int Width, int Height, byte[] Pixels)

@@ -1,13 +1,16 @@
-    using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Characters;
 using Xanadu.Tests.Support;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Characters;
 
@@ -23,12 +26,13 @@ public sealed class CharacterRigTests : EcsSystemTest
         _visuals = new List<FakeVisuals>();
         Root.Add(new CharacterRigLoadSystem(_files));
         Root.Add(new CharacterRigAnimateSystem());
-        Root.Add(new CharacterRigDrawSystem(() =>
-        {
-            var visuals = new FakeVisuals();
-            _visuals.Add(visuals);
-            return visuals;
-        }));
+        Root.Add(
+            new CharacterRigDrawSystem(() =>
+            {
+                var visuals = new FakeVisuals();
+                _visuals.Add(visuals);
+                return visuals;
+            }));
     }
 
     private Entity Player(CharacterKind kind = CharacterKind.Contact, PlayfieldKind mode = PlayfieldKind.Play) =>
@@ -96,7 +100,9 @@ public sealed class CharacterRigTests : EcsSystemTest
         // The same rig-to-canvas placement the attachments use, so hair scales and stands with the body;
         // the art is drawn at its own height, a little taller than the box.
         Assert.That(visuals.ChainPlacement.X.Length(), Is.GreaterThan(0f));
-        Assert.That(visuals.ChainPlacement.X.Length(), Is.EqualTo(Xanadu.Ecs.Player.ArtHeight(100f) / 200f).Within(0.0001f));
+        Assert.That(
+            visuals.ChainPlacement.X.Length(),
+            Is.EqualTo(Ecs.Components.Player.ArtHeight(100f) / 200f).Within(0.0001f));
     }
 
     [Test]
@@ -160,25 +166,24 @@ public sealed class CharacterRigTests : EcsSystemTest
         string root = Path.Combine(Path.GetTempPath(), $"xaf-rebase-{Guid.NewGuid():N}");
         string characters = Path.Combine(root, "Animations", "Characters");
         Directory.CreateDirectory(characters);
-        File.WriteAllText(Path.Combine(root, Xanadu.Storage.GamePaths.RootMarker), "");
+        File.WriteAllText(Path.Combine(root, GamePaths.RootMarker), "");
         try
         {
             XafPackage package = RigPackage();
             package.Attachments.Add(new XafAttachment { SvgPath = "/abs/kept.svg" });
-            package.Chains.Add(new XafChain { Id = "hair", BoneId = "torso", SvgPath = "Assets/SVG/Char/hair_segment.svg" });
+            package.Chains.Add(
+                new XafChain { Id = "hair", BoneId = "torso", SvgPath = "Assets/SVG/Char/hair_segment.svg" });
             package.Chains.Add(new XafChain { Id = "bare", BoneId = "torso", SvgPath = "", Group = "" });
             XafAssetPaths.Rebase(package, Path.Combine(characters, "contact.xaf"));
 
-            Assert.That(package.Attachments[0].SvgPath,
-                Is.EqualTo(Path.Combine(root, "Assets/SVG/torso.svg")));
+            Assert.That(package.Attachments[0].SvgPath, Is.EqualTo(Path.Combine(root, "Assets/SVG/torso.svg")));
             Assert.That(package.Attachments[1].SvgPath, Is.EqualTo("/abs/kept.svg"));
-            Assert.That(package.Chains[0].SvgPath,
-                Is.EqualTo(Path.Combine(root, "Assets/SVG/Char/hair_segment.svg")));
+            Assert.That(package.Chains[0].SvgPath, Is.EqualTo(Path.Combine(root, "Assets/SVG/Char/hair_segment.svg")));
             Assert.That(package.Chains[1].SvgPath, Is.EqualTo(""));
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            Directory.Delete(root, true);
         }
     }
 
@@ -186,18 +191,20 @@ public sealed class CharacterRigTests : EcsSystemTest
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "torso",
-            Parent = 0,
-            Rest = new Transform2D(0f, new Vector2(0, -80)),
-        });
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "Assets/SVG/torso.svg",
-            Group = "torso",
-            BoneId = "torso",
-        });
+        package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = "torso",
+                Parent = 0,
+                Rest = new Transform2D(0f, new Vector2(0, -80))
+            });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "Assets/SVG/torso.svg",
+                Group = "torso",
+                BoneId = "torso"
+            });
         package.Clips.Add(new XafClip { Id = "walk", Duration = 1f });
         package.Clips.Add(new XafClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f });
         return package;
@@ -223,8 +230,13 @@ public sealed class CharacterRigTests : EcsSystemTest
         public int ChainPoints;
         public Transform2D ChainPlacement;
 
-        public void Reload(XafPackage package) { }
-        public void Apply(Transform2D[] attachments, Transform2D placement) { }
+        public void Reload(XafPackage package)
+        {
+        }
+
+        public void Apply(Transform2D[] attachments, Transform2D placement)
+        {
+        }
 
         public void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement)
         {
@@ -232,6 +244,7 @@ public sealed class CharacterRigTests : EcsSystemTest
             ChainPoints = simulation.Points(0).Count;
             ChainPlacement = placement;
         }
+
         public Rect2 Bounds(Transform2D[] attachments) => new(-25, -200, 50, 200);
         public void Release() => Released = true;
     }

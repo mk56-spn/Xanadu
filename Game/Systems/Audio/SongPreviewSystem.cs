@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Audio;
 
@@ -203,7 +206,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         var energy = new Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
         foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().ToEntityList())
         {
-            Xanadu.Systems.Canvas.CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
+            CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
             material.Set("energy", energy);
             material.Set("reactive", _reactive);
         }

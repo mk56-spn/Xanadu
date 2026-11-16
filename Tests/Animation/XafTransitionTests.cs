@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -14,7 +15,8 @@ public sealed class XafTransitionTests
 
         Assert.That(XafTransitions.IsOpen(package), Is.True);
         Assert.That(XafTransitions.Allows(package, "idle", "jump"), Is.True);
-        Assert.That(XafTransitions.Blend(package, "idle", "jump"),
+        Assert.That(
+            XafTransitions.Blend(package, "idle", "jump"),
             Is.EqualTo((XafTransitions.DefaultFade, XafFadeCurve.Linear)));
     }
 
@@ -136,12 +138,13 @@ public sealed class XafTransitionTests
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "arm",
-            Parent = 0,
-            Rest = new Transform2D(0f, new Vector2(0, -20)),
-        });
+        package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = "arm",
+                Parent = 0,
+                Rest = new Transform2D(0f, new Vector2(0, -20))
+            });
         package.Clips.Add(Clip("idle", 0f, 10f));
         package.Clips.Add(Clip("jump", 10f, 30f));
         return package;
@@ -154,7 +157,7 @@ public sealed class XafTransitionTests
         {
             Target = XafChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.TranslationX,
+            Property = XafChannelProperty.TranslationX
         };
         channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = start, Interpolation = XafInterpolation.Linear });
         channel.Keyframes.Add(new XafKeyframe { Time = 2f, Value = end, Interpolation = XafInterpolation.Linear });

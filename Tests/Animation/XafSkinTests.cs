@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -59,7 +60,15 @@ public sealed class XafSkinTests
         Assert.That(inner, Is.GreaterThanOrEqualTo(0));
 
         float[] across = XafSkinWeights.Weights(package, influences, points, bones, 10f)[inner];
-        float[] through = XafSkinWeights.Weights(package, influences, points, bones, 10f, columns, rows, covered)[inner];
+        float[] through = XafSkinWeights.Weights(
+            package,
+            influences,
+            points,
+            bones,
+            10f,
+            columns,
+            rows,
+            covered)[inner];
 
         Assert.That(across[1], Is.GreaterThan(0.1f), "measured across the gap, the other leg pulls on it");
         Assert.That(through[0], Is.EqualTo(1f), "measured through the art, only its own leg does");
@@ -79,44 +88,56 @@ public sealed class XafSkinTests
     [Test]
     public void ABoneWithNoChildRunsToItsTip()
     {
-        var (package, _, _, foot) = Leg();
+        (XafPackage package, _, _, int foot) = Leg();
         Transform2D[] bones = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
 
-        Assert.That(XafSkinBones.Segment(package, bones, foot), Is.EqualTo((new Vector2(0, 100), new Vector2(30, 100))));
+        Assert.That(
+            XafSkinBones.Segment(package, bones, foot),
+            Is.EqualTo((new Vector2(0, 100), new Vector2(30, 100))));
     }
 
     [Test]
     public void AFootTakesItsToesButNotTheShinBesideIt()
     {
-        var (package, _, shin, foot) = Leg();
+        (XafPackage package, _, int shin, int foot) = Leg();
         Transform2D[] bones = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
         var influences = new List<int> { shin, foot };
         Vector2[] points = { new(4, 88), new(24, 101) };
 
         float[][] weights = XafSkinWeights.Weights(package, influences, points, bones, 10f);
 
-        Assert.That(weights[0][0], Is.GreaterThan(0.75f), "just above the ankle is shin, though the foot runs right past it");
+        Assert.That(
+            weights[0][0],
+            Is.GreaterThan(0.75f),
+            "just above the ankle is shin, though the foot runs right past it");
         Assert.That(weights[1][1], Is.GreaterThan(0.9f), "the toes are foot");
     }
 
     [Test]
     public void AKneeOutOfThePlaneSquashesTheSkinOnBothSides()
     {
-        var (package, thigh, shin, foot) = Leg();
+        (XafPackage package, int thigh, int shin, int foot) = Leg();
         XafPose rest = XafClothLayout.RestPose(package);
         Transform2D[] restBones = XafRig.WorldBones(package, rest);
         XafPose pose = rest.Clone();
         pose.Bones[shin].Depth = 30f;
         Transform2D[] bones = XafRig.WorldBones(package, pose);
-        Transform2D[] squash = Enumerable.Range(0, bones.Length)
-            .Select(bone => XafRig.Foreshorten(package, pose, bone)).ToArray();
+        Transform2D[] squash = Enumerable.Range(0, bones.Length).Select(bone => XafRig.Foreshorten(package, pose, bone))
+            .ToArray();
 
         // Half way down the thigh and half way down the shin, each all on its own bone.
         var influences = new List<int> { thigh, shin, foot };
         Vector2[] points = { new(0, 25), new(0, 75) };
         float[][] weights = { new[] { 1f, 0f, 0f }, new[] { 0f, 1f, 0f } };
-        Vector2[] bent = XafSkinDeform.Deform(influences, weights, points, restBones, bones,
-            restBones[thigh], bones[thigh] * squash[thigh], squash);
+        Vector2[] bent = XafSkinDeform.Deform(
+            influences,
+            weights,
+            points,
+            restBones,
+            bones,
+            restBones[thigh],
+            bones[thigh] * squash[thigh],
+            squash);
 
         // Each 50 long segment shows 40 of its length.
         Assert.That(bent[0].Y, Is.EqualTo(20f).Within(1e-3f));
@@ -126,7 +147,7 @@ public sealed class XafSkinTests
     [Test]
     public void TipsAreSaved()
     {
-        var (package, _, _, foot) = Leg();
+        (XafPackage package, _, _, int foot) = Leg();
 
         Assert.That(XafBinary.Read(XafBinary.Write(package)).Skeleton.Bones[foot].Tip, Is.EqualTo(new Vector2(30, 0)));
         Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
@@ -135,7 +156,7 @@ public sealed class XafSkinTests
     [Test]
     public void APointSharedAcrossABentKneeSwingsRoundItRatherThanCuttingAcross()
     {
-        var (package, thigh, shin, foot) = Leg();
+        (XafPackage package, int thigh, int shin, int foot) = Leg();
         XafPose rest = XafClothLayout.RestPose(package);
         Transform2D[] restBones = XafRig.WorldBones(package, rest);
         XafPose pose = rest.Clone();
@@ -146,8 +167,14 @@ public sealed class XafSkinTests
         var knee = new Vector2(0, 50);
         Vector2[] points = { knee + new Vector2(-5, 0) };
         float[][] weights = { new[] { 0.5f, 0.5f, 0f } };
-        Vector2 bent = XafSkinDeform.Deform(new List<int> { thigh, shin, foot }, weights, points, restBones, bones,
-            restBones[thigh], bones[thigh])[0];
+        Vector2 bent = XafSkinDeform.Deform(
+            new List<int> { thigh, shin, foot },
+            weights,
+            points,
+            restBones,
+            bones,
+            restBones[thigh],
+            bones[thigh])[0];
 
         // Mixing the two end points would pull it in to 3.5 from the knee.
         Assert.That(bent.DistanceTo(knee), Is.EqualTo(5f).Within(1e-3f));

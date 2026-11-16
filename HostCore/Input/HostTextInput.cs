@@ -3,7 +3,9 @@ using Friflo.Engine.ECS;
 using MoonWorks;
 using MoonWorks.Input;
 using SDL3;
-using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using SDL = SDL3.SDL;
 
 namespace Xanadu.Host.Input;
 
@@ -19,7 +21,7 @@ namespace Xanadu.Host.Input;
 /// only Escape on to the game's shortcuts, as the <c>LineEdit</c> swallowed
 /// the rest.
 /// </remarks>
-internal sealed class HostTextInput : Xanadu.Systems.Input.ITextEntry
+internal sealed class HostTextInput : ITextEntry
 {
     private const float RepeatDelay = 0.45f, RepeatEvery = 0.035f;
 

@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Items;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>Notes: timed, picked by a square the note's size, pasted at the playhead.</summary>
 public sealed class NoteItemKind : ItemKind<Note, NoteDocument>

@@ -21,13 +21,9 @@ public sealed class ScoreRulesTests
     [TestCase(81L, Judgement.Miss)]
     [TestCase(150L, Judgement.Miss)]
     [TestCase(151L, Judgement.Miss)]
-    public void JudgeUsesTheSuppliedDeviationWindows(
-        long offsetMs,
-        Judgement expected)
+    public void JudgeUsesTheSuppliedDeviationWindows(long offsetMs, Judgement expected)
     {
-        Assert.That(
-            ScoreRules.Judge(offsetMs),
-            Is.EqualTo(expected));
+        Assert.That(ScoreRules.Judge(offsetMs), Is.EqualTo(expected));
     }
 
     [Test]

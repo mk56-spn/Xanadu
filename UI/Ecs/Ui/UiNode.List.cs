@@ -1,8 +1,7 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A pooled list: a clipped column holding only as many rows as the stage can

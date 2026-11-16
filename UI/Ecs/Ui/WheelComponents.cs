@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Generic radial option selector, the Xanadu.UI "cheese wheel". The rectangle

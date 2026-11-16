@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using Xanadu.Rendering;
+using Xanadu.Core.Rendering;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// One value a material's shader reads, as the host's compiler reports it:

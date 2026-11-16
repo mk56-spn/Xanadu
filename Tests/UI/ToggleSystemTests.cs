@@ -1,12 +1,16 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.UI;
 
@@ -21,10 +25,7 @@ public sealed class ToggleSystemTests
         Entity toggle = store.CreateEntity(
             new Toggle("V-SYNC: ON", "V-SYNC: OFF", false),
             new Text("V-SYNC: OFF"),
-            new ButtonVisual(
-                Palette.Muted,
-                Palette.Muted,
-                Colors.White),
+            new ButtonVisual(Palette.Muted, Palette.Muted, Colors.White),
             new FillColor(Palette.Muted),
             Tags.Get<Pressed>());
         toggle.OnToggled(display.SetVSync);
@@ -39,19 +40,14 @@ public sealed class ToggleSystemTests
         Assert.That(toggle.GetComponent<Toggle>().Value, Is.True);
         Assert.That(toggle.GetComponent<Text>().Value, Is.EqualTo("V-SYNC: ON"));
         Assert.That(display.VSyncEnabled, Is.True);
-        Assert.That(
-            toggle.GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Palette.Primary));
+        Assert.That(toggle.GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Primary));
     }
 
     [Test]
     public void HoldingDoesNotFlipRepeatedly()
     {
         var store = new EntityStore();
-        Entity toggle = store.CreateEntity(
-            new Toggle("ON", "OFF", false),
-            new Text("OFF"),
-            Tags.Get<Pressed>());
+        Entity toggle = store.CreateEntity(new Toggle("ON", "OFF", false), new Text("OFF"), Tags.Get<Pressed>());
 
         var root = new SystemRoot(store);
         root.Add(new ToggleSystem());

@@ -2,13 +2,17 @@ using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
 using Xanadu.Levels;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
@@ -27,13 +31,16 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
             new LevelInfo("Test", TestSongs.At("/tmp/test.wav")) { Background = new Color("#204060") },
             new EditorHud());
         EditorSceneDialogs.BuildDialogs(Store, default, _editor, new Vector2(1280, 720), new FakeVisualRidFactory());
-        _recoveryFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "xanadu-dialog-tests-" + Guid.NewGuid().ToString("N"));
-        Root.Add(new EditorDialogSystem(
-            Store,
-            _commands,
-            new FakeVisualRidFactory(),
-            new LevelRecoveryStore(_recoveryFolder),
-            songs: new SongStore(SongFolder)));
+        _recoveryFolder = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            "xanadu-dialog-tests-" + Guid.NewGuid().ToString("N"));
+        Root.Add(
+            new EditorDialogSystem(
+                Store,
+                _commands,
+                new FakeVisualRidFactory(),
+                new LevelRecoveryStore(_recoveryFolder),
+                new SongStore(SongFolder)));
     }
 
     private string SongFolder => System.IO.Path.Combine(_recoveryFolder, "songs");
@@ -44,7 +51,7 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
     public void RemoveRecoveryFolder()
     {
         if (System.IO.Directory.Exists(_recoveryFolder))
-            System.IO.Directory.Delete(_recoveryFolder, recursive: true);
+            System.IO.Directory.Delete(_recoveryFolder, true);
     }
 
     private bool Shown(EditorDialogKind kind) => !UiLayout.IsHidden(EditorDialogs.Find(Store, kind));
@@ -182,12 +189,14 @@ public sealed class EditorDialogSystemTests : EcsSystemTest
     {
         System.IO.Directory.CreateDirectory(System.IO.Path.Combine(SongFolder, "here"));
         System.IO.File.WriteAllText(System.IO.Path.Combine(SongFolder, "here", "audio.mp3"), "audio");
-        System.IO.File.WriteAllText(System.IO.Path.Combine(SongFolder, "catalog.json"), """
-        [
-          { "Id": "here", "Title": "Here", "AudioPath": "audio.mp3" },
-          { "Id": "gone", "Title": "Gone", "AudioPath": "audio.mp3" }
-        ]
-        """);
+        System.IO.File.WriteAllText(
+            System.IO.Path.Combine(SongFolder, "catalog.json"),
+            """
+            [
+              { "Id": "here", "Title": "Here", "AudioPath": "audio.mp3" },
+              { "Id": "gone", "Title": "Gone", "AudioPath": "audio.mp3" }
+            ]
+            """);
         DropTheSong();
         Frame();
 

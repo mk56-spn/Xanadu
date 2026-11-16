@@ -1,10 +1,13 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Profiles;
 using Xanadu.Strings;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Scenes;
 

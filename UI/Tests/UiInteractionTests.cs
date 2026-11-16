@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Systems.Ui;
+using Xanadu.Ui.Systems.Interaction;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class UiInteractionTests

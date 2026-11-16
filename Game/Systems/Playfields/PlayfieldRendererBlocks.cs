@@ -1,8 +1,13 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs;
+using Xanadu.Ui.Systems.Canvas;
+using Color = Xanadu.Core.Maths.Color;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
 namespace Xanadu.Systems.Playfields;
 

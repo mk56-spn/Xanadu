@@ -1,9 +1,12 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -58,7 +61,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void WithoutPinMovingABoneCarriesItsChildren()
     {
-        RestMode(pin: false);
+        RestMode(false);
 
         AnimatorTransformCommands.SetTranslation(Session, new Vector2(0, -120));
 
@@ -68,7 +71,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void WithPinMovingABoneLeavesItsChildrenWhereTheyWere()
     {
-        RestMode(pin: true);
+        RestMode(true);
 
         AnimatorTransformCommands.SetTranslation(Session, new Vector2(0, -120));
 
@@ -81,7 +84,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void WithPinTurningABoneLeavesItsChildrenWhereTheyWere()
     {
-        RestMode(pin: true);
+        RestMode(true);
 
         AnimatorTransformCommands.SetRotation(Session, Mathf.Pi / 2f);
 
@@ -92,7 +95,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void WithPinScalingAndNudgingKeepTheChildrenToo()
     {
-        RestMode(pin: true);
+        RestMode(true);
 
         AnimatorTransformCommands.SetScale(Session, new Vector2(2f, 2f));
         Assert.That(HeadWorld().DistanceTo(new Vector2(0, -150)), Is.LessThan(0.001f));
@@ -105,9 +108,10 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     public void PinningReachesDeeperThanTheFirstChild()
     {
         // Add a hand under the head; moving the torso must leave it put as well.
-        Package.Skeleton.Bones.Add(new XafBone { Id = "hand", Parent = 2, Rest = new Transform2D(0f, new Vector2(30, 0)) });
+        Package.Skeleton.Bones.Add(
+            new XafBone { Id = "hand", Parent = 2, Rest = new Transform2D(0f, new Vector2(30, 0)) });
         AnimatorSession.RigChanged(Session);
-        RestMode(pin: true);
+        RestMode(true);
         Vector2 before = AnimatorRestPin.RestWorld(Package)[3].Origin;
 
         AnimatorTransformCommands.SetTranslation(Session, new Vector2(40, -120));
@@ -118,7 +122,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void PinDoesNothingOutsideTheRestPose()
     {
-        RestMode(pin: true);
+        RestMode(true);
         Session.GetComponent<AnimatorModes>().Rest = false;
 
         Assert.That(AnimatorRestPin.IsOn(Session), Is.False);
@@ -128,7 +132,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void DraggingABoneWithPinLeavesItsChildrenAndIsOneUndoStep()
     {
-        RestMode(pin: true);
+        RestMode(true);
 
         DragBone(1, new Vector2(60, 0));
         ReleaseDrag();
@@ -145,7 +149,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     public void ADraggedJointSnapsItsXToAnotherJointAndShowsAGuide()
     {
         // Head at x 0; dragging the torso 5 px right is within snapping range of the root and head.
-        RestMode(pin: false);
+        RestMode(false);
 
         DragBone(1, new Vector2(5, 0));
 
@@ -161,7 +165,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void WithAlignOffADraggedJointGoesWhereItIsDraggedWithNoGuides()
     {
-        RestMode(pin: false);
+        RestMode(false);
         Session.GetComponent<AnimatorModes>().Align = false;
 
         DragBone(1, new Vector2(5, 0));
@@ -174,7 +178,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     public void ADraggedJointSnapsItsYToo()
     {
         // Drag the head (at y -150) down to within range of the torso's -80.
-        RestMode(pin: false);
+        RestMode(false);
 
         DragBone(2, new Vector2(30, 73));
 
@@ -186,9 +190,9 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void HoldingShiftDragsFreelyWithNoGuides()
     {
-        RestMode(pin: false);
+        RestMode(false);
 
-        DragBone(1, new Vector2(5, 0), shiftWhileDragging: true);
+        DragBone(1, new Vector2(5, 0), true);
 
         Assert.That(Torso.Rest.Origin.X, Is.EqualTo(5f).Within(0.5f));
         Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.False);
@@ -199,7 +203,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         // The head moves with the torso, so lining the torso up with it means nothing.
         // This puts the torso at y -146, four units from the head's -150.
-        RestMode(pin: false);
+        RestMode(false);
 
         DragBone(1, new Vector2(40, -66));
 
@@ -225,7 +229,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     [Test]
     public void SwingingWithShiftHeldTurnsFreely()
     {
-        DragBone(2, new Vector2(5, 0), shiftWhileDragging: true);
+        DragBone(2, new Vector2(5, 0), true);
 
         Assert.That(Mathf.Abs(Runtime.Pose.Bones[1].Rotation), Is.GreaterThan(0.01f));
         Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.False);
@@ -244,7 +248,8 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     public void SwingingSnapsToAJointOnTheOtherAxisToo()
     {
         // A marker at the head's height to the right; swing the head toward it.
-        Package.Skeleton.Bones.Add(new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(60, -75)) });
+        Package.Skeleton.Bones.Add(
+            new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(60, -75)) });
         AnimatorSession.RigChanged(Session);
 
         // Pointing right of the torso, near the marker's Y (-75): the torso is at -80, so the head ends up level with it.
@@ -262,7 +267,8 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     public void AnIkTargetSnapsToAJointOutsideTheChain()
     {
         // A separate root bone to snap to; the chain is root > torso > head.
-        Package.Skeleton.Bones.Add(new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(30, -100)) });
+        Package.Skeleton.Bones.Add(
+            new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(30, -100)) });
         AnimatorSession.RigChanged(Session);
         Session.GetComponent<AnimatorModes>().Ik = true;
 

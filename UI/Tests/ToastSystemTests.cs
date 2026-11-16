@@ -1,13 +1,12 @@
+using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Ui;
-using Position = Xanadu.Ecs.Position;
-using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class ToastSystemTests

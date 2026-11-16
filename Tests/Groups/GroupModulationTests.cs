@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -87,11 +89,15 @@ public sealed class GroupModulationTests
 
         Assert.That(GroupModulation.TryColor(groups, In(0), 0.5f, out _, out _, out _), Is.False);
 
-        Assert.That(GroupModulation.TryColor(groups, In(0), 1.5f, out Color mid, out float coverage, out float alphaMid), Is.True);
+        Assert.That(
+            GroupModulation.TryColor(groups, In(0), 1.5f, out Color mid, out float coverage, out float alphaMid),
+            Is.True);
         Assert.That(coverage, Is.EqualTo(0.5f).Within(0.001f));
         Assert.That(mid.R, Is.EqualTo(1f).Within(0.001f));
 
-        Assert.That(GroupModulation.TryColor(groups, In(0), 9f, out Color done, out float full, out float alphaDone), Is.True);
+        Assert.That(
+            GroupModulation.TryColor(groups, In(0), 9f, out Color done, out float full, out float alphaDone),
+            Is.True);
         Assert.That(full, Is.EqualTo(1f).Within(0.001f));
         Assert.That(alphaDone, Is.EqualTo(1f).Within(0.001f));
         Assert.That(done, Is.EqualTo(Colors.Red));
@@ -281,9 +287,7 @@ public sealed class GroupModulationTests
     [Test]
     public void TargetHandleRoundsAndCentres()
     {
-        Assert.That(
-            EditorGroupTarget.Tidy(new Vector2(10.24f, -3.76f)),
-            Is.EqualTo(new Vector2(10f, -4f)));
+        Assert.That(EditorGroupTarget.Tidy(new Vector2(10.24f, -3.76f)), Is.EqualTo(new Vector2(10f, -4f)));
 
         Rect2 handle = EditorGroupTarget.HandleRect(new Vector2(100, 100));
         Assert.That(handle.GetCenter(), Is.EqualTo(new Vector2(100, 100)));
@@ -294,10 +298,8 @@ public sealed class GroupModulationTests
     public void MutedMovesAndColoursAreIgnored()
     {
         GroupDefinition[] groups = Slots();
-        groups[0].Effects.Add(GroupEffect.Move(
-            0f, 1f, new Vector2(100, 0), EasePreset.Linear, muted: true));
-        groups[1].Effects.Add(GroupEffect.Colour(
-            0f, 1f, Colors.Red, EasePreset.Linear, muted: true));
+        groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(100, 0), EasePreset.Linear, true));
+        groups[1].Effects.Add(GroupEffect.Colour(0f, 1f, Colors.Red, EasePreset.Linear, true));
 
         Assert.That(GroupModulation.Offset(groups, In(0, 1), 10f), Is.EqualTo(Vector2.Zero));
         Assert.That(GroupModulation.TryColor(groups, In(0, 1), 10f, out _, out _, out _), Is.False);
@@ -306,18 +308,16 @@ public sealed class GroupModulationTests
     [Test]
     public void AGroupedStartPointSpawnsAtItsModulatedPosition()
     {
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         groups.Groups[0].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(300, 0)));
         var start = new StartPoint(
             "Intro",
             500,
             new Vector2(100, 100),
-            System.Numerics.Vector2.Zero,
+            Vector2.Zero,
             new Vector2(0, -1),
             ItemGroups.Bit(0));
 
-        Assert.That(
-            PlayScene.SpawnPosition(groups, start),
-            Is.EqualTo(new Vector2(250, 100)));
+        Assert.That(PlayScene.SpawnPosition(groups, start), Is.EqualTo(new Vector2(250, 100)));
     }
 }

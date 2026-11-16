@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Base colours and animated state for a hoverable/clickable button.</summary>
 public struct ButtonVisual(Color normal, Color hover, Color flash) : IComponent

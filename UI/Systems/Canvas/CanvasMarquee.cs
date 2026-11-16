@@ -1,6 +1,7 @@
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>Shared drawing of the box a view drags to select, so every view's looks the same.</summary>
 public static class CanvasMarquee

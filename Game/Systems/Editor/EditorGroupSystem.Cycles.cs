@@ -1,10 +1,12 @@
 using System;
 using System.Globalization;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Editor;
 
@@ -125,7 +127,7 @@ public sealed partial class EditorGroupSystem
         bool selected = TrySelected(state, group, out _, out GroupEffect effect);
         Entity title = Piece(EditorGroupPart.CycleTitle);
         UiText.Set(title, !selected ? "CYCLE" : effect.Cycling ? "CYCLE ×" + effect.Cycles : "CYCLE  ONCE", buffer);
-        UiText.SetColor(title, selected && effect.Cycling ? Theme.Palette.Accent : Theme.Palette.TextDim, buffer);
+        UiText.SetColor(title, selected && effect.Cycling ? Palette.Accent : Palette.TextDim, buffer);
 
         Entity count = Piece(EditorGroupPart.CycleCount);
         if (!count.IsNull && !count.Tags.Has<TextFieldFocused>())

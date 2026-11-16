@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Labs;

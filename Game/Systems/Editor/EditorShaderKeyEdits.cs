@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Timeline;
+using Xanadu.Ecs.Components;
 using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
 using Xanadu.Host.Rendering;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tools.Shaders;
 

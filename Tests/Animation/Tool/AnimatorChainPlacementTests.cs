@@ -2,14 +2,20 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -173,11 +179,9 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
                  {
                      Ui.ChainArtButton, Ui.ChainBoneButton, Ui.ChainOffsetX, Ui.ChainOffsetY, Ui.ChainSegments,
                      Ui.ChainLength, Ui.ChainWidth, Ui.ChainGravity, Ui.ChainLean, Ui.ChainDamping,
-                     Ui.ChainColliderButton, Ui.ChainColliderX, Ui.ChainColliderY, Ui.ChainCollide,
+                     Ui.ChainColliderButton, Ui.ChainColliderX, Ui.ChainColliderY, Ui.ChainCollide
                  })
-        {
             Assert.That(inspector.Encloses(AnimatorGeometry.PanelArea(control).Grow(-0.5f)), Is.True);
-        }
     }
 
     // ---- art
@@ -196,7 +200,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
 
         Session.GetComponent<AnimatorSvgMenu>().Choices = new List<AnimatorSvgChoice>
         {
-            new("Assets/SVG/leaf.svg", "leaf_piece"),
+            new("Assets/SVG/leaf.svg", "leaf_piece")
         };
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AttachSvg, "0"));
 
@@ -384,7 +388,9 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         MoveTo(start + new Vector2(30, 15));
         Release();
 
-        Assert.That(Chain.Offset, Is.EqualTo(new Vector2(30, 15)).Using<Vector2>((a, b) => a.DistanceTo(b) < 0.01f ? 0 : 1));
+        Assert.That(
+            Chain.Offset,
+            Is.EqualTo(new Vector2(30, 15)).Using<Vector2>((a, b) => a.DistanceTo(b) < 0.01f ? 0 : 1));
         Assert.That(Session.GetComponent<AnimatorSelection>().Chain, Is.EqualTo(0));
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.None));
         Assert.That(Ui.ChainOffsetX.GetComponent<TextField>().Value, Is.EqualTo("30"));

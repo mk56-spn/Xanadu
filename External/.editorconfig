@@ -1,0 +1,7 @@
+# Vendored code: not ours to restyle. This file stops the repo's own rules at
+# this folder and marks every source file here as generated, so IDEs and
+# analyzers leave it alone (no inspections, no cleanup, no style warnings).
+root = true
+
+[*.{cs,h,c,cpp}]
+generated_code = true

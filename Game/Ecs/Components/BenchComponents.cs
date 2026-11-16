@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>The bench's buttons: step to the previous or next playable song.</summary>
 public enum BenchAction

@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Debug;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Debug;
 
 namespace Xanadu.Tests.Debug;
 
@@ -55,10 +57,7 @@ public sealed class ArchetypeTableTests
         _table.Refresh(_store, 100);
 
         Assert.That(_table.Rows[0].Count, Is.EqualTo(3));
-        Assert.That(
-            _table.Rows[0].Delta,
-            Is.Zero,
-            "deltas are sampled on the interval, not every frame");
+        Assert.That(_table.Rows[0].Delta, Is.Zero, "deltas are sampled on the interval, not every frame");
     }
 
     [Test]
@@ -119,8 +118,8 @@ public sealed class ArchetypeTableTests
         AddDirtyRect();
         _table.Refresh(_store, 0);
 
-        _table.MoveSelection(1);   // first move selects the first row
-        _table.MoveSelection(1);   // then step to the larger archetype
+        _table.MoveSelection(1); // first move selects the first row
+        _table.MoveSelection(1); // then step to the larger archetype
         ArchetypeRow selected = _table.Selected!;
 
         _table.CycleSort();

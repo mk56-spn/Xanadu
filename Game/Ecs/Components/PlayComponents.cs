@@ -1,8 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Settings;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>A trail whose life runs out and that is then removed, age by age.</summary>
 public interface IAgingTrail

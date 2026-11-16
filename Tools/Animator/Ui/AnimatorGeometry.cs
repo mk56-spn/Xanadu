@@ -1,10 +1,13 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>Screen-space areas and hit tests for the preview and timeline panels.</summary>
 public static class AnimatorGeometry

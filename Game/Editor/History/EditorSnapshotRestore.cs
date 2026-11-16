@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 
-namespace Xanadu.Editor;
+namespace Xanadu.Editor.History;
 
 /// <summary>Rebuilds the level's editable items from a snapshot when undo or redo lands.</summary>
 public sealed class EditorSnapshotRestore(EntityStore entities)

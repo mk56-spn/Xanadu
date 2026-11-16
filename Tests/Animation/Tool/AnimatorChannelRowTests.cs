@@ -3,11 +3,16 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Systems.Groups;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -20,7 +25,7 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
     }
 
     /// <summary>Head rotation at 0, 1, 2 plus separate scale channels at 0.5 and 1.5.</summary>
@@ -39,7 +44,7 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
         {
             Target = XafChannelTarget.Bone,
             TargetId = "head",
-            Property = property,
+            Property = property
         };
         foreach (float time in times)
             channel.Keyframes.Add(new XafKeyframe { Time = time, Value = time });
@@ -143,12 +148,8 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
         Assert.That(
             AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)),
             Is.EqualTo(new[] { 0f, 1f, 2f }));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)),
-            Is.EqualTo(new[] { 0.5f, 1.5f }));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(null)),
-            Is.EqualTo(new[] { 0f, 0.5f, 1f, 1.5f, 2f }));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)), Is.EqualTo(new[] { 0.5f, 1.5f }));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(null)), Is.EqualTo(new[] { 0f, 0.5f, 1f, 1.5f, 2f }));
     }
 
     [Test]
@@ -186,12 +187,8 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
 
         AnimatorKeyCommands.AddKeyAt(Session, Row(XafChannelProperty.ScaleY), 0.25f);
 
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleY)),
-            Does.Contain(0.25f));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)),
-            Does.Not.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleY)), Does.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)), Does.Not.Contain(0.25f));
     }
 
     [Test]
@@ -222,14 +219,9 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
         Runtime.Seek(0.25f);
         AnimatorKeyClipboardCommands.Paste(Session);
 
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)),
-            Does.Contain(0.25f));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)),
-            Does.Not.Contain(0.25f));
-        Assert.That(Session.GetComponent<AnimatorSelection>().KeyProperty,
-            Is.EqualTo(XafChannelProperty.ScaleX));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)), Does.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)), Does.Not.Contain(0.25f));
+        Assert.That(Session.GetComponent<AnimatorSelection>().KeyProperty, Is.EqualTo(XafChannelProperty.ScaleX));
     }
 
     [Test]
@@ -238,15 +230,9 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
         Expand();
         AnimatorKeyCommands.AddKeyAt(Session, Row(null), 0.25f);
 
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)),
-            Does.Contain(0.25f));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)),
-            Does.Contain(0.25f));
-        Assert.That(
-            AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleY)),
-            Does.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.Rotation)), Does.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleX)), Does.Contain(0.25f));
+        Assert.That(AnimatorTrackRows.KeyTimes(Idle, Row(XafChannelProperty.ScaleY)), Does.Contain(0.25f));
     }
 
     [Test]
@@ -263,8 +249,6 @@ public sealed class AnimatorChannelRowTests : AnimatorToolTest
     }
 
     private XafChannel ChannelOf(XafChannelProperty property) =>
-        Idle.Channels.Find(channel =>
-            channel.Target == XafChannelTarget.Bone &&
-            channel.TargetId == "head" &&
-            channel.Property == property)!;
+        Idle.Channels.Find(channel => channel.Target == XafChannelTarget.Bone && channel.TargetId == "head" &&
+                                      channel.Property == property)!;
 }

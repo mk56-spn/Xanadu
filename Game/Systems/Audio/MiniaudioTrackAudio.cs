@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 using Miniaudio;
+using Xanadu.Core.Diagnostics;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Systems.Audio;
 
@@ -29,7 +31,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         if (_sound == null)
             _sound = (ma_sound*)NativeMemory.Alloc((nuint)sizeof(ma_sound));
 
-        string path = Xanadu.Storage.GamePaths.Full(audioPath);
+        string path = GamePaths.Full(audioPath);
 
         byte[] pathBytes = Encoding.UTF8.GetBytes(path + '\0');
         fixed (byte* pathPtr = pathBytes)
@@ -44,7 +46,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
 
             if (result != ma_result.MA_SUCCESS)
             {
-                Xanadu.Diagnostics.GameLog.Error($"miniaudio failed to load '{path}': {result}");
+                GameLog.Error($"miniaudio failed to load '{path}': {result}");
                 return false;
             }
         }
@@ -65,7 +67,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         if (result == ma_result.MA_SUCCESS)
             return true;
 
-        Xanadu.Diagnostics.GameLog.Error($"miniaudio failed to resume: {result}");
+        GameLog.Error($"miniaudio failed to resume: {result}");
         return false;
     }
 
@@ -162,7 +164,7 @@ public sealed unsafe class MiniaudioTrackAudio : ITrackAudio
         ma_result result = ma.engine_init(null, engine);
         if (result != ma_result.MA_SUCCESS)
         {
-            Xanadu.Diagnostics.GameLog.Error($"miniaudio engine init failed: {result}");
+            GameLog.Error($"miniaudio engine init failed: {result}");
             NativeMemory.Free(engine);
             return false;
         }

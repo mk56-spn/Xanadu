@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The screen-space box a view is dragging to select, for its draw system to

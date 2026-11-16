@@ -1,14 +1,16 @@
+using Xanadu.Tests.Support.Fakes;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>
 /// The shared ease picker against a fake host, as the animator and the level

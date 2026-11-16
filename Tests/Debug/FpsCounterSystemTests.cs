@@ -1,13 +1,17 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Layout;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Debug;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Debug;
 

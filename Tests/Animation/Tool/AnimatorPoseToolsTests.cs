@@ -1,9 +1,13 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -54,7 +58,10 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Run(ToolActionKind.KeyPose);
 
         foreach (string bone in new[] { "root", "torso", "head" })
-            Assert.That(Channel(bone, XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 0.5f), Is.True, bone);
+            Assert.That(
+                Channel(bone, XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 0.5f),
+                Is.True,
+                bone);
         Assert.That(XafSampler.Sample(Package, Idle, 0.5f).Bones[1].Rotation, Is.EqualTo(0.3f).Within(0.0001f));
     }
 
@@ -83,7 +90,9 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
         Run(ToolActionKind.Undo);
 
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)?.Keyframes.Exists(key => key.Time == 1.5f) ?? false, Is.False);
+        Assert.That(
+            Channel("torso", XafChannelProperty.Rotation)?.Keyframes.Exists(key => key.Time == 1.5f) ?? false,
+            Is.False);
     }
 
     [Test]
@@ -243,8 +252,10 @@ public sealed class AnimatorMirrorPoseTests : AnimatorToolTest
     protected override XafPackage CreatePackage()
     {
         XafPackage package = base.CreatePackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "arm_l", Parent = 1, Rest = new Transform2D(0f, new Vector2(-30, -60)) });
-        package.Skeleton.Bones.Add(new XafBone { Id = "arm_r", Parent = 1, Rest = new Transform2D(0f, new Vector2(30, -60)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "arm_l", Parent = 1, Rest = new Transform2D(0f, new Vector2(-30, -60)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "arm_r", Parent = 1, Rest = new Transform2D(0f, new Vector2(30, -60)) });
         return package;
     }
 

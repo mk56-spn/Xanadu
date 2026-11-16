@@ -2,9 +2,13 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -32,7 +36,7 @@ public sealed partial class SceneSystemTests
     private Vector2 RowCenter(int level)
     {
         Entity tile = Carousel().Tiles.First(t => t.GetComponent<SongSelectTile>().Index == level);
-        return tile.GetComponent<Xanadu.Ecs.Position>().Value;
+        return tile.GetComponent<Position>().Value;
     }
 
     private void MovePointer(FakePointerInput pointer, Vector2 position, bool pressed)
@@ -126,9 +130,8 @@ public sealed partial class SceneSystemTests
     public void ClickingAnEmptyRowSelectsNothing()
     {
         FakePointerInput pointer = OpenCarousel();
-        Vector2 empty = Carousel().Tiles
-            .First(t => t.GetComponent<SongSelectTile>().Index < 0)
-            .GetComponent<Xanadu.Ecs.Position>().Value;
+        Vector2 empty = Carousel().Tiles.First(t => t.GetComponent<SongSelectTile>().Index < 0)
+            .GetComponent<Position>().Value;
 
         MovePointer(pointer, empty, true);
         MovePointer(pointer, empty, false);

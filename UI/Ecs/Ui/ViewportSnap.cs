@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The snap-to-grid every editor shares, beside <see cref="ViewportGrid"/>: the

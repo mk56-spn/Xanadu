@@ -1,4 +1,4 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Shaders;
 

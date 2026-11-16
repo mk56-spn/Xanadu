@@ -4,6 +4,11 @@ using NUnit.Framework;
 using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -86,6 +91,7 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
             if (System.Array.IndexOf(bodies, at) >= 0)
                 return at;
         }
+
         return default;
     }
 
@@ -120,12 +126,14 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
                  {
                      ToolActionKind.KeyBone, ToolActionKind.ToggleMovable, ToolActionKind.LockBend,
                      ToolActionKind.ToggleLimit, ToolActionKind.AddBone, ToolActionKind.RenameBone,
-                     ToolActionKind.ReparentBone, ToolActionKind.DeleteBone,
+                     ToolActionKind.ReparentBone, ToolActionKind.DeleteBone
                  })
         {
             Assert.That(Buttons(kind).Exists(button => IsInside(button, Ui.BoneCard)), Is.True, kind.ToString());
-            Assert.That(Buttons(kind).Exists(button => IsInside(button, Ui.RightPanel) || !TabBody(button).IsNull),
-                Is.False, kind.ToString());
+            Assert.That(
+                Buttons(kind).Exists(button => IsInside(button, Ui.RightPanel) || !TabBody(button).IsNull),
+                Is.False,
+                kind.ToString());
         }
     }
 
@@ -136,6 +144,7 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
             if (at.HasComponent<UiCollapsible>())
                 return at;
         }
+
         return default;
     }
 
@@ -159,13 +168,14 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
                      AnimatorMode.Ik,
                      AnimatorMode.Pin,
                      AnimatorMode.Kites,
-                     AnimatorMode.Handles,
+                     AnimatorMode.Handles
                  })
         {
             Rect2 button = AnimatorGeometry.PanelArea(ModeButton(mode));
             Assert.That(strip.Encloses(button.Grow(-0.5f)), Is.True);
-            Assert.That(button.Size, Is.EqualTo(new Vector2(
-                EditorShellMetrics.ToolButton, EditorShellMetrics.ToolButton)));
+            Assert.That(
+                button.Size,
+                Is.EqualTo(new Vector2(EditorShellMetrics.ToolButton, EditorShellMetrics.ToolButton)));
             Assert.That(button.Position.Y, Is.GreaterThan(previous));
             previous = button.Position.Y;
         }
@@ -219,7 +229,10 @@ public sealed class AnimatorLayoutTests : AnimatorToolTest
         Rect2 config = AnimatorGeometry.PanelArea(Ui.ConfigButton);
         Rect2 undo = AnimatorGeometry.PanelArea(Button(ToolActionKind.Undo));
 
-        Assert.That(config.End.X, Is.EqualTo(header.End.X - (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2).Within(0.5f));
+        Assert.That(
+            config.End.X,
+            Is.EqualTo(header.End.X - (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2)
+                .Within(0.5f));
         Assert.That(undo.End.X, Is.LessThan(AnimatorGeometry.PanelArea(Ui.PreviewButton).Position.X));
         Assert.That(config.GetCenter().Y, Is.EqualTo(undo.GetCenter().Y).Within(0.5f));
     }

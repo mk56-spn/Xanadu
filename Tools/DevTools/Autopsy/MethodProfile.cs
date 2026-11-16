@@ -5,7 +5,7 @@ using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Etlx;
 using Xanadu.Host.Autopsy;
 
-namespace Xanadu.Tools.Autopsy;
+namespace Xanadu.Tools.DevTools.Autopsy;
 
 /// <summary>
 /// The CPU samples of a launch (XANADU_PROFILE=1), read with TraceEvent: each

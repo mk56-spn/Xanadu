@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MoonWorks.Graphics;
-using Xanadu.Rendering;
-using Xanadu.Storage;
+using MoonWorks.Graphics;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
 using BlendFactor = MoonWorks.Graphics.BlendFactor;
 using BlendOp = MoonWorks.Graphics.BlendOp;
 using Shader = MoonWorks.Graphics.Shader;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Rendering;
 
@@ -68,10 +70,10 @@ internal sealed class CanvasPipelines : IDisposable
     public CanvasEffect Plain => _plain;
 
     /// <summary>A material's effect: its level shader code when it has some, else its shipped effect.</summary>
-    public CanvasEffect Effect(Xanadu.Systems.Canvas.CanvasMaterial? material)
+    public CanvasEffect Effect(CanvasMaterial? material)
     {
         if (material?.Source is not { } source)
-            return Effect(material?.Shader ?? "", material?.Overlay ?? Xanadu.Systems.Canvas.MaterialOverlay.None);
+            return Effect(material?.Shader ?? "", material?.Overlay ?? MaterialOverlay.None);
 
         // Keyed by the code, not the name: two slots may share a name, and an edit makes a new effect.
         string key = SourceKey(material, source);
@@ -92,22 +94,22 @@ internal sealed class CanvasPipelines : IDisposable
         return effect ?? _plain;
     }
 
-    private static string SourceKey(Xanadu.Systems.Canvas.CanvasMaterial material, string source) =>
+    private static string SourceKey(CanvasMaterial material, string source) =>
         (material.KeepsState ? "state:" : "source:") + OverlayKey(material.Overlay) + source;
 
-    private static string OverlayKey(Xanadu.Systems.Canvas.MaterialOverlay overlay) =>
-        overlay == Xanadu.Systems.Canvas.MaterialOverlay.None ? "" : overlay + ":";
+    private static string OverlayKey(MaterialOverlay overlay) =>
+        overlay == MaterialOverlay.None ? "" : overlay + ":";
 
     /// <summary>The library function an overlay draws instead of shade; null for the effect itself.</summary>
-    private static string? ShadeWith(Xanadu.Systems.Canvas.MaterialOverlay overlay) => overlay switch
+    private static string? ShadeWith(MaterialOverlay overlay) => overlay switch
     {
-        Xanadu.Systems.Canvas.MaterialOverlay.Triangles => SlangShaders.TrianglesOverlay,
-        Xanadu.Systems.Canvas.MaterialOverlay.UvLines => SlangShaders.UvOverlay,
+        MaterialOverlay.Triangles => SlangShaders.TrianglesOverlay,
+        MaterialOverlay.UvLines => SlangShaders.UvOverlay,
         _ => null,
     };
 
     /// <summary>The effect at a path in the game folder (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
-    public CanvasEffect Effect(string path, Xanadu.Systems.Canvas.MaterialOverlay overlay = Xanadu.Systems.Canvas.MaterialOverlay.None)
+    public CanvasEffect Effect(string path, MaterialOverlay overlay = MaterialOverlay.None)
     {
         if (path.Length == 0)
             return _plain;
@@ -180,7 +182,7 @@ internal sealed class CanvasPipelines : IDisposable
     /// be drawn again (a live-edited shader's old version). SDL releases them once
     /// the GPU is done with them.
     /// </summary>
-    public void Forget(Xanadu.Systems.Canvas.CanvasMaterial material)
+    public void Forget(CanvasMaterial material)
     {
         Forgotten?.Invoke(material);
         if (material.Source is not { } source || !_effects.Remove(SourceKey(material, source), out CanvasEffect? effect))
@@ -195,7 +197,7 @@ internal sealed class CanvasPipelines : IDisposable
     /// </summary>
     public void Reload(string path)
     {
-        foreach (Xanadu.Systems.Canvas.MaterialOverlay overlay in Enum.GetValues<Xanadu.Systems.Canvas.MaterialOverlay>())
+        foreach (MaterialOverlay overlay in Enum.GetValues<MaterialOverlay>())
         {
             if (_effects.Remove(OverlayKey(overlay) + path, out CanvasEffect? effect))
                 Drop(effect);
@@ -220,10 +222,10 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     /// <summary>Raised when a material is forgotten, so what the renderer keeps for it (its state) can go too.</summary>
-    public event Action<Xanadu.Systems.Canvas.CanvasMaterial>? Forgotten;
+    public event Action<CanvasMaterial>? Forgotten;
 
     /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
-    public void Warm(Xanadu.Systems.Canvas.CanvasMaterial material) =>
+    public void Warm(CanvasMaterial material) =>
         Pipeline(Effect(material), material);
 
     /// <summary>
@@ -248,9 +250,9 @@ internal sealed class CanvasPipelines : IDisposable
 
     /// <summary>The pipeline for an effect drawn with a material's blend: its custom one when it has it, else its mode.</summary>
     /// <remarks>The triangles overlay draws line-filled: each triangle's edges, wherever its corners landed.</remarks>
-    public GraphicsPipeline Pipeline(CanvasEffect effect, Xanadu.Systems.Canvas.CanvasMaterial? material)
+    public GraphicsPipeline Pipeline(CanvasEffect effect, CanvasMaterial? material)
     {
-        bool lines = material?.Overlay == Xanadu.Systems.Canvas.MaterialOverlay.Triangles;
+        bool lines = material?.Overlay == MaterialOverlay.Triangles;
         return material?.Custom is { } custom
             ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines)
             : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines);

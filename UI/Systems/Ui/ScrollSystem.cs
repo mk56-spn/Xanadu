@@ -1,11 +1,12 @@
+using Xanadu.Core;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Scrolls the ECS viewport or pooled list (<see cref="UiList"/>) under the

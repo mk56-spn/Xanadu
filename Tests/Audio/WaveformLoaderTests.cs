@@ -33,9 +33,7 @@ public sealed class WaveformLoaderTests
 
     private static string WriteWav(params short[] samples)
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-waveform-" + Guid.NewGuid().ToString("N") + ".wav");
+        string path = Path.Combine(Path.GetTempPath(), "writer-waveform-" + Guid.NewGuid().ToString("N") + ".wav");
 
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);

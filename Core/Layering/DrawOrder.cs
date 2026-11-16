@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Layering;
+namespace Xanadu.Core.Layering;
 
 /// <summary>
 /// Where one thing draws: its layer, then its z inside the layer, then its place

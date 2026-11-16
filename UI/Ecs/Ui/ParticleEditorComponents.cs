@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Particles;
+using Xanadu.Core.Particles;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// What a tool gives the particle editor: which library effect the selected

@@ -1,13 +1,13 @@
 using System.Collections.Generic;
-using Xanadu.Ecs;
-using Xanadu.Levels;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 
-namespace Xanadu.Editor;
+namespace Xanadu.Editor.History;
 
 /// <summary>
-/// The level's editable state as undo keeps it: every placed item as an
-/// <see cref="ItemCopy"/>, in <see cref="ItemKinds.All"/> order and sorted
-/// within each kind, plus the group and layer tables.
+///     The level's editable state as undo keeps it: every placed item as an
+///     <see cref="ItemCopy" />, in <see cref="ItemKinds.All" /> order and sorted
+///     within each kind, plus the group and layer tables.
 /// </summary>
 public readonly record struct EditorSnapshot(
     List<ItemCopy> Items,

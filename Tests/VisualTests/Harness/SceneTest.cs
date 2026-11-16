@@ -65,16 +65,16 @@ public abstract class SceneTest
     {
         AddStep("give the level the test track", () =>
         {
-            foreach (Friflo.Engine.ECS.Entity editor in Context.Entities.Query<Xanadu.Ecs.LevelInfo>().ToEntityList())
-                editor.GetComponent<Xanadu.Ecs.LevelInfo>().Song = TestContent.Song("visual-editor", "Visual Editor");
+            foreach (Friflo.Engine.ECS.Entity editor in Context.Entities.Query<Xanadu.Ecs.Components.LevelInfo>().ToEntityList())
+                editor.GetComponent<Xanadu.Ecs.Components.LevelInfo>().Song = TestContent.Song("visual-editor", "Visual Editor");
         });
         AddUntilStep("the song picker is down", () =>
         {
-            if (Xanadu.Ecs.EditorDialogs.IsSongRequired(Context.Entities))
+            if (Xanadu.Ecs.Components.EditorDialogs.IsSongRequired(Context.Entities))
                 return false;
 
-            Xanadu.Ecs.EditorDialogs.Dismiss(Context.Entities);
-            return !Xanadu.Ecs.EditorDialogs.AnyOpen(Context.Entities);
+            Xanadu.Ecs.Components.EditorDialogs.Dismiss(Context.Entities);
+            return !Xanadu.Ecs.Components.EditorDialogs.AnyOpen(Context.Entities);
         });
     }
 

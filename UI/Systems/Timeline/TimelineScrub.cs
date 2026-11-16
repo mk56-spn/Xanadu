@@ -1,7 +1,8 @@
 using System;
-using Xanadu.Ecs;
+using Xanadu.Core.Timeline;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// Dragging on a timeline the same way in every tool: the visible window is

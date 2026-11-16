@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Ecs;
 

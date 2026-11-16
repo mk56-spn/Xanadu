@@ -1,3 +1,4 @@
+using Xanadu.Ecs.Components;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Scenes;

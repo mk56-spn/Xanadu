@@ -1,9 +1,9 @@
+using Xanadu.Core;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Animates button hover fades and short click flashes.</summary>
 public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>

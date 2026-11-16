@@ -15,7 +15,7 @@ public sealed class ArtAlphaBleedTests
             255, 0, 0, 255,
             0, 0, 0, 0,
             0, 0, 0, 0,
-            0, 0, 255, 128,
+            0, 0, 255, 128
         };
 
         ArtAlphaBleed.Apply(pixels, 4, 1);
@@ -30,7 +30,7 @@ public sealed class ArtAlphaBleedTests
     public void TheBleedReachesPixelsFarFromAnyEdge()
     {
         const int size = 32;
-        var pixels = new byte[size * size * 4];
+        byte[] pixels = new byte[size * size * 4];
         pixels[0] = 10;
         pixels[1] = 200;
         pixels[2] = 30;
@@ -45,7 +45,7 @@ public sealed class ArtAlphaBleedTests
     [Test]
     public void FullyTransparentArtIsLeftAlone()
     {
-        var pixels = new byte[2 * 2 * 4];
+        byte[] pixels = new byte[2 * 2 * 4];
 
         ArtAlphaBleed.Apply(pixels, 2, 2);
 

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Editor.Analysis;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// What the editor has worked out about the chart: how dense it is and which

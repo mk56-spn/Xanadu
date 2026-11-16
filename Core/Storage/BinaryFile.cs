@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace Xanadu.Storage;
+namespace Xanadu.Core.Storage;
 
 /// <summary>Writes a whole binary file, making its directory when it is missing.
 /// The bytes go to a temporary file first and are moved over the real one, so a crash

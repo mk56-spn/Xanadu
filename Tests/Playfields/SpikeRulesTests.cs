@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Playfields;
@@ -12,10 +14,7 @@ public sealed class SpikeRulesTests
     [Test]
     public void ScreenBoundsFollowTheView()
     {
-        var view = new PlayfieldView(
-            new Vector2(100, 50),
-            0.5f,
-            new Vector2(1000, 1000));
+        var view = new PlayfieldView(new Vector2(100, 50), 0.5f, new Vector2(1000, 1000));
         var spike = new Spike(new Vector2(200, 300), new Vector2(100, 100));
 
         Assert.That(
@@ -93,13 +92,8 @@ public sealed class SpikeRulesTests
     [TestCase(45, 100, 10, 10, false, TestName = "Only touching the base")]
     public void TriangleOverlap(float x, float y, float width, float height, bool expected)
     {
-        var triangle = new SpikeTriangle(
-            new Vector2(50, 0),
-            new Vector2(0, 100),
-            new Vector2(100, 100));
+        var triangle = new SpikeTriangle(new Vector2(50, 0), new Vector2(0, 100), new Vector2(100, 100));
 
-        Assert.That(
-            triangle.Overlaps(new Rect2(x, y, width, height)),
-            Is.EqualTo(expected));
+        Assert.That(triangle.Overlaps(new Rect2(x, y, width, height)), Is.EqualTo(expected));
     }
 }

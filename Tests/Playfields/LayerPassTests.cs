@@ -2,13 +2,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Shaders;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
+using Xanadu.Ui.Systems.Canvas;
+using Handle = Xanadu.Core.Maths.Handle;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -27,16 +30,14 @@ public sealed class LayerPassTests
     private static EntityStore Level(LevelLayers layers)
     {
         var store = new EntityStore();
-        store.CreateEntity(
-            new Note(0, new Vector2(300, 300)),
-            new ItemLayer(-2, 0));
+        store.CreateEntity(new Note(0, new Vector2(300, 300)), new ItemLayer(-2, 0));
         store.CreateEntity(layers);
         return store;
     }
 
     private static LevelLayers SelfContained(int slot = 3, float tint = 0.5f)
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         LevelLayer layer = table.Edit(-2);
         layer.Pass = LayerPassKind.SelfContained;
         layer.PassShader = slot;
@@ -56,15 +57,7 @@ public sealed class LayerPassTests
             new ShaderRoutingCanvas(canvas, Main, items),
             Main,
             store,
-            new PlayfieldItemFrame(
-                View,
-                Field,
-                Head,
-                0f,
-                Editor: false,
-                Layers: table.Layers,
-                Passes: passes,
-                Groups: groups),
+            new PlayfieldItemFrame(View, Field, Head, 0f, false, Layers: table.Layers, Passes: passes, Groups: groups),
             drawWedge);
 
     [Test]
@@ -78,7 +71,10 @@ public sealed class LayerPassTests
 
         Draw(canvas, store, table, surfaces, items);
 
-        Assert.That(items.Parents.Select(pair => pair.Parent), Does.Contain(surfaces.Fake.Canvas), "the item runs are parented into it");
+        Assert.That(
+            items.Parents.Select(pair => pair.Parent),
+            Does.Contain(surfaces.Fake.Canvas),
+            "the item runs are parented into it");
         Assert.That(items.Materials, Does.Contain((3, BlendMode.Premultiplied)));
         Assert.That(items.Values, Does.Contain(("tint", new Vector4(0.5f, 0f, 0f, 1f), 4)));
         Assert.That(surfaces.Fake.TextureReads, Is.EqualTo(1), "the viewport is composited into the main canvas");
@@ -87,7 +83,7 @@ public sealed class LayerPassTests
     [Test]
     public void ABackgroundReaderCopiesTheScreenBeforeItsQuad()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         LevelLayer layer = table.Edit(-2);
         layer.Pass = LayerPassKind.BackgroundReader;
         layer.PassShader = 2;
@@ -106,7 +102,7 @@ public sealed class LayerPassTests
     [Test]
     public void APlainLayerHasNoPassWork()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         EntityStore store = Level(table);
         var canvas = new PassCanvas();
         var surfaces = new FakeSurfaces();
@@ -130,9 +126,13 @@ public sealed class LayerPassTests
             return Fake;
         }
 
-        public void Release(int layer) { }
+        public void Release(int layer)
+        {
+        }
 
-        public void ReleaseAll() { }
+        public void ReleaseAll()
+        {
+        }
 
         public sealed class FakeSurface : IPassSurface
         {
@@ -148,25 +148,33 @@ public sealed class LayerPassTests
                 }
             }
 
-            public void Resize(Vector2 size) { }
+            public void Resize(Vector2 size)
+            {
+            }
         }
     }
 
     [Test]
     public void ABufferedGroupDrawsItsMembersIntoOneGroupedImage()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         var store = new EntityStore();
-        Entity a = store.CreateEntity(new Note(0, new Vector2(100, 100)), new ItemLayer(-2, 0), new ItemGroups(ItemGroups.Bit(0)));
-        Entity b = store.CreateEntity(new Note(0, new Vector2(200, 200)), new ItemLayer(-2, 1), new ItemGroups(ItemGroups.Bit(0)));
+        Entity a = store.CreateEntity(
+            new Note(0, new Vector2(100, 100)),
+            new ItemLayer(-2, 0),
+            new ItemGroups(ItemGroups.Bit(0)));
+        Entity b = store.CreateEntity(
+            new Note(0, new Vector2(200, 200)),
+            new ItemLayer(-2, 1),
+            new ItemGroups(ItemGroups.Bit(0)));
         store.CreateEntity(table);
-        GroupDefinition[] groups = new GroupDefinition[GroupLimits.Count];
+        var groups = new GroupDefinition[GroupLimits.Count];
         for (int i = 0; i < groups.Length; i++)
             groups[i] = new GroupDefinition();
         groups[0].Buffered = true;
         groups[0].BufferShader = 2;
         groups[0].BufferBlend = BlendMode.Add;
-        groups[0].BufferTint = new Color("#3366cc80");
+        groups[0].BufferTint = new Core.Maths.Color("#3366cc80");
         groups[0].BufferAlpha = 0.5f;
         groups[0].BufferKeys.Add(new ShaderKey("size", 0f, new Vector4(4f, 0, 0, 0), 1, EasePreset.Linear));
         var canvas = new PassCanvas();
@@ -183,7 +191,7 @@ public sealed class LayerPassTests
 
     private static GroupDefinition[] BufferedGroupZero()
     {
-        GroupDefinition[] groups = new GroupDefinition[GroupLimits.Count];
+        var groups = new GroupDefinition[GroupLimits.Count];
         for (int i = 0; i < groups.Length; i++)
             groups[i] = new GroupDefinition();
         groups[0].Buffered = true;
@@ -193,7 +201,7 @@ public sealed class LayerPassTests
     [Test]
     public void ABufferedGroupsFadeIsAppliedToTheWholeBuffer()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         var store = new EntityStore();
         store.CreateEntity(
             new Block(new Vector2(100, 100), new Vector2(50, 50)),
@@ -203,12 +211,15 @@ public sealed class LayerPassTests
         store.CreateEntity(table);
         GroupDefinition[] groups = BufferedGroupZero();
         groups[0].BufferAlpha = 0.8f;
-        groups[0].Effects.Add(GroupEffect.Colour(0f, 0f, new Color(1, 1, 1, 0.5f)));
+        groups[0].Effects.Add(GroupEffect.Colour(0f, 0f, new Core.Maths.Color(1, 1, 1, 0.5f)));
         var items = new FakeItems();
 
         Draw(new PassCanvas(), store, table, null, items, groups);
 
-        Assert.That(items.Modulates.Single().Color.A, Is.EqualTo(0.8f * 0.5f).Within(0.01f), "buffer alpha × the group's fade");
+        Assert.That(
+            items.Modulates.Single().Color.A,
+            Is.EqualTo(0.8f * 0.5f).Within(0.01f),
+            "buffer alpha × the group's fade");
     }
 
     [Test]
@@ -226,15 +237,21 @@ public sealed class LayerPassTests
 
         Handle grouped = items.Grouped.Single();
         Handle parent = items.Parents.Single(pair => pair.Item == grouped).Parent;
-        Assert.That(parent, Is.Not.EqualTo(surfaces.Fake.Canvas), "layer -1's buffer is not inside layer -2's self-contained viewport");
+        Assert.That(
+            parent,
+            Is.Not.EqualTo(surfaces.Fake.Canvas),
+            "layer -1's buffer is not inside layer -2's self-contained viewport");
     }
 
     [Test]
     public void ABufferedGroupInFrontOfThePlayerDrawsAfterTheWedge()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         var store = new EntityStore();
-        store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(50, 50)), new ItemLayer(1, 0), new ItemGroups(ItemGroups.Bit(0)));
+        store.CreateEntity(
+            new Block(new Vector2(100, 100), new Vector2(50, 50)),
+            new ItemLayer(1, 0),
+            new ItemGroups(ItemGroups.Bit(0)));
         store.CreateEntity(table);
         var canvas = new PassCanvas();
 
@@ -247,7 +264,7 @@ public sealed class LayerPassTests
     [Test]
     public void BufferedMembersLeftOnAnotherLayerStillDraw()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         var store = new EntityStore();
         store.CreateEntity(new Note(0, new Vector2(100, 100)), new ItemLayer(-2, 0), new ItemGroups(ItemGroups.Bit(0)));
         store.CreateEntity(new Note(0, new Vector2(200, 200)), new ItemLayer(1, 0), new ItemGroups(ItemGroups.Bit(0)));
@@ -285,7 +302,7 @@ public sealed class LayerPassTests
         public void CopyScreen(Handle item) => Copies.Add(item);
 
         public List<Handle> Grouped { get; } = new();
-        public List<(Handle Item, Color Color)> Modulates { get; } = new();
+        public List<(Handle Item, Core.Maths.Color Color)> Modulates { get; } = new();
 
         public void SetCanvasGroup(Handle item) => Grouped.Add(item);
 
@@ -311,11 +328,17 @@ public sealed class LayerPassTests
 
         public void SetShaderValue(string param, Vector4 value, int size) => Values.Add((param, value, size));
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Mark(canvas, "rect");
 
@@ -327,7 +350,8 @@ public sealed class LayerPassTests
 
         public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Mark(canvas, "circle");
 
-        public void DrawPolygon(Handle canvas, System.ReadOnlySpan<Vector2> points, Color color) => Mark(canvas, "polygon");
+        public void DrawPolygon(Handle canvas, System.ReadOnlySpan<Vector2> points, Color color) =>
+            Mark(canvas, "polygon");
 
         public void DrawPolyline(
             Handle canvas,

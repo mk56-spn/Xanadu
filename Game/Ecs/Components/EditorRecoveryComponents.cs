@@ -2,7 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Levels;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>The editor loaded a level, so what is on screen is the clean state to compare against.</summary>
 public struct EditorBaselineStale : ITag;

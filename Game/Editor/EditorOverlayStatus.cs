@@ -1,4 +1,5 @@
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Editor;
 
@@ -23,12 +24,8 @@ public sealed partial class EditorOverlay
         if (!_songDialogChecked)
         {
             _songDialogChecked = true;
-            if (_openSongDialog &&
-                _editor.HasComponent<LevelInfo>() &&
-                _editor.GetComponent<LevelInfo>().Song is null)
-            {
+            if (_openSongDialog && _editor.HasComponent<LevelInfo>() && _editor.GetComponent<LevelInfo>().Song is null)
                 OpenSongDialog();
-            }
         }
 
         ProcessUiRequest();

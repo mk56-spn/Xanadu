@@ -15,11 +15,11 @@ public sealed class SpectrumAnalyzerTests
     [TestCase(5000f)]
     public void ASineLightsTheBandItsFrequencyFallsIn(float hertz)
     {
-        float[] samples = Sine(hertz, seconds: 1);
+        float[] samples = Sine(hertz, 1);
 
-        SpectrumData data = SpectrumAnalyzer.Analyze(samples, Rate, bands: 48);
+        SpectrumData data = SpectrumAnalyzer.Analyze(samples, Rate, 48);
 
-        var levels = new float[48];
+        float[] levels = new float[48];
         data.Sample(0.5, levels);
         int loudest = Array.IndexOf(levels, levels.Max());
 
@@ -35,7 +35,7 @@ public sealed class SpectrumAnalyzerTests
     {
         SpectrumData data = SpectrumAnalyzer.Analyze(new float[Rate], Rate);
 
-        var levels = new float[48];
+        float[] levels = new float[48];
         data.Sample(0.3, levels);
 
         Assert.That(levels, Is.All.EqualTo(0f));
@@ -46,7 +46,7 @@ public sealed class SpectrumAnalyzerTests
     {
         SpectrumData data = SpectrumAnalyzer.Analyze(new float[100], Rate);
 
-        var levels = new float[48];
+        float[] levels = new float[48];
         data.Sample(1, levels);
 
         Assert.That(data.FrameCount, Is.Zero);
@@ -56,10 +56,10 @@ public sealed class SpectrumAnalyzerTests
     [Test]
     public void SamplingPastTheEndHoldsTheLastFrame()
     {
-        SpectrumData data = SpectrumAnalyzer.Analyze(Sine(1000f, seconds: 1), Rate);
+        SpectrumData data = SpectrumAnalyzer.Analyze(Sine(1000f, 1), Rate);
 
-        var last = new float[48];
-        var beyond = new float[48];
+        float[] last = new float[48];
+        float[] beyond = new float[48];
         data.Sample(0.99, last);
         data.Sample(500, beyond);
 
@@ -68,7 +68,7 @@ public sealed class SpectrumAnalyzerTests
 
     private static float[] Sine(float hertz, float seconds)
     {
-        var samples = new float[(int)(Rate * seconds)];
+        float[] samples = new float[(int)(Rate * seconds)];
         for (int i = 0; i < samples.Length; i++)
             samples[i] = 0.8f * MathF.Sin(2 * MathF.PI * hertz * i / Rate);
 

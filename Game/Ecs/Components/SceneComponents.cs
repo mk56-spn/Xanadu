@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Levels;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Top-level game scene managed by the ECS scene system.</summary>
 public enum SceneKind

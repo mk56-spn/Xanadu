@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>
 /// The visible span of a timeline, in milliseconds, and its mapping to screen
@@ -34,7 +35,7 @@ public readonly record struct TimeWindow(long Start, long End)
     /// wheel zoom pinned, else the one centred on the playhead. Every timeline,
     /// whichever tool owns it, draws and hits through this.
     /// </summary>
-    public static TimeWindow Of(in Xanadu.Ecs.TimelineView view, long timeMs, long durationMs)
+    public static TimeWindow Of(in TimelineView view, long timeMs, long durationMs)
     {
         if (view.Scrubbing)
             return new TimeWindow(view.ScrubStartMs, view.ScrubEndMs);

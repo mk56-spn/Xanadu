@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Levels;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>Blocks: grid boxes the player collides with, turned only in quarter turns, which swap their size.</summary>
 public sealed class BlockItemKind : ItemKind<Block, BlockDocument>

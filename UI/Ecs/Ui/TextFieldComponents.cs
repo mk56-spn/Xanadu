@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>General ECS text field backing a native text-input bridge.</summary>
 public struct TextField(string value, bool numeric = false) : IComponent

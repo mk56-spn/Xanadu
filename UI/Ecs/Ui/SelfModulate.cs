@@ -1,7 +1,8 @@
 using System.Globalization;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// An object's own colour, as Godot's self modulate: what it is drawn in is

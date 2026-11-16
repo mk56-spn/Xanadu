@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Hover text for a button. The animator's tooltip system shows it while the

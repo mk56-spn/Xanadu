@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Tools.Animator.Commands;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tools.Animator.Systems;
 

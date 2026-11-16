@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>
 /// Everything the editor, the history, the clipboard, the draw list and the

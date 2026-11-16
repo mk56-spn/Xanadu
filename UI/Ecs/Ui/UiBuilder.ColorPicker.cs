@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 public sealed partial class UiBuilder
 {
@@ -15,8 +16,8 @@ public sealed partial class UiBuilder
     public List<Entity> ColorPicker(
         Vector2 center,
         Color initial,
-        Xanadu.Systems.Canvas.CanvasMaterial? squareMaterial = null,
-        Xanadu.Systems.Canvas.CanvasMaterial? hueMaterial = null)
+        CanvasMaterial? squareMaterial = null,
+        CanvasMaterial? hueMaterial = null)
     {
         Entity square = RectEntity(center, ColorPickerLayout.Size, Colors.White);
         if (squareMaterial is not null)

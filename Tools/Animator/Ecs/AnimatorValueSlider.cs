@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>A value a panel slider shows and sets; <see cref="Systems.AnimatorValueSliderSystem"/> binds each.</summary>
 public enum AnimatorSliderValue

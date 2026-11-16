@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Particles;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Particles;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Builds a particle editor panel: which library effect the selected thing
 /// plays, its name, its look and a slider for each of its numbers. Any tool
 /// can host one, the way it hosts the XIF editor;
-/// <see cref="Systems.Ui.ParticleEditorSystem"/> runs it and the host says
+/// <see cref="Xanadu.Systems.Ui.ParticleEditorSystem"/> runs it and the host says
 /// what is selected through <see cref="IParticleEditorHost"/>.
 /// </summary>
 public static class ParticleEditorPanel

@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Layout;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI.Layout;
+namespace Xanadu.Ui.Tests.Layout;
 
 [TestFixture]
 public sealed class ContainerLayoutSystemTests : EcsSystemTest

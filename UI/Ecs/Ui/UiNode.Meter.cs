@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A meter's reading: how full it is, and where it turns from the theme's good

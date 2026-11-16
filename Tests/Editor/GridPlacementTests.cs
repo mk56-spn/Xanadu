@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -23,15 +25,9 @@ public sealed class GridPlacementTests
     {
         Assert.That(GridPlacement.NewBlockSize(Field), Is.EqualTo(new Vector2(50, 50)));
         Assert.That(GridPlacement.NewBlockSize(Field, 90f), Is.EqualTo(new Vector2(50, 50)));
-        Assert.That(
-            GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Quarter),
-            Is.EqualTo(new Vector2(25, 25)));
-        Assert.That(
-            GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Platform),
-            Is.EqualTo(new Vector2(100, 50)));
-        Assert.That(
-            GridPlacement.NewBlockSize(Field, 90f, BlockBrushSize.Platform),
-            Is.EqualTo(new Vector2(50, 100)));
+        Assert.That(GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Quarter), Is.EqualTo(new Vector2(25, 25)));
+        Assert.That(GridPlacement.NewBlockSize(Field, 0f, BlockBrushSize.Platform), Is.EqualTo(new Vector2(100, 50)));
+        Assert.That(GridPlacement.NewBlockSize(Field, 90f, BlockBrushSize.Platform), Is.EqualTo(new Vector2(50, 100)));
         Assert.That(GridPlacement.NewSpikeSize(Field), Is.EqualTo(new Vector2(50, 50)));
     }
 
@@ -39,12 +35,8 @@ public sealed class GridPlacementTests
     public void AQuarterBlockSnapsToItsOwnSizeSoQuartersTile()
     {
         var quarter = new Vector2(25, 25);
-        Assert.That(
-            GridPlacement.Place(new Vector2(520, 520), quarter, Field),
-            Is.EqualTo(new Vector2(500, 500)));
-        Assert.That(
-            GridPlacement.Place(new Vector2(545, 545), quarter, Field),
-            Is.EqualTo(new Vector2(525, 525)));
+        Assert.That(GridPlacement.Place(new Vector2(520, 520), quarter, Field), Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(GridPlacement.Place(new Vector2(545, 545), quarter, Field), Is.EqualTo(new Vector2(525, 525)));
         Assert.That(
             GridPlacement.Place(new Vector2(560, 560), new Vector2(50, 50), Field),
             Is.EqualTo(new Vector2(550, 550)),
@@ -74,7 +66,7 @@ public sealed class GridPlacementTests
     public void SnapOffPlacesExactly()
     {
         Assert.That(
-            GridPlacement.Place(new Vector2(523, 517), new Vector2(50, 50), Field, snap: false),
+            GridPlacement.Place(new Vector2(523, 517), new Vector2(50, 50), Field, false),
             Is.EqualTo(new Vector2(498, 492)));
     }
 
@@ -109,7 +101,13 @@ public sealed class GridPlacementTests
     [TestCase(GridHandle.Top, 500, 380, 400, 400, 200, 200)]
     [TestCase(GridHandle.Bottom, 500, 744, 400, 500, 200, 250)]
     public void ResizingSnapsTheDraggedEdgeAndKeepsTheOther(
-        GridHandle handle, float x, float y, float left, float top, float width, float height)
+        GridHandle handle,
+        float x,
+        float y,
+        float left,
+        float top,
+        float width,
+        float height)
     {
         Assert.That(
             GridPlacement.Resize(Platform, handle, new Vector2(x, y), Field),
@@ -121,7 +119,13 @@ public sealed class GridPlacementTests
     [TestCase(GridHandle.TopRight, 688, 380, 400, 400, 300, 200)]
     [TestCase(GridHandle.BottomLeft, 320, 744, 300, 500, 300, 250)]
     public void DraggingACornerResizesBothSidesAndKeepsTheOppositeCorner(
-        GridHandle handle, float x, float y, float left, float top, float width, float height)
+        GridHandle handle,
+        float x,
+        float y,
+        float left,
+        float top,
+        float width,
+        float height)
     {
         Assert.That(
             GridPlacement.Resize(Platform, handle, new Vector2(x, y), Field),
@@ -132,19 +136,39 @@ public sealed class GridPlacementTests
     public void ShiftOnACornerKeepsTheProportions()
     {
         // Pulled further right than down: the right side leads, the height follows.
-        Rect2 bigger = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(800, 620), Field, keepRatio: true);
+        Rect2 bigger = GridPlacement.Resize(
+            Platform,
+            GridHandle.BottomRight,
+            new Vector2(800, 620),
+            Field,
+            keepRatio: true);
         Assert.That(bigger, Is.EqualTo(new Rect2(400, 500, 400, 200)));
 
         // Pulled up-left, the bottom-right corner stays put.
-        Rect2 fromTopLeft = GridPlacement.Resize(Platform, GridHandle.TopLeft, new Vector2(400, 400), Field, keepRatio: true);
+        Rect2 fromTopLeft = GridPlacement.Resize(
+            Platform,
+            GridHandle.TopLeft,
+            new Vector2(400, 400),
+            Field,
+            keepRatio: true);
         Assert.That(fromTopLeft, Is.EqualTo(new Rect2(200, 400, 400, 200)));
 
         // Never below a cell on its short side.
-        Rect2 smallest = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(410, 510), Field, keepRatio: true);
+        Rect2 smallest = GridPlacement.Resize(
+            Platform,
+            GridHandle.BottomRight,
+            new Vector2(410, 510),
+            Field,
+            keepRatio: true);
         Assert.That(smallest, Is.EqualTo(new Rect2(400, 500, 100, 50)));
 
         // Stops where the box meets the field's edge.
-        Rect2 edge = GridPlacement.Resize(Platform, GridHandle.BottomRight, new Vector2(1400, 1400), Field, keepRatio: true);
+        Rect2 edge = GridPlacement.Resize(
+            Platform,
+            GridHandle.BottomRight,
+            new Vector2(1400, 1400),
+            Field,
+            keepRatio: true);
         Assert.That(edge, Is.EqualTo(new Rect2(400, 500, 600, 300)));
     }
 
@@ -163,7 +187,7 @@ public sealed class GridPlacementTests
         var start = new Rect2(400, 400, 100, 100);
         Vector2 keptBefore = GridPlacement.HandleCenter(start, GridHandle.TopLeft, 90f);
 
-        Rect2 resized = GridPlacement.Resize(start, GridHandle.BottomRight, new Vector2(300, 600), Field, snap: false, degrees: 90f);
+        Rect2 resized = GridPlacement.Resize(start, GridHandle.BottomRight, new Vector2(300, 600), Field, false, 90f);
 
         Assert.That(resized.Size.X, Is.EqualTo(200).Within(0.01f));
         Assert.That(resized.Size.Y, Is.EqualTo(200).Within(0.01f));
@@ -173,7 +197,9 @@ public sealed class GridPlacementTests
     [Test]
     public void AnItemCannotBeResizedBelowOneCell()
     {
-        Assert.That(GridPlacement.Resize(Platform, GridHandle.Right, new Vector2(410, 550), Field).Size.X, Is.EqualTo(50));
+        Assert.That(
+            GridPlacement.Resize(Platform, GridHandle.Right, new Vector2(410, 550), Field).Size.X,
+            Is.EqualTo(50));
 
         Rect2 upwards = GridPlacement.Resize(Platform, GridHandle.Top, new Vector2(500, 590), Field);
         Assert.That(upwards.Size.Y, Is.EqualTo(50));
@@ -187,7 +213,7 @@ public sealed class GridPlacementTests
         var start = new Rect2(400, 400, 100, 100);
         Vector2 keptBefore = GridPlacement.HandleCenter(start, GridHandle.Left, 90f);
 
-        Rect2 resized = GridPlacement.Resize(start, GridHandle.Right, new Vector2(450, 600), Field, snap: true, degrees: 90f);
+        Rect2 resized = GridPlacement.Resize(start, GridHandle.Right, new Vector2(450, 600), Field, true, 90f);
 
         Assert.That(resized.Size.X, Is.EqualTo(200).Within(0.01f), "stretches along its own axis");
         Assert.That(resized.Size.Y, Is.EqualTo(100).Within(0.01f));
@@ -197,7 +223,11 @@ public sealed class GridPlacementTests
     [Test]
     public void MovingSnapsAndStopsAtTheFieldEdge()
     {
-        Assert.That(GridPlacement.Move(Platform.Position, Platform.Size, new Vector2(60, 40), Field), Is.EqualTo(new Vector2(450, 550)));
-        Assert.That(GridPlacement.Move(Platform.Position, Platform.Size, new Vector2(900, -900), Field), Is.EqualTo(new Vector2(800, 0)));
+        Assert.That(
+            GridPlacement.Move(Platform.Position, Platform.Size, new Vector2(60, 40), Field),
+            Is.EqualTo(new Vector2(450, 550)));
+        Assert.That(
+            GridPlacement.Move(Platform.Position, Platform.Size, new Vector2(900, -900), Field),
+            Is.EqualTo(new Vector2(800, 0)));
     }
 }

@@ -29,7 +29,8 @@ public sealed class XafAttachmentAuthoringTests
         XafAttachmentAuthoring.RemoveAlternate(package, 0, 1);
 
         Assert.That(XafSampler.Sample(package, clip, 0.5f).AttachmentStates[0].Art, Is.EqualTo(0));
-        Assert.That(package.Attachments[0].Art(XafSampler.Sample(package, clip, 1.5f).AttachmentStates[0].Art).Group,
+        Assert.That(
+            package.Attachments[0].Art(XafSampler.Sample(package, clip, 1.5f).AttachmentStates[0].Art).Group,
             Is.EqualTo("point"));
     }
 

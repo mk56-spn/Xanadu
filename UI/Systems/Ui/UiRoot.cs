@@ -1,13 +1,13 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Debug;
-using Xanadu.Systems.Groups;
-using Xanadu.Systems.Input;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Groups;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// The UI's own root, owned by the host, not by the app. Each frame:

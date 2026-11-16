@@ -2,14 +2,17 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Color = Xanadu.Core.Maths.Color;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
+using Buffer = System.Buffer;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -219,12 +222,12 @@ internal sealed class TransparencyLab : ILabExperiment
         private readonly LabContext _context;
         private readonly uint _width, _height;
         private readonly Mw.GraphicsDevice _device;
-        private readonly Mw.Texture[] _panes = new Mw.Texture[4];
+        private readonly Texture[] _panes = new Texture[4];
         private readonly Handle[] _shown = new Handle[4];
-        private readonly Mw.Texture _accum, _reveal;
-        private readonly Mw.Sampler _sampler;
-        private readonly Mw.Shader _layerVertex, _blendShade, _oitShade, _fullVertex, _composite, _exact, _back;
-        private readonly Mw.GraphicsPipeline _blend, _oit, _compositePipe, _exactPipe, _backPipe;
+        private readonly Texture _accum, _reveal;
+        private readonly Sampler _sampler;
+        private readonly Shader _layerVertex, _blendShade, _oitShade, _fullVertex, _composite, _exact, _back;
+        private readonly GraphicsPipeline _blend, _oit, _compositePipe, _exactPipe, _backPipe;
         private readonly Handle _item;
         private readonly LayerData[] _frame = new LayerData[MaxLayers];
         private readonly int[] _sorted = new int[MaxLayers];
@@ -245,7 +248,7 @@ internal sealed class TransparencyLab : ILabExperiment
             CanvasServer.Current.SetParent(_item, parent);
             for (int i = 0; i < 4; i++)
             {
-                _panes[i] = Mw.Texture.Create2D(_device, "transparency lab " + Panes[i], _width, _height, ColourFormat,
+                _panes[i] = Texture.Create2D(_device, "transparency lab " + Panes[i], _width, _height, ColourFormat,
                     Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
                 _shown[i] = context.Show(_panes[i]);
                 var at = area.Position + new Vector2(i % 2, i / 2) * (pane + new Vector2(Gap, Gap));
@@ -253,9 +256,9 @@ internal sealed class TransparencyLab : ILabExperiment
             }
 
             const Mw.TextureUsageFlags target = Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler;
-            _accum = Mw.Texture.Create2D(_device, "transparency lab accum", _width, _height, AccumFormat, target);
-            _reveal = Mw.Texture.Create2D(_device, "transparency lab reveal", _width, _height, RevealFormat, target);
-            _sampler = Mw.Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
+            _accum = Texture.Create2D(_device, "transparency lab accum", _width, _height, AccumFormat, target);
+            _reveal = Texture.Create2D(_device, "transparency lab reveal", _width, _height, RevealFormat, target);
+            _sampler = Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
 
             string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "transparency_lab.slang");
             _layerVertex = Shader(module, "layerVertex", "vertex", Mw.ShaderStage.Vertex, uniforms: 1);
@@ -298,8 +301,8 @@ internal sealed class TransparencyLab : ILabExperiment
             ColorWriteMask = Mw.ColorComponentFlags.RGBA,
         };
 
-        private Mw.Shader Shader(string module, string entry, string stage, Mw.ShaderStage kind, uint uniforms = 0, uint samplers = 0) =>
-            Mw.Shader.Create(_device, SlangShaders.Compile(module, entry, stage), "main", new Mw.ShaderCreateInfo
+        private Shader Shader(string module, string entry, string stage, Mw.ShaderStage kind, uint uniforms = 0, uint samplers = 0) =>
+            MoonWorks.Graphics.Shader.Create(_device, SlangShaders.Compile(module, entry, stage), "main", new Mw.ShaderCreateInfo
             {
                 Format = Mw.ShaderFormat.SPIRV,
                 Stage = kind,
@@ -307,8 +310,8 @@ internal sealed class TransparencyLab : ILabExperiment
                 NumSamplers = samplers,
             });
 
-        private Mw.GraphicsPipeline Create(Mw.Shader vertex, Mw.Shader fragment, params Mw.ColorTargetDescription[] targets) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+        private GraphicsPipeline Create(Shader vertex, Shader fragment, params Mw.ColorTargetDescription[] targets) =>
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -439,14 +442,14 @@ internal sealed class TransparencyLab : ILabExperiment
             CanvasServer.Current.Free(_item);
             foreach (Handle shown in _shown)
                 _context.Hide(shown);
-            foreach (Mw.GraphicsPipeline pipeline in (Mw.GraphicsPipeline[])[_blend, _oit, _compositePipe, _exactPipe, _backPipe])
+            foreach (GraphicsPipeline pipeline in (GraphicsPipeline[])[_blend, _oit, _compositePipe, _exactPipe, _backPipe])
                 pipeline.Dispose();
-            foreach (Mw.Shader shader in (Mw.Shader[])[_layerVertex, _blendShade, _oitShade, _fullVertex, _composite, _exact, _back])
+            foreach (Shader shader in (Shader[])[_layerVertex, _blendShade, _oitShade, _fullVertex, _composite, _exact, _back])
                 shader.Dispose();
             _sampler.Dispose();
             _accum.Dispose();
             _reveal.Dispose();
-            foreach (Mw.Texture pane in _panes)
+            foreach (Texture pane in _panes)
                 pane.Dispose();
         }
     }

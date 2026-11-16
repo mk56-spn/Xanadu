@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Systems.Shaders;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -13,7 +16,7 @@ namespace Xanadu.Systems.Playfields;
 /// The editor's view: both rail lanes, start points, and selection
 /// (<paramref name="IsSelected"/>, <paramref name="SelectedNote"/>).
 /// </param>
-/// <param name="DivaNotes">Play draws notes the DIVA+ way (<see cref="Xanadu.Ecs.DivaNotes"/>).</param>
+/// <param name="DivaNotes">Play draws notes the DIVA+ way (<see cref="Ecs.Components.DivaNotes"/>).</param>
 /// <param name="ShowsLayer">Which layers draw; the editor hides some. Every layer draws without it.</param>
 public readonly record struct PlayfieldItemFrame(
     PlayfieldView View,

@@ -1,16 +1,16 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
-using Xanadu.Timeline;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Builds the shared ease picker: a live preview of a curve at the left, and
 /// every curve at the right as a thumbnail, one row per family and one column
 /// per direction. Any tool can host one through <see cref="IEasePickerHost"/>;
-/// <see cref="Systems.Ui.EasePickerSystem"/> runs it. The animator's keys and
+/// <see cref="Xanadu.Systems.Ui.EasePickerSystem"/> runs it. The animator's keys and
 /// the level editor's group effects and shader keys all pick from it.
 /// </summary>
 public static class EasePickerPanel

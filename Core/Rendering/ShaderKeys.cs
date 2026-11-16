@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// The play keys as shaders see them (<c>keys.</c> in <c>xanadu.anim</c>): when

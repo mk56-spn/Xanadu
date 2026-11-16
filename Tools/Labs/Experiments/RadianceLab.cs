@@ -3,14 +3,16 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Color = Xanadu.Core.Maths.Color;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -104,11 +106,11 @@ internal sealed class RadianceLab : ILabExperiment
         private readonly Rect2 _area;
         private readonly uint _width, _height, _cascadeWidth, _cascadeHeight;
         private readonly Mw.GraphicsDevice _device;
-        private readonly Mw.Texture _paint, _scene, _floodA, _floodB, _shownTexture;
-        private readonly Mw.Texture[] _cascadeTextures = new Mw.Texture[MaxCascades];
-        private readonly Mw.Sampler _sampler;
-        private readonly Mw.Shader[] _shaders;
-        private readonly Mw.GraphicsPipeline _demo, _brush, _compose, _floodSeed, _floodStep, _cascade, _show;
+        private readonly Texture _paint, _scene, _floodA, _floodB, _shownTexture;
+        private readonly Texture[] _cascadeTextures = new Texture[MaxCascades];
+        private readonly Sampler _sampler;
+        private readonly Shader[] _shaders;
+        private readonly GraphicsPipeline _demo, _brush, _compose, _floodSeed, _floodStep, _cascade, _show;
         private readonly Handle _item, _shown;
         private float _time;
         private Vector2 _last;
@@ -130,24 +132,24 @@ internal sealed class RadianceLab : ILabExperiment
             _cascadeHeight = (_height + top - 1) / top * top;
 
             const Mw.TextureUsageFlags usage = Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler;
-            _paint = Mw.Texture.Create2D(_device, "radiance paint", _width, _height, Format, usage);
-            _scene = Mw.Texture.Create2D(_device, "radiance scene", _width, _height, Format, usage);
-            _floodA = Mw.Texture.Create2D(_device, "radiance flood a", _width, _height, Format, usage);
-            _floodB = Mw.Texture.Create2D(_device, "radiance flood b", _width, _height, Format, usage);
+            _paint = Texture.Create2D(_device, "radiance paint", _width, _height, Format, usage);
+            _scene = Texture.Create2D(_device, "radiance scene", _width, _height, Format, usage);
+            _floodA = Texture.Create2D(_device, "radiance flood a", _width, _height, Format, usage);
+            _floodB = Texture.Create2D(_device, "radiance flood b", _width, _height, Format, usage);
             for (int i = 0; i < MaxCascades; i++)
-                _cascadeTextures[i] = Mw.Texture.Create2D(_device, $"radiance cascade {i}", _cascadeWidth, _cascadeHeight, Format, usage);
-            _shownTexture = Mw.Texture.Create2D(_device, "radiance shown", _width, _height, ShowFormat, usage);
-            _sampler = Mw.Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
+                _cascadeTextures[i] = Texture.Create2D(_device, $"radiance cascade {i}", _cascadeWidth, _cascadeHeight, Format, usage);
+            _shownTexture = Texture.Create2D(_device, "radiance shown", _width, _height, ShowFormat, usage);
+            _sampler = Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
 
             string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "radiance_lab.slang");
-            Mw.Shader full = Shader(module, "full", Mw.ShaderStage.Vertex, 0);
-            Mw.Shader demo = Shader(module, "demo", Mw.ShaderStage.Fragment, 0);
-            Mw.Shader brush = Shader(module, "brush", Mw.ShaderStage.Fragment, 0);
-            Mw.Shader scene = Shader(module, "scene", Mw.ShaderStage.Fragment, 1);
-            Mw.Shader floodSeed = Shader(module, "floodSeed", Mw.ShaderStage.Fragment, 1);
-            Mw.Shader floodStep = Shader(module, "floodStep", Mw.ShaderStage.Fragment, 1);
-            Mw.Shader cascade = Shader(module, "cascade", Mw.ShaderStage.Fragment, 3);
-            Mw.Shader show = Shader(module, "show", Mw.ShaderStage.Fragment, 4);
+            Shader full = Shader(module, "full", Mw.ShaderStage.Vertex, 0);
+            Shader demo = Shader(module, "demo", Mw.ShaderStage.Fragment, 0);
+            Shader brush = Shader(module, "brush", Mw.ShaderStage.Fragment, 0);
+            Shader scene = Shader(module, "scene", Mw.ShaderStage.Fragment, 1);
+            Shader floodSeed = Shader(module, "floodSeed", Mw.ShaderStage.Fragment, 1);
+            Shader floodStep = Shader(module, "floodStep", Mw.ShaderStage.Fragment, 1);
+            Shader cascade = Shader(module, "cascade", Mw.ShaderStage.Fragment, 3);
+            Shader show = Shader(module, "show", Mw.ShaderStage.Fragment, 4);
             _shaders = [full, demo, brush, scene, floodSeed, floodStep, cascade, show];
 
             _demo = Pipeline(full, demo, Format);
@@ -164,8 +166,8 @@ internal sealed class RadianceLab : ILabExperiment
             CanvasServer.Current.AddTextureRect(_item, area, _shown);
         }
 
-        private Mw.Shader Shader(string module, string entry, Mw.ShaderStage kind, uint samplers) =>
-            Mw.Shader.Create(_device, SlangShaders.Compile(module, entry, kind == Mw.ShaderStage.Vertex ? "vertex" : "fragment"), "main",
+        private Shader Shader(string module, string entry, Mw.ShaderStage kind, uint samplers) =>
+            MoonWorks.Graphics.Shader.Create(_device, SlangShaders.Compile(module, entry, kind == Mw.ShaderStage.Vertex ? "vertex" : "fragment"), "main",
                 new Mw.ShaderCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -174,8 +176,8 @@ internal sealed class RadianceLab : ILabExperiment
                     NumSamplers = samplers,
                 });
 
-        private Mw.GraphicsPipeline Pipeline(Mw.Shader vertex, Mw.Shader fragment, Mw.TextureFormat format) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+        private GraphicsPipeline Pipeline(Shader vertex, Shader fragment, Mw.TextureFormat format) =>
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -238,8 +240,8 @@ internal sealed class RadianceLab : ILabExperiment
             };
         }
 
-        private void FullScreen(Mw.CommandBuffer commands, Mw.Texture target, Mw.GraphicsPipeline pipeline, Params p,
-            params ReadOnlySpan<Mw.Texture> inputs)
+        private void FullScreen(Mw.CommandBuffer commands, Texture target, GraphicsPipeline pipeline, Params p,
+            params ReadOnlySpan<Texture> inputs)
         {
             Mw.RenderPass pass = commands.BeginRenderPass(new Mw.ColorTargetInfo(target, Mw.LoadOp.DontCare));
             pass.BindGraphicsPipeline(pipeline);
@@ -290,7 +292,7 @@ internal sealed class RadianceLab : ILabExperiment
             // Jump flood: seed, then halve the jump each pass down to one pixel.
             GpuScope floodScope = commands.Scope("jump flood");
             FullScreen(commands, _floodA, _floodSeed, p, _scene);
-            Mw.Texture read = _floodA, write = _floodB;
+            Texture read = _floodA, write = _floodB;
             uint largest = Math.Max(_width, _height);
             for (uint jump = System.Numerics.BitOperations.RoundUpToPowerOf2(largest) / 2; jump >= 1; jump /= 2)
             {
@@ -298,7 +300,7 @@ internal sealed class RadianceLab : ILabExperiment
                 FullScreen(commands, write, _floodStep, p, read);
                 (read, write) = (write, read);
             }
-            Mw.Texture flood = read;
+            Texture flood = read;
             floodScope.Dispose();
 
             // Cascades from the top down; each adds the one above beyond its own interval.
@@ -311,7 +313,7 @@ internal sealed class RadianceLab : ILabExperiment
                 p.Cascade = new Vector4(n, 1 << (n + 1), start, end);
                 p.Setup.Y = n < count - 1 ? 1 : 0;
                 // The top cascade reads nothing above; any texture but its own target will do.
-                Mw.Texture upper = n < count - 1 ? _cascadeTextures[n + 1] : _scene;
+                Texture upper = n < count - 1 ? _cascadeTextures[n + 1] : _scene;
                 using (commands.Scope(CascadeNames[n]))
                     FullScreen(commands, _cascadeTextures[n], _cascade, p, _scene, flood, upper);
             }
@@ -325,12 +327,12 @@ internal sealed class RadianceLab : ILabExperiment
         {
             CanvasServer.Current.Free(_item);
             _context.Hide(_shown);
-            foreach (Mw.GraphicsPipeline pipeline in (Mw.GraphicsPipeline[])[_demo, _brush, _compose, _floodSeed, _floodStep, _cascade, _show])
+            foreach (GraphicsPipeline pipeline in (GraphicsPipeline[])[_demo, _brush, _compose, _floodSeed, _floodStep, _cascade, _show])
                 pipeline.Dispose();
-            foreach (Mw.Shader shader in _shaders)
+            foreach (Shader shader in _shaders)
                 shader.Dispose();
             _sampler.Dispose();
-            foreach (Mw.Texture texture in (Mw.Texture[])[_paint, _scene, _floodA, _floodB, _shownTexture, .. _cascadeTextures])
+            foreach (Texture texture in (Texture[])[_paint, _scene, _floodA, _floodB, _shownTexture, .. _cascadeTextures])
                 texture.Dispose();
         }
     }

@@ -37,8 +37,7 @@ public sealed class XafClipAuthoringTests
     {
         XafPackage package = Package();
         XafClip source = package.Clips[0];
-        XafAuthoring.SetChannel(source, XafChannelTarget.Bone, "root",
-            XafChannelProperty.Rotation, 0.5f, 1f);
+        XafAuthoring.SetChannel(source, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 0.5f, 1f);
 
         XafClip copy = XafClipAuthoring.Duplicate(package, source);
 
@@ -80,8 +79,7 @@ public sealed class XafClipAuthoringTests
         XafPackage package = Package();
         XafClip clip = package.Clips[0];
         clip.Duration = 2f;
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root",
-            XafChannelProperty.Rotation, 1.5f, 1f);
+        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1.5f, 1f);
 
         Assert.That(XafClipAuthoring.SetDuration(clip, 1f), Is.EqualTo(1.5f));
         Assert.That(XafClipAuthoring.SetDuration(clip, 3f), Is.EqualTo(3f));

@@ -1,10 +1,10 @@
+#nullable enable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-#nullable enable
-
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// 2D axis-aligned bounding box using integers. Rect2I consists of a position, a size, and

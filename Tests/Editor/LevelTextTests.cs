@@ -1,12 +1,16 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
 
@@ -87,7 +91,9 @@ public sealed class LevelTextTests : EcsSystemTest
         _history.Record(before, _history.Capture());
 
         Assert.That(_history.Undo(), Is.True);
-        Assert.That(Store.Query<LevelText>().ToEntityList().Single().GetComponent<LevelText>().Text, Is.EqualTo("Before"));
+        Assert.That(
+            Store.Query<LevelText>().ToEntityList().Single().GetComponent<LevelText>().Text,
+            Is.EqualTo("Before"));
     }
 
     [Test]

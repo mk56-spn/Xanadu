@@ -2,9 +2,13 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Tools.Animator.Commands;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tools.Animator.Systems;
 
@@ -391,7 +395,7 @@ public sealed class AnimatorPreviewDrawSystem(
         bool visible = index < pose.Effects.Length && pose.Effects[index].Visible;
         Color color = visible ? EffectOutline : new Color(EffectOutline, 0.35f);
         Transform2D toScreen = placement * effects[index];
-        foreach (Xanadu.Items.XifPrimitive primitive in package.Effects[index].Item.Primitives)
+        foreach (XifPrimitive primitive in package.Effects[index].Item.Primitives)
         {
             int count = primitive.Points.Count;
             if (count < 2)

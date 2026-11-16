@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
@@ -8,15 +9,15 @@ using Xanadu.Systems.Editor;
 namespace Xanadu.Editor;
 
 /// <summary>
-/// F10: the level's custom shaders. The slots are an ECS dialog
-/// (<see cref="EditorDialogKind.Shaders"/>); this side only asks the host for
-/// the file its IMPORT button wants. Uniform values are tuned with the F2 panel.
+///     F10: the level's custom shaders. The slots are an ECS dialog
+///     (<see cref="EditorDialogKind.Shaders" />); this side only asks the host for
+///     the file its IMPORT button wants. Uniform values are tuned with the F2 panel.
 /// </summary>
 public sealed partial class EditorOverlay
 {
     /// <summary>
-    /// Opens the host's file picker for a Slang shader; the callback gets the
-    /// picked path on the main thread. Null when the host has no picker.
+    ///     Opens the host's file picker for a Slang shader; the callback gets the
+    ///     picked path on the main thread. Null when the host has no picker.
     /// </summary>
     public Action<Action<string>>? PickShaderFile { get; set; }
 

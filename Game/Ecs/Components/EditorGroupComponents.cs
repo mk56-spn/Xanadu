@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>One cell of the groups grid in the editor's sidebar.</summary>
 public struct EditorGroupCell(int index) : IComponent

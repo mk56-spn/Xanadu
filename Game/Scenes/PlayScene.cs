@@ -2,18 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Strings;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Levels;
 using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Scoring;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Playfields;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Timeline;
 
 namespace Xanadu.Scenes;
 
@@ -135,6 +136,6 @@ public static class PlayScene
     }
 
     /// <summary>Where the player starts: the start point plus its groups' move at its time.</summary>
-    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start, Xanadu.Timeline.TempoMap? tempo = null) =>
+    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start, TempoMap? tempo = null) =>
         start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f, tempo);
 }

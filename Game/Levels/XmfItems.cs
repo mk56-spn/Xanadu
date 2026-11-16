@@ -1,9 +1,10 @@
 using System;
 using System.IO;
+using Xanadu.Core.Items;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
-using Xanadu.Storage;
 
 namespace Xanadu.Levels;
 

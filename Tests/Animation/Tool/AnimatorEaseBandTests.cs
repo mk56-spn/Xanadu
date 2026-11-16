@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Tools.Animator;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -31,13 +33,14 @@ public sealed class AnimatorEaseBandTests
                 }
             }
         }
+
         return float.NaN;
     }
 
     [Test]
     public void LinearIsAnEvenBarAtFullThickness()
     {
-        var band = Band(EasePreset.Linear);
+        List<EaseBandPiece> band = Band(EasePreset.Linear);
         Assert.That(band, Has.Count.EqualTo(1));
         foreach (float x in new[] { 100f, 150f, 200f })
             Assert.That(HalfAt(band, x), Is.EqualTo(MaxHalf).Within(0.01f));
@@ -46,8 +49,8 @@ public sealed class AnimatorEaseBandTests
     [Test]
     public void EaseInWidensAndEaseOutNarrows()
     {
-        var easeIn = Band(EasePreset.EaseIn);
-        var easeOut = Band(EasePreset.EaseOut);
+        List<EaseBandPiece> easeIn = Band(EasePreset.EaseIn);
+        List<EaseBandPiece> easeOut = Band(EasePreset.EaseOut);
         Assert.That(HalfAt(easeIn, 101f), Is.LessThan(HalfAt(easeIn, 199f)));
         Assert.That(HalfAt(easeOut, 101f), Is.GreaterThan(HalfAt(easeOut, 199f)));
     }
@@ -55,7 +58,7 @@ public sealed class AnimatorEaseBandTests
     [Test]
     public void EaseIsALensThickestHalfway()
     {
-        var ease = Band(EasePreset.Ease);
+        List<EaseBandPiece> ease = Band(EasePreset.Ease);
         Assert.That(HalfAt(ease, 150f), Is.EqualTo(MaxHalf).Within(0.05f));
         Assert.That(HalfAt(ease, 101f), Is.LessThan(1.5f));
         Assert.That(HalfAt(ease, 199f), Is.LessThan(1.5f));
@@ -84,9 +87,11 @@ public sealed class AnimatorEaseBandTests
     [Test]
     public void StepIsAHairlineThenATallTickAtTheNextKey()
     {
-        var band = Band(EasePreset.Step);
+        List<EaseBandPiece> band = Band(EasePreset.Step);
         Assert.That(band, Has.Count.EqualTo(2));
-        Assert.That(band[0].Polygon.Max(p => p.Y) - band[0].Polygon.Min(p => p.Y), Is.EqualTo(2f * TimelineEaseBand.HairHalf).Within(0.01f));
+        Assert.That(
+            band[0].Polygon.Max(p => p.Y) - band[0].Polygon.Min(p => p.Y),
+            Is.EqualTo(2f * TimelineEaseBand.HairHalf).Within(0.01f));
         Assert.That(band[1].Polygon.Max(p => p.X), Is.EqualTo(200f));
         Assert.That(band[1].Polygon.Max(p => p.Y) - band[1].Polygon.Min(p => p.Y), Is.GreaterThan(2f * MaxHalf));
     }
@@ -94,9 +99,9 @@ public sealed class AnimatorEaseBandTests
     [Test]
     public void NothingChangingOrChannelsDisagreeingIsAHairline()
     {
-        foreach (var segment in new[] { new XafEaseSegment(false, null), new XafEaseSegment(true, null) })
+        foreach (XafEaseSegment segment in new[] { new XafEaseSegment(false, null), new XafEaseSegment(true, null) })
         {
-            var band = TimelineEaseBand.Pieces(segment.Preset, 100f, 200f, 0f, 1000f, Row);
+            List<EaseBandPiece> band = TimelineEaseBand.Pieces(segment.Preset, 100f, 200f, 0f, 1000f, Row);
             Assert.That(band, Has.Count.EqualTo(1));
             Assert.That(HalfAt(band, 150f), Is.EqualTo(TimelineEaseBand.HairHalf).Within(0.01f));
         }
@@ -104,13 +109,15 @@ public sealed class AnimatorEaseBandTests
 
     [Test]
     public void ASpanTooNarrowForAShapeIsAHairline() =>
-        Assert.That(HalfAt(Band(EasePreset.Ease, 100f, 105f), 102f), Is.EqualTo(TimelineEaseBand.HairHalf).Within(0.01f));
+        Assert.That(
+            HalfAt(Band(EasePreset.Ease, 100f, 105f), 102f),
+            Is.EqualTo(TimelineEaseBand.HairHalf).Within(0.01f));
 
     [Test]
     public void ScrollingPartOfASpanOffKeepsItsShapeAndStaysInside()
     {
-        var whole = Band(EasePreset.EaseIn);
-        var part = TimelineEaseBand.Pieces(EasePreset.EaseIn, 100f, 200f, 150f, 180f, Row);
+        List<EaseBandPiece> whole = Band(EasePreset.EaseIn);
+        List<EaseBandPiece> part = TimelineEaseBand.Pieces(EasePreset.EaseIn, 100f, 200f, 150f, 180f, Row);
         foreach (Vector2 point in part.SelectMany(piece => piece.Polygon))
             Assert.That(point.X, Is.InRange(150f, 180f));
         Assert.That(HalfAt(part, 165f), Is.EqualTo(HalfAt(whole, 165f)).Within(0.05f));
@@ -126,6 +133,7 @@ public sealed class AnimatorEaseBandTests
             channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 1f });
             clip.Channels.Add(channel);
         }
+
         return clip;
     }
 

@@ -2,13 +2,22 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Scenes;
-using Xanadu.Systems.Layout;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
+using SceneActionId = Xanadu.Ecs.Components.SceneActionId;
+using SongTempoAction = Xanadu.Ecs.Components.SongTempoAction;
+using SongTimingAdjustKind = Xanadu.Ecs.Components.SongTimingAdjustKind;
+using SongTimingField = Xanadu.Ecs.Components.SongTimingField;
+using SongTimingView = Xanadu.Ecs.Components.SongTimingView;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -39,7 +48,7 @@ public sealed class SongTimingSceneTests
             Id = "test",
             Title = "Night Drive",
             Bpm = 128,
-            OffsetMs = -42,
+            OffsetMs = -42
         };
 
         Entity root = _store.CreateEntity();
@@ -59,8 +68,7 @@ public sealed class SongTimingSceneTests
         Build();
 
         var actions = _store.Query<UiCommand>().ToEntityList()
-            .Select(entity => entity.GetComponent<UiCommand>().As<SceneActionId>())
-            .ToList();
+            .Select(entity => entity.GetComponent<UiCommand>().As<SceneActionId>()).ToList();
 
         Assert.That(actions, Does.Contain(SceneActionId.AddSong));
         Assert.That(actions, Does.Contain(SceneActionId.Back));
@@ -87,8 +95,8 @@ public sealed class SongTimingSceneTests
         Assert.That(UiCommand.All<SongTimingAdjustKind>(_store), Has.Count.EqualTo(4));
         Assert.That(UiCommand.Find(_store, SongTempoAction.Save).IsNull, Is.False);
 
-        bool hasBack = _store.Query<UiCommand>().ToEntityList()
-            .Any(entity => entity.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Back);
+        bool hasBack = _store.Query<UiCommand>().ToEntityList().Any(entity =>
+            entity.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Back);
         Assert.That(hasBack, Is.True);
     }
 
@@ -104,8 +112,7 @@ public sealed class SongTimingSceneTests
         Rect2 bpm = Area(ByText("BPM 128"));
 
         Assert.That(save.End.X, Is.LessThan(back.Position.X));
-        Assert.That((save.Position.X + back.End.X) / 2,
-            Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
+        Assert.That((save.Position.X + back.End.X) / 2, Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
 
         // The value box is deliberately wider than its text, so the step buttons
         // beside it stay put however long the value gets.
@@ -118,15 +125,12 @@ public sealed class SongTimingSceneTests
     private static float CenterX(Rect2 area) => area.Position.X + area.Size.X / 2;
 
     private Entity ByText(string text) =>
-        _store.Query<Text>().ToEntityList()
-            .First(entity => entity.GetComponent<Text>().Value == text);
+        _store.Query<Text>().ToEntityList().First(entity => entity.GetComponent<Text>().Value == text);
 
     private static Rect2 Area(Entity entity)
     {
         Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
-        Vector2 center = UiTransform.WorldPosition(
-            entity,
-            entity.GetComponent<Position>().Value);
+        Vector2 center = UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value);
         return new Rect2(center + bounds.Position, bounds.Size);
     }
 
@@ -138,8 +142,7 @@ public sealed class SongTimingSceneTests
         SongTimingView timing = _store.Query<SongTimingView>().ToEntityList()[0].GetComponent<SongTimingView>();
         // Pooled rows past the last change are hidden, so their fields are disabled entities.
         var kinds = _store.Query<SongTimingField>().WithDisabled().ToEntityList()
-            .Select(entity => entity.GetComponent<SongTimingField>().Kind)
-            .ToList();
+            .Select(entity => entity.GetComponent<SongTimingField>().Kind).ToList();
 
         // The changes are a pooled list: one set of fields per pooled row.
         int pool = UiLists.Pool(timing.List);

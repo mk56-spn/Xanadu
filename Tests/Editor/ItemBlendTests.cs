@@ -1,13 +1,16 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
-using Xanadu.Items;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 
@@ -25,12 +28,20 @@ public sealed class ItemBlendTests
         var store = new EntityStore();
         Assert.Multiple(() =>
         {
-            Assert.That(BlendOf(EditorItems.Create(store, new LevelPolygon(Spot, new Xif()))), Is.EqualTo(BlendMode.Mix));
-            Assert.That(BlendOf(EditorItems.Create(store, new Block(Spot, new Vector2(50, 50)))), Is.EqualTo(BlendMode.Mix));
-            Assert.That(BlendOf(EditorItems.Create(store, new Spike(Spot, new Vector2(50, 50)))), Is.EqualTo(BlendMode.Mix));
+            Assert.That(
+                BlendOf(EditorItems.Create(store, new LevelPolygon(Spot, new Xif()))),
+                Is.EqualTo(BlendMode.Mix));
+            Assert.That(
+                BlendOf(EditorItems.Create(store, new Block(Spot, new Vector2(50, 50)))),
+                Is.EqualTo(BlendMode.Mix));
+            Assert.That(
+                BlendOf(EditorItems.Create(store, new Spike(Spot, new Vector2(50, 50)))),
+                Is.EqualTo(BlendMode.Mix));
             Assert.That(BlendOf(EditorItems.Create(store, new Note(0, Spot))), Is.EqualTo(BlendMode.Mix));
             Assert.That(BlendOf(EditorItems.Create(store, new Mine(0, Spot))), Is.EqualTo(BlendMode.Mix));
-            Assert.That(BlendOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))), Is.EqualTo(BlendMode.Mix));
+            Assert.That(
+                BlendOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))),
+                Is.EqualTo(BlendMode.Mix));
             Assert.That(BlendOf(EditorItems.Create(store, new GrassPatch(Spot, 1))), Is.EqualTo(BlendMode.Mix));
             Assert.That(BlendOf(EditorItems.Create(store, new LevelText(Spot, "hi"))), Is.EqualTo(BlendMode.Mix));
         });
@@ -122,7 +133,7 @@ public sealed class ItemBlendTests
         var source = new LevelDocument { Name = "Plain" };
         source.Blocks.Add(new BlockDocument());
         byte[] data = XmfBinary.Write(source);
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet(19, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Blocks[0].Blend, Is.EqualTo(BlendMode.Mix));
@@ -162,7 +173,7 @@ public sealed class ItemBlendTests
         .. items.Spikes.Select(i => i.Blend),
         .. items.Texts.Select(i => i.Blend),
         .. items.Grass.Select(i => i.Blend),
-        .. items.Polygons.Select(i => i.Blend),
+        .. items.Polygons.Select(i => i.Blend)
     ];
 }
 

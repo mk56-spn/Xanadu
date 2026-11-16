@@ -1,12 +1,12 @@
-using System;
 using Xanadu.Ecs;
-using Xanadu.Systems.Editor;
-using Xanadu.Systems.Timeline;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
+using Xanadu.Systems.Editor;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Editor;
 
-/// <summary>Runs the editor's key bindings; <see cref="EditorShortcuts"/> says which key does what.</summary>
+/// <summary>Runs the editor's key bindings; <see cref="EditorShortcuts" /> says which key does what.</summary>
 public sealed partial class EditorOverlay : IEditorShortcutTarget
 {
     public bool IsOpen => !_closed;
@@ -20,9 +20,6 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         IsGroupOverlayOpen(),
         IsDraftingPolygon());
 
-    private bool IsDraftingPolygon() =>
-        !_editor.IsNull && _editor.TryGetComponent(out EditorPolygonDraft draft) && draft.Active;
-
     public void Run(EditorShortcuts.Binding binding)
     {
         switch (binding.Action)
@@ -31,7 +28,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
                 StartPreview();
                 break;
             case EditorShortcut.PreviewHere:
-                StartPreview(fromPlayhead: true);
+                StartPreview(true);
                 break;
             case EditorShortcut.ToggleShaders:
                 ToggleShaderDialog();
@@ -102,10 +99,10 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
                 _commands.Enqueue(EditorCommand.RotateSelection());
                 break;
             case EditorShortcut.FlipHorizontal:
-                _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+                _commands.Enqueue(EditorCommand.FlipSelection(true));
                 break;
             case EditorShortcut.FlipVertical:
-                _commands.Enqueue(EditorCommand.FlipSelection(horizontal: false));
+                _commands.Enqueue(EditorCommand.FlipSelection(false));
                 break;
             case EditorShortcut.CycleOneWay:
                 _commands.Enqueue(EditorCommand.CycleOneWay());
@@ -128,6 +125,9 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         }
     }
 
+    private bool IsDraftingPolygon() =>
+        !_editor.IsNull && _editor.TryGetComponent(out EditorPolygonDraft draft) && draft.Active;
+
     private void DeleteSelectedNote()
     {
         if (_editor.IsNull)
@@ -142,23 +142,24 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             return;
 
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
-        SetStatus(mode switch
-        {
-            EditorPlacementMode.Notes => "Place action note",
-            EditorPlacementMode.Neutral => "Place neutral note",
-            EditorPlacementMode.Dash => "Place dash",
-            EditorPlacementMode.Momentum => "Place momentum",
-            EditorPlacementMode.Blocks => "Place blocks",
-            EditorPlacementMode.Spikes => "Place spikes",
-            EditorPlacementMode.Contact => "Place contact barrier",
-            EditorPlacementMode.Wall => "Place wall note",
-            EditorPlacementMode.Text => "Place text",
-            EditorPlacementMode.Grass => "Place grass",
-            EditorPlacementMode.Flare => "Place flare",
-            EditorPlacementMode.FrictionBar => "Place friction field",
-            EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
-            _ => "Placement mode",
-        });
+        SetStatus(
+            mode switch
+            {
+                EditorPlacementMode.Notes => "Place action note",
+                EditorPlacementMode.Neutral => "Place neutral note",
+                EditorPlacementMode.Dash => "Place dash",
+                EditorPlacementMode.Momentum => "Place momentum",
+                EditorPlacementMode.Blocks => "Place blocks",
+                EditorPlacementMode.Spikes => "Place spikes",
+                EditorPlacementMode.Contact => "Place contact barrier",
+                EditorPlacementMode.Wall => "Place wall note",
+                EditorPlacementMode.Text => "Place text",
+                EditorPlacementMode.Grass => "Place grass",
+                EditorPlacementMode.Flare => "Place flare",
+                EditorPlacementMode.FrictionBar => "Place friction field",
+                EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
+                _ => "Placement mode"
+            });
     }
 
     private void Undo()

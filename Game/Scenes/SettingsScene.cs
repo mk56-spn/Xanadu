@@ -1,13 +1,16 @@
 using System;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 using Xanadu.Strings;
-using Xanadu.Theme;
-using Xanadu.Ui.Tree;
-using static Xanadu.Theme.UiMetrics;
-using static Xanadu.Ui.Tree.UiSpecs;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using Xanadu.Ui.Systems;
+using static Xanadu.Core.Theme.UiMetrics;
+using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
 namespace Xanadu.Scenes;
 
@@ -63,10 +66,10 @@ public static class SettingsScene
             });
     }
 
-    public static string WindowModeLabel(Systems.WindowMode mode) => Text(mode switch
+    public static string WindowModeLabel(WindowMode mode) => Text(mode switch
     {
-        Systems.WindowMode.Fullscreen => SettingsStrings.Fullscreen,
-        Systems.WindowMode.Borderless => SettingsStrings.Borderless,
+        WindowMode.Fullscreen => SettingsStrings.Fullscreen,
+        WindowMode.Borderless => SettingsStrings.Borderless,
         _ => SettingsStrings.Windowed,
     });
 

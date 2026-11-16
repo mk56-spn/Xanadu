@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using Xanadu.Ecs;
-using Xanadu.Host;
-using Xanadu.Tools.DevTools;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Autopsy;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 
-namespace Xanadu.Tools.Autopsy;
+namespace Xanadu.Tools.DevTools.Autopsy;
 
 /// <summary>
 /// Autopsy of a frame: opens the capture each exe saved when its last launch

@@ -1,7 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Levels;
 using Xanadu.Systems.Playfields;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -38,8 +38,7 @@ public sealed class DashHangTests
 
     [TestCase(500f)]
     [TestCase(-5_000f)]
-    public void TheHangEndsOnceOverOrWhenThePlayheadJumpsBack(float elapsed)
-    {
-        Assert.That(DashHangSystem.GravityScale(new DashHang(0, 250f, 250f), elapsed), Is.Null);
-    }
+    public void TheHangEndsOnceOverOrWhenThePlayheadJumpsBack(float elapsed) => Assert.That(
+        DashHangSystem.GravityScale(new DashHang(0, 250f, 250f), elapsed),
+        Is.Null);
 }

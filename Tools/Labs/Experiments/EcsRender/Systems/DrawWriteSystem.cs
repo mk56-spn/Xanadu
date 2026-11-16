@@ -1,7 +1,7 @@
 using System;
 using Friflo.Engine.ECS.Systems;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>
 /// The instances into the upload buffer in draw order, and the draws they

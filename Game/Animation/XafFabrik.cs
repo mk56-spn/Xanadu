@@ -1,4 +1,6 @@
 
+using Xanadu.Core.Maths;
+
 namespace Xanadu.Animation;
 
 /// <summary>Small 2D FABRIK solver used by visual IK bone chains.</summary>

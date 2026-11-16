@@ -1,12 +1,14 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
-using Xanadu.Items;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 
@@ -29,7 +31,9 @@ public sealed class ItemShaderSourceTests
             Assert.That(SourceOf(EditorItems.Create(store, new Spike(Spot, new Vector2(50, 50)))), Is.EqualTo(-1));
             Assert.That(SourceOf(EditorItems.Create(store, new Note(0, Spot))), Is.EqualTo(-1));
             Assert.That(SourceOf(EditorItems.Create(store, new Mine(0, Spot))), Is.EqualTo(-1));
-            Assert.That(SourceOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))), Is.EqualTo(-1));
+            Assert.That(
+                SourceOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))),
+                Is.EqualTo(-1));
             Assert.That(SourceOf(EditorItems.Create(store, new GrassPatch(Spot, 1))), Is.EqualTo(-1));
             Assert.That(SourceOf(EditorItems.Create(store, new LevelText(Spot, "hi"))), Is.EqualTo(-1));
         });
@@ -82,13 +86,9 @@ public sealed class ItemShaderSourceTests
         history.Record(before, history.Capture());
 
         history.Undo();
-        Assert.That(
-            store.Query<Block>().ToEntityList().Select(SourceOf),
-            Is.EqualTo(new[] { -1 }));
+        Assert.That(store.Query<Block>().ToEntityList().Select(SourceOf), Is.EqualTo(new[] { -1 }));
         history.Redo();
-        Assert.That(
-            store.Query<Block>().ToEntityList().Select(SourceOf),
-            Is.EqualTo(new[] { 3 }));
+        Assert.That(store.Query<Block>().ToEntityList().Select(SourceOf), Is.EqualTo(new[] { 3 }));
     }
 
     private static int SourceOf(Entity entity) => ItemShaderSource.Of(entity);
@@ -102,7 +102,7 @@ public sealed class ItemShaderSourceTests
         .. items.Spikes.Select(i => i.ShaderSource),
         .. items.Texts.Select(i => i.ShaderSource),
         .. items.Grass.Select(i => i.ShaderSource),
-        .. items.Polygons.Select(i => i.ShaderSource),
+        .. items.Polygons.Select(i => i.ShaderSource)
     ];
 }
 

@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 
@@ -29,15 +33,15 @@ public readonly record struct RotationStart(
     Vector2 Momentum,
     float Degrees = 0f,
     BlockOneWay OneWay = BlockOneWay.Off,
-    Xanadu.Items.Xif? Shape = null,
+    Xif? Shape = null,
     BlockSlope Slope = BlockSlope.Off);
 
 /// <summary>
-/// Turns a group of playfield items around their shared centre. Anything with
-/// a shape turns freely, to any angle: spikes, text, grass and polygons. The
-/// exception is the block, a physics box that has to stay square to the field:
-/// it only turns in 90 degree steps, swapping width and height. Notes and start
-/// points only have a position, so they orbit; start points turn their facing.
+///     Turns a group of playfield items around their shared centre. Anything with
+///     a shape turns freely, to any angle: spikes, text, grass and polygons. The
+///     exception is the block, a physics box that has to stay square to the field:
+///     it only turns in 90 degree steps, swapping width and height. Notes and start
+///     points only have a position, so they orbit; start points turn their facing.
 /// </summary>
 public static class SelectionRotation
 {
@@ -53,9 +57,9 @@ public static class SelectionRotation
     public static readonly float Step = Mathf.DegToRad(15f);
 
     /// <summary>
-    /// The box around every item in the selection. False unless there is something
-    /// to turn: two items, or one block or spike turning on the spot. One note
-    /// only has a position, so it has nothing to turn around.
+    ///     The box around every item in the selection. False unless there is something
+    ///     to turn: two items, or one block or spike turning on the spot. One note
+    ///     only has a position, so it has nothing to turn around.
     /// </summary>
     public static bool TryGetBounds(IReadOnlyList<Entity> selection, out Rect2 bounds)
     {
@@ -93,8 +97,8 @@ public static class SelectionRotation
     }
 
     /// <summary>
-    /// The idle handle's screen point: centred just above the selection, or just
-    /// below it when above would land under the header and out of reach.
+    ///     The idle handle's screen point: centred just above the selection, or just
+    ///     below it when above would land under the header and out of reach.
     /// </summary>
     public static Vector2 HandlePoint(Rect2 bounds, PlayfieldView view)
     {
@@ -138,25 +142,25 @@ public static class SelectionRotation
         }
 
         float degrees = kind?.Degrees(entity) ?? 0f;
-        Xanadu.Items.Xif? shape = entity.TryGetComponent(out LevelPolygon shaped) && shaped.Item is not null
-            ? Xanadu.Items.XifCopy.Clone(shaped.Item)
+        Xif? shape = entity.TryGetComponent(out LevelPolygon shaped) && shaped.Item is not null
+            ? XifCopy.Clone(shaped.Item)
             : null;
-        BlockOneWay oneWay = entity.HasComponent<Block>()
-            ? entity.GetComponent<Block>().OneWay
-            : BlockOneWay.Off;
-        BlockSlope slope = entity.HasComponent<Block>()
-            ? entity.GetComponent<Block>().Slope
-            : BlockSlope.Off;
-        return new RotationStart(entity, center, kind?.Size(entity) ?? Vector2.Zero, facing, momentum, degrees, oneWay, shape, slope);
+        BlockOneWay oneWay = entity.HasComponent<Block>() ? entity.GetComponent<Block>().OneWay : BlockOneWay.Off;
+        BlockSlope slope = entity.HasComponent<Block>() ? entity.GetComponent<Block>().Slope : BlockSlope.Off;
+        return new RotationStart(
+            entity,
+            center,
+            kind?.Size(entity) ?? Vector2.Zero,
+            facing,
+            momentum,
+            degrees,
+            oneWay,
+            shape,
+            slope);
     }
 
     /// <summary>Puts one item where the rotation takes it, kept inside the field.</summary>
-    public static void Apply(
-        in RotationStart start,
-        Vector2 pivot,
-        float angle,
-        Playfield playfield,
-        bool snap)
+    public static void Apply(in RotationStart start, Vector2 pivot, float angle, Playfield playfield, bool snap)
     {
         Entity entity = start.Entity;
         Vector2 center = pivot + (start.Center - pivot).Rotated(angle);
@@ -179,32 +183,30 @@ public static class SelectionRotation
             return;
         }
 
-        if (TryTurnFreely(start, InField(center, playfield), TurnedBox.Normalize(start.Degrees + Mathf.RadToDeg(angle))))
+        if (TryTurnFreely(
+                start,
+                InField(center, playfield),
+                TurnedBox.Normalize(start.Degrees + Mathf.RadToDeg(angle))))
             return;
 
-        EditorItemPosition.Set(entity, new Vector2(
-            Mathf.Clamp(center.X, 0, playfield.Width),
-            Mathf.Clamp(center.Y, 0, playfield.Height)));
+        EditorItemPosition.Set(
+            entity,
+            new Vector2(Mathf.Clamp(center.X, 0, playfield.Width), Mathf.Clamp(center.Y, 0, playfield.Height)));
 
         if (entity.HasComponent<StartPoint>())
         {
             ref StartPoint point = ref entity.GetComponent<StartPoint>();
             point.Direction = start.Facing.Rotated(angle);
             Vector2 momentum = start.Momentum.Rotated(angle);
-            point.Momentum = new System.Numerics.Vector2(momentum.X, momentum.Y);
+            point.Momentum = new Vector2(momentum.X, momentum.Y);
         }
     }
 
     /// <summary>
-    /// Mirrors one item across the pivot, kept inside the field. Horizontal swaps
-    /// left and right. Grid items stay on the grid; directions mirror with them.
+    ///     Mirrors one item across the pivot, kept inside the field. Horizontal swaps
+    ///     left and right. Grid items stay on the grid; directions mirror with them.
     /// </summary>
-    public static void ApplyFlip(
-        in RotationStart start,
-        Vector2 pivot,
-        bool horizontal,
-        Playfield playfield,
-        bool snap)
+    public static void ApplyFlip(in RotationStart start, Vector2 pivot, bool horizontal, Playfield playfield, bool snap)
     {
         Entity entity = start.Entity;
         Vector2 center = horizontal
@@ -218,7 +220,7 @@ public static class SelectionRotation
             block.OneWay = FlippedOneWay(start.OneWay, horizontal);
             // A ramp mirrored side to side rises the other way; upside down it stays a floor ramp.
             block.Slope = horizontal && start.Slope != BlockSlope.Off
-                ? (start.Slope == BlockSlope.UpRight ? BlockSlope.UpLeft : BlockSlope.UpRight)
+                ? start.Slope == BlockSlope.UpRight ? BlockSlope.UpLeft : BlockSlope.UpRight
                 : start.Slope;
             return;
         }
@@ -235,9 +237,9 @@ public static class SelectionRotation
         if (entity.HasComponent<LevelPolygon>() && start.Shape is { } shape)
         {
             ref LevelPolygon polygon = ref entity.GetComponent<LevelPolygon>();
-            Xanadu.Items.Xif mirrored = Xanadu.Items.XifCopy.Clone(shape);
+            Xif mirrored = XifCopy.Clone(shape);
             Vector2 axis = horizontal ? new Vector2(-1, 1) : new Vector2(1, -1);
-            foreach (Xanadu.Items.XifPrimitive primitive in mirrored.Primitives)
+            foreach (XifPrimitive primitive in mirrored.Primitives)
             {
                 for (int i = 0; i < primitive.Points.Count; i++)
                     primitive.Points[i] *= axis;
@@ -252,9 +254,9 @@ public static class SelectionRotation
         if (TryTurnFreely(start, InField(center, playfield), TurnedBox.Flipped(start.Degrees, horizontal)))
             return;
 
-        EditorItemPosition.Set(entity, new Vector2(
-            Mathf.Clamp(center.X, 0, playfield.Width),
-            Mathf.Clamp(center.Y, 0, playfield.Height)));
+        EditorItemPosition.Set(
+            entity,
+            new Vector2(Mathf.Clamp(center.X, 0, playfield.Width), Mathf.Clamp(center.Y, 0, playfield.Height)));
 
         if (entity.HasComponent<StartPoint>())
         {
@@ -262,13 +264,13 @@ public static class SelectionRotation
             Vector2 axis = horizontal ? new Vector2(-1, 1) : new Vector2(1, -1);
             point.Direction = start.Facing * axis;
             Vector2 momentum = start.Momentum * axis;
-            point.Momentum = new System.Numerics.Vector2(momentum.X, momentum.Y);
+            point.Momentum = new Vector2(momentum.X, momentum.Y);
         }
     }
 
     /// <summary>
-    /// Puts a freely turning item, text, grass or a polygon, with its centre at
-    /// <paramref name="center"/> and turned to <paramref name="degrees"/>. False for any other item.
+    ///     Puts a freely turning item, text, grass or a polygon, with its centre at
+    ///     <paramref name="center" /> and turned to <paramref name="degrees" />. False for any other item.
     /// </summary>
     private static bool TryTurnFreely(in RotationStart start, Vector2 center, float degrees) =>
         ItemKinds.Of(start.Entity)?.TryTurnFreely(start.Entity, center, degrees) == true;
@@ -279,27 +281,20 @@ public static class SelectionRotation
 
     /// <summary>A block's one-way side turns with it, a quarter at a time.</summary>
     public static BlockOneWay TurnedOneWay(BlockOneWay side, int quarterTurns) =>
-        side == BlockOneWay.Off
-            ? BlockOneWay.Off
-            : (BlockOneWay)(Mathf.PosMod((int)side - 1 + quarterTurns, 4) + 1);
+        side == BlockOneWay.Off ? BlockOneWay.Off : (BlockOneWay)(Mathf.PosMod((int)side - 1 + quarterTurns, 4) + 1);
 
     /// <summary>The side a one-way block collides on after mirroring: along the mirror's axis it swaps.</summary>
     public static BlockOneWay FlippedOneWay(BlockOneWay side, bool horizontal) =>
-        side == BlockOneWay.Off
-            ? BlockOneWay.Off
-            : (((int)side - 1) % 2 == 1) == horizontal
-                ? (BlockOneWay)(Mathf.PosMod((int)side + 1, 4) + 1)
-                : side;
+        side == BlockOneWay.Off ? BlockOneWay.Off :
+        ((int)side - 1) % 2 == 1 == horizontal ? (BlockOneWay)(Mathf.PosMod((int)side + 1, 4) + 1) : side;
 
     /// <summary>The way a spike points after mirroring.</summary>
     public static float FlippedSpikeDegrees(float degrees, bool horizontal) =>
         SpikeRules.NormalizeDegrees(horizontal ? -degrees : 180f - degrees);
 
     /// <summary>Width and height swap once the nearest quarter turn is an odd one.</summary>
-    public static Vector2 TurnedSize(Vector2 size, float angle)
-    {
-        return QuartersIn(angle) % 2 == 0 ? size : new Vector2(size.Y, size.X);
-    }
+    public static Vector2 TurnedSize(Vector2 size, float angle) =>
+        QuartersIn(angle) % 2 == 0 ? size : new Vector2(size.Y, size.X);
 
     private static int QuartersIn(float angle) => (int)MathF.Round(angle / (Mathf.Tau / 4));
 }

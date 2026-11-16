@@ -1,10 +1,15 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -36,9 +41,7 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
     [Test]
     public void TheTooltipDrawsAboveEveryPanelAndCannotTakeInput()
     {
-        Assert.That(
-            Tooltip.GetComponent<Drawable>().ZIndex,
-            Is.EqualTo(UiLayers.AnimatorTooltip));
+        Assert.That(Tooltip.GetComponent<Drawable>().ZIndex, Is.EqualTo(UiLayers.AnimatorTooltip));
         Assert.That(UiLayers.AnimatorTooltip, Is.GreaterThan(UiLayers.AnimatorMenu));
         Assert.That(Tooltip.Tags.Has<TakesInput>(), Is.False);
     }
@@ -114,10 +117,7 @@ public sealed class AnimatorTooltipTests : AnimatorToolTest
         foreach (Entity entity in Store.Query<Toggle, ModeToggle>().ToEntityList())
         {
             AnimatorMode mode = entity.GetComponent<ModeToggle>().Mode;
-            Assert.That(
-                entity.HasComponent<UiTooltip>(),
-                Is.True,
-                $"{mode} has no hover text");
+            Assert.That(entity.HasComponent<UiTooltip>(), Is.True, $"{mode} has no hover text");
             Assert.That(entity.GetComponent<UiTooltip>().Text, Is.Not.Empty);
         }
     }

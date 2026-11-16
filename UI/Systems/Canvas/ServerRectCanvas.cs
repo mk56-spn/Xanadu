@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// The shape half of the production canvas: every draw goes to the

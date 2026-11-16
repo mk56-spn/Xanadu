@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>What each particle of an effect is drawn with.</summary>
 public enum XpfTexture

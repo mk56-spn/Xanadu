@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Items;
+namespace Xanadu.Core.Items;
 
 /// <summary>Who holds a Xif's data: the level that placed it, or the game's shared asset store.</summary>
 public enum XifOwner

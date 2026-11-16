@@ -1,34 +1,37 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Levels;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
+using Xanadu.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Editor;
 
 /// <summary>
-/// What the ECS editor asks of its host: saving, previews, shortcuts and the
-/// shader import picker. Every dialog is an ECS one (<see cref="EditorDialogs"/>);
-/// text fields are typed into by the host's text input. Engine-free: the host
-/// calls <see cref="Tick"/> once a frame after the systems update.
+///     What the ECS editor asks of its host: saving, previews, shortcuts and the
+///     shader import picker. Every dialog is an ECS one (<see cref="EditorDialogs" />);
+///     text fields are typed into by the host's text input. Engine-free: the host
+///     calls <see cref="Tick" /> once a frame after the systems update.
 /// </summary>
 public sealed partial class EditorOverlay
 {
-    private readonly EntityStore _entities;
     private readonly EditorCommandBus _commands;
-    private readonly IBlockingPointerInputSource? _pointer;
+    private readonly EntityStore _entities;
     private readonly Action? _onBack;
-    private string _saveProblem = "";
     private readonly Action? _onForward;
     private readonly Action<LevelDocument, string, long>? _onPreview;
     private readonly Action<LevelDocument, string, long>? _onPreviewHere;
-
-    private Entity _editor;
+    private readonly bool _openSongDialog;
+    private readonly IBlockingPointerInputSource? _pointer;
 
     private bool _closed;
-    private readonly bool _openSongDialog;
+
+    private Entity _editor;
+    private string _saveProblem = "";
 
     public EditorOverlay(
         EntityStore entities,
@@ -54,8 +57,7 @@ public sealed partial class EditorOverlay
         if (!_editor.IsNull)
         {
             _editor.AddComponent(new EditorShortcutHost(this));
-            _editor.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(
-                new EditorTimelineHost(_editor, _commands, SetStatus, history)));
+            _editor.AddComponent(new TimelineHost(new EditorTimelineHost(_editor, _commands, SetStatus, history)));
         }
     }
 

@@ -1,6 +1,8 @@
 using System;
 using MoonWorks.Graphics;
-using Xanadu.Systems.Canvas;
+using MoonWorks.Graphics;
+using SDL3;
+using Xanadu.Ui.Systems.Canvas;
 using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Host.Text;
@@ -50,7 +52,7 @@ internal static class GlyphStrips
         copy.UploadToTexture(new TextureTransferInfo(transfer), new TextureRegion(texture) { W = (uint)width, H = (uint)cell }, false);
         commands.EndCopyPass(copy);
         if (levels > 1)
-            SDL3.SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, texture.Handle);
+            SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, texture.Handle);
         Fence fence = device.SubmitAndAcquireFence(commands);
         device.WaitForFence(fence);
         device.ReleaseFence(fence);

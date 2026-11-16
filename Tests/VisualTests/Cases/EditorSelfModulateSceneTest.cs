@@ -1,3 +1,5 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Scenes;
@@ -114,14 +116,14 @@ public sealed class EditorSelfModulateSceneTest : SceneTest
     private static Vector2 PointOn(Entity field, System.Func<Rect2, Vector2> at)
     {
         Entity square = field.GetComponent<UiColorField>().Picker;
-        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Ecs.Position>().Value);
+        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Core.Position>().Value);
         return at(ColorPickerLayout.Square(center));
     }
 
     private static Vector2 PointOnHue(Entity field, float down)
     {
         Entity square = field.GetComponent<UiColorField>().Picker;
-        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Ecs.Position>().Value);
+        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Core.Position>().Value);
         Rect2 bar = ColorPickerLayout.HueBar(center);
         return new Vector2(bar.GetCenter().X, bar.Position.Y + bar.Size.Y * down);
     }
@@ -134,7 +136,7 @@ public sealed class EditorSelfModulateSceneTest : SceneTest
     private Vector2 SquareAt(float across, float down)
     {
         Entity square = Picker();
-        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Ecs.Position>().Value);
+        Vector2 center = UiTransform.WorldPosition(square, square.GetComponent<Xanadu.Core.Position>().Value);
         Rect2 area = ColorPickerLayout.Square(center);
         return area.Position + area.Size * new Vector2(across, down);
     }

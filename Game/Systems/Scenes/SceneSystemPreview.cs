@@ -3,9 +3,10 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Levels;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// The level editor's own view of the layers (Docs/render-architecture.md

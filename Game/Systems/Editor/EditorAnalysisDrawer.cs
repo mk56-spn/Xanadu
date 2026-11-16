@@ -1,9 +1,11 @@
 using System;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Playfields;
-using Xanadu.Timeline;
-using Xanadu.Theme;
 
 namespace Xanadu.Systems.Editor;
 

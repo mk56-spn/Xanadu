@@ -1,14 +1,17 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -83,15 +86,13 @@ public sealed class GroupBufferTests
     public void MovingOneBufferedMemberToAnotherLayerIsRefused()
     {
         var store = new EntityStore();
-        LevelGroups level = LevelGroups.Create();
+        var level = LevelGroups.Create();
         store.CreateEntity(level);
         level.Groups[2].Buffered = true;
         Entity first = Member(store, -2, 2);
         Entity second = Member(store, -2, 2);
 
-        Assert.That(
-            EditorBufferGuard.MovingToLayer(store, new[] { first }, 1),
-            Is.EqualTo(GroupBufferRules.OneLayer));
+        Assert.That(EditorBufferGuard.MovingToLayer(store, new[] { first }, 1), Is.EqualTo(GroupBufferRules.OneLayer));
         Assert.That(
             EditorBufferGuard.MovingToLayer(store, new[] { first, second }, 1),
             Is.Null,
@@ -102,7 +103,7 @@ public sealed class GroupBufferTests
     public void AddingAMemberOnAnotherLayerIsRefused()
     {
         var store = new EntityStore();
-        LevelGroups level = LevelGroups.Create();
+        var level = LevelGroups.Create();
         store.CreateEntity(level);
         level.Groups[1].Buffered = true;
         Member(store, -2, 1);
@@ -117,7 +118,7 @@ public sealed class GroupBufferTests
     public void AddingAMemberOnTheGroupsLayerIsAllowed()
     {
         var store = new EntityStore();
-        LevelGroups level = LevelGroups.Create();
+        var level = LevelGroups.Create();
         store.CreateEntity(level);
         level.Groups[1].Buffered = true;
         Member(store, -2, 1);
@@ -130,14 +131,12 @@ public sealed class GroupBufferTests
     public void GivingABufferedMemberASecondGroupIsRefused()
     {
         var store = new EntityStore();
-        LevelGroups level = LevelGroups.Create();
+        var level = LevelGroups.Create();
         store.CreateEntity(level);
         level.Groups[1].Buffered = true;
         Entity member = Member(store, -2, 1);
 
-        Assert.That(
-            EditorBufferGuard.AddingToGroup(store, new[] { member }, 4),
-            Is.EqualTo(GroupBufferRules.OneGroup));
+        Assert.That(EditorBufferGuard.AddingToGroup(store, new[] { member }, 4), Is.EqualTo(GroupBufferRules.OneGroup));
     }
 
     [Test]
@@ -172,26 +171,27 @@ public sealed class GroupBufferTests
     public void TheBufferSettingsRoundTripThroughAMap()
     {
         var source = new LevelDocument { Name = "Buffered" };
-        source.Groups.Add(new GroupDocument
-        {
-            Id = 2,
-            Name = "Puff",
-            Buffered = true,
-            BufferTint = "#3366cc80",
-            BufferAlpha = 0.75f,
-            BufferShader = 3,
-            BufferBlend = BlendMode.Add,
-            BufferKeys =
+        source.Groups.Add(
+            new GroupDocument
             {
-                new ShaderKeyDocument
+                Id = 2,
+                Name = "Puff",
+                Buffered = true,
+                BufferTint = "#3366cc80",
+                BufferAlpha = 0.75f,
+                BufferShader = 3,
+                BufferBlend = BlendMode.Add,
+                BufferKeys =
                 {
-                    Param = "blur",
-                    Time = 1f,
-                    Value = new[] { 2.5f },
-                    Ease = EasePreset.EaseOut,
-                },
-            },
-        });
+                    new ShaderKeyDocument
+                    {
+                        Param = "blur",
+                        Time = 1f,
+                        Value = new[] { 2.5f },
+                        Ease = EasePreset.EaseOut
+                    }
+                }
+            });
 
         LevelDocument read = XmfBinary.Read(XmfBinary.Write(source));
 
@@ -211,7 +211,7 @@ public sealed class GroupBufferTests
         var source = new LevelDocument { Name = "Plain" };
         source.Groups.Add(new GroupDocument { Id = 0, Name = "A" });
         byte[] data = XmfBinary.Write(source);
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet(22, out _), Is.False);
     }
@@ -257,11 +257,14 @@ public sealed class GroupBufferTests
         Assert.That(document.Groups.Single().BufferBlend, Is.EqualTo(BlendMode.Mul));
 
         var target = new EntityStore();
-        LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo(""),
-            new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false),
-            new NoteSelection(default)), document);
+        LevelDocumentMapper.Apply(
+            target,
+            target.CreateEntity(
+                new LevelInfo(""),
+                new Playfield(1000, 1000),
+                new Playhead(0, 120, 0, false),
+                new NoteSelection(default)),
+            document);
 
         LevelGroups applied = target.Query<LevelGroups>().ToEntityList().Single().GetComponent<LevelGroups>();
         GroupDefinition group = applied.Groups[1];
@@ -276,7 +279,7 @@ public sealed class GroupBufferTests
     public void TurningBufferingOnIsAnUndoStep()
     {
         var store = new EntityStore();
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         Entity level = store.CreateEntity(groups);
         var history = new EditorHistory(store);
         EditorSnapshot before = history.Capture();
@@ -305,7 +308,8 @@ public sealed class GroupBufferTests
     }
 
     private static ItemLayer LayerOfBlock(EntityStore store, Vector2 at) =>
-        store.Query<Block>().ToEntityList().Single(block => block.GetComponent<Block>().Position == at).GetComponent<ItemLayer>();
+        store.Query<Block>().ToEntityList().Single(block => block.GetComponent<Block>().Position == at)
+            .GetComponent<ItemLayer>();
 
     [Test]
     public void TheHistoryRefusesAnyEditThatBreaksALockEvenWithoutTheCommandsCheck()
@@ -323,7 +327,10 @@ public sealed class GroupBufferTests
 
         Assert.That(history.Record(before, history.Capture()), Is.False);
         Assert.That(history.CanUndo, Is.False, "nothing is recorded");
-        Assert.That(LayerOfBlock(store, new Vector2(10, 10)).Layer, Is.EqualTo(LayerOfBlock(store, new Vector2(50, 10)).Layer), "the move is put back (the restore rebuilds the items)");
+        Assert.That(
+            LayerOfBlock(store, new Vector2(10, 10)).Layer,
+            Is.EqualTo(LayerOfBlock(store, new Vector2(50, 10)).Layer),
+            "the move is put back (the restore rebuilds the items)");
         Assert.That(editor.GetComponent<WarningRequest>().Message, Is.EqualTo(GroupBufferRules.OneLayer));
     }
 

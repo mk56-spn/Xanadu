@@ -1,8 +1,7 @@
 using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs;
 
 /// <summary>
 /// One query per store and component set, made once. <c>store.Query&lt;T&gt;()</c>

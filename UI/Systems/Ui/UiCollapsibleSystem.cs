@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Folds and unfolds collapsible sections: a header press flips the section,

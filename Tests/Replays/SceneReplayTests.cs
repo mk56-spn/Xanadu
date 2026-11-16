@@ -6,14 +6,16 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Tests.Replays;
 
@@ -54,14 +56,14 @@ public sealed class SceneReplayTests
             new FakeVisualRidFactory(),
             () => new List<LevelEntry> { _level },
             new KeybindSettings(persist: false),
-            transitions: false,
-            profiles: _profiles,
+            false,
+            _profiles,
             replays: _replays);
         _root.Add(_scenes);
     }
 
     [TearDown]
-    public void TearDown() => Directory.Delete(_directory, recursive: true);
+    public void TearDown() => Directory.Delete(_directory, true);
 
     [Test]
     public void ARealPlayRecordsAndSavesAnXrsFile()

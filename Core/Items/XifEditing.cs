@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Items;
+namespace Xanadu.Core.Items;
 
 /// <summary>
 /// Edits on a <see cref="Xif"/> that any editor can make: the animator on a

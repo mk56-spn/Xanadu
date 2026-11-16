@@ -1,6 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
 
@@ -13,12 +15,7 @@ public sealed class NotePopSystemTests : EcsSystemTest
     public void PopAgesAndIsRemoved()
     {
         Entity pop = Store.CreateEntity(
-            new NotePop(
-                new Note(0, Vector2.Zero),
-                new Vector2(10, 20),
-                Colors.Cyan,
-                36f,
-                lifetime: 0.1f));
+            new NotePop(new Note(0, Vector2.Zero), new Vector2(10, 20), Colors.Cyan, 36f, 0.1f));
         Root.Add(new NotePopSystem());
 
         Frame(1, 0.05f);

@@ -1,41 +1,45 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
+using Xanadu.Core.History;
 using Xanadu.Ecs;
-using Xanadu.History;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
+using Xanadu.Editor.History;
 
 namespace Xanadu.Editor;
 
 /// <summary>
-/// Undo/redo for the level's editable items, on the shared
-/// <see cref="UndoHistory{T}"/>. Capturing, comparing and restoring snapshots
-/// each live in their own class; this only keeps the history the editor asks for.
-/// <para>
-/// It is also where the buffer lock (Docs/render-architecture.md D16a) is
-/// enforced for every edit: an edit that newly breaks a buffered group's rules
-/// is put back and not recorded, and the rule is shown as a warning. The
-/// commands still check first where they can, so they refuse without a
-/// rebuild; this is the net that a new command can't forget.
-/// </para>
+///     Undo/redo for the level's editable items, on the shared
+///     <see cref="UndoHistory{T}" />. Capturing, comparing and restoring snapshots
+///     each live in their own class; this only keeps the history the editor asks for.
+///     <para>
+///         It is also where the buffer lock (Docs/render-architecture.md D16a) is
+///         enforced for every edit: an edit that newly breaks a buffered group's rules
+///         is put back and not recorded, and the rule is shown as a warning. The
+///         commands still check first where they can, so they refuse without a
+///         rebuild; this is the net that a new command can't forget.
+///     </para>
 /// </summary>
 public sealed class EditorHistory
 {
-    private readonly EntityStore _entities;
-    private readonly EditorSnapshotCapture _capture;
-    private readonly EditorSnapshotRestore _restore;
-    private readonly UndoHistory<EditorSnapshot> _history;
-
-    /// <summary>The buffered groups already broken when a snapshot was captured, keyed by its item list (each capture makes a new one).</summary>
+    /// <summary>
+    ///     The buffered groups already broken when a snapshot was captured, keyed by its item list (each capture makes a
+    ///     new one).
+    /// </summary>
     private readonly ConditionalWeakTable<List<ItemCopy>, Dictionary<int, string>> _brokenAt = new();
+
+    private readonly EditorSnapshotCapture _capture;
+    private readonly EntityStore _entities;
+    private readonly UndoHistory<EditorSnapshot> _history;
+    private readonly EditorSnapshotRestore _restore;
 
     public EditorHistory(EntityStore entities)
     {
         _entities = entities;
         _capture = new EditorSnapshotCapture(entities);
         _restore = new EditorSnapshotRestore(entities);
-        _history = new UndoHistory<EditorSnapshot>(
-            EditorSnapshotComparison.AreEqual,
-            _restore.Apply);
+        _history = new UndoHistory<EditorSnapshot>(EditorSnapshotComparison.AreEqual, _restore.Apply);
     }
 
     public bool CanUndo => _history.CanUndo;
@@ -51,9 +55,9 @@ public sealed class EditorHistory
     }
 
     /// <summary>
-    /// Stores an edit, unless it newly broke a buffered group: then the level
-    /// goes back to <paramref name="before"/>, nothing is recorded, a warning
-    /// says why, and the result is false.
+    ///     Stores an edit, unless it newly broke a buffered group: then the level
+    ///     goes back to <paramref name="before" />, nothing is recorded, a warning
+    ///     says why, and the result is false.
     /// </summary>
     public bool Record(EditorSnapshot before, EditorSnapshot after)
     {

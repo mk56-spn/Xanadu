@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -10,14 +11,14 @@ public sealed class XafPackageCopyTests
     {
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafRigAuthoring.AddBone(package, 0, "child", new Vector2(0, -40));
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "a.svg",
-            Group = "a",
-            BoneId = "child",
-        });
-        XafAuthoring.SetBoneProperty(package, package.Clips[0], "child",
-            XafChannelProperty.Rotation, 0.5f, 1f);
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "a.svg",
+                Group = "a",
+                BoneId = "child"
+            });
+        XafAuthoring.SetBoneProperty(package, package.Clips[0], "child", XafChannelProperty.Rotation, 0.5f, 1f);
         return package;
     }
 
@@ -48,7 +49,7 @@ public sealed class XafPackageCopyTests
                      p => p.Clips[0].Duration = 3f,
                      p => p.Clips[0].Channels[0].Keyframes[0].Time = 0.6f,
                      p => p.Clips[0].Channels[0].Keyframes.Add(new XafKeyframe { Time = 1.5f }),
-                     p => p.Clips.RemoveAt(1),
+                     p => p.Clips.RemoveAt(1)
                  })
         {
             XafPackage copy = XafPackageCopy.Clone(original);

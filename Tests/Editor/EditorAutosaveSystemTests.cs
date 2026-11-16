@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
@@ -34,7 +35,7 @@ public sealed class EditorAutosaveSystemTests
         _recovery = new LevelRecoveryStore(_directory);
         _editor = NewEditor(LevelPath);
         _root = new SystemRoot(_store);
-        _autosave = new EditorAutosaveSystem(_store, _recovery, () => _now, intervalSeconds: 10);
+        _autosave = new EditorAutosaveSystem(_store, _recovery, () => _now, 10);
         _root.Add(_autosave);
     }
 
@@ -42,13 +43,13 @@ public sealed class EditorAutosaveSystemTests
     public void TearDown()
     {
         if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
+            Directory.Delete(_directory, true);
     }
 
     [Test]
     public void AnUntouchedLevelIsNeverAutosaved()
     {
-        Pass(seconds: 60);
+        Pass(60);
 
         Assert.That(_recovery.Read(LevelPath), Is.Null);
     }
@@ -186,7 +187,7 @@ public sealed class EditorAutosaveSystemTests
     [Test]
     public void WithAutosaveOnUnsavedEditsAskForAQuietSave()
     {
-        UseAutosave(enabled: true);
+        UseAutosave(true);
         Pass(0.1f);
         AddNote(500);
 
@@ -199,7 +200,7 @@ public sealed class EditorAutosaveSystemTests
     [Test]
     public void WithAutosaveOffNothingAsksToSave()
     {
-        UseAutosave(enabled: false);
+        UseAutosave(false);
         Pass(0.1f);
         AddNote(500);
 
@@ -211,7 +212,7 @@ public sealed class EditorAutosaveSystemTests
     [Test]
     public void AutosaveLeavesAnUntitledLevelForTheUserToSave()
     {
-        UseAutosave(enabled: true);
+        UseAutosave(true);
         Entity untitled = NewEditor("");
         _editor.DeleteEntity();
         _editor = untitled;
@@ -226,7 +227,7 @@ public sealed class EditorAutosaveSystemTests
     [Test]
     public void AutosaveDoesNotTakeOverAnotherRequest()
     {
-        UseAutosave(enabled: true);
+        UseAutosave(true);
         Pass(0.1f);
         AddNote(500);
         _editor.GetComponent<EditorUiRequest>().Kind = EditorButtonKind.LoadSong;
@@ -254,11 +255,7 @@ public sealed class EditorAutosaveSystemTests
         var commands = new EditorCommandBus();
         var root = new SystemRoot(store);
         root.Add(new EditorCommandSystem(store, commands, new EditorHistory(store)));
-        root.Add(new EditorAutosaveSystem(
-            store,
-            _recovery,
-            () => _now,
-            intervalSeconds: 10));
+        root.Add(new EditorAutosaveSystem(store, _recovery, () => _now, 10));
 
         root.Update(new UpdateTick(0.1f, 0));
         LevelDocument edited = LevelDocumentMapper.Capture(store, editor);
@@ -275,8 +272,8 @@ public sealed class EditorAutosaveSystemTests
     [Test]
     public void NotesAtTheSameTimeDoNotLookLikeAnEdit()
     {
-        AddNote(500, x: 10);
-        AddNote(500, x: 20);
+        AddNote(500, 10);
+        AddNote(500, 20);
         Pass(0.1f);
 
         // The mapper's sort is by time only, so ties may come out in either order.
@@ -317,8 +314,7 @@ public sealed class EditorAutosaveSystemTests
     private void UseAutosave(bool enabled)
     {
         _root.Remove(_autosave);
-        _autosave = new EditorAutosaveSystem(
-            _store, _recovery, () => _now, intervalSeconds: 10, saveToFile: () => enabled);
+        _autosave = new EditorAutosaveSystem(_store, _recovery, () => _now, 10, () => enabled);
         _root.Add(_autosave);
     }
 

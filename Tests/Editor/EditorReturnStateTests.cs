@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Tests.Support;
@@ -29,7 +31,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         EditorItems.Create(Store, new Spike(new Vector2(300, 100), new Vector2(50, 50)));
         editor.GetComponent<NoteSelection>().Note = spike;
 
-        EditorReturnState state = EditorReturnState.Capture(Store)!;
+        var state = EditorReturnState.Capture(Store)!;
 
         foreach (Entity item in Store.Query<Spike>().ToEntityList())
             item.DeleteEntity();
@@ -44,9 +46,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         Assert.That(rebuilt.GetComponent<PlayfieldView>().ScreenOrigin, Is.EqualTo(new Vector2(40, 50)));
         Assert.That(rebuilt.GetComponent<EditorPlacement>().Mode, Is.EqualTo(EditorPlacementMode.Spikes));
         Assert.That(rebuilt.GetComponent<EditorPlacement>().Degrees, Is.EqualTo(180f));
-        Assert.That(
-            rebuilt.GetComponent<EditorPlacement>().BlockSize,
-            Is.EqualTo(BlockBrushSize.Platform));
+        Assert.That(rebuilt.GetComponent<EditorPlacement>().BlockSize, Is.EqualTo(BlockBrushSize.Platform));
         Assert.That(rebuilt.GetComponent<NoteSelection>().AllNotes, Is.EquivalentTo(new[] { again }));
     }
 
@@ -66,7 +66,7 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         layers.Hidden.Add(2);
         layers.Solo = 3;
 
-        EditorReturnState state = EditorReturnState.Capture(Store)!;
+        var state = EditorReturnState.Capture(Store)!;
         editor.DeleteEntity();
 
         Entity rebuilt = CreateEditor();
@@ -93,8 +93,8 @@ public sealed class EditorReturnStateTests : EcsSystemTest
         CreateEditor();
         var starts = new List<StartPoint>
         {
-            new("a", 1_000, new Vector2(100, 200), System.Numerics.Vector2.Zero, new Vector2(0, -1)),
-            new("b", 9_000, new Vector2(800, 800), System.Numerics.Vector2.Zero, new Vector2(0, -1)),
+            new("a", 1_000, new Vector2(100, 200), Vector2.Zero, new Vector2(0, -1)),
+            new("b", 9_000, new Vector2(800, 800), Vector2.Zero, new Vector2(0, -1))
         };
 
         StartPoint start = EditorReturnState.StartAtPlayhead(Store, new LevelDocument(), starts, 5_000);
@@ -107,17 +107,17 @@ public sealed class EditorReturnStateTests : EcsSystemTest
     public void APlayheadStartPrefersWhereTheLastPreviewWasThen()
     {
         Entity editor = CreateEditor();
-        editor.AddComponent(new PlayerPath(
-            new List<PlayerPathSample>
-            {
-                new(new Vector2(10, 10), 1_000, false),
-                new(new Vector2(20, 20), 4_000, false),
-                new(new Vector2(30, 30), 6_000, false),
-            },
-            new Vector2(30, 200)));
+        editor.AddComponent(
+            new PlayerPath(
+                new List<PlayerPathSample>
+                {
+                    new(new Vector2(10, 10), 1_000, false),
+                    new(new Vector2(20, 20), 4_000, false),
+                    new(new Vector2(30, 30), 6_000, false)
+                },
+                new Vector2(30, 200)));
 
-        StartPoint start = EditorReturnState.StartAtPlayhead(
-            Store, new LevelDocument(), new List<StartPoint>(), 5_000);
+        StartPoint start = EditorReturnState.StartAtPlayhead(Store, new LevelDocument(), new List<StartPoint>(), 5_000);
 
         Assert.That(start.Position, Is.EqualTo(new Vector2(20, 20)));
     }

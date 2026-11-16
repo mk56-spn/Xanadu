@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using SceneState = Xanadu.Ecs.SceneState;
-using Position = Xanadu.Ecs.Position;
+using SceneState = Xanadu.Ecs.Components.SceneState;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Scenes;
 

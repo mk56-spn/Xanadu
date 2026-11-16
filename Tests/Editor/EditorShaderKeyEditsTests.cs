@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
-using Xanadu.Timeline;
 using Xanadu.Slang;
 
 namespace Xanadu.Tests.Editor;
@@ -20,7 +20,8 @@ public sealed class EditorShaderKeyEditsTests
     private static readonly InstanceUniform Speed = new("speed", 1, new Vector4(2, 0, 0, 0));
 
     private static List<ShaderKey> Keys(params (string Param, float Time, float X)[] keys) =>
-        keys.Select(key => new ShaderKey(key.Param, key.Time, new Vector4(key.X, 0, 0, 0), 1, EasePreset.Linear)).ToList();
+        keys.Select(key => new ShaderKey(key.Param, key.Time, new Vector4(key.X, 0, 0, 0), 1, EasePreset.Linear))
+            .ToList();
 
     [Test]
     public void RetimingMovesTheKeyAndReplacesOneAlreadyThere()
@@ -29,7 +30,9 @@ public sealed class EditorShaderKeyEditsTests
 
         Assert.That(EditorShaderKeyEdits.Retime(keys, "speed", 1f, 2f), Is.True);
 
-        Assert.That(EditorShaderKeyEdits.Lane(keys, "speed").Select(key => (key.Time, key.Value.X)), Is.EqualTo(new[] { (2f, 1f) }));
+        Assert.That(
+            EditorShaderKeyEdits.Lane(keys, "speed").Select(key => (key.Time, key.Value.X)),
+            Is.EqualTo(new[] { (2f, 1f) }));
         Assert.That(keys.Count(key => key.Param == "tint"), Is.EqualTo(1), "other settings' keys are left alone");
         Assert.That(EditorShaderKeyEdits.Retime(keys, "speed", 5f, 6f), Is.False, "no key there");
     }
@@ -92,7 +95,7 @@ public sealed class EditorShaderKeyEditsTests
     [Test]
     public void TheSlotChoiceNamesEverySlot()
     {
-        LevelShaders shaders = LevelShaders.Create();
+        var shaders = LevelShaders.Create();
         shaders.Slots[0] = new ShaderSlot { Name = "Blur", Source = "float4 shade(ItemInput i) { return i.colour; }" };
 
         string[] labels = ShaderSlotChoice.Labels(shaders);

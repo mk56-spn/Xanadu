@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>One filled piece of an ease band; <see cref="Reverse"/> marks where the value runs backwards.</summary>
 public readonly record struct EaseBandPiece(Vector2[] Polygon, bool Reverse);

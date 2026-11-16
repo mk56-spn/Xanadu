@@ -1,6 +1,7 @@
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Shared defaults for the generic ECS UI.</summary>
 public static class UiTheme

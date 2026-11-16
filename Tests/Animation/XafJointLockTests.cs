@@ -1,6 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -58,7 +59,9 @@ public sealed class XafJointLockTests
         Transform2D[] world = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
         Vector2[] chain = { world[Thigh].Origin, world[Shin].Origin, world[3].Origin };
 
-        Vector2[] solved = XafFabrik.Solve(chain, chain[0] + new Vector2(30, 60),
+        Vector2[] solved = XafFabrik.Solve(
+            chain,
+            chain[0] + new Vector2(30, 60),
             XafJointLocks.BendPositive(package, Shin)!.Value);
 
         float bend = (solved[1] - solved[0]).Cross(solved[2] - solved[1]);
@@ -154,12 +157,15 @@ public sealed class XafJointLockTests
     private static XafClip Keyed(XafPackage package, params (string Bone, float Value)[] keys)
     {
         var clip = new XafClip { Id = "pose", Duration = 1f };
-        foreach (var (bone, value) in keys)
+        foreach ((string bone, float value) in keys)
         {
-            var channel = new XafChannel { Target = XafChannelTarget.Bone, TargetId = bone, Property = XafChannelProperty.Rotation };
-            channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = value, Interpolation = XafInterpolation.SineInOut });
+            var channel = new XafChannel
+                { Target = XafChannelTarget.Bone, TargetId = bone, Property = XafChannelProperty.Rotation };
+            channel.Keyframes.Add(
+                new XafKeyframe { Time = 0f, Value = value, Interpolation = XafInterpolation.SineInOut });
             clip.Channels.Add(channel);
         }
+
         package.Clips.Add(clip);
         return clip;
     }
@@ -184,7 +190,9 @@ public sealed class XafJointLockTests
         // the whole leg would move it about 30, re-bending the knee keeps it as near as it will go.
         Assert.That(after[3].Origin.DistanceTo(before[3].Origin), Is.LessThan(8f), "the ankle stays as near as it can");
         Assert.That(after[3].Rotation, Is.EqualTo(before[3].Rotation).Within(1e-3f), "and the foot keeps its angle");
-        Assert.That(clip.Channels.All(channel => channel.Keyframes[0].Interpolation == XafInterpolation.SineInOut), Is.True,
+        Assert.That(
+            clip.Channels.All(channel => channel.Keyframes[0].Interpolation == XafInterpolation.SineInOut),
+            Is.True,
             "keys keep their easing");
     }
 
@@ -220,7 +228,9 @@ public sealed class XafJointLockTests
 
         XafJointLocks.FitClip(package, clip);
 
-        Assert.That(clip.Channels.Select(channel => channel.TargetId), Is.EqualTo(new[] { "thigh" }),
+        Assert.That(
+            clip.Channels.Select(channel => channel.TargetId),
+            Is.EqualTo(new[] { "thigh" }),
             "an override that never keyed the knee or foot must not start to");
     }
 }

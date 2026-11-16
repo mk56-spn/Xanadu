@@ -1,3 +1,4 @@
+using Xanadu.Ui.Systems.Input;
 using Xanadu.Systems.Input;
 
 namespace Xanadu.Tests.VisualTests;

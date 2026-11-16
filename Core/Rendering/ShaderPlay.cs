@@ -1,8 +1,7 @@
 using System;
 using System.Diagnostics;
-using System.Numerics;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// Something that happens during play that shaders can time from

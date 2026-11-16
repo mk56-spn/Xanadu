@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>A rectangle filled with a linear colour gradient.</summary>
 public struct LinearGradient(Color start, Color end, bool horizontal = true) : IComponent

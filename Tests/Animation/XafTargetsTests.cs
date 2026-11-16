@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Animation;
 
@@ -25,7 +26,11 @@ public sealed class XafTargetsTests
     private static void Add(XafPackage package, string id, int parent, Vector2 offset) =>
         package.Skeleton.Bones.Add(new XafBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
 
-    private static XafChannel Keys(XafClip clip, string bone, XafChannelProperty property, params (float Time, float Value)[] keys)
+    private static XafChannel Keys(
+        XafClip clip,
+        string bone,
+        XafChannelProperty property,
+        params (float Time, float Value)[] keys)
     {
         var channel = new XafChannel { Target = XafChannelTarget.Bone, TargetId = bone, Property = property };
         foreach ((float time, float value) in keys)
@@ -40,7 +45,7 @@ public sealed class XafTargetsTests
     private static XafLimbTarget Orbit(string bone, string anchor, Vector2 center) => new()
     {
         BoneId = bone, AnchorId = anchor, Shape = XafTargetShape.Ellipse, Center = center,
-        RadiusX = 16f, RadiusY = 9f, From = 0f, To = 1f,
+        RadiusX = 16f, RadiusY = 9f, From = 0f, To = 1f
     };
 
     [Test]
@@ -80,11 +85,14 @@ public sealed class XafTargetsTests
         for (int i = 0; i <= 40; i++)
         {
             float time = i / 40f;
-            Assert.That(Where(package, Foot, time).DistanceTo(target.LocalAt(time)),
-                Is.LessThan(XafTargets.DriftTolerance + 0.25f), $"at {time}");
+            Assert.That(
+                Where(package, Foot, time).DistanceTo(target.LocalAt(time)),
+                Is.LessThan(XafTargets.DriftTolerance + 0.25f),
+                $"at {time}");
         }
 
-        int keys = clip.Channels.Find(c => c.TargetId == "thigh" && c.Property == XafChannelProperty.Rotation)!.Keyframes.Count;
+        int keys = clip.Channels.Find(c => c.TargetId == "thigh" && c.Property == XafChannelProperty.Rotation)!
+            .Keyframes.Count;
         Assert.That(keys, Is.LessThan(13), "a full turn should take a handful of curved keys");
         TestContext.Out.WriteLine($"ELLIPSE KEYS {keys}");
     }
@@ -114,7 +122,9 @@ public sealed class XafTargetsTests
 
         Assert.That(clip.Channels.TrueForAll(c => c.TargetId == "root"), Is.True);
         for (int i = 0; i <= 20; i++)
-            Assert.That(Where(package, 0, i / 20f).DistanceTo(target.LocalAt(i / 20f)), Is.LessThan(XafTargets.DriftTolerance + 0.25f));
+            Assert.That(
+                Where(package, 0, i / 20f).DistanceTo(target.LocalAt(i / 20f)),
+                Is.LessThan(XafTargets.DriftTolerance + 0.25f));
     }
 
     [Test]
@@ -152,14 +162,17 @@ public sealed class XafTargetsTests
     {
         XafPackage package = Rig();
         XafClip clip = package.Clips[0];
-        var spot = new XafLimbTarget { BoneId = "foot", Shape = XafTargetShape.Spot, Center = new Vector2(0, -4), From = 0f, To = 1f };
+        var spot = new XafLimbTarget
+            { BoneId = "foot", Shape = XafTargetShape.Spot, Center = new Vector2(0, -4), From = 0f, To = 1f };
         clip.Targets.Add(spot);
         XafTargets.Bake(package, clip);
 
         Keys(clip, "root", XafChannelProperty.TranslationY, (0f, 0f), (1f, 30f));
         XafTargets.Bake(package, clip);
 
-        Assert.That(Where(package, Foot, 0.6f).DistanceTo(new Vector2(0, -4)), Is.LessThan(XafTargets.DriftTolerance + 0.25f));
+        Assert.That(
+            Where(package, Foot, 0.6f).DistanceTo(new Vector2(0, -4)),
+            Is.LessThan(XafTargets.DriftTolerance + 0.25f));
     }
 
     [Test]
@@ -197,7 +210,7 @@ public sealed class XafTargetsTests
         XafLimbTarget target = Orbit("foot", "hip", new Vector2(3, 4)) with
         {
             Tilt = 0.5f, StartAngle = 1f, Sweep = -3f, From = 0.1f, To = 0.8f,
-            Ease = EasePreset.EaseOut, HoldFacing = true, Facing = 0.25f, BendPositive = true,
+            Ease = EasePreset.EaseOut, HoldFacing = true, Facing = 0.25f, BendPositive = true
         };
         package.Clips[0].Targets.Add(target);
 
@@ -214,5 +227,4 @@ public sealed class XafTargetsTests
         Assert.That(package.Clips[0].Targets[0].BoneId, Is.EqualTo("boot"));
         Assert.That(package.Clips[0].Targets[0].AnchorId, Is.EqualTo("pelvis"));
     }
-
 }

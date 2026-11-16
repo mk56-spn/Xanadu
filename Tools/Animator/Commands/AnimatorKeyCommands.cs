@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tools.Animator.Commands;
 

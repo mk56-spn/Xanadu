@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Tests.Animation;
 
@@ -62,10 +64,12 @@ public sealed class ContactRigAssetTests
         Assert.That(package.Skeleton.Bones, Has.Count.EqualTo(17));
         // The animator can add clips of its own, such as a work-in-progress duplicate,
         // so this pins only the ones the game plays by name.
-        Assert.That(package.Clips.ConvertAll(clip => clip.Id),
-            Is.SupersetOf(Array.ConvertAll(
-                Array.FindAll(ContactClips.All, clip => clip != ContactClip.Falling),
-                clip => clip.Id())));
+        Assert.That(
+            package.Clips.ConvertAll(clip => clip.Id),
+            Is.SupersetOf(
+                Array.ConvertAll(
+                    Array.FindAll(ContactClips.All, clip => clip != ContactClip.Falling),
+                    clip => clip.Id())));
     }
 
     /// <summary>
@@ -77,7 +81,7 @@ public sealed class ContactRigAssetTests
     {
         XafPackage package = Load();
 
-        foreach ((ContactClip from, ContactClip to) in Xanadu.Systems.Characters.CharacterMotionSystem.Transitions(package))
+        foreach ((ContactClip from, ContactClip to) in Systems.Characters.CharacterMotionSystem.Transitions(package))
             Assert.That(XafTransitions.Allows(package, from.Id(), to.Id()), Is.True, $"{from} to {to}");
     }
 
@@ -91,6 +95,7 @@ public sealed class ContactRigAssetTests
     public void ThePartsOverlapInListOrderOnALayerThatIsNotHiddenBehindThePanels()
     {
         XafPackage package = Load();
+
         int Index(string bone, string group) =>
             package.Attachments.FindIndex(a => a.BoneId == bone && a.Group == group);
 
@@ -139,9 +144,15 @@ public sealed class ContactRigAssetTests
             // fall over the front, over the shoulder.
             int neck = package.Attachments.Single(attachment => attachment.Group == "neck").ZOrder;
             if (XafChainArt.LayerOf(package, strand) <= neck)
-                Assert.That(strand.Lean, Is.LessThan(0f), $"{strand.Id} draws behind the neck, so it leans back down the back");
+                Assert.That(
+                    strand.Lean,
+                    Is.LessThan(0f),
+                    $"{strand.Id} draws behind the neck, so it leans back down the back");
             else
-                Assert.That(strand.Lean, Is.GreaterThan(0f), $"{strand.Id} draws over the neck, so it leans forward over the front");
+                Assert.That(
+                    strand.Lean,
+                    Is.GreaterThan(0f),
+                    $"{strand.Id} draws over the neck, so it leans forward over the front");
 
             string svg = File.ReadAllText(ProjectFile(strand.SvgPath));
             Assert.That(XafSvgDocument.Groups(svg), Does.Contain(strand.Group));
@@ -154,10 +165,14 @@ public sealed class ContactRigAssetTests
         // The strands from the back of the head tuck under it; the fringe lies over the forehead.
         Assert.That(Hair(package).Layer, Is.LessThan(head));
         int torso = package.Attachments.Single(attachment => attachment.Group == "torso").ZOrder;
-        Assert.That(strands.Count(strand => XafChainArt.LayerOf(package, strand) < torso), Is.GreaterThanOrEqualTo(2),
+        Assert.That(
+            strands.Count(strand => XafChainArt.LayerOf(package, strand) < torso),
+            Is.GreaterThanOrEqualTo(2),
             "some strands hang behind the body");
-        Assert.That(strands.Count(strand => strand.Id != "hair_fringe" && XafChainArt.LayerOf(package, strand) > torso),
-            Is.GreaterThanOrEqualTo(2), "some strands fall over the front");
+        Assert.That(
+            strands.Count(strand => strand.Id != "hair_fringe" && XafChainArt.LayerOf(package, strand) > torso),
+            Is.GreaterThanOrEqualTo(2),
+            "some strands fall over the front");
         XafChain fringe = strands.Single(strand => strand.Id == "hair_fringe");
         Assert.That(XafChainArt.LayerOf(package, fringe), Is.GreaterThan(head));
     }
@@ -166,8 +181,8 @@ public sealed class ContactRigAssetTests
     /// The hair settled at the rest pose, then carried through the clips the way the
     /// game plays them: one into the next with a short crossfade, at 60 Hz.
     /// </summary>
-    private static IEnumerable<(XafChainSimulation Simulation, Transform2D[] World, ContactClip Clip)> HairThroughEveryClip(
-        XafPackage package)
+    private static IEnumerable<(XafChainSimulation Simulation, Transform2D[] World, ContactClip Clip)>
+        HairThroughEveryClip(XafPackage package)
     {
         var runtime = new AnimatorRuntime(package);
         runtime.Play(ContactClip.Idle.Id(), 0f);
@@ -179,7 +194,8 @@ public sealed class ContactRigAssetTests
         foreach ((ContactClip clip, float seconds) in new[]
                  {
                      (ContactClip.Idle, 1.5f), (ContactClip.Jumping, 1.2f), (ContactClip.Landing, 0.3f),
-                     (ContactClip.Sliding, 1f), (ContactClip.Idle, 1f), (ContactClip.Jumping, 0.6f), (ContactClip.Death, 2f),
+                     (ContactClip.Sliding, 1f), (ContactClip.Idle, 1f), (ContactClip.Jumping, 0.6f),
+                     (ContactClip.Death, 2f)
                  })
         {
             runtime.Play(clip.Id(), 0.1f);
@@ -199,7 +215,8 @@ public sealed class ContactRigAssetTests
         XafPackage package = Load();
 
         int frames = 0;
-        foreach ((XafChainSimulation simulation, Transform2D[] world, ContactClip clip) in HairThroughEveryClip(package))
+        foreach ((XafChainSimulation simulation, Transform2D[] world, ContactClip clip) in
+                 HairThroughEveryClip(package))
         {
             frames++;
             for (int strand = 0; strand < package.Chains.Count; strand++)
@@ -208,15 +225,19 @@ public sealed class ContactRigAssetTests
                 if (!chain.HasCollider)
                     continue;
                 Vector2 shoulder = XafChainSimulation.Collider(package, chain, world)!.Value;
-                var points = simulation.Points(strand);
+                IReadOnlyList<Vector2> points = simulation.Points(strand);
                 for (int i = 1; i < points.Count; i++)
                 {
                     // These are the drawn points, blended between steps and carried with the head;
                     // drawing puts back any that land in the collider, so only rounding is allowed.
-                    Assert.That(points[i].DistanceTo(shoulder), Is.GreaterThanOrEqualTo(chain.CollideRadius - 0.6f),
+                    Assert.That(
+                        points[i].DistanceTo(shoulder),
+                        Is.GreaterThanOrEqualTo(chain.CollideRadius - 0.6f),
                         $"{chain.Id} {clip} point {i}");
                     // Drawing keeps every link its length, however fast the head turns.
-                    Assert.That(points[i].DistanceTo(points[i - 1]), Is.EqualTo(chain.SegmentLength).Within(1f),
+                    Assert.That(
+                        points[i].DistanceTo(points[i - 1]),
+                        Is.EqualTo(chain.SegmentLength).Within(1f),
                         $"{chain.Id} {clip} link {i}");
                 }
             }
@@ -260,7 +281,7 @@ public sealed class ContactRigAssetTests
             simulation.Update(package, world, 1f / 60f);
 
         Vector2 shoulder = XafChainSimulation.Collider(package, hair, world)!.Value;
-        var points = simulation.Points(package.Chains.IndexOf(hair));
+        IReadOnlyList<Vector2> points = simulation.Points(package.Chains.IndexOf(hair));
         Assert.That(points[0].DistanceTo(XafChainSimulation.Anchor(package, hair, world)!.Value), Is.LessThan(0.001f));
         foreach (Vector2 point in points)
         {
@@ -288,7 +309,7 @@ public sealed class ContactRigAssetTests
         foreach (XafChain strand in back)
         {
             Vector2 shoulder = XafChainSimulation.Collider(package, strand, world)!.Value;
-            var points = simulation.Points(package.Chains.IndexOf(strand));
+            IReadOnlyList<Vector2> points = simulation.Points(package.Chains.IndexOf(strand));
             foreach (Vector2 point in points)
             {
                 if (point.Y >= shoulder.Y)

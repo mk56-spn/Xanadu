@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Systems.Editor;
 
@@ -16,7 +17,7 @@ public static class EditorTiming
 
     /// <summary>The grid step in milliseconds at the playhead (tempo changes make it vary through the song).</summary>
     public static double StepMs(Playhead playhead) =>
-        Xanadu.Timeline.TempoMap.BeatMs(playhead.Tempo.At(playhead.TimeMs).Bpm) * StepBeats(playhead);
+        TempoMap.BeatMs(playhead.Tempo.At(playhead.TimeMs).Bpm) * StepBeats(playhead);
 
     /// <summary>The grid line at or before the playhead's nearest one: where the local step grid starts.</summary>
     public static double StepOriginMs(Playhead playhead) =>

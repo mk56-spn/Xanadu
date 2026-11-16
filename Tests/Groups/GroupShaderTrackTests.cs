@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Items;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
 using Xanadu.Slang;
 
 namespace Xanadu.Tests.Groups;
@@ -38,7 +38,7 @@ public sealed class GroupShaderTrackTests
         var keys = new List<ShaderKey>
         {
             new("tint", 1f, new Vector4(1, 0, 0, 1), 4, EasePreset.Linear),
-            new("tint", 3f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear),
+            new("tint", 3f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear)
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "tint", 0f), Is.EqualTo(new Vector4(1, 0, 0, 1)));
@@ -52,7 +52,7 @@ public sealed class GroupShaderTrackTests
         var keys = new List<ShaderKey>
         {
             new("speed", 0f, new Vector4(0, 0, 0, 0), 1, EasePreset.EaseOut),
-            new("speed", 1f, new Vector4(1, 0, 0, 0), 1, EasePreset.EaseOut),
+            new("speed", 1f, new Vector4(1, 0, 0, 0), 1, EasePreset.EaseOut)
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "speed", 0.5f).X, Is.EqualTo(0.75f).Within(0.001f));
@@ -77,7 +77,7 @@ public sealed class GroupShaderTrackTests
         var keys = new List<ShaderKey>
         {
             new("tint", 1f, new Vector4(1, 0, 0, 1), 4, EasePreset.Linear),
-            new("tint", 1f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear),
+            new("tint", 1f, new Vector4(0, 1, 0, 1), 4, EasePreset.Linear)
         };
 
         Assert.That(ShaderKeyTrack.ValueAt(keys, "tint", 2f), Is.EqualTo(new Vector4(0, 1, 0, 1)));
@@ -90,7 +90,7 @@ public sealed class GroupShaderTrackTests
         {
             new("b", 0f, new Vector4(1, 0, 0, 0), 1, EasePreset.Linear),
             new("a", 0f, new Vector4(0, 1, 0, 0), 2, EasePreset.Linear),
-            new("b", 1f, new Vector4(2, 0, 0, 0), 1, EasePreset.Linear),
+            new("b", 1f, new Vector4(2, 0, 0, 0), 1, EasePreset.Linear)
         };
 
         List<(string Param, Vector4 Value, int Size)> values = ShaderKeyTrack.Evaluate(keys, 0.5f);
@@ -108,9 +108,7 @@ public sealed class GroupShaderTrackTests
         groups[2].Shader = 4;
         groups[2].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, EasePreset.Linear));
 
-        Assert.That(
-            GroupModulation.TryItemShader(groups, ItemGroups.Bit(2), 2, 0f, out int slot, out _),
-            Is.True);
+        Assert.That(GroupModulation.TryItemShader(groups, ItemGroups.Bit(2), 2, 0f, out int slot, out _), Is.True);
         Assert.That(slot, Is.EqualTo(4));
 
         Assert.That(
@@ -125,9 +123,7 @@ public sealed class GroupShaderTrackTests
         GroupDefinition[] groups = Slots();
         groups[0].ShaderKeys.Add(new ShaderKey("tint", 0f, new Vector4(1, 1, 1, 1), 4, EasePreset.Linear));
 
-        Assert.That(
-            GroupModulation.TryItemShader(groups, ItemGroups.Bit(0), 0, 0f, out _, out _),
-            Is.False);
+        Assert.That(GroupModulation.TryItemShader(groups, ItemGroups.Bit(0), 0, 0f, out _, out _), Is.False);
     }
 
     [Test]
@@ -137,7 +133,13 @@ public sealed class GroupShaderTrackTests
         groups[0].Shader = 2;
 
         Assert.That(
-            GroupModulation.TryItemShader(groups, ItemBits(0), 0, 0f, out int slot, out var values),
+            GroupModulation.TryItemShader(
+                groups,
+                ItemBits(0),
+                0,
+                0f,
+                out int slot,
+                out List<(string Param, Vector4 Value, int Size)> values),
             Is.True);
         Assert.That(slot, Is.EqualTo(2));
         Assert.That(values, Is.Empty);
@@ -147,22 +149,23 @@ public sealed class GroupShaderTrackTests
     public void TheGroupTrackAndTheItemsSourceRoundTripThroughAMap()
     {
         var source = new LevelDocument { Name = "Track" };
-        source.Groups.Add(new GroupDocument
-        {
-            Id = 3,
-            Name = "Glow",
-            Shader = 2,
-            ShaderKeys =
+        source.Groups.Add(
+            new GroupDocument
             {
-                new ShaderKeyDocument
+                Id = 3,
+                Name = "Glow",
+                Shader = 2,
+                ShaderKeys =
                 {
-                    Param = "tint",
-                    Time = 1.5f,
-                    Value = new[] { 0.1f, 0.2f, 0.3f, 0.4f },
-                    Ease = EasePreset.EaseOut,
-                },
-            },
-        });
+                    new ShaderKeyDocument
+                    {
+                        Param = "tint",
+                        Time = 1.5f,
+                        Value = new[] { 0.1f, 0.2f, 0.3f, 0.4f },
+                        Ease = EasePreset.EaseOut
+                    }
+                }
+            });
         source.Blocks.Add(new BlockDocument { ShaderSource = 3 });
         source.Notes.Add(new NoteDocument { ShaderSource = -1 });
 
@@ -185,7 +188,7 @@ public sealed class GroupShaderTrackTests
         source.Groups.Add(new GroupDocument { Id = 0, Name = "A" });
         source.Blocks.Add(new BlockDocument());
         byte[] data = XmfBinary.Write(source);
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet(20, out _), Is.False);
         Assert.That(reader.TryGet(21, out _), Is.False);
@@ -213,11 +216,14 @@ public sealed class GroupShaderTrackTests
         Assert.That(document.Blocks[0].ShaderSource, Is.EqualTo(0));
 
         var target = new EntityStore();
-        LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo(""),
-            new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false),
-            new NoteSelection(default)), document);
+        LevelDocumentMapper.Apply(
+            target,
+            target.CreateEntity(
+                new LevelInfo(""),
+                new Playfield(1000, 1000),
+                new Playhead(0, 120, 0, false),
+                new NoteSelection(default)),
+            document);
 
         LevelGroups applied = target.Query<LevelGroups>().ToEntityList().Single().GetComponent<LevelGroups>();
         Assert.That(applied.Groups[0].Shader, Is.EqualTo(2));
@@ -229,7 +235,7 @@ public sealed class GroupShaderTrackTests
     public void ChangingTheTrackIsAnUndoStep()
     {
         var store = new EntityStore();
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         Entity level = store.CreateEntity(groups);
         var history = new EditorHistory(store);
         EditorSnapshot before = history.Capture();
@@ -255,7 +261,7 @@ public sealed class GroupShaderTrackTests
         var store = new EntityStore();
         Entity block = EditorItems.Create(store, new Block(Spot, new Vector2(50, 50)));
         block.AddComponent(new ItemGroups(ItemGroups.FromList(new[] { 1, 4 })));
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         groups.Groups[4].Shader = 2;
 
         Assert.That(EditorLayerEdits.StepShaderSource([block], 1, groups.Groups), Is.True);

@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Items;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// A filled shape drawn into a level: a <see cref="Xif"/> of polygons whose

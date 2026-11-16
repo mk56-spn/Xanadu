@@ -1,11 +1,7 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Settings;
-using Xanadu.Systems.Audio;
-using Xanadu.Systems.Ui;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 public enum EditorFieldKind
 {

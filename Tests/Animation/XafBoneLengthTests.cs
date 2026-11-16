@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -10,13 +11,14 @@ public sealed class XafBoneLengthTests
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "child",
-            Parent = 0,
-            Rest = new Transform2D(0f, new Vector2(0, -50)),
-            AllowTranslation = childMovable,
-        });
+        package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = "child",
+                Parent = 0,
+                Rest = new Transform2D(0f, new Vector2(0, -50)),
+                AllowTranslation = childMovable
+            });
         var clip = new XafClip { Id = "idle", Duration = 1f };
         AddKey(clip, "root", XafChannelProperty.TranslationX, 10f);
         AddKey(clip, "child", XafChannelProperty.TranslationX, 30f);
@@ -25,17 +27,13 @@ public sealed class XafBoneLengthTests
         return package;
     }
 
-    private static void AddKey(
-        XafClip clip,
-        string bone,
-        XafChannelProperty property,
-        float value)
+    private static void AddKey(XafClip clip, string bone, XafChannelProperty property, float value)
     {
         var channel = new XafChannel
         {
             Target = XafChannelTarget.Bone,
             TargetId = bone,
-            Property = property,
+            Property = property
         };
         channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = value });
         clip.Channels.Add(channel);
@@ -65,7 +63,7 @@ public sealed class XafBoneLengthTests
     [Test]
     public void AMovableBoneFollowsItsTranslationChannel()
     {
-        XafPackage package = Package(childMovable: true);
+        XafPackage package = Package(true);
 
         XafPose pose = XafSampler.Sample(package, package.Clips[0], 0f);
 
@@ -81,14 +79,13 @@ public sealed class XafBoneLengthTests
         XafAuthoring.KeyBoneTransform(package, clip, 1, 0.5f, XafTransform.Identity);
 
         Assert.That(clip.Channels, Has.Count.EqualTo(3));
-        Assert.That(clip.Channels.Exists(channel =>
-            XafSampler.IsTranslation(channel.Property)), Is.False);
+        Assert.That(clip.Channels.Exists(channel => XafSampler.IsTranslation(channel.Property)), Is.False);
     }
 
     [Test]
     public void KeyingTheRootOrAMovableBoneWritesTranslation()
     {
-        XafPackage package = Package(childMovable: true);
+        XafPackage package = Package(true);
         var clip = new XafClip { Id = "new", Duration = 1f };
 
         XafAuthoring.KeyBoneTransform(package, clip, 0, 0.5f, XafTransform.Identity);
@@ -100,7 +97,7 @@ public sealed class XafBoneLengthTests
     [Test]
     public void TheMovableFlagSurvivesASaveAndLoad()
     {
-        XafPackage package = Package(childMovable: true);
+        XafPackage package = Package(true);
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
 
@@ -117,8 +114,10 @@ public sealed class XafBoneLengthTests
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "thigh", Parent = -1 });
-        package.Skeleton.Bones.Add(new XafBone { Id = "shin", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, 50)) });
-        package.Skeleton.Bones.Add(new XafBone { Id = "foot", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "shin", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "foot", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 50)) });
         foreach (string id in new[] { "thigh", "shin", "foot" })
             package.Attachments.Add(new XafAttachment { Group = id, BoneId = id });
         return package;

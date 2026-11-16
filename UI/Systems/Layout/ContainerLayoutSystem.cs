@@ -1,12 +1,13 @@
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Layout;
+namespace Xanadu.Ui.Systems.Layout;
 
 /// <summary>
 /// Resolves every native <see cref="UiContainer"/> each frame, in two passes.

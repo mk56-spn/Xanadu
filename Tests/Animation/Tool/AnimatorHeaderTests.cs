@@ -1,13 +1,19 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -51,9 +57,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     public void TheClipDropdownSitsInTheHeader()
     {
         Rect2 button = Area(Ui.ClipDropdown);
-        Rect2 header = EditorShell
-            .Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator))
-            .Header;
+        Rect2 header = EditorShell.Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator)).Header;
 
         Assert.That(header.Encloses(button), Is.True);
         Assert.That(button.End.X, Is.LessThanOrEqualTo(header.End.X));
@@ -63,9 +67,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
     public void TheConfigButtonSitsInTheHeaderAfterTheClips()
     {
         Rect2 config = Area(Ui.ConfigButton);
-        Rect2 header = EditorShell
-            .Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator))
-            .Header;
+        Rect2 header = EditorShell.Compute(Screen, new EditorShellOptions(EditorFooterHeight.Animator)).Header;
 
         Assert.That(header.Encloses(config), Is.True);
         Assert.That(config.Position.X, Is.GreaterThan(Area(Ui.ClipDropdown).End.X));
@@ -192,8 +194,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
 
         Assert.That(Ui.ClipLengthPanel.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
         Assert.That(Ui.ClipLengthPanel.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(Ui.ClipLengthPanel.GetComponent<Drawable>().ZIndex,
-            Is.EqualTo(UiLayers.AnimatorMenu));
+        Assert.That(Ui.ClipLengthPanel.GetComponent<Drawable>().ZIndex, Is.EqualTo(UiLayers.AnimatorMenu));
     }
 
     [Test]
@@ -224,8 +225,7 @@ public sealed class AnimatorHeaderTests : AnimatorToolTest
         Rect2 dialog = Area(Ui.NewClipDialog);
         Assert.That(dialog.Size, Is.EqualTo(AnimatorLayout.NewClipDialogSize));
         Assert.That(dialog.GetCenter(), Is.EqualTo(Screen / 2));
-        Assert.That(Area(Ui.NewClipBackdrop),
-            Is.EqualTo(new Rect2(Vector2.Zero, Screen)));
+        Assert.That(Area(Ui.NewClipBackdrop), Is.EqualTo(new Rect2(Vector2.Zero, Screen)));
         Assert.That(Ui.NewClipBackdrop.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
         Assert.That(Ui.NewClipDialog.Parent.Id, Is.EqualTo(Ui.MenuLayer.Id));
         Assert.That(Ui.NewClipDialog.Tags.Has<UiOverlayItem>(), Is.True);

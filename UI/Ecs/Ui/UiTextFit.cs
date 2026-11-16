@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Fitting text into a width, measured rather than guessed from a character count.</summary>
 public static class UiTextFit

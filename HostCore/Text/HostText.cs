@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using FreeTypeSharp;
 using MoonWorks.Graphics;
+using Xanadu.Core.Storage;
 using Texture = MoonWorks.Graphics.Texture;
-using Xanadu.Storage;
 using static FreeTypeSharp.FT;
 
 namespace Xanadu.Host.Text;

@@ -1,8 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A handle on one UI entity that can create its own children. Every method

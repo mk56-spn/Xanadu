@@ -2,9 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Editor;
 
@@ -19,9 +21,7 @@ public sealed class EditorMetronomeSystemTests
         var root = new SystemRoot(store);
         root.Add(new EditorMetronomeSystem(audio));
 
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, true, durationMs: 5_000),
-            new EditorMetronome(true));
+        Entity editor = store.CreateEntity(new Playhead(0, 120, 0, true, 5_000), new EditorMetronome(true));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(audio.ResumeCount, Is.EqualTo(1));
@@ -45,14 +45,10 @@ public sealed class EditorMetronomeSystemTests
         var root = new SystemRoot(store);
         root.Add(new EditorMetronomeSystem(audio));
 
-        store.CreateEntity(
-            new Playhead(0, 120, 0, true, durationMs: 5_000),
-            new EditorMetronome(false));
+        store.CreateEntity(new Playhead(0, 120, 0, true, 5_000), new EditorMetronome(false));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(audio.ResumeCount, Is.EqualTo(0));
     }
-
-
 }

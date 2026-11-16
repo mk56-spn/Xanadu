@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A strip of tab buttons and the bodies they switch between; only the

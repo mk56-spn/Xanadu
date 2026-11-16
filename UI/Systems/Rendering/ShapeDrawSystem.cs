@@ -1,11 +1,11 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Systems.Rendering;
+namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty polygon and polyline shapes.</summary>
 public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>

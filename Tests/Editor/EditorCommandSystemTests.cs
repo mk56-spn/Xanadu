@@ -4,8 +4,10 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Tests.Support;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
@@ -23,10 +25,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     protected override void OnEcsSetUp()
     {
         _commands = new EditorCommandBus();
-        Root.Add(new EditorCommandSystem(
-            Store,
-            _commands,
-            new EditorHistory(Store)));
+        Root.Add(new EditorCommandSystem(Store, _commands, new EditorHistory(Store)));
 
         _editor = Store.CreateEntity(
             new LevelInfo("Untitled"),
@@ -61,9 +60,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.Undo());
         Frame();
 
-        Assert.That(
-            Store.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().RotationDegrees,
-            Is.Zero);
+        Assert.That(Store.Query<Spike>().ToEntityList()[0].GetComponent<Spike>().RotationDegrees, Is.Zero);
     }
 
     [Test]
@@ -73,7 +70,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         foreach (BlockOneWay expected in new[]
                  {
-                     BlockOneWay.Up, BlockOneWay.Right, BlockOneWay.Down, BlockOneWay.Left, BlockOneWay.Off,
+                     BlockOneWay.Up, BlockOneWay.Right, BlockOneWay.Down, BlockOneWay.Left, BlockOneWay.Off
                  })
         {
             _commands.Enqueue(EditorCommand.CycleOneWay());
@@ -86,28 +83,23 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.Undo());
         Frame();
 
-        Assert.That(
-            Store.Query<Block>().ToEntityList()[0].GetComponent<Block>().OneWay,
-            Is.EqualTo(BlockOneWay.Off));
+        Assert.That(Store.Query<Block>().ToEntityList()[0].GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Off));
     }
 
     [Test]
     public void RotatingAndFlippingTurnAOneWaySide()
     {
-        Entity block = CreateSelected(new Block(
-            new Vector2(100, 100),
-            new Vector2(50, 50),
-            oneWay: BlockOneWay.Up));
+        Entity block = CreateSelected(new Block(new Vector2(100, 100), new Vector2(50, 50), BlockOneWay.Up));
 
         _commands.Enqueue(EditorCommand.RotateSelection());
         Frame();
         Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Right));
 
-        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+        _commands.Enqueue(EditorCommand.FlipSelection(true));
         Frame();
         Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Left));
 
-        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: false));
+        _commands.Enqueue(EditorCommand.FlipSelection(false));
         Frame();
         Assert.That(block.GetComponent<Block>().OneWay, Is.EqualTo(BlockOneWay.Left));
     }
@@ -126,17 +118,11 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void FlippingMirrorsTheSelectionAcrossItsCentre()
     {
-        Entity left = EditorItems.Create(Store, new Note(
-            0,
-            new Vector2(200, 300),
-            kind: NoteKind.Dash));
-        Entity right = EditorItems.Create(Store, new Spike(
-            new Vector2(350, 300),
-            new Vector2(50, 50),
-            90f));
+        Entity left = EditorItems.Create(Store, new Note(0, new Vector2(200, 300), kind: NoteKind.Dash));
+        Entity right = EditorItems.Create(Store, new Spike(new Vector2(350, 300), new Vector2(50, 50), 90f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { left, right });
 
-        _commands.Enqueue(EditorCommand.FlipSelection(horizontal: true));
+        _commands.Enqueue(EditorCommand.FlipSelection(true));
         Frame();
 
         Assert.That(left.GetComponent<Note>().Position.X, Is.EqualTo(400));
@@ -150,10 +136,9 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [TestCase(90f, false, 90f, TestName = "A rightward spike keeps pointing right in an up-down flip")]
     [TestCase(30f, true, 330f, TestName = "A slanted spike mirrors in a left-right flip")]
     [TestCase(30f, false, 150f, TestName = "A slanted spike mirrors in an up-down flip")]
-    public void FlippingASpikeTurnsItTheRightWay(float degrees, bool horizontal, float expected)
-    {
-        Assert.That(SelectionRotation.FlippedSpikeDegrees(degrees, horizontal), Is.EqualTo(expected));
-    }
+    public void FlippingASpikeTurnsItTheRightWay(float degrees, bool horizontal, float expected) => Assert.That(
+        SelectionRotation.FlippedSpikeDegrees(degrees, horizontal),
+        Is.EqualTo(expected));
 
     [Test]
     public void RotatingTurnsTheBrushForTheBlockToolToo()
@@ -170,11 +155,10 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     private List<Entity> SelectBlockCluster()
     {
         var blocks = new List<Entity>();
-        foreach (var corner in new[] { (100, 100), (150, 100), (100, 150), (150, 150) })
+        foreach ((int, int) corner in new[] { (100, 100), (150, 100), (100, 150), (150, 150) })
         {
-            blocks.Add(EditorItems.Create(Store, new Block(
-                new Vector2(corner.Item1, corner.Item2),
-                new Vector2(50, 50))));
+            blocks.Add(
+                EditorItems.Create(Store, new Block(new Vector2(corner.Item1, corner.Item2), new Vector2(50, 50))));
         }
 
         _editor.GetComponent<NoteSelection>().SetMany(blocks);
@@ -193,17 +177,18 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(Store.Query<Block>().Count, Is.EqualTo(8));
         Assert.That(
             _editor.GetComponent<NoteSelection>().AllNotes.Select(item => item.GetComponent<Block>().Position),
-            Is.EquivalentTo(new[]
-            {
-                new Vector2(150, 150), new Vector2(200, 150),
-                new Vector2(150, 200), new Vector2(200, 200),
-            }));
+            Is.EquivalentTo(
+                new[]
+                {
+                    new Vector2(150, 150), new Vector2(200, 150),
+                    new Vector2(150, 200), new Vector2(200, 200)
+                }));
     }
 
     [Test]
     public void WithCollisionOnAPasteSkipsBlocksThatWouldOverlap()
     {
-        PlacementCollision.Attach(Store.CreateEntity(), on: true);
+        PlacementCollision.Attach(Store.CreateEntity(), true);
         SelectBlockCluster();
 
         _commands.Enqueue(EditorCommand.CopySelection());
@@ -216,13 +201,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void CopyAndPasteCarriesBlocksAndSpikesOneCellAlong()
     {
-        Entity block = EditorItems.Create(Store, new Block(
-            new Vector2(100, 100),
-            new Vector2(100, 50)));
-        Entity spike = EditorItems.Create(Store, new Spike(
-            new Vector2(300, 300),
-            new Vector2(50, 50),
-            180f));
+        Entity block = EditorItems.Create(Store, new Block(new Vector2(100, 100), new Vector2(100, 50)));
+        Entity spike = EditorItems.Create(Store, new Spike(new Vector2(300, 300), new Vector2(50, 50), 180f));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { block, spike });
 
         _commands.Enqueue(EditorCommand.CopySelection());
@@ -231,7 +211,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
 
         Assert.That(Store.Query<Block>().Count, Is.EqualTo(2));
         Assert.That(Store.Query<Spike>().Count, Is.EqualTo(2));
-        var selected = _editor.GetComponent<NoteSelection>().AllNotes;
+        IReadOnlyList<Entity> selected = _editor.GetComponent<NoteSelection>().AllNotes;
         Entity pastedBlock = selected.First(item => item.HasComponent<Block>());
         Entity pastedSpike = selected.First(item => item.HasComponent<Spike>());
         Assert.That(pastedBlock.GetComponent<Block>().Position, Is.EqualTo(new Vector2(150, 150)));
@@ -269,10 +249,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.PasteSelection());
         Frame();
 
-        var pasted = _editor.GetComponent<NoteSelection>().AllNotes
-            .Select(item => item.GetComponent<Note>().TimeMs)
-            .OrderBy(time => time)
-            .ToArray();
+        long[] pasted = _editor.GetComponent<NoteSelection>().AllNotes.Select(item => item.GetComponent<Note>().TimeMs)
+            .OrderBy(time => time).ToArray();
         Assert.That(pasted, Is.EqualTo(new[] { expected, expected + 250 }));
     }
 
@@ -361,9 +339,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     public void DeleteSelectionRemovesMinesAndStartPoints()
     {
         Entity mine = Store.CreateEntity(new Mine(500, new Vector2(10, 20)));
-        Entity start = Store.CreateEntity(new StartPoint(
-            "Start", 500, new Vector2(30, 40),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity start = Store.CreateEntity(
+            new StartPoint("Start", 500, new Vector2(30, 40), Vector2.Zero, new Vector2(0, -1)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
 
         _commands.Enqueue(EditorCommand.DeleteSelection());
@@ -377,8 +354,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void DeleteSelectionRemovesBlocksAndUndoRestoresThem()
     {
-        Entity block = Store.CreateEntity(
-            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        Entity block = Store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(200, 100)));
         _editor.GetComponent<NoteSelection>().Note = block;
 
         _commands.Enqueue(EditorCommand.DeleteSelection());
@@ -413,9 +389,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(Store.Query<Note>().Count, Is.EqualTo(1));
-        Assert.That(
-            Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
-            Is.EqualTo(100));
+        Assert.That(Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs, Is.EqualTo(100));
     }
 
     [Test]
@@ -424,9 +398,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         ref Playhead playhead = ref _editor.GetComponent<Playhead>();
         playhead.DurationMs = 10_000;
         Entity mine = Store.CreateEntity(new Mine(1_000, new Vector2(10, 20)));
-        Entity start = Store.CreateEntity(new StartPoint(
-            "Start", 2_000, new Vector2(30, 40),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity start = Store.CreateEntity(
+            new StartPoint("Start", 2_000, new Vector2(30, 40), Vector2.Zero, new Vector2(0, -1)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
 
         _commands.Enqueue(EditorCommand.MoveSelection(1));
@@ -444,27 +417,21 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         playhead.TimeMs = 1_000;
         playhead.DurationMs = 10_000;
 
-        Entity first = Store.CreateEntity(
-            new Note(100, new Vector2(10, 20)));
-        Entity second = Store.CreateEntity(
-            new Note(300, new Vector2(30, 40)));
+        Entity first = Store.CreateEntity(new Note(100, new Vector2(10, 20)));
+        Entity second = Store.CreateEntity(new Note(300, new Vector2(30, 40)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { first, second });
 
         _commands.Enqueue(EditorCommand.CopySelection());
         _commands.Enqueue(EditorCommand.PasteSelection());
         Frame();
 
-        Note[] notes = Store.Query<Note>().ToEntityList()
-            .Select(entity => entity.GetComponent<Note>())
-            .OrderBy(note => note.TimeMs)
-            .ToArray();
+        Note[] notes = Store.Query<Note>().ToEntityList().Select(entity => entity.GetComponent<Note>())
+            .OrderBy(note => note.TimeMs).ToArray();
         Assert.That(notes, Has.Length.EqualTo(4));
-        Assert.That(notes.Select(note => note.TimeMs),
-            Is.EqualTo(new long[] { 100, 300, 1_000, 1_200 }));
+        Assert.That(notes.Select(note => note.TimeMs), Is.EqualTo(new long[] { 100, 300, 1_000, 1_200 }));
         Assert.That(notes[2].Position, Is.EqualTo(new Vector2(10, 20)));
         Assert.That(notes[3].Position, Is.EqualTo(new Vector2(30, 40)));
-        Assert.That(_editor.GetComponent<NoteSelection>().AllNotes.Count,
-            Is.EqualTo(2));
+        Assert.That(_editor.GetComponent<NoteSelection>().AllNotes.Count, Is.EqualTo(2));
     }
 
     [Test]
@@ -475,9 +442,8 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         playhead.DurationMs = 10_000;
         Entity mine = Store.CreateEntity(new Mine(100, new Vector2(10, 20)));
         mine.AddComponent(new ItemGroups(ItemGroups.Bit(3)));
-        Entity start = Store.CreateEntity(new StartPoint(
-            "Start", 400, new Vector2(30, 40),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity start = Store.CreateEntity(
+            new StartPoint("Start", 400, new Vector2(30, 40), Vector2.Zero, new Vector2(0, -1)));
         start.AddComponent(new ItemGroups(ItemGroups.Bit(5)));
         _editor.GetComponent<NoteSelection>().SetMany(new[] { mine, start });
 
@@ -488,32 +454,25 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         Assert.That(Store.Query<Mine>().Count, Is.EqualTo(2));
         Assert.That(Store.Query<StartPoint>().Count, Is.EqualTo(2));
         Assert.That(
-            Store.Query<Mine>().ToEntityList().All(entity =>
-                entity.GetComponent<ItemGroups>().Has(3)),
+            Store.Query<Mine>().ToEntityList().All(entity => entity.GetComponent<ItemGroups>().Has(3)),
             Is.True);
         Assert.That(
-            Store.Query<StartPoint>().ToEntityList().All(entity =>
-                entity.GetComponent<ItemGroups>().Has(5)),
+            Store.Query<StartPoint>().ToEntityList().All(entity => entity.GetComponent<ItemGroups>().Has(5)),
             Is.True);
-        Assert.That(
-            _editor.GetComponent<NoteSelection>().AllNotes.Count,
-            Is.EqualTo(2));
+        Assert.That(_editor.GetComponent<NoteSelection>().AllNotes.Count, Is.EqualTo(2));
     }
 
     [Test]
     public void SetTargetLeavesPlacedNotesAlone()
     {
         _editor.AddComponent(new EditorPlacement { Note = KeybindAction.Action2 });
-        Entity note = Store.CreateEntity(
-            new Note(500, new Vector2(10, 20), target: KeybindAction.Action2));
+        Entity note = Store.CreateEntity(new Note(500, new Vector2(10, 20), KeybindAction.Action2));
         _editor.GetComponent<NoteSelection>().Note = note;
 
         _commands.Enqueue(EditorCommand.SetTarget(KeybindAction.Action3));
         Frame();
 
-        Assert.That(
-            _editor.GetComponent<EditorPlacement>().Note,
-            Is.EqualTo(KeybindAction.Action3));
+        Assert.That(_editor.GetComponent<EditorPlacement>().Note, Is.EqualTo(KeybindAction.Action3));
         Assert.That(
             Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Target,
             Is.EqualTo(KeybindAction.Action2));
@@ -522,16 +481,12 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
     [Test]
     public void SetPlacementModeSwitchesTheEditorMode()
     {
-        _editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Notes });
+        _editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Notes });
 
-        _commands.Enqueue(
-            EditorCommand.SetPlacementMode(EditorPlacementMode.Dash));
+        _commands.Enqueue(EditorCommand.SetPlacementMode(EditorPlacementMode.Dash));
         Frame();
 
-        Assert.That(
-            _editor.GetComponent<EditorPlacement>().Mode,
-            Is.EqualTo(EditorPlacementMode.Dash));
+        Assert.That(_editor.GetComponent<EditorPlacement>().Mode, Is.EqualTo(EditorPlacementMode.Dash));
     }
 
     [Test]
@@ -574,8 +529,7 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         _commands.Enqueue(EditorCommand.Undo());
         Frame();
 
-        Assert.That(Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
-            Is.EqualTo(1_000));
+        Assert.That(Store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs, Is.EqualTo(1_000));
     }
 
     [Test]
@@ -599,14 +553,15 @@ public sealed class EditorCommandSystemTests : EcsSystemTest
         {
             Name = "Loaded",
             PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000,
+            PlayfieldHeight = 1000
         };
-        document.Notes.Add(new NoteDocument
-        {
-            TimeMs = 750,
-            X = 100,
-            Y = 200,
-        });
+        document.Notes.Add(
+            new NoteDocument
+            {
+                TimeMs = 750,
+                X = 100,
+                Y = 200
+            });
 
         _commands.Enqueue(EditorCommand.ApplyLevel(document, "/tmp/loaded.xmf"));
         Frame();

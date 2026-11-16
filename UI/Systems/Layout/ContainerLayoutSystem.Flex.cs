@@ -1,9 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Layout;
+namespace Xanadu.Ui.Systems.Layout;
 
 /// <summary>
 /// Sizing a stack's children: each starts from its natural size, growing

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// What a layer's full-screen pass reads (Docs/render-architecture.md D8):

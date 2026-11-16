@@ -1,10 +1,14 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -51,15 +55,15 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         XafPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
         Transform2D[] world = XafRig.WorldBones(document.Package, pose);
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
-            AnimatorGeometry.PanelArea(Ui.Preview), Session.GetComponent<AnimatorPreviewView>());
+            AnimatorGeometry.PanelArea(Ui.Preview),
+            Session.GetComponent<AnimatorPreviewView>());
         return AnimatorTipHandles.Tip(document.Package, bone, world, placement);
     }
 
     [Test]
-    public void OnlyChildlessBonesCarryAHandle()
-    {
-        Assert.That(AnimatorTipHandles.Childless(Package), Is.EqualTo(new[] { false, false, true }));
-    }
+    public void OnlyChildlessBonesCarryAHandle() => Assert.That(
+        AnimatorTipHandles.Childless(Package),
+        Is.EqualTo(new[] { false, false, true }));
 
     [Test]
     public void TheStemContinuesTheLimbAtAFixedScreenLength()
@@ -67,7 +71,8 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         AtRest();
 
         // The head sits straight above the torso, so its stem points up.
-        Assert.That(Tip() - BoneScreenPosition(Head),
+        Assert.That(
+            Tip() - BoneScreenPosition(Head),
             Is.EqualTo(new Vector2(0, -AnimatorTipHandles.StemLength)).Using<Vector2>(Close));
 
         Session.GetComponent<AnimatorPreviewView>().ZoomAt(PreviewOrigin(), AnimatorGeometry.PanelArea(Ui.Preview), 2f);
@@ -77,7 +82,8 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
     private Vector2 ZoomedHead()
     {
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
-            AnimatorGeometry.PanelArea(Ui.Preview), Session.GetComponent<AnimatorPreviewView>());
+            AnimatorGeometry.PanelArea(Ui.Preview),
+            Session.GetComponent<AnimatorPreviewView>());
         return placement * XafRig.WorldBones(Package, Runtime.Pose)[Head].Origin;
     }
 
@@ -173,8 +179,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
 
         MoveTo(joint + new Vector2(100, 0));
 
-        Assert.That(Tip() - joint,
-            Is.EqualTo(new Vector2(AnimatorTipHandles.StemLength, 0)).Using<Vector2>(Close));
+        Assert.That(Tip() - joint, Is.EqualTo(new Vector2(AnimatorTipHandles.StemLength, 0)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -233,18 +238,20 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
     public void AJointOnTheDotWins()
     {
         // "ear" hangs off the torso exactly where the head's dot ends up.
-        Package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "ear",
-            Parent = 1,
-            Rest = new Transform2D(0f, new Vector2(0, -70 - AnimatorTipHandles.StemLength)),
-        });
+        Package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = "ear",
+                Parent = 1,
+                Rest = new Transform2D(0f, new Vector2(0, -70 - AnimatorTipHandles.StemLength))
+            });
         var pose = new XafPose(4, 0);
         for (int i = 0; i < 4; i++)
             pose.Bones[i] = XafTransform.From(Package.Skeleton.Bones[i].Rest);
         Transform2D[] world = XafRig.WorldBones(Package, pose);
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
-            AnimatorGeometry.PanelArea(Ui.Preview), Session.GetComponent<AnimatorPreviewView>());
+            AnimatorGeometry.PanelArea(Ui.Preview),
+            Session.GetComponent<AnimatorPreviewView>());
 
         Vector2 dot = AnimatorTipHandles.Tip(Package, Head, world, placement);
 

@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using Xanadu.Host;
-using Xanadu.Tools.Atlas;
-using Xanadu.Tools.Autopsy;
 using Xanadu.Tools.DevTools;
+using Xanadu.Tools.DevTools.Atlas;
+using Xanadu.Tools.DevTools.Autopsy;
 
 // dotnet run --project Tools/DevTools [atlas|autopsy|moves|arch] [flags]   -> opens on that tab (atlas by default)
 //

@@ -1,6 +1,4 @@
-using Friflo.Engine.ECS;
-
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// The clip event picked on the ruler, kept apart from the bone and art

@@ -2,14 +2,19 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Ecs;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
 
 namespace Xanadu.Systems.Playfields;

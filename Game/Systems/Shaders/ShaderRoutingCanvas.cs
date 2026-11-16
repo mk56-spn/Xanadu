@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Shaders;
 

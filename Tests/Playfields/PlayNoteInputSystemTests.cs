@@ -3,16 +3,20 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Rendering;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scoring;
 using Xanadu.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
@@ -43,10 +47,7 @@ public sealed class PlayNoteInputSystemTests
         _scoreText = _store.CreateEntity(new Text(""));
         _comboText = _store.CreateEntity(new Text(""));
         _accuracyText = _store.CreateEntity(new Text(""));
-        _judgementText = _store.CreateEntity(
-            new Text(""),
-            new TextStyle(28, Colors.White),
-            new Position(Vector2.Zero));
+        _judgementText = _store.CreateEntity(new Text(""), new TextStyle(28, Colors.White), new Position(Vector2.Zero));
         _root.Add(new PlayNoteInputSystem(_store, _keybinds, _keyboard, _offsets));
         _root.Add(new ContactBarrierSystem(_store, _offsets));
         _root.Add(new PlayScoreSystem());
@@ -59,7 +60,7 @@ public sealed class PlayNoteInputSystemTests
     public void APlayKeyPressReachesTheShaders()
     {
         ShaderKeys.Clear();
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Up);
 
@@ -74,7 +75,7 @@ public sealed class PlayNoteInputSystemTests
     public void AHitStartsTheShadersHitClocks()
     {
         ShaderPlay.Clear();
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -93,7 +94,7 @@ public sealed class PlayNoteInputSystemTests
     public void AMissAfterAHitBreaksTheShadersCombo()
     {
         ShaderPlay.Clear();
-        Entity playfield = CreatePlayfield(totalNotes: 2);
+        Entity playfield = CreatePlayfield(2);
         CreateNote(1_000, new Vector2(500, 500));
         CreateNote(2_000, new Vector2(200, 200));
         SetPlayhead(playfield, 1_000);
@@ -112,7 +113,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void CorrectKeyWhileOnTheNoteAwardsAJudgement()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -128,22 +129,18 @@ public sealed class PlayNoteInputSystemTests
         var trails = _store.Query<HitTrail>().ToEntityList();
         Assert.That(trails, Has.Count.EqualTo(1));
         Assert.That(trails[0].GetComponent<HitTrail>().Label, Is.EqualTo("SPACE"));
-        Assert.That(
-            trails[0].GetComponent<HitTrail>().Position,
-            Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(trails[0].GetComponent<HitTrail>().Position, Is.EqualTo(new Vector2(500, 500)));
         Assert.That(_judgementText.GetComponent<Text>().Value, Is.EqualTo("FLAWLESS+"));
         Assert.That(
             _judgementText.GetComponent<TextStyle>().Color,
             Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.FlawlessP)));
-        Assert.That(
-            _judgementText.GetComponent<Position>().Value,
-            Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(_judgementText.GetComponent<Position>().Value, Is.EqualTo(new Vector2(500, 500)));
     }
 
     [Test]
     public void HittingANoteAboveThePlayerTriggersTheHighKick()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new CharacterRig(AttackTestRig()));
         CreateNote(1_000, new Vector2(500, 450)); // player sits at screen y 500; this note is above it, in reach.
         SetPlayhead(playfield, 1_000);
@@ -160,7 +157,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void HittingANoteToTheLeftFlipsTheCharacterLeft()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new CharacterRig(AttackTestRig()));
         CreateNote(1_000, new Vector2(420, 500));
         SetPlayhead(playfield, 1_000);
@@ -169,15 +166,13 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(playfield.GetComponent<CharacterFacing>().Left, Is.True);
-        Assert.That(
-            playfield.GetComponent<CharacterAttack>().Clip,
-            Is.EqualTo(ContactClip.AttackMid));
+        Assert.That(playfield.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackMid));
     }
 
     [Test]
     public void HittingANoteToTheRightFlipsTheCharacterRight()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new CharacterFacing { Left = true });
         CreateNote(1_000, new Vector2(580, 500));
         SetPlayhead(playfield, 1_000);
@@ -191,7 +186,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void HittingANoteStraightAheadKeepsTheFacing()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new CharacterFacing { Left = true });
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
@@ -221,16 +216,12 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void JudgementSitsOnTheNoteItJudged()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         ref PlayfieldView view = ref playfield.GetComponent<PlayfieldView>();
-        view = new PlayfieldView(
-            new Vector2(400, 100),
-            0.5f,
-            new Vector2(1000, 1000));
+        view = new PlayfieldView(new Vector2(400, 100), 0.5f, new Vector2(1000, 1000));
 
         Entity note = CreateNote(1_000, new Vector2(600, 800));
-        Vector2 noteScreen = view.PlayfieldToScreen(
-            note.GetComponent<Note>().Position);
+        Vector2 noteScreen = view.PlayfieldToScreen(note.GetComponent<Note>().Position);
         SetPlayerPosition(playfield, noteScreen);
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -238,15 +229,13 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(_store.Query<Note>().Count, Is.Zero);
-        Assert.That(
-            _judgementText.GetComponent<Position>().Value,
-            Is.EqualTo(noteScreen));
+        Assert.That(_judgementText.GetComponent<Position>().Value, Is.EqualTo(noteScreen));
     }
 
     [Test]
     public void HittingANoteLeavesAPopWhereItWas()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -260,16 +249,14 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(pop.Radius, Is.EqualTo(PlayfieldRenderer.NoteSize / 2f));
         Assert.That(pop.Age, Is.GreaterThanOrEqualTo(0f));
         Assert.That(pop.Age, Is.LessThan(pop.Lifetime));
-        Assert.That(
-            pop.Color,
-            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.Action2)));
+        Assert.That(pop.Color, Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.Action2)));
         Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 
     [Test]
     public void AMissedNoteLeavesNoPop()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_151);
         Press(KeybindAction.Action2);
@@ -277,16 +264,8 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(_store.Query<NotePop>().Count, Is.Zero);
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.Miss));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.Miss));
     }
-
-
-
-
-
-
 
 
     [TestCase(KeybindAction.Action1)]
@@ -294,7 +273,7 @@ public sealed class PlayNoteInputSystemTests
     [TestCase(KeybindAction.Action3)]
     public void EachColouredNoteHitsWithItsActionKey(KeybindAction target)
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500), target);
         SetPlayhead(playfield, 1_000);
         Press(target);
@@ -302,9 +281,7 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(_store.Query<Note>().Count, Is.Zero);
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.FlawlessP));
     }
 
     [TestCase(KeybindAction.Action1)]
@@ -312,7 +289,7 @@ public sealed class PlayNoteInputSystemTests
     [TestCase(KeybindAction.Action3)]
     public void SameKeyDoesNotHitWhenCharacterIsNotOverTheNote(KeybindAction target)
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         Entity note = CreateNote(1_000, new Vector2(100, 100), target);
         SetPlayhead(playfield, 1_000);
         SetPlayerPosition(playfield, new Vector2(500, 500));
@@ -329,7 +306,7 @@ public sealed class PlayNoteInputSystemTests
     [TestCase(KeybindAction.Action3)]
     public void ANeutralNoteTakesAnyActionKey(KeybindAction action)
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Neutral);
         SetPlayhead(playfield, 1_000);
         Press(action);
@@ -344,7 +321,7 @@ public sealed class PlayNoteInputSystemTests
     [TestCase(KeybindAction.Up)]
     public void DirectionKeysDoNotHitActionNotes(KeybindAction direction)
     {
-        Entity playfield = CreatePlayfield(totalNotes: 2);
+        Entity playfield = CreatePlayfield(2);
         CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Neutral);
         CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action1);
         SetPlayhead(playfield, 1_000);
@@ -360,7 +337,7 @@ public sealed class PlayNoteInputSystemTests
     [TestCase(KeybindAction.Action3, 2)]
     public void ANeutralNoteLoadsTheBarOfTheKeyItIsHitWith(KeybindAction action, int bar)
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters());
         CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Neutral);
@@ -377,7 +354,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void AColouredNoteLoadsNoBar()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters());
         CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action1);
@@ -400,7 +377,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void ContactBarrierResolvesWhenTheReachTouchesItsEdge()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters { First = 1 });
         CreateNote(1_000, new Vector2(635, 500), kind: NoteKind.Contact, costs: new BarCosts(1));
@@ -414,7 +391,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void APaidBarrierSpendsItsCosts()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters { First = 3, Third = 2 });
         CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Contact, costs: new BarCosts(2, 0, 1));
@@ -432,7 +409,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void AShortBarrierSpendsNothingAndCostsAccuracy()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters { First = 3, Second = 1 });
         CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Contact, costs: new BarCosts(2, 2));
@@ -451,7 +428,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void ContactBarrierThatExpiresIsNotAScoredMiss()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters { First = 3 });
         Entity barrier = CreateNote(1_000, new Vector2(900, 900), kind: NoteKind.Contact, costs: new BarCosts(1));
@@ -468,7 +445,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void PausedContactBarrierDoesNotResolve()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1, paused: true);
+        Entity playfield = CreatePlayfield(1, true);
         playfield.AddComponent(new PlayerCharacter(CharacterKind.Contact));
         playfield.AddComponent(new ContactCounters { First = 1 });
         Entity barrier = CreateNote(1_000, new Vector2(500, 500), kind: NoteKind.Contact, costs: new BarCosts(1));
@@ -483,7 +460,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void WrongKeyDoesNotHitTheNote()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         Entity note = CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action3);
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -497,22 +474,20 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void TargetKeyHitsEvenWhenItIsNotTheDefault()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action3);
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action3);
 
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.FlawlessP));
     }
 
     [Test]
     public void ReboundTargetKeyIsUsed()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action1);
         SetPlayhead(playfield, 1_000);
 
@@ -522,15 +497,13 @@ public sealed class PlayNoteInputSystemTests
 
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.FlawlessP));
     }
 
     [Test]
     public void OverlappingNotesOnlyConsumeTheMatchingTarget()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 2);
+        Entity playfield = CreatePlayfield(2);
         Entity left = CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action1);
         Entity right = CreateNote(1_000, new Vector2(500, 500), KeybindAction.Action3);
         SetPlayhead(playfield, 1_000);
@@ -546,7 +519,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void TappingOverAMineCostsOnePercentAccuracy()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 10);
+        Entity playfield = CreatePlayfield(10);
         ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
         scoreRef.AccuracyPoints = 10;
         Entity mine = _store.CreateEntity(new Mine(1_000, new Vector2(500, 500)));
@@ -571,7 +544,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void MineDoesNotTriggerWhenPlayerIsNotOverIt()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 10);
+        Entity playfield = CreatePlayfield(10);
         ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
         scoreRef.AccuracyPoints = 10;
         Entity mine = _store.CreateEntity(new Mine(1_000, new Vector2(100, 100)));
@@ -587,7 +560,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void MineDoesNotTriggerOutsideItsWindow()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 10);
+        Entity playfield = CreatePlayfield(10);
         ref ScoreState scoreRef = ref playfield.GetComponent<ScoreState>();
         scoreRef.AccuracyPoints = 10;
         Entity mine = _store.CreateEntity(new Mine(2_000, new Vector2(500, 500)));
@@ -604,22 +577,20 @@ public sealed class PlayNoteInputSystemTests
     public void GlobalOffsetAdjustsLateInput()
     {
         _offsets.Set(40);
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_040);
         Press(KeybindAction.Action2);
 
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.FlawlessP));
     }
 
     [Test]
     public void PlayerMustBeOverTheNote()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(100, 100));
         SetPlayerPosition(playfield, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
@@ -633,7 +604,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void NoteWithinReachIsHitEvenOffTheThinBox()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         // 90 px to the right: clear of the 30 wide damage box, inside the sphere.
         CreateNote(1_000, new Vector2(590, 500));
         SetPlayhead(playfield, 1_000);
@@ -642,15 +613,13 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(_store.Query<Note>().Count, Is.Zero);
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.FlawlessP));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.FlawlessP));
     }
 
     [Test]
     public void NoteBeyondReachIsNotHit()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         Entity note = CreateNote(1_000, new Vector2(620, 500));
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -665,7 +634,7 @@ public sealed class PlayNoteInputSystemTests
     public void ThirtySecondBeatHitsAllThreeActionKeysPerfectly()
     {
         const int noteCount = 30;
-        Entity playfield = CreatePlayfield(totalNotes: noteCount);
+        Entity playfield = CreatePlayfield(noteCount);
         for (int i = 0; i < noteCount; i++)
         {
             CreateNote(
@@ -677,8 +646,7 @@ public sealed class PlayNoteInputSystemTests
         for (int i = 0; i < noteCount; i++)
         {
             SetPlayhead(playfield, 1_000 + i * 1_000);
-            KeybindAction action =
-                KeybindSettings.ActionKeys[i % KeybindSettings.ActionKeys.Length];
+            KeybindAction action = KeybindSettings.ActionKeys[i % KeybindSettings.ActionKeys.Length];
             Press(action);
             Frame();
             Release(action);
@@ -698,7 +666,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void ABeatWithAMineLosesAccuracy()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 4);
+        Entity playfield = CreatePlayfield(4);
         for (int i = 0; i < 2; i++)
             CreateNote(1_000 + i * 1_000, new Vector2(500, 500));
         _store.CreateEntity(new Mine(3_000, new Vector2(500, 500)));
@@ -723,7 +691,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void LateBeatIsNotPerfect()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_035);
         Press(KeybindAction.Action2);
@@ -737,7 +705,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void ScoreIsSeparateFromAccuracy()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_010);
         Press(KeybindAction.Action2);
@@ -754,7 +722,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void MissJudgementHitClearsCombo()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 2);
+        Entity playfield = CreatePlayfield(2);
         CreateNote(1_000, new Vector2(500, 500));
         CreateNote(2_000, new Vector2(200, 200));
         SetPlayhead(playfield, 1_000);
@@ -783,7 +751,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void MissedNoteResetsComboAndScoresNothing()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 2);
+        Entity playfield = CreatePlayfield(2);
         CreateNote(1_000, new Vector2(500, 500));
         Entity missed = CreateNote(2_000, new Vector2(200, 200));
         SetPlayhead(playfield, 1_000);
@@ -804,7 +772,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void MissOnlyTriggersAfterTheWindowExpires()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         Entity note = CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_150);
         Frame();
@@ -814,27 +782,15 @@ public sealed class PlayNoteInputSystemTests
         Frame();
 
         Assert.That(note.Tags.Has<NoteMissed>(), Is.True);
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.Miss));
-        Assert.That(
-            playfield.GetComponent<ScoreState>().Score,
-            Is.Zero);
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.Miss));
+        Assert.That(playfield.GetComponent<ScoreState>().Score, Is.Zero);
     }
-
-
-
-
-
-
-
-
 
 
     [Test]
     public void PausedPlayfieldIgnoresHits()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1, paused: true);
+        Entity playfield = CreatePlayfield(1, true);
         Entity note = CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_000);
         Press(KeybindAction.Action2);
@@ -848,7 +804,7 @@ public sealed class PlayNoteInputSystemTests
     [Test]
     public void HitsOutsideTheJudgementWindowAutoMiss()
     {
-        Entity playfield = CreatePlayfield(totalNotes: 1);
+        Entity playfield = CreatePlayfield(1);
         Entity note = CreateNote(1_000, new Vector2(500, 500));
         SetPlayhead(playfield, 1_151);
         Press(KeybindAction.Action2);
@@ -857,18 +813,8 @@ public sealed class PlayNoteInputSystemTests
 
         Assert.That(note.Tags.Has<NoteMissed>(), Is.True);
         Assert.That(playfield.GetComponent<ScoreState>().Score, Is.Zero);
-        Assert.That(
-            playfield.GetComponent<ScoreState>().LastJudgement,
-            Is.EqualTo(Judgement.Miss));
+        Assert.That(playfield.GetComponent<ScoreState>().LastJudgement, Is.EqualTo(Judgement.Miss));
     }
-
-
-
-
-
-
-
-
 
 
     private Entity CreatePlayfield(int totalNotes, bool paused = false)
@@ -880,12 +826,7 @@ public sealed class PlayNoteInputSystemTests
             new PlayfieldMode(PlayfieldKind.Play),
             new Player(Player.DefaultSize),
             new Position(new Vector2(500, 500)),
-            new ScoreState(
-                _scoreText,
-                _comboText,
-                _accuracyText,
-                _judgementText,
-                totalNotes));
+            new ScoreState(_scoreText, _comboText, _accuracyText, _judgementText, totalNotes));
 
         if (paused)
             playfield.AddTag<PlayPaused>();
@@ -899,7 +840,7 @@ public sealed class PlayNoteInputSystemTests
         KeybindAction target = KeybindAction.Action2,
         NoteKind kind = NoteKind.Hit,
         BarCosts costs = default) =>
-        _store.CreateEntity(new Note(timeMs, position, target: target, kind: kind, costs: costs));
+        _store.CreateEntity(new Note(timeMs, position, target, kind, costs: costs));
 
     private void SetPlayhead(Entity playfield, long timeMs) =>
         playfield.GetComponent<Playhead>().TimeMs = timeMs;
@@ -907,17 +848,9 @@ public sealed class PlayNoteInputSystemTests
     private static void SetPlayerPosition(Entity playfield, Vector2 position) =>
         playfield.GetComponent<Position>().Value = position;
 
-    private void Press(KeybindAction action)
-    {
-        _keyboard.Press(_keybinds.Get(action));
-    }
+    private void Press(KeybindAction action) => _keyboard.Press(_keybinds.Get(action));
 
-    private void Release(KeybindAction action)
-    {
-        _keyboard.Release(_keybinds.Get(action));
-    }
+    private void Release(KeybindAction action) => _keyboard.Release(_keybinds.Get(action));
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
-
-
 }

@@ -3,6 +3,7 @@ using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -40,8 +41,9 @@ public sealed class AnimatorSequenceTests : AnimatorToolTest
 
         // No falling clip here, so the jump pose is kept and the two steps merge.
         Assert.That(Names(steps), Is.EqualTo("jumping>landing>idle"));
-        Assert.That(steps[0].Seconds, Is.EqualTo(
-            AnimatorSequenceCommands.JumpSeconds + AnimatorSequenceCommands.FallSeconds).Within(0.0001f));
+        Assert.That(
+            steps[0].Seconds,
+            Is.EqualTo(AnimatorSequenceCommands.JumpSeconds + AnimatorSequenceCommands.FallSeconds).Within(0.0001f));
         Assert.That(steps[1].Seconds, Is.EqualTo(0.4f).Within(0.0001f));
     }
 

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>The strip above the timeline's rows: transport, caption and the clip's controls.</summary>
 public static partial class AnimatorLayout

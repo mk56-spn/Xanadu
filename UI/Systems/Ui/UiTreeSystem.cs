@@ -1,9 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Drives tree controls: arrow presses expand and collapse, label presses

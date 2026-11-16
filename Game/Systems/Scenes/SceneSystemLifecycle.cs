@@ -2,14 +2,18 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Levels;
 using Xanadu.Replays;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
-using SceneState = Xanadu.Ecs.SceneState;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Ecs.Ui;
+using SceneState = Xanadu.Ecs.Components.SceneState;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Scenes;
 
@@ -205,7 +209,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity flare in _entities.Query<DashFlare>().ToEntityList())
             flare.DeleteEntity();
 
-        Xanadu.Rendering.ShaderChart.Clear();
+        ShaderChart.Clear();
 
         foreach (Entity ghost in _entities.Query<HitGhost>().ToEntityList())
             ghost.DeleteEntity();

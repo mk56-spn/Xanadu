@@ -1,6 +1,6 @@
-using Xanadu.Systems;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// Toggles a debug overlay with the key it is given; F3 by default. It reads

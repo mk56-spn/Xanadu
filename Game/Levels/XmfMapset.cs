@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Levels;
 
@@ -149,7 +150,7 @@ public sealed class XmfMapset
     /// <summary>The program-owned song every variant plays to.</summary>
     public string SongId { get; set; } = "";
 
-    /// <summary>Custom shaders the mapset's variants may use, in slots 1 to <see cref="Xanadu.Ecs.ShaderLimits.Count"/>.</summary>
+    /// <summary>Custom shaders the mapset's variants may use, in slots 1 to <see cref="ShaderLimits.Count"/>.</summary>
     public List<ShaderDocument> Shaders { get; set; } = new();
 
     public List<XmfVariant> Variants { get; set; } = new();

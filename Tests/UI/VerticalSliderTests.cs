@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.UI;
 

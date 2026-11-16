@@ -1,10 +1,13 @@
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -28,7 +31,7 @@ public sealed class PlayerSmoothingTests : EcsSystemTest
 
     private Entity Player(Vector2 at)
     {
-        var body = _physics.CreateDynamicBox(at, new Vector2(30, 100));
+        Body body = _physics.CreateDynamicBox(at, new Vector2(30, 100));
         return Store.CreateEntity(
             new Player(new Vector2(30, 100)),
             new Position(at),

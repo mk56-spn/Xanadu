@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -33,7 +34,9 @@ public sealed class AnimatorSvgWatchTests : AnimatorToolTest
 
         Session.GetComponent<AnimatorSelection>().Attachment = 0;
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.OpenArtFile));
-        Assert.That(Files.OpenedPath, Is.EqualTo(Session.GetComponent<AnimatorDocument>().Package.Attachments[0].SvgPath));
+        Assert.That(
+            Files.OpenedPath,
+            Is.EqualTo(Session.GetComponent<AnimatorDocument>().Package.Attachments[0].SvgPath));
     }
 
     [Test]

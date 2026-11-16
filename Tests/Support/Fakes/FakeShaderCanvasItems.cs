@@ -1,4 +1,5 @@
-using Xanadu.Rendering;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Tests.Support.Fakes;
@@ -14,5 +15,7 @@ public sealed class FakeShaderCanvasItems : IShaderCanvasItems
 
     public Handle CreateItem(Handle parent) => TestRid.Make(_next++);
 
-    public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend) { }
+    public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend)
+    {
+    }
 }

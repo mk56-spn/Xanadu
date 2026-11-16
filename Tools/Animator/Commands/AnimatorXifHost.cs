@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Core.Items;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
-using Xanadu.Items;
 using Xanadu.Levels;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -41,7 +44,7 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
 
     public IReadOnlyList<XifShaderChoice> Shaders => Choices;
 
-    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path));
+    public bool CanLoad(string path) => System.IO.File.Exists(GamePaths.Full(path));
 
     public void Edit(Action change)
     {

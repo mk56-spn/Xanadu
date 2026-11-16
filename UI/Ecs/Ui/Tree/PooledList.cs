@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Ecs;
 
-namespace Xanadu.Ui.Tree;
+namespace Xanadu.Ui.Ecs.Ui.Tree;
 
 /// <summary>
 /// A pooled list (<see cref="UiList"/>): only the rows that can show exist. Each

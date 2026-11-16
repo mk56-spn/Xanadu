@@ -1,6 +1,7 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A material that tints an entity's white text along a line, in the entity's

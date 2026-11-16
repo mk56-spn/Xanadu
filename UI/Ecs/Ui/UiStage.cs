@@ -1,5 +1,7 @@
 
-namespace Xanadu.Ecs;
+using Xanadu.Core.Maths;
+
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The frame a screen is authored against: a fixed 1920x1080 design space that

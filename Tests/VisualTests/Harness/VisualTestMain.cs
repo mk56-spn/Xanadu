@@ -1,3 +1,4 @@
+using Xanadu.Ui.Systems.Ui;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -9,11 +10,11 @@ using Xanadu.Host.Rendering;
 using Xanadu.Levels;
 using Xanadu.Editor;
 using Xanadu.Settings;
-using Xanadu.Storage;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Storage;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Systems.Ui;
-using Xanadu.Theme;
+using Xanadu.Core.Theme;
 
 namespace Xanadu.Tests.VisualTests;
 

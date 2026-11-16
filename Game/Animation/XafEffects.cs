@@ -1,6 +1,8 @@
 using System.Collections.Generic;
-using Xanadu.Items;
-using Xanadu.Layering;
+using Xanadu.Core.Items;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Levels;
 
 namespace Xanadu.Animation;
@@ -18,18 +20,18 @@ public static class XafEffects
     public static string StreamParticle()
     {
         const string name = "sparks";
-        if (Xanadu.Particles.ParticleLibrary.Find(name) is not null)
+        if (ParticleLibrary.Find(name) is not null)
             return name;
 
-        var sparks = new Xanadu.Particles.XpfParticle
+        var sparks = new XpfParticle
         {
             Name = name, Amount = 40, Lifetime = 0.5f, Explosiveness = 0f, Direction = -150f, Spread = 25f,
             SpeedMin = 100f, SpeedMax = 300f, Gravity = new Vector2(0, 900), ScaleMin = 0.4f, ScaleMax = 0.9f,
             Color = new Color(1f, 0.8f, 0.4f),
         };
-        Xanadu.Particles.XpfEditing.SetFadePreset(sparks, Xanadu.Particles.XpfFadePreset.Out);
-        Xanadu.Particles.ParticleLibrary.Shared.Particles.Add(sparks);
-        Xanadu.Particles.ParticleLibrary.MarkEdited();
+        XpfEditing.SetFadePreset(sparks, XpfFadePreset.Out);
+        ParticleLibrary.Shared.Particles.Add(sparks);
+        ParticleLibrary.MarkEdited();
         return name;
     }
 

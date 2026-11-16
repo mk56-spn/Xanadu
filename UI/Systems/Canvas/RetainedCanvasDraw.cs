@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// Draws to a canvas item only when the picture changes. Canvas items keep what was

@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Playfields;
 

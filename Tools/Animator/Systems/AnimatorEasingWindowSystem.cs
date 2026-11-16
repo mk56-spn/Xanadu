@@ -1,16 +1,18 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Names the selected keys' curve on the EASING header button, and closes the
 /// picker in preview mode, which hides the timeline it belongs to. The picker
-/// itself is the shared one (<see cref="Xanadu.Systems.Ui.EasePickerSystem"/>).
+/// itself is the shared one (<see cref="EasePickerSystem"/>).
 /// </summary>
 public sealed class AnimatorEasingWindowSystem : QuerySystem<AnimatorEasingWindow, AnimatorUi>
 {

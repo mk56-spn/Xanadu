@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
-using Friflo.Engine.ECS;
 using Xanadu.Animation;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// One channel key captured by COPY KEYS. The time is stored relative to the

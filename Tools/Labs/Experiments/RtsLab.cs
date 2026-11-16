@@ -2,15 +2,17 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
+using MoonWorks.Graphics;
 using MoonWorks.Input;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
+using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -114,13 +116,13 @@ internal sealed class RtsLab : ILabExperiment
         private readonly Mw.GraphicsDevice _device;
         private readonly Rect2 _area;
         private readonly uint _width, _height;
-        private readonly Mw.Texture _target;
+        private readonly Texture _target;
         private readonly Handle _shown, _item;
-        private readonly Mw.Buffer _units, _hits, _cells, _sorted, _world, _game, _lists, _args;
-        private readonly Mw.ComputePipeline _initGame, _initWorld, _initUnits, _frameBegin, _seedFields, _relax,
+        private readonly Buffer _units, _hits, _cells, _sorted, _world, _game, _lists, _args;
+        private readonly ComputePipeline _initGame, _initWorld, _initUnits, _frameBegin, _seedFields, _relax,
             _clearCells, _countPass, _scan, _scatter, _strategy, _think, _resolve, _cull;
-        private readonly Mw.Shader[] _shaders;
-        private readonly Mw.GraphicsPipeline _ground, _units_, _tracers, _effects, _overlay;
+        private readonly Shader[] _shaders;
+        private readonly GraphicsPipeline _ground, _units_, _tracers, _effects, _overlay;
         private Frame _frame;
         private int _wheel;
         private float _budget;
@@ -134,7 +136,7 @@ internal sealed class RtsLab : ILabExperiment
             _width = (uint)area.Size.X;
             _height = (uint)area.Size.Y;
 
-            _target = Mw.Texture.Create2D(_device, "rts", _width, _height, Format,
+            _target = Texture.Create2D(_device, "rts", _width, _height, Format,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
             _shown = context.Show(_target);
             _item = CanvasServer.Current.CreateItem();
@@ -169,15 +171,15 @@ internal sealed class RtsLab : ILabExperiment
             _resolve = Compute(module, "resolve");
             _cull = Compute(module, "cull");
 
-            Mw.Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
-            Mw.Shader ground = Shader(module, "ground", Mw.ShaderStage.Fragment, storage: 3, uniforms: 1);
-            Mw.Shader overlay = Shader(module, "overlay", Mw.ShaderStage.Fragment, storage: 3, uniforms: 1);
-            Mw.Shader unitVertex = Shader(module, "unitVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
-            Mw.Shader unitShade = Shader(module, "unitShade", Mw.ShaderStage.Fragment);
-            Mw.Shader tracerVertex = Shader(module, "tracerVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
-            Mw.Shader tracerShade = Shader(module, "tracerShade", Mw.ShaderStage.Fragment);
-            Mw.Shader effectVertex = Shader(module, "effectVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
-            Mw.Shader effectShade = Shader(module, "effectShade", Mw.ShaderStage.Fragment);
+            Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
+            Shader ground = Shader(module, "ground", Mw.ShaderStage.Fragment, storage: 3, uniforms: 1);
+            Shader overlay = Shader(module, "overlay", Mw.ShaderStage.Fragment, storage: 3, uniforms: 1);
+            Shader unitVertex = Shader(module, "unitVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
+            Shader unitShade = Shader(module, "unitShade", Mw.ShaderStage.Fragment);
+            Shader tracerVertex = Shader(module, "tracerVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
+            Shader tracerShade = Shader(module, "tracerShade", Mw.ShaderStage.Fragment);
+            Shader effectVertex = Shader(module, "effectVertex", Mw.ShaderStage.Vertex, storage: 3, uniforms: 1);
+            Shader effectShade = Shader(module, "effectShade", Mw.ShaderStage.Fragment);
             _shaders = [full, ground, overlay, unitVertex, unitShade, tracerVertex, tracerShade, effectVertex, effectShade];
 
             var opaque = new Mw.ColorTargetBlendState { EnableColorWriteMask = true, ColorWriteMask = Mw.ColorComponentFlags.RGBA };
@@ -190,11 +192,11 @@ internal sealed class RtsLab : ILabExperiment
             _overlay = Pipeline(full, overlay, over);
         }
 
-        private Mw.Buffer Words(string name, Mw.BufferUsageFlags usage, uint bytes) =>
-            Mw.Buffer.Create<uint>(_device, name, usage, bytes / 4);
+        private Buffer Words(string name, Mw.BufferUsageFlags usage, uint bytes) =>
+            Buffer.Create<uint>(_device, name, usage, bytes / 4);
 
-        private Mw.ComputePipeline Compute(string module, string entry, uint writes = 8, uint threads = Group) =>
-            Mw.ComputePipeline.Create(_device, CachedSpirv(module, entry, "compute"), "main",
+        private ComputePipeline Compute(string module, string entry, uint writes = 8, uint threads = Group) =>
+            ComputePipeline.Create(_device, CachedSpirv(module, entry, "compute"), "main",
                 new Mw.ComputePipelineCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -205,8 +207,8 @@ internal sealed class RtsLab : ILabExperiment
                     ThreadCountZ = 1,
                 });
 
-        private Mw.Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
-            Mw.Shader.Create(_device, CachedSpirv(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
+        private Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
+            MoonWorks.Graphics.Shader.Create(_device, CachedSpirv(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
                 "main", new Mw.ShaderCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -249,8 +251,8 @@ internal sealed class RtsLab : ILabExperiment
             ColorWriteMask = Mw.ColorComponentFlags.RGBA,
         };
 
-        private Mw.GraphicsPipeline Pipeline(Mw.Shader vertex, Mw.Shader fragment, Mw.ColorTargetBlendState blend) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+        private GraphicsPipeline Pipeline(Shader vertex, Shader fragment, Mw.ColorTargetBlendState blend) =>
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -316,7 +318,7 @@ internal sealed class RtsLab : ILabExperiment
             : [new(_units), new(_hits), new(_cells), new(_sorted), new(_world), new(_game), new(_lists)];
 
         /// <summary>One compute pass per dependent step: SDL_GPU orders storage writes between passes, not dispatches.</summary>
-        private void Run(Mw.CommandBuffer commands, Mw.ComputePipeline pipeline, uint threads, uint group = Group)
+        private void Run(Mw.CommandBuffer commands, ComputePipeline pipeline, uint threads, uint group = Group)
         {
             Mw.ComputePass pass = commands.BeginComputePass([], Bindings());
             pass.BindComputePipeline(pipeline);
@@ -396,14 +398,14 @@ internal sealed class RtsLab : ILabExperiment
         {
             CanvasServer.Current.Free(_item);
             _context.Hide(_shown);
-            foreach (Mw.GraphicsPipeline pipeline in new[] { _ground, _units_, _tracers, _effects, _overlay })
+            foreach (GraphicsPipeline pipeline in new[] { _ground, _units_, _tracers, _effects, _overlay })
                 pipeline.Dispose();
-            foreach (Mw.Shader shader in _shaders)
+            foreach (Shader shader in _shaders)
                 shader.Dispose();
-            foreach (Mw.ComputePipeline pipeline in new[] { _initGame, _initWorld, _initUnits, _frameBegin, _seedFields, _relax,
+            foreach (ComputePipeline pipeline in new[] { _initGame, _initWorld, _initUnits, _frameBegin, _seedFields, _relax,
                          _clearCells, _countPass, _scan, _scatter, _strategy, _think, _resolve, _cull })
                 pipeline.Dispose();
-            foreach (Mw.Buffer buffer in new[] { _units, _hits, _cells, _sorted, _world, _game, _lists, _args })
+            foreach (Buffer buffer in new[] { _units, _hits, _cells, _sorted, _world, _game, _lists, _args })
                 buffer.Dispose();
             _target.Dispose();
         }

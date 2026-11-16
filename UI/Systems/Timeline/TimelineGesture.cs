@@ -1,11 +1,11 @@
 using System.Collections.Generic;
-using Xanadu.Systems.Ui;
+using Xanadu.Ui.Systems.Interaction;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// One timeline's press or drag in progress, kept on its
-/// <see cref="Xanadu.Systems.Timeline.TimelineHost"/> rather than as a component
+/// <see cref="TimelineHost"/> rather than as a component
 /// of its own (the Animator is close to Friflo's component cap).
 /// </summary>
 public sealed class TimelineGesture

@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Editor;
@@ -46,7 +48,7 @@ public sealed class GrassBladesTests
     public void SwayMovesTheBladesOverTimeAndNoSwayHoldsThemStill()
     {
         var swaying = new GrassPatch(new Vector2(500, 500), 7) { Sway = 20 };
-        var still = swaying with { Sway = 0 };
+        GrassPatch still = swaying with { Sway = 0 };
 
         Assert.That(Build(swaying, 0f).Points, Is.Not.EqualTo(Build(swaying, 0.5f).Points));
         Assert.That(Build(still, 0f).Points, Is.EqualTo(Build(still, 0.5f).Points));
@@ -56,7 +58,7 @@ public sealed class GrassBladesTests
     public void MovingAPatchMovesTheSameBlades()
     {
         var patch = new GrassPatch(new Vector2(500, 500), 7) { Sway = 0 };
-        var moved = patch with { Position = new Vector2(530, 480) };
+        GrassPatch moved = patch with { Position = new Vector2(530, 480) };
 
         List<Vector2> before = Build(patch, 0f).Points;
         List<Vector2> after = Build(moved, 0f).Points;

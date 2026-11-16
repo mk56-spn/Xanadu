@@ -1,8 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Loads icon textures. A missing icon is not an error: the button shows its
@@ -21,12 +23,12 @@ public static class UiIcons
         string.IsNullOrEmpty(path) ? default : Loader(path);
 
     /// <summary>
-    /// The running host's textures (<see cref="Xanadu.Systems.Canvas.TextureServer"/>);
+    /// The running host's textures (<see cref="TextureServer"/>);
     /// a missing file gives no icon rather than an error.
     /// </summary>
     public static Handle FromResources(string path) =>
-        System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path))
-            ? Xanadu.Systems.Canvas.TextureServer.Current.Load(path)
+        System.IO.File.Exists(GamePaths.Full(path))
+            ? TextureServer.Current.Load(path)
             : default;
 }
 

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Kinds;
 
 namespace Xanadu.Editor;
 
@@ -12,16 +14,16 @@ public enum AlignEdge
     Right,
     Top,
     CenterY,
-    Bottom,
+    Bottom
 }
 
 /// <summary>
-/// Lines a selection's items up with each other: their left, middle or right
-/// edges, or their top, middle or bottom edges, on the matching line of the
-/// box around them all. Each item moves as a whole along one axis, by the
-/// upright box it covers as turned; a note or start point has only a
-/// position, so it lines up by that. Nothing leaves the selection's box, so
-/// nothing leaves the field.
+///     Lines a selection's items up with each other: their left, middle or right
+///     edges, or their top, middle or bottom edges, on the matching line of the
+///     box around them all. Each item moves as a whole along one axis, by the
+///     upright box it covers as turned; a note or start point has only a
+///     position, so it lines up by that. Nothing leaves the selection's box, so
+///     nothing leaves the field.
 /// </summary>
 public static class SelectionAlign
 {
@@ -70,6 +72,6 @@ public static class SelectionAlign
         AlignEdge.Top => new Vector2(0, bounds.Position.Y - item.Position.Y),
         AlignEdge.CenterY => new Vector2(0, bounds.GetCenter().Y - item.GetCenter().Y),
         AlignEdge.Bottom => new Vector2(0, bounds.End.Y - item.End.Y),
-        _ => Vector2.Zero,
+        _ => Vector2.Zero
     };
 }

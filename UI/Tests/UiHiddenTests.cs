@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Rendering;
-using Xanadu.Systems.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Rendering;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class UiHiddenTests

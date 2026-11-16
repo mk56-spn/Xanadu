@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -19,18 +20,26 @@ public sealed class XafSkinMeshTests
     {
         float area = 0f;
         for (int t = 0; t < triangles.Length; t += 3)
-            area += MathF.Abs((points[triangles[t + 1]] - points[triangles[t]]).Cross(points[triangles[t + 2]] - points[triangles[t]])) / 2f;
+            area += MathF.Abs(
+                (points[triangles[t + 1]] - points[triangles[t]]).Cross(
+                    points[triangles[t + 2]] - points[triangles[t]])) / 2f;
         return area;
     }
 
     [Test]
     public void PathDataReadsLinesCurvesAndRelativeMoves()
     {
-        List<List<Vector2>> shapes = XafSvgOutline.Parse("M 0 0 L 10 0 l 0 10 H 0 Z m 20 0 C 25 -5, 30 5, 35 0 v 5 h -15 z");
+        List<List<Vector2>> shapes =
+            XafSvgOutline.Parse("M 0 0 L 10 0 l 0 10 H 0 Z m 20 0 C 25 -5, 30 5, 35 0 v 5 h -15 z");
 
         Assert.That(shapes, Has.Count.EqualTo(2));
-        Assert.That(shapes[0], Is.EqualTo(new[] { new Vector2(0, 0), new Vector2(10, 0), new Vector2(10, 10), new Vector2(0, 10) }));
-        Assert.That(shapes[1][0], Is.EqualTo(new Vector2(20, 0)), "a relative move after a close starts from the shape's start");
+        Assert.That(
+            shapes[0],
+            Is.EqualTo(new[] { new Vector2(0, 0), new Vector2(10, 0), new Vector2(10, 10), new Vector2(0, 10) }));
+        Assert.That(
+            shapes[1][0],
+            Is.EqualTo(new Vector2(20, 0)),
+            "a relative move after a close starts from the shape's start");
         Assert.That(shapes[1].Count, Is.GreaterThan(6), "the curve is flattened into many points");
         Assert.That(XafSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(5, 5)), Is.True);
         Assert.That(XafSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(15, 5)), Is.False);
@@ -49,6 +58,7 @@ public sealed class XafSkinMeshTests
             Vector2 middle = (points[triangles[t]] + points[triangles[t + 1]] + points[triangles[t + 2]]) / 3f;
             Assert.That(middle.X > 10.5f && middle.Y < 29.5f, Is.False, $"a triangle in the L's notch at {middle}");
         }
+
         var used = new HashSet<int>(triangles);
         Assert.That(used, Has.Count.EqualTo(points.Length), "every point is in a triangle");
     }
@@ -64,15 +74,22 @@ public sealed class XafSkinMeshTests
     [Test]
     public void HeatGivesEachEndToItsBoneAndBlendsWhereTheyMeet()
     {
-        var (points, triangles, outline) = Strip();
-        var bones = new List<(Vector2, Vector2)> { (new Vector2(0, 0), new Vector2(0, 50)), (new Vector2(0, 50), new Vector2(0, 100)) };
+        (Vector2[] points, int[] triangles, Vector2[] outline) = Strip();
+        var bones = new List<(Vector2, Vector2)>
+            { (new Vector2(0, 0), new Vector2(0, 50)), (new Vector2(0, 50), new Vector2(0, 100)) };
 
-        float[][] weights = XafHeatWeights.Compute(points, triangles, bones, spot => XafSvgOutline.Inside(new[] { outline }, spot));
+        float[][] weights = XafHeatWeights.Compute(
+            points,
+            triangles,
+            bones,
+            spot => XafSvgOutline.Inside(new[] { outline }, spot));
 
         foreach (float[] row in weights)
             Assert.That(row.Sum(), Is.EqualTo(1f).Within(1e-4f));
+
         float At(Vector2 spot, int bone) =>
             weights[Enumerable.Range(0, points.Length).OrderBy(i => points[i].DistanceTo(spot)).First()][bone];
+
         Assert.That(At(new Vector2(0, 10), 0), Is.GreaterThan(0.95f));
         Assert.That(At(new Vector2(0, 90), 1), Is.GreaterThan(0.95f));
         Assert.That(At(new Vector2(0, 50), 0), Is.InRange(0.2f, 0.8f), "the joint is shared");
@@ -83,11 +100,16 @@ public sealed class XafSkinMeshTests
     {
         Vector2[] left = { new(-15, 0), new(-5, 0), new(-5, 100), new(-15, 100) };
         Vector2[] right = { new(5, 0), new(15, 0), new(15, 100), new(5, 100) };
-        var outline = new[] { left, right };
+        Vector2[][] outline = new[] { left, right };
         (Vector2[] points, int[] triangles) = XafSkinBuilder.Build(outline, 2.5f);
-        var bones = new List<(Vector2, Vector2)> { (new Vector2(-10, 0), new Vector2(-10, 100)), (new Vector2(10, 0), new Vector2(10, 100)) };
+        var bones = new List<(Vector2, Vector2)>
+            { (new Vector2(-10, 0), new Vector2(-10, 100)), (new Vector2(10, 0), new Vector2(10, 100)) };
 
-        float[][] weights = XafHeatWeights.Compute(points, triangles, bones, spot => XafSvgOutline.Inside(outline, spot));
+        float[][] weights = XafHeatWeights.Compute(
+            points,
+            triangles,
+            bones,
+            spot => XafSvgOutline.Inside(outline, spot));
 
         for (int i = 0; i < points.Length; i++)
             Assert.That(weights[i][points[i].X < 0 ? 0 : 1], Is.EqualTo(1f).Within(1e-4f), $"point {points[i]}");
@@ -100,13 +122,16 @@ public sealed class XafSkinMeshTests
         {
             Points = new[] { Vector2.Zero, Vector2.One },
             Bones = { "a", "b", "c" },
-            Weights = new[] { new[] { 0.5f, 0.3f, 0.2f }, new[] { 1f, 0f, 0f } },
+            Weights = new[] { new[] { 0.5f, 0.3f, 0.2f }, new[] { 1f, 0f, 0f } }
         };
 
         XafSkinAuthoring.Paint(skin, "c", new[] { (0, 1f) }, 0.4f);
 
         Assert.That(skin.Weights[0][2], Is.EqualTo(0.6f).Within(1e-4f));
-        Assert.That(skin.Weights[0][0] / skin.Weights[0][1], Is.EqualTo(0.5f / 0.3f).Within(1e-3f), "the others keep their proportions");
+        Assert.That(
+            skin.Weights[0][0] / skin.Weights[0][1],
+            Is.EqualTo(0.5f / 0.3f).Within(1e-3f),
+            "the others keep their proportions");
         Assert.That(skin.Weights[0].Sum(), Is.EqualTo(1f).Within(1e-4f));
 
         XafSkinAuthoring.Paint(skin, "d", new[] { (1, 0.5f) }, 0.4f);
@@ -124,14 +149,15 @@ public sealed class XafSkinMeshTests
         int upper = XafRigAuthoring.AddBone(package, 0, "upper", Vector2.Zero);
         int lower = XafRigAuthoring.AddBone(package, upper, "lower", new Vector2(0, 50));
         package.Skeleton.Bones[lower].Tip = new Vector2(0, 50);
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "strip.svg", Group = "strip", BoneId = "upper",
-            Transform = new Transform2D(0f, new Vector2(0, 50)),
-        });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "strip.svg", Group = "strip", BoneId = "upper",
+                Transform = new Transform2D(0f, new Vector2(0, 50))
+            });
         const string svg = """
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 100"><g id="strip"><path d="M 0 0 H 10 V 100 H 0 Z"/></g></svg>
-            """;
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 100"><g id="strip"><path d="M 0 0 H 10 V 100 H 0 Z"/></g></svg>
+                           """;
         Assert.That(XafSkinAuthoring.Build(package, 0, svg, 2.5f), Is.True);
         return package;
     }
@@ -144,7 +170,8 @@ public sealed class XafSkinMeshTests
 
         Assert.That(skin.Bones, Is.EqualTo(new[] { "upper", "lower" }));
         Assert.That(skin.ArtSize, Is.EqualTo(new Vector2(10, 100)));
-        int bottom = Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 100))).First();
+        int bottom = Enumerable.Range(0, skin.Points.Length)
+            .OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 100))).First();
         Assert.That(skin.Weights[bottom][1], Is.GreaterThan(0.95f), "the far end follows the lower bone");
 
         // Bending the lower bone carries the far end with it; the near end stays.
@@ -152,7 +179,8 @@ public sealed class XafSkinMeshTests
         pose.Bones[2].Rotation = Mathf.Pi / 2f;
         Vector2[] posed = XafSkinAuthoring.Posed(package, 0, pose);
         Vector2[] rest = XafSkinAuthoring.Posed(package, 0, XafClothLayout.RestPose(package));
-        int top = Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 0))).First();
+        int top = Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 0)))
+            .First();
         Assert.That(posed[top].DistanceTo(rest[top]), Is.LessThan(1e-3f));
         Assert.That(posed[bottom].DistanceTo(new Vector2(-50, 50)), Is.LessThan(2f));
     }
@@ -170,13 +198,18 @@ public sealed class XafSkinMeshTests
     [Test]
     public void TheContactRigsRightLegIsASkinWeightedHipToToe()
     {
-        string file = Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../../Tools/Animator/Animations/Characters/contact.xaf");
+        string file = Path.Combine(
+            TestContext.CurrentContext.TestDirectory,
+            "../../../../Tools/Animator/Animations/Characters/contact.xaf");
         XafPackage package = XafBinary.Load(Path.GetFullPath(file));
         XafSkinMesh skin = package.Attachments.Single(attachment => attachment.Group == "leg_r").Mesh!.Skin!;
 
         Assert.That(skin.Points.Length, Is.GreaterThan(100));
         Assert.That(skin.Bones, Is.EqualTo(new[] { "thigh_r", "shin_r", "foot_r", "torso" }));
-        float[] Near(Vector2 spot) => skin.Weights[Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(spot)).First()];
+
+        float[] Near(Vector2 spot) => skin.Weights[Enumerable.Range(0, skin.Points.Length)
+            .OrderBy(i => skin.Points[i].DistanceTo(spot)).First()];
+
         Assert.That(Near(new Vector2(15, 30))[0], Is.GreaterThan(0.9f), "mid thigh");
         Assert.That(Near(new Vector2(12, 75))[1], Is.GreaterThan(0.9f), "mid shin");
         Assert.That(Near(new Vector2(37, 109))[2], Is.GreaterThan(0.9f), "toes");

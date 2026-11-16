@@ -1,10 +1,13 @@
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tools.Animator;
 
 /// <summary>
-/// The animator's own keybindings (<see cref="Xanadu.Systems.Timeline.TimelineShortcuts"/>
+/// The animator's own keybindings (<see cref="TimelineShortcuts"/>
 /// holds those every timeline shares): the actions buttons perform, plus the key
 /// that does the same thing. Shortcuts run them through
 /// <see cref="Commands.AnimatorCommands.Run"/>, the one path a pressed button

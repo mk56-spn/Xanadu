@@ -1,6 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
@@ -95,5 +97,4 @@ public sealed class EditorToolGroupSystemTests : EcsSystemTest
         Assert.That(IsOpen(_notes), Is.False);
         Assert.That(_hazards.GetComponent<EditorToolGroup>().Icon.GetComponent<Text>().Value, Is.EqualTo("▲"));
     }
-
 }

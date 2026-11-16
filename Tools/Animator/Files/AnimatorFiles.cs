@@ -1,6 +1,7 @@
 using System;
+using SDL3;
 using Xanadu.Animation;
-using Xanadu.Storage;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Tools.Animator.Files;
 
@@ -30,7 +31,7 @@ public sealed class AnimatorFiles : IAnimatorFiles
 
     /// <summary>Opens the file with the desktop's default app (an SVG in the art editor).</summary>
     public bool OpenInSystem(string path) =>
-        SDL3.SDL.SDL_OpenURL(new Uri(System.IO.Path.GetFullPath(GamePaths.Full(path))).AbsoluteUri);
+        SDL.SDL_OpenURL(new Uri(System.IO.Path.GetFullPath(GamePaths.Full(path))).AbsoluteUri);
 
     public string? ReadText(string path)
     {

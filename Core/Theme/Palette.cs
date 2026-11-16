@@ -1,5 +1,7 @@
 
-namespace Xanadu.Theme;
+using Xanadu.Core.Maths;
+
+namespace Xanadu.Core.Theme;
 
 /// <summary>
 /// The single source of truth for colour in Xanadu. Every surface, line, text

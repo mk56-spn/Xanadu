@@ -1,7 +1,8 @@
 using System;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>One instance per shape on the stage.</summary>
 internal sealed class ShapeExtractSystem(DrawList list) : QuerySystem<Placed, Depth, Tint, Shape>

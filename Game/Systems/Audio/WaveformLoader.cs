@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Systems.Audio;
 
@@ -18,7 +19,7 @@ public static class WaveformLoader
         if (string.IsNullOrWhiteSpace(path))
             return null;
 
-        string filePath = Xanadu.Storage.GamePaths.Full(path);
+        string filePath = GamePaths.Full(path);
         if (!File.Exists(filePath))
             return null;
 

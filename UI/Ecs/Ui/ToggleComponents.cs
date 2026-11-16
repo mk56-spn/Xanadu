@@ -1,9 +1,10 @@
-using System.Runtime.CompilerServices;
 using System;
+using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Clickable boolean toggle with configurable on/off labels and colors.</summary>
 public struct Toggle : IComponent

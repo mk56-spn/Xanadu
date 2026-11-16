@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Ui.Tree;
-using static Xanadu.Theme.UiMetrics;
-using static Xanadu.Ui.Tree.UiSpecs;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using static Xanadu.Core.Theme.UiMetrics;
+using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>Atlas's tree, built once: the header, the list, and the three chart views, each column a pooled list.</summary>
 internal sealed partial class AtlasStage

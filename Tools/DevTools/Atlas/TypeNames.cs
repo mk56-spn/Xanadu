@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>Type names as people write them, for the chart and the text dumps alike.</summary>
 internal static class TypeNames

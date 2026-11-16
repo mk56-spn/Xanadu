@@ -1,9 +1,9 @@
+using Xanadu.Core;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Keeps editor text-field focus in sync with pointer presses.</summary>
 public sealed class TextFieldFocusSystem : QuerySystem<Rectangle>

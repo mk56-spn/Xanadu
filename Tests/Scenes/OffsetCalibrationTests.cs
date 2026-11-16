@@ -1,7 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Systems.Scenes;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -32,9 +32,7 @@ public sealed class OffsetCalibrationTests
     [TestCase(35d)]
     [TestCase(-40d)]
     public void TheOffsetIsHowLateTheTapsAre(double late) =>
-        Assert.That(
-            Run(_ => late).Measure()!.Value.OffsetMs,
-            Is.EqualTo(late + ChartTiming.AudioLagMs).Within(0.001d));
+        Assert.That(Run(_ => late).Measure()!.Value.OffsetMs, Is.EqualTo(late + ChartTiming.AudioLagMs).Within(0.001d));
 
     [Test]
     public void StrayTapsDoNotMoveTheResult()
@@ -101,19 +99,21 @@ public sealed class OffsetCalibrationTests
     [Test]
     public void TheClickTrackAssetHasAClickWhereTheTimingSaysAndIsLongEnough()
     {
-        string root = System.IO.Path.GetFullPath(System.IO.Path.Combine(
-            TestContext.CurrentContext.TestDirectory, "../../../../"));
-        byte[] wav = System.IO.File.ReadAllBytes(System.IO.Path.Combine(root, "Assets", "Audio", "offset-calibration.wav"));
+        string root = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../../"));
+        byte[] wav =
+            System.IO.File.ReadAllBytes(System.IO.Path.Combine(root, "Assets", "Audio", "offset-calibration.wav"));
 
         const int rate = 44100;
         const int data = 44;
+
         short Sample(double seconds) =>
             System.BitConverter.ToInt16(wav, data + (int)System.Math.Round(seconds * rate) * 2);
+
         double Loudest(double seconds) => Enumerable.Range(0, 40)
             .Max(i => System.Math.Abs((int)Sample(seconds + i / (double)rate)));
 
-        Assert.That((wav.Length - data) / 2 / (double)rate,
-            Is.GreaterThan(ClickAt(OffsetCalibration.TotalBeats - 1)));
+        Assert.That((wav.Length - data) / 2 / (double)rate, Is.GreaterThan(ClickAt(OffsetCalibration.TotalBeats - 1)));
         for (int beat = 0; beat < OffsetCalibration.TotalBeats; beat++)
         {
             Assert.That(Loudest(ClickAt(beat)), Is.GreaterThan(10_000), $"click {beat}");

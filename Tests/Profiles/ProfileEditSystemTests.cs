@@ -3,10 +3,13 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Systems.Scenes;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Profiles;
 
@@ -49,10 +52,9 @@ public sealed class ProfileEditSystemTests
     private ProfileStore Reloaded() => new(_path);
 
     [Test]
-    public void OpeningTheScreenLeavesTheDefaultTintAlone()
-    {
-        Assert.That(_profile.NoteTint, Is.EqualTo(ProfileStore.DefaultNoteTint));
-    }
+    public void OpeningTheScreenLeavesTheDefaultTintAlone() => Assert.That(
+        _profile.NoteTint,
+        Is.EqualTo(ProfileStore.DefaultNoteTint));
 
     [Test]
     public void TypingRenamesAndPersists()

@@ -1,12 +1,18 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Systems.Groups;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -18,7 +24,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Root.Add(new UiTreeSystem());
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorPreviewInputSystem(Pointer));
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
         Root.Add(new AnimatorHierarchySystem(new FakeVisualRidFactory()));
     }
@@ -32,8 +38,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     private bool CanUndo => Session.GetComponent<AnimatorSessionState>().History.History.CanUndo;
 
     private XafChannel? Channel(string bone, XafChannelProperty property) =>
-        Idle.Channels.Find(channel =>
-            channel.TargetId == bone && channel.Property == property);
+        Idle.Channels.Find(channel => channel.TargetId == bone && channel.Property == property);
 
     [Test]
     public void UndoingAKeyRemovesItAndRedoRestoresIt()
@@ -89,8 +94,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     [Test]
     public void UndoingDeleteBoneRestoresTheBoneAndItsChannels()
     {
-        XafAuthoring.SetBoneProperty(Package, Idle, "head",
-            XafChannelProperty.TranslationX, 0.5f, 3f);
+        XafAuthoring.SetBoneProperty(Package, Idle, "head", XafChannelProperty.TranslationX, 0.5f, 3f);
         Select(2);
         Run(ToolActionKind.DeleteBone);
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(2));
@@ -143,8 +147,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
 
         Run(ToolActionKind.Undo);
 
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Value,
-            Is.EqualTo(first));
+        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Value, Is.EqualTo(first));
     }
 
     [Test]

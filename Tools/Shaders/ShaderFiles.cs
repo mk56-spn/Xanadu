@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Xanadu.Storage;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Tools.Shaders;
 

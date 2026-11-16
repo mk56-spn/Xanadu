@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Applies typed colours when a colour field loses focus and picked ones when its picker is let go, and keeps its text, swatch and picker current.</summary>
 public sealed class UiColorFieldSystem : QuerySystem<UiColorField, TextField>

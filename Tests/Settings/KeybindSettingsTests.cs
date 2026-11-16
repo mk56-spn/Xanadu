@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Settings;
 
 namespace Xanadu.Tests.Settings;
@@ -13,9 +14,7 @@ public sealed class KeybindSettingsTests
     [SetUp]
     public void SetUp()
     {
-        _path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-keybinds-" + Guid.NewGuid().ToString("N") + ".json");
+        _path = Path.Combine(Path.GetTempPath(), "writer-keybinds-" + Guid.NewGuid().ToString("N") + ".json");
     }
 
     [TearDown]
@@ -104,8 +103,6 @@ public sealed class KeybindSettingsTests
     {
         Assert.That(KeybindSettings.KeyLabel(Key.S), Is.EqualTo("S"));
         Assert.That(KeybindSettings.KeyLabel(Key.Space), Is.EqualTo("SPACE"));
-        Assert.That(
-            KeybindSettings.LabelFor(KeybindAction.Action3),
-            Is.EqualTo("ACTION 3"));
+        Assert.That(KeybindSettings.LabelFor(KeybindAction.Action3), Is.EqualTo("ACTION 3"));
     }
 }

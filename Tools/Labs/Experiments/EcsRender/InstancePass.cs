@@ -1,7 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
+using MoonWorks.Graphics;
 using Xanadu.Host.Text;
 using Xanadu.Slang;
+using Buffer = MoonWorks.Graphics.Buffer;
 using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments.EcsRender;
@@ -17,31 +19,31 @@ internal sealed class InstancePass : IDisposable
 
     private readonly Mw.GraphicsDevice _device;
     private readonly TextAtlas _atlas;
-    private readonly Mw.Shader _vertex, _fragment;
-    private readonly Mw.GraphicsPipeline _pipeline;
-    private readonly Mw.Sampler _sampler;
-    private Mw.Buffer? _buffer;
-    private Mw.TransferBuffer? _transfer;
+    private readonly Shader _vertex, _fragment;
+    private readonly GraphicsPipeline _pipeline;
+    private readonly Sampler _sampler;
+    private Buffer? _buffer;
+    private TransferBuffer? _transfer;
     private uint _capacity;
 
     public InstancePass(Mw.GraphicsDevice device, TextAtlas atlas, string module, Mw.TextureFormat format)
     {
         _device = device;
         _atlas = atlas;
-        _vertex = Mw.Shader.Create(device, SlangShaders.Compile(module, "itemVertex", "vertex"), "main", new Mw.ShaderCreateInfo
+        _vertex = Shader.Create(device, SlangShaders.Compile(module, "itemVertex", "vertex"), "main", new Mw.ShaderCreateInfo
         {
             Format = Mw.ShaderFormat.SPIRV,
             Stage = Mw.ShaderStage.Vertex,
             NumStorageBuffers = 1,
             NumUniformBuffers = 1,
         });
-        _fragment = Mw.Shader.Create(device, SlangShaders.Compile(module, "itemShade", "fragment"), "main", new Mw.ShaderCreateInfo
+        _fragment = Shader.Create(device, SlangShaders.Compile(module, "itemShade", "fragment"), "main", new Mw.ShaderCreateInfo
         {
             Format = Mw.ShaderFormat.SPIRV,
             Stage = Mw.ShaderStage.Fragment,
             NumSamplers = 1,
         });
-        _pipeline = Mw.GraphicsPipeline.Create(device, new Mw.GraphicsPipelineCreateInfo
+        _pipeline = GraphicsPipeline.Create(device, new Mw.GraphicsPipelineCreateInfo
         {
             VertexShader = _vertex,
             FragmentShader = _fragment,
@@ -55,7 +57,7 @@ internal sealed class InstancePass : IDisposable
                 ColorTargetDescriptions = [new Mw.ColorTargetDescription { Format = format, BlendState = Premultiplied }],
             },
         });
-        _sampler = Mw.Sampler.Create(device, Mw.SamplerCreateInfo.PointClamp);
+        _sampler = Sampler.Create(device, Mw.SamplerCreateInfo.PointClamp);
     }
 
     private static readonly Mw.ColorTargetBlendState Premultiplied = new()
@@ -79,8 +81,8 @@ internal sealed class InstancePass : IDisposable
             _buffer?.Dispose();
             _transfer?.Dispose();
             _capacity = Math.Max((uint)count, Math.Max(_capacity * 2, 1u << 14));
-            _buffer = Mw.Buffer.Create<DrawInstance>(_device, "ecs render instances", Mw.BufferUsageFlags.GraphicsStorageRead, _capacity);
-            _transfer = Mw.TransferBuffer.Create<DrawInstance>(_device, "ecs render upload", Mw.TransferBufferUsage.Upload, _capacity);
+            _buffer = Buffer.Create<DrawInstance>(_device, "ecs render instances", Mw.BufferUsageFlags.GraphicsStorageRead, _capacity);
+            _transfer = TransferBuffer.Create<DrawInstance>(_device, "ecs render upload", Mw.TransferBufferUsage.Upload, _capacity);
         }
 
         return _transfer!.Map<DrawInstance>(cycle: true);
@@ -88,7 +90,7 @@ internal sealed class InstancePass : IDisposable
 
     public void Unmap() => _transfer!.Unmap();
 
-    public void Draw(Mw.CommandBuffer commands, Mw.Texture target, DrawList list)
+    public void Draw(Mw.CommandBuffer commands, Texture target, DrawList list)
     {
         // A draw of shapes alone still needs a texture bound, though it never reads it; with no atlas yet there is none to bind.
         bool drawn = list.Draws.Count > 0 && _atlas.PageCount > 0;

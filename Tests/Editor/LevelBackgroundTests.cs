@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Levels;
 
 namespace Xanadu.Tests.Editor;
@@ -9,25 +10,17 @@ public sealed class LevelBackgroundTests
     [Test]
     public void FormatsOpaqueAndTranslucentColours()
     {
-        Assert.That(
-            LevelBackground.Format(new Color("#204060")),
-            Is.EqualTo("#204060"));
-        Assert.That(
-            LevelBackground.Format(new Color("#20406080")),
-            Is.EqualTo("#20406080"));
+        Assert.That(LevelBackground.Format(new Color("#204060")), Is.EqualTo("#204060"));
+        Assert.That(LevelBackground.Format(new Color("#20406080")), Is.EqualTo("#20406080"));
     }
 
     [Test]
     public void ParsesBothStoredForms()
     {
-        Assert.That(
-            LevelBackground.TryParse("#204060", out Color opaque),
-            Is.True);
+        Assert.That(LevelBackground.TryParse("#204060", out Color opaque), Is.True);
         Assert.That(opaque, Is.EqualTo(new Color("#204060")));
 
-        Assert.That(
-            LevelBackground.TryParse("20406080", out Color translucent),
-            Is.True);
+        Assert.That(LevelBackground.TryParse("20406080", out Color translucent), Is.True);
         Assert.That(translucent.A, Is.EqualTo(128 / 255f).Within(0.001f));
     }
 

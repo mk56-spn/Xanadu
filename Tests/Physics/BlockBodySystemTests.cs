@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Tests.Physics;
@@ -15,8 +16,7 @@ public sealed class BlockBodySystemTests
     {
         var store = new EntityStore();
         CreateView(store, PlayfieldKind.Editor, Vector2.Zero, 1f);
-        Entity block = store.CreateEntity(
-            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        Entity block = store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(200, 100)));
 
         using var physics = new Box2DPhysicsWorld();
         var root = new SystemRoot(store);
@@ -30,13 +30,8 @@ public sealed class BlockBodySystemTests
     public void PlayBlocksBecomeStaticBodiesInScreenSpace()
     {
         var store = new EntityStore();
-        PlayfieldView view = CreateView(
-            store,
-            PlayfieldKind.Play,
-            new Vector2(100, 50),
-            0.5f);
-        Entity block = store.CreateEntity(
-            new Block(new Vector2(400, 200), new Vector2(200, 100)));
+        PlayfieldView view = CreateView(store, PlayfieldKind.Play, new Vector2(100, 50), 0.5f);
+        Entity block = store.CreateEntity(new Block(new Vector2(400, 200), new Vector2(200, 100)));
 
         using var physics = new Box2DPhysicsWorld();
         var root = new SystemRoot(store);
@@ -58,10 +53,7 @@ public sealed class BlockBodySystemTests
     {
         var store = new EntityStore();
         CreateView(store, PlayfieldKind.Play, Vector2.Zero, 1f);
-        Entity block = store.CreateEntity(new Block(
-            new Vector2(100, 100),
-            new Vector2(200, 100),
-            oneWay: BlockOneWay.Left));
+        Entity block = store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(200, 100), BlockOneWay.Left));
 
         using var physics = new Box2DPhysicsWorld();
         var root = new SystemRoot(store);
@@ -69,9 +61,7 @@ public sealed class BlockBodySystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         object data = block.GetComponent<PhysicsBody>().Body.FixtureList[0].UserData;
-        Assert.That(data, Is.EqualTo(new OneWaySurface(
-            BlockOneWay.Left,
-            new System.Numerics.Vector2(1f, 0.5f))));
+        Assert.That(data, Is.EqualTo(new OneWaySurface(BlockOneWay.Left, new Vector2(1f, 0.5f))));
     }
 
     [Test]
@@ -79,8 +69,7 @@ public sealed class BlockBodySystemTests
     {
         var store = new EntityStore();
         CreateView(store, PlayfieldKind.Play, Vector2.Zero, 1f);
-        Entity block = store.CreateEntity(
-            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        Entity block = store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(200, 100)));
 
         using var physics = new Box2DPhysicsWorld();
         var root = new SystemRoot(store);
@@ -98,17 +87,14 @@ public sealed class BlockBodySystemTests
     {
         var store = new EntityStore();
         CreateView(store, PlayfieldKind.Play, Vector2.Zero, 1f);
-        store.CreateEntity(
-            new Block(new Vector2(300, 580), new Vector2(400, 40)));
+        store.CreateEntity(new Block(new Vector2(300, 580), new Vector2(400, 40)));
 
         using var physics = new Box2DPhysicsWorld();
         var root = new SystemRoot(store);
         root.Add(new BlockBodySystem(physics, store));
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Body character = physics.CreateDynamicBox(
-            new Vector2(500, 300),
-            new Vector2(30, 100));
+        Body character = physics.CreateDynamicBox(new Vector2(500, 300), new Vector2(30, 100));
 
         for (int i = 0; i < 240; i++)
             physics.Step(Box2DPhysicsWorld.FixedTimeStep);
@@ -117,11 +103,7 @@ public sealed class BlockBodySystemTests
         Assert.That(position.Y, Is.InRange(500f, 560f));
     }
 
-    private static PlayfieldView CreateView(
-        EntityStore store,
-        PlayfieldKind kind,
-        Vector2 origin,
-        float scale)
+    private static PlayfieldView CreateView(EntityStore store, PlayfieldKind kind, Vector2 origin, float scale)
     {
         var view = new PlayfieldView(origin, scale, new Vector2(1000, 1000));
         store.CreateEntity(new PlayfieldMode(kind), view);

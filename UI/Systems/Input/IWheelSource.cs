@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// The wheel notches of this frame. The UI gets the first look and takes them

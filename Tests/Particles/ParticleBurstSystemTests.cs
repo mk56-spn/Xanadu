@@ -1,9 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Particles;
 using Xanadu.Tests.Support;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Particles;
 
@@ -41,17 +44,25 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
     {
         Entity playfield = Store.CreateEntity(
             new Player(new Vector2(40, 200)),
-            new Xanadu.Ecs.Position(new Vector2(300, 400)));
+            new Position(new Vector2(300, 400)));
 
-        Xanadu.Systems.Playfields.HitEffects.Spawn(
-            Store, playfield, default, new Note(0, Vector2.Zero), new Vector2(10, 20), Colors.Red, 30f);
+        Systems.Playfields.HitEffects.Spawn(
+            Store,
+            playfield,
+            default,
+            new Note(0, Vector2.Zero),
+            new Vector2(10, 20),
+            Colors.Red,
+            30f);
 
         ParticleBurst burst = Store.Query<ParticleBurst>().ToEntityList()[0].GetComponent<ParticleBurst>();
         Assert.That(burst.Position, Is.EqualTo(new Vector2(300, 400)));
         Assert.That(burst.Area, Is.EqualTo(new Vector2(40, 200)));
         Assert.That(burst.Tint, Is.EqualTo(Colors.Red));
         Assert.That(burst.Heading, Is.EqualTo(new Vector2(290, 380)), "thrown from the note through the player");
-        Assert.That(Store.Query<NotePop>().ToEntityList()[0].GetComponent<NotePop>().Position, Is.EqualTo(new Vector2(10, 20)));
+        Assert.That(
+            Store.Query<NotePop>().ToEntityList()[0].GetComponent<NotePop>().Position,
+            Is.EqualTo(new Vector2(10, 20)));
     }
 
     [Test]

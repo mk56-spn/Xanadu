@@ -1,4 +1,5 @@
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
 
@@ -33,7 +34,7 @@ internal sealed class LabsApp : TabbedToolApp
             parent,
             area);
 
-    private Handle ShowTexture(MoonWorks.Graphics.Texture texture)
+    private Handle ShowTexture(Texture texture)
     {
         Handle id = Canvas.MintRid();
         Renderer.Textures[id.Id] = texture;

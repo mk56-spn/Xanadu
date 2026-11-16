@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
 using Xanadu.Animation;
+using Xanadu.Core.Timeline;
+using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Files;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Timeline;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>Creates and reads the single entity that holds animator editing state.</summary>
 public static class AnimatorSession
@@ -40,7 +43,7 @@ public static class AnimatorSession
             new AnimatorTracks { Expanded = new HashSet<XafTrack>() },
             AnimatorBoneMenu.Closed,
             new AnimatorSessionState { Event = AnimatorEventSelection.None });
-        session.AddComponent(new Xanadu.Systems.Timeline.TimelineHost(new AnimatorTimelineHost(session)));
+        session.AddComponent(new TimelineHost(new AnimatorTimelineHost(session)));
         session.AddComponent(new AnimatorKeyMenu());
         session.AddComponent(new AnimatorClipLength());
         session.AddComponent(new AnimatorNewClipDialog());

@@ -1,4 +1,6 @@
 
+using Xanadu.Core.Maths;
+
 namespace Xanadu.Animation;
 
 /// <summary>Draws the rigid SVG groups of a package.</summary>

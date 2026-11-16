@@ -29,6 +29,7 @@ public sealed class XafEventTests
             runtime.Update(step);
             fired.AddRange(runtime.Fired.Select(item => $"{item.Clip}:{item.Name}"));
         }
+
         return fired;
     }
 
@@ -53,7 +54,10 @@ public sealed class XafEventTests
         var runtime = new AnimatorRuntime(package);
         runtime.Play("kick");
 
-        Assert.That(Play(runtime, 2f), Is.EqualTo(new[] { "kick:wind_up", "kick:hit" }), "held at the end, nothing repeats");
+        Assert.That(
+            Play(runtime, 2f),
+            Is.EqualTo(new[] { "kick:wind_up", "kick:hit" }),
+            "held at the end, nothing repeats");
     }
 
     [Test]
@@ -75,7 +79,7 @@ public sealed class XafEventTests
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
         Play(runtime, 0.5f);
-        runtime.Play("kick", fadeSeconds: 0.3f);
+        runtime.Play("kick", 0.3f);
 
         Assert.That(Play(runtime, 0.2f), Does.Contain("kick:hit"));
         runtime.Seek(0.9f);

@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
-using Xanadu.Timeline;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// Presses and drags on every timeline, read the same way in every tool: the

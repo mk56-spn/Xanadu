@@ -1,6 +1,8 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Editor;
 
@@ -15,27 +17,14 @@ public static class EditorWarningPopup
     /// <summary>Creates the popup hierarchy hidden below the editor overlay.</summary>
     public static Entity Build(EntityStore entities, IVisualRidFactory? visuals = null)
     {
-        UiNode ui = UiNode.Layer(entities, default, UiLayers.EditorWarning, visuals, UiStage.Full);
+        var ui = UiNode.Layer(entities, default, UiLayers.EditorWarning, visuals, UiStage.Full);
 
-        UiNode panel = ui.Column()
-            .Size(PopupSize)
-            .Hidden()
-            .Gap(10)
-            .Fill(Palette.DangerSurfaceAlt);
+        UiNode panel = ui.Column().Size(PopupSize).Hidden().Gap(10).Fill(Palette.DangerSurfaceAlt);
 
         panel.Rect(Palette.DangerDark, "WARNING", new Vector2(400, 26));
-        Entity message = panel.Rect(
-                Palette.DangerSurfaceAlt,
-                NoSongMessage,
-                new Vector2(400, 48))
-            .Entity;
-        Entity button = panel.Rect(
-                Palette.WarningDeep,
-                "OK",
-                new Vector2(120, 34))
-            .Input()
-            .With(ButtonVisual.Create(Palette.WarningDeep))
-            .Entity;
+        Entity message = panel.Rect(Palette.DangerSurfaceAlt, NoSongMessage, new Vector2(400, 48)).Entity;
+        Entity button = panel.Rect(Palette.WarningDeep, "OK", new Vector2(120, 34)).Input()
+            .With(ButtonVisual.Create(Palette.WarningDeep)).Entity;
 
         panel.With(new WarningPopup(message, button));
         return panel.Entity;
@@ -56,5 +45,4 @@ public static class EditorWarningPopup
 
         editor.AddComponent(new WarningRequest(message));
     }
-
 }

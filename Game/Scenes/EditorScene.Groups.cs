@@ -1,9 +1,11 @@
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;

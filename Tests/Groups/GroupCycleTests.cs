@@ -1,8 +1,10 @@
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -36,7 +38,10 @@ public sealed class GroupCycleTests
 
         Assert.That(X(effect, 0.125f, Steady), Is.EqualTo(50f).Within(0.01f));
         Assert.That(X(effect, 0.4f, Steady), Is.EqualTo(100f).Within(0.01f), "held until the next cycle");
-        Assert.That(X(effect, 0.625f, Steady), Is.EqualTo(50f).Within(0.01f), "the second cycle starts again from nothing");
+        Assert.That(
+            X(effect, 0.625f, Steady),
+            Is.EqualTo(50f).Within(0.01f),
+            "the second cycle starts again from nothing");
         Assert.That(X(effect, 9f, Steady), Is.EqualTo(100f).Within(0.01f), "the last cycle's result is held");
     }
 
@@ -65,11 +70,14 @@ public sealed class GroupCycleTests
     public void CyclesKeepToTheBeatThroughABpmChange()
     {
         // 120 BPM, then 60 BPM from beat 2 (1 s): beats at 0, 0.5, 1, 2, 3 s.
-        TempoMap tempo = TempoMap.From(new TempoPoint(0, 120), new[] { new TempoPoint(1_000, 60) });
+        var tempo = TempoMap.From(new TempoPoint(0, 120), new[] { new TempoPoint(1_000, 60) });
         GroupEffect effect = Pulse(GroupCycle.Restart);
 
         Assert.That(effect.CycleSpan(3, tempo).Start, Is.EqualTo(2f).Within(0.001f), "the fourth beat is at 2 s");
-        Assert.That(effect.CycleSpan(3, tempo).End, Is.EqualTo(2.5f).Within(0.001f), "half a beat long, at the slower tempo");
+        Assert.That(
+            effect.CycleSpan(3, tempo).End,
+            Is.EqualTo(2.5f).Within(0.001f),
+            "half a beat long, at the slower tempo");
         Assert.That(X(effect, 2.25f, tempo), Is.EqualTo(50f).Within(0.01f));
     }
 
@@ -90,7 +98,7 @@ public sealed class GroupCycleTests
     [Test]
     public void WithoutCyclesNothingChanges()
     {
-        GroupEffect effect = GroupEffect.Move(0f, 1f, new Vector2(100, 0));
+        var effect = GroupEffect.Move(0f, 1f, new Vector2(100, 0));
 
         Assert.That(X(effect, 0.5f, Steady), Is.EqualTo(50f).Within(0.01f));
         Assert.That(X(effect, 3f, Steady), Is.EqualTo(100f).Within(0.01f));
@@ -102,7 +110,11 @@ public sealed class GroupCycleTests
         var source = new LevelDocument { Name = "Cycles" };
         var group = new GroupDocument { Id = 2 };
         group.Effects.Add(new GroupEffectDocument { Kind = GroupEffectKind.Move, End = 0.25f });
-        group.Effects.Add(new GroupEffectDocument { Kind = GroupEffectKind.Move, End = 0.25f, Cycles = 16, EveryBeats = 0.5f, Cycle = GroupCycle.Return });
+        group.Effects.Add(
+            new GroupEffectDocument
+            {
+                Kind = GroupEffectKind.Move, End = 0.25f, Cycles = 16, EveryBeats = 0.5f, Cycle = GroupCycle.Return
+            });
         source.Groups.Add(group);
 
         GroupEffectDocument[] read = XmfBinary.Read(XmfBinary.Write(source)).Groups.Single().Effects.ToArray();
@@ -113,9 +125,12 @@ public sealed class GroupCycleTests
         var variant = new XmfVariant { Id = "hard", Name = "Hard" };
         variant.Groups.Add(group);
         mapset.Variants.Add(variant);
-        GroupEffectDocument cycled = XmfBinary.ReadMapset(XmfBinary.WriteMapset(mapset)).Variants.Single().Groups.Single().Effects[1];
+        GroupEffectDocument cycled = XmfBinary.ReadMapset(XmfBinary.WriteMapset(mapset)).Variants.Single().Groups
+            .Single().Effects[1];
         Assert.That((cycled.Cycles, cycled.Cycle), Is.EqualTo((16, GroupCycle.Return)));
 
-        Assert.That(XmfBinary.Write(new LevelDocument { Name = "Plain" }).Length, Is.LessThan(XmfBinary.Write(source).Length));
+        Assert.That(
+            XmfBinary.Write(new LevelDocument { Name = "Plain" }).Length,
+            Is.LessThan(XmfBinary.Write(source).Length));
     }
 }

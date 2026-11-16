@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Items;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 
 namespace Xanadu.Tests.Shaders;
@@ -32,7 +33,8 @@ public sealed class LevelShaderPersistenceTests
     public void ShadersAndTheirAssignmentsSurviveALoadAndSave()
     {
         var level = new LevelDocument { Id = "x", Name = "Shaded", PlayerShader = 2, FieldShader = 1 };
-        level.Shaders.Add(new ShaderDocument { Slot = 1, Name = "Glow", Source = Glow, Params = { ["speed"] = [0.5f] } });
+        level.Shaders.Add(
+            new ShaderDocument { Slot = 1, Name = "Glow", Source = Glow, Params = { ["speed"] = [0.5f] } });
         level.Shaders.Add(new ShaderDocument { Slot = 2, Name = "Wave", Source = Glow });
         level.Notes.Add(new NoteDocument { TimeMs = 100, X = 1, Y = 2, Item = Xif.ForShader(2) });
         level.Mines.Add(new MineDocument { TimeMs = 200, X = 3, Y = 4, Shader = 1 });
@@ -79,7 +81,8 @@ public sealed class LevelShaderPersistenceTests
     public void ALevelFileRoundTripsThroughJson()
     {
         var level = new LevelDocument { Id = "json", PlayerShader = 1 };
-        level.Shaders.Add(new ShaderDocument { Slot = 1, Name = "Glow", Source = Glow, Params = { ["tint"] = [1f, 0.5f, 0f, 1f] } });
+        level.Shaders.Add(
+            new ShaderDocument { Slot = 1, Name = "Glow", Source = Glow, Params = { ["tint"] = [1f, 0.5f, 0f, 1f] } });
         level.Notes.Add(new NoteDocument { Item = Xif.ForShader(1) });
 
         LevelDocument read = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
@@ -130,21 +133,22 @@ public sealed class LevelShaderPersistenceTests
     public void ANoteXifsCanvasLayerCanBeDrawnWithTheCommonRainbowShader()
     {
         var level = new LevelDocument();
-        level.Notes.Add(new NoteDocument
-        {
-            Item = new Xif
+        level.Notes.Add(
+            new NoteDocument
             {
-                Primitives =
+                Item = new Xif
                 {
-                    new XifPrimitive
+                    Primitives =
                     {
-                        Kind = "svg",
-                        Ref = "note-body.svg",
-                        Shader = XifShaderRef.OfCommon(CommonShaders.Paths[0]),
-                    },
-                },
-            },
-        });
+                        new XifPrimitive
+                        {
+                            Kind = "svg",
+                            Ref = "note-body.svg",
+                            Shader = XifShaderRef.OfCommon(CommonShaders.Paths[0])
+                        }
+                    }
+                }
+            });
 
         LevelDocument read = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
 
@@ -172,7 +176,9 @@ public sealed class LevelShaderPersistenceTests
     }
 
     [TestCase("float4 shade(ItemInput i) { return i.colour; }", true)]
-    [TestCase("// my glow\n/* block */\nuniform float speed;\nfloat4 shade( ItemInput i ) { return i.colour * speed; }", true)]
+    [TestCase(
+        "// my glow\n/* block */\nuniform float speed;\nfloat4 shade( ItemInput i ) { return i.colour * speed; }",
+        true)]
     [TestCase("import xanadu.colour;\nfloat4  shade(ItemInput input) { return input.colour; }", true)]
     [TestCase("void fragment(){}", false)]
     [TestCase("float4 shade(Canvas canvas) { return float4(canvas.centred, 0, 1); }", true)]

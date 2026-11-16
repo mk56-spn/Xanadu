@@ -1,11 +1,15 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Strings;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Scenes;
 
@@ -131,7 +135,7 @@ public static partial class SongSelectScene
         UiNode parent,
         Vector2 center,
         float size,
-        Xanadu.Systems.Canvas.CanvasMaterial? material,
+        CanvasMaterial? material,
         bool takesInput = false)
     {
         UiNode art = parent.Rect(Colors.Black, size: new Vector2(size, size))

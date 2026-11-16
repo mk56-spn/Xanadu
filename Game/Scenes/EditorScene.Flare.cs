@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;

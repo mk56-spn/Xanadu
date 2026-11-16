@@ -3,11 +3,15 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Replays;
 using Xanadu.Settings;
 using Xanadu.Systems.Replays;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Replays;
 
@@ -35,7 +39,7 @@ public sealed class ReplaySystemTests
     [Test]
     public void RecordsPressesAndReleasesAtThePlayheadTime()
     {
-        Entity play = Play(recorder: true);
+        Entity play = Play(true);
         Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 1000);
@@ -47,17 +51,18 @@ public sealed class ReplaySystemTests
 
         Assert.That(
             play.GetComponent<ReplayRecorder>().Events,
-            Is.EqualTo(new[]
-            {
-                new ReplayEvent(1016, KeybindAction.Action1, true),
-                new ReplayEvent(1048, KeybindAction.Action1, false),
-            }));
+            Is.EqualTo(
+                new[]
+                {
+                    new ReplayEvent(1016, KeybindAction.Action1, true),
+                    new ReplayEvent(1048, KeybindAction.Action1, false)
+                }));
     }
 
     [Test]
     public void DoesNotRecordBeforeStartWhilePausedOrAfterFinish()
     {
-        Entity play = Play(recorder: true, started: false);
+        Entity play = Play(true, started: false);
         _real.Press(_keybinds.Get(KeybindAction.Action1));
 
         Frame(play, 0);
@@ -77,7 +82,7 @@ public sealed class ReplaySystemTests
     [Test]
     public void RecordsSimultaneousKeysAsSeparateEvents()
     {
-        Entity play = Play(recorder: true);
+        Entity play = Play(true);
 
         _real.Press(_keybinds.Get(KeybindAction.Action1));
         _real.Press(_keybinds.Get(KeybindAction.Action3));
@@ -91,9 +96,10 @@ public sealed class ReplaySystemTests
     [Test]
     public void PlaybackPressesKeysAsTheSongReachesEachEvent()
     {
-        Entity play = Play(replay: Script(
-            new ReplayEvent(1000, KeybindAction.Action1, true),
-            new ReplayEvent(1100, KeybindAction.Action1, false)));
+        Entity play = Play(
+            replay: Script(
+                new ReplayEvent(1000, KeybindAction.Action1, true),
+                new ReplayEvent(1100, KeybindAction.Action1, false)));
         Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 999);
@@ -139,9 +145,10 @@ public sealed class ReplaySystemTests
     [Test]
     public void SeekingBackwardsReplaysFromTheStart()
     {
-        Entity play = Play(replay: Script(
-            new ReplayEvent(100, KeybindAction.Action1, true),
-            new ReplayEvent(200, KeybindAction.Action1, false)));
+        Entity play = Play(
+            replay: Script(
+                new ReplayEvent(100, KeybindAction.Action1, true),
+                new ReplayEvent(200, KeybindAction.Action1, false)));
         Key l1 = _keybinds.Get(KeybindAction.Action1);
 
         Frame(play, 150);
@@ -168,7 +175,7 @@ public sealed class ReplaySystemTests
     [Test]
     public void ARecordedPlayReplaysToTheSamePressesAtTheSameTimes()
     {
-        Entity recording = Play(recorder: true);
+        Entity recording = Play(true);
         var pattern = new (long Time, KeybindAction Action, bool Down)[]
         {
             (1000, KeybindAction.Action2, true),
@@ -176,12 +183,12 @@ public sealed class ReplaySystemTests
             (1500, KeybindAction.Action2, true),
             (1500, KeybindAction.Action1, true),
             (1580, KeybindAction.Action2, false),
-            (1700, KeybindAction.Action1, false),
+            (1700, KeybindAction.Action1, false)
         };
 
         for (long time = 900; time <= 1800; time += 4)
         {
-            foreach (var step in pattern.Where(step => step.Time == time))
+            foreach ((long Time, KeybindAction Action, bool Down) step in pattern.Where(step => step.Time == time))
             {
                 Key key = _keybinds.Get(step.Action);
                 if (step.Down)
@@ -204,13 +211,11 @@ public sealed class ReplaySystemTests
             foreach (KeybindAction action in KeybindSettings.Actions)
             {
                 bool expected = false;
-                foreach (var step in pattern.Where(step => step.Time <= time && step.Action == action))
+                foreach ((long Time, KeybindAction Action, bool Down) step in pattern.Where(step =>
+                             step.Time <= time && step.Action == action))
                     expected = step.Down;
 
-                Assert.That(
-                    _keyboard.IsPressed(_keybinds.Get(action)),
-                    Is.EqualTo(expected),
-                    $"{action} at {time}ms");
+                Assert.That(_keyboard.IsPressed(_keybinds.Get(action)), Is.EqualTo(expected), $"{action} at {time}ms");
             }
         }
     }

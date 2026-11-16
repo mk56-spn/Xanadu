@@ -1,8 +1,11 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Items;
 
 namespace Xanadu.Tests.Editor;
 
@@ -14,7 +17,7 @@ public sealed class FreeRotationTests
     private static readonly Playfield Field = new(1000, 1000);
 
     private static void Turn(Entity entity, Vector2 pivot, float degrees) =>
-        SelectionRotation.Apply(SelectionRotation.Capture(entity), pivot, Mathf.DegToRad(degrees), Field, snap: false);
+        SelectionRotation.Apply(SelectionRotation.Capture(entity), pivot, Mathf.DegToRad(degrees), Field, false);
 
     [Test]
     public void TextTurnsOnTheSpotToAnyAngle()
@@ -31,7 +34,9 @@ public sealed class FreeRotationTests
     [Test]
     public void GrassTurnsAboutTheMiddleOfItsBox()
     {
-        Entity grass = EditorItems.Create(_store, new GrassPatch(new Vector2(500, 500), 1) { Width = 200, Length = 60 });
+        Entity grass = EditorItems.Create(
+            _store,
+            new GrassPatch(new Vector2(500, 500), 1) { Width = 200, Length = 60 });
         Vector2 middle = grass.GetComponent<GrassPatch>().Bounds.GetCenter();
 
         Turn(grass, middle, 90f);
@@ -59,11 +64,11 @@ public sealed class FreeRotationTests
     public void FlippingAPolygonMirrorsItsOutlineExactly()
     {
         var item = new Xif();
-        XifEditing.AddPolygon(item, new() { new(0, 0), new(40, 0), new(0, 20) });
+        XifEditing.AddPolygon(item, new List<Vector2> { new(0, 0), new(40, 0), new(0, 20) });
         Entity shape = EditorItems.Create(_store, new LevelPolygon(new Vector2(500, 500), item, 30f));
         Vector2[] before = shape.GetComponent<LevelPolygon>().Outline(item.Primitives[0]);
 
-        SelectionRotation.ApplyFlip(SelectionRotation.Capture(shape), new Vector2(500, 500), horizontal: true, Field, snap: false);
+        SelectionRotation.ApplyFlip(SelectionRotation.Capture(shape), new Vector2(500, 500), true, Field, false);
 
         LevelPolygon flipped = shape.GetComponent<LevelPolygon>();
         Vector2[] after = flipped.Outline(flipped.Item.Primitives[0]);
@@ -74,12 +79,14 @@ public sealed class FreeRotationTests
     [Test]
     public void GrassResizesWithTheBoxHandles()
     {
-        Entity grass = EditorItems.Create(_store, new GrassPatch(new Vector2(500, 500), 1) { Width = 200, Length = 60 });
+        Entity grass = EditorItems.Create(
+            _store,
+            new GrassPatch(new Vector2(500, 500), 1) { Width = 200, Length = 60 });
 
         Assert.That(GridPlacement.TryGet(grass, out Rect2 box, out _), Is.True);
-        Rect2 wider = GridPlacement.Resize(box, GridHandle.Right, new Vector2(700, 470), Field, snap: false);
+        Rect2 wider = GridPlacement.Resize(box, GridHandle.Right, new Vector2(700, 470), Field, false);
         GridPlacement.SetBounds(grass, wider);
-        Rect2 taller = GridPlacement.Resize(wider, GridHandle.Top, new Vector2(550, 400), Field, snap: false);
+        Rect2 taller = GridPlacement.Resize(wider, GridHandle.Top, new Vector2(550, 400), Field, false);
         GridPlacement.SetBounds(grass, taller);
 
         GrassPatch patch = grass.GetComponent<GrassPatch>();

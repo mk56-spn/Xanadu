@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Rendering;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Rendering;
 
-namespace Xanadu.Systems.Groups;
+namespace Xanadu.Ui.Systems.Groups;
 
 /// <summary>Creates layer hierarchy, resolves container layout, and initialises drawables.</summary>
 public sealed class InitializationSystemGroup : SystemGroup

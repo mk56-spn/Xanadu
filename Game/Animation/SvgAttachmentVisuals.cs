@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Systems.Canvas;
-using Xanadu.Items;
-using Xanadu.Layering;
-using Xanadu.Rendering;
-using Xanadu.Systems;
+using Xanadu.Core.Items;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
+using Xanadu.Ui.Systems;
 using Xanadu.Systems.Shaders;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Animation;
 
@@ -328,7 +330,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     {
         texture = null;
         size = Vector2.Zero;
-        string path = Xanadu.Storage.GamePaths.Full(svgPath);
+        string path = GamePaths.Full(svgPath);
         if (!System.IO.File.Exists(path))
             return false;
 

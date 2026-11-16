@@ -1,16 +1,17 @@
 using System;
 using System.IO;
-using System.Linq;
 using Xanadu.Ecs;
-using Xanadu.Levels;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
+using Xanadu.Levels;
+using Xanadu.Systems.Scenes;
 
 namespace Xanadu.Editor;
 
 /// <summary>
-/// Editor overlay saving. A level only ever saves to its own file in the level
-/// directory: there is no save-as or load, so a player never picks where files
-/// go. The song picker is an ECS dialog.
+///     Editor overlay saving. A level only ever saves to its own file in the level
+///     directory: there is no save-as or load, so a player never picks where files
+///     go. The song picker is an ECS dialog.
 /// </summary>
 public sealed partial class EditorOverlay
 {
@@ -19,22 +20,19 @@ public sealed partial class EditorOverlay
     public bool SaveCurrent() => SaveCurrent(out _);
 
     /// <summary>Saves on the way out through whichever overlay is open, if one is.</summary>
-    public static Xanadu.Systems.Scenes.EditorSaveOutcome SaveForLeaving(EditorOverlay? overlay) =>
-        overlay?.SaveForLeaving() ??
-        Xanadu.Systems.Scenes.EditorSaveOutcome.Failed("the editor is closed");
+    public static EditorSaveOutcome SaveForLeaving(EditorOverlay? overlay) =>
+        overlay?.SaveForLeaving() ?? EditorSaveOutcome.Failed("the editor is closed");
 
-    private Xanadu.Systems.Scenes.EditorSaveOutcome SaveForLeaving()
+    private EditorSaveOutcome SaveForLeaving()
     {
         _saveProblem = "";
-        return SaveCurrent()
-            ? Xanadu.Systems.Scenes.EditorSaveOutcome.Success
-            : Xanadu.Systems.Scenes.EditorSaveOutcome.Failed(_saveProblem);
+        return SaveCurrent() ? EditorSaveOutcome.Success : EditorSaveOutcome.Failed(_saveProblem);
     }
 
     /// <summary>
-    /// The autosave's save: only a level that already has a file, only when it
-    /// is valid, and with nothing on the status line either way. A level that
-    /// cannot be saved now keeps its crash copy and is tried again later.
+    ///     The autosave's save: only a level that already has a file, only when it
+    ///     is valid, and with nothing on the status line either way. A level that
+    ///     cannot be saved now keeps its crash copy and is tried again later.
     /// </summary>
     private void SaveQuietly()
     {
@@ -64,8 +62,8 @@ public sealed partial class EditorOverlay
     }
 
     /// <summary>
-    /// Saves the level to its current path, or to a fresh unnamed one, and
-    /// reports where it wrote so a caller can keep using that path.
+    ///     Saves the level to its current path, or to a fresh unnamed one, and
+    ///     reports where it wrote so a caller can keep using that path.
     /// </summary>
     private bool SaveCurrent(out string path)
     {

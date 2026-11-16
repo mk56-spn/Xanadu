@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
-using Xanadu.Storage;
-using Xanadu.Systems.Canvas;
+using MoonWorks.Graphics;
+using SDL3;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Storage;
+using Xanadu.Ui.Systems.Canvas;
 using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Host.Rendering;
@@ -54,7 +58,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
             // At the document's own size, as Godot's SVG import (scale 1) made it.
             try
             {
-                Xanadu.Animation.RasterImage image = Xanadu.Animation.SvgRaster.Render(File.ReadAllText(file), 1f);
+                RasterImage image = SvgRaster.Render(File.ReadAllText(file), 1f);
                 rid = Create(image.Width, image.Height, image.Pixels, mipmaps: true);
             }
             catch (Exception exception) when (exception is InvalidOperationException or IOException)
@@ -103,7 +107,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
         copy.UploadToTexture(new TextureTransferInfo(transfer), new TextureRegion(texture) { W = (uint)width, H = (uint)height }, false);
         commands.EndCopyPass(copy);
         if (levels > 1)
-            SDL3.SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, texture.Handle);
+            SDL.SDL_GenerateMipmapsForGPUTexture(commands.Handle, texture.Handle);
         Fence fence = device.SubmitAndAcquireFence(commands);
         device.WaitForFence(fence);
         device.ReleaseFence(fence);

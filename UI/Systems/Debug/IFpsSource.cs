@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>Provides current frame rate to the debug overlay.</summary>
 public interface IFpsSource

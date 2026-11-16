@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>Turns a simple polygon, either winding, into triangles by ear clipping.</summary>
 public static class Triangulate

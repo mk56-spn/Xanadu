@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// Provides constants and static methods for common mathematical functions.

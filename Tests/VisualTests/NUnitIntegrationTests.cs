@@ -74,24 +74,18 @@ public sealed class VisualSceneTests
             WorkingDirectory = TestContext.CurrentContext.TestDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            RedirectStandardError = true
         };
         start.ArgumentList.Add(harness);
         start.ArgumentList.Add($"--visual-test={slug}");
         start.ArgumentList.Add("--visual-test-exit");
 
-        using Process? process = Process.Start(start);
+        using var process = Process.Start(start);
         Assert.That(process, Is.Not.Null);
         string stdout = process!.StandardOutput.ReadToEnd();
         string stderr = process.StandardError.ReadToEnd();
-        Assert.That(
-            process.WaitForExit(120_000),
-            Is.True,
-            $"{slug}: the harness did not exit.");
-        Assert.That(
-            process.ExitCode,
-            Is.Zero,
-            $"{slug} failed.\n{stdout}\n{stderr}");
+        Assert.That(process.WaitForExit(120_000), Is.True, $"{slug}: the harness did not exit.");
+        Assert.That(process.ExitCode, Is.Zero, $"{slug} failed.\n{stdout}\n{stderr}");
         Assert.That(
             stdout,
             Does.Contain($"[scene-test:{slug}] PASS"),

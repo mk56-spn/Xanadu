@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -27,53 +29,29 @@ public sealed class EditorPlacementKeybindsTests
     [TestCase(Key.Kp9, EditorPlacementMode.FrictionBar)]
     [TestCase(Key.Key0, EditorPlacementMode.Text)]
     [TestCase(Key.Kp0, EditorPlacementMode.Text)]
-    public void MapsDefaultPlacementKeys(
-        Key key,
-        EditorPlacementMode expected)
+    public void MapsDefaultPlacementKeys(Key key, EditorPlacementMode expected)
     {
-        Assert.That(
-            EditorPlacementKeybinds.TryGet(key, out EditorPlacementMode mode),
-            Is.True);
+        Assert.That(EditorPlacementKeybinds.TryGet(key, out EditorPlacementMode mode), Is.True);
         Assert.That(mode, Is.EqualTo(expected));
     }
 
     [Test]
     public void OtherKeysAreNotPlacementShortcuts()
     {
-        Assert.That(
-            EditorPlacementKeybinds.TryGet(Key.T, out _),
-            Is.False);
+        Assert.That(EditorPlacementKeybinds.TryGet(Key.T, out _), Is.False);
     }
 
     [Test]
     public void LabelsMatchTheDefaultKeys()
     {
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),
-            Is.EqualTo("1"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Neutral),
-            Is.EqualTo("2"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Dash),
-            Is.EqualTo("3"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Momentum),
-            Is.EqualTo("4"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),
-            Is.EqualTo("5"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),
-            Is.EqualTo("6"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Contact),
-            Is.EqualTo("7"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Mines),
-            Is.EqualTo("8"));
-        Assert.That(
-            EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FrictionBar),
-            Is.EqualTo("9"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes), Is.EqualTo("1"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Neutral), Is.EqualTo("2"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Dash), Is.EqualTo("3"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Momentum), Is.EqualTo("4"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks), Is.EqualTo("5"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes), Is.EqualTo("6"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Contact), Is.EqualTo("7"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Mines), Is.EqualTo("8"));
+        Assert.That(EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FrictionBar), Is.EqualTo("9"));
     }
 }

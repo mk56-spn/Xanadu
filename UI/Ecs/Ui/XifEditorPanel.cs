@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Builds a XIF editor panel: the item's name, which primitive is being
 /// edited, a shape box to drag its points in, and its fill, texture and
-/// shader. Any tool can host one; <see cref="Systems.Ui.XifEditorSystem"/>
+/// shader. Any tool can host one; <see cref="Xanadu.Systems.Ui.XifEditorSystem"/>
 /// runs it and the host supplies the item through <see cref="IXifEditorHost"/>.
 /// </summary>
 public static class XifEditorPanel

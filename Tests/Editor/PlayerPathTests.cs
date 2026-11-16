@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -42,8 +44,7 @@ public sealed class PlayerPathTests
     {
         _player.GetComponent<Playhead>().TimeMs = timeMs;
         _player.GetComponent<Position>().Value = at;
-        _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(
-            new System.Numerics.Vector2(speed, 0f));
+        _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new Vector2(speed, 0f));
         _root.Update(new UpdateTick(1f / 60f, 0));
     }
 
@@ -57,7 +58,7 @@ public sealed class PlayerPathTests
 
         _player.GetComponent<ScoreState>().NotesHit = 1;
         Frame(10, new Vector2(110, 120));
-        Frame(20, new Vector2(150, 120), speed: 100f);
+        Frame(20, new Vector2(150, 120), 100f);
 
         Assert.That(Samples, Has.Count.EqualTo(3));
         Assert.That(Samples[0].Hit, Is.False);
@@ -90,7 +91,7 @@ public sealed class PlayerPathTests
     public void SmallMovesWaitButTimeStillPasses()
     {
         Frame(0, new Vector2(110, 120));
-        Frame(16, new Vector2(112, 120), speed: 1f);
+        Frame(16, new Vector2(112, 120), 1f);
         Assert.That(Samples, Has.Count.EqualTo(1));
 
         Frame(PlayerPathRecordSystem.MaxGapMs, new Vector2(112, 120));
@@ -101,8 +102,8 @@ public sealed class PlayerPathTests
     public void ATeleportIsMarkedAsAJumpAndSteadyMovementIsNot()
     {
         Frame(0, new Vector2(110, 120));
-        Frame(16, new Vector2(130, 120), speed: 12f);
-        Frame(32, new Vector2(800, 120), speed: 0f);
+        Frame(16, new Vector2(130, 120), 12f);
+        Frame(32, new Vector2(800, 120), 0f);
 
         Assert.That(Samples[1].Jump, Is.False);
         Assert.That(Samples[2].Jump, Is.True);
@@ -110,9 +111,9 @@ public sealed class PlayerPathTests
 
     private static readonly List<PlayerPathSample> Path = new()
     {
-        new(new Vector2(0, 0), 100, false),
-        new(new Vector2(10, 0), 200, false),
-        new(new Vector2(500, 0), 300, true),
+        new PlayerPathSample(new Vector2(0, 0), 100, false),
+        new PlayerPathSample(new Vector2(10, 0), 200, false),
+        new PlayerPathSample(new Vector2(500, 0), 300, true)
     };
 
     [TestCase(99)]

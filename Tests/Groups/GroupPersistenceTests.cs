@@ -1,10 +1,14 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 
@@ -39,12 +43,8 @@ public sealed class GroupPersistenceTests
         mine.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
         Entity block = source.CreateEntity(new Block(new Vector2(100, 100), new Vector2(50, 50)));
         block.AddComponent(new ItemGroups(ItemGroups.Bit(9)));
-        Entity start = source.CreateEntity(new StartPoint(
-            "Intro",
-            1_000,
-            new Vector2(40, 50),
-            System.Numerics.Vector2.Zero,
-            new Vector2(0, -1)));
+        Entity start = source.CreateEntity(
+            new StartPoint("Intro", 1_000, new Vector2(40, 50), Vector2.Zero, new Vector2(0, -1)));
         start.AddComponent(new ItemGroups(ItemGroups.Bit(2)));
 
         LevelDocument document = LevelDocumentMapper.Capture(source, editor);
@@ -56,7 +56,9 @@ public sealed class GroupPersistenceTests
         GroupDefinition[] groups = loaded.GetComponent<LevelGroups>().Groups;
         Assert.That(groups[2].Name, Is.EqualTo("Wobble"));
         Assert.That(groups[2].Effects, Has.Count.EqualTo(2));
-        Assert.That(groups[2].Effects[0], Is.EqualTo(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), EasePreset.EaseOut)));
+        Assert.That(
+            groups[2].Effects[0],
+            Is.EqualTo(GroupEffect.Move(0.4f, 0.6f, new Vector2(30, -10), EasePreset.EaseOut)));
         Assert.That(groups[2].Effects[1].Kind, Is.EqualTo(GroupEffectKind.Color));
         Assert.That(groups[2].Effects[1].Tint.R, Is.EqualTo(1f).Within(0.01f));
         Assert.That(groups[2].Effects[1].Tint.G, Is.EqualTo(0.5f).Within(0.01f));
@@ -111,14 +113,15 @@ public sealed class GroupPersistenceTests
     public void AnUnknownEaseFallsBackToLinear()
     {
         var level = new LevelDocument();
-        level.Groups.Add(new GroupDocument
-        {
-            Id = 0,
-            Effects =
+        level.Groups.Add(
+            new GroupDocument
             {
-                new GroupEffectDocument { Ease = (EasePreset)99 },
-            },
-        });
+                Id = 0,
+                Effects =
+                {
+                    new GroupEffectDocument { Ease = (EasePreset)99 }
+                }
+            });
 
         LevelDocument document = LevelSerializer.Normalize(level);
 
@@ -148,8 +151,7 @@ public sealed class GroupPersistenceTests
     public void LoadingALevelWithoutGroupsOnTheEntityAddsThem()
     {
         var store = new EntityStore();
-        Entity bare = store.CreateEntity(
-            new LevelInfo("x"), new Playfield(1000, 1000), new Playhead(0, 120, 0, false));
+        Entity bare = store.CreateEntity(new LevelInfo("x"), new Playfield(1000, 1000), new Playhead(0, 120, 0, false));
 
         LevelDocumentMapper.Apply(store, bare, new LevelDocument());
 
@@ -175,12 +177,8 @@ public sealed class GroupPersistenceTests
         var store = new EntityStore();
         Entity editor = Editor(store);
         Entity note = store.CreateEntity(new Note(500, new Vector2(10, 20)));
-        Entity start = store.CreateEntity(new StartPoint(
-            "Intro",
-            500,
-            new Vector2(40, 50),
-            System.Numerics.Vector2.Zero,
-            new Vector2(0, -1)));
+        Entity start = store.CreateEntity(
+            new StartPoint("Intro", 500, new Vector2(40, 50), Vector2.Zero, new Vector2(0, -1)));
         var history = new EditorHistory(store);
 
         EditorSnapshot before = history.Capture();
@@ -220,14 +218,19 @@ public sealed class GroupPersistenceTests
     {
         var document = new LevelDocument { Name = "n", SongId = "s" };
         document.Notes.Add(new NoteDocument());
-        document.Groups.Add(new GroupDocument
-        {
-            Id = 3,
-            Name = "Bad",
-            Effects = { new GroupEffectDocument { Start = 1f, End = 0.5f }, new GroupEffectDocument { Start = -1f, End = 0f } },
-        });
+        document.Groups.Add(
+            new GroupDocument
+            {
+                Id = 3,
+                Name = "Bad",
+                Effects =
+                {
+                    new GroupEffectDocument { Start = 1f, End = 0.5f },
+                    new GroupEffectDocument { Start = -1f, End = 0f }
+                }
+            });
 
-        var issues = LevelValidator.Validate(document);
+        List<string> issues = LevelValidator.Validate(document);
 
         Assert.That(issues, Has.Some.Contains("Bad effect 1 ends before it starts"));
         Assert.That(issues, Has.Some.Contains("Bad effect 2 starts before 0"));

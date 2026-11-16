@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Diagnostics;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Rendering;
+namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>
 /// Initialises uninitialised drawables by parenting their canvas item under a
@@ -35,12 +38,12 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
             if (!TryGetOwnLayerCanvas(entity, out Handle layerCanvas) &&
                 !TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
             {
-                Xanadu.Diagnostics.GameLog.Error(
+                GameLog.Error(
                     $"Drawable entity {entity.Id} references missing layer {requested}; falling back to layer {DefaultLayer}.");
 
                 if (!TryGetLayerCanvas(entity.Store, DefaultLayer, out layerCanvas))
                 {
-                    Xanadu.Diagnostics.GameLog.Error(
+                    GameLog.Error(
                         $"Drawable entity {entity.Id} cannot fall back because layer {DefaultLayer} does not exist.");
                     return;
                 }

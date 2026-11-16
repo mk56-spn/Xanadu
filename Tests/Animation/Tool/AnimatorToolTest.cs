@@ -3,12 +3,20 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Layout;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -42,15 +50,14 @@ public abstract class AnimatorToolTest : EcsSystemTest
         // The tool opens with auto-key on; tests start with it off so a pose edit
         // keys only where a test asks it to.
         Session.GetComponent<AnimatorModes>().AutoKey = false;
-        Session.AddComponent(AnimatorLayout.Build(
-            Store,
-            Screen,
-            new FakeVisualRidFactory()));
+        Session.AddComponent(AnimatorLayout.Build(Store, Screen, new FakeVisualRidFactory()));
         Frame(3);
     }
 
     /// <summary>Adds the systems under test; runs once the fakes exist.</summary>
-    protected virtual void AddSystems() { }
+    protected virtual void AddSystems()
+    {
+    }
 
     /// <summary>Root, torso (0,-80), head (0,-70); body attachment on torso; clip "idle".</summary>
     protected virtual XafPackage CreatePackage()
@@ -59,20 +66,21 @@ public abstract class AnimatorToolTest : EcsSystemTest
         Bone(package, "root", -1, Vector2.Zero);
         Bone(package, "torso", 0, new Vector2(0, -80));
         Bone(package, "head", 1, new Vector2(0, -70));
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "body.svg",
-            Group = "body",
-            BoneId = "torso",
-            Transform = new Transform2D(0f, new Vector2(0, -20)),
-        });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "body.svg",
+                Group = "body",
+                BoneId = "torso",
+                Transform = new Transform2D(0f, new Vector2(0, -20))
+            });
 
         var clip = new XafClip { Id = "idle", Duration = 2f };
         var channel = new XafChannel
         {
             Target = XafChannelTarget.Bone,
             TargetId = "head",
-            Property = XafChannelProperty.Rotation,
+            Property = XafChannelProperty.Rotation
         };
         foreach (float time in new[] { 0f, 1f, 2f })
             channel.Keyframes.Add(new XafKeyframe { Time = time, Value = time });
@@ -148,6 +156,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
             if (node.Enabled)
                 ids.Add(node.GetComponent<UiTreeNode>().Id);
         }
+
         return ids;
     }
 
@@ -164,9 +173,10 @@ public abstract class AnimatorToolTest : EcsSystemTest
     }
 
     /// <summary>The shared ease picker's thumbnail for a curve.</summary>
-    protected Entity EaseCell(Xanadu.Timeline.EasePreset preset)
+    protected Entity EaseCell(EasePreset preset)
     {
-        foreach ((Entity entity, Xanadu.Timeline.EasePreset cellPreset, _) in UiCommand.All<Xanadu.Timeline.EasePreset>(Store))
+        foreach ((Entity entity, EasePreset cellPreset, _) in UiCommand.All<EasePreset>(
+                     Store))
         {
             if (cellPreset == preset)
                 return entity;
@@ -211,19 +221,18 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected Vector2 BoneScreenPosition(int bone)
     {
         AnimatorDocument document = Session.GetComponent<AnimatorDocument>();
-        XafPose pose = AnimatorGeometry.PreviewPose(
-            document,
-            Session.GetComponent<AnimatorModes>());
+        XafPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
         return PreviewOrigin() + XafRig.WorldBones(document.Package, pose)[bone].Origin;
     }
 
     private static void Bone(XafPackage package, string id, int parent, Vector2 offset) =>
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = id,
-            Parent = parent,
-            Rest = new Transform2D(0f, offset),
-        });
+        package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = id,
+                Parent = parent,
+                Rest = new Transform2D(0f, offset)
+            });
 
     protected sealed class FakePointer : IPointerInputSource, IWheelSource
     {
@@ -296,9 +305,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
         }
 
         public IReadOnlyList<string> Groups(string svgPath) =>
-            GroupsByFile.TryGetValue(svgPath, out string[]? groups)
-                ? groups
-                : Array.Empty<string>();
+            GroupsByFile.TryGetValue(svgPath, out string[]? groups) ? groups : Array.Empty<string>();
 
         /// <summary>Adds one file with the groups the picker should offer for it.</summary>
         public void Add(string path, params string[] groups) => GroupsByFile[path] = groups;

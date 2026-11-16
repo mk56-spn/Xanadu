@@ -1,7 +1,7 @@
 using System;
 using Friflo.Engine.ECS.Systems;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>Puts the frame in draw order; nothing to do when the extract systems happened to find it that way.</summary>
 internal sealed class DrawSortSystem(DrawList list) : BaseSystem

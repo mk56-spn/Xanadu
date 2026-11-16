@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// A strip of text glyphs blitted once into a texture, so shaders and

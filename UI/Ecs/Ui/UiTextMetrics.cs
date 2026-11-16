@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Ui.Systems;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A rough width for a line of text, for sizing boxes before a font is at
@@ -33,7 +34,7 @@ public static class UiTextMetrics
     /// laying out columns of text (a text editor); the estimate where no host measures.
     /// </summary>
     public static float MonoCharWidth(int fontSize) =>
-        Xanadu.Systems.HostPlatform.MeasureMono is { } measure ? measure("MMMMMMMMMM", fontSize) / 10f : MonoWidth("M", fontSize);
+        HostPlatform.MeasureMono is { } measure ? measure("MMMMMMMMMM", fontSize) / 10f : MonoWidth("M", fontSize);
 
     /// <summary>JetBrains Mono's advance: 600 units of a 1000-unit em, for every glyph.</summary>
     private const float MonoAdvance = 0.6f;

@@ -1,10 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -22,10 +24,8 @@ public sealed class EditorMetadataSystemTests
             new EditorPanel(EditorPanelKind.Metadata, Vector2.Zero));
         Entity swatch = store.CreateEntity(
             new FillColor(Colors.White),
-            new EditorColorRow(EditorColorTarget.Background, hex: false));
-        Entity hex = store.CreateEntity(
-            new Text("DEFAULT"),
-            new EditorColorRow(EditorColorTarget.Background, hex: true));
+            new EditorColorRow(EditorColorTarget.Background, false));
+        Entity hex = store.CreateEntity(new Text("DEFAULT"), new EditorColorRow(EditorColorTarget.Background, true));
         Entity editor = store.CreateEntity(
             new LevelInfo("Level") { Background = new Color("#204060") },
             new Playhead(0, 120, 0, false));
@@ -34,9 +34,7 @@ public sealed class EditorMetadataSystemTests
         root.Add(new EditorMetadataSystem(store, commands));
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            swatch.GetComponent<FillColor>().Value,
-            Is.EqualTo(new Color("#204060")));
+        Assert.That(swatch.GetComponent<FillColor>().Value, Is.EqualTo(new Color("#204060")));
         Assert.That(hex.GetComponent<Text>().Value, Is.EqualTo("#204060"));
     }
 
@@ -53,12 +51,8 @@ public sealed class EditorMetadataSystemTests
             new Position(Vector2.Zero),
             new Rectangle(new Rect2(-190, -110, 380, 220)),
             new EditorPanel(EditorPanelKind.Start, Vector2.Zero));
-        Entity start = store.CreateEntity(new StartPoint(
-            "Test",
-            1_000,
-            new Vector2(200, 300),
-            System.Numerics.Vector2.Zero,
-            new Vector2(0, -1)));
+        Entity start = store.CreateEntity(
+            new StartPoint("Test", 1_000, new Vector2(200, 300), Vector2.Zero, new Vector2(0, -1)));
         Entity editor = store.CreateEntity(
             new LevelInfo("Level"),
             new Playhead(0, 120, 0, false),
@@ -72,14 +66,12 @@ public sealed class EditorMetadataSystemTests
         root.Add(new EditorMetadataSystem(store, commands));
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(startPanel.GetComponent<Position>().Value,
-            Is.EqualTo(Vector2.Zero));
+        Assert.That(startPanel.GetComponent<Position>().Value, Is.EqualTo(Vector2.Zero));
 
         field.GetComponent<TextField>().Value = "2500";
         field.AddTag<TextFieldFocused>();
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(start.GetComponent<StartPoint>().TimeMs,
-            Is.EqualTo(2_500));
+        Assert.That(start.GetComponent<StartPoint>().TimeMs, Is.EqualTo(2_500));
     }
 }

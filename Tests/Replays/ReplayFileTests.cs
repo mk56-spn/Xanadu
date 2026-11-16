@@ -12,16 +12,13 @@ public sealed class ReplayFileTests
     private string _directory = null!;
 
     [SetUp]
-    public void SetUp()
-    {
-        _directory = Path.Combine(Path.GetTempPath(), "replays-" + Path.GetRandomFileName());
-    }
+    public void SetUp() => _directory = Path.Combine(Path.GetTempPath(), "replays-" + Path.GetRandomFileName());
 
     [TearDown]
     public void TearDown()
     {
         if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
+            Directory.Delete(_directory, true);
     }
 
     [Test]
@@ -48,13 +45,13 @@ public sealed class ReplayFileTests
         {
             Events =
             [
-                new(0, KeybindAction.Action1, true),
-                new(0, KeybindAction.Action3, true),
-                new(127, KeybindAction.Action1, false),
-                new(128, KeybindAction.Action3, false),
-                new(16_384, KeybindAction.Action2, true),
-                new(3_600_000, KeybindAction.Action2, false),
-            ],
+                new ReplayEvent(0, KeybindAction.Action1, true),
+                new ReplayEvent(0, KeybindAction.Action3, true),
+                new ReplayEvent(127, KeybindAction.Action1, false),
+                new ReplayEvent(128, KeybindAction.Action3, false),
+                new ReplayEvent(16_384, KeybindAction.Action2, true),
+                new ReplayEvent(3_600_000, KeybindAction.Action2, false)
+            ]
         };
 
         Assert.That(RoundTrip(replay).Events, Is.EqualTo(replay.Events));
@@ -83,7 +80,8 @@ public sealed class ReplayFileTests
     [Test]
     public void OffsetsSurviveTheRoundTrip()
     {
-        Replay read = RoundTrip(Sample() with { Offsets = new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) } });
+        Replay read = RoundTrip(
+            Sample() with { Offsets = new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) } });
 
         Assert.That(read.Offsets, Is.EqualTo(new[] { new ReplayOffset(0, 12), new ReplayOffset(900, -3) }));
     }
@@ -150,9 +148,9 @@ public sealed class ReplayFileTests
         120,
         new ReplayResult(987_654, 0.9731, 88, 117, 120, 60, 30, 20, 5, 1, 1, 3),
         [
-            new(1211, KeybindAction.Action1, true),
-            new(1290, KeybindAction.Action1, false),
-            new(1511, KeybindAction.Action2, true),
-            new(1600, KeybindAction.Action2, false),
+            new ReplayEvent(1211, KeybindAction.Action1, true),
+            new ReplayEvent(1290, KeybindAction.Action1, false),
+            new ReplayEvent(1511, KeybindAction.Action2, true),
+            new ReplayEvent(1600, KeybindAction.Action2, false)
         ]);
 }

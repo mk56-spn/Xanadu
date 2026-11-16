@@ -1,9 +1,11 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Scenes;

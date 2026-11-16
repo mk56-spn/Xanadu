@@ -1,14 +1,20 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -46,7 +52,7 @@ public sealed class EditorColourBrushTests
         _root.Add(new UiColorPickerSystem(_pointer));
         _root.Add(new UiColorFieldSystem());
         _root.Add(new EditorSelfModulateSystem(new EditorHistory(_store)));
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
     }
 
     private Vector2 Square => UiTransform.WorldPosition(_square, _square.GetComponent<Position>().Value);
@@ -60,13 +66,13 @@ public sealed class EditorColourBrushTests
     /// <summary>Presses the square's centre, drags up and right across it, and lets go; returns the colour held at the end.</summary>
     private Color DragAndRelease()
     {
-        Frame(Square, pressed: true);
+        Frame(Square, true);
         for (int i = 1; i <= 10; i++)
-            Frame(Square + new Vector2(2 * i, -i), pressed: true);
+            Frame(Square + new Vector2(2 * i, -i), true);
         Color picked = _square.GetComponent<UiColorPicker>().Color;
-        Frame(Square + new Vector2(20, -10), pressed: false);
+        Frame(Square + new Vector2(20, -10), false);
         for (int i = 0; i < 5; i++)
-            Frame(Square + new Vector2(20, -10), pressed: false);
+            Frame(Square + new Vector2(20, -10), false);
         return picked;
     }
 
@@ -88,10 +94,12 @@ public sealed class EditorColourBrushTests
         Color picked = DragAndRelease();
 
         Entity block = EditorItems.Place(_store, new Block(Vector2.Zero, new Vector2(40, 40)));
-        Entity start = EditorItems.Place(_store, new StartPoint("", 0, Vector2.Zero, System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity start = EditorItems.Place(_store, new StartPoint("", 0, Vector2.Zero, Vector2.Zero, new Vector2(0, -1)));
 
         Assert.That(SelfModulate.Of(block), Is.EqualTo(picked));
-        Assert.That(start.HasComponent<SelfModulate>() && SelfModulate.Of(start) != Colors.White, Is.False,
+        Assert.That(
+            start.HasComponent<SelfModulate>() && SelfModulate.Of(start) != Colors.White,
+            Is.False,
             "only tintable items take it");
     }
 
@@ -100,7 +108,7 @@ public sealed class EditorColourBrushTests
     {
         Entity note = EditorItems.Create(_store, new Note(0, Vector2.Zero));
         _editor.GetComponent<NoteSelection>().Note = note;
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
 
         Color picked = DragAndRelease();
 

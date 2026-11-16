@@ -1,15 +1,13 @@
 using System.Linq;
-using Xanadu.Ecs;
-using Xanadu.Levels;
+using Xanadu.Ecs.Components;
 
-namespace Xanadu.Editor;
+namespace Xanadu.Editor.History;
 
 /// <summary>Whether two snapshots describe the same level, which decides if an edit is undoable.</summary>
 public static class EditorSnapshotComparison
 {
     public static bool AreEqual(EditorSnapshot before, EditorSnapshot after) =>
-        before.Items.SequenceEqual(after.Items) &&
-        SameGroups(before.Groups, after.Groups) &&
+        before.Items.SequenceEqual(after.Items) && SameGroups(before.Groups, after.Groups) &&
         SameLayers(before.Layers, after.Layers);
 
     private static bool SameLayers(LevelLayers? a, LevelLayers? b)

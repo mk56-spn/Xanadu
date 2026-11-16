@@ -1,7 +1,7 @@
+using Xanadu.Core.Timeline;
 using Friflo.Engine.ECS;
-using Xanadu.Timeline;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// What a tool tells the shared ease picker: whether it is open, what it opens

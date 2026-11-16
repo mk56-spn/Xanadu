@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -12,7 +13,8 @@ public sealed class XafStrikeTests
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
         package.Skeleton.Bones.Add(new XafBone { Id = "hip", Parent = 0 });
-        package.Skeleton.Bones.Add(new XafBone { Id = "knee", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 40)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "knee", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 40)) });
 
         var idle = new XafClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f };
         XafAuthoring.SetChannel(idle, XafChannelTarget.Bone, "knee", XafChannelProperty.Rotation, 0f, 0.5f);
@@ -72,10 +74,9 @@ public sealed class XafStrikeTests
     }
 
     [Test]
-    public void WithoutAContactEventAStrikeStartsAtTheTop()
-    {
-        Assert.That(XafStrike.ContactTime(Package().Clips[1]), Is.EqualTo(0f));
-    }
+    public void WithoutAContactEventAStrikeStartsAtTheTop() => Assert.That(
+        XafStrike.ContactTime(Package().Clips[1]),
+        Is.EqualTo(0f));
 
     [Test]
     public void AStrikeHoldsFullWeightThenFadesBackIntoTheBaseAndEnds()

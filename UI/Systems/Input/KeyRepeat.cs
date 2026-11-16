@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// Turns a held direction into steps: one at once, then after a pause a stream

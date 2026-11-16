@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Scenes;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 

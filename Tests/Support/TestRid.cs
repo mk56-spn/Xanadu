@@ -1,3 +1,4 @@
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Support;
 

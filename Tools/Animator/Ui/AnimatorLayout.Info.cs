@@ -1,9 +1,10 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// The FILE INFO popup, opened from CONFIG: the file's path, which is rarely

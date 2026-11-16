@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Tools.Animator.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>One selected key set: every channel key of a bone or attachment at one time.</summary>
 public readonly record struct AnimatorKeyRef(

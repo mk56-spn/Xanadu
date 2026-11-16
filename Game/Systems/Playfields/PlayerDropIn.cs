@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Systems.Physics;
 

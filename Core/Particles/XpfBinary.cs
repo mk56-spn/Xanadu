@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Xanadu.Storage;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>A particle library file that cannot be read.</summary>
 public sealed class XpfFormatException(string message) : Exception(message);

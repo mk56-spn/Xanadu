@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Layering;
+namespace Xanadu.Core.Layering;
 
 /// <summary>How moving forward or back past a neighbour changes the slots.</summary>
 public enum DrawStackRule

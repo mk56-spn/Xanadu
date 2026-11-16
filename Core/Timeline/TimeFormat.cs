@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>Writes times for the timeline and HUD readouts.</summary>
 public static class TimeFormat

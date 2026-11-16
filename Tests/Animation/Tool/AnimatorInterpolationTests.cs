@@ -1,12 +1,15 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -16,7 +19,7 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new Xanadu.Systems.Ui.EasePickerSystem());
+        Root.Add(new EasePickerSystem());
     }
 
     /// <summary>The picker only takes picks while it is open.</summary>
@@ -98,14 +101,15 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
         Click(PresetButton(EasePreset.EaseOut));
         Frame();
 
-        Assert.That(PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Palette.Selected));
-        Assert.That(PresetButton(EasePreset.Step).GetComponent<ButtonVisual>().Normal,
+        Assert.That(PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Selected));
+        Assert.That(
+            PresetButton(EasePreset.Step).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(EasePickerPanel.Cell));
 
         Session.GetComponent<AnimatorSelection>().HasKey = false;
         Frame();
-        Assert.That(PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
+        Assert.That(
+            PresetButton(EasePreset.EaseOut).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(EasePickerPanel.Cell));
     }
 

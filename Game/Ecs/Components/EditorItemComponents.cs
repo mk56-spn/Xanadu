@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Settings;
-using Xanadu.Systems.Audio;
 using Xanadu.Systems.Ui;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Interaction;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Marks an editable playfield entity. Editor-only; never serialized.</summary>
 public struct EditorItem : ITag;

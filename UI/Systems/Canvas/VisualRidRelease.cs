@@ -1,9 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// Frees an entity's <see cref="VisualRid"/> canvas item when the entity is deleted.

@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>
 /// Video memory as the driver reports it, in bytes, over the GPU's own (device-local) heaps:

@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// The chain inspector: everything about the selected Verlet chain. It takes

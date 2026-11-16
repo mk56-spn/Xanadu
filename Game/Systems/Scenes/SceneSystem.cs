@@ -4,14 +4,18 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Systems.Input;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Replays;
 using Xanadu.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Settings;
-using SceneState = Xanadu.Ecs.SceneState;
-using Position = Xanadu.Ecs.Position;
-using Xanadu.Systems;
+using SceneState = Xanadu.Ecs.Components.SceneState;
+using Position = Xanadu.Core.Position;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Systems.Scenes;
 

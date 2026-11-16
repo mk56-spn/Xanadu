@@ -1,4 +1,4 @@
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// How a draw's pixels combine with what is already on its target

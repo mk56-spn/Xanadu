@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Items;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 using Xanadu.Levels;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -12,12 +14,14 @@ public sealed class XmfPolygonTests
     private static PolygonDocument Sample()
     {
         var item = new Xif { Name = "rock" };
-        int index = XifEditing.AddPolygon(item, new() { new(-40, -10), new(30, -25), new(45, 20), new(-20, 30) });
+        int index = XifEditing.AddPolygon(
+            item,
+            new List<Vector2> { new(-40, -10), new(30, -25), new(45, 20), new(-20, 30) });
         item.Primitives[index].Fill = new Color(0.2f, 0.4f, 0.6f, 0.8f);
         item.Primitives[index].Shader = XifShaderRef.OfCommon(CommonShaders.Paths.First());
         return new PolygonDocument
         {
-            X = 300, Y = 420, Rotation = 35f, SelfModulate = 0x40a0ffccu, Groups = new() { 1, 4 }, Item = item,
+            X = 300, Y = 420, Rotation = 35f, SelfModulate = 0x40a0ffccu, Groups = new List<int> { 1, 4 }, Item = item
         };
     }
 
@@ -31,7 +35,10 @@ public sealed class XmfPolygonTests
         Assert.That(polygon.Item.Name, Is.EqualTo("rock"));
         XifPrimitive primitive = polygon.Item.Primitives.Single();
         Assert.That(primitive.IsPolygon, Is.True);
-        Assert.That(primitive.Points, Is.EqualTo(new[] { new Vector2(-40, -10), new Vector2(30, -25), new Vector2(45, 20), new Vector2(-20, 30) }));
+        Assert.That(
+            primitive.Points,
+            Is.EqualTo(
+                new[] { new Vector2(-40, -10), new Vector2(30, -25), new Vector2(45, 20), new Vector2(-20, 30) }));
         Assert.That(primitive.Fill, Is.EqualTo(new Color(0.2f, 0.4f, 0.6f, 0.8f)));
         Assert.That(primitive.Shader.Path, Is.EqualTo(CommonShaders.Paths.First()));
     }
@@ -64,7 +71,7 @@ public sealed class XmfPolygonTests
     public void AMapWithoutPolygonsHasNoPolygonChunk()
     {
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet((uint)XmfChunk.Polygons, out _), Is.False);
     }
@@ -99,7 +106,9 @@ public sealed class XmfPolygonTests
         var level = new LevelDocument();
         level.Polygons.Add(Sample());
         var empty = new Xif();
-        empty.Primitives.Add(new XifPrimitive { Kind = XifPrimitive.PolygonKind, Points = new() { Vector2.Zero, Vector2.One } });
+        empty.Primitives.Add(
+            new XifPrimitive
+                { Kind = XifPrimitive.PolygonKind, Points = new List<Vector2> { Vector2.Zero, Vector2.One } });
         level.Polygons.Add(new PolygonDocument { Item = empty, Rotation = 400f });
         level.Polygons[0].Rotation = -90f;
 

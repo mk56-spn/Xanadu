@@ -13,9 +13,7 @@ public sealed class ProfileStoreTests
     [Test]
     public void CreatesSelectsAndPersistsProfilesAndScores()
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-profiles-" + Guid.NewGuid().ToString("N") + ".json");
+        string path = Path.Combine(Path.GetTempPath(), "writer-profiles-" + Guid.NewGuid().ToString("N") + ".json");
 
         try
         {
@@ -71,9 +69,7 @@ public sealed class ProfileStoreTests
         for (int i = 0; i < 30; i++)
         {
             store.Create($"Player {i}");
-            store.RecordScore(
-                level,
-                new PlayResults("Level", 100_000 + i, 0.5, i, 30, 30));
+            store.RecordScore(level, new PlayResults("Level", 100_000 + i, 0.5, i, 30, 30));
         }
 
         IReadOnlyList<ScoreEntry> scores = store.AllScores(level);

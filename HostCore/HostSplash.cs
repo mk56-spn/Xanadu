@@ -1,10 +1,13 @@
 using System;
 using System.IO;
 using MoonWorks.Graphics;
+using MoonWorks.Graphics;
 using SDL3;
-using Xanadu.Storage;
-using Xanadu.Theme;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Theme;
+using Color = Xanadu.Core.Maths.Color;
 using MwColor = MoonWorks.Graphics.Color;
+using SDL = SDL3.SDL;
 
 namespace Xanadu.Host;
 
@@ -36,7 +39,7 @@ internal sealed class HostSplash : IDisposable
     {
         _device = device;
         _window = window;
-        Xanadu.Maths.Color background = Palette.Background;
+        Color background = Palette.Background;
         using var uploader = new ResourceUploader(device);
         _icon = LoadIcon(uploader, background);
         _track = Solid(uploader, Palette.SurfaceDeep);
@@ -65,7 +68,7 @@ internal sealed class HostSplash : IDisposable
     /// <summary>Records the splash into <paramref name="target"/>, filling it.</summary>
     public void Draw(CommandBuffer commands, Texture target, float progress)
     {
-        Xanadu.Maths.Color background = Palette.Background;
+        Color background = Palette.Background;
         commands.EndRenderPass(commands.BeginRenderPass(
             new ColorTargetInfo(target, new MwColor(background.R, background.G, background.B, 1f))));
 
@@ -92,14 +95,14 @@ internal sealed class HostSplash : IDisposable
             Filter = Filter.Linear,
         });
 
-    private static Texture Solid(ResourceUploader uploader, Xanadu.Maths.Color color)
+    private static Texture Solid(ResourceUploader uploader, Color color)
     {
         ReadOnlySpan<byte> pixel = [Byte(color.R), Byte(color.G), Byte(color.B), 255];
         return uploader.CreateTexture2D("splash solid", pixel, TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, 1, 1);
     }
 
     /// <summary>The icon already laid over the background: a blit copies pixels, it doesn't blend them.</summary>
-    private static unsafe Texture? LoadIcon(ResourceUploader uploader, Xanadu.Maths.Color background)
+    private static unsafe Texture? LoadIcon(ResourceUploader uploader, Color background)
     {
         string path = GamePaths.Full("Assets/icon.png");
         if (!File.Exists(path))

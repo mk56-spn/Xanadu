@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Xanadu.Items;
+namespace Xanadu.Core.Items;
 
 /// <summary>Deep copy and comparison of items, for snapshots that must not share them.</summary>
 public static class XifCopy

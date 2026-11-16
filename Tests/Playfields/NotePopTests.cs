@@ -9,15 +9,9 @@ public sealed class NotePopTests
     [Test]
     public void PopStartsAtTheNoteAndSwellingOut()
     {
-        Assert.That(
-            PlayfieldRenderer.NotePopRadius(10f, 0f),
-            Is.EqualTo(10f).Within(0.001f));
-        Assert.That(
-            PlayfieldRenderer.NotePopRadius(10f, 1f),
-            Is.EqualTo(16f).Within(0.001f));
-        Assert.That(
-            PlayfieldRenderer.NotePopRadius(10f, 0.5f),
-            Is.GreaterThan(10f).And.LessThan(16f));
+        Assert.That(PlayfieldRenderer.NotePopRadius(10f, 0f), Is.EqualTo(10f).Within(0.001f));
+        Assert.That(PlayfieldRenderer.NotePopRadius(10f, 1f), Is.EqualTo(16f).Within(0.001f));
+        Assert.That(PlayfieldRenderer.NotePopRadius(10f, 0.5f), Is.GreaterThan(10f).And.LessThan(16f));
     }
 
     [Test]
@@ -25,9 +19,7 @@ public sealed class NotePopTests
     {
         for (int i = 0; i <= 10; i++)
         {
-            Assert.That(
-                PlayfieldRenderer.NotePopRadius(10f, i / 10f),
-                Is.GreaterThanOrEqualTo(10f));
+            Assert.That(PlayfieldRenderer.NotePopRadius(10f, i / 10f), Is.GreaterThanOrEqualTo(10f));
         }
     }
 

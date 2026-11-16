@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>
 /// How a timed change travels from its start to its end: the segment leaving

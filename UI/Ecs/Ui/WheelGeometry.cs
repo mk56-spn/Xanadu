@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Pure polar math for <see cref="UiWheel"/> hit-testing and layout.</summary>
 public static class UiWheelGeometry

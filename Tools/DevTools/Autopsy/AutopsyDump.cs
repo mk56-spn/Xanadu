@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Host.Autopsy;
 
-namespace Xanadu.Tools.Autopsy;
+namespace Xanadu.Tools.DevTools.Autopsy;
 
 /// <summary>
 /// <c>--dump[=app]</c>: the capture as text, no window: the mean frame and the

@@ -1,6 +1,6 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A material that blurs whatever is drawn behind a translucent panel, so

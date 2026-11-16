@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Xanadu.Core.Diagnostics;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Settings;
 
@@ -25,7 +27,7 @@ public sealed class MapOffsetSettings
 
     public MapOffsetSettings(string? path = null, bool persist = true)
     {
-        _path = persist ? path ?? Xanadu.Storage.GamePaths.Full(DefaultPath) : null;
+        _path = persist ? path ?? GamePaths.Full(DefaultPath) : null;
         Load();
     }
 
@@ -99,7 +101,7 @@ public sealed class MapOffsetSettings
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            Xanadu.Diagnostics.GameLog.Warning($"Could not save map offsets: {exception.Message}");
+            GameLog.Warning($"Could not save map offsets: {exception.Message}");
         }
     }
 }

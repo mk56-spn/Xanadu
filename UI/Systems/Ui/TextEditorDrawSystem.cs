@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
-using Xanadu.Ui.Editing;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using static Xanadu.Ecs.TextEditorLayout;
+using Xanadu.Ui.Editing;
+using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Ui.Ecs.Ui.TextEditorLayout;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Draws every <see cref="TextEditor"/> in the monospaced face: line numbers,

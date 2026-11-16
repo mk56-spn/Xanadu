@@ -5,9 +5,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Physics;
 
@@ -33,9 +34,7 @@ public sealed class PlayerBodySystemTests
         root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));
 
         Assert.That(player.HasComponent<PhysicsBody>(), Is.False);
-        Assert.That(
-            player.GetComponent<Position>().Value.Y,
-            Is.EqualTo(300f));
+        Assert.That(player.GetComponent<Position>().Value.Y, Is.EqualTo(300f));
 
         ref PlaySession session = ref player.GetComponent<PlaySession>();
         session.Started = true;
@@ -46,9 +45,7 @@ public sealed class PlayerBodySystemTests
         for (int i = 0; i < 30; i++)
             root.Update(new UpdateTick(Box2DPhysicsWorld.FixedTimeStep, 0));
 
-        Assert.That(
-            player.GetComponent<Position>().Value.Y,
-            Is.GreaterThan(300f));
+        Assert.That(player.GetComponent<Position>().Value.Y, Is.GreaterThan(300f));
     }
 
     [Test]
@@ -70,10 +67,8 @@ public sealed class PlayerBodySystemTests
 
         Body body = player.GetComponent<PhysicsBody>().Body;
         var shape = (PolygonShape)body.FixtureList[0].Shape;
-        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) *
-                      Box2DPhysicsWorld.PixelsPerMeter;
-        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) *
-                       Box2DPhysicsWorld.PixelsPerMeter;
+        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * Box2DPhysicsWorld.PixelsPerMeter;
+        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * Box2DPhysicsWorld.PixelsPerMeter;
 
         Assert.That(width, Is.EqualTo(30f).Within(0.1f));
         Assert.That(height, Is.EqualTo(100f).Within(0.1f));

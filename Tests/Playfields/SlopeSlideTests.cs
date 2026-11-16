@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Tests.Playfields;
@@ -26,7 +27,13 @@ public sealed class SlopeSlideTests
         // The box's bottom-right corner on the surface at x 515, y 685.
         Vector2 centre = new(500, 685 - Size.Y / 2);
 
-        bool on = SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpRight), View, centre, Size, Vector2.Zero, out Vector2 downhill);
+        bool on = SlopeSlideSystem.TryDownhill(
+            Ramp(BlockSlope.UpRight),
+            View,
+            centre,
+            Size,
+            Vector2.Zero,
+            out Vector2 downhill);
 
         Assert.That(on, Is.True);
         Assert.That(downhill.X, Is.LessThan(0));
@@ -39,7 +46,13 @@ public sealed class SlopeSlideTests
         // Rising left: from (400, 600) down to (600, 800); bottom-left corner at x 485, y 685.
         Vector2 centre = new(500, 685 - Size.Y / 2);
 
-        bool on = SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpLeft), View, centre, Size, Vector2.Zero, out Vector2 downhill);
+        bool on = SlopeSlideSystem.TryDownhill(
+            Ramp(BlockSlope.UpLeft),
+            View,
+            centre,
+            Size,
+            Vector2.Zero,
+            out Vector2 downhill);
 
         Assert.That(on, Is.True);
         Assert.That(downhill.X, Is.GreaterThan(0));
@@ -50,7 +63,9 @@ public sealed class SlopeSlideTests
     {
         Vector2 centre = new(500, 500);
 
-        Assert.That(SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpRight), View, centre, Size, Vector2.Zero, out _), Is.False);
+        Assert.That(
+            SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpRight), View, centre, Size, Vector2.Zero, out _),
+            Is.False);
     }
 
     [Test]
@@ -58,7 +73,9 @@ public sealed class SlopeSlideTests
     {
         Vector2 centre = new(500, 685 - Size.Y / 2);
 
-        Assert.That(SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpRight), View, centre, Size, new Vector2(0, -5), out _), Is.False);
+        Assert.That(
+            SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.UpRight), View, centre, Size, new Vector2(0, -5), out _),
+            Is.False);
     }
 
     [Test]
@@ -66,6 +83,8 @@ public sealed class SlopeSlideTests
     {
         Vector2 centre = new(500, 600 - Size.Y / 2);
 
-        Assert.That(SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.Off), View, centre, Size, Vector2.Zero, out _), Is.False);
+        Assert.That(
+            SlopeSlideSystem.TryDownhill(Ramp(BlockSlope.Off), View, centre, Size, Vector2.Zero, out _),
+            Is.False);
     }
 }

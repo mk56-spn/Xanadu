@@ -1,5 +1,5 @@
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>One pointer sample for an input system update.</summary>
 public readonly record struct PointerInput(

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Timeline;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>Which part of a span a press takes: its body moves it whole, an end retimes just that end.</summary>
 public enum TimelineGrabPart

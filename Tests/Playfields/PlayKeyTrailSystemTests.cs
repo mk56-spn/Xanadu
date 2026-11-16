@@ -2,11 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -16,21 +20,14 @@ public sealed class PlayKeyTrailSystemTests : EcsSystemTest
     [Test]
     public void PressedKeyLightsAndReleasedKeyDecays()
     {
-        Entity playfield = Store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new KeyTrail());
+        Entity playfield = Store.CreateEntity(new Playhead(0, 120, 0, false), new KeyTrail());
         var keyboard = new FakeKeyboard();
-        Root.Add(new PlayKeyTrailSystem(
-            Store,
-            new KeybindSettings(persist: false),
-            keyboard));
+        Root.Add(new PlayKeyTrailSystem(Store, new KeybindSettings(persist: false), keyboard));
 
         keyboard.Press(Key.S);
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action1),
-            Is.EqualTo(1f));
+        Assert.That(playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action1), Is.EqualTo(1f));
 
         keyboard.Release(Key.S);
         Frame(10);
@@ -43,14 +40,9 @@ public sealed class PlayKeyTrailSystemTests : EcsSystemTest
     [Test]
     public void RecordsPressAndReleaseTimes()
     {
-        Entity playfield = Store.CreateEntity(
-            new Playhead(1_000, 120, 0, false),
-            new KeyTrail());
+        Entity playfield = Store.CreateEntity(new Playhead(1_000, 120, 0, false), new KeyTrail());
         var keyboard = new FakeKeyboard();
-        Root.Add(new PlayKeyTrailSystem(
-            Store,
-            new KeybindSettings(persist: false),
-            keyboard));
+        Root.Add(new PlayKeyTrailSystem(Store, new KeybindSettings(persist: false), keyboard));
 
         keyboard.Press(Key.S);
         Frame();
@@ -69,23 +61,13 @@ public sealed class PlayKeyTrailSystemTests : EcsSystemTest
     [Test]
     public void PausedPlayfieldDoesNotUpdateTheTrail()
     {
-        Entity playfield = Store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new KeyTrail(),
-            Tags.Get<PlayPaused>());
+        Entity playfield = Store.CreateEntity(new Playhead(0, 120, 0, false), new KeyTrail(), Tags.Get<PlayPaused>());
         var keyboard = new FakeKeyboard();
         keyboard.Press(Key.S);
 
-        Root.Add(new PlayKeyTrailSystem(
-            Store,
-            new KeybindSettings(persist: false),
-            keyboard));
+        Root.Add(new PlayKeyTrailSystem(Store, new KeybindSettings(persist: false), keyboard));
         Frame();
 
-        Assert.That(
-            playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action1),
-            Is.Zero);
+        Assert.That(playfield.GetComponent<KeyTrail>().Get(KeybindAction.Action1), Is.Zero);
     }
-
-
 }

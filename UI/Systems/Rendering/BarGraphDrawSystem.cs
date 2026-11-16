@@ -1,10 +1,9 @@
-using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Systems.Rendering;
+namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Redraws every bar graph each frame, since its values change continuously.</summary>
 public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, VisualRid>

@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>
 /// A preview of the contact rig's attacks in context, on a metronome: each

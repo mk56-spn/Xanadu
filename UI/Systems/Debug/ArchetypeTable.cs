@@ -4,9 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core;
 
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>How the archetype table orders its rows.</summary>
 public enum ArchetypeSortOrder

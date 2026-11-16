@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Tests.UI.Rendering;
+namespace Xanadu.Ui.Tests.Rendering;
 
 [TestFixture]
 public sealed class CanvasMarqueeTests

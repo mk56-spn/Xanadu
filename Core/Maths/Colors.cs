@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// This class contains color constants created from standardized color names.

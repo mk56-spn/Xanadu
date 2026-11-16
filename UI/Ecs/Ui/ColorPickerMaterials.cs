@@ -1,6 +1,6 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>The materials a colour picker's square and hue bar draw with.</summary>
 public static class ColorPickerMaterials

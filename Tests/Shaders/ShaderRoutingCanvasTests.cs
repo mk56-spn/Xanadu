@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Systems.Shaders;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Shaders;
 
@@ -41,14 +42,14 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void ObjectsKeepTheirDrawOrderAroundShadedOnes()
     {
-        Draw(slot: 0);
-        Draw(slot: 1);
-        Draw(slot: 0);
-        Draw(slot: 1);
-        Draw(slot: 1);
+        Draw(0);
+        Draw(1);
+        Draw(0);
+        Draw(1);
+        Draw(1);
 
         // Plain, shaded, then plain again must land in items that stack in that order.
-        List<Handle> order = _inner.Draws.Select(d => d.Item).ToList();
+        var order = _inner.Draws.Select(d => d.Item).ToList();
         Assert.That(order[0], Is.EqualTo(Root));
         Assert.That(order[1], Is.EqualTo(_items.Created[0]));
         Assert.That(order[2], Is.EqualTo(_items.Created[1]));
@@ -73,8 +74,8 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void DifferentSlotsGetTheirOwnItems()
     {
-        Draw(slot: 1);
-        Draw(slot: 2);
+        Draw(1);
+        Draw(2);
 
         Assert.That(_items.Materials, Is.EqualTo(new[] { 1, 2 }));
         Assert.That(_inner.Draws[0].Item, Is.Not.EqualTo(_inner.Draws[1].Item));
@@ -132,12 +133,8 @@ public sealed class ShaderRoutingCanvasTests
         _canvas.DrawRect(Root, new Rect2(), Colors.Red);
 
         Assert.That(_items.Created, Has.Count.EqualTo(2), "each group's runs are their own");
-        Assert.That(
-            _items.InstanceValues[0],
-            Is.EqualTo((_items.Created[0], "tint", new Vector4(1, 0, 0, 1), 4)));
-        Assert.That(
-            _items.InstanceValues[^1],
-            Is.EqualTo((_items.Created[1], "tint", new Vector4(0, 1, 0, 1), 4)));
+        Assert.That(_items.InstanceValues[0], Is.EqualTo((_items.Created[0], "tint", new Vector4(1, 0, 0, 1), 4)));
+        Assert.That(_items.InstanceValues[^1], Is.EqualTo((_items.Created[1], "tint", new Vector4(0, 1, 0, 1), 4)));
     }
 
     [Test]
@@ -181,9 +178,9 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void ClearingStartsTheNextFrameFromTheRootAndReusesItems()
     {
-        Draw(slot: 1);
-        Draw(slot: 0);
-        List<Handle> firstFrame = _items.Created.ToList();
+        Draw(1);
+        Draw(0);
+        var firstFrame = _items.Created.ToList();
 
         _inner.Calls.Clear();
         _canvas.Clear(Root);
@@ -194,8 +191,8 @@ public sealed class ShaderRoutingCanvasTests
 
         _canvas.SelectShader(0);
         _canvas.DrawRect(Root, new Rect2(), Colors.Red);
-        Draw(slot: 1);
-        Draw(slot: 0);
+        Draw(1);
+        Draw(0);
 
         Assert.That(_items.Created, Is.EqualTo(firstFrame), "no new items for the same shape of frame");
         Assert.That(_inner.Draws[0].Item, Is.EqualTo(Root));
@@ -249,12 +246,12 @@ public sealed class ShaderRoutingCanvasTests
     public void ShadedRunsInALayerAreChildrenOfItsContainer()
     {
         _canvas.BeginLayer(2);
-        Draw(slot: 0);
-        Draw(slot: 3);
-        Draw(slot: 0);
+        Draw(0);
+        Draw(3);
+        Draw(0);
 
         _canvas.TryGetLayerItem(2, out Handle layer);
-        List<Handle> order = _inner.Draws.Select(d => d.Item).ToList();
+        var order = _inner.Draws.Select(d => d.Item).ToList();
         Assert.That(order[0], Is.EqualTo(layer));
         Assert.That(_items.Parents[order[1]], Is.EqualTo(layer));
         Assert.That(_items.Parents[order[2]], Is.EqualTo(layer));
@@ -264,13 +261,13 @@ public sealed class ShaderRoutingCanvasTests
     [Test]
     public void TheRootsChildrenStackInTheOrderTheFrameUsedThem()
     {
-        Draw(slot: 1);                  // a root run, under the layers
+        Draw(1); // a root run, under the layers
         _canvas.BeginLayer(-1);
-        Draw(slot: 0);
+        Draw(0);
         _canvas.BeginLayer(1);
-        Draw(slot: 0);
+        Draw(0);
         _canvas.EndLayers();
-        Draw(slot: 1);                  // same slot as the first run, but over the layers
+        Draw(1); // same slot as the first run, but over the layers
 
         _canvas.TryGetLayerItem(-1, out Handle back);
         _canvas.TryGetLayerItem(1, out Handle front);
@@ -279,7 +276,8 @@ public sealed class ShaderRoutingCanvasTests
 
         Assert.That(over, Is.Not.EqualTo(under), "the root's earlier run sits under the layers");
         Assert.That(_items.Parents[over], Is.EqualTo(Root));
-        int[] indices = { _items.DrawIndex[under], _items.DrawIndex[back], _items.DrawIndex[front], _items.DrawIndex[over] };
+        int[] indices =
+            { _items.DrawIndex[under], _items.DrawIndex[back], _items.DrawIndex[front], _items.DrawIndex[over] };
         Assert.That(indices, Is.Ordered.Ascending);
         Assert.That(indices.Distinct().Count(), Is.EqualTo(4));
     }
@@ -288,14 +286,14 @@ public sealed class ShaderRoutingCanvasTests
     public void ALayerMadeLateStillStacksWhereItWasBegun()
     {
         _canvas.BeginLayer(1);
-        Draw(slot: 0);
+        Draw(0);
         _canvas.Clear(Root);
 
         // Next frame a layer behind it appears; it was made after, but is begun first.
         _canvas.BeginLayer(-1);
-        Draw(slot: 0);
+        Draw(0);
         _canvas.BeginLayer(1);
-        Draw(slot: 0);
+        Draw(0);
 
         _canvas.TryGetLayerItem(-1, out Handle back);
         _canvas.TryGetLayerItem(1, out Handle front);
@@ -307,7 +305,7 @@ public sealed class ShaderRoutingCanvasTests
     public void ClearingEmptiesLayersAndKeepsTheirContainers()
     {
         _canvas.BeginLayer(-1);
-        Draw(slot: 2);
+        Draw(2);
         _canvas.TryGetLayerItem(-1, out Handle layer);
         Handle run = _inner.Draws.Single().Item;
         int made = _items.Created.Count;
@@ -315,12 +313,12 @@ public sealed class ShaderRoutingCanvasTests
         _inner.Calls.Clear();
         _canvas.Clear(Root);
 
-        List<Handle> cleared = _inner.Calls.Where(c => c.Op == "Clear").Select(c => c.Item).ToList();
+        var cleared = _inner.Calls.Where(c => c.Op == "Clear").Select(c => c.Item).ToList();
         Assert.That(cleared, Does.Contain(layer));
         Assert.That(cleared, Does.Contain(run));
 
         _canvas.BeginLayer(-1);
-        Draw(slot: 2);
+        Draw(2);
         Assert.That(_items.Created, Has.Count.EqualTo(made), "the container and its run are reused");
         Assert.That(_inner.Draws.Single().Item, Is.EqualTo(run));
     }
@@ -436,7 +434,10 @@ public sealed class ShaderRoutingCanvasTests
 
         Rect2 local = _canvas.ToLocal(new Rect2(0, 0, 1920, 1080));
 
-        Assert.That(local, Is.EqualTo(new Rect2(1400, 3700, 1920, 1080)), "the composite covers the screen once the root moves it");
+        Assert.That(
+            local,
+            Is.EqualTo(new Rect2(1400, 3700, 1920, 1080)),
+            "the composite covers the screen once the root moves it");
     }
 
     private sealed class RecordingCanvas : IRectCanvas
@@ -445,7 +446,9 @@ public sealed class ShaderRoutingCanvasTests
 
         public List<(string Op, Handle Item)> Draws => Calls.Where(c => c.Op != "Clear").ToList();
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
         public Dictionary<Handle, Transform2D> Transforms { get; } = new();
 
@@ -455,20 +458,30 @@ public sealed class ShaderRoutingCanvasTests
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
 
-        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
+            Calls.Add(("Circle", canvas));
 
-        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
+            Calls.Add(("Polygon", canvas));
 
-        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(
+            Handle canvas,
+            ReadOnlySpan<Vector2> points,
+            Color color,
+            float width,
+            bool antialiased = true) =>
             Calls.Add(("Polyline", canvas));
 
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
+            Calls.Add(("Line", canvas));
 
         public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
+            Calls.Add(("TextLeft", canvas));
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) =>
+            Calls.Add(("TextRight", canvas));
 
         public void DrawTextStyled(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Calls.Add(("TextStyled", canvas));

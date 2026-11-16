@@ -3,8 +3,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Audio;
 
@@ -24,7 +26,7 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     [Test]
     public void StartsAudioOnceAndAdvancesTimer()
     {
-        Entity track = AddTrack(durationMs: 1000);
+        Entity track = AddTrack(1000);
 
         Frame();
         Assert.That(_audio.PlayCount, Is.EqualTo(1));
@@ -40,7 +42,7 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     [Test]
     public void SpeedPercentScalesChartTime()
     {
-        Entity track = AddTrack(durationMs: 1000, speedPercent: 50);
+        Entity track = AddTrack(1000, 50);
 
         Frame();
         _clock.NowMicros = 1_000_000;
@@ -53,7 +55,7 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     public void AudioLengthReplacesPlaceholderDuration()
     {
         _audio.LengthSeconds = 12.5f;
-        Entity track = AddTrack(durationMs: 0);
+        Entity track = AddTrack(0);
 
         Frame();
 
@@ -63,7 +65,7 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     [Test]
     public void FinishingStopsAudioAndClampsProgress()
     {
-        Entity track = AddTrack(durationMs: 1000);
+        Entity track = AddTrack(1000);
 
         Frame();
         _clock.NowMicros = 1_500_000;
@@ -76,17 +78,10 @@ public sealed class TrackPlaybackSystemTests : EcsSystemTest
     }
 
     private Entity AddTrack(long durationMs, int speedPercent = 100) =>
-        Store.CreateEntity(
-            new TrackProgress(
-                "test-track.wav",
-                durationMs,
-                bpm: 128,
-                speedPercent: speedPercent));
+        Store.CreateEntity(new TrackProgress("test-track.wav", durationMs, 128, speedPercent: speedPercent));
 
     private sealed class FakeClock : ITrackClock
     {
         public long NowMicros { get; set; }
     }
-
-
 }

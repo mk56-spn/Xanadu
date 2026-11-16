@@ -1,7 +1,10 @@
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scoring;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
@@ -12,17 +15,12 @@ namespace Xanadu.Tests.Playfields;
 [TestFixture]
 public sealed class PlayErrorBarTests : EcsSystemTest
 {
-    protected override void OnEcsSetUp()
-    {
-        Root.Add(new PlayScoreSystem());
-    }
+    protected override void OnEcsSetUp() => Root.Add(new PlayScoreSystem());
 
     [Test]
     public void ErrorBarMovesToTheHitOffset()
     {
-        Entity marker = Store.CreateEntity(
-            new Position(new Vector2(500, 300)),
-            new FillColor(new Color(1, 1, 1, 0)));
+        Entity marker = Store.CreateEntity(new Position(new Vector2(500, 300)), new FillColor(new Color(1, 1, 1, 0)));
         Entity playfield = Store.CreateEntity(
             new ScoreState(default, default, default, default, 1),
             new Playhead(0, 120, 0, false),
@@ -34,18 +32,14 @@ public sealed class PlayErrorBarTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(marker.GetComponent<Position>().Value.X,
-            Is.EqualTo(467.6f).Within(0.01f));
-        Assert.That(marker.GetComponent<FillColor>().Value,
-            Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.Clean)));
+        Assert.That(marker.GetComponent<Position>().Value.X, Is.EqualTo(467.6f).Within(0.01f));
+        Assert.That(marker.GetComponent<FillColor>().Value, Is.EqualTo(PlayScoreSystem.ColorFor(Judgement.Clean)));
     }
 
     [Test]
     public void ErrorBarHidesOnMiss()
     {
-        Entity marker = Store.CreateEntity(
-            new Position(new Vector2(500, 300)),
-            new FillColor(Colors.White));
+        Entity marker = Store.CreateEntity(new Position(new Vector2(500, 300)), new FillColor(Colors.White));
         Entity playfield = Store.CreateEntity(
             new ScoreState(default, default, default, default, 1),
             new Playhead(0, 120, 0, false),
@@ -73,7 +67,8 @@ public sealed class PlayErrorBarTests : EcsSystemTest
 
         Assert.That(text.Tags.Has<UiHidden>(), Is.False);
         Assert.That(text.GetComponent<Text>().Value, Is.EqualTo(label));
-        Assert.That(text.GetComponent<Position>().Value,
+        Assert.That(
+            text.GetComponent<Position>().Value,
             Is.EqualTo(new Vector2(400, 200 + PlayScoreSystem.TimingIndicatorGap)));
     }
 

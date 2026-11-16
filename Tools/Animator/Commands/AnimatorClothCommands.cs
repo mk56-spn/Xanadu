@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tools.Animator.Commands;
 

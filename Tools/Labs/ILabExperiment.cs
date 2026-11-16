@@ -1,4 +1,5 @@
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
 using Xanadu.Host.Tools;
 
 namespace Xanadu.Labs;
@@ -11,7 +12,7 @@ namespace Xanadu.Labs;
 internal sealed record LabContext(
     Xanadu.Host.Rendering.CanvasPipelines Pipelines,
     MoonWorks.Graphics.GraphicsDevice Device,
-    System.Func<MoonWorks.Graphics.Texture, Handle> Show,
+    System.Func<Texture, Handle> Show,
     System.Action<Handle> Hide,
     Xanadu.Host.Text.HostText Text,
     Friflo.Engine.ECS.EntityStore Entities);

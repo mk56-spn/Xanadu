@@ -1,12 +1,17 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -20,11 +25,7 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
     {
         _toggle = new ScriptedToggle();
         _canvas = new RecordingCanvas();
-        Root.Add(new PlayfieldHitboxOverlaySystem(
-            Store,
-            _canvas,
-            default,
-            _toggle));
+        Root.Add(new PlayfieldHitboxOverlaySystem(Store, _canvas, default, _toggle));
     }
 
     [Test]
@@ -42,35 +43,23 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
     {
         AddPlayfield();
         Store.CreateEntity(new Block(new Vector2(100, 200), new Vector2(200, 100)));
-        Store.CreateEntity(
-            new Player(new Vector2(30, 100)),
-            new Position(new Vector2(400, 400)));
+        Store.CreateEntity(new Player(new Vector2(30, 100)), new Position(new Vector2(400, 400)));
 
         _toggle.Pressed = true;
         Frame();
 
         Assert.That(_canvas.Visible, Is.True);
-        Assert.That(
-            _canvas.Rects.ConvertAll(rect => rect.Bounds),
-            Does.Contain(new Rect2(150, 200, 100, 50)));
-        Assert.That(
-            _canvas.Rects.ConvertAll(rect => rect.Bounds),
-            Does.Contain(new Rect2(385, 350, 30, 100)));
-        Assert.That(
-            _canvas.Rects.ConvertAll(rect => rect.Color),
-            Does.Contain(DebugPalette.BlockHitbox));
-        Assert.That(
-            _canvas.Rects.ConvertAll(rect => rect.Color),
-            Does.Contain(DebugPalette.PlayerHitbox));
+        Assert.That(_canvas.Rects.ConvertAll(rect => rect.Bounds), Does.Contain(new Rect2(150, 200, 100, 50)));
+        Assert.That(_canvas.Rects.ConvertAll(rect => rect.Bounds), Does.Contain(new Rect2(385, 350, 30, 100)));
+        Assert.That(_canvas.Rects.ConvertAll(rect => rect.Color), Does.Contain(DebugPalette.BlockHitbox));
+        Assert.That(_canvas.Rects.ConvertAll(rect => rect.Color), Does.Contain(DebugPalette.PlayerHitbox));
     }
 
     [Test]
     public void TogglingAgainHidesAndClearsTheBoxes()
     {
         AddPlayfield();
-        Store.CreateEntity(
-            new Player(new Vector2(30, 100)),
-            new Position(new Vector2(400, 400)));
+        Store.CreateEntity(new Player(new Vector2(30, 100)), new Position(new Vector2(400, 400)));
 
         _toggle.Pressed = true;
         Frame();
@@ -89,9 +78,7 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
     public void LeavingThePlayfieldClearsTheBoxes()
     {
         AddPlayfield();
-        Store.CreateEntity(
-            new Player(new Vector2(30, 100)),
-            new Position(new Vector2(400, 400)));
+        Store.CreateEntity(new Player(new Vector2(30, 100)), new Position(new Vector2(400, 400)));
 
         _toggle.Pressed = true;
         Frame();
@@ -121,28 +108,33 @@ public sealed class PlayfieldHitboxOverlaySystemTests : EcsSystemTest
     {
         public bool Visible { get; private set; }
 
-        public List<(Rect2 Bounds, Color Color)> Rects { get; } = new();
+        public List<(Rect2 Bounds, Core.Maths.Color Color)> Rects { get; } = new();
 
         public void SetVisible(Handle canvas, bool visible) => Visible = visible;
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
         public void Clear(Handle canvas) => Rects.Clear();
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
             Rects.Add((bounds, color));
 
-        public void DrawLine(
-            Handle canvas,
-            Vector2 from,
-            Vector2 to,
-            Color color,
-            float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+        {
+        }
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 }

@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// How shader tuners guess what a value is for when the shader gives no hint:

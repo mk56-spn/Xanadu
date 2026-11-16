@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Timeline;
 

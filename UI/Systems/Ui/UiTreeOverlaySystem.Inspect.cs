@@ -5,10 +5,12 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Tree;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 
@@ -50,7 +52,7 @@ public sealed partial class UiTreeOverlaySystem
         bool bestDraws = false;
         foreach ((Entity entity, int z) in _hits)
         {
-            if (IsDebug(entity) || !IsShown(entity) || Xanadu.Systems.Input.InputSystem.IsClippedOut(entity, point))
+            if (IsDebug(entity) || !IsShown(entity) || InputSystem.IsClippedOut(entity, point))
                 continue;
 
             bool draws = Draws(entity);

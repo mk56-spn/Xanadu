@@ -2,12 +2,16 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Systems.Groups;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Timeline;
 using Xanadu.Tests.Support;
-using Xanadu.Timeline;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Systems.Groups;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tests.UI;
 
@@ -33,8 +37,14 @@ public sealed class TimelineZoomAboutPointerTests
 
         public IEnumerable<double> MarkerTimesMs() => [];
         public void SeekMs(double ms) => NowMs = ms;
-        public void TogglePlay() { }
-        public void NoMarker(int direction) { }
+
+        public void TogglePlay()
+        {
+        }
+
+        public void NoMarker(int direction)
+        {
+        }
     }
 
     private sealed class Wheel : IWheelSource
@@ -132,7 +142,9 @@ public sealed class TimelineZoomAboutPointerTests
         Frame();
 
         Assert.That(_timeline.GetComponent<TimelineView>().Pinned, Is.False);
-        Assert.That(Window, Is.EqualTo(TimeWindow.Following(9_000, 10_000, _timeline.GetComponent<TimelineView>().Zoom)));
+        Assert.That(
+            Window,
+            Is.EqualTo(TimeWindow.Following(9_000, 10_000, _timeline.GetComponent<TimelineView>().Zoom)));
     }
 
     [Test]

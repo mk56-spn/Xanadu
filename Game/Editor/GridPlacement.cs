@@ -1,6 +1,10 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Editor;
 
@@ -15,14 +19,14 @@ public enum GridHandle
     TopLeft,
     TopRight,
     BottomLeft,
-    BottomRight,
+    BottomRight
 }
 
 /// <summary>
-/// The one set of rules boxed items are placed, moved and resized by: blocks,
-/// spikes and grass. They sit on the grid the editor draws when snapping is on,
-/// and stay inside the field. They differ only in how they turn: see
-/// <see cref="SelectionRotation"/>.
+///     The one set of rules boxed items are placed, moved and resized by: blocks,
+///     spikes and grass. They sit on the grid the editor draws when snapping is on,
+///     and stay inside the field. They differ only in how they turn: see
+///     <see cref="SelectionRotation" />.
 /// </summary>
 public static class GridPlacement
 {
@@ -42,7 +46,7 @@ public static class GridPlacement
         GridHandle.TopLeft,
         GridHandle.TopRight,
         GridHandle.BottomLeft,
-        GridHandle.BottomRight,
+        GridHandle.BottomRight
     };
 
     public static Vector2 Cell(Playfield playfield) => PlayfieldGrid.Cell(playfield);
@@ -52,7 +56,7 @@ public static class GridPlacement
     {
         BlockBrushSize.Quarter => new Vector2(0.5f, 0.5f),
         BlockBrushSize.Platform => new Vector2(2f, 1f),
-        _ => Vector2.One,
+        _ => Vector2.One
     };
 
     /// <summary>A new block fills its brush's cells, turned with the brush.</summary>
@@ -63,9 +67,7 @@ public static class GridPlacement
     {
         Vector2 cell = Cell(playfield);
         Vector2 cells = BlockCells(brush);
-        return SelectionRotation.TurnedSize(
-            new Vector2(cell.X * cells.X, cell.Y * cells.Y),
-            Mathf.DegToRad(degrees));
+        return SelectionRotation.TurnedSize(new Vector2(cell.X * cells.X, cell.Y * cells.Y), Mathf.DegToRad(degrees));
     }
 
     /// <summary>A new spike fills one cell; the brush turns it, not its box.</summary>
@@ -75,7 +77,7 @@ public static class GridPlacement
     public static Vector2 Place(Vector2 pointer, Vector2 size, Playfield playfield, bool snap = true) =>
         Settle(pointer - size / 2, size, playfield, snap);
 
-    /// <summary>Top-left of an item dragged by <paramref name="delta"/>.</summary>
+    /// <summary>Top-left of an item dragged by <paramref name="delta" />.</summary>
     public static Vector2 Move(Vector2 position, Vector2 size, Vector2 delta, Playfield playfield, bool snap = true) =>
         Settle(position + delta, size, playfield, snap);
 
@@ -84,10 +86,10 @@ public static class GridPlacement
         Clamp(snap ? ViewportSnap.Snap(position, SnapStep(size, playfield)) : position, size, playfield);
 
     /// <summary>
-    /// Snaps a grass patch's box by the edges that meet blocks: its left side
-    /// onto a column line and its base onto a row line, so a patch laid along a
-    /// block's top sits on it and starts at its corner. Its top, the blade tips,
-    /// is left wherever its length puts it.
+    ///     Snaps a grass patch's box by the edges that meet blocks: its left side
+    ///     onto a column line and its base onto a row line, so a patch laid along a
+    ///     block's top sits on it and starts at its corner. Its top, the blade tips,
+    ///     is left wherever its length puts it.
     /// </summary>
     public static Vector2 SettleGrass(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
     {
@@ -102,7 +104,7 @@ public static class GridPlacement
         return Clamp(position, size, playfield);
     }
 
-    /// <summary>Where a patch's base goes when placed at <paramref name="pointer"/>, its base's middle.</summary>
+    /// <summary>Where a patch's base goes when placed at <paramref name="pointer" />, its base's middle.</summary>
     public static Vector2 PlaceGrass(Vector2 pointer, GrassPatch patch, Playfield playfield, bool snap = true)
     {
         var size = new Vector2(patch.Width, patch.Length);
@@ -111,9 +113,9 @@ public static class GridPlacement
     }
 
     /// <summary>
-    /// Snaps a flare's box by its centre, onto the half-cell grid, and keeps
-    /// the centre in the field. Its light may spill past the edges; it is a
-    /// light, not a body, so only its core has to be on the field.
+    ///     Snaps a flare's box by its centre, onto the half-cell grid, and keeps
+    ///     the centre in the field. Its light may spill past the edges; it is a
+    ///     light, not a body, so only its core has to be on the field.
     /// </summary>
     public static Vector2 SettleFlare(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
     {
@@ -125,7 +127,7 @@ public static class GridPlacement
         return center - size / 2;
     }
 
-    /// <summary>Where a flare's centre goes when placed at <paramref name="pointer"/>.</summary>
+    /// <summary>Where a flare's centre goes when placed at <paramref name="pointer" />.</summary>
     public static Vector2 PlaceFlare(Vector2 pointer, LevelFlare flare, Playfield playfield, bool snap = true)
     {
         var size = new Vector2(flare.Width, flare.Height);
@@ -136,9 +138,9 @@ public static class GridPlacement
     public static float NewFrictionBarHeight(Playfield playfield) => Cell(playfield).Y * 2;
 
     /// <summary>
-    /// Snaps a friction bar's box by its line and its foot: the line onto a
-    /// column line and the bottom onto a row line, where block edges sit, so a
-    /// bar stands on a block's top at its corner or a cell boundary.
+    ///     Snaps a friction bar's box by its line and its foot: the line onto a
+    ///     column line and the bottom onto a row line, where block edges sit, so a
+    ///     bar stands on a block's top at its corner or a cell boundary.
     /// </summary>
     public static Vector2 SettleFrictionBar(Vector2 position, Vector2 size, Playfield playfield, bool snap = true)
     {
@@ -153,7 +155,7 @@ public static class GridPlacement
         return Clamp(position, size, playfield);
     }
 
-    /// <summary>Top-left of a new friction bar centred on <paramref name="pointer"/>.</summary>
+    /// <summary>Top-left of a new friction bar centred on <paramref name="pointer" />.</summary>
     public static Vector2 PlaceFrictionBar(Vector2 pointer, float height, Playfield playfield, bool snap = true)
     {
         var size = new Vector2(FrictionBar.Thickness, height);
@@ -161,8 +163,8 @@ public static class GridPlacement
     }
 
     /// <summary>
-    /// The grid an item snaps to: the field's cells, or its own size where that is
-    /// finer, so a block smaller than a cell lands on its own edges and quarters tile.
+    ///     The grid an item snaps to: the field's cells, or its own size where that is
+    ///     finer, so a block smaller than a cell lands on its own edges and quarters tile.
     /// </summary>
     public static Vector2 SnapStep(Vector2 size, Playfield playfield)
     {
@@ -191,7 +193,7 @@ public static class GridPlacement
             GridHandle.TopRight => new Vector2(bounds.End.X, bounds.Position.Y),
             GridHandle.BottomLeft => new Vector2(bounds.Position.X, bounds.End.Y),
             GridHandle.BottomRight => bounds.End,
-            _ => center,
+            _ => center
         };
         return center + (side - center).Rotated(Mathf.DegToRad(degrees));
     }
@@ -204,8 +206,8 @@ public static class GridPlacement
     }
 
     /// <summary>
-    /// True when a screen point is close enough to grab a handle. On a small or
-    /// zoomed-out item the grips overlap, so the nearest one wins.
+    ///     True when a screen point is close enough to grab a handle. On a small or
+    ///     zoomed-out item the grips overlap, so the nearest one wins.
     /// </summary>
     public static bool TryPickHandle(
         Rect2 bounds,
@@ -230,12 +232,12 @@ public static class GridPlacement
     }
 
     /// <summary>
-    /// The box after dragging one side or corner to a playfield point. The
-    /// opposite edge or corner stays put, the dragged edges snap when snapping, and the item never gets
-    /// smaller than a cell or leaves the field. A turned spike resizes along its
-    /// own axes, which do not lie on the grid, so it does not snap. With
-    /// <paramref name="keepRatio"/> a corner scales the box evenly, following
-    /// whichever side was pulled further.
+    ///     The box after dragging one side or corner to a playfield point. The
+    ///     opposite edge or corner stays put, the dragged edges snap when snapping, and the item never gets
+    ///     smaller than a cell or leaves the field. A turned spike resizes along its
+    ///     own axes, which do not lie on the grid, so it does not snap. With
+    ///     <paramref name="keepRatio" /> a corner scales the box evenly, following
+    ///     whichever side was pulled further.
     /// </summary>
     public static Rect2 Resize(
         Rect2 start,
@@ -249,7 +251,14 @@ public static class GridPlacement
         Vector2 cell = Cell(playfield);
         var field = new Vector2(playfield.Width, playfield.Height);
         if (degrees == 0f)
-            return ResizeAlongAxes(start, handle, snap ? ViewportSnap.Snap(pointer, cell) : pointer, cell, Vector2.Zero, field, keepRatio);
+            return ResizeAlongAxes(
+                start,
+                handle,
+                snap ? ViewportSnap.Snap(pointer, cell) : pointer,
+                cell,
+                Vector2.Zero,
+                field,
+                keepRatio);
 
         float angle = Mathf.DegToRad(degrees);
         Vector2 center = start.GetCenter();
@@ -281,7 +290,7 @@ public static class GridPlacement
             GridHandle.TopRight => (GridHandle.Right, GridHandle.Top),
             GridHandle.BottomLeft => (GridHandle.Left, GridHandle.Bottom),
             GridHandle.BottomRight => (GridHandle.Right, GridHandle.Bottom),
-            _ => (handle, GridHandle.None),
+            _ => (handle, GridHandle.None)
         };
         if (keepRatio && up != GridHandle.None && start.Size.X > 0f && start.Size.Y > 0f)
             return ScaleFromCorner(start, across, up, point, min, fieldStart, fieldEnd);
@@ -291,9 +300,9 @@ public static class GridPlacement
     }
 
     /// <summary>
-    /// Scales the box evenly about the corner opposite the one dragged. The
-    /// scale follows the side pulled further, never shrinks the box below a
-    /// cell on either side, and stops where either side meets the field's edge.
+    ///     Scales the box evenly about the corner opposite the one dragged. The
+    ///     scale follows the side pulled further, never shrinks the box below a
+    ///     cell on either side, and stops where either side meets the field's edge.
     /// </summary>
     private static Rect2 ScaleFromCorner(
         Rect2 start,
@@ -307,8 +316,12 @@ public static class GridPlacement
         bool left = across == GridHandle.Left;
         bool top = up == GridHandle.Top;
         var anchor = new Vector2(left ? start.End.X : start.Position.X, top ? start.End.Y : start.Position.Y);
-        Vector2 pulled = new Vector2(left ? anchor.X - point.X : point.X - anchor.X, top ? anchor.Y - point.Y : point.Y - anchor.Y);
-        Vector2 room = new Vector2(left ? anchor.X - fieldStart.X : fieldEnd.X - anchor.X, top ? anchor.Y - fieldStart.Y : fieldEnd.Y - anchor.Y);
+        var pulled = new Vector2(
+            left ? anchor.X - point.X : point.X - anchor.X,
+            top ? anchor.Y - point.Y : point.Y - anchor.Y);
+        var room = new Vector2(
+            left ? anchor.X - fieldStart.X : fieldEnd.X - anchor.X,
+            top ? anchor.Y - fieldStart.Y : fieldEnd.Y - anchor.Y);
 
         float scale = Mathf.Max(pulled.X / start.Size.X, pulled.Y / start.Size.Y);
         float smallest = Mathf.Max(min.X / start.Size.X, min.Y / start.Size.Y);
@@ -361,10 +374,13 @@ public static class GridPlacement
         GridHandle.TopRight => GridHandle.BottomLeft,
         GridHandle.BottomLeft => GridHandle.TopRight,
         GridHandle.BottomRight => GridHandle.TopLeft,
-        _ => GridHandle.None,
+        _ => GridHandle.None
     };
 
-    /// <summary>A boxed item's unturned box and turn (<see cref="ItemKind.TryGetBox"/>); false for the kinds that aren't boxes.</summary>
+    /// <summary>
+    ///     A boxed item's unturned box and turn (<see cref="ItemKind.TryGetBox" />); false for the kinds that aren't
+    ///     boxes.
+    /// </summary>
     public static bool TryGet(Entity entity, out Rect2 bounds, out float degrees)
     {
         bounds = default;
@@ -387,7 +403,7 @@ public static class GridPlacement
         return true;
     }
 
-    /// <inheritdoc cref="IsBlockSpaceFree"/>
+    /// <inheritdoc cref="IsBlockSpaceFree" />
     public static bool IsSpikeSpaceFree(EntityStore entities, Rect2 box)
     {
         foreach (Entity entity in entities.Query<Spike>().ToEntityList())

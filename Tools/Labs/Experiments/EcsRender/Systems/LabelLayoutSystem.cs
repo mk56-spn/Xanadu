@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Host.Text;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>
 /// Lays out every label whose text or size is no longer what its glyphs were

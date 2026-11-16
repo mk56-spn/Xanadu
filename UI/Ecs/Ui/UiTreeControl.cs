@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Reads and drives a tree created by <see cref="UiBuilder.Tree"/>.</summary>
 public static class UiTreeControl

@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -21,7 +23,7 @@ public sealed class XmfGrassTests
         Variation = 0.45f,
         Seed = 0xdeadbeef,
         SelfModulate = 0x40a0ffccu,
-        Groups = new() { 2, 5 },
+        Groups = new List<int> { 2, 5 }
     };
 
     [Test]
@@ -49,7 +51,7 @@ public sealed class XmfGrassTests
     public void AMapWithoutGrassHasNoGrassChunk()
     {
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet((uint)XmfChunk.Grass, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Grass, Is.Empty);
@@ -75,14 +77,15 @@ public sealed class XmfGrassTests
     [Test]
     public void SettingsOutOfRangeAreBroughtBackWhenLoaded()
     {
-        GrassPatch patch = LevelDocumentMapper.ToPatch(new GrassDocument
-        {
-            Width = -5f,
-            Length = 9_999f,
-            Density = float.NaN,
-            Sway = 400f,
-            Variation = 3f,
-        });
+        GrassPatch patch = LevelDocumentMapper.ToPatch(
+            new GrassDocument
+            {
+                Width = -5f,
+                Length = 9_999f,
+                Density = float.NaN,
+                Sway = 400f,
+                Variation = 3f
+            });
 
         Assert.That(patch.Width, Is.EqualTo(GrassPatch.MinWidth));
         Assert.That(patch.Length, Is.EqualTo(GrassPatch.MaxLength));

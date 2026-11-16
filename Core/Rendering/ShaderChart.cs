@@ -1,8 +1,7 @@
 using System;
-using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// One note of the chart as shaders read it (<c>notes.</c> in <c>xanadu.play</c>,

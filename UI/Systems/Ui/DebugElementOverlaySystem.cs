@@ -1,11 +1,13 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Input;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 

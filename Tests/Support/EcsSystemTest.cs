@@ -24,7 +24,9 @@ public abstract class EcsSystemTest
         OnEcsSetUp();
     }
 
-    protected virtual void OnEcsSetUp() { }
+    protected virtual void OnEcsSetUp()
+    {
+    }
 
     protected void Frame(int frames = 1, float secondsPerFrame = 1f / 60f)
     {

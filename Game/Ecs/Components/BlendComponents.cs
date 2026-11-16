@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Xanadu.Rendering;
+using Xanadu.Core.Rendering;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// The blend mode an item draws with. Every editor item carries one from the

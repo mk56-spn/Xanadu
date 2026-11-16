@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Animation;
 
@@ -31,8 +31,14 @@ public sealed class XafCurveTests
         {
             foreach (CurveDirection direction in Enum.GetValues<CurveDirection>())
             {
-                Assert.That(EaseCurves.Evaluate(family, direction, 0f), Is.EqualTo(0f).Within(0.002f), $"{family}{direction}");
-                Assert.That(EaseCurves.Evaluate(family, direction, 1f), Is.EqualTo(1f).Within(0.002f), $"{family}{direction}");
+                Assert.That(
+                    EaseCurves.Evaluate(family, direction, 0f),
+                    Is.EqualTo(0f).Within(0.002f),
+                    $"{family}{direction}");
+                Assert.That(
+                    EaseCurves.Evaluate(family, direction, 1f),
+                    Is.EqualTo(1f).Within(0.002f),
+                    $"{family}{direction}");
             }
         }
     }
@@ -41,7 +47,10 @@ public sealed class XafCurveTests
     public void InOutCurvesPassTheMiddleAtTheMiddle()
     {
         foreach (CurveFamily family in Enum.GetValues<CurveFamily>())
-            Assert.That(EaseCurves.Evaluate(family, CurveDirection.InOut, 0.5f), Is.EqualTo(0.5f).Within(0.001f), $"{family}");
+            Assert.That(
+                EaseCurves.Evaluate(family, CurveDirection.InOut, 0.5f),
+                Is.EqualTo(0.5f).Within(0.001f),
+                $"{family}");
     }
 
     [Test]
@@ -80,7 +89,8 @@ public sealed class XafCurveTests
 
         Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.BounceOut));
         Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.BounceOut));
-        Assert.That(XafSampler.SampleChannel(channel, 0.3f),
+        Assert.That(
+            XafSampler.SampleChannel(channel, 0.3f),
             Is.EqualTo(10f * EaseCurves.Evaluate(CurveFamily.Bounce, CurveDirection.Out, 0.3f)).Within(0.001f));
     }
 

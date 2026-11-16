@@ -2,14 +2,16 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
+using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -81,12 +83,12 @@ internal sealed class IndirectDrawLab : ILabExperiment
         private readonly Mw.GraphicsDevice _device;
         private readonly Rect2 _area;
         private readonly uint _width, _height;
-        private readonly Mw.Texture _target;
+        private readonly Texture _target;
         private readonly Handle _shown, _item;
-        private readonly Mw.Buffer _args, _visible;
-        private readonly Mw.ComputePipeline _reset, _cull;
-        private readonly Mw.Shader[] _shaders;
-        private readonly Mw.GraphicsPipeline _shapes, _readout;
+        private readonly Buffer _args, _visible;
+        private readonly ComputePipeline _reset, _cull;
+        private readonly Shader[] _shaders;
+        private readonly GraphicsPipeline _shapes, _readout;
         private FrameUniforms _frame;
         private Vector2 _camera = World / 2;
 
@@ -99,7 +101,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
             _width = (uint)area.Size.X;
             _height = (uint)area.Size.Y;
 
-            _target = Mw.Texture.Create2D(_device, "indirect draw", _width, _height, Format,
+            _target = Texture.Create2D(_device, "indirect draw", _width, _height, Format,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
             _shown = context.Show(_target);
             _item = CanvasServer.Current.CreateItem();
@@ -107,27 +109,27 @@ internal sealed class IndirectDrawLab : ILabExperiment
             CanvasServer.Current.AddTextureRect(_item, new Rect2(area.Position, new Vector2(_width, _height)), _shown);
 
             // The draw command: written by compute, read by the draw and by the readout.
-            _args = Mw.Buffer.Create<Mw.IndirectDrawCommand>(_device, "indirect draw command",
+            _args = Buffer.Create<Mw.IndirectDrawCommand>(_device, "indirect draw command",
                 Mw.BufferUsageFlags.Indirect | Mw.BufferUsageFlags.ComputeStorageWrite | Mw.BufferUsageFlags.GraphicsStorageRead, 1);
-            _visible = Mw.Buffer.Create<uint>(_device, "indirect draw visible",
+            _visible = Buffer.Create<uint>(_device, "indirect draw visible",
                 Mw.BufferUsageFlags.ComputeStorageWrite | Mw.BufferUsageFlags.GraphicsStorageRead, MaxCount);
 
             string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "indirect_draw_lab.slang");
             _reset = Compute(module, "reset", writes: 1, uniforms: 0, threads: 1);
             _cull = Compute(module, "cull", writes: 2, uniforms: 1, threads: Group);
 
-            Mw.Shader shapeVertex = Shader(module, "shapeVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
-            Mw.Shader shapeShade = Shader(module, "shapeShade", Mw.ShaderStage.Fragment);
-            Mw.Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
-            Mw.Shader readout = Shader(module, "readout", Mw.ShaderStage.Fragment, storage: 1, uniforms: 1);
+            Shader shapeVertex = Shader(module, "shapeVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
+            Shader shapeShade = Shader(module, "shapeShade", Mw.ShaderStage.Fragment);
+            Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
+            Shader readout = Shader(module, "readout", Mw.ShaderStage.Fragment, storage: 1, uniforms: 1);
             _shaders = [shapeVertex, shapeShade, full, readout];
 
             _shapes = Pipeline(shapeVertex, shapeShade, Blend(Mw.BlendFactor.One, Mw.BlendFactor.One));
             _readout = Pipeline(full, readout, Blend(Mw.BlendFactor.One, Mw.BlendFactor.OneMinusSrcAlpha));
         }
 
-        private Mw.ComputePipeline Compute(string module, string entry, uint writes, uint uniforms, uint threads) =>
-            Mw.ComputePipeline.Create(_device, SlangShaders.Compile(module, entry, "compute"), "main",
+        private ComputePipeline Compute(string module, string entry, uint writes, uint uniforms, uint threads) =>
+            ComputePipeline.Create(_device, SlangShaders.Compile(module, entry, "compute"), "main",
                 new Mw.ComputePipelineCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -138,8 +140,8 @@ internal sealed class IndirectDrawLab : ILabExperiment
                     ThreadCountZ = 1,
                 });
 
-        private Mw.Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
-            Mw.Shader.Create(_device, SlangShaders.Compile(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
+        private Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
+            MoonWorks.Graphics.Shader.Create(_device, SlangShaders.Compile(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
                 "main", new Mw.ShaderCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -161,8 +163,8 @@ internal sealed class IndirectDrawLab : ILabExperiment
             ColorWriteMask = Mw.ColorComponentFlags.RGBA,
         };
 
-        private Mw.GraphicsPipeline Pipeline(Mw.Shader vertex, Mw.Shader fragment, Mw.ColorTargetBlendState blend) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+        private GraphicsPipeline Pipeline(Shader vertex, Shader fragment, Mw.ColorTargetBlendState blend) =>
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -260,7 +262,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
             _context.Hide(_shown);
             _shapes.Dispose();
             _readout.Dispose();
-            foreach (Mw.Shader shader in _shaders)
+            foreach (Shader shader in _shaders)
                 shader.Dispose();
             _reset.Dispose();
             _cull.Dispose();

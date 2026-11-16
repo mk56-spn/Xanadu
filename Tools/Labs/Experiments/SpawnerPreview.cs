@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
 using Xanadu.Host.Rendering;
 using Xanadu.Host.Tools.ShaderEditing;
-using Xanadu.Systems.Canvas;
 using Mw = MoonWorks.Graphics;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
+using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -61,12 +63,12 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
         """;
 
     private readonly Mw.GraphicsDevice _device = context.Device;
-    private readonly Mw.Buffer _args = Mw.Buffer.Create<Mw.IndirectDrawCommand>(context.Device, "spawner draw command",
+    private readonly Buffer _args = Buffer.Create<Mw.IndirectDrawCommand>(context.Device, "spawner draw command",
         Mw.BufferUsageFlags.Indirect | Mw.BufferUsageFlags.ComputeStorageWrite, 1);
-    private readonly Mw.Buffer _things = Mw.Buffer.Create<Stored>(context.Device, "spawner things",
+    private readonly Buffer _things = Buffer.Create<Stored>(context.Device, "spawner things",
         Mw.BufferUsageFlags.ComputeStorageWrite | Mw.BufferUsageFlags.GraphicsStorageRead, MaxCount);
 
-    private Mw.Texture? _target;
+    private Texture? _target;
     private Handle _shown;
     private Programs? _programs;
     private SpawnFrame _frame;
@@ -278,17 +280,17 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
     public string Show(PreviewBuild build)
     {
         var code = (Compiled)build.Result;
-        Mw.ComputePipeline reset = Compute(code.Reset, writes: 1, uniforms: 0, threads: 1);
-        Mw.ComputePipeline spawn = Compute(code.Spawn, writes: 2, uniforms: 1, threads: Group);
-        Mw.Shader vertex = Mw.Shader.Create(_device, code.Vertex, "main", new Mw.ShaderCreateInfo
+        ComputePipeline reset = Compute(code.Reset, writes: 1, uniforms: 0, threads: 1);
+        ComputePipeline spawn = Compute(code.Spawn, writes: 2, uniforms: 1, threads: Group);
+        Shader vertex = Shader.Create(_device, code.Vertex, "main", new Mw.ShaderCreateInfo
         {
             Format = Mw.ShaderFormat.SPIRV, Stage = Mw.ShaderStage.Vertex, NumStorageBuffers = 1, NumUniformBuffers = 1,
         });
-        Mw.Shader fragment = Mw.Shader.Create(_device, code.Fragment, "main", new Mw.ShaderCreateInfo
+        Shader fragment = Shader.Create(_device, code.Fragment, "main", new Mw.ShaderCreateInfo
         {
             Format = Mw.ShaderFormat.SPIRV, Stage = Mw.ShaderStage.Fragment, NumUniformBuffers = 1,
         });
-        Mw.GraphicsPipeline draw = Pipeline(vertex, fragment, code.Additive ? Mw.BlendFactor.One : Mw.BlendFactor.OneMinusSrcAlpha);
+        GraphicsPipeline draw = Pipeline(vertex, fragment, code.Additive ? Mw.BlendFactor.One : Mw.BlendFactor.OneMinusSrcAlpha);
 
         _programs?.Dispose();
         _programs = new Programs(reset, spawn, draw, vertex, fragment);
@@ -296,11 +298,11 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
     }
 
     /// <summary>One compiled version's GPU objects, swapped whole when the code compiles again.</summary>
-    private sealed class Programs(Mw.ComputePipeline reset, Mw.ComputePipeline spawn, Mw.GraphicsPipeline draw, Mw.Shader vertex, Mw.Shader fragment) : IDisposable
+    private sealed class Programs(ComputePipeline reset, ComputePipeline spawn, GraphicsPipeline draw, Shader vertex, Shader fragment) : IDisposable
     {
-        public Mw.ComputePipeline Reset { get; } = reset;
-        public Mw.ComputePipeline Spawn { get; } = spawn;
-        public Mw.GraphicsPipeline Draw { get; } = draw;
+        public ComputePipeline Reset { get; } = reset;
+        public ComputePipeline Spawn { get; } = spawn;
+        public GraphicsPipeline Draw { get; } = draw;
 
         public void Dispose()
         {
@@ -329,8 +331,8 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
         public float MouseX, MouseY, Pad0, Pad1;
     }
 
-    private Mw.ComputePipeline Compute(byte[] spirv, uint writes, uint uniforms, uint threads) =>
-        Mw.ComputePipeline.Create(_device, spirv, "main", new Mw.ComputePipelineCreateInfo
+    private ComputePipeline Compute(byte[] spirv, uint writes, uint uniforms, uint threads) =>
+        ComputePipeline.Create(_device, spirv, "main", new Mw.ComputePipelineCreateInfo
         {
             Format = Mw.ShaderFormat.SPIRV,
             NumReadWriteStorageBuffers = writes,
@@ -341,8 +343,8 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
         });
 
     /// <summary>Premultiplied colour on: <paramref name="destination"/> OneMinusSrcAlpha is over, One is add.</summary>
-    private Mw.GraphicsPipeline Pipeline(Mw.Shader vertex, Mw.Shader fragment, Mw.BlendFactor destination) =>
-        Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+    private GraphicsPipeline Pipeline(Shader vertex, Shader fragment, Mw.BlendFactor destination) =>
+        GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
         {
             VertexShader = vertex,
             FragmentShader = fragment,
@@ -388,7 +390,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 _target.Dispose();
             }
 
-            _target = Mw.Texture.Create2D(_device, "spawner", width, height, Format,
+            _target = Texture.Create2D(_device, "spawner", width, height, Format,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
             _shown = context.Show(_target);
         }

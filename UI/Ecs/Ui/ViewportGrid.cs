@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The grid switch every editor shares. The header button's <see cref="Toggle"/>

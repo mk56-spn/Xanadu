@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Provides the current pointer state to input systems.</summary>
 public interface IPointerInputSource

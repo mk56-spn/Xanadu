@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Xanadu.Items;
-using Xanadu.Storage;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Animation;
 

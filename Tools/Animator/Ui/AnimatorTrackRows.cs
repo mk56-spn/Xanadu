@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using Xanadu.Animation;
+using Xanadu.Tools.Animator.Ecs;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// One row of the keyframe dope sheet: a target's merged key set, or, when the

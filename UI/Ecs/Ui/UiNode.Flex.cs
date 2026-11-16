@@ -1,6 +1,6 @@
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// How a node sizes inside its parent's stack (<see cref="UiFlex"/>): grow

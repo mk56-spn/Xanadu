@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Projects backing text-field values into drawable ECS text.</summary>
 public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>

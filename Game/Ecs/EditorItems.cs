@@ -1,5 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Rendering;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ecs;
 

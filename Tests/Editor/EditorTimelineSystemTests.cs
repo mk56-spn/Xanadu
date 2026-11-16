@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -14,9 +15,7 @@ public sealed class EditorTimelineSystemTests
     public void DefaultsToTheZoomClosestToSixSeconds()
     {
         var store = new EntityStore();
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, false, durationMs: 180_000),
-            new TimelineView(1f));
+        Entity editor = store.CreateEntity(new Playhead(0, 120, 0, false, 180_000), new TimelineView(1f));
 
         var root = new SystemRoot(store);
         root.Add(new EditorTimelineSystem());
@@ -30,9 +29,7 @@ public sealed class EditorTimelineSystemTests
     public void DoesNotOverrideAUserChosenZoom()
     {
         var store = new EntityStore();
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, false, durationMs: 180_000),
-            new TimelineView(8f));
+        Entity editor = store.CreateEntity(new Playhead(0, 120, 0, false, 180_000), new TimelineView(8f));
 
         ref TimelineView timeline = ref editor.GetComponent<TimelineView>();
         timeline.AutoZoomed = true;

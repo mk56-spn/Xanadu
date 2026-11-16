@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>One column of a <see cref="DebugTable"/>; a text past <see cref="MaxWidth"/> is cut short.</summary>
 public readonly record struct DebugColumn(string Title, TextAlign Align, float MaxWidth = float.MaxValue);

@@ -1,12 +1,16 @@
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -18,7 +22,7 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
     {
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorHierarchySystem(new FakeVisualRidFactory()));
-        Root.Add(new Xanadu.Systems.Ui.XifEditorSystem(Pointer, new FakeVisualRidFactory()));
+        Root.Add(new XifEditorSystem(Pointer, new FakeVisualRidFactory()));
     }
 
     private string Status => Session.GetComponent<AnimatorStatus>().Message;
@@ -38,14 +42,14 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         AddStreakOnTorsoAt(0.5f);
         Frame();
 
-        Assert.That(Ui.XifEditor.GetComponent<Position>().Value,
-            Is.EqualTo(AnimatorLayout.XifEditorCenter(Screen)));
+        Assert.That(Ui.XifEditor.GetComponent<Position>().Value, Is.EqualTo(AnimatorLayout.XifEditorCenter(Screen)));
         XifEditor editor = Ui.XifEditor.GetComponent<XifEditor>();
         Assert.That(editor.Parts.Title.GetComponent<Text>().Value, Is.EqualTo("STREAK  ITEM"));
 
         int before = Package.Effects[0].Item.Primitives[0].Points.Count;
         int effectsVersion = Session.GetComponent<AnimatorDocument>().EffectsVersion;
-        foreach ((Friflo.Engine.ECS.Entity button, XifEditorActionKind kind, _) in UiCommand.All<XifEditorActionKind>(Store))
+        foreach ((Friflo.Engine.ECS.Entity button, XifEditorActionKind kind, _) in UiCommand.All<XifEditorActionKind>(
+                     Store))
         {
             if (kind == XifEditorActionKind.InsertPoint)
                 Click(button);
@@ -80,9 +84,13 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
 
         Assert.That(XafSampler.Sample(Package, Idle, 0.45f).Effects[0].Visible, Is.False);
         Assert.That(XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Visible, Is.True);
-        Assert.That(XafSampler.Sample(Package, Idle, 0.5f + XafEffects.DefaultShowSeconds).Effects[0].Visible, Is.False);
+        Assert.That(
+            XafSampler.Sample(Package, Idle, 0.5f + XafEffects.DefaultShowSeconds).Effects[0].Visible,
+            Is.False);
 
-        Assert.That(Button(ToolActionKind.SelectEffect, "0").GetComponent<Text>().Value, Is.EqualTo("streak  on torso"));
+        Assert.That(
+            Button(ToolActionKind.SelectEffect, "0").GetComponent<Text>().Value,
+            Is.EqualTo("streak  on torso"));
         Assert.That(Runtime.Pose.Effects, Has.Length.EqualTo(1), "the runtime is rebuilt for the new effect");
     }
 
@@ -123,8 +131,9 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
         Click(Button(ToolActionKind.KeyBone));
 
-        Assert.That(XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Transform.Rotation,
-            Is.EqualTo(Tools.Animator.Commands.AnimatorEditing.RotationStep).Within(0.001f));
+        Assert.That(
+            XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Transform.Rotation,
+            Is.EqualTo(AnimatorEditing.RotationStep).Within(0.001f));
 
         Click(Button(ToolActionKind.DeleteEffect));
         Assert.That(Package.Effects, Is.Empty);

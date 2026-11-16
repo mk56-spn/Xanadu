@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Ui.Ecs.Ui;
 

@@ -1,12 +1,17 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -95,8 +100,9 @@ public sealed class AnimatorEasingWindowTests : AnimatorToolTest
         Assert.That(Window.Open, Is.True);
         Assert.That(Ui.EasingButton.GetComponent<Text>().Value, Is.EqualTo("EASE: BACK OUT"));
         Assert.That(Parts.Name.GetComponent<Text>().Value, Is.EqualTo("BACK OUT"));
-        Assert.That(EaseCell(EasePreset.BackOut).GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Xanadu.Theme.Palette.Selected));
+        Assert.That(
+            EaseCell(EasePreset.BackOut).GetComponent<ButtonVisual>().Normal,
+            Is.EqualTo(Palette.Selected));
     }
 
     [Test]

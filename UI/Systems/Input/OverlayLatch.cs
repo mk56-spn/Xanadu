@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// Show/hide state shared by every debug overlay and panel: one press of the

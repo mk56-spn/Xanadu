@@ -2,12 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
+using Xanadu.Editor.History;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
-using Xanadu.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 
@@ -233,7 +238,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         Playhead playhead = editor.GetComponent<Playhead>();
         // A step in beats, so items keep their place on the grid across tempo changes.
         double stepBeats = EditorTiming.StepBeats(playhead) * Math.Sign(direction);
-        Xanadu.Timeline.TempoMap tempo = playhead.Tempo;
+        TempoMap tempo = playhead.Tempo;
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;

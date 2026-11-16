@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Levels;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 
-namespace Xanadu.Editor;
+namespace Xanadu.Editor.History;
 
 /// <summary>Reads the level's editable items into a snapshot the undo history can compare.</summary>
 public sealed class EditorSnapshotCapture(EntityStore entities)

@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Settings;
-using Xanadu.Systems.Audio;
-using Xanadu.Systems.Ui;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>What clicking the field places: a note kind, or another playfield item.</summary>
 public enum EditorPlacementMode

@@ -2,14 +2,19 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -36,9 +41,17 @@ public sealed class AnimatorClipTests : AnimatorToolTest
 
     private ref TextField NameField => ref Ui.ClipName.GetComponent<TextField>();
 
-    private void BeginEditing() { Ui.ClipName.AddTag<TextFieldFocused>(); Frame(); }
+    private void BeginEditing()
+    {
+        Ui.ClipName.AddTag<TextFieldFocused>();
+        Frame();
+    }
 
-    private void EndEditing() { Ui.ClipName.RemoveTag<TextFieldFocused>(); Frame(); }
+    private void EndEditing()
+    {
+        Ui.ClipName.RemoveTag<TextFieldFocused>();
+        Frame();
+    }
 
     private void OpenLengthPanel()
     {
@@ -140,8 +153,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
 
         Assert.That(Package.Clips, Has.Count.EqualTo(2));
         Assert.That(Session.GetComponent<AnimatorNewClipDialog>().Open, Is.True);
-        Assert.That(Ui.NewClipError.GetComponent<Text>().Value,
-            Is.EqualTo("LENGTH MUST BE A NUMBER"));
+        Assert.That(Ui.NewClipError.GetComponent<Text>().Value, Is.EqualTo("LENGTH MUST BE A NUMBER"));
     }
 
     [Test]
@@ -205,7 +217,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
         foreach (ToolActionKind kind in new[]
                  {
                      ToolActionKind.OpenClipLength,
-                     ToolActionKind.DeleteClip,
+                     ToolActionKind.DeleteClip
                  })
         {
             List<Entity> controls = Buttons(kind);
@@ -214,8 +226,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
             Assert.That(controls[0].HasComponent<DropdownOption>(), Is.True, kind.ToString());
         }
 
-        Assert.That(Button(ToolActionKind.OpenClipLength).GetComponent<Text>().Value,
-            Is.EqualTo("LENGTH…"));
+        Assert.That(Button(ToolActionKind.OpenClipLength).GetComponent<Text>().Value, Is.EqualTo("LENGTH…"));
     }
 
     [Test]
@@ -239,12 +250,9 @@ public sealed class AnimatorClipTests : AnimatorToolTest
 
         Assert.That(IsInside(Ui.ClipLengthField, Ui.ClipLengthPanel), Is.True);
         Assert.That(Ui.ClipLengthField.GetComponent<TextField>().Value, Is.EqualTo("2.00"));
-        Assert.That(Button(ToolActionKind.DurationDown, "0.1").GetComponent<Text>().Value,
-            Is.EqualTo("◀"));
-        Assert.That(Button(ToolActionKind.DurationDown, "1").GetComponent<Text>().Value,
-            Is.EqualTo("◀◀"));
-        Assert.That(Button(ToolActionKind.DurationDown, "10").GetComponent<Text>().Value,
-            Is.EqualTo("◀◀◀"));
+        Assert.That(Button(ToolActionKind.DurationDown, "0.1").GetComponent<Text>().Value, Is.EqualTo("◀"));
+        Assert.That(Button(ToolActionKind.DurationDown, "1").GetComponent<Text>().Value, Is.EqualTo("◀◀"));
+        Assert.That(Button(ToolActionKind.DurationDown, "10").GetComponent<Text>().Value, Is.EqualTo("◀◀◀"));
     }
 
     [Test]

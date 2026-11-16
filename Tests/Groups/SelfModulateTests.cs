@@ -1,13 +1,17 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Groups;
 
@@ -211,7 +215,7 @@ public sealed class SelfModulateTests : EcsSystemTest
             Notes = { new NoteDocument { SelfModulate = red }, new NoteDocument() },
             Mines = { new MineDocument { SelfModulate = red } },
             Blocks = { new BlockDocument { SelfModulate = red } },
-            Spikes = { new SpikeDocument { SelfModulate = red } },
+            Spikes = { new SpikeDocument { SelfModulate = red } }
         };
 
         LevelDocument loaded = XmfBinary.Read(XmfBinary.Write(document));
@@ -237,12 +241,14 @@ public sealed class SelfModulateTests : EcsSystemTest
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
-        package.Attachments.Add(new XafAttachment { SvgPath = "a.svg", Group = "a", BoneId = "root", SelfModulate = tint });
+        package.Attachments.Add(
+            new XafAttachment { SvgPath = "a.svg", Group = "a", BoneId = "root", SelfModulate = tint });
         return package;
     }
 
     [Test]
     public void RigFilesKeepAttachmentColours() =>
-        Assert.That(XafBinary.Read(XafBinary.Write(Package(Colors.Red))).Attachments[0].SelfModulate, Is.EqualTo(Colors.Red));
-
+        Assert.That(
+            XafBinary.Read(XafBinary.Write(Package(Colors.Red))).Attachments[0].SelfModulate,
+            Is.EqualTo(Colors.Red));
 }

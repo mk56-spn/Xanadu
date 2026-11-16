@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>How much a tick marks: a beat or labelled second, half or a quarter of one, or a finer step.</summary>
 public enum TimelineTickLevel

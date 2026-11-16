@@ -1,9 +1,11 @@
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Debug;
-using Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Debug;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems;
+namespace Xanadu.Ui.Systems;
 
 /// <summary>
 /// What the running host provides that systems fall back on when nothing is
@@ -56,7 +58,7 @@ public static class HostPlatform
     public static System.Func<CanvasMaterial, System.Collections.Generic.IReadOnlyList<MaterialParam>?>? DescribeMaterial { get; set; }
 
     /// <summary>The host's particles (Docs/host.md §5.6); null in tests.</summary>
-    public static Xanadu.Particles.IParticleServer? Particles { get; set; }
+    public static IParticleServer? Particles { get; set; }
 
     public static void Use(
         ICanvasServer server,

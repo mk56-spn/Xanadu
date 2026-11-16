@@ -1,12 +1,16 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Color = Xanadu.Core.Maths.Color;
+using Position = Xanadu.Core.Position;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Pointer interaction and display updates for ECS colour pickers.</summary>
 public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySystem<UiColorPicker, Position>

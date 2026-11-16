@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using SDL3;
+using SDL = SDL3.SDL;
 
 namespace Xanadu.Host;
 

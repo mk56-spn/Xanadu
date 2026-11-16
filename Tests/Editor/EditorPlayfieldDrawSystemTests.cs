@@ -3,15 +3,17 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support.Fakes;
-using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Editor;
 
@@ -26,7 +28,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Ruler"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             view,
             new NoteSelection(default));
         store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
@@ -48,7 +50,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Wave"),
             new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false, durationMs: durationMs),
+            new Playhead(0, 120, 0, false, durationMs),
             new TimelineView(zoom),
             new WaveformPreview("", data),
             view,
@@ -67,7 +69,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         (RecordingCanvas canvas, Rect2 ruler) = DrawTimeline(600_000, 1f, null);
 
         // The playhead sits on the first tick at time zero, so that spot is left out.
-        var ticks = canvas.Lines.FindAll(line =>
+        List<RecordingCanvas.LineCall> ticks = canvas.Lines.FindAll(line =>
             line.From.X == line.To.X && line.To.Y == ruler.End.Y && line.From.X > ruler.Position.X);
         ticks.Sort((a, b) => a.From.X.CompareTo(b.From.X));
         Assert.That(ticks, Is.Not.Empty);
@@ -78,8 +80,7 @@ public sealed class EditorPlayfieldDrawSystemTests
     [Test]
     public void TheSongIsOneShadedQuadOverTheRulerReadingItsRunningSums()
     {
-        var data = new WaveformData(
-            new[] { 1f, 0.5f }, new[] { 1f, 1f }, new[] { 1f, 1f }, durationMs: 4_000);
+        var data = new WaveformData(new[] { 1f, 0.5f }, new[] { 1f, 1f }, new[] { 1f, 1f }, 4_000);
         var textures = new FloatTextures();
         TextureServer.Use(textures);
         try
@@ -118,7 +119,9 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         public Handle Load(string path) => default;
 
-        public void Free(Handle texture) { }
+        public void Free(Handle texture)
+        {
+        }
     }
 
     [Test]
@@ -129,7 +132,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Tempo"),
             new Playfield(1000, 1000),
-            new Playhead(0, 140, 500, false, durationMs: 5_000),
+            new Playhead(0, 140, 500, false, 5_000),
             view,
             new NoteSelection(default));
 
@@ -150,7 +153,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Zoomed"),
             new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false, durationMs: 5_000),
+            new Playhead(0, 120, 0, false, 5_000),
             view,
             new NoteSelection(default),
             new TimelineView(4f));
@@ -164,9 +167,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(canvas.Rects, Does.Contain(EditorLayout.RulerRect(view)));
         Assert.That(canvas.Lines, Is.Not.Empty);
 
-        (long start, long end) = EditorLayout.TimelineWindow(
-            new Playhead(0, 120, 0, false, durationMs: 5_000),
-            4f);
+        (long start, long end) = EditorLayout.TimelineWindow(new Playhead(0, 120, 0, false, 5_000), 4f);
         Assert.That(start, Is.EqualTo(0));
         Assert.That(end, Is.EqualTo(1_250));
     }
@@ -179,7 +180,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Colors"),
             new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false, durationMs: 5_000, snapDivision: 4),
+            new Playhead(0, 120, 0, false, 5_000, snapDivision: 4),
             view,
             new NoteSelection(default));
 
@@ -189,15 +190,9 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.MainSnapColor),
-            Is.True);
-        Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.HalfSnapColor),
-            Is.True);
-        Assert.That(
-            canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.QuarterSnapColor),
-            Is.True);
+        Assert.That(canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.MainSnapColor), Is.True);
+        Assert.That(canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.HalfSnapColor), Is.True);
+        Assert.That(canvas.Lines.Any(line => line.Color == EditorTimelineDrawer.QuarterSnapColor), Is.True);
     }
 
     [Test]
@@ -208,7 +203,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Stacked"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, false, 5_000),
             view,
             new NoteSelection(default),
             new TimelineView(32f));
@@ -221,8 +216,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        var squares = canvas.Rects
-            .Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
+        var squares = canvas.Rects.Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
             .ToList();
         Assert.That(squares, Has.Count.EqualTo(2));
         Assert.That(squares[0].Position.X, Is.EqualTo(squares[1].Position.X));
@@ -234,15 +228,11 @@ public sealed class EditorPlayfieldDrawSystemTests
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
-        Entity note = store.CreateEntity(
-            new Note(
-                1_000,
-                new Vector2(100, 100),
-                target: Xanadu.Settings.KeybindAction.Action1));
+        Entity note = store.CreateEntity(new Note(1_000, new Vector2(100, 100), Xanadu.Settings.KeybindAction.Action1));
         store.CreateEntity(
             new LevelInfo("Markers"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, false, 5_000),
             view,
             new NoteSelection(note));
 
@@ -252,15 +242,11 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Color lane = PlayfieldRenderer.ColorFor(
-            Xanadu.Settings.KeybindAction.Action1);
-        Assert.That(
-            canvas.RectCalls.Any(call => call.Color == lane),
-            Is.True);
+        Color lane = PlayfieldRenderer.ColorFor(Xanadu.Settings.KeybindAction.Action1);
+        Assert.That(canvas.RectCalls.Any(call => call.Color == lane), Is.True);
         Assert.That(
             canvas.RectCalls.Any(call =>
-                call.Color == PlayfieldRenderer.SelectedNoteColor &&
-                call.Bounds.Size.X > call.Bounds.Size.Y),
+                call.Color == PlayfieldRenderer.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y),
             Is.True);
     }
 
@@ -272,7 +258,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Capped"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, false, 5_000),
             view,
             new NoteSelection(default),
             new TimelineView(32f));
@@ -285,14 +271,11 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        var squares = canvas.Rects
-            .Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
+        var squares = canvas.Rects.Where(rect => rect.Size == Vector2.One * EditorTimelineNotes.SquareSize(32f))
             .ToList();
         Assert.That(squares, Has.Count.EqualTo(7));
-        Assert.That(squares.Select(rect => rect.Position.X).Distinct().Count(),
-            Is.EqualTo(1));
-        Assert.That(squares.Select(rect => rect.Position.Y).Distinct().Count(),
-            Is.EqualTo(7));
+        Assert.That(squares.Select(rect => rect.Position.X).Distinct().Count(), Is.EqualTo(1));
+        Assert.That(squares.Select(rect => rect.Position.Y).Distinct().Count(), Is.EqualTo(7));
     }
 
     [Test]
@@ -303,7 +286,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         Entity editor = store.CreateEntity(
             new LevelInfo("Selected"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, false, 5_000),
             view,
             new NoteSelection(default),
             new TimelineView(32f));
@@ -318,15 +301,9 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        var selectedOutlines = canvas.RectCalls
-            .Where(call =>
-                call.Color == PlayfieldRenderer.SelectedNoteColor &&
-                call.Bounds.Size.X > call.Bounds.Size.Y)
-            .ToList();
-        Assert.That(
-            selectedOutlines.Select(call => call.Bounds.Position)
-                .Distinct().Count(),
-            Is.EqualTo(4));
+        var selectedOutlines = canvas.RectCalls.Where(call =>
+            call.Color == PlayfieldRenderer.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y).ToList();
+        Assert.That(selectedOutlines.Select(call => call.Bounds.Position).Distinct().Count(), Is.EqualTo(4));
     }
 
     [Test]
@@ -376,26 +353,21 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         Rect2 field = EditorLayout.PlayfieldRect(view, playfield);
         Assert.That(
-            canvas.RectCalls.Exists(call =>
-                call.Bounds == field &&
-                call.Color == new Color("#204060")),
+            canvas.RectCalls.Exists(call => call.Bounds == field && call.Color == new Color("#204060")),
             Is.True);
     }
 
     [Test]
     public void TheSelectedBlockShowsItsResizeNubs()
     {
-        var (store, field, canvas, root) = StartPointScene();
-        Entity block = store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
+        Entity block = store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
         field.GetComponent<NoteSelection>().Note = block;
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
         PlayfieldView view = field.GetComponent<PlayfieldView>();
-        Rect2 expected = new(
-            view.PlayfieldToScreen(new Vector2(400, 500)),
-            new Vector2(200, 100) * view.Scale);
+        Rect2 expected = new(view.PlayfieldToScreen(new Vector2(400, 500)), new Vector2(200, 100) * view.Scale);
         Assert.That(
             canvas.RectCalls.Exists(call =>
                 call.Color == PlayfieldRenderer.BlockSelectedEdge &&
@@ -404,8 +376,7 @@ public sealed class EditorPlayfieldDrawSystemTests
             Is.True);
         Assert.That(
             canvas.RectCalls.FindAll(call =>
-                call.Color == PlayfieldRenderer.HandleEdge &&
-                call.Bounds.Size == new Vector2(10, 10)),
+                call.Color == PlayfieldRenderer.HandleEdge && call.Bounds.Size == new Vector2(10, 10)),
             Has.Count.EqualTo(4));
     }
 
@@ -430,7 +401,9 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         PlayfieldRenderer.DrawBlockBody(canvas, default, screen, 4f, Colors.White, Colors.Red);
 
-        Assert.That(canvas.RectCalls.Exists(call => call.Bounds == screen.Grow(-4f) && call.Color == Colors.White), Is.True);
+        Assert.That(
+            canvas.RectCalls.Exists(call => call.Bounds == screen.Grow(-4f) && call.Color == Colors.White),
+            Is.True);
     }
 
     [Test]
@@ -441,7 +414,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         store.CreateEntity(
             new LevelInfo("Live"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 60_000),
+            new Playhead(1_000, 120, 0, false, 60_000),
             view,
             new NoteSelection(default),
             LevelGroups.Create(),
@@ -477,7 +450,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         Entity field = store.CreateEntity(
             new LevelInfo("Starts"),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, false, durationMs: 60_000),
+            new Playhead(1_000, 120, 0, false, 60_000),
             view,
             new NoteSelection(default),
             new TimelineView(8f));
@@ -488,7 +461,7 @@ public sealed class EditorPlayfieldDrawSystemTests
     }
 
     private static StartPoint Start(string name, long timeMs) =>
-        new(name, timeMs, new Vector2(500, 500), System.Numerics.Vector2.Zero, Vector2.Zero);
+        new(name, timeMs, new Vector2(500, 500), Vector2.Zero, Vector2.Zero);
 
     private static bool IsStartMarker(RecordingCanvas.RectCall call, Rect2 ruler, Color color) =>
         call.Color == color && call.Bounds.Size.X == 2 && call.Bounds.Size.Y == ruler.Size.Y;
@@ -496,7 +469,7 @@ public sealed class EditorPlayfieldDrawSystemTests
     [Test]
     public void StartPointsShowOnTheTimelineWithTheirNames()
     {
-        var (store, field, canvas, root) = StartPointScene();
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         store.CreateEntity(Start("chorus", 2_000));
         store.CreateEntity(Start("", 1_500));
 
@@ -505,14 +478,15 @@ public sealed class EditorPlayfieldDrawSystemTests
         Rect2 ruler = EditorLayout.RulerRect(field.GetComponent<PlayfieldView>());
         Assert.That(canvas.Texts, Does.Contain("chorus"));
         Assert.That(canvas.Texts, Does.Contain("START"));
-        Assert.That(canvas.RectCalls.FindAll(call => IsStartMarker(call, ruler, PlayfieldRenderer.StartPointColor)),
+        Assert.That(
+            canvas.RectCalls.FindAll(call => IsStartMarker(call, ruler, PlayfieldRenderer.StartPointColor)),
             Has.Count.EqualTo(2));
     }
 
     [Test]
     public void StartPointsOutsideTheVisibleWindowAreNotDrawn()
     {
-        var (store, field, canvas, root) = StartPointScene();
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         (_, long windowEnd) = EditorLayout.TimelineWindow(
             field.GetComponent<Playhead>(),
             field.GetComponent<TimelineView>().Zoom);
@@ -527,14 +501,15 @@ public sealed class EditorPlayfieldDrawSystemTests
     [TestCase(false)]
     public void ThePathToggleShowsOrHidesThePreviewPath(bool visible)
     {
-        var (store, field, canvas, root) = StartPointScene();
-        field.AddComponent(new PlayerPath(
-            new List<PlayerPathSample>
-            {
-                new(new Vector2(100, 100), 0, false),
-                new(new Vector2(200, 100), 100, false),
-            },
-            new Vector2(30, 200)));
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
+        field.AddComponent(
+            new PlayerPath(
+                new List<PlayerPathSample>
+                {
+                    new(new Vector2(100, 100), 0, false),
+                    new(new Vector2(200, 100), 100, false)
+                },
+                new Vector2(30, 200)));
         Entity button = store.CreateEntity();
         PlayerPathSwitch.Attach(button);
         button.GetComponent<Toggle>().Value = visible;
@@ -542,7 +517,8 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(
-            canvas.Lines.Exists(line => line.Color.G > line.Color.R && line.Color.G > line.Color.B && line.Color.A > 0.7f),
+            canvas.Lines.Exists(line =>
+                line.Color.G > line.Color.R && line.Color.G > line.Color.B && line.Color.A > 0.7f),
             Is.EqualTo(visible));
     }
 
@@ -550,69 +526,62 @@ public sealed class EditorPlayfieldDrawSystemTests
     [TestCase(false)]
     public void TheFrameANoteWasHitIsOutlinedInItsOwnColour(bool hit)
     {
-        var (store, field, canvas, root) = StartPointScene();
-        field.AddComponent(new PlayerPath(
-            new List<PlayerPathSample>
-            {
-                new(new Vector2(100, 100), 0, false),
-                new(new Vector2(200, 100), 100, false, hit),
-            },
-            new Vector2(30, 200)));
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
+        field.AddComponent(
+            new PlayerPath(
+                new List<PlayerPathSample>
+                {
+                    new(new Vector2(100, 100), 0, false),
+                    new(new Vector2(200, 100), 100, false, hit)
+                },
+                new Vector2(30, 200)));
         Entity button = store.CreateEntity();
         PlayerPathSwitch.Attach(button);
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.RectCalls.Exists(call => call.Color == EditorPathDrawer.HitColor),
-            Is.EqualTo(hit));
+        Assert.That(canvas.RectCalls.Exists(call => call.Color == EditorPathDrawer.HitColor), Is.EqualTo(hit));
     }
 
     [Test]
     public void ASelectedNoteKeepsItsOutlineAfterItFadesOut()
     {
-        var (store, field, canvas, root) = StartPointScene();
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         Entity note = store.CreateEntity(new Note(0, new Vector2(100, 100)));
         field.GetComponent<NoteSelection>() = new NoteSelection(note);
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
-            Is.True);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.True);
     }
 
     [Test]
     public void ASelectedMineKeepsItsOutlineAfterItFadesOut()
     {
-        var (store, field, canvas, root) = StartPointScene();
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         Entity mine = store.CreateEntity(new Mine(0, new Vector2(100, 100)));
         field.GetComponent<NoteSelection>() = new NoteSelection(mine);
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
-            Is.True);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.True);
     }
 
     [Test]
     public void AnUnselectedNoteHasNoOutlineOnceItFadesOut()
     {
-        var (store, _, canvas, root) = StartPointScene();
+        (EntityStore store, _, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         store.CreateEntity(new Note(0, new Vector2(100, 100)));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor),
-            Is.False);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.False);
     }
 
     [Test]
     public void TheSelectedStartPointIsHighlightedOnTheTimeline()
     {
-        var (store, field, canvas, root) = StartPointScene();
+        (EntityStore store, Entity field, RecordingCanvas canvas, SystemRoot root) = StartPointScene();
         Entity start = store.CreateEntity(Start("verse", 2_000));
         field.GetComponent<NoteSelection>() = new NoteSelection(start);
 
@@ -636,11 +605,17 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) => TextureCalls.Add((bounds, texture));
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
@@ -648,28 +623,22 @@ public sealed class EditorPlayfieldDrawSystemTests
             RectCalls.Add(new RectCall(bounds, color));
         }
 
-        public void DrawLine(
-            Handle canvas,
-            Vector2 from,
-            Vector2 to,
-            Color color,
-            float width) =>
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
             Lines.Add(new LineCall(from, to, color));
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
         public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
             Texts.Add(text);
 
-        public void DrawTextVertical(
-            Handle canvas,
-            Rect2 bounds,
-            string text,
-            Color color,
-            int fontSize) =>
+        public void DrawTextVertical(Handle canvas, Rect2 bounds, string text, Color color, int fontSize) =>
             Texts.Add(text);
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
         public void DrawTextWeighted(
             Handle canvas,
@@ -681,13 +650,8 @@ public sealed class EditorPlayfieldDrawSystemTests
             bool bold) =>
             Texts.Add(text);
 
-        public readonly record struct RectCall(
-            Rect2 Bounds,
-            Color Color);
+        public readonly record struct RectCall(Rect2 Bounds, Color Color);
 
-        public readonly record struct LineCall(
-            Vector2 From,
-            Vector2 To,
-            Color Color);
+        public readonly record struct LineCall(Vector2 From, Vector2 To, Color Color);
     }
 }

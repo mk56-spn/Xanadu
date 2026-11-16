@@ -1,3 +1,6 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 using System;
 using System.IO;
 using Friflo.Engine.ECS;
@@ -9,7 +12,7 @@ using Xanadu.Scenes;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Scenes;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.VisualTests;
 

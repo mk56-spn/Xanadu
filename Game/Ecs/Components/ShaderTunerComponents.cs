@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Binds a tuner slider to one channel of a shader uniform.</summary>
 public struct ShaderParam(string uniform, int channel, float defaultValue) : IComponent

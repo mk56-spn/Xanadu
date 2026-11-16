@@ -1,7 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Hearing presses of one command enum's buttons through the store's native

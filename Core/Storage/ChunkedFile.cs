@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Xanadu.Storage;
+namespace Xanadu.Core.Storage;
 
 /// <summary>
 /// Lays out the chunked files XAF character packages and XMF level maps share:

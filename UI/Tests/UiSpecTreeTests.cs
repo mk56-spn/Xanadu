@@ -1,12 +1,12 @@
+using Xanadu.Tests.Support.Fakes;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Tests.Support;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Tree;
+using Xanadu.Ui.Ecs.Ui.Tree;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>
 /// Trees written as initializers (<see cref="UiSpec"/>): they build the same

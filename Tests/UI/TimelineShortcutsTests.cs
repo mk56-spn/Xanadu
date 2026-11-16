@@ -2,11 +2,16 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Systems.Groups;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Timeline;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Systems.Groups;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tests.UI;
 
@@ -80,7 +85,9 @@ public sealed class TimelineShortcutsTests
 
     [Test]
     public void SteppingLandsOnAGridFromItsOrigin() =>
-        Assert.That(After(TimelineCommand.StepForward, new Host { NowMs = 1_010, StepOriginMs = 100 }), Is.EqualTo(1_350));
+        Assert.That(
+            After(TimelineCommand.StepForward, new Host { NowMs = 1_010, StepOriginMs = 100 }),
+            Is.EqualTo(1_350));
 
     [Test]
     public void AJumpWithNowhereToGoSaysSo()
@@ -105,7 +112,7 @@ public sealed class TimelineShortcutsTests
 
     [Test]
     public void ModifiersMustMatch() =>
-        Assert.That(TimelineShortcuts.Find(new KeyChord(Key.Home, Ctrl: true)), Is.Null);
+        Assert.That(TimelineShortcuts.Find(new KeyChord(Key.Home, true)), Is.Null);
 
     private static (float Zoom, int Left) Scroll(Host host, Vector2 pointer, bool control)
     {
@@ -113,7 +120,10 @@ public sealed class TimelineShortcutsTests
         Entity timeline = store.CreateEntity(new TimelineView(2f), new TimelineHost(host));
         var wheel = new Wheel { Notches = 1, Control = control };
         var root = new SystemRoot(store);
-        root.Add(new TimelineSystemGroup(new FakePointerInput { Current = new PointerInput(pointer, false, false, false, false) }, wheel));
+        root.Add(
+            new TimelineSystemGroup(
+                new FakePointerInput { Current = new PointerInput(pointer, false, false, false, false) },
+                wheel));
         root.Update(new UpdateTick(0.016f, 0.016f));
         return (timeline.GetComponent<TimelineView>().Zoom, wheel.Notches);
     }

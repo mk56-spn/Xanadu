@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Analysis;
 
 namespace Xanadu.Tests.Editor;
@@ -72,7 +73,7 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 500, 895),
-            Hit(1400, 500, 700),
+            Hit(1400, 500, 700)
         ];
 
         Assert.That(PlayabilityAnalyzer.Analyze(chart, Field), Is.Empty);
@@ -86,7 +87,7 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 540, 895),
-            Hit(1400, 420, 880),
+            Hit(1400, 420, 880)
         ];
 
         Assert.That(
@@ -100,12 +101,10 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 500, 895),
-            Hit(1400, 500, 500),
+            Hit(1400, 500, 500)
         ];
 
-        Assert.That(
-            PlayabilityAnalyzer.Analyze(chart, Field).Single().Problem,
-            Is.EqualTo(PlayabilityProblem.TooHigh));
+        Assert.That(PlayabilityAnalyzer.Analyze(chart, Field).Single().Problem, Is.EqualTo(PlayabilityProblem.TooHigh));
     }
 
     [Test]
@@ -115,7 +114,7 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 500, 895),
-            Hit(3000, 500, 900),
+            Hit(3000, 500, 900)
         ];
 
         Assert.That(PlayabilityAnalyzer.Analyze(chart, Field), Is.Empty);
@@ -128,7 +127,7 @@ public sealed class EditorAnalysisTests
         [
             Dash(1000, 100, 895),
             Hit(1600, 350, 880),
-            Hit(1800, 350, 880),
+            Hit(1800, 350, 880)
         ];
 
         List<PlayabilityIssue> issues = PlayabilityAnalyzer.Analyze(chart, Field);
@@ -143,7 +142,7 @@ public sealed class EditorAnalysisTests
         AnalysedNote[] chart =
         [
             Dash(1000, 500, 895),
-            Hit(1000, 500, 900),
+            Hit(1000, 500, 900)
         ];
 
         Assert.That(PlayabilityAnalyzer.Analyze(chart, Field), Is.Empty);
@@ -157,7 +156,7 @@ public sealed class EditorAnalysisTests
             Origin = new Vector2(100, 50),
             FieldSize = new Vector2(500, 500),
             Scale = 0.5f,
-            NoteSize = 36,
+            NoteSize = 36
         };
 
         // Same logical spot as the start, so reachable at any scale.
@@ -173,9 +172,7 @@ public sealed class EditorAnalysisTests
     public void DensityCountsNotesPerSecond()
     {
         // Four notes a second for ten seconds, then silence.
-        List<AnalysedNote> notes = Enumerable.Range(0, 40)
-            .Select(i => Hit(i * 250, 500, 500))
-            .ToList();
+        var notes = Enumerable.Range(0, 40).Select(i => Hit(i * 250, 500, 500)).ToList();
 
         DensityProfile profile = LevelDensity.Compute(notes, 14_000);
 
@@ -187,7 +184,7 @@ public sealed class EditorAnalysisTests
     [Test]
     public void DensityUnsortedInputGivesTheSameProfile()
     {
-        List<AnalysedNote> notes = Enumerable.Range(0, 20).Select(i => Hit(i * 300, i * 10, 0)).ToList();
+        var notes = Enumerable.Range(0, 20).Select(i => Hit(i * 300, i * 10, 0)).ToList();
 
         DensityProfile sorted = LevelDensity.Compute(notes, 7000);
         notes.Reverse();

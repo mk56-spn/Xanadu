@@ -1,12 +1,16 @@
+using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Systems.Editor;
-using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
@@ -64,7 +68,7 @@ public sealed class EditorLayersTests
         {
             MoveForward = _store.CreateEntity(),
             MoveBack = _store.CreateEntity(),
-            Delete = _store.CreateEntity(),
+            Delete = _store.CreateEntity()
         };
         _editor = _store.CreateEntity(
             new Playfield(1000, 1000),
@@ -74,7 +78,11 @@ public sealed class EditorLayersTests
             EditorLayers.Create(),
             LevelLayers.Create(),
             _panel,
-            new EditorLayerInspector(_store.CreateEntity(), _store.CreateEntity(new Text("")), _store.CreateEntity(new Text("")), _store.CreateEntity(new Text(""))));
+            new EditorLayerInspector(
+                _store.CreateEntity(),
+                _store.CreateEntity(new Text("")),
+                _store.CreateEntity(new Text("")),
+                _store.CreateEntity(new Text(""))));
     }
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
@@ -140,16 +148,17 @@ public sealed class EditorLayersTests
     [Test]
     public void ChoosingAPassShaderKeepsTheKeysItStillDeclaresAndUndoesAsOneStep()
     {
-        LevelShaders shaders = LevelShaders.Create();
+        var shaders = LevelShaders.Create();
         shaders.Slots[0] = new ShaderSlot
         {
             Name = "Old",
-            Source = "[Instance] uniform float strength;\n[Instance] uniform float gone;\nfloat4 shade(ItemInput i) { return i.colour; }",
+            Source =
+                "[Instance] uniform float strength;\n[Instance] uniform float gone;\nfloat4 shade(ItemInput i) { return i.colour; }"
         };
         shaders.Slots[1] = new ShaderSlot
         {
             Name = "New",
-            Source = "[Instance] uniform float2 strength;\nfloat4 shade(ItemInput i) { return i.colour; }",
+            Source = "[Instance] uniform float2 strength;\nfloat4 shade(ItemInput i) { return i.colour; }"
         };
         _editor.AddComponent(shaders);
         LevelLayer entry = Table.Edit(-2);
@@ -227,7 +236,10 @@ public sealed class EditorLayersTests
 
         Press(RowFor(-2).Label);
         Press(_panel.Delete);
-        Assert.That(EditorLayerEdits.Rows(_store, Layers, Table).Exists(row => row.Layer == -2), Is.True, "a layer with items stays");
+        Assert.That(
+            EditorLayerEdits.Rows(_store, Layers, Table).Exists(row => row.Layer == -2),
+            Is.True,
+            "a layer with items stays");
     }
 
     [Test]
@@ -238,7 +250,7 @@ public sealed class EditorLayersTests
         Block(3, 0);
         Layers.Kept.Add(-5);
 
-        var rows = EditorLayerEdits.Rows(_store, Layers, Table);
+        List<EditorLayerRow> rows = EditorLayerEdits.Rows(_store, Layers, Table);
 
         Assert.That(rows.Select(row => row.Layer), Is.EqualTo(new[] { 3, 0, -2, -5 }));
         Assert.That(rows.Select(row => row.Count), Is.EqualTo(new[] { 1, 0, 2, 0 }));
@@ -251,7 +263,7 @@ public sealed class EditorLayersTests
         Entity back = Block(1, 0);
         Entity front = Block(3, 0);
 
-        int added = EditorLayerEdits.Insert(_store, ref Layers, ref Table, 1, front: true);
+        int added = EditorLayerEdits.Insert(_store, ref Layers, ref Table, 1, true);
 
         Assert.That(added, Is.EqualTo(2));
         Assert.That((Of(back).Layer, Of(front).Layer), Is.EqualTo((1, 3)), "nothing had to move");
@@ -269,12 +281,12 @@ public sealed class EditorLayersTests
         Table.SetName(2, "FRONT");
         Layers.Hidden.Add(-2);
 
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 1, front: true), Is.EqualTo(2));
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 1, true), Is.EqualTo(2));
         Assert.That((Of(one).Layer, Of(two).Layer), Is.EqualTo((1, 3)));
         Assert.That(Table.NameOf(3), Is.EqualTo("FRONT"), "the name moves with its layer");
 
         // In front of -2 is towards the wedge: the new layer takes -2 and pushes it out.
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, -2, front: true), Is.EqualTo(-2));
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, -2, true), Is.EqualTo(-2));
         Assert.That((Of(behind).Layer, Of(further).Layer), Is.EqualTo((-1, -3)));
         Assert.That(Layers.Hidden, Is.EquivalentTo(new[] { -3 }));
     }
@@ -284,9 +296,9 @@ public sealed class EditorLayersTests
     {
         Entity one = Block(1, 0);
 
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 0, front: true), Is.EqualTo(1));
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 0, true), Is.EqualTo(1));
         Assert.That(Of(one).Layer, Is.EqualTo(2));
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 0, front: false), Is.EqualTo(-1));
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 0, false), Is.EqualTo(-1));
     }
 
     [Test]
@@ -295,8 +307,8 @@ public sealed class EditorLayersTests
         Entity last = Block(200, 0);
         Block(199, 0);
 
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 200, front: true), Is.Zero);
-        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 200, front: false), Is.Zero);
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 200, true), Is.Zero);
+        Assert.That(EditorLayerEdits.Insert(_store, ref Layers, ref Table, 200, false), Is.Zero);
         Assert.That(Of(last).Layer, Is.EqualTo(200));
     }
 
@@ -348,7 +360,9 @@ public sealed class EditorLayersTests
 
         Assert.That(Of(back).Z, Is.EqualTo(1));
         Assert.That(_history.Undo(), Is.True);
-        Assert.That(_store.Query<Block>().ToEntityList().Select(block => Of(block).Z).Order(), Is.EqualTo(new[] { 0, 1 }));
+        Assert.That(
+            _store.Query<Block>().ToEntityList().Select(block => Of(block).Z).Order(),
+            Is.EqualTo(new[] { 0, 1 }));
     }
 
     [Test]
@@ -371,20 +385,24 @@ public sealed class EditorLayersTests
         Entity front = Block(1, 0);
         Select(back, front);
         Frame();
-        Assert.That(_editor.GetComponent<EditorLayerInspector>().Layer.GetComponent<Text>().Value, Is.EqualTo("LAYER MIXED"));
+        Assert.That(
+            _editor.GetComponent<EditorLayerInspector>().Layer.GetComponent<Text>().Value,
+            Is.EqualTo("LAYER MIXED"));
 
         Press(EditorButtonKind.LayerStep, 1);
 
         Assert.That(Of(back).Layer, Is.EqualTo(-1), "one forward from -2, not collapsed onto the first item's");
         Assert.That(Of(front).Layer, Is.EqualTo(2));
         Assert.That(_history.Undo(), Is.True, "one undo step");
-        Assert.That(_store.Query<Block>().ToEntityList().Select(block => Of(block).Layer).Order(), Is.EqualTo(new[] { -2, 1 }));
+        Assert.That(
+            _store.Query<Block>().ToEntityList().Select(block => Of(block).Layer).Order(),
+            Is.EqualTo(new[] { -2, 1 }));
     }
 
     [Test]
     public void TheLayerStepperRefusesToBreakABufferedGroup()
     {
-        LevelGroups groups = LevelGroups.Create();
+        var groups = LevelGroups.Create();
         groups.Groups[0].Buffered = true;
         _editor.AddComponent(groups);
         Entity member = Block(-2, 0);
@@ -398,9 +416,7 @@ public sealed class EditorLayersTests
         Assert.That(Of(member).Layer, Is.EqualTo(-2), "the group stays on one layer");
         Assert.That(_history.CanUndo, Is.False, "nothing was edited");
         Assert.That(_editor.HasComponent<WarningRequest>(), Is.True);
-        Assert.That(
-            _editor.GetComponent<WarningRequest>().Message,
-            Is.EqualTo(GroupBufferRules.OneLayer));
+        Assert.That(_editor.GetComponent<WarningRequest>().Message, Is.EqualTo(GroupBufferRules.OneLayer));
     }
 
     [Test]
@@ -506,7 +522,11 @@ public sealed class EditorLayersTests
 
         Assert.That(Layers.Hidden, Is.Empty);
         Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(0, 0), ""), Does.Contain("PLAYER"));
-        Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.SelfContained), Does.EndWith("[SELF]"));
-        Assert.That(EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.None), Does.Not.Contain("["));
+        Assert.That(
+            EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.SelfContained),
+            Does.EndWith("[SELF]"));
+        Assert.That(
+            EditorLayersPanelSystem.Label(new EditorLayerRow(-2, 3), "", LayerPassKind.None),
+            Does.Not.Contain("["));
     }
 }

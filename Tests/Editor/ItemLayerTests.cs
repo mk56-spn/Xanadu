@@ -1,13 +1,15 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Items;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
-using Xanadu.Items;
-using Xanadu.Layering;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 
@@ -30,7 +32,9 @@ public sealed class ItemLayerTests
             Assert.That(LayerOf(EditorItems.Create(store, new Spike(Spot, new Vector2(50, 50)))), Is.EqualTo(-2));
             Assert.That(LayerOf(EditorItems.Create(store, new Note(0, Spot))), Is.EqualTo(-1));
             Assert.That(LayerOf(EditorItems.Create(store, new Mine(0, Spot))), Is.EqualTo(-1));
-            Assert.That(LayerOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))), Is.EqualTo(-1));
+            Assert.That(
+                LayerOf(EditorItems.Create(store, new StartPoint("", 0, Spot, default, Vector2.Up))),
+                Is.EqualTo(-1));
             Assert.That(LayerOf(EditorItems.Create(store, new GrassPatch(Spot, 1))), Is.EqualTo(1));
             Assert.That(LayerOf(EditorItems.Create(store, new LevelText(Spot, "hi"))), Is.EqualTo(2));
         });
@@ -98,7 +102,9 @@ public sealed class ItemLayerTests
         LevelDocumentMapper.Apply(target, Editor(target), document);
 
         Assert.That(target.Query<Block>().ToEntityList()[0].GetComponent<ItemLayer>(), Is.EqualTo(new ItemLayer(7, 3)));
-        Assert.That(target.Query<Note>().ToEntityList()[0].GetComponent<ItemLayer>(), Is.EqualTo(new ItemLayer(ItemLayer.Gameplay, 9)));
+        Assert.That(
+            target.Query<Note>().ToEntityList()[0].GetComponent<ItemLayer>(),
+            Is.EqualTo(new ItemLayer(ItemLayer.Gameplay, 9)));
     }
 
     [Test]
@@ -159,7 +165,9 @@ public sealed class ItemLayerTests
 
         Assert.That(history.CanUndo, Is.True);
         history.Undo();
-        Assert.That(store.Query<Block>().ToEntityList()[0].GetComponent<ItemLayer>(), Is.EqualTo(new ItemLayer(ItemLayer.Terrain, 0)));
+        Assert.That(
+            store.Query<Block>().ToEntityList()[0].GetComponent<ItemLayer>(),
+            Is.EqualTo(new ItemLayer(ItemLayer.Terrain, 0)));
         history.Redo();
         Assert.That(store.Query<Block>().ToEntityList()[0].GetComponent<ItemLayer>(), Is.EqualTo(new ItemLayer(4, 2)));
     }
@@ -181,7 +189,7 @@ public sealed class ItemLayerTests
         .. items.Spikes.Select(i => (i.Layer, i.Z)),
         .. items.Texts.Select(i => (i.Layer, i.Z)),
         .. items.Grass.Select(i => (i.Layer, i.Z)),
-        .. items.Polygons.Select(i => (i.Layer, i.Z)),
+        .. items.Polygons.Select(i => (i.Layer, i.Z))
     ];
 }
 

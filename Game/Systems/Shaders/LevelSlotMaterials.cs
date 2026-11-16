@@ -1,7 +1,8 @@
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Shaders;
 

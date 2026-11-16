@@ -1,8 +1,10 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// The right panel. The list on top holds what the rig is made of, one

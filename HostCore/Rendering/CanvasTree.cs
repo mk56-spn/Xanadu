@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Rendering;
 

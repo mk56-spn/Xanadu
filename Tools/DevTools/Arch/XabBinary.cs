@@ -1,9 +1,10 @@
 using System;
 using System.IO;
-using Xanadu.Storage;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 using Xanadu.Ui.Editing;
 
-namespace Xanadu.Tools.Arch;
+namespace Xanadu.Tools.DevTools.Arch;
 
 /// <summary>
 /// Binary XAB reader/writer for the architecture board (<see cref="Board"/>), on the

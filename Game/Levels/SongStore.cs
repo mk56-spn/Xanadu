@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs.Storage;
 
 namespace Xanadu.Levels;
@@ -52,7 +53,7 @@ public sealed class SongStore
     }
 
     public string Root => _root ??=
-        Xanadu.Storage.GamePaths.Full(LibraryFolder);
+        GamePaths.Full(LibraryFolder);
 
     public string CatalogPath =>
         _catalogPath ?? Path.Combine(Root, "catalog.json");

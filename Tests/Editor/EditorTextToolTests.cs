@@ -2,12 +2,16 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Editor;
 
@@ -107,7 +111,9 @@ public sealed class EditorTextToolTests
         Assert.That(
             OnlyText.GetComponent<LevelText>().Size,
             Is.EqualTo(LevelText.DefaultSize + EditorTextPanelSystem.SizeStep));
-        Assert.That(_size.GetComponent<Text>().Value, Is.EqualTo($"SIZE {LevelText.DefaultSize + EditorTextPanelSystem.SizeStep:0}"));
+        Assert.That(
+            _size.GetComponent<Text>().Value,
+            Is.EqualTo($"SIZE {LevelText.DefaultSize + EditorTextPanelSystem.SizeStep:0}"));
     }
 
     [Test]

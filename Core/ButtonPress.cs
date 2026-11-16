@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Core;
 
 /// <summary>
 /// Turns a held ECS button into a single press event. Every panel that acts on

@@ -2,14 +2,19 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -73,8 +78,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
     {
         // UI positions are relative to the parent, so add up the chain to get
         // the screen point a click on the row would land on.
-        Pointer.Position = Ui.SvgMenu.GetComponent<Position>().Value +
-                           Ui.SvgMenuList.GetComponent<Position>().Value +
+        Pointer.Position = Ui.SvgMenu.GetComponent<Position>().Value + Ui.SvgMenuList.GetComponent<Position>().Value +
                            row.GetComponent<Position>().Value;
         Pointer.Pressed = true;
         row.AddTag<Pressed>();
@@ -101,12 +105,13 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
         Assert.That(Menu.Bone, Is.EqualTo(2));
         Assert.That(
             Menu.Choices,
-            Is.EqualTo(new[]
-            {
-                new AnimatorSvgChoice("Assets/SVG/arm.svg", "arm"),
-                new AnimatorSvgChoice("Assets/SVG/arm.svg", "sleeve"),
-                new AnimatorSvgChoice("Assets/SVG/body.svg", "body"),
-            }));
+            Is.EqualTo(
+                new[]
+                {
+                    new AnimatorSvgChoice("Assets/SVG/arm.svg", "arm"),
+                    new AnimatorSvgChoice("Assets/SVG/arm.svg", "sleeve"),
+                    new AnimatorSvgChoice("Assets/SVG/body.svg", "body")
+                }));
         Assert.That(UiLayout.IsHidden(Ui.SvgMenu), Is.False);
     }
 
@@ -140,8 +145,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
         Assert.That(added.BoneId, Is.EqualTo("head"));
         Assert.That(Session.GetComponent<AnimatorSelection>().Attachment, Is.EqualTo(before));
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(-1));
-        Assert.That(Session.GetComponent<AnimatorStatus>().Message,
-            Is.EqualTo("ADDED sleeve TO head"));
+        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("ADDED sleeve TO head"));
         Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.True);
         Assert.That(Menu.Open, Is.True);
     }
@@ -208,13 +212,12 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
         Click(BoneOption(ToolActionKind.AddSvg));
 
         Assert.That(Menu.Open, Is.False);
-        Assert.That(Session.GetComponent<AnimatorStatus>().Message,
-            Is.EqualTo("NO SVG GROUPS IN THE PROJECT"));
+        Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("NO SVG GROUPS IN THE PROJECT"));
     }
 
     private static string[] ManyGroups(int count)
     {
-        var groups = new string[count];
+        string[] groups = new string[count];
         for (int i = 0; i < count; i++)
             groups[i] = $"part{i}";
         return groups;

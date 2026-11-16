@@ -1,7 +1,8 @@
 using System;
-using Xanadu.Levels;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
+using Xanadu.Levels;
 
 namespace Xanadu.Editor;
 
@@ -38,11 +39,11 @@ public sealed partial class EditorOverlay
                 break;
 
             case EditorButtonKind.PreviewHere:
-                StartPreview(fromPlayhead: true);
+                StartPreview(true);
                 break;
 
             case EditorButtonKind.BackgroundColor:
-                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Background);
+                EditorDialogs.Open(_entities, EditorDialogKind.MapColor);
                 break;
 
             case EditorButtonKind.ResetBackgroundColor:
@@ -81,18 +82,10 @@ public sealed partial class EditorOverlay
 
     /// <summary>The request kinds the overlay acts on and clears.</summary>
     private static bool Handles(EditorButtonKind kind) =>
-        kind is EditorButtonKind.Save
-            or EditorButtonKind.LoadSong
-            or EditorButtonKind.Preview
-            or EditorButtonKind.PreviewHere
-            or EditorButtonKind.BackgroundColor
-            or EditorButtonKind.ResetBackgroundColor
-            or EditorButtonKind.OutsideColor
-            or EditorButtonKind.ResetOutsideColor
-            or EditorButtonKind.FrameColor
-            or EditorButtonKind.ResetFrameColor
-            or EditorButtonKind.ImportShader
-            or EditorButtonKind.Leave
+        kind is EditorButtonKind.Save or EditorButtonKind.LoadSong or EditorButtonKind.Preview
+            or EditorButtonKind.PreviewHere or EditorButtonKind.BackgroundColor or EditorButtonKind.ResetBackgroundColor
+            or EditorButtonKind.OutsideColor or EditorButtonKind.ResetOutsideColor or EditorButtonKind.FrameColor
+            or EditorButtonKind.ResetFrameColor or EditorButtonKind.ImportShader or EditorButtonKind.Leave
             or EditorButtonKind.QuietSave;
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>

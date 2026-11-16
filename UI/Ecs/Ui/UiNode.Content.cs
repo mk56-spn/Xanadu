@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Creates the leaf content of a UI tree: text, buttons, shapes.</summary>
 public readonly partial struct UiNode

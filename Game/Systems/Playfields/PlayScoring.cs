@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Scoring;
 
 namespace Xanadu.Systems.Playfields;

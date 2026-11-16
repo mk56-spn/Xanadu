@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Characters;
 using Xanadu.Tests.Support;
 
@@ -43,7 +45,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         Entity player = Rigged();
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 0, 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackHigh));
         Assert.That(RuntimeOf(player).Additives.Count, Is.EqualTo(1));
@@ -55,7 +57,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         Entity player = Rigged();
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 200, 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackLow));
     }
@@ -65,7 +67,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         Entity player = Rigged();
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 100, 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackMid));
     }
@@ -77,13 +79,13 @@ public sealed class CharacterAttackTests : EcsSystemTest
         Entity player = Rigged();
         player.AddComponent(new CharacterMotion { State = state });
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 0, 100);
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirHigh));
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 100, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 100, 100);
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirMid));
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 200, 100);
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackAirLow));
     }
 
@@ -95,7 +97,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
         Entity player = Rigged();
         player.AddComponent(new CharacterMotion { State = state });
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 0, 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackHigh));
     }
@@ -105,8 +107,8 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         Entity player = Rigged();
 
-        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
-        CharacterAttackSystem.Trigger(player, noteScreenY: 200, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 0, 100);
+        CharacterAttackSystem.Trigger(player, 200, 100);
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.EqualTo(ContactClip.AttackLow));
         Assert.That(RuntimeOf(player).Additives.Count, Is.EqualTo(1));
@@ -116,9 +118,9 @@ public sealed class CharacterAttackTests : EcsSystemTest
     public void TheLayerIsRemovedOnceItsClipFinishes()
     {
         Entity player = Rigged();
-        CharacterAttackSystem.Trigger(player, noteScreenY: 0, playerScreenY: 100);
+        CharacterAttackSystem.Trigger(player, 0, 100);
 
-        Frame(frames: 20); // 20 / 60s > the 0.2s clip duration.
+        Frame(20); // 20 / 60s > the 0.2s clip duration.
 
         Assert.That(player.GetComponent<CharacterAttack>().Clip, Is.Null);
         Assert.That(RuntimeOf(player).Additives, Is.Empty);
@@ -129,7 +131,7 @@ public sealed class CharacterAttackTests : EcsSystemTest
     {
         Entity bare = Store.CreateEntity();
 
-        Assert.DoesNotThrow(() => CharacterAttackSystem.Trigger(bare, noteScreenY: 0, playerScreenY: 100));
+        Assert.DoesNotThrow(() => CharacterAttackSystem.Trigger(bare, 0, 100));
         Assert.That(bare.HasComponent<CharacterAttack>(), Is.False);
     }
 }

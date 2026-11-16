@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core.Diagnostics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>The archetype table: live counts, sampled deltas, reserve, and selection.</summary>
 public sealed partial class DebugPressedOverlaySystem
@@ -147,15 +147,15 @@ public sealed partial class DebugPressedOverlaySystem
     /// <summary>Writes every archetype, active or not, to <see cref="DumpPath"/> for reading outside the overlay.</summary>
     private void WriteDump()
     {
-        string path = Xanadu.Storage.GamePaths.Full(DumpPath);
+        string path = GamePaths.Full(DumpPath);
         try
         {
             _archetypes.Dump(path);
-            Xanadu.Diagnostics.GameLog.Info($"Archetypes written to {path}");
+            GameLog.Info($"Archetypes written to {path}");
         }
         catch (Exception exception)
         {
-            Xanadu.Diagnostics.GameLog.Warning($"Could not write {path}: {exception.Message}");
+            GameLog.Warning($"Could not write {path}: {exception.Message}");
         }
     }
 

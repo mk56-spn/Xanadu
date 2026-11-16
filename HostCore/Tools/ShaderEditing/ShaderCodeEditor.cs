@@ -5,14 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 

@@ -1,4 +1,4 @@
-using Xanadu.History;
+using Xanadu.Core.History;
 
 namespace Xanadu.Ui.Editing;
 

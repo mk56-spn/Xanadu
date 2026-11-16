@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Items;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// What a tool gives the XIF editor: the item to edit, how edits are recorded,

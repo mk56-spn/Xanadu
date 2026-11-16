@@ -1,10 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ui.Tree;
+namespace Xanadu.Ui.Ecs.Ui.Tree;
 
 /// <summary>
 /// Text in <paramref name="type"/>'s size, measured to fit unless sized. With

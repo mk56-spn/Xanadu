@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Tree;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 

@@ -1,32 +1,35 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ecs.Kinds;
 using Xanadu.Levels;
 
 namespace Xanadu.Editor;
 
 /// <summary>
-/// How the editor was left when a preview began. Returning rebuilds the editor
-/// from its document, so this puts the view, tool settings, snap, metronome,
-/// layer toggles and selection back. Items are remembered by what they are,
-/// since their entities do not survive.
+///     How the editor was left when a preview began. Returning rebuilds the editor
+///     from its document, so this puts the view, tool settings, snap, metronome,
+///     layer toggles and selection back. Items are remembered by what they are,
+///     since their entities do not survive.
 /// </summary>
 public sealed class EditorReturnState
 {
-    private readonly record struct ItemKey(int Kind, long TimeMs, Vector2 Position);
-
-    private PlayfieldView _view;
-    private bool _hasTimeline;
-    private TimelineView _timeline;
+    private readonly List<ItemKey> _selection = new();
+    private EditorGroupState _groups;
+    private bool _hasGroups;
+    private bool _hasLayers;
     private bool _hasPlacement;
+    private bool _hasTimeline;
+    private EditorLayers _layers;
+    private bool _metronome;
     private EditorPlacement _placement;
     private int _snapDivision;
-    private bool _metronome;
-    private bool _hasLayers;
-    private EditorLayers _layers;
-    private bool _hasGroups;
-    private EditorGroupState _groups;
-    private readonly List<ItemKey> _selection = new();
+    private TimelineView _timeline;
+
+    private PlayfieldView _view;
 
     public static EditorReturnState? Capture(EntityStore entities)
     {
@@ -46,7 +49,7 @@ public sealed class EditorReturnState
             _hasLayers = editor.TryGetComponent(out EditorLayers layers),
             _layers = layers,
             _hasGroups = editor.TryGetComponent(out EditorGroupState groups),
-            _groups = groups,
+            _groups = groups
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -100,9 +103,9 @@ public sealed class EditorReturnState
     }
 
     /// <summary>
-    /// A start at the playhead with the player where the last preview's path had
-    /// them then; failing that, at the last start before it, or else the field's
-    /// bottom middle, where a level begins.
+    ///     A start at the playhead with the player where the last preview's path had
+    ///     them then; failing that, at the last start before it, or else the field's
+    ///     bottom middle, where a level begins.
     /// </summary>
     public static StartPoint StartAtPlayhead(
         EntityStore entities,
@@ -110,9 +113,7 @@ public sealed class EditorReturnState
         List<StartPoint> starts,
         long playheadMs)
     {
-        Vector2 position = new(
-            document.PlayfieldWidth / 2f,
-            document.PlayfieldHeight - Player.ScaledSize(1f).Y / 2f);
+        Vector2 position = new(document.PlayfieldWidth / 2f, document.PlayfieldHeight - Player.ScaledSize(1f).Y / 2f);
         Vector2 direction = new(0, -1);
         foreach (StartPoint start in starts)
         {
@@ -133,12 +134,7 @@ public sealed class EditorReturnState
             }
         }
 
-        return new StartPoint(
-            "",
-            playheadMs,
-            position,
-            System.Numerics.Vector2.Zero,
-            direction);
+        return new StartPoint("", playheadMs, position, Vector2.Zero, direction);
     }
 
     private static Entity FindEditor(EntityStore entities)
@@ -158,9 +154,11 @@ public sealed class EditorReturnState
         if (!EditorItemPosition.TryGet(item, out Vector2 position))
             return false;
 
-        int kind = System.Array.IndexOf(ItemKinds.All, ItemKinds.Of(item));
+        int kind = Array.IndexOf(ItemKinds.All, ItemKinds.Of(item));
         long time = EditorItemTiming.TryGet(item, out long at) ? at : 0;
         key = new ItemKey(kind, time, position);
         return true;
     }
+
+    private readonly record struct ItemKey(int Kind, long TimeMs, Vector2 Position);
 }

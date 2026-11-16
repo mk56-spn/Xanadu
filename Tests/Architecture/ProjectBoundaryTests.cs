@@ -7,9 +7,8 @@ namespace Xanadu.Tests.Architecture;
 [TestFixture]
 public sealed class ProjectBoundaryTests
 {
-    private static string Root => Path.GetFullPath(Path.Combine(
-        TestContext.CurrentContext.TestDirectory,
-        "../../../../"));
+    private static string Root =>
+        Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../../"));
 
     [Test]
     public void GenericUiDoesNotReferenceGameNamespaces()
@@ -20,19 +19,15 @@ public sealed class ProjectBoundaryTests
             "Xanadu.Editor",
             "Xanadu.Levels",
             "Xanadu.Settings",
-            "Xanadu.Profiles",
+            "Xanadu.Profiles"
         };
 
-        foreach (string file in Directory.GetFiles(
-                     Path.Combine(Root, "UI"), "*.cs", SearchOption.AllDirectories))
+        foreach (string file in Directory.GetFiles(Path.Combine(Root, "UI"), "*.cs", SearchOption.AllDirectories))
         {
             string source = File.ReadAllText(file);
             foreach (string name in forbidden)
             {
-                Assert.That(
-                    source.Contains($"using {name}"),
-                    Is.False,
-                    $"{file} references {name}");
+                Assert.That(source.Contains($"using {name}"), Is.False, $"{file} references {name}");
             }
         }
     }
@@ -40,8 +35,7 @@ public sealed class ProjectBoundaryTests
     [Test]
     public void CoreDoesNotReferenceUiOrGame()
     {
-        foreach (string file in Directory.GetFiles(
-                     Path.Combine(Root, "Core"), "*.cs", SearchOption.AllDirectories))
+        foreach (string file in Directory.GetFiles(Path.Combine(Root, "Core"), "*.cs", SearchOption.AllDirectories))
         {
             string source = File.ReadAllText(file);
             Assert.That(source.Contains("using Xanadu.Ui"), Is.False, file);
@@ -56,27 +50,23 @@ public sealed class ProjectBoundaryTests
         {
             Path.Combine(Root, "Game", "Systems", "Editor"),
             Path.Combine(Root, "Game", "Editor"),
-            Path.Combine(Root, "Game", "Levels"),
+            Path.Combine(Root, "Game", "Levels")
         };
         string[] direct =
         {
             "CreateEntity(new Note(",
             "CreateEntity(new Mine(",
-            "CreateEntity(new StartPoint(",
+            "CreateEntity(new StartPoint("
         };
 
         foreach (string root in roots)
         {
-            foreach (string file in Directory.GetFiles(
-                         root, "*.cs", SearchOption.AllDirectories))
+            foreach (string file in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
             {
                 string source = File.ReadAllText(file);
                 foreach (string call in direct)
                 {
-                    Assert.That(
-                        source.Contains(call),
-                        Is.False,
-                        $"{file} bypasses EditorItems.Create via {call}");
+                    Assert.That(source.Contains(call), Is.False, $"{file} bypasses EditorItems.Create via {call}");
                 }
             }
         }

@@ -1,9 +1,12 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Tests.Support;
 using Xanadu.Systems.Editor;
-using Xanadu.Theme;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Editor;
 
@@ -13,8 +16,7 @@ public sealed class EditorDashStrengthSystemTests : EcsSystemTest
     [Test]
     public void StrengthButtonsAreExclusiveAndTintTheSelection()
     {
-        Entity editor = Store.CreateEntity(
-            new EditorPlacement { Strength = DashStrength.Single });
+        Entity editor = Store.CreateEntity(new EditorPlacement { Strength = DashStrength.Single });
         Entity single = Button(DashStrength.Single);
         Entity twice = Button(DashStrength.Double);
         Entity triple = Button(DashStrength.Triple);
@@ -22,26 +24,19 @@ public sealed class EditorDashStrengthSystemTests : EcsSystemTest
         Root.Add(new EditorDashStrengthSystem(Store));
 
         Frame();
-        Assert.That(single.GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Palette.Primary));
+        Assert.That(single.GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Primary));
 
         triple.AddTag<Pressed>();
         Frame();
 
-        Assert.That(
-            editor.GetComponent<EditorPlacement>().Strength,
-            Is.EqualTo(DashStrength.Triple));
-        Assert.That(triple.GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Palette.Primary));
-        Assert.That(twice.GetComponent<ButtonVisual>().Normal,
-            Is.EqualTo(Palette.Muted));
+        Assert.That(editor.GetComponent<EditorPlacement>().Strength, Is.EqualTo(DashStrength.Triple));
+        Assert.That(triple.GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Primary));
+        Assert.That(twice.GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Muted));
     }
 
     private Entity Button(DashStrength strength)
     {
-        Entity button = Store.CreateEntity(
-            EditorButton.Strength(strength),
-            ButtonVisual.Create(Palette.Muted));
+        Entity button = Store.CreateEntity(EditorButton.Strength(strength), ButtonVisual.Create(Palette.Muted));
         return button;
     }
 }

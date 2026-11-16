@@ -1,7 +1,8 @@
 using System;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 /// <summary>One instance per glyph of every label on the stage, from the glyphs <see cref="LabelLayoutSystem"/> keeps.</summary>
 internal sealed class LabelExtractSystem(DrawList list) : QuerySystem<Placed, Depth, Tint, LabelGlyphs>

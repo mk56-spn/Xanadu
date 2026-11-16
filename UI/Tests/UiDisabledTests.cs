@@ -1,13 +1,14 @@
+using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
-using Xanadu.Tests.Support;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class UiDisabledTests

@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>
 /// One particle as it is born, in the space of the canvas item it draws in:

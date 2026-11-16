@@ -10,17 +10,25 @@ public sealed class XafAttachmentArtTests
     private static XafPackage Package(out XafClip clip)
     {
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "hand.svg", Group = "hand", BoneId = "root", ZOrder = 2,
-            Alternates = { new XafArt { SvgPath = "hand.svg", Group = "fist" } },
-        });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "hand.svg", Group = "hand", BoneId = "root", ZOrder = 2,
+                Alternates = { new XafArt { SvgPath = "hand.svg", Group = "fist" } }
+            });
         clip = package.Clips.Find(found => found.Id == "idle")!;
         return package;
     }
 
     private static void Key(XafClip clip, XafChannelProperty property, float time, float value) =>
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Attachment, "hand", property, time, value, XafInterpolation.Step);
+        XafAuthoring.SetChannel(
+            clip,
+            XafChannelTarget.Attachment,
+            "hand",
+            property,
+            time,
+            value,
+            XafInterpolation.Step);
 
     [Test]
     public void ArtLayerAndVisibilitySwitchAtTheirKeysAndStartAsAuthored()

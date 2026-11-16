@@ -1,6 +1,6 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Creates canvas items on whichever <see cref="CanvasServer"/> is installed, without loading Godot assets.</summary>
 public sealed class CanvasServerRidFactory(bool loadsAssets = false) : IVisualRidFactory

@@ -11,9 +11,7 @@ public sealed class HudLayoutSettingsTests
     [Test]
     public void PersistsPositionAndVisibility()
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            "writer-hud-" + Guid.NewGuid().ToString("N") + ".json");
+        string path = Path.Combine(Path.GetTempPath(), "writer-hud-" + Guid.NewGuid().ToString("N") + ".json");
 
         try
         {
@@ -21,7 +19,7 @@ public sealed class HudLayoutSettingsTests
             settings.Set("judgement_counts", 0.72f, 0.15f, false);
 
             var loaded = new HudLayoutSettings(path);
-            Assert.That(loaded.TryGet("judgement_counts", out var entry), Is.True);
+            Assert.That(loaded.TryGet("judgement_counts", out HudLayoutSettings.HudLayoutEntry entry), Is.True);
             Assert.That(entry.X, Is.EqualTo(0.72f).Within(0.001f));
             Assert.That(entry.Y, Is.EqualTo(0.15f).Within(0.001f));
             Assert.That(entry.Visible, Is.False);

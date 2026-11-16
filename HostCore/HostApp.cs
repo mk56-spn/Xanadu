@@ -6,19 +6,24 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Graphics;
 using MoonWorks.Input;
-using Xanadu.Ecs;
+using SDL3;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
 using Xanadu.Host.Text;
-using Xanadu.Storage;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Ui;
-using Xanadu.Theme;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MwColor = MoonWorks.Graphics.Color;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Debug;
+using Xanadu.Ui.Systems.Ui;
+using Color = Xanadu.Core.Maths.Color;
 
 namespace Xanadu.Host;
 
@@ -270,34 +275,34 @@ internal abstract class HostApp : Game
     private unsafe void ApplyWindowMode(WindowMode mode)
     {
         IntPtr window = MainWindow.Handle;
-        uint display = SDL3.SDL.SDL_GetDisplayForWindow(window);
+        uint display = SDL.SDL_GetDisplayForWindow(window);
         switch (mode)
         {
             case WindowMode.Fullscreen:
-                SDL3.SDL.SDL_SetWindowBordered(window, true);
-                SDL3.SDL.SDL_DisplayMode* current = SDL3.SDL.SDL_GetCurrentDisplayMode(display);
+                SDL.SDL_SetWindowBordered(window, true);
+                SDL.SDL_DisplayMode* current = SDL.SDL_GetCurrentDisplayMode(display);
                 if (current is not null)
-                    SDL3.SDL.SDL_SetWindowFullscreenMode(window, ref *current);
-                SDL3.SDL.SDL_SetWindowFullscreen(window, true);
+                    SDL.SDL_SetWindowFullscreenMode(window, ref *current);
+                SDL.SDL_SetWindowFullscreen(window, true);
                 break;
             case WindowMode.Borderless:
                 // Desktop fullscreen: no mode of its own, the window covers the
                 // display at the desktop's resolution.
-                SDL3.SDL.SDL_SetWindowFullscreenMode(window, ref System.Runtime.CompilerServices.Unsafe.NullRef<SDL3.SDL.SDL_DisplayMode>());
-                SDL3.SDL.SDL_SetWindowFullscreen(window, true);
+                SDL.SDL_SetWindowFullscreenMode(window, ref System.Runtime.CompilerServices.Unsafe.NullRef<SDL.SDL_DisplayMode>());
+                SDL.SDL_SetWindowFullscreen(window, true);
                 break;
             default:
-                SDL3.SDL.SDL_SetWindowFullscreen(window, false);
-                SDL3.SDL.SDL_SetWindowBordered(window, true);
-                SDL3.SDL.SDL_SetWindowSize(window, (int)_window.Width, (int)_window.Height);
+                SDL.SDL_SetWindowFullscreen(window, false);
+                SDL.SDL_SetWindowBordered(window, true);
+                SDL.SDL_SetWindowSize(window, (int)_window.Width, (int)_window.Height);
                 break;
         }
-        SDL3.SDL.SDL_SyncWindow(window);
+        SDL.SDL_SyncWindow(window);
     }
 
     private unsafe int RefreshRate()
     {
-        SDL3.SDL.SDL_DisplayMode* display = SDL3.SDL.SDL_GetCurrentDisplayMode(SDL3.SDL.SDL_GetDisplayForWindow(MainWindow.Handle));
+        SDL.SDL_DisplayMode* display = SDL.SDL_GetCurrentDisplayMode(SDL.SDL_GetDisplayForWindow(MainWindow.Handle));
         return display is null || display->refresh_rate < 1 ? 60 : (int)MathF.Round(display->refresh_rate);
     }
 
@@ -366,7 +371,7 @@ internal abstract class HostApp : Game
     /// </summary>
     private void FollowWindowSize()
     {
-        if (!SDL3.SDL.SDL_GetWindowSize(MainWindow.Handle, out int width, out int height) || width < 1 || height < 1)
+        if (!SDL.SDL_GetWindowSize(MainWindow.Handle, out int width, out int height) || width < 1 || height < 1)
             return;
         Pointer.Scale = new Vector2((float)Width / width, (float)Height / height);
     }
@@ -413,7 +418,7 @@ internal abstract class HostApp : Game
         using (commands.Scope("offscreen"))
             RenderOffscreen(commands);
 
-        Xanadu.Maths.Color background = Palette.Background;
+        Color background = Palette.Background;
         using (commands.Scope("canvas"))
             Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds);
         using (commands.Scope("blit to window"))
@@ -478,7 +483,7 @@ internal abstract class HostApp : Game
 }
 
 /// <summary>Frames per second over the last second, for the debug overlay.</summary>
-internal sealed class HostFps : Xanadu.Systems.Debug.IFpsSource
+internal sealed class HostFps : IFpsSource
 {
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     private int _count;

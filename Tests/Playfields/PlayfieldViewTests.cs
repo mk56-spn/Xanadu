@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -9,10 +10,7 @@ public sealed class PlayfieldViewTests
     [Test]
     public void PlayfieldCoordinatesRoundTripThroughScreenSpace()
     {
-        var view = new PlayfieldView(
-            new Vector2(30, 40),
-            scale: 0.6f,
-            new Vector2(1152, 648));
+        var view = new PlayfieldView(new Vector2(30, 40), 0.6f, new Vector2(1152, 648));
 
         Vector2 screen = view.PlayfieldToScreen(new Vector2(500, 500));
         Vector2 back = view.ScreenToPlayfield(screen);
@@ -25,14 +23,9 @@ public sealed class PlayfieldViewTests
     [Test]
     public void PlayfieldCornersMapToScreen()
     {
-        var view = new PlayfieldView(
-            new Vector2(30, 30),
-            scale: 0.5f,
-            new Vector2(1152, 648));
+        var view = new PlayfieldView(new Vector2(30, 30), 0.5f, new Vector2(1152, 648));
 
         Assert.That(view.PlayfieldToScreen(Vector2.Zero), Is.EqualTo(new Vector2(30, 30)));
-        Assert.That(
-            view.PlayfieldToScreen(new Vector2(1000, 1000)),
-            Is.EqualTo(new Vector2(530, 530)));
+        Assert.That(view.PlayfieldToScreen(new Vector2(1000, 1000)), Is.EqualTo(new Vector2(530, 530)));
     }
 }

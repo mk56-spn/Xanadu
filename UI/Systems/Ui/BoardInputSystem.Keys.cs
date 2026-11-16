@@ -1,12 +1,12 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>A board's keys: typing into a box, and the keys that act on the selection.</summary>
 public sealed partial class BoardInputSystem

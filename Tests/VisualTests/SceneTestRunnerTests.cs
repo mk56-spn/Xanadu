@@ -18,12 +18,8 @@ public sealed class SceneTestRunnerTests
         Assert.That(result?.Passed, Is.True);
         Assert.That(test.StepRan, Is.True);
         Assert.That(test.StepCount, Is.EqualTo(4));
-        Assert.That(
-            test.Steps[0].State,
-            Is.EqualTo(SceneTestStepState.Passed));
-        Assert.That(
-            test.Steps[3].State,
-            Is.EqualTo(SceneTestStepState.Passed));
+        Assert.That(test.Steps[0].State, Is.EqualTo(SceneTestStepState.Passed));
+        Assert.That(test.Steps[3].State, Is.EqualTo(SceneTestStepState.Passed));
     }
 
     [Test]
@@ -37,9 +33,7 @@ public sealed class SceneTestRunnerTests
 
         Assert.That(result?.Passed, Is.False);
         Assert.That(result?.Message, Does.Contain("intentional failure"));
-        Assert.That(
-            test.Steps[1].State,
-            Is.EqualTo(SceneTestStepState.Failed));
+        Assert.That(test.Steps[1].State, Is.EqualTo(SceneTestStepState.Failed));
     }
 
     [Test]
@@ -55,9 +49,7 @@ public sealed class SceneTestRunnerTests
         Assert.That(result?.Message, Does.Contain("timed out"));
     }
 
-    private static VisualTestResult? Drive(
-        SceneTestRunner runner,
-        double maxSeconds = 2.0)
+    private static VisualTestResult? Drive(SceneTestRunner runner, double maxSeconds = 2.0)
     {
         double elapsed = 0;
         const double delta = 1.0 / 60.0;
@@ -97,10 +89,7 @@ public sealed class SceneTestRunnerTests
         protected override void SetUpSteps()
         {
             AddStep("first", () => { });
-            AddAssert(
-                "intentional failure",
-                () => false,
-                "expected false");
+            AddAssert("intentional failure", () => false, "expected false");
         }
     }
 
@@ -109,9 +98,6 @@ public sealed class SceneTestRunnerTests
         public override string Name => "Timeout";
         public override string Slug => "timeout";
 
-        protected override void SetUpSteps()
-        {
-            AddUntilStep("never", () => false, timeoutSeconds: 0.05);
-        }
+        protected override void SetUpSteps() => AddUntilStep("never", () => false, 0.05);
     }
 }

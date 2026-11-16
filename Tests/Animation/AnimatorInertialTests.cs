@@ -60,7 +60,7 @@ public sealed class AnimatorInertialTests
     [Test]
     public void ACrossfadingRuntimeIsUnchanged()
     {
-        AnimatorRuntime runtime = Runtime(inertial: false);
+        AnimatorRuntime runtime = Runtime(false);
         runtime.Update(Frame);
 
         runtime.Transition("b");
@@ -84,7 +84,8 @@ public sealed class AnimatorInertialTests
     private static XafClip Held(string id, float turn)
     {
         var clip = new XafClip { Id = id, Duration = 1f, Loop = true, LoopStart = 0f, LoopEnd = 1f };
-        var channel = new XafChannel { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.Rotation };
+        var channel = new XafChannel
+            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.Rotation };
         channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = turn });
         channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = turn });
         clip.Channels.Add(channel);

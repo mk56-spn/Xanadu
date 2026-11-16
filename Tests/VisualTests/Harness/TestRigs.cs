@@ -1,3 +1,4 @@
+using Xanadu.Ecs.Components;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
 using Xanadu.Ecs;
@@ -16,7 +17,7 @@ public static partial class TestContent
         if (player.HasComponent<CharacterRig>())
             return;
 
-        string path = Xanadu.Storage.GamePaths.Full("Tools/Animator/Animations/Characters/contact.xaf");
+        string path = Xanadu.Core.Storage.GamePaths.Full("Tools/Animator/Animations/Characters/contact.xaf");
         XafPackage? package = new DiskCharacterRigFiles().Load(path);
         if (package is null)
             return;

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Settings;
 
@@ -42,7 +43,7 @@ internal static class DemoLevel
         document.Blocks.Add(new BlockDocument { X = start + 300f, Y = ground - 260f, Width = 480f, Height = 40f, Layer = 5 });
         document.Blocks.Add(new BlockDocument { X = start - 900f, Y = ground - 420f, Width = 300f, Height = 300f, Groups = [0] });
         document.Groups.Add(new GroupDocument { Id = 0, Name = "inverted", Buffered = true, BufferShader = 2, BufferAlpha = 0.8f });
-        document.Layers.Add(new LayerDocument { Number = 5, Name = "rippled", Pass = Xanadu.Ecs.LayerPassKind.SelfContained, PassShader = 3 });
+        document.Layers.Add(new LayerDocument { Number = 5, Name = "rippled", Pass = LayerPassKind.SelfContained, PassShader = 3 });
         document.Shaders.Add(new ShaderDocument
         {
             Slot = 2,

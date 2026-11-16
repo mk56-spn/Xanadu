@@ -1,5 +1,5 @@
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>Outlines drawn from a canvas's filled rectangles.</summary>
 public static class CanvasBorder

@@ -3,9 +3,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -69,9 +70,7 @@ public sealed class PlayerArenaFrictionTests
             Run(1, 1f / 60f);
         }
 
-        Assert.That(
-            Box2DPhysicsWorld.ToScreen(body.GetPosition()).Y,
-            Is.LessThan(Floor - 50f));
+        Assert.That(Box2DPhysicsWorld.ToScreen(body.GetPosition()).Y, Is.LessThan(Floor - 50f));
     }
 
     [Test]
@@ -106,7 +105,7 @@ public sealed class PlayerArenaFrictionTests
     [TestCase(120, 1f / 240f)]
     public void TheFloorSlowsASlideTheSameAtAnyFrameRate(int frames, float delta)
     {
-        Body body = Player(Floor, 5f, grip: true);
+        Body body = Player(Floor, 5f, true);
 
         Run(frames, delta);
 
@@ -118,7 +117,7 @@ public sealed class PlayerArenaFrictionTests
     [TestCase(-1f)]
     public void ASlideStopsWithoutReversing(float speed)
     {
-        Body body = Player(Floor, speed, grip: true);
+        Body body = Player(Floor, speed, true);
 
         Run(120, 1f / 60f);
 
@@ -149,8 +148,7 @@ public sealed class PlayerArenaFrictionTests
     public void TheFloorGripsLikeABlock()
     {
         _physics.CreateStaticBox(new Vector2(500, 2_000), new Vector2(100_000, 100));
-        Body onBlock = _physics.CreateDynamicBox(
-            new Vector2(0, 1_900), new Vector2(30, 100), friction: 0.15f);
+        Body onBlock = _physics.CreateDynamicBox(new Vector2(0, 1_900), new Vector2(30, 100), friction: 0.15f);
         for (int i = 0; i < 120; i++)
             _physics.Step(Box2DPhysicsWorld.FixedTimeStep);
 

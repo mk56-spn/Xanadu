@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Items;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Items;
-using Xanadu.Timeline;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Levels;
 
@@ -138,15 +139,15 @@ public static class LevelSerializer
         {
             block.Groups ??= new();
             block.Shader = validShader(block.Shader);
-            block.OneWay = block.OneWay is >= 0 and <= (int)Xanadu.Ecs.BlockOneWay.Left ? block.OneWay : 0;
-            block.Slope = block.Slope is >= 0 and <= (int)Xanadu.Ecs.BlockSlope.UpLeft ? block.Slope : 0;
-            block.OutlineWidth = Math.Clamp(block.OutlineWidth, 0f, Xanadu.Ecs.Block.MaxOutlineWidth);
+            block.OneWay = block.OneWay is >= 0 and <= (int)BlockOneWay.Left ? block.OneWay : 0;
+            block.Slope = block.Slope is >= 0 and <= (int)BlockSlope.UpLeft ? block.Slope : 0;
+            block.OutlineWidth = Math.Clamp(block.OutlineWidth, 0f, Block.MaxOutlineWidth);
         }
         foreach (SpikeDocument spike in chart.Spikes)
         {
             spike.Groups ??= new();
             spike.RotationDegrees = Xanadu.Systems.Playfields.SpikeRules.NormalizeDegrees(spike.RotationDegrees);
-            spike.OutlineWidth = Math.Clamp(spike.OutlineWidth, 0f, Xanadu.Ecs.Block.MaxOutlineWidth);
+            spike.OutlineWidth = Math.Clamp(spike.OutlineWidth, 0f, Block.MaxOutlineWidth);
             spike.Shader = validShader(spike.Shader);
         }
 
@@ -154,7 +155,7 @@ public static class LevelSerializer
         {
             text.Groups ??= new();
             text.Text ??= "";
-            text.Size = Math.Clamp(text.Size, Xanadu.Ecs.LevelText.MinSize, Xanadu.Ecs.LevelText.MaxSize);
+            text.Size = Math.Clamp(text.Size, LevelText.MinSize, LevelText.MaxSize);
             text.Shader = validShader(text.Shader);
         }
 

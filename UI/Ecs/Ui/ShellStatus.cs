@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Ui;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>The unsaved-changes flag a shell header shows.</summary>
 public readonly record struct ShellStatusLabels(Entity Flag);

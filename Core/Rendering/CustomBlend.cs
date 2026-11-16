@@ -1,6 +1,7 @@
 using System;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Rendering;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>What a blend term multiplies its colour by. The numbers match SDL_GPU's, so the host casts.</summary>
 public enum BlendFactor

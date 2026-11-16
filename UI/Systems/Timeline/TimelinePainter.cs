@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>How each level of tick is drawn on a ruler: its height up from the ruler's foot, colour and width.</summary>
 public readonly record struct TimelineTickLook(float Height, Color Color, float Width = 1f);

@@ -1,11 +1,11 @@
+#nullable enable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-#nullable enable
-
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// 2×3 matrix (2 rows, 3 columns) used for 2D linear transformations.

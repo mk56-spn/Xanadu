@@ -1,9 +1,9 @@
 using System;
-using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Canvas;
+namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>Canvas operations used by draw systems.</summary>
 public interface IRectCanvas

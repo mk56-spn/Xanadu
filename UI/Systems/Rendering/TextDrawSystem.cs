@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Systems.Rendering;
+namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty entity text into the entity canvas item, cut to its box when it has <see cref="TextFit"/>.</summary>
 public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualRid>

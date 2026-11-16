@@ -11,16 +11,16 @@ public sealed class XafSvgDocumentTests
     public void KeepsOnlyTheRequestedGroupAndItsAncestors()
     {
         string svg = """
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-              <defs><style>.a{fill:red}</style></defs>
-              <g id="body" transform="translate(10 20)">
-                <rect id="torso" width="20" height="30"/>
-              </g>
-              <g id="arm">
-                <rect width="10" height="40"/>
-              </g>
-            </svg>
-            """;
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                       <defs><style>.a{fill:red}</style></defs>
+                       <g id="body" transform="translate(10 20)">
+                         <rect id="torso" width="20" height="30"/>
+                       </g>
+                       <g id="arm">
+                         <rect width="10" height="40"/>
+                       </g>
+                     </svg>
+                     """;
 
         string result = XafSvgDocument.IsolateGroup(svg, "body");
 
@@ -36,29 +36,27 @@ public sealed class XafSvgDocumentTests
     {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><g id=\"body\"/></svg>";
 
-        Assert.Throws<XafFormatException>(() =>
-            XafSvgDocument.IsolateGroup(svg, "missing"));
+        Assert.Throws<XafFormatException>(() => XafSvgDocument.IsolateGroup(svg, "missing"));
     }
 
     [Test]
     public void RejectsMalformedXml()
     {
-        Assert.Throws<XafFormatException>(() =>
-            XafSvgDocument.IsolateGroup("<svg>", "body"));
+        Assert.Throws<XafFormatException>(() => XafSvgDocument.IsolateGroup("<svg>", "body"));
     }
 
     [Test]
     public void ListsGroupIdsInDocumentOrder()
     {
         string svg = """
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-              <defs><g id="shadow"/></defs>
-              <g id="body"><rect id="torso" width="20" height="30"/></g>
-              <g id="arm"/>
-              <g id="body"/>
-              <g/>
-            </svg>
-            """;
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                       <defs><g id="shadow"/></defs>
+                       <g id="body"><rect id="torso" width="20" height="30"/></g>
+                       <g id="arm"/>
+                       <g id="body"/>
+                       <g/>
+                     </svg>
+                     """;
 
         Assert.That(XafSvgDocument.Groups(svg), Is.EqualTo(new[] { "body", "arm" }));
     }
@@ -66,15 +64,12 @@ public sealed class XafSvgDocumentTests
     [Test]
     public void GroupsOfAnSvgWithoutGroupsIsEmpty()
     {
-        Assert.That(
-            XafSvgDocument.Groups("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>"),
-            Is.Empty);
+        Assert.That(XafSvgDocument.Groups("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>"), Is.Empty);
     }
 
     [Test]
     public void RejectsMalformedXmlWhenListingGroups()
     {
-        Assert.Throws<XafFormatException>(() =>
-            XafSvgDocument.Groups("<svg>"));
+        Assert.Throws<XafFormatException>(() => XafSvgDocument.Groups("<svg>"));
     }
 }

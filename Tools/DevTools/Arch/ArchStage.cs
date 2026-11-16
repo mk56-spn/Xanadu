@@ -1,15 +1,14 @@
 using System;
 using System.IO;
-using Xanadu.Ecs;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
-using Xanadu.Storage;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Ui.Editing;
-using Xanadu.Ui.Tree;
-using static Xanadu.Theme.UiMetrics;
+using static Xanadu.Core.Theme.UiMetrics;
 
-namespace Xanadu.Tools.Arch;
+namespace Xanadu.Tools.DevTools.Arch;
 
 /// <summary>
 /// Arch: the architecture as it should be, drawn by hand on an open board (the

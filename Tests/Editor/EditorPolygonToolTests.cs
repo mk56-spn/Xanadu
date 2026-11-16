@@ -2,12 +2,16 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Items;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Items;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Editor;
 
@@ -75,7 +79,8 @@ public sealed class EditorPolygonToolTests
         LevelPolygon polygon = shape.GetComponent<LevelPolygon>();
         Assert.That(Draft.Active, Is.False);
         Assert.That(polygon.Position, Is.EqualTo(new Vector2(300, 290)), "the origin is the middle of the outline");
-        Assert.That(polygon.Outline(polygon.Item.Primitives[0]),
+        Assert.That(
+            polygon.Outline(polygon.Item.Primitives[0]),
             Is.EqualTo(new[] { new Vector2(200, 200), new Vector2(400, 200), new Vector2(300, 380) }));
         Assert.That(_editor.GetComponent<NoteSelection>().Note, Is.EqualTo(shape));
 
@@ -141,11 +146,13 @@ public sealed class EditorPolygonToolTests
         Xif item = host.Item!;
 
         host.Edit(() => XifEditing.InsertPoint(item.Primitives[0], 0));
-        Assert.That(_store.Query<LevelPolygon>().ToEntityList()[0].GetComponent<LevelPolygon>().Item.Primitives[0].Points,
+        Assert.That(
+            _store.Query<LevelPolygon>().ToEntityList()[0].GetComponent<LevelPolygon>().Item.Primitives[0].Points,
             Has.Count.EqualTo(4));
 
         Assert.That(_history.Undo(), Is.True);
-        Assert.That(_store.Query<LevelPolygon>().ToEntityList()[0].GetComponent<LevelPolygon>().Item.Primitives[0].Points,
+        Assert.That(
+            _store.Query<LevelPolygon>().ToEntityList()[0].GetComponent<LevelPolygon>().Item.Primitives[0].Points,
             Has.Count.EqualTo(3));
     }
 }

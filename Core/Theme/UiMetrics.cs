@@ -1,4 +1,4 @@
-namespace Xanadu.Theme;
+namespace Xanadu.Core.Theme;
 
 /// <summary>
 /// Control sizes and spacing, in design pixels at the 1920x1080 stage. Scenes

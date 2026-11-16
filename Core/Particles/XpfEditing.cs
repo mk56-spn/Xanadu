@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>A number of an effect the particle editor sets with a slider.</summary>
 public enum XpfField

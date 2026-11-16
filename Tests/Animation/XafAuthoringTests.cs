@@ -12,15 +12,11 @@ public sealed class XafAuthoringTests
         XafPackage package = Package();
         XafClip clip = package.Clips[0];
 
-        Assert.That(XafAuthoring.SetBoneProperty(
-            package, clip, "root", XafChannelProperty.Rotation,
-            1f, 2f), Is.True);
-        Assert.That(XafAuthoring.SetBoneProperty(
-            package, clip, "root", XafChannelProperty.Rotation,
-            0.5f, 1f), Is.True);
-        Assert.That(XafAuthoring.SetBoneProperty(
-            package, clip, "root", XafChannelProperty.Rotation,
-            1f, 3f), Is.True);
+        Assert.That(XafAuthoring.SetBoneProperty(package, clip, "root", XafChannelProperty.Rotation, 1f, 2f), Is.True);
+        Assert.That(
+            XafAuthoring.SetBoneProperty(package, clip, "root", XafChannelProperty.Rotation, 0.5f, 1f),
+            Is.True);
+        Assert.That(XafAuthoring.SetBoneProperty(package, clip, "root", XafChannelProperty.Rotation, 1f, 3f), Is.True);
 
         XafChannel channel = clip.Channels[0];
         Assert.That(channel.Keyframes, Has.Count.EqualTo(2));
@@ -34,9 +30,9 @@ public sealed class XafAuthoringTests
     {
         XafPackage package = Package();
 
-        Assert.That(XafAuthoring.SetBoneProperty(
-            package, package.Clips[0], "missing",
-            XafChannelProperty.Rotation, 0f, 1f), Is.False);
+        Assert.That(
+            XafAuthoring.SetBoneProperty(package, package.Clips[0], "missing", XafChannelProperty.Rotation, 0f, 1f),
+            Is.False);
     }
 
     [Test]
@@ -54,28 +50,30 @@ public sealed class XafAuthoringTests
             {
                 Translation = new Vector2(4, 5),
                 Rotation = 0.25f,
-                Scale = new Vector2(2, 3),
+                Scale = new Vector2(2, 3)
             });
 
         Assert.That(clip.Channels, Has.Count.EqualTo(5));
-        Assert.That(clip.Channels.TrueForAll(channel =>
-            channel.Keyframes.Count == 1 &&
-            channel.Keyframes[0].Time == 0.5f), Is.True);
+        Assert.That(
+            clip.Channels.TrueForAll(channel => channel.Keyframes.Count == 1 && channel.Keyframes[0].Time == 0.5f),
+            Is.True);
     }
 
     private static XafPackage Package()
     {
         var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone
-        {
-            Id = "root",
-            Parent = -1,
-        });
-        package.Clips.Add(new XafClip
-        {
-            Id = "idle",
-            Duration = 2f,
-        });
+        package.Skeleton.Bones.Add(
+            new XafBone
+            {
+                Id = "root",
+                Parent = -1
+            });
+        package.Clips.Add(
+            new XafClip
+            {
+                Id = "idle",
+                Duration = 2f
+            });
         return package;
     }
 }

@@ -1,12 +1,13 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Layout;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI.Layout;
+namespace Xanadu.Ui.Tests.Layout;
 
 /// <summary>Grow, stretch, min and max (<see cref="UiFlex"/>) in a stack.</summary>
 [TestFixture]

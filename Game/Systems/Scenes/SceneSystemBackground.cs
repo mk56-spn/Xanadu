@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scenes;
-using SceneState = Xanadu.Ecs.SceneState;
+using Xanadu.Ui.Ecs.Ui;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 

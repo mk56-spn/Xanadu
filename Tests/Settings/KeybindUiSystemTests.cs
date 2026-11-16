@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
@@ -19,18 +20,14 @@ public sealed class KeybindUiSystemTests
         var keybinds = new KeybindSettings(persist: false);
         root.Add(new KeybindUiSystem(keybinds));
 
-        Entity button = store.CreateEntity(
-            new Text(""),
-            UiCommand.Of(KeybindAction.Action1));
+        Entity button = store.CreateEntity(new Text(""), UiCommand.Of(KeybindAction.Action1));
 
         root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("S"));
 
         keybinds.BeginCapture(KeybindAction.Action1);
         root.Update(new UpdateTick(1f / 60f, 0));
-        Assert.That(
-            button.GetComponent<Text>().Value,
-            Is.EqualTo("PRESS A KEY..."));
+        Assert.That(button.GetComponent<Text>().Value, Is.EqualTo("PRESS A KEY..."));
 
         keybinds.TryCapture(Key.A);
         root.Update(new UpdateTick(1f / 60f, 0));

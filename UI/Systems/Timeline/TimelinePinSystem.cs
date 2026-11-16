@@ -1,9 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
-namespace Xanadu.Systems.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// Lets a pinned timeline window go once the playhead moves out of it, by

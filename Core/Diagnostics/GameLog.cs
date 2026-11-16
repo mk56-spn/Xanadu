@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Diagnostics;
+namespace Xanadu.Core.Diagnostics;
 
 /// <summary>
 /// Where shared code reports what went wrong: the console by default

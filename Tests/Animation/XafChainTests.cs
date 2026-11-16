@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -29,7 +31,7 @@ public sealed class XafChainTests
         Lean = 120f,
         CollideBoneId = "head",
         CollideOffset = new Vector2(1, 2),
-        CollideRadius = 9f,
+        CollideRadius = 9f
     };
 
     [Test]
@@ -63,15 +65,17 @@ public sealed class XafChainTests
     public void ValidationRejectsHalfAnArtReferenceAndABadColliderOrWidth()
     {
         XafPackage package = Package();
-        package.Chains.Add(new XafChain
-        {
-            Id = "a", BoneId = "head", SvgPath = "x.svg", Group = "",
-        });
+        package.Chains.Add(
+            new XafChain
+            {
+                Id = "a", BoneId = "head", SvgPath = "x.svg", Group = ""
+            });
         package.Chains.Add(new XafChain { Id = "b", BoneId = "head", Width = 0f });
-        package.Chains.Add(new XafChain
-        {
-            Id = "c", BoneId = "head", CollideBoneId = "nowhere", CollideRadius = 5f,
-        });
+        package.Chains.Add(
+            new XafChain
+            {
+                Id = "c", BoneId = "head", CollideBoneId = "nowhere", CollideRadius = 5f
+            });
         package.Chains.Add(new XafChain { Id = "d", BoneId = "head", CollideRadius = -1f });
         package.Chains.Add(new XafChain { Id = "e", BoneId = "head", SvgPath = "", Group = "" });
 
@@ -117,7 +121,7 @@ public sealed class XafChainTests
 
         simulation.Update(package, world, 1f / 60f);
 
-        var points = simulation.Points(0);
+        IReadOnlyList<Vector2> points = simulation.Points(0);
         Vector2 along = (points[^1] - points[0]).Normalized();
         Assert.That(along.AngleTo(new Vector2(150, 900).Normalized()), Is.EqualTo(0f).Within(0.05f));
         foreach (Vector2 point in points)
@@ -139,7 +143,7 @@ public sealed class XafChainTests
         for (int i = 0; i < 600; i++)
             simulation.Update(package, world, 1f / 60f);
 
-        var points = simulation.Points(0);
+        IReadOnlyList<Vector2> points = simulation.Points(0);
         Assert.That(points[^1].X, Is.GreaterThan(points[0].X + 10f));
         Assert.That(points[^1].Y, Is.GreaterThan(points[0].Y + 20f));
     }
@@ -241,7 +245,7 @@ public sealed class XafChainTests
         for (int i = 0; i < 120; i++)
             simulation.Update(package, world, 1f / 60f);
 
-        var points = simulation.Points(0);
+        IReadOnlyList<Vector2> points = simulation.Points(0);
         Assert.That(points, Has.Count.EqualTo(6));
         Assert.That(points[0].DistanceTo(new Vector2(103, 46)), Is.LessThan(0.001f));
         for (int i = 1; i < points.Count; i++)
@@ -419,7 +423,10 @@ public sealed class XafChainTests
 
         Assert.That(chain.CollideBoneId, Is.EqualTo("head"));
         Assert.That((world[2] * chain.CollideOffset).DistanceTo(before), Is.LessThan(0.001f));
-        Assert.That(chain.CollideRadius, Is.EqualTo(XafChainAuthoring.DefaultColliderRadius), "an existing size is kept");
+        Assert.That(
+            chain.CollideRadius,
+            Is.EqualTo(XafChainAuthoring.DefaultColliderRadius),
+            "an existing size is kept");
         Assert.That(XafValidation.Validate(package), Is.Empty);
     }
 

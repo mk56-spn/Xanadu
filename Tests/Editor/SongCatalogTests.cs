@@ -13,12 +13,9 @@ public sealed class SongCatalogTests
     [Test]
     public void CatalogListsEverySongWithAudioOutsideTheRepo()
     {
-        string root = Path.GetFullPath(Path.Combine(
-            TestContext.CurrentContext.TestDirectory,
-            "../../../../"));
+        string root = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "../../../../"));
         string catalogPath = Path.Combine(root, "Assets", "song-catalog.json");
-        SongDocument[] songs =
-            JsonFileStore.Load<SongDocument[]>(catalogPath)!;
+        SongDocument[] songs = JsonFileStore.Load<SongDocument[]>(catalogPath)!;
 
         Assert.That(songs, Has.Length.EqualTo(4));
 

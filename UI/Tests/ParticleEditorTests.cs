@@ -1,15 +1,16 @@
+using Xanadu.Tests.Support.Fakes;
 using System;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Particles;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Particles;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>
 /// The shared particle editor against a fake host, as any tool would host it:

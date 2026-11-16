@@ -1,4 +1,6 @@
 
+using Xanadu.Core.Maths;
+
 namespace Xanadu.Systems.Particles;
 
 /// <summary>Plays one-off particle bursts.</summary>

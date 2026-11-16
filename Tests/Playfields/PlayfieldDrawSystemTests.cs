@@ -2,10 +2,12 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -19,7 +21,7 @@ public sealed class PlayfieldDrawSystemTests
         store.CreateEntity(
             new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
         store.CreateEntity(new Note(1_000, new Vector2(100, 100)));
 
@@ -42,7 +44,7 @@ public sealed class PlayfieldDrawSystemTests
             new LevelInfo("Shaded") { Background = new Color("#204060") },
             view,
             playfield,
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
 
         var canvas = new RecordingCanvas();
@@ -53,9 +55,7 @@ public sealed class PlayfieldDrawSystemTests
 
         Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
         Assert.That(
-            canvas.RectCalls.Exists(call =>
-                call.Bounds == field &&
-                call.Color == new Color("#204060")),
+            canvas.RectCalls.Exists(call => call.Bounds == field && call.Color == new Color("#204060")),
             Is.True);
     }
 
@@ -66,10 +66,9 @@ public sealed class PlayfieldDrawSystemTests
         store.CreateEntity(
             new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
-        store.CreateEntity(
-            new Block(new Vector2(100, 200), new Vector2(200, 100), outlineWidth: 0f));
+        store.CreateEntity(new Block(new Vector2(100, 200), new Vector2(200, 100), outlineWidth: 0f));
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
@@ -77,9 +76,7 @@ public sealed class PlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            canvas.Rects,
-            Does.Contain(new Rect2(new Vector2(150, 200), new Vector2(100, 50))));
+        Assert.That(canvas.Rects, Does.Contain(new Rect2(new Vector2(150, 200), new Vector2(100, 50))));
     }
 
     [Test]
@@ -89,7 +86,7 @@ public sealed class PlayfieldDrawSystemTests
         store.CreateEntity(
             new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
 
         var canvas = new RecordingCanvas();
@@ -112,7 +109,7 @@ public sealed class PlayfieldDrawSystemTests
         store.CreateEntity(
             new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Editor));
 
         var canvas = new RecordingCanvas();
@@ -132,10 +129,9 @@ public sealed class PlayfieldDrawSystemTests
         store.CreateEntity(
             new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
             new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, durationMs: 5_000),
+            new Playhead(1_000, 120, 0, true, 5_000),
             new PlayfieldMode(PlayfieldKind.Play));
-        store.CreateEntity(
-            new NotePop(new Note(0, Vector2.Zero), new Vector2(200, 200), Colors.Cyan, 36f));
+        store.CreateEntity(new NotePop(new Note(0, Vector2.Zero), new Vector2(200, 200), Colors.Cyan, 36f));
         store.CreateEntity(
             new NotePop(
                 new Note(0, Vector2.Zero),
@@ -144,7 +140,7 @@ public sealed class PlayfieldDrawSystemTests
                 36f,
                 PlayfieldRenderer.NotePopLifetime)
             {
-                Age = PlayfieldRenderer.NotePopLifetime * 0.5f,
+                Age = PlayfieldRenderer.NotePopLifetime * 0.5f
             });
 
         var canvas = new RecordingCanvas();
@@ -153,10 +149,8 @@ public sealed class PlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        RecordingCanvas.CircleCall fresh = canvas.Circles.Find(
-            circle => circle.Center == new Vector2(200, 200));
-        RecordingCanvas.CircleCall aged = canvas.Circles.Find(
-            circle => circle.Center == new Vector2(400, 400));
+        RecordingCanvas.CircleCall fresh = canvas.Circles.Find(circle => circle.Center == new Vector2(200, 200));
+        RecordingCanvas.CircleCall aged = canvas.Circles.Find(circle => circle.Center == new Vector2(400, 400));
 
         Assert.That(fresh.Radius, Is.EqualTo(36f).Within(0.001f));
         Assert.That(aged.Radius, Is.GreaterThan(fresh.Radius));
@@ -173,11 +167,17 @@ public sealed class PlayfieldDrawSystemTests
 
         public List<CircleCall> Circles { get; } = new();
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
@@ -188,27 +188,23 @@ public sealed class PlayfieldDrawSystemTests
         public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
             Circles.Add(new CircleCall(center, radius, color));
 
-        public void DrawCircleOutline(
-            Handle canvas,
-            Vector2 center,
-            float radius,
-            Color color,
-            float width) =>
+        public void DrawCircleOutline(Handle canvas, Vector2 center, float radius, Color color, float width) =>
             Circles.Add(new CircleCall(center, radius, color));
 
-        public void DrawLine(
-            Handle canvas,
-            Vector2 from,
-            Vector2 to,
-            Color color,
-            float width) =>
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
             Lines.Add(new LineCall(from, to, color));
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
         public readonly record struct RectCall(Rect2 Bounds, Color Color);
 

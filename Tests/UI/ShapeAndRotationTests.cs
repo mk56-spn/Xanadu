@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Rendering;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Rendering;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.UI;
 
@@ -75,13 +77,19 @@ public sealed class ShapeAndRotationTests
         public int PolygonPoints;
         public int PolylinePoints;
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
         public void SetTransform(Handle canvas, Transform2D transform) => Transform = transform;
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
-        public void DrawRect(Handle canvas, Rect2 bounds, Color color) { }
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
+        {
+        }
 
         public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
             PolygonPoints = points.Length;
@@ -94,12 +102,20 @@ public sealed class ShapeAndRotationTests
             bool antialiased = true) =>
             PolylinePoints = points.Length;
 
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+        {
+        }
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 }

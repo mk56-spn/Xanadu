@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
 
@@ -11,10 +13,7 @@ public sealed class NoteLaneColorTests
     [Test]
     public void NoteTargetDeterminesItsColor()
     {
-        var note = new Note(
-            1_000,
-            new Vector2(500, 500),
-            target: KeybindAction.Action2);
+        var note = new Note(1_000, new Vector2(500, 500), KeybindAction.Action2);
 
         Assert.That(
             PlayfieldRenderer.ColorFor(note.Target),
@@ -26,7 +25,7 @@ public sealed class NoteLaneColorTests
     {
         var colors = new System.Collections.Generic.HashSet<Color>();
         foreach (KeybindAction action in KeybindSettings.ActionKeys)
-            colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, target: action)));
+            colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, action)));
         colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Neutral)));
         colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Dash)));
         colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Momentum)));

@@ -14,9 +14,7 @@ public sealed class SongStoreTests
     [SetUp]
     public void SetUp()
     {
-        _root = Path.Combine(
-            Path.GetTempPath(),
-            "writer-song-tests-" + Guid.NewGuid().ToString("N"));
+        _root = Path.Combine(Path.GetTempPath(), "writer-song-tests-" + Guid.NewGuid().ToString("N"));
         _songs = new SongStore(_root);
     }
 
@@ -24,7 +22,7 @@ public sealed class SongStoreTests
     public void TearDown()
     {
         if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(_root, true);
     }
 
     [Test]
@@ -52,12 +50,14 @@ public sealed class SongStoreTests
     {
         string catalog = Path.Combine(_root, "catalog.json");
         Directory.CreateDirectory(_root);
-        File.WriteAllText(catalog, """
-        [
-          { "Id": "present", "Slug": "present", "Title": "Present", "AudioPath": "audio.mp3" },
-          { "Id": "missing", "Slug": "missing", "Title": "Missing", "AudioPath": "audio.mp3" }
-        ]
-        """);
+        File.WriteAllText(
+            catalog,
+            """
+            [
+              { "Id": "present", "Slug": "present", "Title": "Present", "AudioPath": "audio.mp3" },
+              { "Id": "missing", "Slug": "missing", "Title": "Missing", "AudioPath": "audio.mp3" }
+            ]
+            """);
         Directory.CreateDirectory(Path.Combine(_root, "present"));
         File.WriteAllText(Path.Combine(_root, "present", "audio.mp3"), "audio");
 
@@ -76,9 +76,7 @@ public sealed class SongStoreTests
     {
         var store = new SongStore(_root);
 
-        LoadedSong song = store.Import(
-            CreateAudio("catalog-add.mp3", "catalog-audio"),
-            "Catalog Song");
+        LoadedSong song = store.Import(CreateAudio("catalog-add.mp3", "catalog-audio"), "Catalog Song");
 
         Assert.That(File.Exists(Path.Combine(_root, "catalog.json")), Is.True);
         Assert.That(store.Find(song.Id)?.Title, Is.EqualTo("Catalog Song"));
@@ -88,9 +86,7 @@ public sealed class SongStoreTests
     [Test]
     public void DeleteRemovesTheCatalogEntryAndAudio()
     {
-        LoadedSong song = _songs.Import(
-            CreateAudio("delete.wav", "delete-audio"),
-            "Doomed");
+        LoadedSong song = _songs.Import(CreateAudio("delete.wav", "delete-audio"), "Doomed");
 
         _songs.Delete(song.Info);
 
@@ -113,10 +109,7 @@ public sealed class SongStoreTests
     [Test]
     public void LoadAllReadsSavedSongs()
     {
-        LoadedSong song = _songs.Import(
-            CreateAudio("load.wav", "load-audio"),
-            "Loadable",
-            "Person");
+        LoadedSong song = _songs.Import(CreateAudio("load.wav", "load-audio"), "Loadable", "Person");
 
         SongDocument loaded = _songs.Find(song.Id)!;
 
@@ -151,16 +144,13 @@ public sealed class SongStoreTests
             (byte)((size >> 21) & 0x7F),
             (byte)((size >> 14) & 0x7F),
             (byte)((size >> 7) & 0x7F),
-            (byte)(size & 0x7F),
+            (byte)(size & 0x7F)
         };
         file.AddRange(body);
         return file.ToArray();
     }
 
-    private static void AddFrame(
-        System.Collections.Generic.List<byte> frames,
-        string id,
-        string value)
+    private static void AddFrame(System.Collections.Generic.List<byte> frames, string id, string value)
     {
         byte[] text = System.Text.Encoding.Latin1.GetBytes(value);
         int size = text.Length + 1;

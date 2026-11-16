@@ -1,5 +1,8 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -22,7 +25,7 @@ public static class HitEffects
             EffectLayer.From(source));
         // The sparks come off the player's body, thrown on the way the hit
         // travels, from the note through the player; the pop stays on the note.
-        Vector2 origin = playfield.TryGetComponent(out Xanadu.Ecs.Position body) ? body.Value : position;
+        Vector2 origin = playfield.TryGetComponent(out Position body) ? body.Value : position;
         Vector2 area = playfield.TryGetComponent(out Player player) ? player.Size : default;
         entities.CreateEntity(new ParticleBurst(origin, GameParticles.Hit, color, area, heading: origin - position));
         PlayCameraSystem.Kick(playfield);

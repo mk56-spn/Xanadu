@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -20,11 +21,7 @@ public sealed class XafRigAuthoringTests
     public void AddsAndDeletesAChildBone()
     {
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        int child = XafRigAuthoring.AddBone(
-            package,
-            0,
-            "child",
-            new Vector2(0, -40));
+        int child = XafRigAuthoring.AddBone(package, 0, "child", new Vector2(0, -40));
 
         Assert.That(child, Is.EqualTo(1));
         Assert.That(package.Skeleton.Bones[child].Parent, Is.EqualTo(0));
@@ -48,10 +45,8 @@ public sealed class XafRigAuthoringTests
     {
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
 
-        Assert.That(XafRigAuthoring.AddBone(package, 0, "root", Vector2.Zero),
-            Is.EqualTo(-1));
-        Assert.That(XafRigAuthoring.AddBone(package, 99, "child", Vector2.Zero),
-            Is.EqualTo(-1));
+        Assert.That(XafRigAuthoring.AddBone(package, 0, "root", Vector2.Zero), Is.EqualTo(-1));
+        Assert.That(XafRigAuthoring.AddBone(package, 99, "child", Vector2.Zero), Is.EqualTo(-1));
     }
 
     [Test]
@@ -60,16 +55,18 @@ public sealed class XafRigAuthoringTests
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafRigAuthoring.AddBone(package, 0, "arm", Vector2.Zero);
         package.Attachments.Add(new XafAttachment { Group = "sleeve", BoneId = "arm" });
-        package.Clips[0].Channels.Add(new XafChannel
-        {
-            Target = XafChannelTarget.Bone,
-            TargetId = "arm",
-        });
-        package.Clips[0].Channels.Add(new XafChannel
-        {
-            Target = XafChannelTarget.Attachment,
-            TargetId = "arm",
-        });
+        package.Clips[0].Channels.Add(
+            new XafChannel
+            {
+                Target = XafChannelTarget.Bone,
+                TargetId = "arm"
+            });
+        package.Clips[0].Channels.Add(
+            new XafChannel
+            {
+                Target = XafChannelTarget.Attachment,
+                TargetId = "arm"
+            });
 
         Assert.That(XafRigAuthoring.RenameBone(package, 1, "upper-arm"), Is.True);
 
@@ -107,8 +104,7 @@ public sealed class XafRigAuthoringTests
         Assert.That(package.Skeleton.Bones[1].Parent, Is.EqualTo(0));
         Transform2D handAfter = XafRig.WorldBones(package, RestPose(package))[2];
         Assert.That(handAfter.Origin.DistanceTo(handBefore.Origin), Is.LessThan(0.001f));
-        Assert.That(package.Skeleton.Bones[2].Rest.Origin.DistanceTo(new Vector2(10, 40)),
-            Is.LessThan(0.001f));
+        Assert.That(package.Skeleton.Bones[2].Rest.Origin.DistanceTo(new Vector2(10, 40)), Is.LessThan(0.001f));
     }
 
     [Test]

@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Systems;
 using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
-using Position = Xanadu.Ecs.Position;
-using Xanadu.Systems;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Chainable builder for layers, containers, and rectangles.</summary>
 public sealed partial class UiBuilder

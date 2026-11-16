@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Systems.Scenes;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// The offset calibration screen: its handles and the run in progress. The system

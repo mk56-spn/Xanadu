@@ -2,10 +2,14 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Timeline;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tools.Animator.Systems;
 

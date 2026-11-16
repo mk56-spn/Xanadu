@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Input;
-using Xanadu.Ui.Systems.Ui;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Creates and wires the F4 UI bounds and tree overlays.</summary>
 public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable

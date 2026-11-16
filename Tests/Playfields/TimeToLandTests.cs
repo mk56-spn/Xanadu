@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Playfields;
@@ -23,7 +24,14 @@ public sealed class TimeToLandTests
     {
         (Entity player, PlayfieldView view, Playfield field) = Setup(new EntityStore());
         // Feet at 900, falling at 1000 px/s with no gravity: 0.1 s to go.
-        float? left = PlayerGround.TimeToLand(player, view, field, new Vector2(500, 810), new Vector2(0, 1000), 0f, 0.15f);
+        float? left = PlayerGround.TimeToLand(
+            player,
+            view,
+            field,
+            new Vector2(500, 810),
+            new Vector2(0, 1000),
+            0f,
+            0.15f);
 
         Assert.That(left, Is.EqualTo(0.1f).Within(1f / 120f));
     }
@@ -32,7 +40,9 @@ public sealed class TimeToLandTests
     public void GroundTooFarOffIsNotFound()
     {
         (Entity player, PlayfieldView view, Playfield field) = Setup(new EntityStore());
-        Assert.That(PlayerGround.TimeToLand(player, view, field, new Vector2(500, 410), new Vector2(0, 1000), 0f, 0.15f), Is.Null);
+        Assert.That(
+            PlayerGround.TimeToLand(player, view, field, new Vector2(500, 410), new Vector2(0, 1000), 0f, 0.15f),
+            Is.Null);
     }
 
     [Test]
@@ -42,7 +52,14 @@ public sealed class TimeToLandTests
         store.CreateEntity(new Block(new Vector2(400, 700), new Vector2(200, 40)));
         (Entity player, PlayfieldView view, Playfield field) = Setup(store);
 
-        float? left = PlayerGround.TimeToLand(player, view, field, new Vector2(500, 560), new Vector2(0, 500), 0f, 0.15f);
+        float? left = PlayerGround.TimeToLand(
+            player,
+            view,
+            field,
+            new Vector2(500, 560),
+            new Vector2(0, 500),
+            0f,
+            0.15f);
 
         Assert.That(left, Is.EqualTo(0.1f).Within(1f / 120f));
     }
@@ -51,6 +68,8 @@ public sealed class TimeToLandTests
     public void RisingFindsNothing()
     {
         (Entity player, PlayfieldView view, Playfield field) = Setup(new EntityStore());
-        Assert.That(PlayerGround.TimeToLand(player, view, field, new Vector2(500, 800), new Vector2(0, -1000), 0f, 0.15f), Is.Null);
+        Assert.That(
+            PlayerGround.TimeToLand(player, view, field, new Vector2(500, 800), new Vector2(0, -1000), 0f, 0.15f),
+            Is.Null);
     }
 }

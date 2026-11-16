@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MoonWorks.Input;
-using Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Host.Input;
 

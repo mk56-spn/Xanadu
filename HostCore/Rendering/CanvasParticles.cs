@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
-using Color = Xanadu.Maths.Color;
-using Xanadu.Particles;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
+using Xanadu.Core.Rendering;
+using Color = Xanadu.Core.Maths.Color;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
@@ -187,7 +190,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             DepthStencilState = DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
             {
-                ColorTargetDescriptions = [new ColorTargetDescription { Format = format, BlendState = CanvasPipelines.Blend(Xanadu.Rendering.BlendMode.Mix) }],
+                ColorTargetDescriptions = [new ColorTargetDescription { Format = format, BlendState = CanvasPipelines.Blend(BlendMode.Mix) }],
             },
         });
         vertex.Dispose();

@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Playfields;
@@ -23,19 +24,12 @@ public sealed class NoteFadeTests
     public void HitAndMovementNotesShareFadeAndApproach()
     {
         var hit = new Note(1_000, Vector2.Zero);
-        var movement = new Note(
-            1_000,
-            Vector2.Zero,
-            kind: NoteKind.Dash);
+        var movement = new Note(1_000, Vector2.Zero, kind: NoteKind.Dash);
 
         foreach (long time in new long[] { 700, 850, 1_000, 1_150, 1_300 })
         {
-            Assert.That(
-                NoteFade.Alpha(movement, time),
-                Is.EqualTo(NoteFade.Alpha(hit, time)));
-            Assert.That(
-                NoteFade.Approach(movement.TimeMs, time),
-                Is.EqualTo(NoteFade.Approach(hit.TimeMs, time)));
+            Assert.That(NoteFade.Alpha(movement, time), Is.EqualTo(NoteFade.Alpha(hit, time)));
+            Assert.That(NoteFade.Approach(movement.TimeMs, time), Is.EqualTo(NoteFade.Approach(hit.TimeMs, time)));
         }
     }
 }

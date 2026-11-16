@@ -1,5 +1,7 @@
 
-namespace Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Adapts a key on an <see cref="IKeyboardState"/> to an overlay toggle.</summary>
 public sealed class KeyboardToggleSource(IKeyboardState keyboard, Key key) : IOverlayToggleSource

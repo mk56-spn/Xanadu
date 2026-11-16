@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Commands;
-using Xanadu.Rendering;
 using Xanadu.Systems.Input;
-using Xanadu.Theme;
-using Xanadu.Timeline;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Systems.Editor;
 

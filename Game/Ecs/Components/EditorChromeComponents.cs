@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Settings;
+using Xanadu.Core.Maths;
 using Xanadu.Systems.Audio;
-using Xanadu.Systems.Ui;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>The song's loudness by frequency band, for the editor timeline; null without a song.</summary>
 public struct WaveformPreview(string path, WaveformData? data = null) : IComponent

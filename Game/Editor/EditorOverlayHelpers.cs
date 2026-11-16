@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Systems.Editor;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Editor;
 
@@ -12,9 +11,7 @@ namespace Xanadu.Editor;
 public sealed partial class EditorOverlay
 {
     private string CurrentLevelPath() =>
-        _editor.HasComponent<LevelFile>()
-            ? _editor.GetComponent<LevelFile>().Path
-            : "";
+        _editor.HasComponent<LevelFile>() ? _editor.GetComponent<LevelFile>().Path : "";
 
     private bool ValidateCurrent()
     {
@@ -27,9 +24,7 @@ public sealed partial class EditorOverlay
         if (issues.Count == 0)
             return true;
 
-        _saveProblem = issues.Count == 1
-            ? issues[0]
-            : $"{issues[0]} (+{issues.Count - 1} more)";
+        _saveProblem = issues.Count == 1 ? issues[0] : $"{issues[0]} (+{issues.Count - 1} more)";
         SetStatus(_saveProblem);
 
         return false;
@@ -40,8 +35,8 @@ public sealed partial class EditorOverlay
         NativeDialogVisible() || EditorDialogs.AnyOpen(_entities);
 
     /// <summary>
-    /// Whether a native file dialog is up. It is a window of its own, so the
-    /// pointer is held off the ECS UI while it is; an ECS dialog needs the pointer.
+    ///     Whether a native file dialog is up. It is a window of its own, so the
+    ///     pointer is held off the ECS UI while it is; an ECS dialog needs the pointer.
     /// </summary>
     private bool NativeDialogVisible() => FileDialogOpen?.Invoke() ?? false;
 
@@ -134,20 +129,12 @@ public sealed partial class EditorOverlay
         }
     }
 
-    private bool IsWarningOpen()
-    {
-        return _entities.Query<WarningPopup>().Count > 0;
-    }
+    private bool IsWarningOpen() => _entities.Query<WarningPopup>().Count > 0;
 
     private Entity FindFocusedTextField()
     {
-        foreach (Entity entity in _entities
-                     .Query<TextField>()
-                     .AllTags(Tags.Get<TextFieldFocused>())
-                     .ToEntityList())
-        {
+        foreach (Entity entity in _entities.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).ToEntityList())
             return entity;
-        }
 
         return default;
     }

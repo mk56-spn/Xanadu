@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Animation;
 

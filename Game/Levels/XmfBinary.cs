@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Xanadu.Storage;
+using Xanadu.Core.Storage;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Levels;
 
@@ -114,8 +115,8 @@ public static partial class XmfBinary
         List<T> List<T>(XmfChunk id, Func<Chunk, List<T>> read) =>
             file.TryGet((uint)id, out Chunk chunk) ? read(chunk) : new List<T>();
 
-        document.Shaders = List(XmfChunk.Shaders, c => XmfRecords.ReadList(c, Xanadu.Ecs.ShaderLimits.Count, "shader", r => XmfChrome.ReadShader(r, strings)));
-        document.Groups = List(XmfChunk.Groups, c => XmfRecords.ReadList(c, Xanadu.Ecs.GroupLimits.Count, "group", r => XmfChrome.ReadGroup(r, strings)));
+        document.Shaders = List(XmfChunk.Shaders, c => XmfRecords.ReadList(c, ShaderLimits.Count, "shader", r => XmfChrome.ReadShader(r, strings)));
+        document.Groups = List(XmfChunk.Groups, c => XmfRecords.ReadList(c, GroupLimits.Count, "group", r => XmfChrome.ReadGroup(r, strings)));
         document.Layers = List(XmfChunk.Layers, c => XmfRecords.ReadList(c, XmfChrome.LayerLimit, "layer", XmfChrome.ReadLayer));
         document.Notes = List(XmfChunk.Notes, c => XmfRecords.ReadItems<NoteDocument>(c, "note", (r, n) => XmfItems.ReadNote(r, n, strings)));
         document.Mines = List(XmfChunk.Mines, c => XmfRecords.ReadItems<MineDocument>(c, "mine", XmfItems.ReadMine));

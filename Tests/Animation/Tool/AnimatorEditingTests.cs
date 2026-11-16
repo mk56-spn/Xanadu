@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -43,8 +44,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateLeft));
 
-        Assert.That(Package.Skeleton.Bones[1].Rest.Rotation,
-            Is.EqualTo(-AnimatorEditing.RotationStep).Within(0.0001f));
+        Assert.That(Package.Skeleton.Bones[1].Rest.Rotation, Is.EqualTo(-AnimatorEditing.RotationStep).Within(0.0001f));
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f));
     }
 
@@ -58,8 +58,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
 
         XafChannel? channel = Idle.Channels.Find(candidate =>
-            candidate.TargetId == "torso" &&
-            candidate.Property == XafChannelProperty.Rotation);
+            candidate.TargetId == "torso" && candidate.Property == XafChannelProperty.Rotation);
         Assert.That(channel, Is.Not.Null);
         Assert.That(channel!.Keyframes[0].Time, Is.EqualTo(0.5f));
     }
@@ -93,8 +92,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void DeletingABoneRemovesItsChannelsSoTheRigStillSaves()
     {
-        XafAuthoring.SetBoneProperty(Package, Idle, "head",
-            XafChannelProperty.TranslationX, 0.5f, 3f);
+        XafAuthoring.SetBoneProperty(Package, Idle, "head", XafChannelProperty.TranslationX, 0.5f, 3f);
         Select(2);
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.DeleteBone));
@@ -121,8 +119,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     {
         Files.FailSave = true;
 
-        Assert.DoesNotThrow(() =>
-            AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Save)));
+        Assert.DoesNotThrow(() => AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Save)));
 
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Does.StartWith("SAVE FAILED"));
     }
@@ -159,7 +156,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void LoadingAPackageWithoutAnIdleClipPlaysItsFirstClip()
     {
-        var other = XafRigAuthoring.CreateEmptyPackage();
+        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
         other.Clips.Add(new XafClip { Id = "walk", Duration = 1f });
         Files.ToLoad = other;
@@ -172,7 +169,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void LoadingAPackageWithNoClipsDoesNotBreakPlayback()
     {
-        var other = XafRigAuthoring.CreateEmptyPackage();
+        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
         Files.ToLoad = other;
 

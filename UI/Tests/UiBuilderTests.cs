@@ -1,12 +1,13 @@
+using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
-using Position = Xanadu.Ecs.Position;
-using Xanadu.Tests.Support;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
+using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class UiBuilderTests

@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// The FLOW tab: the clips the clip being edited may fade into, then the fade,

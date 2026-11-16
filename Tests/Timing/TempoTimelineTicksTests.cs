@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Levels;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Timing;
 
@@ -16,7 +18,7 @@ public sealed class TempoTimelineTicksTests
     public void ZoomedOutItDrawsOnlyBeats()
     {
         // 30 s over 1000 px: about 17 px a beat, so every beat shows but a half beat would be only 8 px.
-        var ticks = TempoTimelineTicks.For(Axis(30_000), TempoMap.Default);
+        List<TimelineTick> ticks = TempoTimelineTicks.For(Axis(30_000), TempoMap.Default);
         Assert.That(ticks.All(tick => tick.Level == TimelineTickLevel.Major), Is.True);
         Assert.That(ticks.First(tick => tick.TimeMs > 0).TimeMs, Is.EqualTo(500).Within(0.01));
     }
@@ -25,7 +27,7 @@ public sealed class TempoTimelineTicksTests
     public void ZoomingInAddsHalvesThenQuartersThenFinerLines()
     {
         // 5 s: 100 px a beat, so halves (50 px), quarters (25 px) and eighths (12.5 px) fit.
-        var ticks = TempoTimelineTicks.For(Axis(5_000), TempoMap.Default);
+        List<TimelineTick> ticks = TempoTimelineTicks.For(Axis(5_000), TempoMap.Default);
         Assert.That(ticks.Any(tick => tick.Level == TimelineTickLevel.Half), Is.True);
         Assert.That(ticks.Any(tick => tick.Level == TimelineTickLevel.Quarter), Is.True);
         Assert.That(ticks.Any(tick => tick.Level == TimelineTickLevel.Minor), Is.True);
@@ -36,11 +38,11 @@ public sealed class TempoTimelineTicksTests
     public void FarOutTheBeatsThinSoTheyNeverBecomeAWall()
     {
         // 120 s: about 4 px a beat, so only every fourth beat is drawn.
-        var ticks = TempoTimelineTicks.For(Axis(120_000), TempoMap.Default);
+        List<TimelineTick> ticks = TempoTimelineTicks.For(Axis(120_000), TempoMap.Default);
         Assert.That(ticks[1].TimeMs - ticks[0].TimeMs, Is.GreaterThanOrEqualTo(2_000 - 0.01));
     }
 
     [Test]
     public void ATimelineWithNoWidthDrawsNothing() =>
-        Assert.That(TempoTimelineTicks.For(Axis(5_000, width: 0), TempoMap.Default), Is.Empty);
+        Assert.That(TempoTimelineTicks.For(Axis(5_000, 0), TempoMap.Default), Is.Empty);
 }

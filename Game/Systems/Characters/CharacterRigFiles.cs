@@ -1,6 +1,8 @@
 using System;
 using Xanadu.Animation;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Systems.Characters;
 
@@ -11,12 +13,12 @@ public interface ICharacterRigFiles
     XafPackage? Load(string path);
 }
 
-/// <summary>Reads XAF files from game-folder, <c>user://</c> or absolute paths, through <see cref="Xanadu.Storage.GamePaths"/>.</summary>
+/// <summary>Reads XAF files from game-folder, <c>user://</c> or absolute paths, through <see cref="GamePaths"/>.</summary>
 public sealed class DiskCharacterRigFiles : ICharacterRigFiles
 {
     public XafPackage? Load(string path)
     {
-        string full = Xanadu.Storage.GamePaths.Full(path);
+        string full = GamePaths.Full(path);
         if (!System.IO.File.Exists(full))
             return null;
 

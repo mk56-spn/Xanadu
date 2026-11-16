@@ -1,13 +1,17 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
-using Xanadu.Systems.Layout;
-using Xanadu.Theme;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -46,33 +50,24 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     /// <summary>The same header the editor builds, without the parameter soup.</summary>
     private void BuildHeader(Entity parent)
     {
-        UiNode header = UiNode.Layer(Store, parent, UiLayers.EditorChrome)
-            .Page()
-            .Row()
+        UiNode header = UiNode.Layer(Store, parent, UiLayers.EditorChrome).Page().Row()
             .Size(Screen.X, EditorShellMetrics.HeaderHeight);
 
-        UiNode left = header
-            .Edge(UiEdge.Left, EditorShellMetrics.HeaderGap)
-            .Pad(Pad);
-        left.Column()
-            .Size(EditorShellMetrics.NameWidth, Control)
-            .Fill(SceneUi.PanelColor)
-            .Text("LEVEL EDITOR", UiTheme.HeadingFontSize, SceneUi.AccentColor);
+        UiNode left = header.Edge(UiEdge.Left, EditorShellMetrics.HeaderGap).Pad(Pad);
+        left.Column().Size(EditorShellMetrics.NameWidth, Control).Fill(SceneUi.PanelColor).Text(
+            "LEVEL EDITOR",
+            UiTheme.HeadingFontSize,
+            SceneUi.AccentColor);
         left.IconButton("UN", IconDir + "undo.svg", Control, SceneUi.ButtonColor)
             .With(EditorButton.Of(EditorButtonKind.Undo));
         left.IconButton("RE", IconDir + "redo.svg", Control, SceneUi.ButtonColor)
             .With(EditorButton.Of(EditorButtonKind.Redo));
 
-        UiNode info = left
-            .Column()
-            .Size(InfoWidth, Control)
-            .Cross(StackCrossAlignment.Start);
+        UiNode info = left.Column().Size(InfoWidth, Control).Cross(StackCrossAlignment.Start);
         _level = info.Text("Untitled", 22, SceneUi.AccentColor);
         _song = info.Text("Song: No song loaded", 14, Palette.TextMuted);
 
-        UiNode right = header
-            .Edge(UiEdge.Right, EditorShellMetrics.HeaderGap)
-            .Pad(Pad);
+        UiNode right = header.Edge(UiEdge.Right, EditorShellMetrics.HeaderGap).Pad(Pad);
         right.Button("FILE ▾", UiTheme.FontSize, SceneUi.MutedButtonColor)
             .Size(EditorShellMetrics.DropdownWidth, Control);
         right.Button("SONG ▾", UiTheme.FontSize, SceneUi.MutedButtonColor)
@@ -84,9 +79,7 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     private static Rect2 Area(Entity entity)
     {
         Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
-        Vector2 center = UiTransform.WorldPosition(
-            entity,
-            entity.GetComponent<Position>().Value);
+        Vector2 center = UiTransform.WorldPosition(entity, entity.GetComponent<Position>().Value);
         return new Rect2(center + bounds.Position, bounds.Size);
     }
 
@@ -118,10 +111,8 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
         Rect2 undo = Area(Button(EditorButtonKind.Undo));
         Rect2 redo = Area(Button(EditorButtonKind.Redo));
 
-        Assert.That(undo.Position.X,
-            Is.GreaterThanOrEqualTo(EditorShellMetrics.NameWidth));
-        Assert.That(undo.End.Y,
-            Is.LessThanOrEqualTo(EditorShellMetrics.HeaderHeight));
+        Assert.That(undo.Position.X, Is.GreaterThanOrEqualTo(EditorShellMetrics.NameWidth));
+        Assert.That(undo.End.Y, Is.LessThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         Assert.That(redo.Position.X, Is.GreaterThan(undo.End.X));
         Assert.That(redo.Position.Y, Is.EqualTo(undo.Position.Y).Within(0.5f));
     }
@@ -144,11 +135,9 @@ public sealed class EditorHeaderFluentTests : EcsSystemTest
     {
         Assert.That(_level.IsNull, Is.False);
         Assert.That(_song.IsNull, Is.False);
-        Assert.That(_level.Entity.GetComponent<Rectangle>().Bounds.Size.X,
-            Is.GreaterThan(0));
+        Assert.That(_level.Entity.GetComponent<Rectangle>().Bounds.Size.X, Is.GreaterThan(0));
 
         _level.SetText("Night Drive");
-        Assert.That(_level.Entity.GetComponent<Text>().Value,
-            Is.EqualTo("Night Drive"));
+        Assert.That(_level.Entity.GetComponent<Text>().Value, Is.EqualTo("Night Drive"));
     }
 }

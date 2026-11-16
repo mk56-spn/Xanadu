@@ -1,10 +1,12 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Systems.Groups;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -15,7 +17,7 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
     protected override void AddSystems()
     {
         Root.Add(new AnimatorActionSystem());
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorShortcutSystem(Keyboard));
     }
 
@@ -124,7 +126,7 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
             Duration = 2f,
             Loop = true,
             LoopStart = 0.5f,
-            LoopEnd = 1.5f,
+            LoopEnd = 1.5f
         };
 
         Assert.That(XafClipAuthoring.SetLoopStart(clip, 9f), Is.EqualTo(1.4f).Within(0.0001f));

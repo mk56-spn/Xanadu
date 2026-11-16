@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Slang;
 

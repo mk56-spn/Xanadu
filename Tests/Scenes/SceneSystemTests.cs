@@ -5,7 +5,10 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Input;
 using Xanadu.Levels;
 using Xanadu.Scenes;
@@ -13,7 +16,12 @@ using Xanadu.Profiles;
 using Xanadu.Settings;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -35,15 +43,13 @@ public sealed partial class SceneSystemTests
         _store = new EntityStore();
         _director = new SceneDirector();
         _root = new SystemRoot(_store);
-        _directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-scene-tests-" + Guid.NewGuid().ToString("N"));
+        _directory = Path.Combine(Path.GetTempPath(), "writer-scene-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
 
         _catalog = new List<LevelEntry>
         {
             CreateLevel("First Level", "song-a.mp3", 140),
-            CreateLevel("Second Level", "song-b.mp3", 170),
+            CreateLevel("Second Level", "song-b.mp3", 170)
         };
 
         _keybinds = new KeybindSettings(persist: false);
@@ -55,8 +61,8 @@ public sealed partial class SceneSystemTests
             new FakeVisualRidFactory(),
             () => _catalog,
             _keybinds,
-            transitions: false,
-            profiles: _profiles);
+            false,
+            _profiles);
 
         _root.Add(_scenes);
     }
@@ -65,7 +71,7 @@ public sealed partial class SceneSystemTests
     public void TearDown()
     {
         if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
+            Directory.Delete(_directory, true);
     }
 
     [Test]
@@ -79,11 +85,7 @@ public sealed partial class SceneSystemTests
 
         bool handled = registry.TryInvoke(
             SceneKind.SongTiming,
-            new SceneActionContext(
-                _scenes,
-                _store,
-                default,
-                SceneActionId.AddSong));
+            new SceneActionContext(_scenes, _store, default, SceneActionId.AddSong));
 
         Assert.That(handled, Is.True);
         Assert.That(asked, Is.True);
@@ -113,8 +115,7 @@ public sealed partial class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Count, Is.EqualTo(2));
         Assert.That(view.Selected, Is.EqualTo(0));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
-            Is.EqualTo("First Level"));
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("First Level"));
 
         Entity step = _store.CreateEntity(UiCommand.Of(SceneActionId.Next), Tags.Get<Pressed>());
         Frame();
@@ -122,8 +123,7 @@ public sealed partial class SceneSystemTests
         SettleScroll(root);
         view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
-            Is.EqualTo("Second Level"));
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("Second Level"));
 
         step.DeleteEntity();
     }
@@ -143,17 +143,16 @@ public sealed partial class SceneSystemTests
         Entity root = _scenes.Root;
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Count, Is.EqualTo(0));
-        Assert.That(view.Thumb.GetComponent<UiShape>().Points,
-            Has.Length.EqualTo(1), "an empty list has no scrollbar thumb");
+        Assert.That(
+            view.Thumb.GetComponent<UiShape>().Points,
+            Has.Length.EqualTo(1),
+            "an empty list has no scrollbar thumb");
 
         // The hint is a button: it takes input and asks for the editor.
         Entity hint = _store.Query<Text>().ToEntityList()
-            .First(entity => entity.GetComponent<Text>().Value ==
-                             "CREATE A LEVEL IN THE EDITOR");
+            .First(entity => entity.GetComponent<Text>().Value == "CREATE A LEVEL IN THE EDITOR");
         Assert.That(hint.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(
-            hint.GetComponent<UiCommand>().As<SceneActionId>(),
-            Is.EqualTo(SceneActionId.Edit));
+        Assert.That(hint.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.Edit));
     }
 
     [Test]
@@ -166,8 +165,7 @@ public sealed partial class SceneSystemTests
 
         Assert.That(_scenes.EditSelected(), Is.True);
         Assert.That(
-            _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
-                .GetComponent<Xanadu.Ecs.SceneState>().Pending,
+            _store.Query<SceneState>().ToEntityList()[0].GetComponent<SceneState>().Pending,
             Is.EqualTo(SceneKind.Editor));
     }
 
@@ -181,9 +179,7 @@ public sealed partial class SceneSystemTests
         Assert.That(HasText("CREATE A LEVEL IN THE EDITOR"), Is.False);
 
         Entity root = _scenes.Root;
-        Assert.That(
-            root.GetComponent<SongSelectState>().Thumb.GetComponent<UiShape>().Points,
-            Has.Length.EqualTo(2));
+        Assert.That(root.GetComponent<SongSelectState>().Thumb.GetComponent<UiShape>().Points, Has.Length.EqualTo(2));
     }
 
     private static void SettleScroll(Entity root)
@@ -201,8 +197,7 @@ public sealed partial class SceneSystemTests
         Frame();
 
         Entity root = _scenes.Root;
-        float restY = root.GetComponent<SongSelectState>()
-            .Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y;
+        float restY = root.GetComponent<SongSelectState>().Tiles[4].GetComponent<Position>().Value.Y;
 
         Entity step = _store.CreateEntity(UiCommand.Of(SceneActionId.Next), Tags.Get<Pressed>());
         Frame();
@@ -211,21 +206,19 @@ public sealed partial class SceneSystemTests
         ref SongSelectState view = ref root.GetComponent<SongSelectState>();
         Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.True);
         Assert.That(view.Scroll, Is.GreaterThan(0).And.LessThan(1));
-        float midY = view.Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y;
+        float midY = view.Tiles[4].GetComponent<Position>().Value.Y;
         Assert.That(midY, Is.LessThan(restY));
 
         SettleScroll(root);
         Assert.That(view.Scroll, Is.EqualTo(1f));
-        Assert.That(
-            view.Tiles[4].GetComponent<Xanadu.Ecs.Position>().Value.Y,
-            Is.EqualTo(restY).Within(0.01f));
+        Assert.That(view.Tiles[4].GetComponent<Position>().Value.Y, Is.EqualTo(restY).Within(0.01f));
         Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.False);
     }
 
     [Test]
     public void SongSelectScrollAdvancesAcrossFramesInTheSystemRoot()
     {
-        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
+        _root.Add(new SongSelectScrollSystem());
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
@@ -247,9 +240,7 @@ public sealed partial class SceneSystemTests
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        Entity tile = _store
-            .Query<SongSelectTile>()
-            .ToEntityList()
+        Entity tile = _store.Query<SongSelectTile>().ToEntityList()
             .First(entity => entity.GetComponent<SongSelectTile>().Index == 1);
         tile.AddTag<Pressed>();
         Frame();
@@ -260,12 +251,9 @@ public sealed partial class SceneSystemTests
         SettleScroll(root);
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Selected, Is.EqualTo(1));
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("Second Level"));
         Assert.That(
-            SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
-            Is.EqualTo("Second Level"));
-        Assert.That(
-            _store.Query<Xanadu.Ecs.SceneState>().ToEntityList()[0]
-                .GetComponent<Xanadu.Ecs.SceneState>().SelectedLevelPath,
+            _store.Query<SceneState>().ToEntityList()[0].GetComponent<SceneState>().SelectedLevelPath,
             Is.EqualTo(_catalog[1].Path));
     }
 
@@ -291,9 +279,7 @@ public sealed partial class SceneSystemTests
     public void SongSelectListsAllProfileScores()
     {
         UserProfile profile = _profiles.Create("Scored");
-        _profiles.RecordScore(
-            _catalog[0].Path,
-            new PlayResults("First Level", 900_000, 0.97, 42, 50, 55));
+        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 900_000, 0.97, 42, 50, 55));
 
         _scenes.Start(SceneKind.SongSelect);
         Frame();
@@ -301,32 +287,33 @@ public sealed partial class SceneSystemTests
         Entity root = _scenes.Root;
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.Tiles, Has.Count.EqualTo(9));
-        Assert.That(
-            SongSelectScene.TileName(view, 4).GetComponent<Text>().Value,
-            Is.EqualTo("First Level"));
+        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("First Level"));
     }
 
     [Test]
     public void ScoreBarsShowAccuracyThenScoreHighestFirst()
     {
         _profiles.Create("Low");
-        _profiles.RecordScore(
-            _catalog[0].Path,
-            new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
+        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
         _profiles.Create("High");
-        _profiles.RecordScore(
-            _catalog[0].Path,
-            new PlayResults("First Level", 900_000, 0.9876, 42, 50, 55));
+        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 900_000, 0.9876, 42, 50, 55));
 
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        SongSelectState view = _scenes.Root
-            .GetComponent<SongSelectState>();
-        Assert.That(view.ScoreContent.Entity.ChildEntities[0].ChildEntities[0].GetComponent<Text>().Value, Is.EqualTo("98.76%"));
-        Assert.That(view.ScoreContent.Entity.ChildEntities[0].ChildEntities[1].GetComponent<Text>().Value, Is.EqualTo("0900000"));
-        Assert.That(view.ScoreContent.Entity.ChildEntities[1].ChildEntities[0].GetComponent<Text>().Value, Is.EqualTo("50.00%"));
-        Assert.That(view.ScoreContent.Entity.ChildEntities[1].ChildEntities[1].GetComponent<Text>().Value, Is.EqualTo("0400000"));
+        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
+        Assert.That(
+            view.ScoreContent.Entity.ChildEntities[0].ChildEntities[0].GetComponent<Text>().Value,
+            Is.EqualTo("98.76%"));
+        Assert.That(
+            view.ScoreContent.Entity.ChildEntities[0].ChildEntities[1].GetComponent<Text>().Value,
+            Is.EqualTo("0900000"));
+        Assert.That(
+            view.ScoreContent.Entity.ChildEntities[1].ChildEntities[0].GetComponent<Text>().Value,
+            Is.EqualTo("50.00%"));
+        Assert.That(
+            view.ScoreContent.Entity.ChildEntities[1].ChildEntities[1].GetComponent<Text>().Value,
+            Is.EqualTo("0400000"));
         Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(2));
     }
 
@@ -341,9 +328,7 @@ public sealed partial class SceneSystemTests
         SongSelectState view = root.GetComponent<SongSelectState>();
         Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(0));
 
-        _profiles.RecordScore(
-            _catalog[0].Path,
-            new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
+        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
         SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), _catalog, 0, _profiles);
         Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(1));
 
@@ -357,9 +342,9 @@ public sealed partial class SceneSystemTests
     [Test]
     public void ScoresScrollAndTheScrollbarFollows()
     {
-        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
-        _root.Add(new Xanadu.Systems.Layout.ContainerLayoutSystem());
-        _root.Add(new Xanadu.Systems.Ui.ScrollSystem());
+        _root.Add(new SongSelectScrollSystem());
+        _root.Add(new ContainerLayoutSystem());
+        _root.Add(new ScrollSystem());
         for (int i = 0; i < 8; i++)
         {
             _profiles.Create($"Player {i}");
@@ -373,9 +358,7 @@ public sealed partial class SceneSystemTests
 
         Entity root = _scenes.Root;
         SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(
-            view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y,
-            Is.GreaterThan(224));
+        Assert.That(view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y, Is.GreaterThan(224));
         float top = view.ScoreThumbSpan.X;
 
         view.ScoreViewport.GetComponent<ScrollView>().Offset = 1000;
@@ -384,9 +367,7 @@ public sealed partial class SceneSystemTests
 
         view = root.GetComponent<SongSelectState>();
         Assert.That(view.ScoreThumbSpan.X, Is.GreaterThan(top));
-        Assert.That(
-            view.ScoreThumbSpan.X + view.ScoreThumbSpan.Y,
-            Is.EqualTo(1036.348f).Within(0.01f));
+        Assert.That(view.ScoreThumbSpan.X + view.ScoreThumbSpan.Y, Is.EqualTo(1036.348f).Within(0.01f));
     }
 
     private void AddLevels(int count)
@@ -495,9 +476,9 @@ public sealed partial class SceneSystemTests
     {
         var pointer = new FakePointerInput();
         _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
-        _root.Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
-        _root.Add(new Xanadu.Systems.Layout.ContainerLayoutSystem());
-        _root.Add(new Xanadu.Systems.Ui.ScrollSystem());
+        _root.Add(new SongSelectScrollSystem());
+        _root.Add(new ContainerLayoutSystem());
+        _root.Add(new ScrollSystem());
         for (int i = 0; i < 8; i++)
         {
             _profiles.Create($"Player {i}");
@@ -517,7 +498,8 @@ public sealed partial class SceneSystemTests
         float content = view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
         Assert.That(view.ScoreViewport.GetComponent<ScrollView>().Offset, Is.GreaterThan(0));
         Assert.That(
-            SongSelectScene.ScoreValue(_store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>()),
+            SongSelectScene.ScoreValue(
+                _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>()),
             Is.EqualTo(1f).Within(0.001f),
             $"content {content}");
     }
@@ -531,11 +513,11 @@ public sealed partial class SceneSystemTests
         File.WriteAllBytes(second, [0]);
         _catalog[0] = _catalog[0] with
         {
-            Song = TestSongs.At(first, "a"),
+            Song = TestSongs.At(first, "a")
         };
         _catalog[1] = _catalog[1] with
         {
-            Song = TestSongs.At(second, "b"),
+            Song = TestSongs.At(second, "b")
         };
 
         var audio = new FakeTrackAudio();
@@ -569,8 +551,7 @@ public sealed partial class SceneSystemTests
 
         _scenes.StartPlay(new LevelEntry(path, document));
         Frame();
-        _store.Query<PlaySession>().ToEntityList()[0]
-            .GetComponent<PlaySession>().Finished = true;
+        _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>().Finished = true;
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
@@ -599,7 +580,7 @@ public sealed partial class SceneSystemTests
         {
             Name = "Scaled Level",
             PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000,
+            PlayfieldHeight = 1000
         };
 
         _scenes.StartPlay(new LevelEntry("memory://scaled", document));
@@ -623,7 +604,7 @@ public sealed partial class SceneSystemTests
         {
             Name = "Fall Level",
             PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000,
+            PlayfieldHeight = 1000
         };
 
         _scenes.StartPlay(new LevelEntry("memory://floor", document));
@@ -633,12 +614,11 @@ public sealed partial class SceneSystemTests
         PlayfieldView view = playfield.GetComponent<PlayfieldView>();
         Playfield field = playfield.GetComponent<Playfield>();
         Player player = playfield.GetComponent<Player>();
-        Vector2 position = playfield.GetComponent<Xanadu.Ecs.Position>().Value;
+        Vector2 position = playfield.GetComponent<Position>().Value;
 
         float centerX = view.ScreenOrigin.X + field.Width * view.Scale / 2;
         Assert.That(position.X, Is.EqualTo(centerX).Within(0.5f));
-        Assert.That(position.Y - player.Size.Y / 2,
-            Is.EqualTo(view.ScreenOrigin.Y).Within(0.5f));
+        Assert.That(position.Y - player.Size.Y / 2, Is.EqualTo(view.ScreenOrigin.Y).Within(0.5f));
     }
 
     [Test]
@@ -648,7 +628,7 @@ public sealed partial class SceneSystemTests
         {
             Name = "Provided Entry",
             PlayfieldWidth = 800,
-            PlayfieldHeight = 600,
+            PlayfieldHeight = 600
         };
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
 
@@ -667,27 +647,17 @@ public sealed partial class SceneSystemTests
         {
             Name = "Start Level",
             PlayfieldWidth = 800,
-            PlayfieldHeight = 600,
+            PlayfieldHeight = 600
         };
-        var start = new StartPoint(
-            "Chorus",
-            5_000,
-            new Vector2(200, 300),
-            new System.Numerics.Vector2(4, -2),
-            new Vector2(1, 0));
+        var start = new StartPoint("Chorus", 5_000, new Vector2(200, 300), new Vector2(4, -2), new Vector2(1, 0));
 
-        _scenes.StartPlay(
-            new LevelEntry("memory://start", document),
-            start);
+        _scenes.StartPlay(new LevelEntry("memory://start", document), start);
         Frame();
 
         Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
-        Assert.That(playfield.GetComponent<PlaySession>().StartTimeMs,
-            Is.EqualTo(5_000));
-        Vector2 expected = playfield.GetComponent<PlayfieldView>()
-            .PlayfieldToScreen(new Vector2(200, 300));
-        Assert.That(playfield.GetComponent<Xanadu.Ecs.Position>().Value,
-            Is.EqualTo(expected));
+        Assert.That(playfield.GetComponent<PlaySession>().StartTimeMs, Is.EqualTo(5_000));
+        Vector2 expected = playfield.GetComponent<PlayfieldView>().PlayfieldToScreen(new Vector2(200, 300));
+        Assert.That(playfield.GetComponent<Position>().Value, Is.EqualTo(expected));
     }
 
     [Test]
@@ -697,7 +667,7 @@ public sealed partial class SceneSystemTests
         {
             Name = "Results Level",
             PlayfieldWidth = 800,
-            PlayfieldHeight = 600,
+            PlayfieldHeight = 600
         };
         document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
 
@@ -731,12 +701,13 @@ public sealed partial class SceneSystemTests
         _scenes.StartPlay(new LevelEntry("memory://retry", document));
         Frame();
 
-        _store.Query<PlaySession>().ToEntityList()[0]
-            .GetComponent<PlaySession>().Finished = true;
+        _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>().Finished = true;
         Frame();
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
 
-        _store.Query<UiCommand>().ToEntityList().First(command => command.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Retry).AddTag<Pressed>();
+        _store.Query<UiCommand>().ToEntityList()
+            .First(command => command.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Retry)
+            .AddTag<Pressed>();
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
@@ -752,15 +723,13 @@ public sealed partial class SceneSystemTests
         _scenes.StartPlay(new LevelEntry("memory://spike", document));
         Frame();
 
-        ref PlaySession died = ref _store.Query<PlaySession>().ToEntityList()[0]
-            .GetComponent<PlaySession>();
+        ref PlaySession died = ref _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>();
         died.Died = true;
         died.Finished = true;
         Frame();
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-        PlaySession fresh = _store.Query<PlaySession>().ToEntityList()[0]
-            .GetComponent<PlaySession>();
+        PlaySession fresh = _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>();
         Assert.That(fresh.Died, Is.False);
         Assert.That(fresh.Finished, Is.False);
         Assert.That(HasText("Spike Level"), Is.True);
@@ -818,8 +787,7 @@ public sealed partial class SceneSystemTests
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        SongSelectState view = _scenes.Root
-            .GetComponent<SongSelectState>();
+        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
         Assert.That(view.Play.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.Play));
         Assert.That(view.Play.Tags.Has<TakesInput>(), Is.True);
         Assert.That(view.Play.HasComponent<UiMaterial>(), Is.False, "the test factory loads no shaders");
@@ -845,16 +813,15 @@ public sealed partial class SceneSystemTests
                     Id = "a",
                     Title = "Choo Choo Train",
                     Artist = "Slake",
-                    Genre = "J-Revival",
+                    Genre = "J-Revival"
                 },
-                "/tmp/choo-choo.wav"),
+                "/tmp/choo-choo.wav")
         };
 
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        SongSelectState view = _scenes.Root
-            .GetComponent<SongSelectState>();
+        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
         Assert.That(view.InfoDifficulty.GetComponent<Text>().Value, Is.EqualTo("FIRST LEVEL"));
         Assert.That(view.InfoGenre.GetComponent<Text>().Value, Is.EqualTo("J-REVIVAL"));
         Assert.That(view.InfoTitle.GetComponent<Text>().Value, Is.EqualTo("Choo Choo Train"));
@@ -866,14 +833,13 @@ public sealed partial class SceneSystemTests
     {
         _catalog[0] = _catalog[0] with
         {
-            Song = TestSongs.At("/tmp/long.wav", "a", new string('W', 40)),
+            Song = TestSongs.At("/tmp/long.wav", "a", new string('W', 40))
         };
 
         _scenes.Start(SceneKind.SongSelect);
         Frame();
 
-        SongSelectState view = _scenes.Root
-            .GetComponent<SongSelectState>();
+        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
         Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.LessThan(46));
         Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.GreaterThanOrEqualTo(24));
     }
@@ -885,7 +851,7 @@ public sealed partial class SceneSystemTests
         var document = new LevelDocument
         {
             Name = "Broken",
-            SongId = "missing-song",
+            SongId = "missing-song"
         };
         document.Notes.Add(new NoteDocument { TimeMs = 500, X = 100, Y = 200 });
         _catalog.Add(new LevelEntry("memory://broken", document, null));
@@ -895,8 +861,7 @@ public sealed partial class SceneSystemTests
 
         Assert.That(HasText("[SONG MISSING]"), Is.True);
 
-        SongSelectState view = _scenes.Root
-            .GetComponent<SongSelectState>();
+        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
         Assert.That(view.Play.Tags.Has<TakesInput>(), Is.False);
         Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.False);
     }
@@ -969,15 +934,13 @@ public sealed partial class SceneSystemTests
 
         Assert.That(_scenes.TryStepCarousel(1), Is.True);
         Assert.That(
-            _store.Query<SongSelectState>().ToEntityList()[0]
-                .GetComponent<SongSelectState>().Selected,
+            _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected,
             Is.EqualTo(1));
 
         Assert.That(_scenes.TryStepCarousel(1), Is.False);
         Assert.That(_scenes.TryStepCarousel(-1), Is.True);
         Assert.That(
-            _store.Query<SongSelectState>().ToEntityList()[0]
-                .GetComponent<SongSelectState>().Selected,
+            _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected,
             Is.EqualTo(0));
     }
 
@@ -1011,9 +974,7 @@ public sealed partial class SceneSystemTests
         _scenes.TryBack();
 
         Assert.That(!UiLayout.IsHidden(PausePanel()), Is.True);
-        Assert.That(
-            Pause().Title.GetComponent<Text>().Value,
-            Is.EqualTo("PAUSED"));
+        Assert.That(Pause().Title.GetComponent<Text>().Value, Is.EqualTo("PAUSED"));
         Assert.That(playhead.Playing, Is.False);
         Assert.That(playfield.Tags.Has<PlayPaused>(), Is.True);
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
@@ -1091,8 +1052,7 @@ public sealed partial class SceneSystemTests
         Frame();
 
         _store.Query<UiCommand>().ToEntityList()
-            .First(command => command.GetComponent<UiCommand>().As<SceneActionId>() ==
-                SceneActionId.Pause)
+            .First(command => command.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Pause)
             .AddTag<Pressed>();
         Frame();
 
@@ -1130,7 +1090,7 @@ public sealed partial class SceneSystemTests
             new FakeVisualRidFactory(),
             () => _catalog,
             _keybinds,
-            transitions: true);
+            true);
         _root.Add(transitional);
 
         var document = new LevelDocument { Name = "Fade Retry" };
@@ -1142,18 +1102,14 @@ public sealed partial class SceneSystemTests
 
         transitional.TryBack();
         Advance(2);
-        Assert.That(
-            !UiLayout.IsHidden(transitional.PausePanel),
-            Is.True);
+        Assert.That(!UiLayout.IsHidden(transitional.PausePanel), Is.True);
 
         transitional.Pause.Retry.AddTag<Pressed>();
 
         Advance(40);
 
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-        Assert.That(
-            !UiLayout.IsHidden(transitional.PausePanel),
-            Is.False);
+        Assert.That(!UiLayout.IsHidden(transitional.PausePanel), Is.False);
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
     }
 
@@ -1187,13 +1143,12 @@ public sealed partial class SceneSystemTests
         _scenes.Start(SceneKind.Settings);
         Frame();
 
-        var rows = UiCommand.All<KeybindAction>(_store);
+        List<(Entity Entity, KeybindAction Id, UiCommand Command)> rows = UiCommand.All<KeybindAction>(_store);
         Assert.That(rows.Count, Is.EqualTo(KeybindSettings.Actions.Length));
 
         foreach ((Entity row, KeybindAction action, _) in rows)
         {
-            string expected = KeybindSettings.KeyLabel(
-                KeybindSettings.DefaultFor(action));
+            string expected = KeybindSettings.KeyLabel(KeybindSettings.DefaultFor(action));
             Assert.That(row.GetComponent<Text>().Value, Is.EqualTo(expected));
         }
     }
@@ -1238,7 +1193,7 @@ public sealed partial class SceneSystemTests
             new FakeVisualRidFactory(),
             () => _catalog,
             _keybinds,
-            transitions: true);
+            true);
         _root.Add(transitional);
         transitional.Start(SceneKind.Profiles);
         Advance(40);
@@ -1269,7 +1224,7 @@ public sealed partial class SceneSystemTests
             new FakeVisualRidFactory(),
             () => _catalog,
             _keybinds,
-            transitions: true);
+            true);
         _root.Add(transitional);
         transitional.Start(SceneKind.Main);
         Advance(40);
@@ -1282,8 +1237,8 @@ public sealed partial class SceneSystemTests
     }
 
     private float MenuLayerOpacity() =>
-        UiLayout.LayerOpacityOf(_store.Query<Layer>().ToEntityList()
-            .Single(layer => layer.GetComponent<Layer>().ZIndex == UiLayers.Menu));
+        UiLayout.LayerOpacityOf(
+            _store.Query<Layer>().ToEntityList().Single(layer => layer.GetComponent<Layer>().ZIndex == UiLayers.Menu));
 
     private float TransitionOverlayAlpha()
     {
@@ -1326,18 +1281,11 @@ public sealed partial class SceneSystemTests
             int z = rect.GetComponent<Drawable>().ZIndex;
             // Scenes are authored against the 1920x1080 design stage; the host
             // scales the surface, so the backdrop is stage-sized, not screen-sized.
-            if (z == UiLayers.MenuBackground &&
-                rect.GetComponent<Rectangle>().Bounds.Size == UiStage.Design1080)
-            {
+            if (z == UiLayers.MenuBackground && rect.GetComponent<Rectangle>().Bounds.Size == UiStage.Design1080)
                 hasFullScreenBackground = true;
-            }
 
-            if (z == UiLayers.Menu &&
-                rect.HasComponent<Text>() &&
-                rect.GetComponent<Text>().Value == "SETTINGS")
-            {
+            if (z == UiLayers.Menu && rect.HasComponent<Text>() && rect.GetComponent<Text>().Value == "SETTINGS")
                 hasContentTitle = true;
-            }
         }
 
         Assert.That(hasFullScreenBackground, Is.True);
@@ -1374,14 +1322,15 @@ public sealed partial class SceneSystemTests
         string path = Path.Combine(_directory, name.Replace(' ', '-') + XmfBinary.Extension);
         var document = new LevelDocument
         {
-            Name = name,
+            Name = name
         };
-        document.Notes.Add(new NoteDocument
-        {
-            TimeMs = 500,
-            X = 100,
-            Y = 200,
-        });
+        document.Notes.Add(
+            new NoteDocument
+            {
+                TimeMs = 500,
+                X = 100,
+                Y = 200
+            });
 
         LevelStore.Save(document, path);
         return new LevelEntry(path, LevelStore.Load(path));
@@ -1456,6 +1405,4 @@ public sealed partial class SceneSystemTests
         for (int i = 0; i < frames; i++)
             Frame();
     }
-
-
 }

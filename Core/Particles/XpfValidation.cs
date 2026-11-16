@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Particles;
+namespace Xanadu.Core.Particles;
 
 /// <summary>The rules a particle library must keep to be saved, loaded or played.</summary>
 public static class XpfValidation

@@ -3,13 +3,17 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Systems.Ui;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -34,12 +38,12 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     private List<string> ClipLabels()
     {
         var options = new List<(int Value, string Label)>();
-        foreach (Entity option in Store.Query<UiCommand, DropdownOption>().WithDisabled().ToEntityList().Where(entity => entity.HasToolAction()))
+        foreach (Entity option in Store.Query<UiCommand, DropdownOption>().WithDisabled().ToEntityList()
+                     .Where(entity => entity.HasToolAction()))
         {
             if (option.GetToolAction().Kind == ToolActionKind.Clip)
             {
-                options.Add((option.GetComponent<DropdownOption>().Value,
-                    option.GetComponent<Text>().Value));
+                options.Add((option.GetComponent<DropdownOption>().Value, option.GetComponent<Text>().Value));
             }
         }
 
@@ -101,14 +105,13 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     {
         Click(Button(ToolActionKind.AddBone));
 
-        Assert.That(VisibleBones(),
-            Is.EqualTo(new[] { "root", "torso", "head", "bone-1" }));
+        Assert.That(VisibleBones(), Is.EqualTo(new[] { "root", "torso", "head", "bone-1" }));
     }
 
     [Test]
     public void LoadingAPackageRefreshesTheClipList()
     {
-        var other = XafRigAuthoring.CreateEmptyPackage();
+        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
         other.Clips.Add(new XafClip { Id = "walk", Duration = 1f });
         Files.ToLoad = other;
@@ -196,8 +199,7 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     {
         Click(Button(ToolActionKind.SelectAttachment, "0"));
 
-        Color selected = Button(ToolActionKind.SelectAttachment, "0")
-            .GetComponent<ButtonVisual>().Normal;
+        Color selected = Button(ToolActionKind.SelectAttachment, "0").GetComponent<ButtonVisual>().Normal;
         Assert.That(selected, Is.Not.EqualTo(UiTheme.Button));
     }
 }

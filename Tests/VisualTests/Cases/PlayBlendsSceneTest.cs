@@ -1,7 +1,9 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Core.Rendering;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Levels;
-using Xanadu.Rendering;
+using Xanadu.Core.Rendering;
 using Xanadu.Scenes;
 using Xanadu.Settings;
 

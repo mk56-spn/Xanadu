@@ -1,13 +1,17 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -59,7 +63,7 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
         ReleasePreview();
 
         // The head is fixed length, so clicking it picks the torso that turns.
-        PressPreview(BoneScreenPosition(2), shift: true);
+        PressPreview(BoneScreenPosition(2), true);
         ReleasePreview();
 
         Assert.That(Selection.Bones(), Is.EqualTo(new[] { 0, 1 }));
@@ -82,7 +86,7 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
         Select(0, 1);
 
         Pointer.Shift = true;
-        PressPreview(BoneScreenPosition(2), shift: true);
+        PressPreview(BoneScreenPosition(2), true);
         ReleasePreview();
 
         Assert.That(Selection.Bones(), Is.EqualTo(new[] { 0 }));
@@ -96,12 +100,8 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
 
         Click(Button(ToolActionKind.KeyBone));
 
-        Assert.That(
-            XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "torso")),
-            Does.Contain(0.5f));
-        Assert.That(
-            XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head")),
-            Does.Contain(0.5f));
+        Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "torso")), Does.Contain(0.5f));
+        Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head")), Does.Contain(0.5f));
     }
 
     [Test]

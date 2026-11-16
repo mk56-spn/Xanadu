@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -9,11 +10,7 @@ public sealed class XafVerletTests
     [Test]
     public void ChainKeepsSegmentLengthsWhileFalling()
     {
-        var chain = new XafVerletChain(
-            4,
-            new Vector2(0, 0),
-            Vector2.Right,
-            10);
+        var chain = new XafVerletChain(4, new Vector2(0, 0), Vector2.Right, 10);
 
         for (int i = 0; i < 120; i++)
             chain.Step(1f / 60f);
@@ -21,10 +18,9 @@ public sealed class XafVerletTests
         Assert.That(chain.Points[0], Is.EqualTo(Vector2.Zero));
         for (int i = 1; i < chain.Points.Length; i++)
         {
-            Assert.That(
-                chain.Points[i].DistanceTo(chain.Points[i - 1]),
-                Is.EqualTo(10f).Within(0.05f));
+            Assert.That(chain.Points[i].DistanceTo(chain.Points[i - 1]), Is.EqualTo(10f).Within(0.05f));
         }
+
         Assert.That(chain.Points[^1].Y, Is.GreaterThan(0f));
     }
 
@@ -35,7 +31,7 @@ public sealed class XafVerletTests
         var chain = new XafVerletChain(6, new Vector2(4, -40), Vector2.Down, 10)
         {
             ColliderCenter = new Vector2(0, 0),
-            ColliderRadius = 12,
+            ColliderRadius = 12
         };
 
         for (int i = 0; i < 600; i++)
@@ -56,7 +52,7 @@ public sealed class XafVerletTests
         {
             ColliderCenter = Vector2.Zero,
             ColliderRadius = 6,
-            Damping = 1f,
+            Damping = 1f
         };
 
         for (int i = 0; i < 240; i++)
@@ -86,16 +82,12 @@ public sealed class XafVerletTests
     [Test]
     public void PendulumStaysOnItsConstraintCircle()
     {
-        var pendulum = new XafPendulum(
-            new Vector2(0, 0),
-            new Vector2(10, 0),
-            10);
+        var pendulum = new XafPendulum(new Vector2(0, 0), new Vector2(10, 0), 10);
 
         for (int i = 0; i < 120; i++)
             pendulum.Step(1f / 60f);
 
-        Assert.That(pendulum.Position.Length(),
-            Is.EqualTo(10f).Within(0.05f));
+        Assert.That(pendulum.Position.Length(), Is.EqualTo(10f).Within(0.05f));
         Assert.That(pendulum.Position.Y, Is.GreaterThan(0f));
     }
 }

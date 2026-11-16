@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Xanadu.Storage;
+namespace Xanadu.Core.Storage;
 
 /// <summary>
 /// The one place paths become real ones. A relative path is under the game

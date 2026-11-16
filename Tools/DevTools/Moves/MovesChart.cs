@@ -1,4 +1,4 @@
-namespace Xanadu.Tools.Moves;
+namespace Xanadu.Tools.DevTools.Moves;
 
 /// <summary>Whether a card's rule is in the game, decided but not built, or still undecided.</summary>
 internal enum MoveStatus

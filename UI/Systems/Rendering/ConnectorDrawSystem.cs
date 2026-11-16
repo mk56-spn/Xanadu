@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Systems.Rendering;
+namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>
 /// Redraws every <see cref="UiConnector"/> each frame from its ends' laid-out

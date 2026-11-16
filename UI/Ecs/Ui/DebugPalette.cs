@@ -1,6 +1,7 @@
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Every colour the debug views use, wherever they live: the F3 stats, the F4 bounds

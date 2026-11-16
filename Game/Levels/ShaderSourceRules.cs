@@ -1,5 +1,5 @@
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Slang;
 
 namespace Xanadu.Levels;

@@ -1,8 +1,11 @@
 using System;
 using System.IO;
+using System.Reflection;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Ecs;
-using Xanadu.Particles;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Tests.Particles;
 
@@ -37,7 +40,7 @@ public sealed class XpfBinaryTests
         Upright = true,
         Color = new Color(1f, 0.8f, 0.2f),
         Ramp = { new XpfColorStop(0f, Colors.White), new XpfColorStop(1f, new Color(1, 1, 1, 0)) },
-        Reach = 500f,
+        Reach = 500f
     };
 
     [Test]
@@ -50,7 +53,7 @@ public sealed class XpfBinaryTests
         Assert.That(read.Particles, Has.Count.EqualTo(2));
         XpfParticle expected = library.Particles[0];
         XpfParticle actual = read.Particles[0];
-        foreach (var field in typeof(XpfParticle).GetFields())
+        foreach (FieldInfo field in typeof(XpfParticle).GetFields())
         {
             if (field.IsLiteral)
                 continue;

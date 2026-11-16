@@ -2,10 +2,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Editor;
 
@@ -78,7 +82,7 @@ public sealed class EditorAutoAdvanceTests
     {
         Entity snap = ViewportSnap.Attach(_store.CreateEntity(), "snap");
         snap.GetComponent<Toggle>().Value = true;
-        Vector2 cell = Xanadu.Systems.Playfields.PlayfieldGrid.Cell(_editor.GetComponent<Playfield>());
+        Vector2 cell = Systems.Playfields.PlayfieldGrid.Cell(_editor.GetComponent<Playfield>());
 
         Click(new Vector2(cell.X * 3 + cell.X * 0.3f, cell.Y * 5 + cell.Y * 0.7f));
 
@@ -94,7 +98,9 @@ public sealed class EditorAutoAdvanceTests
 
         Click(new Vector2(313, 427));
 
-        Assert.That(_store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position, Is.EqualTo(new Vector2(313, 427)));
+        Assert.That(
+            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position,
+            Is.EqualTo(new Vector2(313, 427)));
     }
 
     [Test]

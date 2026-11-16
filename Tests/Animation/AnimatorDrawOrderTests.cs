@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
 
 namespace Xanadu.Tests.Animation;
 
@@ -55,8 +55,8 @@ public sealed class AnimatorDrawOrderTests
     {
         for (int index = 0; index < 6; index++)
         {
-            DrawSlot attachment = AnimatorDrawOrder.Slot(-1, cloth: false, index);
-            DrawSlot cloth = AnimatorDrawOrder.Slot(-1, cloth: true, index);
+            DrawSlot attachment = AnimatorDrawOrder.Slot(-1, false, index);
+            DrawSlot cloth = AnimatorDrawOrder.Slot(-1, true, index);
             Assert.That(attachment.CompareTo(cloth), Is.LessThan(0), "cloth draws over attachments on one layer");
             Assert.That(
                 DrawOrder.Banded(-1, AnimatorDrawOrder.Attachment(index)),

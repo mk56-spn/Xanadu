@@ -1,9 +1,8 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
-
 #nullable enable
 
-namespace Xanadu.Maths;
+using System;
+
+namespace Xanadu.Core.Maths;
 
 // Godot 4.4's Vector2/3/4 methods (MIT, LICENSE.txt), moved onto
 // System.Numerics' vectors as C# 14 extension members so code written against

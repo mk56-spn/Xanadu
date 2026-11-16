@@ -1,6 +1,6 @@
-using Friflo.Engine.ECS;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Scene-scoped button/action identifiers, carried as a <see cref="UiCommand"/>.</summary>
 public enum SceneActionId

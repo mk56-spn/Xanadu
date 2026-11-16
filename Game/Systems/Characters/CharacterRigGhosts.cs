@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Canvas;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Characters;
 

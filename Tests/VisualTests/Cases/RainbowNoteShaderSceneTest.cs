@@ -1,12 +1,14 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Core.Items;
 using Xanadu.Levels;
-using Xanadu.Rendering;
+using Xanadu.Core.Rendering;
 using Xanadu.Scenes;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Systems.Shaders;
 
 namespace Xanadu.Tests.VisualTests;

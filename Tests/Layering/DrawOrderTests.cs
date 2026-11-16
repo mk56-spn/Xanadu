@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
 
 namespace Xanadu.Tests.Layering;
 
@@ -14,10 +14,9 @@ public sealed class DrawOrderTests
     }
 
     [Test]
-    public void TheOrderInsideALayerStillApplies()
-    {
-        Assert.That(DrawOrder.Banded(3, 20_000), Is.GreaterThan(DrawOrder.Banded(3, 10_000)));
-    }
+    public void TheOrderInsideALayerStillApplies() => Assert.That(
+        DrawOrder.Banded(3, 20_000),
+        Is.GreaterThan(DrawOrder.Banded(3, 10_000)));
 
     [Test]
     public void TheWholeLayerRangeFitsADrawIndex()

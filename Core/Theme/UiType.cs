@@ -1,4 +1,4 @@
-namespace Xanadu.Theme;
+namespace Xanadu.Core.Theme;
 
 /// <summary>
 /// The type scale. Sizes are design pixels at the 1920x1080 stage, so a scene

@@ -3,9 +3,11 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Audio;
 
@@ -16,15 +18,13 @@ public sealed class TimelineDrawSystemTests
     public void DriftGraphDrawsRedHistoryLine()
     {
         var store = new EntityStore();
-        Entity track = store.CreateEntity(new TrackProgress(
-            "test-track.wav",
-            durationMs: 20_000,
-            bpm: 128f)
-        {
-            NowMs = 1_000,
-            AudioMs = 980,
-            Started = true,
-        });
+        Entity track = store.CreateEntity(
+            new TrackProgress("test-track.wav", 20_000, 128f)
+            {
+                NowMs = 1_000,
+                AudioMs = 980,
+                Started = true
+            });
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
@@ -37,27 +37,21 @@ public sealed class TimelineDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(canvas.Lines, Is.Not.Empty);
-        Assert.That(
-            canvas.Lines.Any(line => line.Color.R > 0.9f && line.Color.G < 0.4f),
-            Is.True);
-        Assert.That(
-            canvas.Lines.Any(line => line.Color.B > 0.9f && line.Color.G > 0.7f),
-            Is.True);
+        Assert.That(canvas.Lines.Any(line => line.Color.R > 0.9f && line.Color.G < 0.4f), Is.True);
+        Assert.That(canvas.Lines.Any(line => line.Color.B > 0.9f && line.Color.G > 0.7f), Is.True);
     }
 
     [Test]
     public void RepeatedAudioCursorDoesNotAddDriftSamples()
     {
         var store = new EntityStore();
-        Entity track = store.CreateEntity(new TrackProgress(
-            "test-track.wav",
-            durationMs: 20_000,
-            bpm: 128f)
-        {
-            NowMs = 1_000,
-            AudioMs = 980,
-            Started = true,
-        });
+        Entity track = store.CreateEntity(
+            new TrackProgress("test-track.wav", 20_000, 128f)
+            {
+                NowMs = 1_000,
+                AudioMs = 980,
+                Started = true
+            });
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
@@ -82,15 +76,13 @@ public sealed class TimelineDrawSystemTests
     public void TimelineDrawsProgressTicksAndPlayhead()
     {
         var store = new EntityStore();
-        store.CreateEntity(new TrackProgress(
-            "test-track.wav",
-            durationMs: 20_000,
-            bpm: 128f)
-        {
-            NowMs = 5_000,
-            AudioMs = 4_980,
-            Started = true,
-        });
+        store.CreateEntity(
+            new TrackProgress("test-track.wav", 20_000, 128f)
+            {
+                NowMs = 5_000,
+                AudioMs = 4_980,
+                Started = true
+            });
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
@@ -110,9 +102,13 @@ public sealed class TimelineDrawSystemTests
 
         public List<LineCall> Lines { get; } = new();
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
         public void Clear(Handle canvas)
         {
@@ -123,25 +119,20 @@ public sealed class TimelineDrawSystemTests
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Rects.Add(bounds);
 
-        public void DrawLine(
-            Handle canvas,
-            Vector2 from,
-            Vector2 to,
-            Color color,
-            float width) =>
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
             Lines.Add(new LineCall(from, to, color, width));
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
         public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
             Texts.Add(text);
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public readonly record struct LineCall(
-            Vector2 From,
-            Vector2 To,
-            Color Color,
-            float Width);
+        public readonly record struct LineCall(Vector2 From, Vector2 To, Color Color, float Width);
     }
 }

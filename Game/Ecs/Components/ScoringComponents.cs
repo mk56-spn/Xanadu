@@ -2,7 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Scoring;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Play-mode score, accuracy, combo, and display entities.</summary>
 public struct ScoreState(

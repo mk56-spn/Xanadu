@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Layout;
+namespace Xanadu.Ui.Systems.Layout;
 
 /// <summary>Grid containers: columns as wide as their widest child, rows as tall as their tallest.</summary>
 public sealed partial class ContainerLayoutSystem

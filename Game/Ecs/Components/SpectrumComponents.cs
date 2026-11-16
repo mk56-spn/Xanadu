@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// Marks an entity whose <see cref="UiMaterial"/> reacts to the song preview:

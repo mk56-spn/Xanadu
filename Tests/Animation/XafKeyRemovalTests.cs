@@ -14,17 +14,14 @@ public sealed class XafKeyRemovalTests
         {
             Target = XafChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.Rotation,
+            Property = XafChannelProperty.Rotation
         };
         channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 2f });
         clip.Channels.Add(channel);
 
-        Assert.That(XafAuthoring.RemoveKey(
-            clip,
-            XafChannelTarget.Bone,
-            "root",
-            XafChannelProperty.Rotation,
-            1f), Is.True);
+        Assert.That(
+            XafAuthoring.RemoveKey(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1f),
+            Is.True);
         Assert.That(clip.Channels, Is.Empty);
     }
 
@@ -36,17 +33,14 @@ public sealed class XafKeyRemovalTests
         {
             Target = XafChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.Rotation,
+            Property = XafChannelProperty.Rotation
         };
         channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 2f });
         clip.Channels.Add(channel);
 
-        Assert.That(XafAuthoring.RemoveKey(
-            clip,
-            XafChannelTarget.Bone,
-            "root",
-            XafChannelProperty.Rotation,
-            1.5f), Is.False);
+        Assert.That(
+            XafAuthoring.RemoveKey(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1.5f),
+            Is.False);
         Assert.That(channel.Keyframes, Has.Count.EqualTo(1));
     }
 }

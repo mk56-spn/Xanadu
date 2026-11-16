@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Items;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -45,16 +46,26 @@ public sealed class XafEffectTests
     {
         XafPackage package = Package();
         XafClip clip = package.Clips[0];
-        XafAuthoring.KeyEffect(package, clip, 0, 0.1f, new XafEffectState
-        {
-            Transform = new XafTransform { Translation = new Vector2(0, 0), Scale = Vector2.One },
-            Opacity = 1f,
-        });
-        XafAuthoring.KeyEffect(package, clip, 0, 0.2f, new XafEffectState
-        {
-            Transform = new XafTransform { Translation = new Vector2(40, 0), Scale = Vector2.One },
-            Opacity = 0f,
-        });
+        XafAuthoring.KeyEffect(
+            package,
+            clip,
+            0,
+            0.1f,
+            new XafEffectState
+            {
+                Transform = new XafTransform { Translation = new Vector2(0, 0), Scale = Vector2.One },
+                Opacity = 1f
+            });
+        XafAuthoring.KeyEffect(
+            package,
+            clip,
+            0,
+            0.2f,
+            new XafEffectState
+            {
+                Transform = new XafTransform { Translation = new Vector2(40, 0), Scale = Vector2.One },
+                Opacity = 0f
+            });
 
         XafEffectState middle = Sample(package, 0.15f);
 
@@ -73,7 +84,9 @@ public sealed class XafEffectTests
         XafEffectState blended = XafBlend.Crossfade(shown, hidden, 0.25f).Effects[0];
 
         Assert.That(blended.Alpha, Is.EqualTo(0.75f).Within(0.001f));
-        Assert.That(blended.Transform.Translation, Is.EqualTo(shown.Effects[0].Transform.Translation),
+        Assert.That(
+            blended.Transform.Translation,
+            Is.EqualTo(shown.Effects[0].Transform.Translation),
             "it stays where the clip showing it put it");
     }
 
@@ -82,7 +95,7 @@ public sealed class XafEffectTests
     {
         XafPackage package = Package();
         XafPose base_ = XafSampler.Sample(package, package.Clips[1], 0f);
-        XafPose layer = XafSampler.Sample(package, package.Clips[0], 0.15f, additive: true);
+        XafPose layer = XafSampler.Sample(package, package.Clips[0], 0.15f, true);
 
         XafEffectState drawn = XafBlend.Add(base_, layer, 0.5f).Effects[0];
 
@@ -119,16 +132,18 @@ public sealed class XafEffectTests
     public void ValidationRejectsEffectsThatCannotBeDrawnOrKeyed()
     {
         XafPackage package = Package();
-        package.Effects.Add(new XafEffect
-        {
-            Id = "flash",
-            BoneId = "missing",
-            Item = new Xif
+        package.Effects.Add(
+            new XafEffect
             {
-                Shaders = { XifShaderRef.OfMap(3) },
-                Primitives = { new XifPrimitive { Kind = XifPrimitive.PolygonKind, Points = { Vector2.Zero, Vector2.One } } },
-            },
-        });
+                Id = "flash",
+                BoneId = "missing",
+                Item = new Xif
+                {
+                    Shaders = { XifShaderRef.OfMap(3) },
+                    Primitives =
+                        { new XifPrimitive { Kind = XifPrimitive.PolygonKind, Points = { Vector2.Zero, Vector2.One } } }
+                }
+            });
         XafAuthoring.SetChannel(package.Clips[0], XafChannelTarget.Bone, "root", XafChannelProperty.Opacity, 0f, 1f);
         XafAuthoring.SetChannel(package.Clips[0], XafChannelTarget.Effect, "ghost", XafChannelProperty.Visible, 0f, 1f);
 
@@ -178,7 +193,8 @@ public sealed class XafEffectTests
     {
         var package = new XafPackage();
         package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1, Rest = Transform2D.Identity });
-        package.Skeleton.Bones.Add(new XafBone { Id = "arm", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, -40)) });
+        package.Skeleton.Bones.Add(
+            new XafBone { Id = "arm", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, -40)) });
         package.Effects.Add(new XafEffect { Id = "streak", BoneId = "arm", Item = XafEffects.Streak() });
 
         var attack = new XafClip { Id = "attack", Duration = 0.5f };

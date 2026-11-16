@@ -2,9 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -172,6 +174,4 @@ public sealed class PlayfieldPlaybackSystemTests
         Assert.That(audio.PauseCount, Is.GreaterThan(0));
         Assert.That(audio.IsPlaying, Is.False);
     }
-
-
 }

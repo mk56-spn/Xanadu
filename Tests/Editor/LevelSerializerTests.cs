@@ -1,6 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Settings;
@@ -26,11 +27,10 @@ public sealed class LevelSerializerTests
             Id = "level-1",
             Slug = "hard-level",
             SongId = "song-1",
-            Name = "Hard",
+            Name = "Hard"
         };
 
-        LevelDocument result = LevelSerializer.Deserialize(
-            LevelSerializer.Serialize(source));
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
 
         Assert.That(result.Id, Is.EqualTo("level-1"));
         Assert.That(result.Slug, Is.EqualTo("hard-level"));
@@ -48,7 +48,7 @@ public sealed class LevelSerializerTests
             Spikes = null!,
             StartPoints = null!,
             Groups = null!,
-            Shaders = null!,
+            Shaders = null!
         };
 
         LevelDocument result = LevelSerializer.Normalize(document);
@@ -72,16 +72,16 @@ public sealed class LevelSerializerTests
     public void BlocksRoundTrip()
     {
         var source = new LevelDocument();
-        source.Blocks.Add(new BlockDocument
-        {
-            X = 100,
-            Y = 200,
-            Width = 300,
-            Height = 40,
-        });
+        source.Blocks.Add(
+            new BlockDocument
+            {
+                X = 100,
+                Y = 200,
+                Width = 300,
+                Height = 40
+            });
 
-        LevelDocument result = LevelSerializer.Deserialize(
-            LevelSerializer.Serialize(source));
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
 
         Assert.That(result.Blocks, Has.Count.EqualTo(1));
         Assert.That(result.Blocks[0].X, Is.EqualTo(100));
@@ -94,16 +94,17 @@ public sealed class LevelSerializerTests
     public void BlockOutlinesAndColourLinksRoundTrip()
     {
         var variant = new XmfVariant();
-        variant.Blocks.Add(new BlockDocument
-        {
-            Width = 50,
-            Height = 50,
-            OutlineWidth = 0f,
-            OutlineColor = 0x11223344,
-            FillGroups = 0b01,
-            OutlineGroups = 0b10,
-            OneWay = 2,
-        });
+        variant.Blocks.Add(
+            new BlockDocument
+            {
+                Width = 50,
+                Height = 50,
+                OutlineWidth = 0f,
+                OutlineColor = 0x11223344,
+                FillGroups = 0b01,
+                OutlineGroups = 0b10,
+                OneWay = 2
+            });
         var source = new XmfMapset();
         source.Variants.Add(variant);
 
@@ -146,17 +147,17 @@ public sealed class LevelSerializerTests
     public void SpikesRoundTrip()
     {
         var source = new LevelDocument();
-        source.Spikes.Add(new SpikeDocument
-        {
-            X = 200,
-            Y = 800,
-            Width = 100,
-            Height = 100,
-            Groups = new System.Collections.Generic.List<int> { 3 },
-        });
+        source.Spikes.Add(
+            new SpikeDocument
+            {
+                X = 200,
+                Y = 800,
+                Width = 100,
+                Height = 100,
+                Groups = new System.Collections.Generic.List<int> { 3 }
+            });
 
-        LevelDocument result = LevelSerializer.Deserialize(
-            LevelSerializer.Serialize(source));
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
 
         Assert.That(result.Spikes, Has.Count.EqualTo(1));
         Assert.That(result.Spikes[0].X, Is.EqualTo(200));
@@ -171,8 +172,7 @@ public sealed class LevelSerializerTests
     {
         // The spike chunk is optional, so files written before it existed load
         // with no spikes rather than failing.
-        LevelDocument result = LevelSerializer.Deserialize(
-            LevelSerializer.Serialize(new LevelDocument()));
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(new LevelDocument()));
 
         Assert.That(result.Spikes, Is.Not.Null);
         Assert.That(result.Spikes, Is.Empty);
@@ -186,25 +186,26 @@ public sealed class LevelSerializerTests
             Name = "Test Level",
             SnapDivision = 8,
             PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000,
+            PlayfieldHeight = 1000
         };
-        source.Notes.Add(new NoteDocument
-        {
-            TimeMs = 1_250,
-            X = 250,
-            Y = 400,
-            Target = KeybindAction.Action2,
-            Kind = NoteKind.Dash,
-        });
-        source.Mines.Add(new MineDocument
-        {
-            TimeMs = 1_500,
-            X = 500,
-            Y = 600,
-        });
+        source.Notes.Add(
+            new NoteDocument
+            {
+                TimeMs = 1_250,
+                X = 250,
+                Y = 400,
+                Target = KeybindAction.Action2,
+                Kind = NoteKind.Dash
+            });
+        source.Mines.Add(
+            new MineDocument
+            {
+                TimeMs = 1_500,
+                X = 500,
+                Y = 600
+            });
 
-        LevelDocument result = LevelSerializer.Deserialize(
-            LevelSerializer.Serialize(source));
+        LevelDocument result = LevelSerializer.Deserialize(LevelSerializer.Serialize(source));
 
         Assert.That(result.Version, Is.EqualTo(2));
         Assert.That(result.Name, Is.EqualTo("Test Level"));

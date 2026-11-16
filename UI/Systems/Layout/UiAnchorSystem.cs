@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Layout;
+namespace Xanadu.Ui.Systems.Layout;
 
 /// <summary>Sticks anchored children to their parent without taking part in layout.</summary>
 public sealed class UiAnchorSystem : QuerySystem<UiAnchor, Rectangle, Position>

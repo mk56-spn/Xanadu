@@ -1,6 +1,7 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;
 
 namespace Xanadu.Tools.Animator.Commands;

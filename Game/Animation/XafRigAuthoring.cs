@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Animation;
 

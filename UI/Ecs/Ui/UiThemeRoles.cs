@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>A fill and the colour of whatever sits on it, such as a button's label.</summary>
 public readonly record struct UiTone(Color Fill, Color On);

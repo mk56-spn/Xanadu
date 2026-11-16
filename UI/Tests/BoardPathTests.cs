@@ -1,8 +1,9 @@
 using System;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Editing;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class BoardPathTests

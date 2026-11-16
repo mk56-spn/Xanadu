@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using Xanadu.Core.Items;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
-using Xanadu.Timeline;
 
 namespace Xanadu.Levels;
 
@@ -166,7 +168,7 @@ public sealed class GroupDocument
     public List<ShaderKeyDocument> BufferKeys { get; set; } = new();
 
     /// <summary>How the buffer blends into its layer.</summary>
-    public Xanadu.Rendering.BlendMode BufferBlend { get; set; }
+    public BlendMode BufferBlend { get; set; }
 }
 
 /// <summary>Serializable group effect; times are seconds.</summary>
@@ -209,7 +211,7 @@ public sealed class GroupEffectDocument
 public abstract class ItemDocument
 {
     /// <summary>The colour its drawing is multiplied by, as RGBA8; white changes nothing.</summary>
-    public uint SelfModulate { get; set; } = Xanadu.Ecs.SelfModulate.White;
+    public uint SelfModulate { get; set; } = Ui.Ecs.Ui.SelfModulate.White;
 
     /// <summary>The groups the item belongs to.</summary>
     public List<int> Groups { get; set; } = new();
@@ -221,7 +223,7 @@ public abstract class ItemDocument
     public int Z { get; set; }
 
     /// <summary>How its pixels combine with the layer, Docs/render-architecture.md D17.</summary>
-    public Xanadu.Rendering.BlendMode Blend { get; set; }
+    public BlendMode Blend { get; set; }
 
     /// <summary>The group slot whose item-shader track it follows, or -1 for its own shader.</summary>
     public int ShaderSource { get; set; } = -1;
@@ -241,22 +243,22 @@ public sealed class BlockDocument : ItemDocument
 
     public float Height { get; set; }
 
-    /// <summary>The only side that collides, as a <see cref="Xanadu.Ecs.BlockOneWay"/>; 0 is solid all round.</summary>
+    /// <summary>The only side that collides, as a <see cref="BlockOneWay"/>; 0 is solid all round.</summary>
     public int OneWay { get; set; }
 
     /// <summary>Outline thickness in playfield units; 0 is no outline.</summary>
-    public float OutlineWidth { get; set; } = Xanadu.Ecs.Block.DefaultOutlineWidth;
+    public float OutlineWidth { get; set; } = Block.DefaultOutlineWidth;
 
     /// <summary>The outline's colour, as RGBA8.</summary>
-    public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
+    public uint OutlineColor { get; set; } = Block.DefaultOutlineColor.ToRgba32();
 
     /// <summary>The groups whose colour fades reach the interior.</summary>
-    public uint FillGroups { get; set; } = Xanadu.Ecs.Block.AllGroups;
+    public uint FillGroups { get; set; } = Block.AllGroups;
 
     /// <summary>The groups whose colour fades reach the outline.</summary>
-    public uint OutlineGroups { get; set; } = Xanadu.Ecs.Block.AllGroups;
+    public uint OutlineGroups { get; set; } = Block.AllGroups;
 
-    /// <summary>A ramp, as a <see cref="Xanadu.Ecs.BlockSlope"/>; 0 is a box.</summary>
+    /// <summary>A ramp, as a <see cref="BlockSlope"/>; 0 is a box.</summary>
     public int Slope { get; set; }
 }
 
@@ -275,10 +277,10 @@ public sealed class SpikeDocument : ItemDocument
     public float RotationDegrees { get; set; }
 
     /// <summary>Outline thickness in playfield units; 0 is no outline.</summary>
-    public float OutlineWidth { get; set; } = Xanadu.Ecs.Block.DefaultOutlineWidth;
+    public float OutlineWidth { get; set; } = Block.DefaultOutlineWidth;
 
     /// <summary>The outline's colour, as RGBA8.</summary>
-    public uint OutlineColor { get; set; } = Xanadu.Ecs.Block.DefaultOutlineColor.ToRgba32();
+    public uint OutlineColor { get; set; } = Block.DefaultOutlineColor.ToRgba32();
 }
 
 /// <summary>A friction bar: an upright line that turns ground friction on when crossed.</summary>
@@ -300,21 +302,21 @@ public sealed class GrassDocument : ItemDocument
 
     public float Y { get; set; }
 
-    public float Width { get; set; } = Xanadu.Ecs.GrassPatch.DefaultWidth;
+    public float Width { get; set; } = GrassPatch.DefaultWidth;
 
-    public float Length { get; set; } = Xanadu.Ecs.GrassPatch.DefaultLength;
+    public float Length { get; set; } = GrassPatch.DefaultLength;
 
     /// <summary>Blades per 100 playfield units of width.</summary>
-    public float Density { get; set; } = Xanadu.Ecs.GrassPatch.DefaultDensity;
+    public float Density { get; set; } = GrassPatch.DefaultDensity;
 
     /// <summary>How far a blade leans at the most, in degrees.</summary>
-    public float Sway { get; set; } = Xanadu.Ecs.GrassPatch.DefaultSway;
+    public float Sway { get; set; } = GrassPatch.DefaultSway;
 
     /// <summary>The blades' colour, as RGBA8.</summary>
-    public uint Color { get; set; } = Xanadu.Ecs.GrassPatch.DefaultColor.ToRgba32();
+    public uint Color { get; set; } = GrassPatch.DefaultColor.ToRgba32();
 
     /// <summary>How far each blade's colour may stray, 0 to 1.</summary>
-    public float Variation { get; set; } = Xanadu.Ecs.GrassPatch.DefaultVariation;
+    public float Variation { get; set; } = GrassPatch.DefaultVariation;
 
     /// <summary>Picks where each blade stands and how it looks.</summary>
     public uint Seed { get; set; }
@@ -326,36 +328,36 @@ public sealed class GrassDocument : ItemDocument
 /// <summary>A lens flare: a core, a halo and one or two streaks across a turned box, drawn by a shader.</summary>
 public sealed class FlareDocument : ItemDocument
 {
-    public FlareDocument() => Blend = Xanadu.Rendering.BlendMode.Add;
+    public FlareDocument() => Blend = BlendMode.Add;
 
     /// <summary>The middle of the box, in playfield units.</summary>
     public float X { get; set; }
 
     public float Y { get; set; }
 
-    public float Width { get; set; } = Xanadu.Ecs.LevelFlare.DefaultWidth;
+    public float Width { get; set; } = LevelFlare.DefaultWidth;
 
-    public float Height { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHeight;
+    public float Height { get; set; } = LevelFlare.DefaultHeight;
 
     /// <summary>1 for a streak along the width, 2 for one along the height as well.</summary>
     public int Axes { get; set; } = 1;
 
-    public float Thickness { get; set; } = Xanadu.Ecs.LevelFlare.DefaultThickness;
+    public float Thickness { get; set; } = LevelFlare.DefaultThickness;
 
-    public float Falloff { get; set; } = Xanadu.Ecs.LevelFlare.DefaultFalloff;
+    public float Falloff { get; set; } = LevelFlare.DefaultFalloff;
 
-    public float Core { get; set; } = Xanadu.Ecs.LevelFlare.DefaultCore;
+    public float Core { get; set; } = LevelFlare.DefaultCore;
 
-    public float Halo { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHalo;
+    public float Halo { get; set; } = LevelFlare.DefaultHalo;
 
-    public float Glow { get; set; } = Xanadu.Ecs.LevelFlare.DefaultGlow;
+    public float Glow { get; set; } = LevelFlare.DefaultGlow;
 
-    public float Intensity { get; set; } = Xanadu.Ecs.LevelFlare.DefaultIntensity;
+    public float Intensity { get; set; } = LevelFlare.DefaultIntensity;
 
-    public float Heat { get; set; } = Xanadu.Ecs.LevelFlare.DefaultHeat;
+    public float Heat { get; set; } = LevelFlare.DefaultHeat;
 
     /// <summary>The flare's colour, as RGBA8.</summary>
-    public uint Color { get; set; } = Xanadu.Ecs.LevelFlare.DefaultColor.ToRgba32();
+    public uint Color { get; set; } = LevelFlare.DefaultColor.ToRgba32();
 
     /// <summary>How far the flare is turned about its centre, clockwise, in degrees.</summary>
     public float Rotation { get; set; }
@@ -385,7 +387,7 @@ public sealed class TextDocument : ItemDocument
     public float Y { get; set; }
 
     /// <summary>The height of a line, in playfield units.</summary>
-    public float Size { get; set; } = Xanadu.Ecs.LevelText.DefaultSize;
+    public float Size { get; set; } = LevelText.DefaultSize;
 
     public string Text { get; set; } = "";
 
@@ -404,9 +406,9 @@ public sealed class ScreenReadDocument : ItemDocument
 
     public float Y { get; set; }
 
-    public float Width { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultWidth;
+    public float Width { get; set; } = ScreenReadRegion.DefaultWidth;
 
-    public float Height { get; set; } = Xanadu.Ecs.ScreenReadRegion.DefaultHeight;
+    public float Height { get; set; } = ScreenReadRegion.DefaultHeight;
 }
 
 /// <summary>Serializable practice start state.</summary>

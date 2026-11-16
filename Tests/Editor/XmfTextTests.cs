@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Storage;
 using Xanadu.Levels;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -16,7 +17,7 @@ public sealed class XmfTextTests
         Text = "Hold on — ☆ here",
         SelfModulate = 0x40a0ffccu,
         Shader = 0,
-        Groups = new() { 2, 5 },
+        Groups = new List<int> { 2, 5 }
     };
 
     [Test]
@@ -43,7 +44,7 @@ public sealed class XmfTextTests
     public void AMapWithoutTextHasNoTextChunk()
     {
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet((uint)XmfChunk.Texts, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Texts, Is.Empty);

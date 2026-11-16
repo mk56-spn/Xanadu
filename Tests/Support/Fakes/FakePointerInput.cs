@@ -1,6 +1,7 @@
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Tests.Support;
+namespace Xanadu.Tests.Support.Fakes;
 
 /// <summary>Pointer source whose sample the test sets before each frame.</summary>
 public sealed class FakePointerInput : IPointerInputSource

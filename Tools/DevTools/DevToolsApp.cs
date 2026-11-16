@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
-using Xanadu.Tools.Arch;
-using Xanadu.Tools.Atlas;
-using Xanadu.Tools.Autopsy;
-using Xanadu.Tools.Moves;
+using Xanadu.Tools.DevTools.Arch;
+using Xanadu.Tools.DevTools.Atlas;
+using Xanadu.Tools.DevTools.Autopsy;
+using Xanadu.Tools.DevTools.Moves;
 
 namespace Xanadu.Tools.DevTools;
 

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>Marks a line of the POSE tab's target readout.</summary>
 public struct AnimatorTargetCaption(int line) : IComponent

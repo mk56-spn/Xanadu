@@ -1,5 +1,7 @@
 
-namespace Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// The function keys, banded by what they affect so the debug views never

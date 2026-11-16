@@ -1,12 +1,19 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -210,8 +217,7 @@ public sealed class AnimatorBoneMenuTests : AnimatorToolTest
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(2));
         Assert.That(Menu.Open, Is.True);
         Assert.That(Menu.FromTree, Is.True);
-        Assert.That(Ui.BoneMenu.GetComponent<Position>().Value,
-            Is.EqualTo(point + AnimatorLayout.BoneMenuSize / 2));
+        Assert.That(Ui.BoneMenu.GetComponent<Position>().Value, Is.EqualTo(point + AnimatorLayout.BoneMenuSize / 2));
     }
 
     [Test]

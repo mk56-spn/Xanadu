@@ -1,6 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -17,10 +19,9 @@ public sealed class SelectionAlignTests
     [TestCase(AlignEdge.Top, 0, -50)]
     [TestCase(AlignEdge.CenterY, 0, 75)]
     [TestCase(AlignEdge.Bottom, 0, 200)]
-    public void AnItemMovesOntoTheSelectionsLine(AlignEdge edge, float x, float y)
-    {
-        Assert.That(SelectionAlign.Offset(Item, Bounds, edge), Is.EqualTo(new Vector2(x, y)));
-    }
+    public void AnItemMovesOntoTheSelectionsLine(AlignEdge edge, float x, float y) => Assert.That(
+        SelectionAlign.Offset(Item, Bounds, edge),
+        Is.EqualTo(new Vector2(x, y)));
 
     [Test]
     public void APointLinesUpByItsPosition()

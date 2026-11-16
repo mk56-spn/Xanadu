@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>A bone planted at the playhead: a spot target as the preview marks it.</summary>
 public sealed class AnimatorPlant

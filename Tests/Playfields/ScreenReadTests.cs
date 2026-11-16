@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Systems.Shaders;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -35,7 +38,7 @@ public sealed class ScreenReadTests
         ItemLayer.Put(front, new ItemLayer(-1, 9));
 
         var entries = new List<PlayfieldDrawEntry>();
-        PlayfieldDrawList.Gather(store, entries, startPoints: false);
+        PlayfieldDrawList.Gather(store, entries, false);
 
         int atBack = entries.FindIndex(entry => entry.Entity.Id == back.Id);
         int atRegion = entries.FindIndex(entry => entry.Entity.Id == region.Id);
@@ -60,12 +63,7 @@ public sealed class ScreenReadTests
         var routed = new ShaderRoutingCanvas(canvas, Main, items);
         routed.Clear(Main);
 
-        PlayfieldRenderer.DrawLayers(
-            routed,
-            Main,
-            store,
-            new PlayfieldItemFrame(View, Field, Head, 0f, Editor: false),
-            drawWedge: null);
+        PlayfieldRenderer.DrawLayers(routed, Main, store, new PlayfieldItemFrame(View, Field, Head, 0f, false), null);
 
         Assert.That(items.Copies, Has.Count.EqualTo(1));
         Assert.That(items.Copies[0].Rect, Is.EqualTo(new Rect2(200, 100, 300, 200)));
@@ -107,15 +105,16 @@ public sealed class ScreenReadTests
     public void ARegionRoundTripsThroughAMap()
     {
         var source = new LevelDocument { Name = "Reads" };
-        source.ScreenReads.Add(new ScreenReadDocument
-        {
-            X = 10,
-            Y = 20,
-            Width = 300,
-            Height = 200,
-            Layer = -2,
-            Z = 7,
-        });
+        source.ScreenReads.Add(
+            new ScreenReadDocument
+            {
+                X = 10,
+                Y = 20,
+                Width = 300,
+                Height = 200,
+                Layer = -2,
+                Z = 7
+            });
 
         LevelDocument read = XmfBinary.Read(XmfBinary.Write(source));
 
@@ -162,11 +161,14 @@ public sealed class ScreenReadTests
         Assert.That(document.ScreenReads.Single().Z, Is.EqualTo(6));
 
         var target = new EntityStore();
-        LevelDocumentMapper.Apply(target, target.CreateEntity(
-            new LevelInfo(""),
-            new Playfield(1000, 1000),
-            new Playhead(0, 120, 0, false),
-            new NoteSelection(default)), document);
+        LevelDocumentMapper.Apply(
+            target,
+            target.CreateEntity(
+                new LevelInfo(""),
+                new Playfield(1000, 1000),
+                new Playhead(0, 120, 0, false),
+                new NoteSelection(default)),
+            document);
 
         Entity applied = target.Query<ScreenReadRegion>().ToEntityList().Single();
         Assert.That(applied.GetComponent<ScreenReadRegion>().Size, Is.EqualTo(new Vector2(300, 200)));
@@ -185,7 +187,8 @@ public sealed class ScreenReadTests
         history.Record(before, history.Capture());
         Assert.That(history.Undo(), Is.True);
 
-        ScreenReadRegion restored = store.Query<ScreenReadRegion>().ToEntityList().Single().GetComponent<ScreenReadRegion>();
+        ScreenReadRegion restored =
+            store.Query<ScreenReadRegion>().ToEntityList().Single().GetComponent<ScreenReadRegion>();
         Assert.That(restored.Position, Is.EqualTo(new Vector2(10, 20)));
     }
 
@@ -193,7 +196,8 @@ public sealed class ScreenReadTests
     public void ARegionsGroupsRoundTrip()
     {
         var source = new LevelDocument { Name = "Reads" };
-        source.ScreenReads.Add(new ScreenReadDocument { Width = 300, Height = 200, Layer = -2, Z = 7, Groups = new List<int> { 2, 5 } });
+        source.ScreenReads.Add(
+            new ScreenReadDocument { Width = 300, Height = 200, Layer = -2, Z = 7, Groups = new List<int> { 2, 5 } });
 
         ScreenReadDocument read = XmfBinary.Read(XmfBinary.Write(source)).ScreenReads.Single();
         Assert.That(read.Groups, Is.EqualTo(new[] { 2, 5 }));
@@ -220,8 +224,14 @@ public sealed class ScreenReadTests
     [Test]
     public void ANewRegionFitsTheView()
     {
-        Assert.That(ScreenReadRegion.StartSize(new Vector2(3000, 3000)), Is.EqualTo(new Vector2(600, 400)), "the default when there's room");
-        Assert.That(ScreenReadRegion.StartSize(new Vector2(900, 600)), Is.EqualTo(new Vector2(300, 200)), "a third of a close-up view");
+        Assert.That(
+            ScreenReadRegion.StartSize(new Vector2(3000, 3000)),
+            Is.EqualTo(new Vector2(600, 400)),
+            "the default when there's room");
+        Assert.That(
+            ScreenReadRegion.StartSize(new Vector2(900, 600)),
+            Is.EqualTo(new Vector2(300, 200)),
+            "a third of a close-up view");
     }
 
     private static Entity Region(EntityStore store, Vector2 position, Vector2 size, int layer, int z)
@@ -243,11 +253,15 @@ public sealed class ScreenReadTests
             return item;
         }
 
-        public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend) { }
+        public void SetMaterial(Handle item, int slot, string commonPath, BlendMode blend)
+        {
+        }
 
         public void CopyRectangle(Handle item, Rect2 pixelRect) => Copies.Add((item, pixelRect));
 
-        public void DisableCopy(Handle item) { }
+        public void DisableCopy(Handle item)
+        {
+        }
     }
 
     private sealed class RecordingCanvas : IRectCanvas
@@ -256,27 +270,41 @@ public sealed class ScreenReadTests
 
         public List<(string Op, Handle Item)> Draws => Calls.Where(call => call.Op != "Clear").ToList();
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
         public void Clear(Handle canvas) => Calls.Add(("Clear", canvas));
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color) => Calls.Add(("Rect", canvas));
 
-        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) => Calls.Add(("Circle", canvas));
+        public void DrawCircle(Handle canvas, Vector2 center, float radius, Color color) =>
+            Calls.Add(("Circle", canvas));
 
-        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) => Calls.Add(("Polygon", canvas));
+        public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color) =>
+            Calls.Add(("Polygon", canvas));
 
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) => Calls.Add(("Line", canvas));
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
+            Calls.Add(("Line", canvas));
 
-        public void DrawPolyline(Handle canvas, ReadOnlySpan<Vector2> points, Color color, float width, bool antialiased = true) =>
+        public void DrawPolyline(
+            Handle canvas,
+            ReadOnlySpan<Vector2> points,
+            Color color,
+            float width,
+            bool antialiased = true) =>
             Calls.Add(("Polyline", canvas));
 
         public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("Text", canvas));
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextLeft", canvas));
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) =>
+            Calls.Add(("TextLeft", canvas));
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) => Calls.Add(("TextRight", canvas));
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) =>
+            Calls.Add(("TextRight", canvas));
     }
 }

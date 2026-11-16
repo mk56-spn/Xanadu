@@ -1,7 +1,7 @@
 using System;
 using Xanadu.Animation;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Every animation the game plays on the contact character's rig.</summary>
 public enum ContactClip

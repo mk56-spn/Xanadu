@@ -1,11 +1,11 @@
+#nullable enable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-#nullable enable
-
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// 4-element structure that can be used to represent 4D grid coordinates or sets of integers.

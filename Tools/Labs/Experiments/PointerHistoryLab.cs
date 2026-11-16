@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
+using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -178,13 +180,13 @@ internal sealed class PointerHistoryLab : ILabExperiment
         private readonly Mw.GraphicsDevice _device;
         private readonly Rect2 _area;
         private readonly uint _width, _height;
-        private readonly Mw.Texture _target;
+        private readonly Texture _target;
         private readonly Handle _shown, _item;
-        private readonly Mw.Buffer _keys, _state, _draws;
-        private readonly Mw.TransferBuffer _upload;
-        private readonly Mw.ComputePipeline _simulate;
-        private readonly Mw.Shader[] _shaders;
-        private readonly Mw.GraphicsPipeline _back, _trail, _dots, _markers;
+        private readonly Buffer _keys, _state, _draws;
+        private readonly TransferBuffer _upload;
+        private readonly ComputePipeline _simulate;
+        private readonly Shader[] _shaders;
+        private readonly GraphicsPipeline _back, _trail, _dots, _markers;
 
         private readonly Keyframer _keyframer = new();
         private readonly List<Key> _emitted = new();
@@ -204,25 +206,25 @@ internal sealed class PointerHistoryLab : ILabExperiment
             _width = (uint)area.Size.X;
             _height = (uint)area.Size.Y;
 
-            _target = Mw.Texture.Create2D(_device, "pointer history", _width, _height, Format,
+            _target = Texture.Create2D(_device, "pointer history", _width, _height, Format,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
             _shown = context.Show(_target);
             _item = CanvasServer.Current.CreateItem();
             CanvasServer.Current.SetParent(_item, parent);
             CanvasServer.Current.AddTextureRect(_item, new Rect2(area.Position, new Vector2(_width, _height)), _shown);
 
-            _keys = Mw.Buffer.Create<Key>(_device, "pointer history keys",
+            _keys = Buffer.Create<Key>(_device, "pointer history keys",
                 Mw.BufferUsageFlags.ComputeStorageRead | Mw.BufferUsageFlags.GraphicsStorageRead, RingSize);
-            _state = Mw.Buffer.Create<Key>(_device, "pointer history state",
+            _state = Buffer.Create<Key>(_device, "pointer history state",
                 Mw.BufferUsageFlags.ComputeStorageRead | Mw.BufferUsageFlags.ComputeStorageWrite | Mw.BufferUsageFlags.GraphicsStorageRead,
                 StateSize);
-            _draws = Mw.Buffer.Create<Mw.IndirectDrawCommand>(_device, "pointer history draws",
+            _draws = Buffer.Create<Mw.IndirectDrawCommand>(_device, "pointer history draws",
                 Mw.BufferUsageFlags.Indirect | Mw.BufferUsageFlags.ComputeStorageWrite, 2);
             // A frame emits at most two keys (the first frame, or a break plus nothing else), but leave room.
-            _upload = Mw.TransferBuffer.Create<Key>(_device, "pointer history upload", Mw.TransferBufferUsage.Upload, 8);
+            _upload = TransferBuffer.Create<Key>(_device, "pointer history upload", Mw.TransferBufferUsage.Upload, 8);
 
             string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "pointer_history_lab.slang");
-            _simulate = Mw.ComputePipeline.Create(_device, SlangShaders.Compile(module, "simulate", "compute"), "main",
+            _simulate = ComputePipeline.Create(_device, SlangShaders.Compile(module, "simulate", "compute"), "main",
                 new Mw.ComputePipelineCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -234,12 +236,12 @@ internal sealed class PointerHistoryLab : ILabExperiment
                     ThreadCountZ = 1,
                 });
 
-            Mw.Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
-            Mw.Shader back = Shader(module, "back", Mw.ShaderStage.Fragment, uniforms: 1);
-            Mw.Shader trail = Shader(module, "trailVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
-            Mw.Shader key = Shader(module, "keyVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
-            Mw.Shader stroke = Shader(module, "strokeShade", Mw.ShaderStage.Fragment);
-            Mw.Shader markers = Shader(module, "markers", Mw.ShaderStage.Fragment, storage: 2, uniforms: 1);
+            Shader full = Shader(module, "full", Mw.ShaderStage.Vertex);
+            Shader back = Shader(module, "back", Mw.ShaderStage.Fragment, uniforms: 1);
+            Shader trail = Shader(module, "trailVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
+            Shader key = Shader(module, "keyVertex", Mw.ShaderStage.Vertex, storage: 1, uniforms: 1);
+            Shader stroke = Shader(module, "strokeShade", Mw.ShaderStage.Fragment);
+            Shader markers = Shader(module, "markers", Mw.ShaderStage.Fragment, storage: 2, uniforms: 1);
             _shaders = [full, back, trail, key, stroke, markers];
 
             Mw.ColorTargetBlendState premultiplied = new()
@@ -260,8 +262,8 @@ internal sealed class PointerHistoryLab : ILabExperiment
             _markers = Pipeline(full, markers, premultiplied);
         }
 
-        private Mw.Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
-            Mw.Shader.Create(_device, SlangShaders.Compile(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
+        private Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
+            MoonWorks.Graphics.Shader.Create(_device, SlangShaders.Compile(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
                 "main", new Mw.ShaderCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -270,8 +272,8 @@ internal sealed class PointerHistoryLab : ILabExperiment
                     NumUniformBuffers = uniforms,
                 });
 
-        private Mw.GraphicsPipeline Pipeline(Mw.Shader vertex, Mw.Shader fragment, Mw.ColorTargetBlendState blend) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+        private GraphicsPipeline Pipeline(Shader vertex, Shader fragment, Mw.ColorTargetBlendState blend) =>
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -400,9 +402,9 @@ internal sealed class PointerHistoryLab : ILabExperiment
         {
             CanvasServer.Current.Free(_item);
             _context.Hide(_shown);
-            foreach (Mw.GraphicsPipeline pipeline in (Mw.GraphicsPipeline[])[_back, _trail, _dots, _markers])
+            foreach (GraphicsPipeline pipeline in (GraphicsPipeline[])[_back, _trail, _dots, _markers])
                 pipeline.Dispose();
-            foreach (Mw.Shader shader in _shaders)
+            foreach (Shader shader in _shaders)
                 shader.Dispose();
             _simulate.Dispose();
             _upload.Dispose();

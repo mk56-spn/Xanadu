@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Debug;
 
@@ -35,7 +37,7 @@ public sealed class DebugKeysTests
         Key[] functionKeys =
         {
             Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6,
-            Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
+            Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12
         };
         foreach (Key key in functionKeys)
             Assert.That(DebugKeys.IsReserved(key), Is.True, key.ToString());

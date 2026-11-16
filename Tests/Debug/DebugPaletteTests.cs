@@ -18,7 +18,7 @@ public sealed class DebugPaletteTests
         "Game/Systems/Playfields/PlayfieldRendererHitboxes.cs",
         "Game/Systems/Playfields/PlayfieldHitboxOverlaySystem.cs",
         "Game/Systems/Shaders/ShaderTunerSystem.cs",
-        "UI/Systems/Ui/DebugElementOverlaySystem.cs",
+        "UI/Systems/Ui/DebugElementOverlaySystem.cs"
     };
 
     // The tuner shows the colour being tuned, which is data rather than styling.
@@ -29,8 +29,7 @@ public sealed class DebugPaletteTests
     public void TheViewTakesItsColoursFromTheDebugPalette(string view)
     {
         string[] offending = File.ReadAllLines(Path.Combine(RepositoryRoot(), view))
-            .Where(line => Hardcoded.IsMatch(line))
-            .ToArray();
+            .Where(line => Hardcoded.IsMatch(line)).ToArray();
 
         Assert.That(offending, Is.Empty);
     }

@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
-using Xanadu.Theme;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -53,8 +55,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
             }
         }
 
-        Assert.That(rows.ConvertAll(row => row.GetToolAction().Argument),
-            Is.EqualTo(new[] { "jump", "landing" }));
+        Assert.That(rows.ConvertAll(row => row.GetToolAction().Argument), Is.EqualTo(new[] { "jump", "landing" }));
         Assert.That(Label(Ui.FlowTitle), Is.EqualTo("FROM IDLE"));
 
         // This rig has no "jumping" clip, so the game's only hand-over from idle is none.
@@ -91,8 +92,9 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
         Assert.That(rule.Curve, Is.EqualTo(XafFadeCurve.Smooth));
         Assert.That(Label(Ui.FlowFade), Is.EqualTo("0.20 s  SMOOTH"));
         Assert.That(Label(Button(ToolActionKind.SelectTransition, "jump")), Is.EqualTo("JUMP  0.20s SMO"));
-        Assert.That(Button(ToolActionKind.TransitionCurve, nameof(XafFadeCurve.Smooth))
-            .GetComponent<ButtonVisual>().Normal, Is.EqualTo(Palette.Selected));
+        Assert.That(
+            Button(ToolActionKind.TransitionCurve, nameof(XafFadeCurve.Smooth)).GetComponent<ButtonVisual>().Normal,
+            Is.EqualTo(Palette.Selected));
     }
 
     [Test]

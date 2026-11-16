@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 public enum AnimatorDragKind
 {

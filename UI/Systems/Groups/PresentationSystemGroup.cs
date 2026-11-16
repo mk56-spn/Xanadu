@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Rendering;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Rendering;
 
-namespace Xanadu.Systems.Groups;
+namespace Xanadu.Ui.Systems.Groups;
 
 /// <summary>Applies transforms and redraws dirty rectangles, wheels, and text, and every connector.</summary>
 public sealed class PresentationSystemGroup : SystemGroup

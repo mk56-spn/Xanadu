@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
-using Color = Xanadu.Maths.Color;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Color = Xanadu.Core.Maths.Color;
 using Buffer = MoonWorks.Graphics.Buffer;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 using Texture = MoonWorks.Graphics.Texture;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Rendering;
 
@@ -45,10 +47,10 @@ internal sealed class CanvasRenderer : IDisposable
     {
         public float Width, Height, Time, ItemPremultiplied;
 
-        /// <summary>Seconds since each play key's last press (<see cref="Xanadu.Rendering.ShaderKeys"/>): the directions, then the actions and a spare.</summary>
+        /// <summary>Seconds since each play key's last press (<see cref="ShaderKeys"/>): the directions, then the actions and a spare.</summary>
         public Vector4 DirectionKeys, ActionKeys;
 
-        /// <summary>xanadu.stage's <c>PlayFrame</c>: <see cref="Xanadu.Rendering.ShaderPlay"/> as a shader reads it.</summary>
+        /// <summary>xanadu.stage's <c>PlayFrame</c>: <see cref="ShaderPlay"/> as a shader reads it.</summary>
         public Vector4 Player, Playfield, PlayerState, Moves, Score, Judgement, Contact, Song;
         public Vector4 Events0, Events1, Events2, Events3, Events4;
 

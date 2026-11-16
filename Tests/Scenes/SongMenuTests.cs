@@ -3,13 +3,18 @@ using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Profiles;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -28,14 +33,12 @@ public sealed class SongMenuTests
     {
         _store = new EntityStore();
         _root = new SystemRoot(_store);
-        _directory = Path.Combine(
-            Path.GetTempPath(),
-            "writer-song-menu-" + System.Guid.NewGuid().ToString("N"));
+        _directory = Path.Combine(Path.GetTempPath(), "writer-song-menu-" + System.Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_directory);
 
         _catalog =
         [
-            CreateLevel("Menu Level", "song-a.mp3"),
+            CreateLevel("Menu Level", "song-a.mp3")
         ];
 
         _scenes = new SceneSystem(
@@ -45,8 +48,8 @@ public sealed class SongMenuTests
             new FakeVisualRidFactory(),
             () => _catalog,
             new KeybindSettings(persist: false),
-            transitions: false,
-            profiles: new ProfileStore(persist: false),
+            false,
+            new ProfileStore(persist: false),
             pointer: _pointer);
 
         _root.Add(_scenes);
@@ -58,7 +61,7 @@ public sealed class SongMenuTests
     public void TearDown()
     {
         if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
+            Directory.Delete(_directory, true);
     }
 
     [Test]
@@ -133,16 +136,11 @@ public sealed class SongMenuTests
 
     private LevelEntry CreateLevel(string name, string audioPath)
     {
-        string path = Path.Combine(
-            _directory,
-            name.Replace(' ', '-') + XmfBinary.Extension);
+        string path = Path.Combine(_directory, name.Replace(' ', '-') + XmfBinary.Extension);
         var document = new LevelDocument { Name = name };
         document.Notes.Add(new NoteDocument { TimeMs = 500, X = 100, Y = 200 });
         LevelStore.Save(document, path);
 
-        return new LevelEntry(
-            path,
-            LevelStore.Load(path),
-            TestSongs.At(audioPath, "song-a", name));
+        return new LevelEntry(path, LevelStore.Load(path), TestSongs.At(audioPath, "song-a", name));
     }
 }

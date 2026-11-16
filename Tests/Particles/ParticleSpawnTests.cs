@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Particles;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 
 namespace Xanadu.Tests.Particles;
 
@@ -10,14 +11,16 @@ public sealed class ParticleSpawnTests
 {
     private readonly ParticleSeed[] _seeds = new ParticleSeed[XpfParticle.MaxAmount];
 
-    private int Burst(XpfParticle effect, Vector2 position = default, float angle = 0f, Vector2 heading = default, Vector2 area = default) =>
-        ParticleSpawn.Burst(effect, position, Colors.White, area, angle, heading, cells: 2, new Random(3), _seeds);
+    private int Burst(
+        XpfParticle effect,
+        Vector2 position = default,
+        float angle = 0f,
+        Vector2 heading = default,
+        Vector2 area = default) =>
+        ParticleSpawn.Burst(effect, position, Colors.White, area, angle, heading, 2, new Random(3), _seeds);
 
     [Test]
-    public void ABurstThrowsTheEffectsAmount()
-    {
-        Assert.That(Burst(new XpfParticle { Amount = 24 }), Is.EqualTo(24));
-    }
+    public void ABurstThrowsTheEffectsAmount() => Assert.That(Burst(new XpfParticle { Amount = 24 }), Is.EqualTo(24));
 
     [Test]
     public void AnExplosiveBurstIsBornAtOnceAndAGentleOneOverItsLifetime()
@@ -58,7 +61,9 @@ public sealed class ParticleSpawnTests
         var effect = new XpfParticle { Amount = 200, Direction = -90f, Spread = 180f, HeadedSpread = 5f };
         int count = Burst(effect, angle: 1f, heading: new Vector2(-3f, 0f));
         for (int i = 0; i < count; i++)
-            Assert.That(Mathf.RadToDeg(Mathf.Abs(_seeds[i].Velocity.AngleTo(Vector2.Left))), Is.LessThanOrEqualTo(5f + 1e-3f));
+            Assert.That(
+                Mathf.RadToDeg(Mathf.Abs(_seeds[i].Velocity.AngleTo(Vector2.Left))),
+                Is.LessThanOrEqualTo(5f + 1e-3f));
     }
 
     [Test]

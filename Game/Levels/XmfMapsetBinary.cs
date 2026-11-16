@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Xanadu.Storage;
+using Xanadu.Core.Storage;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Levels;
 
@@ -75,7 +76,7 @@ public static partial class XmfBinary
         XmfMapset mapset = ReadMapsetMeta(file.Get((uint)XmfMapsetChunk.Meta, MapsetFormat), strings);
         mapset.Shaders = XmfRecords.ReadList(
             file.Get((uint)XmfMapsetChunk.Shaders, MapsetFormat),
-            Xanadu.Ecs.ShaderLimits.Count,
+            ShaderLimits.Count,
             "shader",
             r => XmfChrome.ReadShader(r, strings));
 

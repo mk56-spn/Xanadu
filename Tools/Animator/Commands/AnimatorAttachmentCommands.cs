@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
+using Xanadu.Tools.Animator.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 

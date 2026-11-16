@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Tree;
-using static Xanadu.Theme.UiMetrics;
-using static Xanadu.Ui.Tree.UiSpecs;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using static Xanadu.Core.Theme.UiMetrics;
+using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
 namespace Xanadu.Ui.Systems.Ui;
 

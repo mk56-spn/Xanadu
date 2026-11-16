@@ -1,14 +1,20 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -44,7 +50,7 @@ public sealed class EditorMultiSelectionTintTests
         _root.Add(new UiColorPickerSystem(_pointer));
         _root.Add(new UiColorFieldSystem());
         _root.Add(new EditorSelfModulateSystem(new EditorHistory(_store)));
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
     }
 
     private Vector2 Square => UiTransform.WorldPosition(_square, _square.GetComponent<Position>().Value);
@@ -67,7 +73,7 @@ public sealed class EditorMultiSelectionTintTests
         drop.Color = Colors.Red;
 
         for (int i = 0; i < 5; i++)
-            Frame(Vector2.Zero, pressed: false);
+            Frame(Vector2.Zero, false);
 
         Assert.That(SelfModulate.Of(_note), Is.EqualTo(Colors.Red));
         Assert.That(SelfModulate.Of(_block), Is.EqualTo(Colors.Red));
@@ -85,7 +91,7 @@ public sealed class EditorMultiSelectionTintTests
         drop.Color = Colors.Lime;
 
         for (int i = 0; i < 5; i++)
-            Frame(Vector2.Zero, pressed: false);
+            Frame(Vector2.Zero, false);
 
         Assert.That(SelfModulate.Of(_note), Is.EqualTo(Colors.Lime));
         Assert.That(_field.GetComponent<UiColorField>().Value, Is.EqualTo(Colors.Lime));
@@ -95,12 +101,12 @@ public sealed class EditorMultiSelectionTintTests
     public void ATypedColourTintsTheWholeSelection()
     {
         _field.AddTag<TextFieldFocused>();
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
         _field.GetComponent<TextField>().Value = "#ff0000";
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
         _field.RemoveTag<TextFieldFocused>();
-        Frame(Vector2.Zero, pressed: false);
-        Frame(Vector2.Zero, pressed: false);
+        Frame(Vector2.Zero, false);
+        Frame(Vector2.Zero, false);
 
         Assert.That(SelfModulate.Of(_note), Is.EqualTo(Colors.Red));
         Assert.That(SelfModulate.Of(_block), Is.EqualTo(Colors.Red));
@@ -109,10 +115,10 @@ public sealed class EditorMultiSelectionTintTests
     [Test]
     public void APickedColourTintsTheWholeSelection()
     {
-        Frame(Square, pressed: true);
-        Frame(Square + new Vector2(30, 0), pressed: true);
-        Frame(Square + new Vector2(30, 0), pressed: false);
-        Frame(Square + new Vector2(30, 0), pressed: false);
+        Frame(Square, true);
+        Frame(Square + new Vector2(30, 0), true);
+        Frame(Square + new Vector2(30, 0), false);
+        Frame(Square + new Vector2(30, 0), false);
 
         Color picked = _square.GetComponent<UiColorPicker>().Color;
         Assert.That(picked, Is.Not.EqualTo(Colors.White));

@@ -1,11 +1,17 @@
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Groups;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tools.Animator;
 
@@ -36,7 +42,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorBoneMenuSystem(pointer));
         Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));
         Add(new AnimatorKeyMenuSystem(pointer));
-        Add(new Xanadu.Systems.Groups.TimelineSystemGroup(pointer, wheel));
+        Add(new TimelineSystemGroup(pointer, wheel));
         Add(new AnimatorPreviewInputSystem(pointer, wheel));
         Add(new AnimatorShortcutSystem(keys));
         Add(new AnimatorSequenceSystem());

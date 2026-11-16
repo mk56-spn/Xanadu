@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Rendering;
 
 namespace Xanadu.Tests.Editor;
 
@@ -26,11 +28,11 @@ public sealed class XmfFlareTests
         Heat = 0.4f,
         Color = 0xff9a3cffu,
         SelfModulate = 0x40a0ffccu,
-        Groups = new() { 1, 4 },
+        Groups = new List<int> { 1, 4 },
         Layer = 3,
         Z = 2,
         Blend = BlendMode.Sub,
-        ShaderSource = 4,
+        ShaderSource = 4
     };
 
     private static void AssertSample(FlareDocument flare)
@@ -61,10 +63,9 @@ public sealed class XmfFlareTests
     }
 
     [Test]
-    public void AMapWithoutFlaresReadsWithNone()
-    {
-        Assert.That(XmfBinary.Read(XmfBinary.Write(new LevelDocument { Name = "Dark" })).Flares, Is.Empty);
-    }
+    public void AMapWithoutFlaresReadsWithNone() => Assert.That(
+        XmfBinary.Read(XmfBinary.Write(new LevelDocument { Name = "Dark" })).Flares,
+        Is.Empty);
 
     [Test]
     public void FlaresRoundTripThroughAMapsetPerVariant()
@@ -84,15 +85,16 @@ public sealed class XmfFlareTests
     [Test]
     public void SettingsOutOfRangeAreBroughtBackWhenLoaded()
     {
-        LevelFlare flare = LevelDocumentMapper.ToFlare(new FlareDocument
-        {
-            Width = -5f,
-            Height = 9_999f,
-            Axes = 7,
-            Thickness = float.NaN,
-            Intensity = 50f,
-            Heat = -1f,
-        });
+        LevelFlare flare = LevelDocumentMapper.ToFlare(
+            new FlareDocument
+            {
+                Width = -5f,
+                Height = 9_999f,
+                Axes = 7,
+                Thickness = float.NaN,
+                Intensity = 50f,
+                Heat = -1f
+            });
 
         Assert.That(flare.Width, Is.EqualTo(LevelFlare.MinSize));
         Assert.That(flare.Height, Is.EqualTo(LevelFlare.MaxSize));

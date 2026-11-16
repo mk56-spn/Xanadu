@@ -1,12 +1,18 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.UI;
 
@@ -53,8 +59,8 @@ public sealed class UiColorFieldPickerTests
     [Test]
     public void DraggingShowsLiveAndCommitsOnceWhenLetGo()
     {
-        Frame(Square, pressed: true);
-        Frame(Square + new Vector2(30, 0), pressed: true);
+        Frame(Square, true);
+        Frame(Square + new Vector2(30, 0), true);
 
         Assert.That(UiColorField.TakeCommit(_field, out _), Is.False);
         Color shown = _field.GetComponent<UiColorField>().Swatch.GetComponent<FillColor>().Value;
@@ -62,7 +68,7 @@ public sealed class UiColorFieldPickerTests
         Assert.That(_field.GetComponent<TextField>().Value, Is.EqualTo(SelfModulate.Format(shown)));
         Assert.That(UiColorField.IsEditing(_field), Is.True);
 
-        Frame(Square + new Vector2(30, 0), pressed: false);
+        Frame(Square + new Vector2(30, 0), false);
 
         Assert.That(UiColorField.IsEditing(_field), Is.False);
         Assert.That(UiColorField.TakeCommit(_field, out Color color), Is.True);
@@ -73,17 +79,17 @@ public sealed class UiColorFieldPickerTests
     [Test]
     public void DraggingHandsOutTheColourLiveAndStillCommitsWhenLetGo()
     {
-        Frame(Square, pressed: true);
+        Frame(Square, true);
         Assert.That(UiColorField.TakeLive(_field, out Color first), Is.True);
         Assert.That(UiColorField.TakeLive(_field, out _), Is.False, "only when it changes");
 
-        Frame(Square + new Vector2(30, 0), pressed: true);
+        Frame(Square + new Vector2(30, 0), true);
         Assert.That(UiColorField.TakeLive(_field, out Color moved), Is.True);
         Assert.That(moved, Is.Not.EqualTo(first));
 
         // The tool shows the live colour on its targets, and reports it back while dragging.
         UiColorField.Show(_field, moved);
-        Frame(Square + new Vector2(30, 0), pressed: false);
+        Frame(Square + new Vector2(30, 0), false);
 
         Assert.That(UiColorField.TakeLive(_field, out _), Is.False);
         Assert.That(UiColorField.TakeCommit(_field, out Color committed), Is.True, "the drag still commits");
@@ -95,11 +101,11 @@ public sealed class UiColorFieldPickerTests
     {
         // Top right of the square at hue 0 is pure red, which is what the field holds.
         UiColorField.Show(_field, Colors.Red);
-        Frame(new Vector2(-1000, -1000), pressed: false);
+        Frame(new Vector2(-1000, -1000), false);
         Vector2 corner = Square + new Vector2(60, -60);
 
-        Frame(corner, pressed: true);
-        Frame(corner, pressed: false);
+        Frame(corner, true);
+        Frame(corner, false);
 
         Assert.That(UiColorField.TakeCommit(_field, out _), Is.False);
     }
@@ -108,7 +114,7 @@ public sealed class UiColorFieldPickerTests
     public void ThePickerFollowsTheColourItIsShown()
     {
         UiColorField.Show(_field, new Color("#00ff00"));
-        Frame(new Vector2(-1000, -1000), pressed: false);
+        Frame(new Vector2(-1000, -1000), false);
 
         Assert.That(_square.GetComponent<UiColorPicker>().Color.IsEqualApprox(new Color("#00ff00")), Is.True);
     }
@@ -120,7 +126,7 @@ public sealed class UiColorFieldPickerTests
         panel.GetComponent<UiContainer>().Clip = true;
         panel.GetComponent<Rectangle>().Bounds = new Rect2(0, 5000, 10, 10);
 
-        Frame(Square, pressed: true);
+        Frame(Square, true);
 
         Assert.That(_square.GetComponent<UiColorPicker>().Dragging, Is.False);
     }

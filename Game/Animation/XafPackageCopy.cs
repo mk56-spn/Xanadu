@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Xanadu.Items;
+using Xanadu.Core.Items;
 
 namespace Xanadu.Animation;
 

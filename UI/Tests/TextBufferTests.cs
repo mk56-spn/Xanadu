@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Ui.Editing;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>The whole-line and word edits a code editor needs: indent, outdent, comment, word moves.</summary>
 [TestFixture]

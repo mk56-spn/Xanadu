@@ -2,13 +2,18 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -28,14 +33,16 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
         Package.Attachments.Clear();
         foreach ((string group, int layer) in art)
         {
-            Package.Attachments.Add(new XafAttachment
-            {
-                SvgPath = $"{group}.svg",
-                Group = group,
-                BoneId = "torso",
-                ZOrder = layer,
-            });
+            Package.Attachments.Add(
+                new XafAttachment
+                {
+                    SvgPath = $"{group}.svg",
+                    Group = group,
+                    BoneId = "torso",
+                    ZOrder = layer
+                });
         }
+
         AnimatorSession.RigChanged(Session);
 
         Ui.Tabs.GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
@@ -43,11 +50,10 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
     }
 
     private string[] Shown() => Ui.LayerList.ChildEntities
-        .Select(row => row.ChildEntities[0].GetComponent<Text>().Value)
-        .ToArray();
+        .Select(row => row.ChildEntities[0].GetComponent<Text>().Value).ToArray();
 
-    private Entity Row(string group) => Ui.LayerList.ChildEntities
-        .First(row => row.ChildEntities[0].GetComponent<Text>().Value.EndsWith(group));
+    private Entity Row(string group) =>
+        Ui.LayerList.ChildEntities.First(row => row.ChildEntities[0].GetComponent<Text>().Value.EndsWith(group));
 
     private int Layer(string group) => Package.Attachments.First(art => art.Group == group).ZOrder;
 

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Settings;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>This play's map offset, on top of the global one, and whatever is showing it.</summary>
 public struct PlayOffset(string levelId, Entity label) : IComponent

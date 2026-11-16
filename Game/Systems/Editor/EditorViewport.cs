@@ -1,5 +1,8 @@
 using System;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 
@@ -78,6 +81,6 @@ public static class EditorViewport
 
     private static float FitScale(Rect2 area, Playfield playfield) =>
         Math.Min(1f, Math.Min(
-            area.Size.X / Math.Max(1, playfield.Width),
-            area.Size.Y / Math.Max(1, playfield.Height)));
+            (int)(area.Size.X / Math.Max(1, playfield.Width)),
+            (int)(area.Size.Y / Math.Max(1, playfield.Height))));
 }

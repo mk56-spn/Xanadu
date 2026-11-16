@@ -1,3 +1,5 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Scenes;
@@ -53,8 +55,8 @@ public sealed class PlayGrassSceneTest : SceneTest
         {
             X = 770, Y = 700, Width = 260, Length = 40, Density = 60, Sway = 25, Seed = 13,
         });
-        var rock = new Xanadu.Items.Xif();
-        Xanadu.Items.XifEditing.AddPolygon(rock, new() { new(-120, 40), new(-60, -50), new(70, -40), new(130, 40) });
+        var rock = new Xanadu.Core.Items.Xif();
+        Xanadu.Core.Items.XifEditing.AddPolygon(rock, new() { new(-120, 40), new(-60, -50), new(70, -40), new(130, 40) });
         rock.Primitives[0].Fill = new Color("#5b6478");
         document.Polygons.Add(new PolygonDocument { X = 300, Y = 960, Rotation = 0f, Item = rock });
         Context.Scenes.StartPlay(new LevelEntry("memory://play-grass", document, song));

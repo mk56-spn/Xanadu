@@ -1,4 +1,5 @@
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 
 namespace Xanadu.Systems.Playfields;

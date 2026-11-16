@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>What the keys shared by every timeline can do.</summary>
 public enum TimelineCommand
@@ -46,13 +48,13 @@ public interface ITimelineHost
     void NoMarker(int direction);
 }
 
-/// <summary>Marks an entity's <see cref="Xanadu.Ecs.TimelineView"/> as a timeline with this host.</summary>
+/// <summary>Marks an entity's <see cref="TimelineView"/> as a timeline with this host.</summary>
 public struct TimelineHost(ITimelineHost host) : IComponent
 {
     public ITimelineHost Host = host;
 
     /// <summary>The press or drag under way on this timeline; <see cref="TimelineInputSystem"/> keeps it.</summary>
-    public Xanadu.Timeline.TimelineGesture Gesture = new();
+    public TimelineGesture Gesture = new();
 }
 
 /// <summary>The keys every timeline answers to the same way; a tool's own table holds the rest.</summary>

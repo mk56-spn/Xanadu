@@ -1,10 +1,15 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Groups;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -14,7 +19,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
 
     protected override void AddSystems()
     {
-        Root.Add(new Xanadu.Systems.Groups.TimelineSystemGroup(Pointer, Pointer));
+        Root.Add(new TimelineSystemGroup(Pointer, Pointer));
         Root.Add(new AnimatorActionSystem());
         Root.Add(new AnimatorKeyMenuSystem(Pointer));
     }
@@ -28,7 +33,8 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Add(package, "shin", 2, new Vector2(4, 48));
         Add(package, "foot", 3, new Vector2(-4, 48));
         var clip = new XafClip { Id = "idle", Duration = 2f };
-        var down = new XafChannel { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationY };
+        var down = new XafChannel
+            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationY };
         down.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
         down.Keyframes.Add(new XafKeyframe { Time = 2f, Value = 30f });
         clip.Channels.Add(down);
@@ -41,7 +47,10 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
 
     private XafLimbTarget AddOverride(XafTargetShape shape, float from, float to)
     {
-        var target = new XafLimbTarget { BoneId = "foot", Shape = shape, Center = new Vector2(0, 0), RadiusX = 5f, RadiusY = 5f, From = from, To = to };
+        var target = new XafLimbTarget
+        {
+            BoneId = "foot", Shape = shape, Center = new Vector2(0, 0), RadiusX = 5f, RadiusY = 5f, From = from, To = to
+        };
         Idle.Targets.Add(target);
         XafTargets.Bake(Package, Idle);
         return target;
@@ -104,8 +113,11 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Choose(ToolActionKind.RemoveOverride);
 
         Assert.That(Idle.Targets, Is.Empty);
-        Assert.That(Idle.Channels.Exists(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation &&
-                                              c.Keyframes.Exists(k => k.Time >= 0.5f && k.Time <= 1f)), Is.False);
+        Assert.That(
+            Idle.Channels.Exists(c =>
+                c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation &&
+                c.Keyframes.Exists(k => k.Time >= 0.5f && k.Time <= 1f)),
+            Is.False);
         Assert.That(Session.GetComponent<AnimatorKeyMenu>().OverrideOpen, Is.False);
 
         AnimatorHistoryCommands.Undo(Session);
@@ -125,7 +137,8 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Assert.That(Shin.Keyframes, Has.Count.EqualTo(keys));
     }
 
-    private XafChannel Shin => Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation)!;
+    private XafChannel Shin =>
+        Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation)!;
 
     [TestCase(XafTargetShape.Spot)]
     [TestCase(XafTargetShape.Ellipse)]

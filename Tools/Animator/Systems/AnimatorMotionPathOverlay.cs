@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Animation;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tools.Animator.Systems;
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Levels;
 
@@ -17,11 +18,11 @@ public static class LevelStore
 
     private static string ResolveDirectory()
     {
-        string userDirectory = Xanadu.Storage.GamePaths.Full(LevelsFolder);
+        string userDirectory = GamePaths.Full(LevelsFolder);
         if (IsWritable(userDirectory))
             return userDirectory;
 
-        string fallbackDirectory = Xanadu.Storage.GamePaths.Full(FallbackFolder);
+        string fallbackDirectory = GamePaths.Full(FallbackFolder);
         System.IO.Directory.CreateDirectory(fallbackDirectory);
         return fallbackDirectory;
     }
@@ -139,8 +140,8 @@ public static class LevelStore
         var entries = new List<LevelEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        AddFrom(Xanadu.Storage.GamePaths.Full(LevelsFolder));
-        AddFrom(Xanadu.Storage.GamePaths.Full(FallbackFolder));
+        AddFrom(GamePaths.Full(LevelsFolder));
+        AddFrom(GamePaths.Full(FallbackFolder));
         AddUndownloaded();
 
         entries.Sort(static (left, right) =>

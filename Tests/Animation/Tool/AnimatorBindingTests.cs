@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -102,7 +105,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
             ToolActionKind.PickMeshBones,
 
             // Shaping a target is all buttons and handles.
-            ToolActionKind.LimbTarget,
+            ToolActionKind.LimbTarget
         };
 
         var bound = new HashSet<ToolActionKind>();
@@ -122,12 +125,10 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     public void AModifiedKeyIsADifferentBinding()
     {
         Assert.That(
-            AnimatorBindings.Find(Key.O, ctrl: false, shift: false)!.Value.Action.Argument,
+            AnimatorBindings.Find(Key.O, false, false)!.Value.Action.Argument,
             Is.EqualTo(nameof(AnimatorMode.Onion)));
-        Assert.That(
-            AnimatorBindings.Find(Key.O, ctrl: true, shift: false)!.Value.Action.Kind,
-            Is.EqualTo(ToolActionKind.Load));
-        Assert.That(AnimatorBindings.Find(Key.O, ctrl: false, shift: true), Is.Null);
+        Assert.That(AnimatorBindings.Find(Key.O, true, false)!.Value.Action.Kind, Is.EqualTo(ToolActionKind.Load));
+        Assert.That(AnimatorBindings.Find(Key.O, false, true), Is.Null);
     }
 
     [Test]
@@ -240,7 +241,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     {
         Tap(Key.F5);
 
-        Assert.That(Xanadu.Tools.Animator.Commands.AnimatorPreviewModeCommands.IsOn(Session), Is.True);
+        Assert.That(AnimatorPreviewModeCommands.IsOn(Session), Is.True);
     }
 
     [Test]
@@ -259,10 +260,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     [Test]
     public void DeleteRemovesTheSelectedKey()
     {
-        AnimatorKeyCommands.SelectKey(
-            Session,
-            new XafTrack(XafChannelTarget.Bone, "head"),
-            1f);
+        AnimatorKeyCommands.SelectKey(Session, new XafTrack(XafChannelTarget.Bone, "head"), 1f);
         Assert.That(Idle.Channels[0].Keyframes, Has.Count.EqualTo(3));
 
         Tap(Key.Delete);
@@ -309,16 +307,11 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     [Test]
     public void TheNumberKeysSetTheSelectedKeysEasing()
     {
-        AnimatorKeyCommands.SelectKey(
-            Session,
-            new XafTrack(XafChannelTarget.Bone, "head"),
-            1f);
+        AnimatorKeyCommands.SelectKey(Session, new XafTrack(XafChannelTarget.Bone, "head"), 1f);
 
         Tap(Key.Key3);
 
-        Assert.That(
-            XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f),
-            Is.EqualTo(EasePreset.Ease));
+        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Ease));
     }
 
     [Test]

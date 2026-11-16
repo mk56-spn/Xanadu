@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 

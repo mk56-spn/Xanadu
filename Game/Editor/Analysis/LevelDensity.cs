@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace Xanadu.Editor.Analysis;
 
 /// <summary>
-/// How busy a chart is over time: notes per second, and how far the player
-/// must travel per second to reach them. Each array is one value per
-/// <see cref="BucketMs"/> of song time.
+///     How busy a chart is over time: notes per second, and how far the player
+///     must travel per second to reach them. Each array is one value per
+///     <see cref="BucketMs" /> of song time.
 /// </summary>
 public sealed record DensityProfile(
     int BucketMs,
@@ -25,9 +25,9 @@ public static class LevelDensity
     public const int DefaultBucketMs = 500;
 
     /// <summary>
-    /// Buckets the notes by time. <paramref name="notes"/> need not be sorted.
-    /// Travel is the straight-line distance from each note to the one before
-    /// it, credited to the later note's bucket.
+    ///     Buckets the notes by time. <paramref name="notes" /> need not be sorted.
+    ///     Travel is the straight-line distance from each note to the one before
+    ///     it, credited to the later note's bucket.
     /// </summary>
     public static DensityProfile Compute(
         IReadOnlyList<AnalysedNote> notes,
@@ -42,8 +42,8 @@ public static class LevelDensity
 
         long end = Math.Max(durationMs, sorted.Count > 0 ? sorted[^1].TimeMs : 0);
         int count = (int)(Math.Max(0, end) / bucketMs) + 1;
-        var counts = new float[count];
-        var travel = new float[count];
+        float[] counts = new float[count];
+        float[] travel = new float[count];
 
         for (int i = 0; i < sorted.Count; i++)
         {
@@ -57,12 +57,7 @@ public static class LevelDensity
         float[] notesPerSecond = Smooth(counts, perSecond);
         float[] travelPerSecond = Smooth(travel, perSecond);
 
-        return new DensityProfile(
-            bucketMs,
-            notesPerSecond,
-            travelPerSecond,
-            Max(notesPerSecond),
-            Max(travelPerSecond));
+        return new DensityProfile(bucketMs, notesPerSecond, travelPerSecond, Max(notesPerSecond), Max(travelPerSecond));
     }
 
     private static int BucketOf(long timeMs, int bucketMs, int count) =>
@@ -71,7 +66,7 @@ public static class LevelDensity
     /// <summary>Scales to a per-second rate and softens bucket edges with a 1-2-1 kernel.</summary>
     private static float[] Smooth(float[] values, float scale)
     {
-        var result = new float[values.Length];
+        float[] result = new float[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             float left = i > 0 ? values[i - 1] : values[i];

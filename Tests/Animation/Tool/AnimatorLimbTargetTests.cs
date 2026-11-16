@@ -1,9 +1,13 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -72,8 +76,10 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         {
             float time = i / 40f;
             Transform2D[] world = XafRig.WorldBones(Package, XafSampler.Sample(Package, Clip, time));
-            Assert.That(world[Foot].Origin.DistanceTo(XafTargets.WorldAt(Package, target, world, time)),
-                Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f), $"at {time}");
+            Assert.That(
+                world[Foot].Origin.DistanceTo(XafTargets.WorldAt(Package, target, world, time)),
+                Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f),
+                $"at {time}");
         }
     }
 
@@ -147,11 +153,20 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         float value = Clip.Channels.Find(c => c.TargetId == "shin")!.Keyframes[0].Value;
         Session.GetComponent<AnimatorDocument>().Runtime.Seek(0f);
 
-        AnimatorHistoryCommands.Edit(Session, () =>
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0f, value + 1f));
+        AnimatorHistoryCommands.Edit(
+            Session,
+            () => XafAuthoring.SetChannel(
+                Clip,
+                XafChannelTarget.Bone,
+                "shin",
+                XafChannelProperty.Rotation,
+                0f,
+                value + 1f));
 
         Assert.That(Status, Does.Contain("BELONG"));
-        Assert.That(Clip.Channels.Find(c => c.TargetId == "shin")!.Keyframes[0].Value, Is.EqualTo(value).Within(0.001f));
+        Assert.That(
+            Clip.Channels.Find(c => c.TargetId == "shin")!.Keyframes[0].Value,
+            Is.EqualTo(value).Within(0.001f));
     }
 
     [Test]
@@ -162,15 +177,19 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         target.Center = Where(Foot, 0f) - new Vector2(target.RadiusX, 0f);
         Verb("rx:0");
 
-        AnimatorHistoryCommands.Edit(Session, () =>
-        {
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
-            AnimatorSession.SetStatus(Session, "ROOT KEYED");
-        });
+        AnimatorHistoryCommands.Edit(
+            Session,
+            () =>
+            {
+                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
+                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
+                AnimatorSession.SetStatus(Session, "ROOT KEYED");
+            });
 
         Assert.That(Status, Is.EqualTo("ROOT KEYED"));
-        Assert.That(Where(Foot, 0.5f).DistanceTo(Clip.Targets[0].LocalAt(0.5f)), Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f));
+        Assert.That(
+            Where(Foot, 0.5f).DistanceTo(Clip.Targets[0].LocalAt(0.5f)),
+            Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f));
     }
 
     [Test]
@@ -184,8 +203,9 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Assert.That(Clip.Targets, Is.Empty);
         Assert.That(Clip.Channels.Find(c => c.TargetId == "shin")!.Keyframes, Has.Count.EqualTo(keys));
 
-        AnimatorHistoryCommands.Edit(Session, () =>
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
+        AnimatorHistoryCommands.Edit(
+            Session,
+            () => XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
         Assert.That(Status, Does.Not.Contain("BELONG"));
     }
 
@@ -197,8 +217,9 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         target.From = 0.5f;
         target.To = 0.5007f;
 
-        AnimatorHistoryCommands.Edit(Session, () =>
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
+        AnimatorHistoryCommands.Edit(
+            Session,
+            () => XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
 
         Assert.That(Clip.Targets, Is.Empty);
         Assert.That(Status, Does.Not.Contain("BELONG"));
@@ -244,7 +265,8 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     public void SavingBakesEveryClipAndKeepsTheTarget()
     {
         XafClip other = Package.Clips[1];
-        other.Targets.Add(new XafLimbTarget { BoneId = "foot", Shape = XafTargetShape.Spot, Center = new Vector2(0, -4), To = 1f });
+        other.Targets.Add(
+            new XafLimbTarget { BoneId = "foot", Shape = XafTargetShape.Spot, Center = new Vector2(0, -4), To = 1f });
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Save));
 
@@ -269,17 +291,21 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Assert.That(Clip.Targets[0].Shape, Is.EqualTo(XafTargetShape.Spot));
 
         // The body moves after the plant was released, and the foot still holds.
-        AnimatorHistoryCommands.Edit(Session, () =>
-        {
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
-            XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
-        });
+        AnimatorHistoryCommands.Edit(
+            Session,
+            () =>
+            {
+                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
+                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
+            });
         Assert.That(Where(Foot, 0.6f).DistanceTo(spot), Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f));
     }
 
     private Vector2 Screen(XafLimbTarget target, Vector2 local)
     {
-        Transform2D placement = AnimatorGeometry.PreviewPlacement(AnimatorGeometry.PanelArea(Ui.Preview), Session.GetComponent<AnimatorPreviewView>());
+        Transform2D placement = AnimatorGeometry.PreviewPlacement(
+            AnimatorGeometry.PanelArea(Ui.Preview),
+            Session.GetComponent<AnimatorPreviewView>());
         Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
         return placement * AnimatorTargetCommands.AnchorWorld(Package, target, world) * local;
     }

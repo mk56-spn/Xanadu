@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Replays;
 
@@ -12,7 +13,7 @@ public sealed class ReplayStore(string directory)
     private static ReplayStore? _default;
 
     public static ReplayStore Default =>
-        _default ??= new ReplayStore(Xanadu.Storage.GamePaths.Full(UserFolder));
+        _default ??= new ReplayStore(GamePaths.Full(UserFolder));
 
     public string Directory { get; } = directory;
 

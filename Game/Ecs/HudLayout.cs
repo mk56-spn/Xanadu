@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Systems.Ui;
+using Xanadu.Ui.Systems.Interaction;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ecs;
 
@@ -44,8 +47,8 @@ public struct HudLayout : IComponent
 
             item.Members.Add(member);
             item.BasePositions.Add(
-                member.HasComponent<Xanadu.Ecs.Position>()
-                    ? member.GetComponent<Xanadu.Ecs.Position>().Value
+                member.HasComponent<Position>()
+                    ? member.GetComponent<Position>().Value
                     : anchor);
         }
 

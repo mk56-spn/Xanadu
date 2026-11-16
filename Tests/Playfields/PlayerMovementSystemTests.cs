@@ -4,13 +4,16 @@ using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -35,9 +38,7 @@ public sealed class PlayerMovementSystemTests
         _root.Add(new PlayerMovementSystem(_store, keybinds, _keyboard));
         _root.Add(new PlayerArenaSystem());
 
-        Body body = _physics.CreateDynamicBox(
-            new Vector2(500, 500),
-            new Vector2(30, 100));
+        Body body = _physics.CreateDynamicBox(new Vector2(500, 500), new Vector2(30, 100));
 
         _player = _store.CreateEntity(
             new Player(new Vector2(30, 100)),
@@ -127,8 +128,8 @@ public sealed class PlayerMovementSystemTests
 
         Vector2 end = _player.GetComponent<Position>().Value;
         // The note's own sparks pop where it stood; the leaves are the ones where she comes out.
-        Entity burst = _store.Query<ParticleBurst>().ToEntityList()
-            .Single(entity => entity.GetComponent<ParticleBurst>().Particle == GameParticles.DashLeaf);
+        Entity burst = _store.Query<ParticleBurst>().ToEntityList().Single(entity =>
+            entity.GetComponent<ParticleBurst>().Particle == GameParticles.DashLeaf);
         Assert.That(burst.GetComponent<ParticleBurst>().Position, Is.EqualTo(end));
         Entity flare = _store.Query<DashFlare>().ToEntityList().Single();
         Assert.That(flare.GetComponent<DashFlare>().Position, Is.EqualTo(end));
@@ -202,7 +203,7 @@ public sealed class PlayerMovementSystemTests
     public void ALateHitStartsThatFarIntoTheDashesFollowThrough()
     {
         _player.GetComponent<Playhead>().TimeMs = 40;
-        _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new System.Numerics.Vector2(4f, 0f));
+        _player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new Vector2(4f, 0f));
         PlaceAt(new Vector2(500, 500));
 
         Dash(new Vector2(500, 500), KeybindAction.Up);
@@ -258,7 +259,7 @@ public sealed class PlayerMovementSystemTests
     public void ADashClearsVerticalVelocityAndKeepsHorizontal(float vertical)
     {
         Body body = _player.GetComponent<PhysicsBody>().Body;
-        body.SetLinearVelocity(new System.Numerics.Vector2(4f, vertical));
+        body.SetLinearVelocity(new Vector2(4f, vertical));
 
         Dash(new Vector2(500, 500), KeybindAction.Up);
 
@@ -288,12 +289,13 @@ public sealed class PlayerMovementSystemTests
         float expectedY)
     {
         Body body = _player.GetComponent<PhysicsBody>().Body;
-        body.SetLinearVelocity(new System.Numerics.Vector2(startX, startY));
-        _store.CreateEntity(new Note(
-            0,
-            new Vector2(500, 500),
-            kind: NoteKind.Momentum,
-            momentum: 100f / Box2DPhysicsWorld.MomentumScale));
+        body.SetLinearVelocity(new Vector2(startX, startY));
+        _store.CreateEntity(
+            new Note(
+                0,
+                new Vector2(500, 500),
+                kind: NoteKind.Momentum,
+                momentum: 100f / Box2DPhysicsWorld.MomentumScale));
         Press(key);
 
         Assert.That(body.LinearVelocity.X, Is.EqualTo(expectedX).Within(0.001f));
@@ -306,7 +308,7 @@ public sealed class PlayerMovementSystemTests
         var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: 100f / Box2DPhysicsWorld.MomentumScale);
         float axis = new Vector2(1f, -1f).Normalized().X;
 
-        System.Numerics.Vector2 velocity = PlayerMovementSystem.MomentumVelocity(note, DashDirection.UpRight);
+        Vector2 velocity = PlayerMovementSystem.MomentumVelocity(note, DashDirection.UpRight);
 
         Assert.That(velocity.X, Is.EqualTo(axis).Within(0.0001f));
         Assert.That(velocity.Y, Is.EqualTo(-axis).Within(0.0001f));
@@ -317,7 +319,7 @@ public sealed class PlayerMovementSystemTests
     {
         _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Momentum, momentum: 200f));
         Press(KeybindAction.Right);
-        System.Numerics.Vector2 once = _player.GetComponent<PhysicsBody>().Body.LinearVelocity;
+        Vector2 once = _player.GetComponent<PhysicsBody>().Body.LinearVelocity;
 
         _keyboard.Release(KeybindSettings.DefaultFor(KeybindAction.Right));
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -340,9 +342,7 @@ public sealed class PlayerMovementSystemTests
     [TestCase(DashStrength.Single, 250f)]
     [TestCase(DashStrength.Double, 125f)]
     [TestCase(DashStrength.Triple, 0f)]
-    public void DashStrengthSetsTheDistanceTravelled(
-        DashStrength strength,
-        float expectedX)
+    public void DashStrengthSetsTheDistanceTravelled(DashStrength strength, float expectedX)
     {
         _root.Update(new UpdateTick(1f / 60f, 0));
         _store.CreateEntity(new Note(0, new Vector2(500, 500), kind: NoteKind.Dash, dashStrength: strength));

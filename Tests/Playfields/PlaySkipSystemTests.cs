@@ -2,9 +2,12 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Replays;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -38,7 +41,7 @@ public sealed class PlaySkipSystemTests
     [TestCase(-1, true, Description = "just over 2s")]
     public void ButtonShowsOnlyWhenMoreThanTheLeadRemains(long timeMs, bool shown)
     {
-        Entity play = Play(timeMs, skipToMs: 0);
+        Entity play = Play(timeMs, 0);
 
         Frame();
 
@@ -48,7 +51,7 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void ButtonWaitsForTheCountdown()
     {
-        Entity play = Play(0, skipToMs: 5_000);
+        Entity play = Play(0, 5_000);
         play.GetComponent<PlaySession>().Started = false;
 
         Frame();
@@ -59,7 +62,7 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void PressSeeksOnceAndHidesTheButton()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
+        Entity play = Play(1_000, 5_000);
         play.AddComponent(ReplayRecorder.Create());
         Frame();
         _button.AddTag<Pressed>();
@@ -81,7 +84,7 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void EnterSkips()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
+        Entity play = Play(1_000, 5_000);
         play.GetComponent<PlaySession>().SkipRequested = true;
 
         Frame();
@@ -92,7 +95,7 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void EnterDuringTheCountdownIsNotHeldForLater()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
+        Entity play = Play(1_000, 5_000);
         play.GetComponent<PlaySession>().Started = false;
         play.GetComponent<PlaySession>().SkipRequested = true;
         Frame();
@@ -106,8 +109,8 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void EnterCannotSkipDuringAReplay()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
-        play.AddComponent(new ReplayPlayer(Recorded(skipFromMs: -1)));
+        Entity play = Play(1_000, 5_000);
+        play.AddComponent(new ReplayPlayer(Recorded(-1)));
         play.GetComponent<PlaySession>().SkipRequested = true;
 
         Frame();
@@ -118,7 +121,7 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void PausedRunCannotSkip()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
+        Entity play = Play(1_000, 5_000);
         play.AddTag<PlayPaused>();
         _button.AddTag<Pressed>();
 
@@ -130,8 +133,8 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void ReplayRepeatsTheRecordedSkipAndNeverShowsTheButton()
     {
-        Entity play = Play(900, skipToMs: 5_000);
-        play.AddComponent(new ReplayPlayer(Recorded(skipFromMs: 1_000)));
+        Entity play = Play(900, 5_000);
+        play.AddComponent(new ReplayPlayer(Recorded(1_000)));
 
         Frame();
         Assert.That(play.GetComponent<Playhead>().SeekRequestMs, Is.EqualTo(-1));
@@ -145,8 +148,8 @@ public sealed class PlaySkipSystemTests
     [Test]
     public void ReplayOfAnUnskippedRunPlaysThrough()
     {
-        Entity play = Play(1_000, skipToMs: 5_000);
-        play.AddComponent(new ReplayPlayer(Recorded(skipFromMs: -1)));
+        Entity play = Play(1_000, 5_000);
+        play.AddComponent(new ReplayPlayer(Recorded(-1)));
 
         Frame();
 

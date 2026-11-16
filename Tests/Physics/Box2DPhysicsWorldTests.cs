@@ -3,6 +3,7 @@ using System.Linq;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using NUnit.Framework;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Tests.Physics;
@@ -16,11 +17,7 @@ public sealed class Box2DPhysicsWorldTests
         using var physics = new Box2DPhysicsWorld();
         physics.CreateStaticBox(new Vector2(640, 680), new Vector2(1200, 40));
 
-        Body body = physics.CreateDynamicBox(
-            new Vector2(200, 400),
-            new Vector2(30, 100),
-            mass: 1f,
-            friction: 0.15f);
+        Body body = physics.CreateDynamicBox(new Vector2(200, 400), new Vector2(30, 100), 1f, 0.15f);
 
         body.ApplyLinearImpulseToCenter(new Vector2(3f, -4f), true);
 
@@ -51,9 +48,7 @@ public sealed class Box2DPhysicsWorldTests
             Assert.That(
                 MathF.Abs(body.GetPosition().Y - settled) * Box2DPhysicsWorld.PixelsPerMeter,
                 Is.LessThan(0.1f));
-            Assert.That(
-                MathF.Abs(body.LinearVelocity.Y) * Box2DPhysicsWorld.PixelsPerMeter,
-                Is.LessThan(5f));
+            Assert.That(MathF.Abs(body.LinearVelocity.Y) * Box2DPhysicsWorld.PixelsPerMeter, Is.LessThan(5f));
         }
     }
 
@@ -62,13 +57,12 @@ public sealed class Box2DPhysicsWorldTests
     {
         using var physics = new Box2DPhysicsWorld();
         Body body = physics.CreateDynamicBox(new Vector2(640, 2000), new Vector2(30, 100));
-        var note = new Xanadu.Ecs.Note(0, Vector2.Zero)
+        var note = new Note(0, Vector2.Zero)
         {
-            Kind = Xanadu.Ecs.NoteKind.Momentum,
-            Momentum = 600f,
+            Kind = NoteKind.Momentum,
+            Momentum = 600f
         };
-        body.SetLinearVelocity(
-            Xanadu.Systems.Playfields.PlayerMovementSystem.MomentumVelocity(note, Xanadu.Ecs.DashDirection.Up));
+        body.SetLinearVelocity(Systems.Playfields.PlayerMovementSystem.MomentumVelocity(note, DashDirection.Up));
 
         float start = body.GetPosition().Y;
         float peak = start;
@@ -105,18 +99,13 @@ public sealed class Box2DPhysicsWorldTests
     public void DynamicBoxHasCharacterMassAndDimensions()
     {
         using var physics = new Box2DPhysicsWorld();
-        Body body = physics.CreateDynamicBox(
-            new Vector2(200, 300),
-            new Vector2(30, 100),
-            mass: 1f);
+        Body body = physics.CreateDynamicBox(new Vector2(200, 300), new Vector2(30, 100), 1f);
 
         Assert.That(body.Mass, Is.EqualTo(1f).Within(0.01f));
 
         var shape = (PolygonShape)body.FixtureList[0].Shape;
-        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) *
-                      Box2DPhysicsWorld.PixelsPerMeter;
-        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) *
-                       Box2DPhysicsWorld.PixelsPerMeter;
+        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * Box2DPhysicsWorld.PixelsPerMeter;
+        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * Box2DPhysicsWorld.PixelsPerMeter;
 
         Assert.That(width, Is.EqualTo(30f).Within(0.1f));
         Assert.That(height, Is.EqualTo(100f).Within(0.1f));

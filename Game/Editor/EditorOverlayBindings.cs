@@ -1,14 +1,15 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Ecs;
-using Xanadu.Systems.Editor;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Editor;
 
 /// <summary>F9 editor-binding reference overlay toggle.</summary>
 public sealed partial class EditorOverlay
 {
-
     private void ToggleBindingsHelp()
     {
         Entity panel = BindingsHelpPanel();

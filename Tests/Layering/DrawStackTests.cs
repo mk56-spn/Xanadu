@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
 
 namespace Xanadu.Tests.Layering;
 
@@ -28,8 +28,15 @@ public sealed class DrawStackTests
     [Test]
     public void LayersRuleSwapsLayersWithANeighbourOnAnotherLayer()
     {
-        Assert.That(DrawStack.TryMove(new(0, 0, 1), new(5, 0, 0), 1, DrawStackRule.Layers,
-            out DrawSlot row, out DrawSlot neighbour), Is.True);
+        Assert.That(
+            DrawStack.TryMove(
+                new DrawSlot(0, 0, 1),
+                new DrawSlot(5, 0, 0),
+                1,
+                DrawStackRule.Layers,
+                out DrawSlot row,
+                out DrawSlot neighbour),
+            Is.True);
         Assert.That(row.Layer, Is.EqualTo(5));
         Assert.That(neighbour.Layer, Is.EqualTo(0));
     }
@@ -37,8 +44,13 @@ public sealed class DrawStackTests
     [Test]
     public void LayersRuleStepsOneLayerPastANeighbourOnTheSameLayer()
     {
-        DrawStack.TryMove(new(2, 0, 0), new(2, 0, 1), -1, DrawStackRule.Layers,
-            out DrawSlot row, out DrawSlot neighbour);
+        DrawStack.TryMove(
+            new DrawSlot(2, 0, 0),
+            new DrawSlot(2, 0, 1),
+            -1,
+            DrawStackRule.Layers,
+            out DrawSlot row,
+            out DrawSlot neighbour);
         Assert.That(row.Layer, Is.EqualTo(1));
         Assert.That(neighbour, Is.EqualTo(new DrawSlot(2, 0, 1)));
     }
@@ -46,16 +58,28 @@ public sealed class DrawStackTests
     [Test]
     public void LayersRuleStaysInsideTheRange()
     {
-        DrawStack.TryMove(new(DrawOrder.MaxLayer, 0, 0), new(DrawOrder.MaxLayer, 0, 1), 1, DrawStackRule.Layers,
-            out DrawSlot row, out _);
+        DrawStack.TryMove(
+            new DrawSlot(DrawOrder.MaxLayer, 0, 0),
+            new DrawSlot(DrawOrder.MaxLayer, 0, 1),
+            1,
+            DrawStackRule.Layers,
+            out DrawSlot row,
+            out _);
         Assert.That(row.Layer, Is.EqualTo(DrawOrder.MaxLayer));
     }
 
     [Test]
     public void ZRuleSwapsZWithANeighbourOnTheSameLayer()
     {
-        Assert.That(DrawStack.TryMove(new(-1, 3, 0), new(-1, 7, 1), 1, DrawStackRule.ZInLayer,
-            out DrawSlot row, out DrawSlot neighbour), Is.True);
+        Assert.That(
+            DrawStack.TryMove(
+                new DrawSlot(-1, 3, 0),
+                new DrawSlot(-1, 7, 1),
+                1,
+                DrawStackRule.ZInLayer,
+                out DrawSlot row,
+                out DrawSlot neighbour),
+            Is.True);
         Assert.That(row, Is.EqualTo(new DrawSlot(-1, 7, 0)));
         Assert.That(neighbour, Is.EqualTo(new DrawSlot(-1, 3, 1)));
     }
@@ -63,8 +87,13 @@ public sealed class DrawStackTests
     [Test]
     public void ZRuleStepsPastANeighbourItIsTiedWith()
     {
-        DrawStack.TryMove(new(-1, 4, 0), new(-1, 4, 1), 1, DrawStackRule.ZInLayer,
-            out DrawSlot row, out DrawSlot neighbour);
+        DrawStack.TryMove(
+            new DrawSlot(-1, 4, 0),
+            new DrawSlot(-1, 4, 1),
+            1,
+            DrawStackRule.ZInLayer,
+            out DrawSlot row,
+            out DrawSlot neighbour);
         Assert.That(row.CompareTo(neighbour), Is.GreaterThan(0));
         Assert.That(neighbour, Is.EqualTo(new DrawSlot(-1, 4, 1)));
     }
@@ -72,8 +101,15 @@ public sealed class DrawStackTests
     [Test]
     public void ZRuleNeverChangesLayer()
     {
-        Assert.That(DrawStack.TryMove(new(-1, 0, 0), new(1, 0, 0), 1, DrawStackRule.ZInLayer,
-            out DrawSlot row, out DrawSlot neighbour), Is.False);
+        Assert.That(
+            DrawStack.TryMove(
+                new DrawSlot(-1, 0, 0),
+                new DrawSlot(1, 0, 0),
+                1,
+                DrawStackRule.ZInLayer,
+                out DrawSlot row,
+                out DrawSlot neighbour),
+            Is.False);
         Assert.That(row, Is.EqualTo(new DrawSlot(-1, 0, 0)));
         Assert.That(neighbour, Is.EqualTo(new DrawSlot(1, 0, 0)));
     }

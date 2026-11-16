@@ -1,7 +1,7 @@
+using Xanadu.Core.Timeline;
 using System;
-using Xanadu.Timeline;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>What the ease picker, its hosts and their tooltips call each curve, and how they describe it.</summary>
 public static class EaseNames

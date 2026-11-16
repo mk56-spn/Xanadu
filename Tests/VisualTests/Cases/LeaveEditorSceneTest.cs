@@ -1,9 +1,11 @@
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Ecs;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
 using Xanadu.Levels;
 using Xanadu.Scenes;
@@ -85,7 +87,7 @@ public sealed class LeaveEditorSceneTest : SceneTest
             Entity save = confirmation.Save;
             Vector2 world = UiTransform.WorldPosition(
                 save,
-                save.GetComponent<Xanadu.Ecs.Position>().Value);
+                save.GetComponent<Xanadu.Core.Position>().Value);
             Context.Pointer.Click(world);
             return;
         }

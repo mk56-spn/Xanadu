@@ -2,14 +2,15 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Canvas;
-using Xanadu.Systems.Rendering;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Rendering;
 
-namespace Xanadu.Tests.UI.Rendering;
+namespace Xanadu.Ui.Tests.Rendering;
 
 [TestFixture]
 public sealed class WheelDrawSystemTests : EcsSystemTest

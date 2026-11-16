@@ -1,8 +1,8 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using Xanadu.Storage;
 
 namespace Xanadu.Tests.Editor;
 
@@ -15,8 +15,8 @@ public sealed class XmfSpikeOutlineTests
         Spikes =
         {
             new SpikeDocument { X = 10, Y = 20, Width = 50, Height = 50 },
-            new SpikeDocument { X = 90, Y = 20, Width = 50, Height = 50, OutlineWidth = 7f, OutlineColor = 0x11223344 },
-        },
+            new SpikeDocument { X = 90, Y = 20, Width = 50, Height = 50, OutlineWidth = 7f, OutlineColor = 0x11223344 }
+        }
     };
 
     [Test]
@@ -42,5 +42,4 @@ public sealed class XmfSpikeOutlineTests
         Assert.That(read.Variants.Single().Spikes[1].OutlineWidth, Is.EqualTo(7f));
         Assert.That(read.Variants.Single().Spikes[1].OutlineColor, Is.EqualTo(0x11223344u));
     }
-
 }

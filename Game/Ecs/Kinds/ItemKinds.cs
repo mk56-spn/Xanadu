@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>
 /// Every kind of placed item. Adding a kind is adding it here: everything that

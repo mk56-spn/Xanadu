@@ -1,8 +1,11 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Items;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -77,7 +80,7 @@ public static partial class PlayfieldRenderer
         IRectCanvas canvas,
         XifPrimitive primitive,
         int itemSlot,
-        Xanadu.Rendering.BlendMode blend)
+        BlendMode blend)
     {
         if (primitive.Shader.Scope == XifShaderScope.Common && primitive.Shader.Path.Length > 0)
             canvas.SelectCommonShader(primitive.Shader.Path, blend);

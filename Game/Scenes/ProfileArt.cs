@@ -1,6 +1,8 @@
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Profiles;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Scenes;
 

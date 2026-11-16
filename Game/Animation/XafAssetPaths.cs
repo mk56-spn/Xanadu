@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Xanadu.Core.Storage;
 
 namespace Xanadu.Animation;
 
@@ -37,14 +38,14 @@ public static class XafAssetPaths
     private static bool IsRelative(string path) =>
         path.Length > 0 && !Path.IsPathRooted(path) && !path.StartsWith("user://", StringComparison.Ordinal);
 
-    /// <summary>Nearest directory at or above the file that is a game folder (<see cref="Xanadu.Storage.GamePaths.RootMarker"/>).</summary>
+    /// <summary>Nearest directory at or above the file that is a game folder (<see cref="GamePaths.RootMarker"/>).</summary>
     public static string? ProjectRoot(string fullPath)
     {
         for (string? directory = Path.GetDirectoryName(Path.GetFullPath(fullPath));
              directory is not null;
              directory = Path.GetDirectoryName(directory))
         {
-            if (Xanadu.Storage.GamePaths.IsGameFolder(directory))
+            if (GamePaths.IsGameFolder(directory))
                 return directory;
         }
 

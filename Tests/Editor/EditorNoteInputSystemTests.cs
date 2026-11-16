@@ -1,15 +1,21 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Settings;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Timeline;
 using Xanadu.Editor.Commands;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -39,8 +45,8 @@ public sealed class EditorNoteInputSystemTests
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default),
             new TimelineView());
-        editor.AddComponent(new TimelineHost(
-            new EditorTimelineHost(editor, new EditorCommandBus(), _ => { }, _history)));
+        editor.AddComponent(
+            new TimelineHost(new EditorTimelineHost(editor, new EditorCommandBus(), _ => { }, _history)));
     }
 
     [Test]
@@ -53,15 +59,13 @@ public sealed class EditorNoteInputSystemTests
         editor.AddComponent(new TimelineView());
 
         Entity note = _store.CreateEntity(new Note(5_000, new Vector2(500, 500)));
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
         Vector2 point = ruler.Position + ruler.Size / 2;
 
         _pointer.Current = new PointerInput(point, true);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(editor.GetComponent<NoteSelection>().Note.Id,
-            Is.EqualTo(note.Id));
+        Assert.That(editor.GetComponent<NoteSelection>().Note.Id, Is.EqualTo(note.Id));
     }
 
     [Test]
@@ -73,13 +77,9 @@ public sealed class EditorNoteInputSystemTests
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
 
-        Entity note = _store.CreateEntity(
-            new Note(2_500, new Vector2(500, 500)));
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
-        Vector2 start = new(
-            ruler.Position.X + ruler.Size.X * 0.5f,
-            ruler.Position.Y + ruler.Size.Y / 2);
+        Entity note = _store.CreateEntity(new Note(2_500, new Vector2(500, 500)));
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
+        Vector2 start = new(ruler.Position.X + ruler.Size.X * 0.5f, ruler.Position.Y + ruler.Size.Y / 2);
         Vector2 end = start + new Vector2(ruler.Size.X * 0.2f, 0);
 
         _pointer.Current = new PointerInput(start, true);
@@ -100,20 +100,14 @@ public sealed class EditorNoteInputSystemTests
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
 
-        Entity note = _store.CreateEntity(
-            new Note(2_500, new Vector2(500, 500)));
-        Entity mine = _store.CreateEntity(
-            new Mine(2_000, new Vector2(100, 100)));
-        Entity start = _store.CreateEntity(new StartPoint(
-            "Start", 3_000, new Vector2(200, 200),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity note = _store.CreateEntity(new Note(2_500, new Vector2(500, 500)));
+        Entity mine = _store.CreateEntity(new Mine(2_000, new Vector2(100, 100)));
+        Entity start = _store.CreateEntity(
+            new StartPoint("Start", 3_000, new Vector2(200, 200), Vector2.Zero, new Vector2(0, -1)));
         editor.GetComponent<NoteSelection>().SetMany(new[] { note, mine, start });
 
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
-        Vector2 startPoint = new(
-            ruler.Position.X + ruler.Size.X * 0.5f,
-            ruler.Position.Y + ruler.Size.Y / 2);
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
+        Vector2 startPoint = new(ruler.Position.X + ruler.Size.X * 0.5f, ruler.Position.Y + ruler.Size.Y / 2);
         Vector2 endPoint = startPoint + new Vector2(ruler.Size.X * 0.2f, 0);
 
         _pointer.Current = new PointerInput(startPoint, true);
@@ -135,28 +129,20 @@ public sealed class EditorNoteInputSystemTests
         playhead.DurationMs = 10_000;
         playhead.TimeMs = 2_500;
 
-        Entity note = _store.CreateEntity(
-            new Note(2_500, new Vector2(500, 500)));
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
-        Vector2 start = new(
-            ruler.Position.X + ruler.Size.X * 0.5f,
-            ruler.Position.Y + ruler.Size.Y / 2);
+        Entity note = _store.CreateEntity(new Note(2_500, new Vector2(500, 500)));
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
+        Vector2 start = new(ruler.Position.X + ruler.Size.X * 0.5f, ruler.Position.Y + ruler.Size.Y / 2);
 
         _pointer.Current = new PointerInput(start, true);
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _pointer.Current = new PointerInput(
-            start + new Vector2(ruler.Size.X * 0.2f, 0), true);
+        _pointer.Current = new PointerInput(start + new Vector2(ruler.Size.X * 0.2f, 0), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _pointer.Current = new PointerInput(
-            start + new Vector2(ruler.Size.X * 0.2f, 0), false);
+        _pointer.Current = new PointerInput(start + new Vector2(ruler.Size.X * 0.2f, 0), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
         Assert.That(note.GetComponent<Note>().TimeMs, Is.EqualTo(3_500));
 
         Assert.That(_history.Undo(), Is.True);
-        Assert.That(
-            _store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
-            Is.EqualTo(2_500));
+        Assert.That(_store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs, Is.EqualTo(2_500));
     }
 
     [Test]
@@ -184,23 +170,17 @@ public sealed class EditorNoteInputSystemTests
         playhead.TimeMs = 5_000;
         editor.AddComponent(new TimelineView());
 
-        Entity first = _store.CreateEntity(
-            new Note(3_000, new Vector2(500, 500)));
-        Entity second = _store.CreateEntity(
-            new Note(7_000, new Vector2(500, 500)));
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
+        Entity first = _store.CreateEntity(new Note(3_000, new Vector2(500, 500)));
+        Entity second = _store.CreateEntity(new Note(7_000, new Vector2(500, 500)));
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
         float y = ruler.Position.Y + ruler.Size.Y / 2;
 
-        _pointer.Current = new PointerInput(
-            new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), true);
+        _pointer.Current = new PointerInput(new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
-        _pointer.Current = new PointerInput(
-            new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), false);
+        _pointer.Current = new PointerInput(new Vector2(ruler.Position.X + ruler.Size.X * 0.3f, y), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        _pointer.Current = new PointerInput(
-            new Vector2(ruler.Position.X + ruler.Size.X * 0.7f, y), true, true);
+        _pointer.Current = new PointerInput(new Vector2(ruler.Position.X + ruler.Size.X * 0.7f, y), true, true);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
         NoteSelection selection = editor.GetComponent<NoteSelection>();
@@ -212,10 +192,8 @@ public sealed class EditorNoteInputSystemTests
     [Test]
     public void ShiftClickOnPlayfieldKeepsExistingSelection()
     {
-        Entity first = _store.CreateEntity(
-            new Note(1_000, new Vector2(100, 200)));
-        Entity second = _store.CreateEntity(
-            new Note(1_000, new Vector2(400, 400)));
+        Entity first = _store.CreateEntity(new Note(1_000, new Vector2(100, 200)));
+        Entity second = _store.CreateEntity(new Note(1_000, new Vector2(400, 400)));
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
@@ -246,9 +224,7 @@ public sealed class EditorNoteInputSystemTests
 
         Assert.That(_store.Query<Note>().Count, Is.EqualTo(0));
         Assert.That(editor.HasComponent<WarningRequest>(), Is.True);
-        Assert.That(
-            editor.GetComponent<WarningRequest>().Message,
-            Is.EqualTo(EditorWarningPopup.NoSongMessage));
+        Assert.That(editor.GetComponent<WarningRequest>().Message, Is.EqualTo(EditorWarningPopup.NoSongMessage));
     }
 
     [Test]
@@ -288,12 +264,8 @@ public sealed class EditorNoteInputSystemTests
 
         var notes = _store.Query<Note>().ToEntityList();
         Assert.That(notes.Count, Is.EqualTo(2));
-        Assert.That(
-            notes[0].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.Action3));
-        Assert.That(
-            notes[1].GetComponent<Note>().Target,
-            Is.EqualTo(KeybindAction.Action3));
+        Assert.That(notes[0].GetComponent<Note>().Target, Is.EqualTo(KeybindAction.Action3));
+        Assert.That(notes[1].GetComponent<Note>().Target, Is.EqualTo(KeybindAction.Action3));
     }
 
     [Test]
@@ -305,33 +277,25 @@ public sealed class EditorNoteInputSystemTests
         playhead.TimeMs = 1_000;
         editor.AddComponent(new TimelineView(2f));
 
-        Rect2 ruler = EditorLayout.RulerRect(
-            editor.GetComponent<PlayfieldView>());
+        Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
         float centerX = ruler.Position.X + ruler.Size.X / 2;
         float y = ruler.Position.Y + ruler.Size.Y / 2;
 
-        _pointer.Current = new PointerInput(
-            new Vector2(centerX + ruler.Size.X * 0.2f, y), true);
+        _pointer.Current = new PointerInput(new Vector2(centerX + ruler.Size.X * 0.2f, y), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
         long before = editor.GetComponent<TimelineView>().ScrubStartMs;
 
-        _pointer.Current = new PointerInput(
-            new Vector2(centerX + ruler.Size.X * 0.25f, y), true);
+        _pointer.Current = new PointerInput(new Vector2(centerX + ruler.Size.X * 0.25f, y), true);
         for (int i = 0; i < 10; i++)
             _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            editor.GetComponent<TimelineView>().ScrubStartMs,
-            Is.EqualTo(before));
+        Assert.That(editor.GetComponent<TimelineView>().ScrubStartMs, Is.EqualTo(before));
 
-        _pointer.Current = new PointerInput(
-            new Vector2(centerX + ruler.Size.X * 0.9f, y), true);
+        _pointer.Current = new PointerInput(new Vector2(centerX + ruler.Size.X * 0.9f, y), true);
         for (int i = 0; i < 10; i++)
             _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            editor.GetComponent<TimelineView>().ScrubStartMs,
-            Is.GreaterThan(before));
+        Assert.That(editor.GetComponent<TimelineView>().ScrubStartMs, Is.GreaterThan(before));
     }
 
     [Test]
@@ -365,9 +329,7 @@ public sealed class EditorNoteInputSystemTests
         var mines = _store.Query<Mine>().ToEntityList();
         Assert.That(mines, Has.Count.EqualTo(1));
         Assert.That(mines[0].GetComponent<Mine>().TimeMs, Is.EqualTo(1_000));
-        Assert.That(
-            mines[0].GetComponent<Mine>().Position,
-            Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(mines[0].GetComponent<Mine>().Position, Is.EqualTo(new Vector2(300, 400)));
         Assert.That(_history.CanUndo, Is.True);
     }
 
@@ -375,7 +337,8 @@ public sealed class EditorNoteInputSystemTests
     public void DashModePlacesADashThatCarriesOnlyItsStrength()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Dash, Diagonal = true, Strength = DashStrength.Double });
+        editor.AddComponent(
+            new EditorPlacement { Mode = EditorPlacementMode.Dash, Diagonal = true, Strength = DashStrength.Double });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -384,11 +347,9 @@ public sealed class EditorNoteInputSystemTests
 
         var notes = _store.Query<Note>().ToEntityList();
         Assert.That(notes, Has.Count.EqualTo(1));
-        Assert.That(notes[0].GetComponent<Note>().Kind,
-            Is.EqualTo(NoteKind.Dash));
+        Assert.That(notes[0].GetComponent<Note>().Kind, Is.EqualTo(NoteKind.Dash));
         Assert.That(notes[0].GetComponent<Note>().Diagonal, Is.True);
-        Assert.That(notes[0].GetComponent<Note>().DashStrength,
-            Is.EqualTo(DashStrength.Double));
+        Assert.That(notes[0].GetComponent<Note>().DashStrength, Is.EqualTo(DashStrength.Double));
         Assert.That(_store.Query<Mine>().Count, Is.Zero);
     }
 
@@ -396,7 +357,8 @@ public sealed class EditorNoteInputSystemTests
     public void MomentumModePlacesTheAuthoredStrength()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Momentum, Strength = DashStrength.Double });
+        editor.AddComponent(
+            new EditorPlacement { Mode = EditorPlacementMode.Momentum, Strength = DashStrength.Double });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -475,29 +437,20 @@ public sealed class EditorNoteInputSystemTests
 
         var spikes = _store.Query<Spike>().ToEntityList();
         Assert.That(spikes, Has.Count.EqualTo(3));
-        Assert.That(
-            spikes[0].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(350, 600)));
-        Assert.That(
-            spikes[0].GetComponent<Spike>().Size,
-            Is.EqualTo(new Vector2(50, 50)));
-        Assert.That(
-            spikes[1].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(450, 600)));
-        Assert.That(
-            spikes[2].GetComponent<Spike>().Position,
-            Is.EqualTo(new Vector2(350, 700)));
+        Assert.That(spikes[0].GetComponent<Spike>().Position, Is.EqualTo(new Vector2(350, 600)));
+        Assert.That(spikes[0].GetComponent<Spike>().Size, Is.EqualTo(new Vector2(50, 50)));
+        Assert.That(spikes[1].GetComponent<Spike>().Position, Is.EqualTo(new Vector2(450, 600)));
+        Assert.That(spikes[2].GetComponent<Spike>().Position, Is.EqualTo(new Vector2(350, 700)));
         Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 
     [Test]
     public void WithCollisionOnSpikePaintingSkipsCellThatAlreadyHasATile()
     {
-        Xanadu.Editor.PlacementCollision.Attach(_store.CreateEntity(), on: true);
+        PlacementCollision.Attach(_store.CreateEntity(), true);
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
-        _store.CreateEntity(
-            new Spike(new Vector2(400, 600), new Vector2(100, 100)));
+        _store.CreateEntity(new Spike(new Vector2(400, 600), new Vector2(100, 100)));
 
         _pointer.Current = new PointerInput(new Vector2(350, 640), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -514,8 +467,7 @@ public sealed class EditorNoteInputSystemTests
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Spikes });
-        _store.CreateEntity(
-            new Spike(new Vector2(400, 600), new Vector2(100, 100)));
+        _store.CreateEntity(new Spike(new Vector2(400, 600), new Vector2(100, 100)));
 
         // Starts on an empty cell (a press on a spike picks it), then rests on the existing one.
         _pointer.Current = new PointerInput(new Vector2(350, 640), true);
@@ -587,7 +539,7 @@ public sealed class EditorNoteInputSystemTests
     public void PressesOnAPanelOverTheFieldDoNotPlaceNotes()
     {
         _store.CreateEntity(
-            new Xanadu.Ecs.Position(new Vector2(100, 200)),
+            new Position(new Vector2(100, 200)),
             new Rectangle(new Rect2(-60, -60, 120, 120)),
             Tags.Get<TakesInput>());
 
@@ -734,9 +686,7 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(400, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(
-            editor.GetComponent<NoteSelection>().Notes,
-            Has.Count.EqualTo(1));
+        Assert.That(editor.GetComponent<NoteSelection>().Notes, Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -782,8 +732,7 @@ public sealed class EditorNoteInputSystemTests
         Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
         (long start, long end) = EditorLayout.TimelineWindow(playhead, 1f);
         Rect2 slot = default;
-        foreach ((Entity note, Rect2 bounds) in EditorTimelineNotes.Slots(
-                     _store, ruler, start, end, 1f))
+        foreach ((Entity note, Rect2 bounds) in EditorTimelineNotes.Slots(_store, ruler, start, end, 1f))
         {
             if (note.Id == covered.Id)
                 slot = bounds;
@@ -834,8 +783,7 @@ public sealed class EditorNoteInputSystemTests
     public void MineModeMarqueeSelectsWithoutPlacingAMine()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Mines });
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Mines });
         _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
 
@@ -854,8 +802,7 @@ public sealed class EditorNoteInputSystemTests
     public void MovementModeMarqueeSelectsNotes()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Dash });
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Dash });
         _store.CreateEntity(new Note(1_000, new Vector2(200, 200)));
         _store.CreateEntity(new Note(1_000, new Vector2(300, 300)));
 
@@ -893,8 +840,7 @@ public sealed class EditorNoteInputSystemTests
     [Test]
     public void DraggingAMineMovesIt()
     {
-        Entity mine = _store.CreateEntity(
-            new Mine(1_000, new Vector2(200, 200)));
+        Entity mine = _store.CreateEntity(new Mine(1_000, new Vector2(200, 200)));
 
         _pointer.Current = new PointerInput(new Vector2(200, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -903,16 +849,14 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(260, 270), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(mine.GetComponent<Mine>().Position,
-            Is.EqualTo(new Vector2(260, 270)));
+        Assert.That(mine.GetComponent<Mine>().Position, Is.EqualTo(new Vector2(260, 270)));
     }
 
     [Test]
     public void StartModePlacesAPracticeStart()
     {
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
-        editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Start });
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Start });
 
         _pointer.Current = new PointerInput(new Vector2(300, 400), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -921,21 +865,15 @@ public sealed class EditorNoteInputSystemTests
 
         var starts = _store.Query<StartPoint>().ToEntityList();
         Assert.That(starts, Has.Count.EqualTo(1));
-        Assert.That(starts[0].GetComponent<StartPoint>().TimeMs,
-            Is.EqualTo(1_000));
-        Assert.That(starts[0].GetComponent<StartPoint>().Position,
-            Is.EqualTo(new Vector2(300, 400)));
+        Assert.That(starts[0].GetComponent<StartPoint>().TimeMs, Is.EqualTo(1_000));
+        Assert.That(starts[0].GetComponent<StartPoint>().Position, Is.EqualTo(new Vector2(300, 400)));
     }
 
     [Test]
     public void DraggingAStartPointMovesIt()
     {
-        Entity start = _store.CreateEntity(new StartPoint(
-            "",
-            1_000,
-            new Vector2(200, 200),
-            System.Numerics.Vector2.Zero,
-            new Vector2(0, -1)));
+        Entity start = _store.CreateEntity(
+            new StartPoint("", 1_000, new Vector2(200, 200), Vector2.Zero, new Vector2(0, -1)));
 
         _pointer.Current = new PointerInput(new Vector2(200, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
@@ -944,8 +882,7 @@ public sealed class EditorNoteInputSystemTests
         _pointer.Current = new PointerInput(new Vector2(260, 270), false);
         _root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(start.GetComponent<StartPoint>().Position,
-            Is.EqualTo(new Vector2(260, 270)));
+        Assert.That(start.GetComponent<StartPoint>().Position, Is.EqualTo(new Vector2(260, 270)));
     }
 
     [Test]
@@ -961,11 +898,9 @@ public sealed class EditorNoteInputSystemTests
 
         _pointer.Current = new PointerInput(new Vector2(100, 200), true);
         _root.Update(new UpdateTick(1f / 60f, 0));
-        Assert.DoesNotThrow(() =>
-            _root.Update(new UpdateTick(1f / 60f, 0)));
+        Assert.DoesNotThrow(() => _root.Update(new UpdateTick(1f / 60f, 0)));
         _pointer.Current = new PointerInput(new Vector2(100, 200), false);
-        Assert.DoesNotThrow(() =>
-            _root.Update(new UpdateTick(1f / 60f, 0)));
+        Assert.DoesNotThrow(() => _root.Update(new UpdateTick(1f / 60f, 0)));
     }
 
 
@@ -973,37 +908,27 @@ public sealed class EditorNoteInputSystemTests
     public void BlockModePlacesAGridAlignedBlock()
     {
         Entity editor = EditorEntity();
-        editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Blocks });
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Blocks });
 
         Click(new Vector2(520, 520));
 
         var blocks = _store.Query<Block>().ToEntityList();
         Assert.That(blocks, Has.Count.EqualTo(1));
-        Assert.That(
-            blocks[0].GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(500, 500)));
+        Assert.That(blocks[0].GetComponent<Block>().Position, Is.EqualTo(new Vector2(500, 500)));
         Assert.That(
             blocks[0].GetComponent<Block>().Size,
             Is.EqualTo(new Vector2(50, 50)),
             "a new block is one cell square");
-        Assert.That(
-            editor.GetComponent<NoteSelection>().Note.Id,
-            Is.EqualTo(blocks[0].Id));
+        Assert.That(editor.GetComponent<NoteSelection>().Note.Id, Is.EqualTo(blocks[0].Id));
         Assert.That(_history.CanUndo, Is.True);
     }
 
     [TestCase(BlockBrushSize.Quarter, 520f, 25f, 500f)]
     [TestCase(BlockBrushSize.Platform, 520f, 100f, 450f)]
-    public void TheBlockBrushPlacesItsSize(
-        BlockBrushSize size,
-        float pointerX,
-        float width,
-        float expectedX)
+    public void TheBlockBrushPlacesItsSize(BlockBrushSize size, float pointerX, float width, float expectedX)
     {
         Entity editor = EditorEntity();
-        editor.AddComponent(
-            new EditorPlacement { Mode = EditorPlacementMode.Blocks, BlockSize = size });
+        editor.AddComponent(new EditorPlacement { Mode = EditorPlacementMode.Blocks, BlockSize = size });
 
         Click(new Vector2(pointerX, 520));
 
@@ -1056,43 +981,58 @@ public sealed class EditorNoteInputSystemTests
         Entity editor = EditorEntity();
         Entity spike = EditorItems.Create(_store, new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         editor.GetComponent<NoteSelection>().Note = spike;
-        var playfield = editor.GetComponent<Playfield>();
-        SelectionRotation.Apply(SelectionRotation.Capture(spike), new Vector2(450, 450), Mathf.DegToRad(30f), playfield, snap: true);
+        Playfield playfield = editor.GetComponent<Playfield>();
+        SelectionRotation.Apply(
+            SelectionRotation.Capture(spike),
+            new Vector2(450, 450),
+            Mathf.DegToRad(30f),
+            playfield,
+            true);
         Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(30f).Within(0.01f));
         Assert.That(spike.GetComponent<Spike>().Position, Is.EqualTo(new Vector2(400, 400)));
 
         Entity block = EditorItems.Create(_store, new Block(new Vector2(600, 600), new Vector2(100, 50)));
-        SelectionRotation.Apply(SelectionRotation.Capture(block), block.GetComponent<Block>().Center, Mathf.DegToRad(30f), playfield, snap: true);
-        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(100, 50)), "30 degrees is nearest no turn at all");
-        SelectionRotation.Apply(SelectionRotation.Capture(block), block.GetComponent<Block>().Center, Mathf.DegToRad(70f), playfield, snap: true);
-        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(50, 100)), "70 degrees is nearest a quarter");
+        SelectionRotation.Apply(
+            SelectionRotation.Capture(block),
+            block.GetComponent<Block>().Center,
+            Mathf.DegToRad(30f),
+            playfield,
+            true);
+        Assert.That(
+            block.GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(100, 50)),
+            "30 degrees is nearest no turn at all");
+        SelectionRotation.Apply(
+            SelectionRotation.Capture(block),
+            block.GetComponent<Block>().Center,
+            Mathf.DegToRad(70f),
+            playfield,
+            true);
+        Assert.That(
+            block.GetComponent<Block>().Size,
+            Is.EqualTo(new Vector2(50, 100)),
+            "70 degrees is nearest a quarter");
     }
 
     [Test]
     public void ClickingABlockSelectsIt()
     {
-        Entity block = _store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        Entity block = _store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
         Entity editor = EditorEntity();
 
         Click(new Vector2(450, 520));
 
-        Assert.That(
-            editor.GetComponent<NoteSelection>().Note.Id,
-            Is.EqualTo(block.Id));
+        Assert.That(editor.GetComponent<NoteSelection>().Note.Id, Is.EqualTo(block.Id));
     }
 
     [Test]
     public void DraggingABlockSnapsItsEdgesToTheGrid()
     {
-        Entity block = _store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        Entity block = _store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
 
         Drag(new Vector2(500, 550), new Vector2(560, 590));
 
-        Assert.That(
-            block.GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(450, 550)));
+        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(450, 550)));
     }
 
     [Test]
@@ -1123,8 +1063,7 @@ public sealed class EditorNoteInputSystemTests
         Entity editor = _store.Query<PlayfieldView>().ToEntityList()[0];
         Entity left = _store.CreateEntity(new Note(1_000, new Vector2(400, 500)));
         Entity right = _store.CreateEntity(new Note(1_000, new Vector2(600, 500)));
-        Entity dash = _store.CreateEntity(new Note(
-            1_000, new Vector2(500, 500), kind: NoteKind.Dash));
+        Entity dash = _store.CreateEntity(new Note(1_000, new Vector2(500, 500), kind: NoteKind.Dash));
         editor.GetComponent<NoteSelection>().SetMany(new[] { left, right, dash });
 
         // The notes share a line, so the handle sits straight above the centre.
@@ -1171,9 +1110,7 @@ public sealed class EditorNoteInputSystemTests
         Entity note = _store.CreateEntity(new Note(1_000, new Vector2(500, 500)));
         editor.GetComponent<NoteSelection>().Note = note;
 
-        Assert.That(
-            SelectionRotation.TryGetBounds(editor.GetComponent<NoteSelection>().AllNotes, out _),
-            Is.False);
+        Assert.That(SelectionRotation.TryGetBounds(editor.GetComponent<NoteSelection>().AllNotes, out _), Is.False);
     }
 
     [Test]
@@ -1193,21 +1130,17 @@ public sealed class EditorNoteInputSystemTests
     [Test]
     public void DraggingABlockBeyondTheFieldStopsAtTheEdge()
     {
-        Entity block = _store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        Entity block = _store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
 
         Drag(new Vector2(500, 550), new Vector2(1200, 550));
 
-        Assert.That(
-            block.GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(800, 500)));
+        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(800, 500)));
     }
 
     [Test]
     public void DraggingABlockIsUndoable()
     {
-        _store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        _store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
 
         Drag(new Vector2(500, 550), new Vector2(560, 590));
         Assert.That(_history.Undo(), Is.True);
@@ -1224,12 +1157,8 @@ public sealed class EditorNoteInputSystemTests
 
         Drag(new Vector2(600, 550), new Vector2(688, 550));
 
-        Assert.That(
-            block.GetComponent<Block>().Size,
-            Is.EqualTo(new Vector2(300, 100)));
-        Assert.That(
-            block.GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(400, 500)));
+        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(300, 100)));
+        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(400, 500)));
     }
 
     [Test]
@@ -1239,12 +1168,8 @@ public sealed class EditorNoteInputSystemTests
 
         Drag(new Vector2(500, 500), new Vector2(500, 380));
 
-        Assert.That(
-            block.GetComponent<Block>().Position,
-            Is.EqualTo(new Vector2(400, 400)));
-        Assert.That(
-            block.GetComponent<Block>().Size,
-            Is.EqualTo(new Vector2(200, 200)));
+        Assert.That(block.GetComponent<Block>().Position, Is.EqualTo(new Vector2(400, 400)));
+        Assert.That(block.GetComponent<Block>().Size, Is.EqualTo(new Vector2(200, 200)));
     }
 
     [Test]
@@ -1254,9 +1179,7 @@ public sealed class EditorNoteInputSystemTests
 
         Drag(new Vector2(600, 550), new Vector2(420, 550));
 
-        Assert.That(
-            block.GetComponent<Block>().Size.X,
-            Is.EqualTo(GridPlacement.Cell(new Playfield(1000, 1000)).X));
+        Assert.That(block.GetComponent<Block>().Size.X, Is.EqualTo(GridPlacement.Cell(new Playfield(1000, 1000)).X));
     }
 
     [Test]
@@ -1274,8 +1197,7 @@ public sealed class EditorNoteInputSystemTests
 
     private Entity SelectedPlatform()
     {
-        Entity block = _store.CreateEntity(
-            new Block(new Vector2(400, 500), new Vector2(200, 100)));
+        Entity block = _store.CreateEntity(new Block(new Vector2(400, 500), new Vector2(200, 100)));
         EditorEntity().GetComponent<NoteSelection>().Note = block;
         return block;
     }

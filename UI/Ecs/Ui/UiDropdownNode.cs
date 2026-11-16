@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// The three parts of a dropdown as nodes: the button that opens it, the list

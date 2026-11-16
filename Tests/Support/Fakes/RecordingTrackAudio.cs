@@ -1,6 +1,6 @@
 using Xanadu.Systems.Audio;
 
-namespace Xanadu.Tests.Support;
+namespace Xanadu.Tests.Support.Fakes;
 
 /// <summary>Configurable recording audio backend shared by transport tests.</summary>
 public sealed class RecordingTrackAudio : ITrackAudio
@@ -66,5 +66,7 @@ public sealed class RecordingTrackAudio : ITrackAudio
         IsPlaying = false;
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+    }
 }

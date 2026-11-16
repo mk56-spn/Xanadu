@@ -7,14 +7,16 @@ using Friflo.Engine.ECS.Systems;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
 using Xanadu.Levels;
-using Xanadu.Storage;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ui.Systems;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Host;
 
@@ -145,7 +147,7 @@ internal sealed class HostGame : HostApp
     {
         _fileDialog.Poll();
         Keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
-            key != Xanadu.Systems.Input.DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
+            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
     }
 
     protected override void Tick(float delta, float time)

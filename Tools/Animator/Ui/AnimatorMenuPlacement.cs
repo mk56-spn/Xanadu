@@ -1,8 +1,11 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// Placement shared by the animator's floating menus: keeping them on screen,

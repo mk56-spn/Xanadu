@@ -1,4 +1,4 @@
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Provides the debug-overlay toggle state.</summary>
 public interface IOverlayToggleSource

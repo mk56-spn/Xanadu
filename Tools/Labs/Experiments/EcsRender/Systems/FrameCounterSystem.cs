@@ -1,7 +1,7 @@
 using System;
 using Friflo.Engine.ECS.Systems;
 
-namespace Xanadu.Labs.Experiments.EcsRender;
+namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 
 internal sealed class FrameCounterSystem : QuerySystem<FrameCounter, Label>
 {

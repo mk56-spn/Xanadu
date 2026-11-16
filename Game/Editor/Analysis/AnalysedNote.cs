@@ -1,4 +1,5 @@
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 
 namespace Xanadu.Editor.Analysis;
 

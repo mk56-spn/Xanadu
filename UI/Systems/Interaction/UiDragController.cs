@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Interaction;
 
 /// <summary>Tracks a pointer drag without imposing movement semantics.</summary>
 public sealed class UiDragController(float threshold = 4f)

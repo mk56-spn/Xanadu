@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 
 namespace Xanadu.Tests.Animation.Tool;
 

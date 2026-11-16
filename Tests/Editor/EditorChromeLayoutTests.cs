@@ -1,13 +1,17 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Scenes;
-using Xanadu.Systems.Layout;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -15,8 +19,7 @@ namespace Xanadu.Tests.Editor;
 [TestFixture]
 public sealed class EditorChromeLayoutTests : EcsSystemTest
 {
-    private const float HeaderPad =
-        (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2;
+    private const float HeaderPad = (EditorShellMetrics.HeaderHeight - EditorShellMetrics.HeaderControlHeight) / 2;
 
     private static readonly Vector2 Screen = new(1920, 1080);
     private EditorShellRects _shell;
@@ -49,6 +52,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             if (entity.GetComponent<UiCommand>().As<EditorButtonKind>() == kind)
                 return entity;
         }
+
         throw new AssertionException($"No {kind} button.");
     }
 
@@ -89,6 +93,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             if (inStrip)
                 tools.Add(Area(entity));
         }
+
         tools.Sort((a, b) => a.Position.Y.CompareTo(b.Position.Y));
 
         Assert.That(tools, Has.Count.EqualTo(EditorToolGroups.All.Length));
@@ -96,12 +101,14 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Assert.That(
             tools[0].Position.X,
             Is.EqualTo((EditorShellMetrics.ToolStripWidth - tools[0].Size.X) / 2).Within(0.5f));
-        Assert.That(tools[^1].End.Y, Is.LessThanOrEqualTo(Area(SidebarPanel()).End.Y + 0.5f), "the last tool stays above the footer");
+        Assert.That(
+            tools[^1].End.Y,
+            Is.LessThanOrEqualTo(Area(SidebarPanel()).End.Y + 0.5f),
+            "the last tool stays above the footer");
         Assert.That(tools[0].Position.Y, Is.GreaterThanOrEqualTo(EditorShellMetrics.HeaderHeight));
         for (int i = 1; i < tools.Count; i++)
         {
-            Assert.That(tools[i].Position.Y - tools[i - 1].End.Y,
-                Is.EqualTo(EditorShellMetrics.ToolGap).Within(0.5f));
+            Assert.That(tools[i].Position.Y - tools[i - 1].End.Y, Is.EqualTo(EditorShellMetrics.ToolGap).Within(0.5f));
             Assert.That(tools[i].Position.X, Is.EqualTo(tools[0].Position.X).Within(0.5f));
         }
     }
@@ -127,7 +134,10 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
             Rect2 button = Area(entity);
             Rect2 flyout = Area(group.Flyout);
-            Assert.That(flyout.Position.X, Is.GreaterThanOrEqualTo(EditorShellMetrics.ToolStripWidth), "right of the strip");
+            Assert.That(
+                flyout.Position.X,
+                Is.GreaterThanOrEqualTo(EditorShellMetrics.ToolStripWidth),
+                "right of the strip");
             Assert.That(flyout.GetCenter().Y, Is.EqualTo(button.GetCenter().Y).Within(1f), "level with its button");
         }
     }
@@ -195,7 +205,8 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
 
         Assert.That(footer.Position.Y, Is.EqualTo(_shell.Footer.Position.Y).Within(0.5f));
         Assert.That(EditorLayout.TransportRect(view).Position.Y, Is.EqualTo(footer.Position.Y));
-        Assert.That(EditorLayout.AnalysisRect(view).Position.Y,
+        Assert.That(
+            EditorLayout.AnalysisRect(view).Position.Y,
             Is.GreaterThanOrEqualTo(EditorLayout.TransportRect(view).End.Y));
     }
 
@@ -206,6 +217,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             if (entity.GetComponent<Text>().Value == text)
                 return entity;
         }
+
         throw new AssertionException($"No '{text}'.");
     }
 
@@ -255,7 +267,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         Rect2 last = Area(Cell(GroupLimits.Count - 1));
 
         Assert.That(second.Position.Y, Is.EqualTo(first.Position.Y).Within(0.5f));
-        Assert.That(second.Position.X - first.End.X, Is.EqualTo(Xanadu.Systems.Editor.EditorGroupLayout.CellGap).Within(0.5f));
+        Assert.That(second.Position.X - first.End.X, Is.EqualTo(EditorGroupLayout.CellGap).Within(0.5f));
         Assert.That(fifth.Position.X, Is.EqualTo(first.Position.X).Within(0.5f));
         Assert.That(fifth.Position.Y, Is.GreaterThan(first.End.Y));
         Assert.That(last.Position.X, Is.EqualTo(Area(Cell(GroupLimits.Columns - 1)).Position.X).Within(0.5f));
@@ -268,14 +280,14 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             if (entity.GetComponent<EditorGroupCell>().Index == index)
                 return entity;
         }
+
         throw new AssertionException($"No cell {index}.");
     }
 
     [Test]
     public void TheLeftPanelDocksToTheViewportCorner()
     {
-        Rect2 left = Area(Store.Query<EditorLeftMenu>().ToEntityList()[0]
-            .GetComponent<EditorLeftMenu>().Panel);
+        Rect2 left = Area(Store.Query<EditorLeftMenu>().ToEntityList()[0].GetComponent<EditorLeftMenu>().Panel);
 
         Assert.That(left.Position.X, Is.EqualTo(_shell.Viewport.Position.X).Within(0.5f));
         Assert.That(left.Position.Y, Is.EqualTo(_shell.Viewport.Position.Y).Within(0.5f));
@@ -311,6 +323,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
             if (entity.GetComponent<UiCollapsible>().Title == "SELECTION")
                 return entity.Parent;
         }
+
         throw new AssertionException("No sidebar.");
     }
 }

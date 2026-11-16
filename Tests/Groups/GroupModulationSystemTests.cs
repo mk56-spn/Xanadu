@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
@@ -77,9 +79,14 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(buffered.GetComponent<GroupColor>().Alpha, Is.EqualTo(1f), "the buffer carries the fade");
-        Assert.That(buffered.GetComponent<GroupColor>().Coverage, Is.GreaterThan(0f), "the colour still applies per item");
+        Assert.That(
+            buffered.GetComponent<GroupColor>().Coverage,
+            Is.GreaterThan(0f),
+            "the colour still applies per item");
         Assert.That(plain.GetComponent<GroupColor>().Alpha, Is.LessThan(0.9f));
-        Assert.That(GroupModulation.BufferAlpha(_groups.Groups, 0, 0.5f), Is.EqualTo(plain.GetComponent<GroupColor>().Alpha).Within(0.0001f));
+        Assert.That(
+            GroupModulation.BufferAlpha(_groups.Groups, 0, 0.5f),
+            Is.EqualTo(plain.GetComponent<GroupColor>().Alpha).Within(0.0001f));
     }
 
     [Test]
@@ -118,12 +125,10 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
         _groups.Groups[1].Effects.Add(GroupEffect.Move(0f, 1f, new Vector2(10, 20)));
         Entity mine = Member(Store, new Mine(5000, new Vector2(100, 100)), 1);
         Entity block = Member(Store, new Block(new Vector2(200, 300), new Vector2(50, 50)), 1);
-        Entity start = Member(Store, new StartPoint(
-            "Intro",
-            5000,
-            new Vector2(100, 100),
-            System.Numerics.Vector2.Zero,
-            new Vector2(0, -1)), 1);
+        Entity start = Member(
+            Store,
+            new StartPoint("Intro", 5000, new Vector2(100, 100), Vector2.Zero, new Vector2(0, -1)),
+            1);
 
         At(1000);
         Frame();
@@ -179,7 +184,10 @@ public sealed class GroupModulationSystemTests : EcsSystemTest
 
         Assert.That(Offset(note), Is.EqualTo(new Vector2(100, 0)));
         Assert.That(note.GetComponent<GroupColor>().Coverage, Is.EqualTo(1f).Within(0.001f));
-        Assert.That(note.GetComponent<Note>().Position, Is.EqualTo(new Vector2(300, 400)), "the document keeps the placed position");
+        Assert.That(
+            note.GetComponent<Note>().Position,
+            Is.EqualTo(new Vector2(300, 400)),
+            "the document keeps the placed position");
     }
 
     [Test]

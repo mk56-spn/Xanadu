@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -38,7 +39,10 @@ public sealed class XafClothTests
         XafRig.WorldBones(package, XafClothLayout.RestPose(package));
 
     /// <summary>Runs the simulation for a while with the bones held in one pose.</summary>
-    private static IReadOnlyList<Vector2> Hang(XafPackage package, XafClothSimulation simulation, Transform2D[] world,
+    private static IReadOnlyList<Vector2> Hang(
+        XafPackage package,
+        XafClothSimulation simulation,
+        Transform2D[] world,
         float seconds = 2f)
     {
         for (float t = 0; t < seconds; t += XafClothSimulation.FixedStep)
@@ -60,7 +64,7 @@ public sealed class XafClothTests
             Assert.That(rest[dress.Index(pin.Column, pin.Row)].Y, Is.LessThanOrEqualTo(waist + 0.5f));
         Assert.That(dress.IsPinned(0, dress.Rows - 1), Is.False, "the hem is free");
 
-        var colliders = dress.Colliders.ConvertAll(collider => collider.BoneId);
+        List<string> colliders = dress.Colliders.ConvertAll(collider => collider.BoneId);
         Assert.That(colliders, Does.Contain("thigh").And.Contain("shin"));
         Assert.That(colliders, Does.Not.Contain("head").And.Not.Contain("root"));
     }
@@ -77,7 +81,9 @@ public sealed class XafClothTests
 
         Assert.That(points, Has.Count.EqualTo(dress.Count));
         Vector2 hem = points[dress.Index(dress.Columns / 2, dress.Rows - 1)];
-        Assert.That(hem.Y, Is.EqualTo(laidOut[dress.Index(dress.Columns / 2, dress.Rows - 1)].Y).Within(3f),
+        Assert.That(
+            hem.Y,
+            Is.EqualTo(laidOut[dress.Index(dress.Columns / 2, dress.Rows - 1)].Y).Within(3f),
             "it neither stretches nor rides up");
     }
 
@@ -129,7 +135,10 @@ public sealed class XafClothTests
 
         IReadOnlyList<Vector2> points = Hang(package, new XafClothSimulation(), kicked);
 
-        var thigh = XafClothLayout.Capsule(package, new XafClothCollider { BoneId = "thigh" }, kicked)!.Value;
+        (Vector2 From, Vector2 To) thigh = XafClothLayout.Capsule(
+            package,
+            new XafClothCollider { BoneId = "thigh" },
+            kicked)!.Value;
         for (int row = 0; row < dress.Rows; row++)
         {
             foreach (int column in new[] { 0, dress.Columns - 1 })
@@ -137,7 +146,10 @@ public sealed class XafClothTests
                 Vector2 point = points[dress.Index(column, row)];
                 float distance = XafClothLayout.ClosestOnSegment(point, thigh.From, thigh.To).DistanceTo(point);
                 if (!dress.IsPinned(column, row))
-                    Assert.That(distance, Is.GreaterThanOrEqualTo(6f - 0.5f), $"edge point {column},{row} is outside the leg");
+                    Assert.That(
+                        distance,
+                        Is.GreaterThanOrEqualTo(6f - 0.5f),
+                        $"edge point {column},{row} is outside the leg");
             }
         }
     }
@@ -155,7 +167,10 @@ public sealed class XafClothTests
         Transform2D[] kicked = XafRig.WorldBones(package, pose);
         IReadOnlyList<Vector2> points = Hang(package, simulation, kicked, 0.3f);
 
-        var thigh = XafClothLayout.Capsule(package, new XafClothCollider { BoneId = "thigh" }, kicked)!.Value;
+        (Vector2 From, Vector2 To) thigh = XafClothLayout.Capsule(
+            package,
+            new XafClothCollider { BoneId = "thigh" },
+            kicked)!.Value;
         Vector2 axis = (thigh.To - thigh.From).Normalized();
         float length = thigh.From.DistanceTo(thigh.To);
         int front = dress.Columns - 1;
@@ -171,6 +186,7 @@ public sealed class XafClothTests
             Assert.That(point.Y, Is.LessThan(core.Y), $"front edge row {row} rides on top of the thigh");
             above++;
         }
+
         Assert.That(above, Is.GreaterThan(0), "the front edge reaches over the thigh");
     }
 
@@ -203,7 +219,9 @@ public sealed class XafClothTests
     public void ABoneADressUsesCannotBeDeleted()
     {
         XafPackage package = Dressed();
-        Assert.That(package.Cloths[0].Colliders.Exists(collider => collider.BoneId == "foot"), Is.False,
+        Assert.That(
+            package.Cloths[0].Colliders.Exists(collider => collider.BoneId == "foot"),
+            Is.False,
             "the foot is below the hem, so the dress leaves it out");
 
         XafClothAuthoring.ToggleCollider(package, 0, 5);
@@ -244,7 +262,9 @@ public sealed class XafClothTests
         Transform2D[] moved = XafRig.WorldBones(package, pose);
         simulation.Update(package, moved, XafClothSimulation.FixedStep * 2);
 
-        Assert.That(simulation.Points(0)[hem].DistanceTo(moved[Torso] * onBone), Is.LessThanOrEqualTo(10.5f),
+        Assert.That(
+            simulation.Points(0)[hem].DistanceTo(moved[Torso] * onBone),
+            Is.LessThanOrEqualTo(10.5f),
             "the body lurched 300 px, and the hem came with it");
     }
 

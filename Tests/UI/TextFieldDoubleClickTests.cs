@@ -1,8 +1,11 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.UI;
 
@@ -46,7 +49,7 @@ public sealed class TextFieldDoubleClickTests
     public void SlowPressesLeaveTheFieldAlone()
     {
         Press();
-        Press(gapBefore: TextFieldDoubleClickSystem.Window + 0.2f);
+        Press(TextFieldDoubleClickSystem.Window + 0.2f);
         Assert.That(_field.GetComponent<TextField>().Value, Is.EqualTo("Hello"));
     }
 

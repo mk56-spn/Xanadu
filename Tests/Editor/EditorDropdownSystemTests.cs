@@ -1,15 +1,19 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
-using Xanadu.Rendering;
 using Xanadu.Settings;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Ui;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
 
@@ -21,15 +25,11 @@ public sealed class EditorDropdownSystemTests
     {
         var store = new EntityStore();
         var history = new EditorHistory(store);
-        Entity editor = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new NoteSelection(default));
+        Entity editor = store.CreateEntity(new Playhead(0, 120, 0, false), new NoteSelection(default));
         Entity note = EditorItems.Create(store, new Note(0, Vector2.Zero));
         editor.GetComponent<NoteSelection>().SetMany(new[] { note });
 
-        Entity list = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new Rectangle(new Rect2(-95, -70, 190, 140)));
+        Entity list = store.CreateEntity(new Position(Vector2.Zero), new Rectangle(new Rect2(-95, -70, 190, 140)));
 
         Entity button = store.CreateEntity(
             new Position(new Vector2(800, 200)),
@@ -63,9 +63,7 @@ public sealed class EditorDropdownSystemTests
         Assert.That(history.CanUndo, Is.True);
 
         history.Undo();
-        Assert.That(
-            ItemBlend.Of(store.Query<Note>().ToEntityList()[0]),
-            Is.EqualTo(BlendMode.Mix));
+        Assert.That(ItemBlend.Of(store.Query<Note>().ToEntityList()[0]), Is.EqualTo(BlendMode.Mix));
     }
 
     [Test]
@@ -74,17 +72,13 @@ public sealed class EditorDropdownSystemTests
         var store = new EntityStore();
         Entity list = store.CreateEntity();
         Entity button = store.CreateEntity(new Dropdown(list, 0));
-        Entity option = store.CreateEntity(
-            new Position(Vector2.Zero),
-            new DropdownOption(button, 1));
+        Entity option = store.CreateEntity(new Position(Vector2.Zero), new DropdownOption(button, 1));
 
         list.DeleteEntity();
         button.DeleteEntity();
 
         Assert.That(button.IsNull || !button.HasComponent<Dropdown>(), Is.True);
-        Assert.That(
-            option.IsNull || !option.HasComponent<DropdownOption>(),
-            Is.True);
+        Assert.That(option.IsNull || !option.HasComponent<DropdownOption>(), Is.True);
     }
 
     [Test]
@@ -92,11 +86,8 @@ public sealed class EditorDropdownSystemTests
     {
         var store = new EntityStore();
         var commands = new EditorCommandBus();
-        store.CreateEntity(
-            new EditorPlacement { Mode = EditorPlacementMode.Notes, Note = KeybindAction.Action2 });
-        Entity swatch = store.CreateEntity(
-            new Position(Vector2.Zero),
-            EditorButton.NoteType(KeybindAction.Action3));
+        store.CreateEntity(new EditorPlacement { Mode = EditorPlacementMode.Notes, Note = KeybindAction.Action2 });
+        Entity swatch = store.CreateEntity(new Position(Vector2.Zero), EditorButton.NoteType(KeybindAction.Action3));
 
         var root = new SystemRoot(store);
         root.Add(new EditorNoteTypeBarSystem(store, commands));
@@ -117,11 +108,8 @@ public sealed class EditorDropdownSystemTests
     public void TheNoteKeyBarShowsOnlyForColouredNotes(EditorPlacementMode mode, bool shown)
     {
         var store = new EntityStore();
-        store.CreateEntity(
-            new EditorPlacement { Mode = mode, Note = KeybindAction.Action2 });
-        Entity panel = store.CreateEntity(
-            new Position(new Vector2(10, 20)),
-            new EditorNoteBarPanel());
+        store.CreateEntity(new EditorPlacement { Mode = mode, Note = KeybindAction.Action2 });
+        Entity panel = store.CreateEntity(new Position(new Vector2(10, 20)), new EditorNoteBarPanel());
 
         var root = new SystemRoot(store);
         root.Add(new EditorNoteTypeBarSystem(store, new EditorCommandBus()));
@@ -129,8 +117,6 @@ public sealed class EditorDropdownSystemTests
 
         Assert.That(EditorNoteTypeBarSystem.ShowsFor(mode), Is.EqualTo(shown));
         Assert.That(UiLayout.IsHidden(panel), Is.EqualTo(!shown));
-        Assert.That(
-            UiLayout.IsHidden(panel),
-            Is.EqualTo(!shown));
+        Assert.That(UiLayout.IsHidden(panel), Is.EqualTo(!shown));
     }
 }

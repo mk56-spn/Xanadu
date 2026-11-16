@@ -1,6 +1,7 @@
 using Friflo.Engine.ECS;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Where the parts of a colour picker sit, relative to its saturation square.</summary>
 public static class ColorPickerLayout

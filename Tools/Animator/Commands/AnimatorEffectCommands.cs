@@ -1,6 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
+using Xanadu.Core.Items;
+using Xanadu.Tools.Animator.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 
@@ -69,7 +71,7 @@ public static class AnimatorEffectCommands
                 return;
             }
 
-            int index = XafEffects.Add(package, package.Skeleton.Bones[bone].Id, new Xanadu.Items.Xif { Name = "particles" }, "particles");
+            int index = XafEffects.Add(package, package.Skeleton.Bones[bone].Id, new Xif { Name = "particles" }, "particles");
             package.Effects[index].Particle = XafEffects.StreamParticle();
             AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
             float time = runtime.CurrentTime;

@@ -11,8 +11,7 @@ public sealed class WaveformAnalyzerTests
     private const int Rate = 22050;
 
     private static float[] Tone(float hz, float seconds, float gain = 1f) =>
-        Enumerable.Range(0, (int)(seconds * Rate))
-            .Select(i => gain * MathF.Sin(2f * MathF.PI * hz * i / Rate))
+        Enumerable.Range(0, (int)(seconds * Rate)).Select(i => gain * MathF.Sin(2f * MathF.PI * hz * i / Rate))
             .ToArray();
 
     /// <summary>A brickwalled track: a mid-range bed at nearly full scale, with a bass kick every half second.</summary>
@@ -81,7 +80,7 @@ public sealed class WaveformAnalyzerTests
     [TestCase(170_000)]
     public void AClickShowsAtItsOwnTimeHoweverFarIntoTheTrack(int clickMs)
     {
-        var samples = new float[Rate * 180];
+        float[] samples = new float[Rate * 180];
         int start = (int)(clickMs / 1000d * Rate);
         for (int i = 0; i < 44; i++)
             samples[start + i] = 0.9f * MathF.Sin(2f * MathF.PI * 1000f * i / Rate);
@@ -105,11 +104,7 @@ public sealed class WaveformAnalyzerTests
     [Test]
     public void AveragingIsAccurateAcrossAndWithinSteps()
     {
-        var data = new WaveformData(
-            new[] { 0f, 1f, 0f, 1f },
-            new float[4],
-            new float[4],
-            durationMs: 40);
+        var data = new WaveformData(new[] { 0f, 1f, 0f, 1f }, new float[4], new float[4], 40);
 
         Assert.That(data.Average(WaveformBand.Low, 0, 40), Is.EqualTo(0.5f).Within(0.0001f));
         Assert.That(data.Average(WaveformBand.Low, 10, 20), Is.EqualTo(1f).Within(0.0001f));
@@ -120,7 +115,7 @@ public sealed class WaveformAnalyzerTests
     [Test]
     public void AveragingOutsideTheTrackCountsAsSilence()
     {
-        var data = new WaveformData(new[] { 1f, 1f }, new float[2], new float[2], durationMs: 20);
+        var data = new WaveformData(new[] { 1f, 1f }, new float[2], new float[2], 20);
 
         Assert.That(data.Average(WaveformBand.Low, 10, 30), Is.EqualTo(0.5f).Within(0.0001f));
         Assert.That(data.Average(WaveformBand.Low, 30, 40), Is.Zero);

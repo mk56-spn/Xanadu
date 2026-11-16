@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Timeline;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
-namespace Xanadu.Systems.Groups;
+namespace Xanadu.Ui.Systems.Groups;
 
 /// <summary>
 /// Behaviour every timeline shares, whichever tool owns it. Each tool adds this
 /// group to its own and describes its timeline with a <see cref="TimelineHost"/>;
-/// a host that is also an <see cref="Xanadu.Timeline.ITimelineInput"/> gets its
+/// a host that is also an <see cref="ITimelineInput"/> gets its
 /// presses and drags read here too.
 /// Keys go through <see cref="TimelineShortcuts"/> from each tool's dispatcher,
 /// which knows when its keys are live.

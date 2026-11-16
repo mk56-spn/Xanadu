@@ -1,11 +1,14 @@
+using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Tests.Support;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Characters;
 
@@ -56,7 +59,9 @@ public sealed class CharacterMotionTests : EcsSystemTest
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
         AnimatorRuntime runtime = player.GetComponent<CharacterRig>().Runtime;
         // This rig crossfades, so the landing may still be fading in.
-        Assert.That(runtime.IsCrossfading ? runtime.NextClip : runtime.CurrentClip, Is.EqualTo(ContactClip.Landing.Id()));
+        Assert.That(
+            runtime.IsCrossfading ? runtime.NextClip : runtime.CurrentClip,
+            Is.EqualTo(ContactClip.Landing.Id()));
         Assert.That(player.GetComponent<CharacterBump>().Normal, Is.EqualTo(new Vector2(1, 0)));
     }
 
@@ -79,7 +84,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Entity player = Player(Floor - 150);
         Root.Update(new UpdateTick(1f / 240f, 0));
-        player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new System.Numerics.Vector2(0, -1f));
+        player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(new Vector2(0, -1f));
         MoveTo(player, Floor - 150.4f);
 
         Root.Update(new UpdateTick(1f / 240f, 0));
@@ -91,14 +96,14 @@ public sealed class CharacterMotionTests : EcsSystemTest
     public void ALongRiseLetsTheJumpClipPlayAndANewImpulseRestartsIt()
     {
         Entity player = Player(Floor - 150);
-        var body = player.GetComponent<PhysicsBody>().Body;
+        Body body = player.GetComponent<PhysicsBody>().Body;
         Root.Update(new UpdateTick(1f / 240f, 0));
 
         float y = Floor - 150;
         for (int i = 0; i < 20; i++)
         {
             // Gravity slowly eats the rise, as it does in play.
-            body.SetLinearVelocity(new System.Numerics.Vector2(0, -3f + i * 0.01f));
+            body.SetLinearVelocity(new Vector2(0, -3f + i * 0.01f));
             MoveTo(player, y -= 1.2f);
             Root.Update(new UpdateTick(1f / 240f, 0));
         }
@@ -108,7 +113,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
             Is.GreaterThan(15f / 240f),
             "the clip is not sent back to its start every frame");
 
-        body.SetLinearVelocity(new System.Numerics.Vector2(0, -6f));
+        body.SetLinearVelocity(new Vector2(0, -6f));
         MoveTo(player, y -= 2.5f);
         Root.Update(new UpdateTick(1f / 240f, 0));
 
@@ -173,7 +178,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
     [Test]
     public void WithoutAFallingClipTheJumpPoseIsKeptWhileFalling()
     {
-        Entity player = Player(Floor - 200, falling: false);
+        Entity player = Player(Floor - 200, false);
         Frame(2);
 
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
@@ -221,8 +226,12 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Falling, CharacterMotionState.Landing), Is.True);
         Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Jumping, CharacterMotionState.Grounded), Is.True);
-        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Landing, CharacterMotionState.Grounded), Is.False);
-        Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Grounded, CharacterMotionState.Jumping), Is.False);
+        Assert.That(
+            CharacterMotionSystem.Landed(CharacterMotionState.Landing, CharacterMotionState.Grounded),
+            Is.False);
+        Assert.That(
+            CharacterMotionSystem.Landed(CharacterMotionState.Grounded, CharacterMotionState.Jumping),
+            Is.False);
         Assert.That(CharacterMotionSystem.Landed(CharacterMotionState.Jumping, CharacterMotionState.Falling), Is.False);
     }
 
@@ -282,12 +291,12 @@ public sealed class CharacterMotionTests : EcsSystemTest
     [Test]
     public void OnlyAOneWayBlockThatCollidesOnTopCanBeStoodOn()
     {
-        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), oneWay: BlockOneWay.Down));
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), BlockOneWay.Down));
         Entity player = Player(250);
         Frame(2);
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Falling));
 
-        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), oneWay: BlockOneWay.Up));
+        Store.CreateEntity(new Block(new Vector2(350, 300), new Vector2(100, 50), BlockOneWay.Up));
         Frame();
         Assert.That(State(player), Is.EqualTo(CharacterMotionState.Landing));
     }
@@ -321,21 +330,33 @@ public sealed class CharacterMotionTests : EcsSystemTest
     [Test]
     public void TheGameAsksForEveryHandOverItsStatesCanMake()
     {
-        Assert.That(CharacterMotionSystem.Transitions(Package(falling: true)), Is.EquivalentTo(new[]
-        {
-            (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping), (ContactClip.Falling, ContactClip.Jumping),
-            (ContactClip.Jumping, ContactClip.Falling), (ContactClip.Idle, ContactClip.Falling), (ContactClip.Landing, ContactClip.Falling),
-            (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Falling, ContactClip.Landing), (ContactClip.Landing, ContactClip.Idle),
-            (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Sliding, ContactClip.Falling), (ContactClip.Landing, ContactClip.Sliding),
-            (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle),
-        }));
+        Assert.That(
+            CharacterMotionSystem.Transitions(Package(true)),
+            Is.EquivalentTo(
+                new[]
+                {
+                    (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping),
+                    (ContactClip.Falling, ContactClip.Jumping),
+                    (ContactClip.Jumping, ContactClip.Falling), (ContactClip.Idle, ContactClip.Falling),
+                    (ContactClip.Landing, ContactClip.Falling),
+                    (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Falling, ContactClip.Landing),
+                    (ContactClip.Landing, ContactClip.Idle),
+                    (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Sliding, ContactClip.Falling),
+                    (ContactClip.Landing, ContactClip.Sliding),
+                    (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle)
+                }));
 
         // Without a falling clip the jump pose is kept, so jump-to-fall is no hand-over at all.
-        Assert.That(CharacterMotionSystem.Transitions(Package(falling: false)), Is.EquivalentTo(new[]
-        {
-            (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping), (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Landing, ContactClip.Idle),
-            (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Sliding), (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle),
-        }));
+        Assert.That(
+            CharacterMotionSystem.Transitions(Package(false)),
+            Is.EquivalentTo(
+                new[]
+                {
+                    (ContactClip.Idle, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Jumping),
+                    (ContactClip.Jumping, ContactClip.Landing), (ContactClip.Landing, ContactClip.Idle),
+                    (ContactClip.Sliding, ContactClip.Jumping), (ContactClip.Landing, ContactClip.Sliding),
+                    (ContactClip.Idle, ContactClip.Sliding), (ContactClip.Sliding, ContactClip.Idle)
+                }));
     }
 
     [Test]
@@ -370,7 +391,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
 
     private static void Slide(Entity player, float pixelsPerSecond) =>
         player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(
-            new System.Numerics.Vector2(pixelsPerSecond / Box2DPhysicsWorld.PixelsPerMeter, 0f));
+            new Vector2(pixelsPerSecond / Box2DPhysicsWorld.PixelsPerMeter, 0f));
 
     [TestCase(CharacterMotionSystem.SlideStartSpeed)]
     [TestCase(-CharacterMotionSystem.SlideStartSpeed)]
@@ -451,7 +472,8 @@ public sealed class CharacterMotionTests : EcsSystemTest
     public void ARigWithoutASlideClipStaysIdleWhileSliding()
     {
         Entity player = Player(Floor);
-        player.GetComponent<CharacterRig>().Runtime.Package.Clips.RemoveAll(clip => clip.Id == ContactClip.Sliding.Id());
+        player.GetComponent<CharacterRig>().Runtime.Package.Clips
+            .RemoveAll(clip => clip.Id == ContactClip.Sliding.Id());
         Frame();
         Slide(player, 300f);
         Frame();

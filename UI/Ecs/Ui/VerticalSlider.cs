@@ -1,5 +1,7 @@
 
-namespace Xanadu.Ecs;
+using Xanadu.Core.Maths;
+
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A vertical slider whose thumb shows how much of a list is on screen, which is

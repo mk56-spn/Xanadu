@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Tools.Animator.Ecs;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>
 /// Where one joint travels over a clip, in skeleton space: a point every

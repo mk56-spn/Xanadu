@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -34,7 +35,10 @@ public sealed class XafChainArtTests
     [Test]
     public void ThePieceIsNeverMirrored()
     {
-        foreach (Vector2 to in new[] { new Vector2(0, 8), new Vector2(8, 0), new Vector2(0, -8), new Vector2(-8, 0), new Vector2(5, -5) })
+        foreach (Vector2 to in new[]
+                 {
+                     new Vector2(0, 8), new Vector2(8, 0), new Vector2(0, -8), new Vector2(-8, 0), new Vector2(5, -5)
+                 })
         {
             Transform2D transform = XafChainArt.Segment(Vector2.Zero, to, 0, 4, 9f, Art);
             Assert.That(transform.Determinant(), Is.GreaterThan(0f), $"{to}");

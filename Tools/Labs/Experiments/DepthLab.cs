@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Mw = MoonWorks.Graphics;
+using Color = Xanadu.Core.Maths.Color;
 using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -413,14 +416,14 @@ internal sealed class DepthLab : ILabExperiment
         private readonly Rect2 _area;
         private readonly uint _width, _height;
         private readonly Mw.GraphicsDevice _device;
-        private readonly Mw.Texture _colour, _depth;
+        private readonly Texture _colour, _depth;
         private readonly Mw.TextureFormat _depthFormat;
         private readonly bool _depthReadable;
-        private readonly Mw.Sampler _sampler;
-        private readonly Mw.Shader _quadVertex, _quadFragment, _fullVertex, _showDepth, _flat;
-        private readonly Dictionary<State, Mw.GraphicsPipeline> _pipelines = new();
-        private readonly Mw.GraphicsPipeline _stencilEqual, _stencilAbove;
-        private readonly Mw.GraphicsPipeline? _depthView;
+        private readonly Sampler _sampler;
+        private readonly Shader _quadVertex, _quadFragment, _fullVertex, _showDepth, _flat;
+        private readonly Dictionary<State, GraphicsPipeline> _pipelines = new();
+        private readonly GraphicsPipeline _stencilEqual, _stencilAbove;
+        private readonly GraphicsPipeline? _depthView;
         private readonly Handle _item, _shown;
         private float _time;
         private int _dragging = -1;
@@ -444,11 +447,11 @@ internal sealed class DepthLab : ILabExperiment
                 : _device.SupportedDepthStencilFormat;
             _depthReadable = Supports(_depthFormat, readable);
 
-            _colour = Mw.Texture.Create2D(_device, "depth lab colour", _width, _height, ColourFormat,
+            _colour = Texture.Create2D(_device, "depth lab colour", _width, _height, ColourFormat,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
-            _depth = Mw.Texture.Create2D(_device, "depth lab depth", _width, _height, _depthFormat,
+            _depth = Texture.Create2D(_device, "depth lab depth", _width, _height, _depthFormat,
                 _depthReadable ? readable : target);
-            _sampler = Mw.Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
+            _sampler = Sampler.Create(_device, Mw.SamplerCreateInfo.PointClamp);
 
             string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "depth_lab.slang");
             _quadVertex = Shader(module, "quadMain", "vertex", Mw.ShaderStage.Vertex, uniforms: 1);
@@ -471,8 +474,8 @@ internal sealed class DepthLab : ILabExperiment
         private bool Supports(Mw.TextureFormat format, Mw.TextureUsageFlags usage) =>
             _device.SupportsTextureFormat(format, Mw.TextureType.TwoDimensional, usage);
 
-        private Mw.Shader Shader(string module, string entry, string stage, Mw.ShaderStage kind, uint uniforms = 0, uint samplers = 0) =>
-            Mw.Shader.Create(_device, SlangShaders.Compile(module, entry, stage), "main", new Mw.ShaderCreateInfo
+        private Shader Shader(string module, string entry, string stage, Mw.ShaderStage kind, uint uniforms = 0, uint samplers = 0) =>
+            MoonWorks.Graphics.Shader.Create(_device, SlangShaders.Compile(module, entry, stage), "main", new Mw.ShaderCreateInfo
             {
                 Format = Mw.ShaderFormat.SPIRV,
                 Stage = kind,
@@ -480,11 +483,11 @@ internal sealed class DepthLab : ILabExperiment
                 NumSamplers = samplers,
             });
 
-        private static Mw.ColorTargetBlendState Opaque => CanvasPipelines.Blend(Xanadu.Rendering.BlendMode.Mix);
+        private static Mw.ColorTargetBlendState Opaque => CanvasPipelines.Blend(BlendMode.Mix);
 
-        private Mw.GraphicsPipeline Create(Mw.Shader vertex, Mw.Shader fragment, Mw.DepthStencilState state,
+        private GraphicsPipeline Create(Shader vertex, Shader fragment, Mw.DepthStencilState state,
             Mw.ColorTargetBlendState blend, bool depth = true) =>
-            Mw.GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
+            GraphicsPipeline.Create(_device, new Mw.GraphicsPipelineCreateInfo
             {
                 VertexShader = vertex,
                 FragmentShader = fragment,
@@ -502,7 +505,7 @@ internal sealed class DepthLab : ILabExperiment
             });
 
         /// <summary>A full-screen pass that paints where the stencil value compares with its reference.</summary>
-        private Mw.GraphicsPipeline StencilView(Mw.CompareOp compare)
+        private GraphicsPipeline StencilView(Mw.CompareOp compare)
         {
             var keep = new Mw.StencilOpState
             {
@@ -521,9 +524,9 @@ internal sealed class DepthLab : ILabExperiment
             }, Opaque);
         }
 
-        private Mw.GraphicsPipeline Pipeline(State state)
+        private GraphicsPipeline Pipeline(State state)
         {
-            if (_pipelines.TryGetValue(state, out Mw.GraphicsPipeline? pipeline))
+            if (_pipelines.TryGetValue(state, out GraphicsPipeline? pipeline))
                 return pipeline;
 
             var stencil = new Mw.StencilOpState
@@ -656,12 +659,12 @@ internal sealed class DepthLab : ILabExperiment
         {
             CanvasServer.Current.Free(_item);
             _context.Hide(_shown);
-            foreach (Mw.GraphicsPipeline pipeline in _pipelines.Values)
+            foreach (GraphicsPipeline pipeline in _pipelines.Values)
                 pipeline.Dispose();
             _stencilEqual.Dispose();
             _stencilAbove.Dispose();
             _depthView?.Dispose();
-            foreach (Mw.Shader shader in (Mw.Shader[])[_quadVertex, _quadFragment, _fullVertex, _showDepth, _flat])
+            foreach (Shader shader in (Shader[])[_quadVertex, _quadFragment, _fullVertex, _showDepth, _flat])
                 shader.Dispose();
             _sampler.Dispose();
             _colour.Dispose();

@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
 using Xanadu.Host.Tools;
-using Xanadu.Systems.Input;
-using Xanadu.Tools.DevTools;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>
 /// Atlas: the project's types as a chart to click through (<see cref="CodeMap"/>).

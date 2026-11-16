@@ -1,9 +1,11 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Core.Theme;
 using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ui;
 
 /// <summary>Panel rows shared by the tabs: subheadings inside a section, labelled steppers and sliders.</summary>
 public static partial class AnimatorLayout

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Levels;
 

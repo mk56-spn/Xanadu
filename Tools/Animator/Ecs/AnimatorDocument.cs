@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Animation;
-using Xanadu.History;
+using Xanadu.Core.History;
 using Xanadu.Tools.Animator.Files;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>The package being edited together with its playback state.</summary>
 public struct AnimatorDocument : IComponent

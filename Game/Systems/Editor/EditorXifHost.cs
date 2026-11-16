@@ -2,10 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
+using Xanadu.Core.Storage;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Items;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
 
@@ -67,7 +71,7 @@ public sealed class EditorXifHost(EntityStore store) : IXifEditorHost
         }
     }
 
-    public bool CanLoad(string path) => System.IO.File.Exists(Xanadu.Storage.GamePaths.Full(path));
+    public bool CanLoad(string path) => System.IO.File.Exists(GamePaths.Full(path));
 
     public void Edit(Action change)
     {

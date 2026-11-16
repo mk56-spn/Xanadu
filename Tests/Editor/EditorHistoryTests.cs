@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 
 namespace Xanadu.Tests.Editor;
 
@@ -40,11 +42,13 @@ public sealed class EditorHistoryTests
         history.Record(before, after);
 
         history.Undo();
-        Assert.That(store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position,
+        Assert.That(
+            store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position,
             Is.EqualTo(new Vector2(10, 20)));
 
         history.Redo();
-        Assert.That(store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position,
+        Assert.That(
+            store.Query<Note>().ToEntityList()[0].GetComponent<Note>().Position,
             Is.EqualTo(new Vector2(200, 300)));
     }
 
@@ -62,21 +66,18 @@ public sealed class EditorHistoryTests
 
         history.Undo();
         Assert.That(store.Query<Note>().Count, Is.EqualTo(1));
-        Assert.That(store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs,
-            Is.EqualTo(500));
+        Assert.That(store.Query<Note>().ToEntityList()[0].GetComponent<Note>().TimeMs, Is.EqualTo(500));
     }
 
     [Test]
     public void UndoRestoresAResizedBlock()
     {
         var store = new EntityStore();
-        Entity block = store.CreateEntity(
-            new Block(new Vector2(100, 100), new Vector2(200, 100)));
+        Entity block = store.CreateEntity(new Block(new Vector2(100, 100), new Vector2(200, 100)));
         var history = new EditorHistory(store);
         EditorSnapshot before = history.Capture();
 
-        block.GetComponent<Block>() =
-            new Block(new Vector2(100, 100), new Vector2(400, 100));
+        block.GetComponent<Block>() = new Block(new Vector2(100, 100), new Vector2(400, 100));
         history.Record(before, history.Capture());
 
         Assert.That(history.Undo(), Is.True);
@@ -94,9 +95,8 @@ public sealed class EditorHistoryTests
     public void UndoRestoresDeletedStartPoint()
     {
         var store = new EntityStore();
-        Entity start = store.CreateEntity(new StartPoint(
-            "Start", 500, new Vector2(10, 20),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
+        Entity start = store.CreateEntity(
+            new StartPoint("Start", 500, new Vector2(10, 20), Vector2.Zero, new Vector2(0, -1)));
         var history = new EditorHistory(store);
         EditorSnapshot before = history.Capture();
 
@@ -105,9 +105,6 @@ public sealed class EditorHistoryTests
 
         Assert.That(history.Undo(), Is.True);
         Assert.That(store.Query<StartPoint>().Count, Is.EqualTo(1));
-        Assert.That(
-            store.Query<StartPoint>().ToEntityList()[0]
-                .GetComponent<StartPoint>().Name,
-            Is.EqualTo("Start"));
+        Assert.That(store.Query<StartPoint>().ToEntityList()[0].GetComponent<StartPoint>().Name, Is.EqualTo("Start"));
     }
 }

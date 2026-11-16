@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Timeline;
+namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>What an item on a timeline is drawn as: one time, or a stretch between two.</summary>
 public enum TimelineItemShape
@@ -215,7 +217,7 @@ public enum TimelineGestureKind
 /// <summary>
 /// A tool's side of a timeline: it describes the timeline each frame and is
 /// told what presses and drags mean, never where the pointer is. Implemented by
-/// the same object as <see cref="Xanadu.Systems.Timeline.ITimelineHost"/>.
+/// the same object as <see cref="ITimelineHost"/>.
 /// </summary>
 public interface ITimelineInput
 {

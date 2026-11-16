@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Rendering;
+using Xanadu.Core.Rendering;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>What a level may carry in the way of custom shaders.</summary>
 public static class ShaderLimits
@@ -24,7 +25,7 @@ public sealed class ShaderSlot
     /// The engine-free materials for this slot, one per blend mode used, made
     /// from <see cref="MaterialSource"/> (Docs/host.md §5.5).
     /// </summary>
-    public readonly Dictionary<BlendMode, Xanadu.Systems.Canvas.CanvasMaterial> Materials = new();
+    public readonly Dictionary<BlendMode, CanvasMaterial> Materials = new();
 
     /// <summary>The source <see cref="Materials"/> were made from; they are dropped when it changes.</summary>
     public string? MaterialSource;

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Interaction;
 
 /// <summary>Generic ordered entity selection used by UI interaction code.</summary>
 public sealed class UiSelectionSet

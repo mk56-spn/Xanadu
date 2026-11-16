@@ -1,8 +1,9 @@
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Ui.Systems.Timeline;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>
 /// The timeline input every tool shares: picking points and span parts,

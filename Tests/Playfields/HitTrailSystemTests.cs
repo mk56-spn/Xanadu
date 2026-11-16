@@ -1,8 +1,10 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.Playfields;
@@ -13,8 +15,7 @@ public sealed class HitTrailSystemTests : EcsSystemTest
     [Test]
     public void TrailAgesAndIsRemoved()
     {
-        Entity trail = Store.CreateEntity(
-            new HitTrail(Vector2.Zero, Colors.Cyan, "S", lifetime: 0.1f));
+        Entity trail = Store.CreateEntity(new HitTrail(Vector2.Zero, Colors.Cyan, "S", 0.1f));
         Root.Add(new TrailAgeSystem<HitTrail>());
 
         Frame(1, 0.05f);

@@ -1,4 +1,4 @@
-namespace Xanadu.Timeline;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>How chart times relate to the sound of the song.</summary>
 public static class ChartTiming

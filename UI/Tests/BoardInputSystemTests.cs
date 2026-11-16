@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
+using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class BoardInputSystemTests : EcsSystemTest

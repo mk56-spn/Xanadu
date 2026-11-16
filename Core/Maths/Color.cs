@@ -1,11 +1,11 @@
+#nullable enable
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-#nullable enable
-
-namespace Xanadu.Maths
+namespace Xanadu.Core.Maths
 {
     /// <summary>
     /// A color represented by red, green, blue, and alpha (RGBA) components.

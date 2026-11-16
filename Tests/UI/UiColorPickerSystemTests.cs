@@ -2,11 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.UI;
 
@@ -38,7 +42,7 @@ public sealed class UiColorPickerSystemTests
     public void SquareSetsSaturationAndValueFromThePointer()
     {
         // A quarter across and a quarter down: 25% saturation, 75% value.
-        Frame(First - ColorPickerLayout.Size / 4, pressed: true);
+        Frame(First - ColorPickerLayout.Size / 4, true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Saturation, Is.EqualTo(0.25f).Within(0.01f));
@@ -49,7 +53,7 @@ public sealed class UiColorPickerSystemTests
     public void HueBarSetsTheHueAndKeepsTheSquaresColour()
     {
         Rect2 bar = ColorPickerLayout.HueBar(First);
-        Frame(bar.GetCenter(), pressed: true);
+        Frame(bar.GetCenter(), true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Hue, Is.EqualTo(0.5f).Within(0.01f));
@@ -60,7 +64,7 @@ public sealed class UiColorPickerSystemTests
     public void AlphaBarSetsAlpha()
     {
         Rect2 bar = ColorPickerLayout.AlphaBar(First);
-        Frame(bar.Position + new Vector2(bar.Size.X * 0.25f, bar.Size.Y / 2), pressed: true);
+        Frame(bar.Position + new Vector2(bar.Size.X * 0.25f, bar.Size.Y / 2), true);
 
         Assert.That(_a.GetComponent<UiColorPicker>().AlphaValue, Is.EqualTo(0.25f).Within(0.01f));
     }
@@ -68,8 +72,8 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void DragKeepsFollowingOutsideTheSquareButStaysOnItsPicker()
     {
-        Frame(First, pressed: true);
-        Frame(First + new Vector2(500, 500), pressed: true);
+        Frame(First, true);
+        Frame(First + new Vector2(500, 500), true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Saturation, Is.EqualTo(1f));
@@ -80,8 +84,8 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void PressingElsewhereAndSlidingOntoAPickerDoesNotGrabIt()
     {
-        Frame(new Vector2(900, 900), pressed: true);
-        Frame(First, pressed: true);
+        Frame(new Vector2(900, 900), true);
+        Frame(First, true);
 
         Assert.That(_a.GetComponent<UiColorPicker>().Color, Is.EqualTo(new Color("#ff0000")));
     }
@@ -105,8 +109,8 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void SwatchAndHexFollowThePickedColour()
     {
-        Frame(First + new Vector2(60, -60), pressed: true);
-        Frame(First + new Vector2(60, -60), pressed: false);
+        Frame(First + new Vector2(60, -60), true);
+        Frame(First + new Vector2(60, -60), false);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Swatch.GetComponent<FillColor>().Value, Is.EqualTo(picker.Color));

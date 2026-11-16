@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -37,10 +39,7 @@ public sealed class PlayfieldDrawListTests
         Entity back = Block(store, -2, 9);
         Entity noteLow = Note(store, -1, 1);
 
-        List<Entity> order = Gather(store)
-            .Where(e => e.Kind != PlayfieldDrawKind.NoteGuides)
-            .Select(e => e.Entity)
-            .ToList();
+        var order = Gather(store).Where(e => e.Kind != PlayfieldDrawKind.NoteGuides).Select(e => e.Entity).ToList();
 
         Assert.That(order, Is.EqualTo(new[] { back, noteLow, noteHigh, front }));
     }
@@ -54,10 +53,7 @@ public sealed class PlayfieldDrawListTests
         Entity first = Block(store, -1, 0);
         Entity polygon = store.CreateEntity(new LevelPolygon(), new ItemLayer(-1, 0));
 
-        List<Entity> order = Gather(store)
-            .Where(e => e.Kind != PlayfieldDrawKind.NoteGuides)
-            .Select(e => e.Entity)
-            .ToList();
+        var order = Gather(store).Where(e => e.Kind != PlayfieldDrawKind.NoteGuides).Select(e => e.Entity).ToList();
 
         // Polygons, then blocks (made first, drawn first), then notes: the old stacking.
         Assert.That(order, Is.EqualTo(new[] { polygon, second, first, note }));
@@ -99,7 +95,7 @@ public sealed class PlayfieldDrawListTests
         store.CreateEntity(new StartPoint("start", 0, Vector2.Zero, default, default, 0), new ItemLayer(-1, 0));
 
         Assert.That(Gather(store), Is.Empty);
-        Assert.That(Gather(store, startPoints: true).Single().Kind, Is.EqualTo(PlayfieldDrawKind.StartPoint));
+        Assert.That(Gather(store, true).Single().Kind, Is.EqualTo(PlayfieldDrawKind.StartPoint));
     }
 
     [Test]
@@ -113,10 +109,7 @@ public sealed class PlayfieldDrawListTests
             EffectLayer.From(source));
         source.DeleteEntity();
 
-        List<Entity> order = Gather(store)
-            .Where(e => e.Kind != PlayfieldDrawKind.NoteGuides)
-            .Select(e => e.Entity)
-            .ToList();
+        var order = Gather(store).Where(e => e.Kind != PlayfieldDrawKind.NoteGuides).Select(e => e.Entity).ToList();
 
         Assert.That(order, Is.EqualTo(new[] { pop, above }));
     }
@@ -151,13 +144,17 @@ public sealed class PlayfieldDrawListTests
             canvas,
             default,
             store,
-            new PlayfieldItemFrame(View, Field, Head, 0f, Editor: false),
+            new PlayfieldItemFrame(View, Field, Head, 0f, false),
             () => canvas.Log.Add("wedge"));
 
-        Assert.That(canvas.Log, Is.EqualTo(new[]
-        {
-            "layer -3", "rect", "layer -1", "rect", "layer 0", "wedge", "layer 1", "rect", "layer 2", "rect", "end",
-        }));
+        Assert.That(
+            canvas.Log,
+            Is.EqualTo(
+                new[]
+                {
+                    "layer -3", "rect", "layer -1", "rect", "layer 0", "wedge", "layer 1", "rect", "layer 2", "rect",
+                    "end"
+                }));
     }
 
     [Test]
@@ -165,7 +162,7 @@ public sealed class PlayfieldDrawListTests
     {
         var store = new EntityStore();
         var canvas = new LayerLog();
-        var frame = new PlayfieldItemFrame(View, Field, Head, 0f, Editor: false);
+        var frame = new PlayfieldItemFrame(View, Field, Head, 0f, false);
 
         PlayfieldRenderer.DrawLayers(canvas, default, store, frame, () => canvas.Log.Add("wedge"));
         Assert.That(canvas.Log, Is.EqualTo(new[] { "layer 0", "wedge", "end" }));
@@ -185,11 +182,17 @@ public sealed class PlayfieldDrawListTests
 
         public void EndLayers() => Log.Add("end");
 
-        public void SetVisible(Handle canvas, bool visible) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
 
-        public void SetTransform(Handle canvas, Transform2D transform) { }
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
 
-        public void Clear(Handle canvas) { }
+        public void Clear(Handle canvas)
+        {
+        }
 
         public void DrawRect(Handle canvas, Rect2 bounds, Color color)
         {
@@ -197,12 +200,20 @@ public sealed class PlayfieldDrawListTests
                 Log.Add("rect");
         }
 
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+        {
+        }
 
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
 
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 }

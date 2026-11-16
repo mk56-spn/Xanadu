@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.History;
+using Xanadu.Core.History;
 
 namespace Xanadu.Tests.History;
 
@@ -100,7 +100,7 @@ public sealed class UndoHistoryTests
     [Test]
     public void OnlyTheNewestEntriesAreKept()
     {
-        var limited = new UndoHistory<int>((a, b) => a == b, value => _state = value, maxEntries: 3);
+        var limited = new UndoHistory<int>((a, b) => a == b, value => _state = value, 3);
         for (int i = 0; i < 6; i++)
             limited.Record(i, i + 1);
 

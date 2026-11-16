@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Animation;
 

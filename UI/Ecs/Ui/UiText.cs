@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Writes UI text and colours without dirtying anything that did not change.</summary>
 public static class UiText

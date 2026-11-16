@@ -1,5 +1,5 @@
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Pointer source used by headless systems when no input exists.</summary>
 public sealed class NullPointerInputSource : IPointerInputSource

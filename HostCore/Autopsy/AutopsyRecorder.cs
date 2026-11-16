@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Host.Autopsy;
 
@@ -102,12 +103,12 @@ internal sealed class AutopsyRecorder
         Sample(root, _update);
     }
 
-    private static void Monitor(SystemGroup group) => Xanadu.Systems.Ui.AppStep.MonitorAll(group);
+    private static void Monitor(SystemGroup group) => AppStep.MonitorAll(group);
 
     /// <summary>Each system's time this frame, nested as the tree is; an app root the UI steps nests under its step.</summary>
     private void Sample(BaseSystem group, int parent)
     {
-        foreach (BaseSystem system in Xanadu.Systems.Ui.AppStep.Children(group))
+        foreach (BaseSystem system in AppStep.Children(group))
         {
             double sum = system.Perf.SumMs;
             if (!_systems.TryGetValue(system, out (int Track, double Sum) known))

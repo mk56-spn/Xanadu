@@ -2,10 +2,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -17,15 +18,9 @@ public sealed class PlayerSpeedCapTests
     [Test]
     public void TheCapIsWhatTheStrongestMomentumNoteGives()
     {
-        var note = new Note(
-            0,
-            Vector2.Zero,
-            kind: NoteKind.Momentum,
-            momentum: Box2DPhysicsWorld.MaxMomentum);
+        var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: Box2DPhysicsWorld.MaxMomentum);
 
-        Assert.That(
-            PlayerMovementSystem.MomentumSpeed(note),
-            Is.EqualTo(Max).Within(0.0001f));
+        Assert.That(PlayerMovementSystem.MomentumSpeed(note), Is.EqualTo(Max).Within(0.0001f));
     }
 
     [Test]
@@ -49,12 +44,8 @@ public sealed class PlayerSpeedCapTests
         var store = new EntityStore();
         var root = new SystemRoot(store);
         root.Add(new PlayerSpeedCapSystem());
-        Box2DSharp.Dynamics.Body body =
-            physics.CreateDynamicBox(new Vector2(500, 0), new Vector2(30, 100));
-        store.CreateEntity(
-            new Player(new Vector2(30, 100)),
-            new Position(new Vector2(500, 0)),
-            new PhysicsBody(body));
+        Box2DSharp.Dynamics.Body body = physics.CreateDynamicBox(new Vector2(500, 0), new Vector2(30, 100));
+        store.CreateEntity(new Player(new Vector2(30, 100)), new Position(new Vector2(500, 0)), new PhysicsBody(body));
 
         for (int i = 0; i < 180; i++)
         {
@@ -72,12 +63,9 @@ public sealed class PlayerSpeedCapTests
         float gravity = Box2DPhysicsWorld.DefaultGravity * Box2DPhysicsWorld.PixelsPerMeter;
         float terminal = Max * Box2DPhysicsWorld.PixelsPerMeter;
 
+        Assert.That(PlayabilityAnalyzer.FallDistance(gravity, 0.1f), Is.EqualTo(0.5f * gravity * 0.01f).Within(0.01f));
         Assert.That(
-            PlayabilityAnalyzer.FallDistance(gravity, 0.1f),
-            Is.EqualTo(0.5f * gravity * 0.01f).Within(0.01f));
-        Assert.That(
-            PlayabilityAnalyzer.FallDistance(gravity, 2f) -
-            PlayabilityAnalyzer.FallDistance(gravity, 1f),
+            PlayabilityAnalyzer.FallDistance(gravity, 2f) - PlayabilityAnalyzer.FallDistance(gravity, 1f),
             Is.EqualTo(terminal).Within(0.01f));
     }
 }

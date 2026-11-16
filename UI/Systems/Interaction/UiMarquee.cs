@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Interaction;
 
 /// <summary>How a press on empty space ended.</summary>
 public enum MarqueeEnd

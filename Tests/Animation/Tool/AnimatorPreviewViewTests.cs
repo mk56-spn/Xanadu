@@ -1,9 +1,13 @@
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -56,9 +60,7 @@ public sealed class AnimatorPreviewViewTests : AnimatorToolTest
         Frame();
 
         Assert.That(View.Zoom, Is.GreaterThan(1f));
-        Assert.That(
-            View.ToLocal(point, PreviewArea()).DistanceTo(local),
-            Is.LessThan(0.01f));
+        Assert.That(View.ToLocal(point, PreviewArea()).DistanceTo(local), Is.LessThan(0.01f));
     }
 
     [Test]

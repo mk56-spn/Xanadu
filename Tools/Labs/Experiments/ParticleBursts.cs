@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xanadu.Particles;
-using Xanadu.Systems;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Labs.Experiments;
 

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Characters;
 
 namespace Xanadu.Tests.Characters;
@@ -37,9 +38,10 @@ public sealed class CharacterBumpTests
     {
         XafPackage package = Rig();
         var pose = new XafPose(1, 0);
-        var bump = new CharacterBump { Normal = new Vector2(-1f, 0f), Strength = 1f, Age = CharacterBumpSystem.Seconds };
+        var bump = new CharacterBump
+            { Normal = new Vector2(-1f, 0f), Strength = 1f, Age = CharacterBumpSystem.Seconds };
 
-        CharacterBumpSystem.ApplyFlinch(package, pose, bump, faceLeft: false);
+        CharacterBumpSystem.ApplyFlinch(package, pose, bump, false);
 
         Assert.That(pose.Bones[0].Rotation, Is.EqualTo(0f));
     }

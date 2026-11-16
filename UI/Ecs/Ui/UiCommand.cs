@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// What pressing an entity does: one value of a feature's own command enum, plus

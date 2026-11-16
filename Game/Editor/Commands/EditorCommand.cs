@@ -1,6 +1,8 @@
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Settings;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
+using Xanadu.Settings;
 
 namespace Xanadu.Editor.Commands;
 
@@ -41,7 +43,7 @@ public enum EditorCommandType
     SetFieldShader,
     SetBackgroundColor,
     SetOutsideColor,
-    SetFrameColor,
+    SetFrameColor
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -55,13 +57,13 @@ public readonly record struct EditorCommand(
     Color? ColorValue = null)
 {
     public static EditorCommand SetName(string value) =>
-        new(EditorCommandType.SetName, Text: value);
+        new(EditorCommandType.SetName, value);
 
     public static EditorCommand SetArtist(string value) =>
-        new(EditorCommandType.SetArtist, Text: value);
+        new(EditorCommandType.SetArtist, value);
 
     public static EditorCommand SetDifficulty(string value) =>
-        new(EditorCommandType.SetDifficulty, Text: value);
+        new(EditorCommandType.SetDifficulty, value);
 
     public static EditorCommand SetSnap(int value) =>
         new(EditorCommandType.SetSnap, IntValue: value);
@@ -82,10 +84,10 @@ public readonly record struct EditorCommand(
         new(EditorCommandType.SetMetronome, IntValue: enabled ? 1 : 0);
 
     public static EditorCommand LoadSong(string path) =>
-        new(EditorCommandType.LoadSong, Text: path);
+        new(EditorCommandType.LoadSong, path);
 
     public static EditorCommand LoadSongById(string id) =>
-        new(EditorCommandType.LoadSongById, Text: id);
+        new(EditorCommandType.LoadSongById, id);
 
     public static EditorCommand DeleteSelection() =>
         new(EditorCommandType.DeleteSelection);
@@ -128,18 +130,18 @@ public readonly record struct EditorCommand(
         new(EditorCommandType.Redo);
 
     public static EditorCommand ApplyLevel(LevelDocument document, string path) =>
-        new(EditorCommandType.ApplyLevel, Text: path, Document: document);
+        new(EditorCommandType.ApplyLevel, path, Document: document);
 
-    /// <summary>Like <see cref="ApplyLevel"/>, but the level is unsaved work, not what is on disk.</summary>
+    /// <summary>Like <see cref="ApplyLevel" />, but the level is unsaved work, not what is on disk.</summary>
     public static EditorCommand RecoverLevel(LevelDocument document, string path) =>
-        new(EditorCommandType.RecoverLevel, Text: path, Document: document);
+        new(EditorCommandType.RecoverLevel, path, Document: document);
 
     public static EditorCommand SetLevelFile(string path) =>
-        new(EditorCommandType.SetLevelFile, Text: path);
+        new(EditorCommandType.SetLevelFile, path);
 
     /// <summary>Puts shader source into a 1-based slot, replacing what was there.</summary>
     public static EditorCommand ImportShader(int slot, string name, string source) =>
-        new(EditorCommandType.ImportShader, Text: name, IntValue: slot, Text2: source);
+        new(EditorCommandType.ImportShader, name, slot, Text2: source);
 
     /// <summary>Empties a slot and takes the shader off everything that used it.</summary>
     public static EditorCommand RemoveShader(int slot) =>

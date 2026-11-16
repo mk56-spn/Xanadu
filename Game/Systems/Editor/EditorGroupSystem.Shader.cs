@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 

@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Xanadu.Systems.Input;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Tests.UI.Input;
+namespace Xanadu.Ui.Tests.Input;
 
 [TestFixture]
 public sealed class PointerLatchTests

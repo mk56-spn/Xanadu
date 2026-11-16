@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Four thin edges that outline the focused control on a top layer.</summary>
 public sealed class UiFocusRing

@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Core.Timeline;
 
 /// <summary>
 /// Horizontal zoom of a timeline view, plus the visible window captured while

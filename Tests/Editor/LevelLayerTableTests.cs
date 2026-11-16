@@ -1,12 +1,14 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
+using Xanadu.Editor.History;
 using Xanadu.Levels;
-using Xanadu.Storage;
 using Xanadu.Systems.Editor;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -23,8 +25,8 @@ public sealed class LevelLayerTableTests
         PassKeys =
         {
             new ShaderKeyDocument { Param = "blur", Time = 0.5f, Value = [4f], Ease = EasePreset.EaseIn },
-            new ShaderKeyDocument { Param = "tint", Time = 2f, Value = [1f, 0.5f, 0.25f, 1f] },
-        },
+            new ShaderKeyDocument { Param = "tint", Time = 2f, Value = [1f, 0.5f, 0.25f, 1f] }
+        }
     };
 
     private static Entity Editor(EntityStore store) => store.CreateEntity(
@@ -36,9 +38,11 @@ public sealed class LevelLayerTableTests
 
     private static void AssertSame(LayerDocument read, LayerDocument expected)
     {
-        Assert.That((read.Number, read.Name, read.Pass, read.PassShader),
+        Assert.That(
+            (read.Number, read.Name, read.Pass, read.PassShader),
             Is.EqualTo((expected.Number, expected.Name, expected.Pass, expected.PassShader)));
-        Assert.That(read.PassKeys.Select(k => (k.Param, k.Time, k.Ease)),
+        Assert.That(
+            read.PassKeys.Select(k => (k.Param, k.Time, k.Ease)),
             Is.EqualTo(expected.PassKeys.Select(k => (k.Param, k.Time, k.Ease))));
         Assert.That(read.PassKeys.Select(k => k.Value), Is.EqualTo(expected.PassKeys.Select(k => k.Value)));
     }
@@ -61,7 +65,7 @@ public sealed class LevelLayerTableTests
     public void AMapWithNoLayerSettingsHasNoTableChunk()
     {
         byte[] data = XmfBinary.Write(new LevelDocument { Name = "Plain" });
-        ChunkReader reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
+        var reader = ChunkReader.Open(data, "XMF1"u8.ToArray(), XmfBinary.MajorVersion, "XMF");
 
         Assert.That(reader.TryGet((uint)XmfChunk.Layers, out _), Is.False);
         Assert.That(XmfBinary.Read(data).Layers, Is.Empty);
@@ -95,7 +99,9 @@ public sealed class LevelLayerTableTests
         LevelDocumentMapper.Apply(store, editor, source);
         LevelLayer layer = editor.GetComponent<LevelLayers>().Layers[-3];
         Assert.That((layer.Name, layer.Pass, layer.PassShader), Is.EqualTo(("GLOW", LayerPassKind.SelfContained, 2)));
-        Assert.That(layer.PassKeys[1], Is.EqualTo(new ShaderKey("tint", 2f, new Vector4(1f, 0.5f, 0.25f, 1f), 4, EasePreset.Linear)));
+        Assert.That(
+            layer.PassKeys[1],
+            Is.EqualTo(new ShaderKey("tint", 2f, new Vector4(1f, 0.5f, 0.25f, 1f), 4, EasePreset.Linear)));
 
         LevelDocument captured = LevelDocumentMapper.Capture(store, editor);
         AssertSame(captured.Layers.Single(), Glow());
@@ -120,7 +126,7 @@ public sealed class LevelLayerTableTests
     [Test]
     public void ABlankNameTakesTheEntryOut()
     {
-        LevelLayers table = LevelLayers.Create();
+        var table = LevelLayers.Create();
         table.SetName(2, "  FRONT ");
         Assert.That(table.NameOf(2), Is.EqualTo("FRONT"));
 
@@ -155,15 +161,18 @@ public sealed class LevelLayerTableTests
         Entity block = EditorItems.Create(store, new Block(new Vector2(10, 10), new Vector2(50, 50)));
         ItemLayer.Put(block, new ItemLayer(1, 0));
         editor.GetComponent<LevelLayers>().SetName(1, "ONE");
-        EditorLayers layers = EditorLayers.Create();
+        var layers = EditorLayers.Create();
         EditorSnapshot before = history.Capture();
 
-        EditorLayerEdits.Insert(store, ref layers, ref editor.GetComponent<LevelLayers>(), 0, front: true);
+        EditorLayerEdits.Insert(store, ref layers, ref editor.GetComponent<LevelLayers>(), 0, true);
         history.Record(before, history.Capture());
 
         Assert.That(block.GetComponent<ItemLayer>().Layer, Is.EqualTo(2));
         Assert.That(editor.GetComponent<LevelLayers>().NameOf(2), Is.EqualTo("ONE"));
         history.Undo();
-        Assert.That(editor.GetComponent<LevelLayers>().NameOf(1), Is.EqualTo("ONE"), "the name went back with its items");
+        Assert.That(
+            editor.GetComponent<LevelLayers>().NameOf(1),
+            Is.EqualTo("ONE"),
+            "the name went back with its items");
     }
 }

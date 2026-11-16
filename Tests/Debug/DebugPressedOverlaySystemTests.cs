@@ -3,13 +3,18 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Debug;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Layout;
+using Xanadu.Tests.Support.Fakes;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Debug;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Debug;
 
@@ -26,12 +31,12 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
         _toggle = new ScriptedToggle { Pressed = true };
         _paging = new ScriptedPaging();
         Root.Add(new ContainerLayoutSystem());
-        Root.Add(new DebugPressedOverlaySystem(_toggle, Store, Root, paging: _paging, visuals: new FakeVisualRidFactory()));
+        Root.Add(
+            new DebugPressedOverlaySystem(_toggle, Store, Root, paging: _paging, visuals: new FakeVisualRidFactory()));
     }
 
     private List<string> Texts() => Store.Query<Text>().ToEntityList()
-        .Select(entity => entity.GetComponent<Text>().Value)
-        .ToList();
+        .Select(entity => entity.GetComponent<Text>().Value).ToList();
 
     private ArchetypeQuery DebugEntities => Store.Query().WithDisabled().AllTags(Tags.Get<DebugUi>());
 
@@ -150,8 +155,7 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
     public void AColumnGrowsToFitItsWidestCellAndThePanelFollows()
     {
         Frame(3);
-        Entity panels = DebugEntities.Entities
-            .First(entity => entity.HasComponent<UiBorder>());
+        Entity panels = DebugEntities.Entities.First(entity => entity.HasComponent<UiBorder>());
         float before = panels.GetComponent<Rectangle>().Bounds.Size.X;
 
         // Enough rows that the # column needs more than one digit.
@@ -200,7 +204,7 @@ public sealed class DebugPressedOverlaySystemTests : EcsSystemTest
     [Test]
     public void ALongSignatureWrapsAcrossLinesRatherThanBeingCut()
     {
-        var lines = UiTextFit.Wrap(new string('x', 400), 16, 200);
+        List<string> lines = UiTextFit.Wrap(new string('x', 400), 16, 200);
 
         Assert.That(lines.Count, Is.GreaterThan(1));
         Assert.That(string.Join("", lines), Has.Length.EqualTo(400));

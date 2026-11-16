@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// What every tooltip system shares: which control is hovered, how wide its

@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Items;
-using Xanadu.Particles;
-using Xanadu.Theme;
+using Xanadu.Core;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Runs every particle editor panel: shows it while its host has a selection,

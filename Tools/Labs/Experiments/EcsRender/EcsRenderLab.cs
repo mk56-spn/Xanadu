@@ -3,12 +3,16 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
+using MoonWorks.Graphics;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
+using Xanadu.Labs.Experiments.EcsRender.Systems;
+using Xanadu.Labs.Experiments.EcsRender.Systems;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 using Mw = MoonWorks.Graphics;
+using Color = Xanadu.Core.Maths.Color;
 
 namespace Xanadu.Labs.Experiments.EcsRender;
 
@@ -72,7 +76,7 @@ internal sealed class EcsRenderLab : ILabExperiment
         private readonly EcsRenderLab _lab;
         private readonly LabContext _context;
         private readonly uint _width, _height;
-        private readonly Mw.Texture _target;
+        private readonly Texture _target;
         private readonly Handle _shown, _item;
         private readonly string[] _source;
         private readonly DrawList _list;
@@ -94,7 +98,7 @@ internal sealed class EcsRenderLab : ILabExperiment
             _height = (uint)area.Size.Y;
 
             // The lab host shows a stage through the canvas; the one canvas item here is that picture frame.
-            _target = Mw.Texture.Create2D(context.Device, "ecs render", _width, _height, Format,
+            _target = Texture.Create2D(context.Device, "ecs render", _width, _height, Format,
                 Mw.TextureUsageFlags.ColorTarget | Mw.TextureUsageFlags.Sampler);
             _shown = context.Show(_target);
             _item = CanvasServer.Current.CreateItem();

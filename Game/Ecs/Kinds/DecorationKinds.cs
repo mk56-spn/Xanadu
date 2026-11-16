@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Items;
 using Xanadu.Levels;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Playfields;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Kinds;
 
 /// <summary>Text: a label turned freely about its centre.</summary>
 public sealed class TextItemKind : ItemKind<LevelText, TextDocument>

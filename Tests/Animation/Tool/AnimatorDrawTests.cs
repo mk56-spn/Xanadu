@@ -4,13 +4,16 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Systems.Canvas;
-using Xanadu.Timeline;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -79,10 +82,11 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
     private void AddChain(string art)
     {
-        Package.Chains.Add(new XafChain
-        {
-            Id = "hair", BoneId = "head", Segments = 6, SvgPath = art, Group = art.Length > 0 ? "hair_segment" : "",
-        });
+        Package.Chains.Add(
+            new XafChain
+            {
+                Id = "hair", BoneId = "head", Segments = 6, SvgPath = art, Group = art.Length > 0 ? "hair_segment" : ""
+            });
         Frame(2);
     }
 
@@ -162,8 +166,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     {
         // Plates are sized by name length: "torso" has its own size, "root" and "head" share one.
         int Plates(string name) => _canvas.RectSizes.FindAll(size =>
-            size == AnimatorGeometry.BoneLabelBackdrop(
-                AnimatorGeometry.BoneLabel(Vector2.Zero), name).Size).Count;
+            size == AnimatorGeometry.BoneLabelBackdrop(AnimatorGeometry.BoneLabel(Vector2.Zero), name).Size).Count;
 
         Frame();
         Assert.That(Plates("torso"), Is.EqualTo(1));
@@ -295,16 +298,14 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         Frame();
 
         Entity caption = Session.GetComponent<AnimatorUi>().TimelineCaption;
-        Assert.That(
-            caption.GetComponent<Text>().Value,
-            Does.Contain("loop 0.25-1.5s"));
+        Assert.That(caption.GetComponent<Text>().Value, Does.Contain("loop 0.25-1.5s"));
     }
 
     [Test]
     public void AnExpandedTrackDrawsItsChannelRows()
     {
         ref AnimatorTracks tracks = ref Session.GetComponent<AnimatorTracks>();
-        tracks.Expanded ??= new System.Collections.Generic.HashSet<XafTrack>();
+        tracks.Expanded ??= new HashSet<XafTrack>();
         tracks.Expanded.Add(new XafTrack(XafChannelTarget.Bone, "head"));
         Frame();
 
@@ -394,7 +395,9 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         public void Reload(XafPackage package) => Reloads++;
 
-        public void Apply(Transform2D[] attachments, Transform2D placement) { }
+        public void Apply(Transform2D[] attachments, Transform2D placement)
+        {
+        }
 
         public void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement)
         {
@@ -440,19 +443,35 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
             PolygonColors.Add(color);
 
             // A key diamond: top, right, bottom, left about one centre.
-            if (points.Length == 4 && points[0].X == points[2].X && points[1].Y == points[3].Y && points[1].X > points[0].X)
+            if (points.Length == 4 && points[0].X == points[2].X && points[1].Y == points[3].Y &&
+                points[1].X > points[0].X)
                 Diamonds.Add(points[1].X - points[0].X);
         }
 
-        public void SetVisible(Handle canvas, bool visible) { }
-        public void SetTransform(Handle canvas, Transform2D transform) { }
-        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
+        public void SetVisible(Handle canvas, bool visible)
         {
-            RectSizes.Add(bounds.Size);
         }
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
+
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color) => RectSizes.Add(bounds.Size);
+
+        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+        {
+        }
+
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 }

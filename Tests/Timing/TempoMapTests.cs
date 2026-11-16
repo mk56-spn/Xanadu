@@ -1,9 +1,10 @@
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Timing;
 
@@ -19,7 +20,7 @@ public sealed class TempoMapTests
     [Test]
     public void OneTempoMatchesTheOldGrid()
     {
-        TempoMap map = TempoMap.Single(120, 250);
+        var map = TempoMap.Single(120, 250);
 
         Assert.That(map.BeatAt(250), Is.EqualTo(0));
         Assert.That(map.BeatAt(1_250), Is.EqualTo(2));
@@ -42,7 +43,7 @@ public sealed class TempoMapTests
     [Test]
     public void AChangeBetweenBeatsMovesToTheNextBeat()
     {
-        TempoMap map = TempoMap.From(new TempoPoint(0, 120), new[] { new TempoPoint(1_100, 90) });
+        var map = TempoMap.From(new TempoPoint(0, 120), new[] { new TempoPoint(1_100, 90) });
 
         Assert.That(map.Points[1].TimeMs, Is.EqualTo(1_500));
     }
@@ -54,7 +55,10 @@ public sealed class TempoMapTests
 
         double[] bars = map.Ticks(1_000, 9_000, 1).Where(tick => tick.OnBar).Select(tick => tick.TimeMs).ToArray();
 
-        Assert.That(bars, Is.EqualTo(new double[] { 1_000, 3_000, 5_000, 8_000 }), "4/4 bars, then 3-beat bars from the change");
+        Assert.That(
+            bars,
+            Is.EqualTo(new double[] { 1_000, 3_000, 5_000, 8_000 }),
+            "4/4 bars, then 3-beat bars from the change");
     }
 
     [Test]
@@ -63,7 +67,10 @@ public sealed class TempoMapTests
         var playhead = new Playhead(0, 120, 0, false, snapDivision: 1) { Tempo = TwoSections() };
 
         Assert.That(EditorTiming.Snap(6_400, playhead), Is.EqualTo(6_000));
-        Assert.That(EditorTiming.Step(4_500, playhead, 1), Is.EqualTo(5_000), "the last 120 BPM beat to the first 60 BPM one");
+        Assert.That(
+            EditorTiming.Step(4_500, playhead, 1),
+            Is.EqualTo(5_000),
+            "the last 120 BPM beat to the first 60 BPM one");
         Assert.That(EditorTiming.Step(5_000, playhead, 1), Is.EqualTo(6_000));
     }
 }

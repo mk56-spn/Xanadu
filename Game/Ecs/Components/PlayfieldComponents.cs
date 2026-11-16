@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 using Xanadu.Levels;
-using Xanadu.Theme;
 using Xanadu.Settings;
-using Xanadu.Timeline;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Level metadata for the editor and play scene.</summary>
 public struct LevelInfo(
@@ -66,12 +67,12 @@ public struct Playhead(
     int audioRevision = 0) : IComponent
 {
     public long TimeMs = timeMs;
-    private Xanadu.Timeline.TempoMap? _tempo = Xanadu.Timeline.TempoMap.Single(bpm, offsetMs);
+    private TempoMap? _tempo = TempoMap.Single(bpm, offsetMs);
 
     /// <summary>The song's tempo map: beat 0, BPM changes and bar lengths.</summary>
-    public Xanadu.Timeline.TempoMap Tempo
+    public TempoMap Tempo
     {
-        readonly get => _tempo ?? Xanadu.Timeline.TempoMap.Default;
+        readonly get => _tempo ?? TempoMap.Default;
         set => _tempo = value;
     }
 

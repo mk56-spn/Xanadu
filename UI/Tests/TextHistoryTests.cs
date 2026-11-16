@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Ui.Editing;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 /// <summary>An owner holding the history while it changes the text over many frames (dragging a point): one step.</summary>
 [TestFixture]

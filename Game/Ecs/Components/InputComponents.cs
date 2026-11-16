@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
-using Xanadu.Settings;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Settings button that cycles the window mode: windowed, fullscreen, borderless.</summary>
 public struct WindowModeButton : IComponent

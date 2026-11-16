@@ -1,5 +1,5 @@
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Themed variants: a control asks for a role and the theme in force gives the

@@ -10,25 +10,17 @@ public sealed class DisplaySettingsTests
     [Test]
     public void VSyncCanBeDisabledAndReloaded()
     {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            $"writer-display-{System.Guid.NewGuid():N}.json");
+        string path = Path.Combine(Path.GetTempPath(), $"writer-display-{System.Guid.NewGuid():N}.json");
 
         try
         {
-            var settings = new DisplaySettings(
-                path,
-                persist: true,
-                apply: false);
+            var settings = new DisplaySettings(path, true, false);
             Assert.That(settings.VSyncEnabled, Is.True);
 
             settings.SetVSync(false);
             Assert.That(settings.VSyncEnabled, Is.False);
 
-            var reloaded = new DisplaySettings(
-                path,
-                persist: true,
-                apply: false);
+            var reloaded = new DisplaySettings(path, true, false);
             Assert.That(reloaded.VSyncEnabled, Is.False);
         }
         finally

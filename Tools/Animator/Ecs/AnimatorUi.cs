@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Tools.Animator;
+namespace Xanadu.Tools.Animator.Ecs;
 
 /// <summary>UI entities the animator systems read or write.</summary>
 public struct AnimatorUi : IComponent

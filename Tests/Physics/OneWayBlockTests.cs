@@ -1,6 +1,7 @@
 using Box2DSharp.Dynamics;
 using NUnit.Framework;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Tests.Physics;

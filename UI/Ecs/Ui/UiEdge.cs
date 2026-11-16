@@ -1,5 +1,5 @@
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// Where a floating group hugs its parent. <c>Left</c> and <c>Right</c> make a

@@ -1,8 +1,11 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -55,11 +58,9 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         MoveTo(PreviewOrigin() + new Vector2(200, 0));
 
         Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
-        Assert.That(world[1].Origin,
-            Is.EqualTo(new Vector2(80, 0)).Using<Vector2>(Close));
+        Assert.That(world[1].Origin, Is.EqualTo(new Vector2(80, 0)).Using<Vector2>(Close));
         Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
-        Assert.That(Runtime.Pose.Bones[1].Translation,
-            Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -99,8 +100,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         MoveTo(start + new Vector2(10, 5));
 
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Bone));
-        Assert.That(Runtime.Pose.Bones[0].Translation,
-            Is.EqualTo(new Vector2(10, 5)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[0].Translation, Is.EqualTo(new Vector2(10, 5)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -124,8 +124,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Assert.That(Package.Skeleton.Bones[2].AllowTranslation, Is.True);
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(2));
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Bone));
-        Assert.That(Runtime.Pose.Bones[2].Translation,
-            Is.EqualTo(new Vector2(20, -73)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[2].Translation, Is.EqualTo(new Vector2(20, -73)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -137,8 +136,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         MoveTo(start + new Vector2(10, 5));
 
-        Assert.That(Runtime.Pose.Bones[0].Translation,
-            Is.EqualTo(new Vector2(10, 5)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[0].Translation, Is.EqualTo(new Vector2(10, 5)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -153,8 +151,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         MoveTo(start + new Vector2(10, 5));
 
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(1));
-        Assert.That(Runtime.Pose.Bones[1].Translation,
-            Is.EqualTo(new Vector2(10, -75)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(10, -75)).Using<Vector2>(Close));
         Release();
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.None));
     }
@@ -171,8 +168,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         MoveTo(start + new Vector2(10, 0));
 
-        Assert.That(Runtime.Pose.Bones[1].Translation,
-            Is.EqualTo(new Vector2(0, -90)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -90)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -184,10 +180,8 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         MoveTo(start + new Vector2(0, 20));
 
-        Assert.That(Package.Skeleton.Bones[1].Rest.Origin,
-            Is.EqualTo(new Vector2(0, -60)).Using<Vector2>(Close));
-        Assert.That(Runtime.Pose.Bones[1].Translation,
-            Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
+        Assert.That(Package.Skeleton.Bones[1].Rest.Origin, Is.EqualTo(new Vector2(0, -60)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -200,13 +194,12 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Release();
 
         XafChannel? rotation = Idle.Channels.Find(channel =>
-            channel.TargetId == "root" &&
-            channel.Property == XafChannelProperty.Rotation);
+            channel.TargetId == "root" && channel.Property == XafChannelProperty.Rotation);
         Assert.That(rotation, Is.Not.Null);
         Assert.That(rotation!.Keyframes[0].Value, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
-        Assert.That(Idle.Channels.Exists(channel =>
-            channel.TargetId == "torso" &&
-            XafSampler.IsTranslation(channel.Property)), Is.False);
+        Assert.That(
+            Idle.Channels.Exists(channel => channel.TargetId == "torso" && XafSampler.IsTranslation(channel.Property)),
+            Is.False);
     }
 
     [Test]
@@ -222,8 +215,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Release();
 
         XafChannel? x = Idle.Channels.Find(channel =>
-            channel.TargetId == "torso" &&
-            channel.Property == XafChannelProperty.TranslationX);
+            channel.TargetId == "torso" && channel.Property == XafChannelProperty.TranslationX);
         Assert.That(x, Is.Not.Null);
         Assert.That(x!.Keyframes[0].Value, Is.EqualTo(10f).Within(0.001f));
     }
@@ -248,15 +240,13 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         Session.GetComponent<AnimatorModes>().Svg = true;
         XafPose pose = document.Runtime.Pose;
         Transform2D[] bones = XafRig.WorldBones(Package, pose);
-        Vector2 marker = PreviewOrigin() +
-                         XafRig.WorldAttachments(Package, pose, bones)[0].Origin;
+        Vector2 marker = PreviewOrigin() + XafRig.WorldAttachments(Package, pose, bones)[0].Origin;
         PressAt(marker);
 
         MoveTo(marker + new Vector2(0, 8));
 
         Assert.That(Session.GetComponent<AnimatorSelection>().Attachment, Is.EqualTo(0));
-        Assert.That(Runtime.Pose.Attachments[0].Translation,
-            Is.EqualTo(new Vector2(0, -12)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Attachments[0].Translation, Is.EqualTo(new Vector2(0, -12)).Using<Vector2>(Close));
     }
 
     [Test]

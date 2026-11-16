@@ -1,8 +1,10 @@
 using NUnit.Framework;
 using Xanadu.Animation;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
 namespace Xanadu.Tests.Animation.Tool;
@@ -34,12 +36,14 @@ public sealed class AnimatorAttackCycleTests : AnimatorToolTest
 
     private AnimatorAttackCycle Cycle => Session.GetComponent<AnimatorAttackCycle>();
 
-    private string Layer => Runtime.Additives.Count == 1 ? Runtime.Additives[0].Clip.Id : $"{Runtime.Additives.Count} layers";
+    private string Layer =>
+        Runtime.Additives.Count == 1 ? Runtime.Additives[0].Clip.Id : $"{Runtime.Additives.Count} layers";
 
     [Test]
     public void TheOrderHasTheAttacksTheRigHasHighToLowGroundThenAir()
     {
-        Assert.That(AnimatorAttackCycleCommands.Order(Package),
+        Assert.That(
+            AnimatorAttackCycleCommands.Order(Package),
             Is.EqualTo(new[] { ContactClip.AttackMid, ContactClip.AttackAirHigh }));
         Assert.That(AnimatorAttackCycleCommands.Base(Package, ContactClip.AttackMid), Is.EqualTo("idle"));
 
@@ -163,8 +167,5 @@ public sealed class AnimatorAttackCycleTests : AnimatorToolTest
     }
 
     [Test]
-    public void ThePreviewBarHasTheToggle()
-    {
-        Assert.That(Button(ToolActionKind.CycleAttacks).IsNull, Is.False);
-    }
+    public void ThePreviewBarHasTheToggle() => Assert.That(Button(ToolActionKind.CycleAttacks).IsNull, Is.False);
 }

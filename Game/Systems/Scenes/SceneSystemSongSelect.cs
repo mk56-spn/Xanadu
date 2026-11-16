@@ -1,8 +1,10 @@
 using Friflo.Engine.ECS.Systems;
 using System;
+using Xanadu.Core.Diagnostics;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
-using SceneState = Xanadu.Ecs.SceneState;
+using SceneState = Xanadu.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 
@@ -23,7 +25,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
         catch (Exception exception)
         {
-            Xanadu.Diagnostics.GameLog.Error($"Failed to load level '{path}': {exception.Message}");
+            GameLog.Error($"Failed to load level '{path}': {exception.Message}");
             return null;
         }
     }

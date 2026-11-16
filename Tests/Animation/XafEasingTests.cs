@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Animation;
-using Xanadu.Timeline;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Animation;
 
@@ -95,7 +95,7 @@ public sealed class XafEasingTests
     [Test]
     public void ApplyingToAKeySetCoversEveryChannelAtThatTime()
     {
-        var package = XafRigAuthoring.CreateEmptyPackage();
+        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafClip clip = package.Clips[0];
         XafAuthoring.KeyBoneTransform(package, clip, 0, 0f, XafTransform.Identity);
         XafAuthoring.KeyBoneTransform(package, clip, 0, 1f, XafTransform.Identity);
@@ -131,7 +131,7 @@ public sealed class XafEasingTests
     [Test]
     public void PresetsSurviveASaveAndLoad()
     {
-        var package = XafRigAuthoring.CreateEmptyPackage();
+        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafClip clip = package.Clips[0];
         XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 0f, 0f);
         XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1f, 4f);
@@ -139,7 +139,6 @@ public sealed class XafEasingTests
 
         XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
 
-        Assert.That(XafEasing.Read(loaded.Clips[0], XafChannelTarget.Bone, "root", 0f),
-            Is.EqualTo(EasePreset.EaseOut));
+        Assert.That(XafEasing.Read(loaded.Clips[0], XafChannelTarget.Bone, "root", 0f), Is.EqualTo(EasePreset.EaseOut));
     }
 }

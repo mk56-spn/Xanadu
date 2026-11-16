@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Xanadu.Animation;
 
@@ -11,18 +12,23 @@ public sealed class XafTracksTests
         XafPackage package = XafRigAuthoring.CreateEmptyPackage();
         XafRigAuthoring.AddBone(package, 0, "arm", new Vector2(10, 0));
         XafRigAuthoring.AddBone(package, 0, "leg", new Vector2(-10, 0));
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "a.svg",
-            Group = "sword",
-            BoneId = "arm",
-        });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "a.svg",
+                Group = "sword",
+                BoneId = "arm"
+            });
         return package;
     }
 
     private static void Key(XafPackage package, XafClip clip, string bone, float time) =>
-        XafAuthoring.KeyBoneTransform(package, clip, package.Skeleton.Bones.FindIndex(b => b.Id == bone),
-            time, XafTransform.Identity);
+        XafAuthoring.KeyBoneTransform(
+            package,
+            clip,
+            package.Skeleton.Bones.FindIndex(b => b.Id == bone),
+            time,
+            XafTransform.Identity);
 
     [Test]
     public void TracksListAnimatedBonesInSkeletonOrderThenAttachments()
@@ -33,14 +39,17 @@ public sealed class XafTracksTests
         Key(package, clip, "arm", 0.25f);
         XafAuthoring.KeyAttachmentTransform(package, clip, 0, 0.5f, XafTransform.Identity);
 
-        var tracks = XafTracks.Of(package, clip);
+        List<XafTrack> tracks = XafTracks.Of(package, clip);
 
-        Assert.That(tracks, Is.EqualTo(new[]
-        {
-            new XafTrack(XafChannelTarget.Bone, "arm"),
-            new XafTrack(XafChannelTarget.Bone, "leg"),
-            new XafTrack(XafChannelTarget.Attachment, "sword"),
-        }));
+        Assert.That(
+            tracks,
+            Is.EqualTo(
+                new[]
+                {
+                    new XafTrack(XafChannelTarget.Bone, "arm"),
+                    new XafTrack(XafChannelTarget.Bone, "leg"),
+                    new XafTrack(XafChannelTarget.Attachment, "sword")
+                }));
     }
 
     [Test]
@@ -52,7 +61,7 @@ public sealed class XafTracksTests
 
         Assert.That(XafTracks.Of(package, clip), Has.Count.EqualTo(1));
 
-        var withLeg = XafTracks.Of(package, clip, new XafTrack(XafChannelTarget.Bone, "leg"));
+        List<XafTrack> withLeg = XafTracks.Of(package, clip, new XafTrack(XafChannelTarget.Bone, "leg"));
         Assert.That(withLeg.ConvertAll(track => track.Id), Is.EqualTo(new[] { "arm", "leg" }));
     }
 
@@ -61,8 +70,7 @@ public sealed class XafTracksTests
     {
         XafPackage package = Rig();
         XafClip clip = package.Clips[0];
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "ghost",
-            XafChannelProperty.Rotation, 0.5f, 1f);
+        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "ghost", XafChannelProperty.Rotation, 0.5f, 1f);
 
         Assert.That(XafTracks.Of(package, clip), Is.Empty);
     }
@@ -74,10 +82,9 @@ public sealed class XafTracksTests
         XafClip clip = package.Clips[0];
         Key(package, clip, "arm", 1f);
         Key(package, clip, "arm", 0.25f);
-        XafAuthoring.SetBoneProperty(package, clip, "arm",
-            XafChannelProperty.Rotation, 0.5f, 3f);
+        XafAuthoring.SetBoneProperty(package, clip, "arm", XafChannelProperty.Rotation, 0.5f, 3f);
 
-        var times = XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm"));
+        List<float> times = XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm"));
 
         Assert.That(times, Is.EqualTo(new[] { 0.25f, 0.5f, 1f }));
     }
@@ -93,7 +100,8 @@ public sealed class XafTracksTests
         bool moved = XafAuthoring.MoveKeysAt(clip, XafChannelTarget.Bone, "arm", 0.5f, 0.75f);
 
         Assert.That(moved, Is.True);
-        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")),
+        Assert.That(
+            XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")),
             Is.EqualTo(new[] { 0.75f, 1f }));
         foreach (XafChannel channel in clip.Channels)
             Assert.That(channel.Keyframes, Has.Count.EqualTo(2));
@@ -105,8 +113,7 @@ public sealed class XafTracksTests
         XafPackage package = Rig();
         XafClip clip = package.Clips[0];
         Key(package, clip, "arm", 0.5f);
-        XafAuthoring.SetBoneProperty(package, clip, "arm",
-            XafChannelProperty.Rotation, 1f, 9f);
+        XafAuthoring.SetBoneProperty(package, clip, "arm", XafChannelProperty.Rotation, 1f, 9f);
 
         XafAuthoring.MoveKeysAt(clip, XafChannelTarget.Bone, "arm", 0.5f, 1f);
 
@@ -125,10 +132,10 @@ public sealed class XafTracksTests
 
         XafAuthoring.MoveKeysAt(clip, XafChannelTarget.Bone, "arm", 0.5f, 99f);
 
-        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")),
+        Assert.That(
+            XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")),
             Is.EqualTo(new[] { clip.Duration }));
-        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "leg")),
-            Is.EqualTo(new[] { 0.5f }));
+        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "leg")), Is.EqualTo(new[] { 0.5f }));
     }
 
     [Test]
@@ -151,8 +158,7 @@ public sealed class XafTracksTests
         Key(package, clip, "arm", 1f);
 
         Assert.That(XafAuthoring.RemoveKeysAt(clip, XafChannelTarget.Bone, "arm", 0.5f), Is.True);
-        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")),
-            Is.EqualTo(new[] { 1f }));
+        Assert.That(XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "arm")), Is.EqualTo(new[] { 1f }));
 
         XafAuthoring.RemoveKeysAt(clip, XafChannelTarget.Bone, "arm", 1f);
         Assert.That(clip.Channels, Is.Empty);

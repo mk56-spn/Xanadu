@@ -1,7 +1,8 @@
 using NUnit.Framework;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class RetainedCanvasDrawTests

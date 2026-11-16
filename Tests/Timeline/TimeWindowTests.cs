@@ -1,5 +1,6 @@
 using NUnit.Framework;
-using Xanadu.Timeline;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Timeline;
 
@@ -11,7 +12,7 @@ public sealed class TimeWindowTests
     [Test]
     public void ZoomOneShowsTheWholeTimeline()
     {
-        TimeWindow window = TimeWindow.Following(5_000, 10_000, 1f);
+        var window = TimeWindow.Following(5_000, 10_000, 1f);
 
         Assert.That(window, Is.EqualTo(new TimeWindow(0, 10_000)));
     }
@@ -19,12 +20,9 @@ public sealed class TimeWindowTests
     [Test]
     public void ZoomedWindowFollowsThePlayheadAndStaysInsideTheTimeline()
     {
-        Assert.That(TimeWindow.Following(5_000, 10_000, 4f),
-            Is.EqualTo(new TimeWindow(3_750, 6_250)));
-        Assert.That(TimeWindow.Following(0, 10_000, 4f),
-            Is.EqualTo(new TimeWindow(0, 2_500)));
-        Assert.That(TimeWindow.Following(10_000, 10_000, 4f),
-            Is.EqualTo(new TimeWindow(7_500, 10_000)));
+        Assert.That(TimeWindow.Following(5_000, 10_000, 4f), Is.EqualTo(new TimeWindow(3_750, 6_250)));
+        Assert.That(TimeWindow.Following(0, 10_000, 4f), Is.EqualTo(new TimeWindow(0, 2_500)));
+        Assert.That(TimeWindow.Following(10_000, 10_000, 4f), Is.EqualTo(new TimeWindow(7_500, 10_000)));
     }
 
     [Test]
@@ -45,7 +43,7 @@ public sealed class TimeWindowTests
     [Test]
     public void AnEmptyTimelineDoesNotDivideByZero()
     {
-        TimeWindow window = TimeWindow.Following(0, 0, 8f);
+        var window = TimeWindow.Following(0, 0, 8f);
 
         Assert.That(window.Span, Is.GreaterThan(0));
         Assert.That(float.IsFinite(window.XForTime(Area, 0)), Is.True);

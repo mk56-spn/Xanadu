@@ -1,11 +1,13 @@
 using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -16,8 +18,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     public void TouchingASpikeKillsThePlayer()
     {
         Entity playfield = CreatePlayfield(new Vector2(450, 450));
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -29,8 +30,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     public void TouchingASpikeShattersThePlayerIntoParticles()
     {
         Entity playfield = CreatePlayfield(new Vector2(450, 450));
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -48,8 +48,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     public void StandingClearOfASpikeIsSafe()
     {
         Entity playfield = CreatePlayfield(new Vector2(450, 450));
-        Store.CreateEntity(
-            new Spike(new Vector2(600, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(600, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -63,8 +62,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     {
         Entity playfield = CreatePlayfield(new Vector2(x, y));
         playfield.GetComponent<Player>().Size = new Vector2(10, 20);
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -79,8 +77,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
         // bottom corners are safe.
         Entity safe = CreatePlayfield(new Vector2(415, 485));
         safe.GetComponent<Player>().Size = new Vector2(10, 10);
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100), 180f));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100), 180f));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -96,8 +93,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     {
         Entity playfield = CreatePlayfield(new Vector2(450, 450));
         playfield.GetComponent<PlaySession>().Started = false;
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();
@@ -110,8 +106,7 @@ public sealed class SpikeContactSystemTests : EcsSystemTest
     {
         Entity playfield = CreatePlayfield(new Vector2(450, 450));
         playfield.AddTag<PlayPaused>();
-        Store.CreateEntity(
-            new Spike(new Vector2(400, 400), new Vector2(100, 100)));
+        Store.CreateEntity(new Spike(new Vector2(400, 400), new Vector2(100, 100)));
         Root.Add(new SpikeContactSystem(Store));
 
         Frame();

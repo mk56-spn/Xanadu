@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Ui.Editing;
+using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A multi-line text editor: the text, its undo, where it draws, and what its

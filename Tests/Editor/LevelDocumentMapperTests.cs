@@ -1,6 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Settings;
 using Xanadu.Tests.Support;
@@ -19,28 +21,20 @@ public sealed class LevelDocumentMapperTests
             new Playfield(1000, 1000),
             new Playhead(0, 150, 25, false, snapDivision: 16),
             new NoteSelection(default));
-        sourceStore.CreateEntity(new Note(
-            500,
-            new Vector2(100, 200),
-            target: KeybindAction.Action1));
-        sourceStore.CreateEntity(new Note(
-            1_000,
-            new Vector2(300, 400),
-            target: KeybindAction.Action3,
-            kind: NoteKind.Dash,
-            dashStrength: DashStrength.Triple,
-            diagonal: true));
+        sourceStore.CreateEntity(new Note(500, new Vector2(100, 200), KeybindAction.Action1));
+        sourceStore.CreateEntity(
+            new Note(
+                1_000,
+                new Vector2(300, 400),
+                KeybindAction.Action3,
+                NoteKind.Dash,
+                DashStrength.Triple,
+                diagonal: true));
         sourceStore.CreateEntity(new Mine(900, new Vector2(450, 550)));
-        sourceStore.CreateEntity(new StartPoint(
-            "Chorus",
-            750,
-            new Vector2(300, 400),
-            new System.Numerics.Vector2(2, -3),
-            new Vector2(1, 0)));
         sourceStore.CreateEntity(
-            new Block(new Vector2(120, 340), new Vector2(200, 100)));
-        sourceStore.CreateEntity(
-            new Spike(new Vector2(400, 800), new Vector2(100, 100)));
+            new StartPoint("Chorus", 750, new Vector2(300, 400), new Vector2(2, -3), new Vector2(1, 0)));
+        sourceStore.CreateEntity(new Block(new Vector2(120, 340), new Vector2(200, 100)));
+        sourceStore.CreateEntity(new Spike(new Vector2(400, 800), new Vector2(100, 100)));
         source.GetComponent<LevelInfo>().Background = new Color("#204060");
         source.GetComponent<LevelInfo>().Outside = new Color("#102030");
         source.GetComponent<LevelInfo>().Frame = new Color("#405060");
@@ -83,25 +77,17 @@ public sealed class LevelDocumentMapperTests
             new NoteSelection(default));
         targetStore.CreateEntity(new Note(9_999, Vector2.Zero));
         targetStore.CreateEntity(new Mine(9_999, Vector2.Zero));
-        targetStore.CreateEntity(
-            new Block(new Vector2(9, 9), new Vector2(10, 10)));
-        targetStore.CreateEntity(
-            new Spike(new Vector2(9, 9), new Vector2(10, 10)));
+        targetStore.CreateEntity(new Block(new Vector2(9, 9), new Vector2(10, 10)));
+        targetStore.CreateEntity(new Spike(new Vector2(9, 9), new Vector2(10, 10)));
 
         LevelDocumentMapper.Apply(targetStore, target, document);
 
         Assert.That(target.GetComponent<LevelInfo>().Name, Is.EqualTo("Mapped"));
         Assert.That(target.GetComponent<LevelInfo>().Artist, Is.Empty);
         Assert.That(target.GetComponent<LevelInfo>().Difficulty, Is.EqualTo("Mapped"));
-        Assert.That(
-            target.GetComponent<LevelInfo>().Background,
-            Is.EqualTo(new Color("#204060")));
-        Assert.That(
-            target.GetComponent<LevelInfo>().Outside,
-            Is.EqualTo(new Color("#102030")));
-        Assert.That(
-            target.GetComponent<LevelInfo>().Frame,
-            Is.EqualTo(new Color("#405060")));
+        Assert.That(target.GetComponent<LevelInfo>().Background, Is.EqualTo(new Color("#204060")));
+        Assert.That(target.GetComponent<LevelInfo>().Outside, Is.EqualTo(new Color("#102030")));
+        Assert.That(target.GetComponent<LevelInfo>().Frame, Is.EqualTo(new Color("#405060")));
         Assert.That(target.GetComponent<Playfield>().Width, Is.EqualTo(1000));
         Assert.That(target.GetComponent<Playhead>().Tempo.Points[0].Bpm, Is.EqualTo(120));
         Assert.That(target.GetComponent<Playhead>().SnapDivision, Is.EqualTo(16));
@@ -116,15 +102,10 @@ public sealed class LevelDocumentMapperTests
         Assert.That(targetStore.Query<Mine>().Count, Is.EqualTo(1));
         Assert.That(targetStore.Query<StartPoint>().Count, Is.EqualTo(1));
         Assert.That(
-            targetStore.Query<StartPoint>().ToEntityList()[0]
-                .GetComponent<StartPoint>().Momentum.Y,
+            targetStore.Query<StartPoint>().ToEntityList()[0].GetComponent<StartPoint>().Momentum.Y,
             Is.EqualTo(-3));
-        Assert.That(
-            targetStore.Query<Mine>().ToEntityList()[0].GetComponent<Mine>().TimeMs,
-            Is.EqualTo(900));
-        Assert.That(
-            targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Kind,
-            Is.EqualTo(NoteKind.Dash));
+        Assert.That(targetStore.Query<Mine>().ToEntityList()[0].GetComponent<Mine>().TimeMs, Is.EqualTo(900));
+        Assert.That(targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().Kind, Is.EqualTo(NoteKind.Dash));
         Assert.That(
             targetStore.Query<Note>().ToEntityList()[1].GetComponent<Note>().DashStrength,
             Is.EqualTo(DashStrength.Triple));
@@ -164,21 +145,11 @@ public sealed class LevelDocumentMapperTests
             new Playfield(1000, 1000),
             new Playhead(0, 150, 0, false),
             new NoteSelection(default));
-        sourceStore.CreateEntity(new Note(
-            500,
-            new Vector2(100, 200),
-            kind: NoteKind.Neutral));
-        sourceStore.CreateEntity(new Note(
-            900,
-            new Vector2(300, 400),
-            kind: NoteKind.Momentum,
-            momentum: 900f,
-            diagonal: true));
-        sourceStore.CreateEntity(new Note(
-            1_200,
-            new Vector2(500, 600),
-            kind: NoteKind.Contact,
-            costs: new BarCosts(2, 0, 1)));
+        sourceStore.CreateEntity(new Note(500, new Vector2(100, 200), kind: NoteKind.Neutral));
+        sourceStore.CreateEntity(
+            new Note(900, new Vector2(300, 400), kind: NoteKind.Momentum, momentum: 900f, diagonal: true));
+        sourceStore.CreateEntity(
+            new Note(1_200, new Vector2(500, 600), kind: NoteKind.Contact, costs: new BarCosts(2, 0, 1)));
 
         LevelDocument document = LevelDocumentMapper.Capture(sourceStore, source);
 
@@ -203,15 +174,12 @@ public sealed class LevelDocumentMapperTests
     public void EditorItemsFactoryTagsEveryItemType()
     {
         var store = new EntityStore();
-        Entity note = EditorItems.Create(store, new Note(
-            0, new Vector2(10, 20)));
-        Entity mine = EditorItems.Create(store, new Mine(
-            100, new Vector2(30, 40)));
-        Entity start = EditorItems.Create(store, new StartPoint(
-            "Start", 200, new Vector2(50, 60),
-            System.Numerics.Vector2.Zero, new Vector2(0, -1)));
-        Entity block = EditorItems.Create(store,
-            new Block(new Vector2(70, 80), new Vector2(200, 100)));
+        Entity note = EditorItems.Create(store, new Note(0, new Vector2(10, 20)));
+        Entity mine = EditorItems.Create(store, new Mine(100, new Vector2(30, 40)));
+        Entity start = EditorItems.Create(
+            store,
+            new StartPoint("Start", 200, new Vector2(50, 60), Vector2.Zero, new Vector2(0, -1)));
+        Entity block = EditorItems.Create(store, new Block(new Vector2(70, 80), new Vector2(200, 100)));
 
         Assert.That(note.Tags.Has<EditorItem>(), Is.True);
         Assert.That(mine.Tags.Has<EditorItem>(), Is.True);

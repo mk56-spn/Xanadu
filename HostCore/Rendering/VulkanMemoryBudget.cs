@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using Xanadu.Systems.Debug;
+using Xanadu.Ui.Systems.Debug;
 
 namespace Xanadu.Host.Rendering;
 

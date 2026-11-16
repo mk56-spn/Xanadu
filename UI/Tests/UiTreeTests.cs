@@ -1,14 +1,17 @@
+using Xanadu.Tests.Support.Fakes;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Systems.Layout;
-using Xanadu.Systems.Ui;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Ui.Systems.Layout;
+using Xanadu.Ui.Systems.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Tests.UI;
+namespace Xanadu.Ui.Tests;
 
 [TestFixture]
 public sealed class UiTreeTests : EcsSystemTest

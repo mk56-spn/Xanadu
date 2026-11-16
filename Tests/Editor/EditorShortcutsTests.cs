@@ -2,11 +2,15 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Settings;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Scenes;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -28,7 +32,7 @@ public sealed class EditorShortcutsTests
     [Test]
     public void ADialogStopsEveryShortcutButTheOnesThatCloseIt()
     {
-        EditorShortcutScope dialog = Scopes(dialog: true);
+        EditorShortcutScope dialog = Scopes(true);
 
         Assert.That(Action(new KeyChord(DebugKeys.Preview), dialog), Is.Null);
         Assert.That(Action(new KeyChord(Key.Delete), dialog), Is.Null);
@@ -41,15 +45,15 @@ public sealed class EditorShortcutsTests
     {
         EditorShortcutScope typing = Scopes(typing: true);
 
-        Assert.That(Action(new KeyChord(Key.S, Ctrl: true), typing), Is.EqualTo(EditorShortcut.Save));
+        Assert.That(Action(new KeyChord(Key.S, true), typing), Is.EqualTo(EditorShortcut.Save));
         Assert.That(Action(new KeyChord(Key.Delete), typing), Is.Null);
-        Assert.That(Action(new KeyChord(Key.C, Ctrl: true), typing), Is.Null);
+        Assert.That(Action(new KeyChord(Key.C, true), typing), Is.Null);
     }
 
     [Test]
     public void ChordsMatchTheirModifiersExactly()
     {
-        Assert.That(Action(new KeyChord(Key.S, Ctrl: true, Shift: true), Scopes()), Is.Null);
+        Assert.That(Action(new KeyChord(Key.S, true, true), Scopes()), Is.Null);
         Assert.That(Action(new KeyChord(Key.Left), Scopes()), Is.EqualTo(EditorShortcut.MoveLeft));
         Assert.That(Action(new KeyChord(Key.Left, Shift: true), Scopes()), Is.EqualTo(EditorShortcut.Timeline));
     }
@@ -81,7 +85,7 @@ public sealed class EditorShortcutsTests
         EditorShortcutScope warning = Scopes(warning: true);
 
         Assert.That(Action(new KeyChord(Key.Escape), warning), Is.Null);
-        Assert.That(Action(new KeyChord(Key.Z, Ctrl: true), warning), Is.EqualTo(EditorShortcut.Undo));
+        Assert.That(Action(new KeyChord(Key.Z, true), warning), Is.EqualTo(EditorShortcut.Undo));
     }
 
     [Test]
@@ -98,7 +102,8 @@ public sealed class EditorShortcutsTests
     [Test]
     public void EveryTimelineKeyIsLiveOnTheField()
     {
-        foreach ((KeyChord chord, Xanadu.Systems.Timeline.TimelineCommand command) in Xanadu.Systems.Timeline.TimelineShortcuts.All)
+        foreach ((KeyChord chord, TimelineCommand command) in TimelineShortcuts
+                     .All)
         {
             EditorShortcuts.Binding? binding = EditorShortcuts.Find(chord, Scopes());
             Assert.That(binding?.Action, Is.EqualTo(EditorShortcut.Timeline), chord.ToString());
@@ -110,7 +115,7 @@ public sealed class EditorShortcutsTests
     public void FitAndRedoMatchTheAnimator()
     {
         Assert.That(Action(new KeyChord(Key.F), Scopes()), Is.EqualTo(EditorShortcut.FitView));
-        Assert.That(Action(new KeyChord(Key.Z, Ctrl: true, Shift: true), Scopes()), Is.EqualTo(EditorShortcut.Redo));
+        Assert.That(Action(new KeyChord(Key.Z, true, true), Scopes()), Is.EqualTo(EditorShortcut.Redo));
     }
 
     private sealed class FakeTarget : IEditorShortcutTarget
@@ -130,17 +135,18 @@ public sealed class EditorShortcutsTests
         var keybinds = new KeybindSettings(persist: false);
         var keys = new KeyPressQueue();
         var root = new SystemRoot(store);
-        root.Add(new AppShortcutSystem(
-            keys,
-            keybinds,
-            new SceneSystem(store, new SceneDirector(), new Vector2(1920, 1080), keybinds: keybinds)));
+        root.Add(
+            new AppShortcutSystem(
+                keys,
+                keybinds,
+                new SceneSystem(store, new SceneDirector(), new Vector2(1920, 1080), keybinds: keybinds)));
         return (root, keys, store, keybinds);
     }
 
     [Test]
     public void EveryTapBetweenFramesReachesTheOpenEditor()
     {
-        var (root, keys, store, _) = App();
+        (SystemRoot root, KeyPressQueue keys, EntityStore store, _) = App();
         var target = new FakeTarget();
         store.CreateEntity(new EditorShortcutHost(target));
 
@@ -155,7 +161,7 @@ public sealed class EditorShortcutsTests
     [Test]
     public void AClosedEditorGetsNoKeys()
     {
-        var (root, keys, store, _) = App();
+        (SystemRoot root, KeyPressQueue keys, EntityStore store, _) = App();
         var target = new FakeTarget { IsOpen = false };
         store.CreateEntity(new EditorShortcutHost(target));
 
@@ -168,7 +174,7 @@ public sealed class EditorShortcutsTests
     [Test]
     public void AKeyBeingCapturedIsNotAlsoAShortcut()
     {
-        var (root, keys, store, keybinds) = App();
+        (SystemRoot root, KeyPressQueue keys, EntityStore store, KeybindSettings keybinds) = App();
         var target = new FakeTarget();
         store.CreateEntity(new EditorShortcutHost(target));
         keybinds.BeginCapture(KeybindAction.Action1);

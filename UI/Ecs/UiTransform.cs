@@ -1,7 +1,9 @@
 using Friflo.Engine.ECS;
-using Position = Xanadu.Ecs.Position;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs;
 
 public static class UiTransform
 {

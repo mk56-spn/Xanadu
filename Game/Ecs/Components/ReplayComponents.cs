@@ -3,7 +3,7 @@ using Friflo.Engine.ECS;
 using Xanadu.Replays;
 using Xanadu.Settings;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>Records the player's key presses on a play entity.</summary>
 public struct ReplayRecorder : IComponent

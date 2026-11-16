@@ -2,10 +2,13 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
+using Xanadu.Core;
 using Xanadu.Ecs;
+using Xanadu.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.Playfields;
@@ -23,9 +26,7 @@ public sealed class PlaySessionSystemTests
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
         Entity countdown = store.CreateEntity(new Text(""));
-        Entity play = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new PlaySession(status, countdown, lastNoteMs: 4_000));
+        Entity play = store.CreateEntity(new Playhead(0, 120, 0, false), new PlaySession(status, countdown, 4_000));
 
         ref Playhead playhead = ref play.GetComponent<Playhead>();
         playhead.DurationMs = 5_000;
@@ -61,9 +62,7 @@ public sealed class PlaySessionSystemTests
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
         Entity countdown = store.CreateEntity(new Text(""));
-        Entity play = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new PlaySession(status, countdown, lastNoteMs: 1_000));
+        Entity play = store.CreateEntity(new Playhead(0, 120, 0, false), new PlaySession(status, countdown, 1_000));
 
         ref Playhead playhead = ref play.GetComponent<Playhead>();
         playhead.DurationMs = 5_000;
@@ -101,9 +100,7 @@ public sealed class PlaySessionSystemTests
 
         Entity status = store.CreateEntity(new Text("LOADING..."));
         Entity countdown = store.CreateEntity(new Text(""));
-        Entity play = store.CreateEntity(
-            new Playhead(0, 120, 0, false),
-            new PlaySession(status, countdown, lastNoteMs: 4_000));
+        Entity play = store.CreateEntity(new Playhead(0, 120, 0, false), new PlaySession(status, countdown, 4_000));
 
         ref Playhead playhead = ref play.GetComponent<Playhead>();
         playhead.DurationMs = 5_000;
@@ -152,9 +149,7 @@ public sealed class PlaySessionSystemTests
         root.Add(new PlaySessionSystem(audio));
 
         Entity status = store.CreateEntity(new Text("PLAYING"));
-        Entity play = store.CreateEntity(
-            new Playhead(0, 120, 0, true),
-            new PlaySession(status, lastNoteMs: 4_000));
+        Entity play = store.CreateEntity(new Playhead(0, 120, 0, true), new PlaySession(status, lastNoteMs: 4_000));
 
         ref Playhead playhead = ref play.GetComponent<Playhead>();
         playhead.DurationMs = 5_000;
@@ -183,6 +178,4 @@ public sealed class PlaySessionSystemTests
         for (int i = 0; i < frames; i++)
             root.Update(new UpdateTick(1f / 60f, 0));
     }
-
-
 }

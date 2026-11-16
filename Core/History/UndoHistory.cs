@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.History;
+namespace Xanadu.Core.History;
 
 /// <summary>
 /// Snapshot-based undo/redo shared by every editor. Callers capture a state

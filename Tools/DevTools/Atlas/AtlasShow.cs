@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Theme;
-using Xanadu.Ui.Tree;
+using Xanadu.Core.Theme;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 
-namespace Xanadu.Tools.Atlas;
+namespace Xanadu.Tools.DevTools.Atlas;
 
 /// <summary>Showing the state: the header's choices, the list, and whichever chart view is open, each list filled as it scrolls.</summary>
 internal sealed partial class AtlasStage

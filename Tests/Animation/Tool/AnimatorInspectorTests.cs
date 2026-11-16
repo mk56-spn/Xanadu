@@ -1,9 +1,13 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core;
+using Xanadu.Core.History;
+using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
+using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -75,12 +79,13 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     [Test]
     public void LayerOnASelectedSvgSetsJustThatOne()
     {
-        Package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "leg.svg",
-            Group = "leg",
-            BoneId = "torso",
-        });
+        Package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "leg.svg",
+                Group = "leg",
+                BoneId = "torso"
+            });
         AnimatorSession.RigChanged(Session);
         Session.GetComponent<AnimatorSelection>().SelectOnlyAttachment(1);
         Frame();
@@ -94,13 +99,14 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     [Test]
     public void ABoneWhoseArtSitsOnDifferentLayersShowsNoSingleLayer()
     {
-        Package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "leg.svg",
-            Group = "leg",
-            BoneId = "torso",
-            ZOrder = 4,
-        });
+        Package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "leg.svg",
+                Group = "leg",
+                BoneId = "torso",
+                ZOrder = 4
+            });
         AnimatorSession.RigChanged(Session);
         SelectBone(1);
 
@@ -169,6 +175,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
             slider.GetComponent<UiSlider>().Value = value;
             Frame();
         }
+
         slider.RemoveTag<Pressed>();
         Frame();
     }
@@ -190,7 +197,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Session.GetComponent<AnimatorModes>().AutoKey = true;
         SelectBone(1);
         Runtime.Seek(1f);
-        var history = Session.GetComponent<AnimatorSessionState>().History.History;
+        UndoHistory<AnimatorSnapshot> history = Session.GetComponent<AnimatorSessionState>().History.History;
         var track = new XafTrack(XafChannelTarget.Bone, "torso");
 
         Ui.InspectRotationSlider.AddTag<Pressed>();
@@ -245,9 +252,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Type(Ui.InspectPosX, "12");
         Type(Ui.InspectPosY, "-3.5");
 
-        Assert.That(
-            Runtime.Pose.Bones[0].Translation,
-            Is.EqualTo(new Vector2(12, -3.5f)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[0].Translation, Is.EqualTo(new Vector2(12, -3.5f)).Using<Vector2>(Close));
     }
 
     [Test]
@@ -292,9 +297,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
 
         Type(Ui.InspectRotation, "30");
 
-        Assert.That(
-            Package.Skeleton.Bones[1].Rest.Rotation,
-            Is.EqualTo(Mathf.DegToRad(30f)).Within(0.0001f));
+        Assert.That(Package.Skeleton.Bones[1].Rest.Rotation, Is.EqualTo(Mathf.DegToRad(30f)).Within(0.0001f));
         Assert.That(Title, Does.Contain("REST"));
     }
 
@@ -323,8 +326,6 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Type(Ui.InspectScaleX, "2");
         Type(Ui.InspectScaleY, "0.5");
 
-        Assert.That(
-            Runtime.Pose.Bones[1].Scale,
-            Is.EqualTo(new Vector2(2, 0.5f)).Using<Vector2>(Close));
+        Assert.That(Runtime.Pose.Bones[1].Scale, Is.EqualTo(new Vector2(2, 0.5f)).Using<Vector2>(Close));
     }
 }

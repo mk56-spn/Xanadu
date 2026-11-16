@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Rendering;
-using Xanadu.Systems.Canvas;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
-using BlendFactor = Xanadu.Rendering.BlendFactor;
-using BlendOp = Xanadu.Rendering.BlendOp;
+using BlendFactor = Xanadu.Core.Rendering.BlendFactor;
+using BlendOp = Xanadu.Core.Rendering.BlendOp;
 using Xanadu.Host.Tools;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Labs.Experiments;
 

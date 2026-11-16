@@ -1,10 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Xanadu.Ecs;
-using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Ui.Tree;
+namespace Xanadu.Ui.Ecs.Ui.Tree;
 
 /// <summary>
 /// A stack: its settings in the constructor, its children in the braces after it,

@@ -1,11 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
-using Xanadu.Systems;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>Generic pointer, focus, toggle, dropdown, wheel, button and tooltip interaction.</summary>
 public sealed class UiInteractionSystemGroup : SystemGroup

@@ -1,12 +1,14 @@
 using System;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Core.Items;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Storage;
+using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Items;
+using Xanadu.Ecs.Components;
 using Xanadu.Levels;
 using Xanadu.Settings;
-using Xanadu.Storage;
-using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Editor;
 
@@ -20,7 +22,7 @@ public sealed class XmfBinaryTests
         {
             Kind = XifPrimitive.PolygonKind,
             Points = { new Vector2(0, 0), new Vector2(10, 0), new Vector2(5, 8) },
-            Fill = new Color(1f, 0.5f, 0f, 0.75f),
+            Fill = new Color(1f, 0.5f, 0f, 0.75f)
         };
         var source = new LevelDocument();
         source.Notes.Add(new NoteDocument { Item = new Xif { Primitives = { polygon } } });
@@ -50,10 +52,11 @@ public sealed class XmfBinaryTests
     public void ALevelWithoutItemGeometryIsWrittenAsBefore()
     {
         var source = new LevelDocument();
-        source.Notes.Add(new NoteDocument
-        {
-            Item = new Xif { Primitives = { new XifPrimitive { Kind = "svg", Ref = "lantern.svg" } } },
-        });
+        source.Notes.Add(
+            new NoteDocument
+            {
+                Item = new Xif { Primitives = { new XifPrimitive { Kind = "svg", Ref = "lantern.svg" } } }
+            });
         byte[] plain = XmfBinary.Write(source);
 
         source.Notes[0].Item.Primitives[0].Fill = new Color(1f, 0f, 0f);
@@ -80,97 +83,103 @@ public sealed class XmfBinaryTests
             OutsideColor = "#10203080",
             FrameColor = "#405060",
             PlayerShader = 2,
-            FieldShader = 1,
+            FieldShader = 1
         };
-        source.Notes.Add(new NoteDocument
-        {
-            Groups = { 1, 3 },
-            Item = new Xif
+        source.Notes.Add(
+            new NoteDocument
             {
-                Id = "lantern",
-                Name = "Lantern",
-                Owner = XifOwner.Game,
-                Primitives = { new XifPrimitive { Kind = "svg", Ref = "lantern.svg" } },
-                Shaders =
+                Groups = { 1, 3 },
+                Item = new Xif
                 {
-                    XifShaderRef.OfMap(1),
-                    XifShaderRef.OfCommon("Assets/Shaders/Items/rainbow.slang"),
+                    Id = "lantern",
+                    Name = "Lantern",
+                    Owner = XifOwner.Game,
+                    Primitives = { new XifPrimitive { Kind = "svg", Ref = "lantern.svg" } },
+                    Shaders =
+                    {
+                        XifShaderRef.OfMap(1),
+                        XifShaderRef.OfCommon("Assets/Shaders/Items/rainbow.slang")
+                    },
+                    Params = { ["glow"] = new[] { 0.5f } }
                 },
-                Params = { ["glow"] = new[] { 0.5f } },
-            },
-            TimeMs = 1_234,
-            X = 10,
-            Y = 20,
-            Target = KeybindAction.Action3,
-            Kind = NoteKind.Contact,
-            DashStrength = DashStrength.Triple,
-            Momentum = 900f,
-            Diagonal = true,
-            CostFirst = 2,
-            CostThird = 4,
-        });
-        source.Mines.Add(new MineDocument
-        {
-            Groups = { 2 },
-            Shader = 2,
-            TimeMs = 77,
-            X = 1,
-            Y = 2,
-            FadeInMs = 300,
-            FadeOutMs = 400,
-        });
-        source.Blocks.Add(new BlockDocument
-        {
-            Groups = { 4 },
-            Shader = 1,
-            X = 5,
-            Y = 6,
-            Width = 700,
-            Height = 80,
-            OneWay = (int)Xanadu.Ecs.BlockOneWay.Left,
-            Slope = (int)Xanadu.Ecs.BlockSlope.UpLeft,
-        });
-        source.StartPoints.Add(new StartPointDocument
-        {
-            Groups = { 1 },
-            Name = "Chorus",
-            TimeMs = 9_000,
-            X = 100,
-            Y = 200,
-            MomentumX = 3,
-            MomentumY = -4,
-            DirectionX = 0.5f,
-            DirectionY = -0.5f,
-        });
-        source.Groups.Add(new GroupDocument
-        {
-            Id = 1,
-            Name = "Lights",
-            Effects =
+                TimeMs = 1_234,
+                X = 10,
+                Y = 20,
+                Target = KeybindAction.Action3,
+                Kind = NoteKind.Contact,
+                DashStrength = DashStrength.Triple,
+                Momentum = 900f,
+                Diagonal = true,
+                CostFirst = 2,
+                CostThird = 4
+            });
+        source.Mines.Add(
+            new MineDocument
             {
-                new GroupEffectDocument
+                Groups = { 2 },
+                Shader = 2,
+                TimeMs = 77,
+                X = 1,
+                Y = 2,
+                FadeInMs = 300,
+                FadeOutMs = 400
+            });
+        source.Blocks.Add(
+            new BlockDocument
+            {
+                Groups = { 4 },
+                Shader = 1,
+                X = 5,
+                Y = 6,
+                Width = 700,
+                Height = 80,
+                OneWay = (int)BlockOneWay.Left,
+                Slope = (int)BlockSlope.UpLeft
+            });
+        source.StartPoints.Add(
+            new StartPointDocument
+            {
+                Groups = { 1 },
+                Name = "Chorus",
+                TimeMs = 9_000,
+                X = 100,
+                Y = 200,
+                MomentumX = 3,
+                MomentumY = -4,
+                DirectionX = 0.5f,
+                DirectionY = -0.5f
+            });
+        source.Groups.Add(
+            new GroupDocument
+            {
+                Id = 1,
+                Name = "Lights",
+                Effects =
                 {
-                    Kind = GroupEffectKind.Color,
-                    Start = 1.5f,
-                    End = 3f,
-                    Ease = EasePreset.Ease,
-                    Muted = true,
-                    X = 2,
-                    Y = 3,
-                    Tint = "#ff00ff80",
-                },
-            },
-        });
-        source.Shaders.Add(new ShaderDocument
-        {
-            Slot = 1,
-            Name = "Glow",
-            Source = "uniform float4 tint;\nfloat4 shade(ItemInput i) { return i.colour * tint; }",
-            Params =
+                    new GroupEffectDocument
+                    {
+                        Kind = GroupEffectKind.Color,
+                        Start = 1.5f,
+                        End = 3f,
+                        Ease = EasePreset.Ease,
+                        Muted = true,
+                        X = 2,
+                        Y = 3,
+                        Tint = "#ff00ff80"
+                    }
+                }
+            });
+        source.Shaders.Add(
+            new ShaderDocument
             {
-                ["tint"] = new[] { 1f, 0.5f, 0f, 1f },
-            },
-        });
+                Slot = 1,
+                Name = "Glow",
+                Source = "uniform float4 tint;\nfloat4 shade(ItemInput i) { return i.colour * tint; }",
+                Params =
+                {
+                    ["tint"] = new[] { 1f, 0.5f, 0f, 1f }
+                }
+            });
 
         LevelDocument map = XmfBinary.Read(XmfBinary.Write(source));
 
@@ -219,8 +228,8 @@ public sealed class XmfBinaryTests
         Assert.That(block.Groups, Is.EqualTo(new[] { 4 }));
         Assert.That(block.Width, Is.EqualTo(700));
         Assert.That(block.Height, Is.EqualTo(80));
-        Assert.That(block.OneWay, Is.EqualTo((int)Xanadu.Ecs.BlockOneWay.Left));
-        Assert.That(block.Slope, Is.EqualTo((int)Xanadu.Ecs.BlockSlope.UpLeft));
+        Assert.That(block.OneWay, Is.EqualTo((int)BlockOneWay.Left));
+        Assert.That(block.Slope, Is.EqualTo((int)BlockSlope.UpLeft));
 
         StartPointDocument start = map.StartPoints[0];
         Assert.That(start.Name, Is.EqualTo("Chorus"));
@@ -259,8 +268,7 @@ public sealed class XmfBinaryTests
     {
         byte[] map = XmfBinary.Write(new LevelDocument());
 
-        Assert.Throws<XmfFormatException>(() =>
-            XmfBinary.Read(map[..^8]));
+        Assert.Throws<XmfFormatException>(() => XmfBinary.Read(map[..^8]));
     }
 
     [Test]
@@ -278,8 +286,7 @@ public sealed class XmfBinaryTests
         var level = new LevelDocument();
         level.Groups.Add(new GroupDocument { Id = 99 });
 
-        Assert.Throws<XmfFormatException>(() =>
-            XmfBinary.Read(XmfBinary.Write(level)));
+        Assert.Throws<XmfFormatException>(() => XmfBinary.Read(XmfBinary.Write(level)));
     }
 
     [Test]
@@ -288,7 +295,6 @@ public sealed class XmfBinaryTests
         var level = new LevelDocument();
         level.Notes.Add(new NoteDocument { Kind = (NoteKind)99 });
 
-        Assert.Throws<XmfFormatException>(() =>
-            XmfBinary.Read(XmfBinary.Write(level)));
+        Assert.Throws<XmfFormatException>(() => XmfBinary.Read(XmfBinary.Write(level)));
     }
 }

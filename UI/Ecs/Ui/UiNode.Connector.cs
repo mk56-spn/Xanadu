@@ -1,7 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// A line joining two other nodes, drawn from wherever layout put them: from the

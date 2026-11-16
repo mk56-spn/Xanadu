@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Theme;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Ui;
 
-namespace Xanadu.Systems.Debug;
+namespace Xanadu.Ui.Systems.Debug;
 
 /// <summary>
 /// The F3 systems as a tree control, the same one the F4 UI tree uses: every
@@ -95,7 +96,7 @@ public sealed partial class DebugPressedOverlaySystem
     }
 
     /// <summary>Times every system in every group, and in the app root the UI steps, while F3 is open.</summary>
-    private static void MonitorNested(SystemGroup group) => Xanadu.Systems.Ui.AppStep.MonitorAll(group);
+    private static void MonitorNested(SystemGroup group) => AppStep.MonitorAll(group);
 
     /// <summary>
     /// Closes each window that has run its time and lists the systems again.
@@ -134,7 +135,7 @@ public sealed partial class DebugPressedOverlaySystem
     private void Collect(BaseSystem group, string? parent, bool live, bool average)
     {
         int index = 0;
-        foreach (BaseSystem system in Xanadu.Systems.Ui.AppStep.Children(group))
+        foreach (BaseSystem system in AppStep.Children(group))
         {
             string id = parent is null ? index.ToString(CultureInfo.InvariantCulture) : $"{parent}.{index}";
             index++;
@@ -188,7 +189,7 @@ public sealed partial class DebugPressedOverlaySystem
     {
         foreach ((string id, BaseSystem system) in _byId)
         {
-            if (_known.Add(id) && System.Linq.Enumerable.Any(Xanadu.Systems.Ui.AppStep.Children(system)))
+            if (_known.Add(id) && System.Linq.Enumerable.Any(AppStep.Children(system)))
                 UiTreeControl.SetExpanded(_systemTree, id, false);
         }
     }
@@ -204,7 +205,7 @@ public sealed partial class DebugPressedOverlaySystem
             float average = _windows.TryGetValue(system, out SystemWindow? window) ? window.Average : float.NaN;
             Color color = average >= SlowMs
                 ? DebugPalette.Warning
-                : system is SystemGroup or Xanadu.Systems.Ui.AppStep ? DebugPalette.Header : DebugPalette.Text;
+                : system is SystemGroup or AppStep ? DebugPalette.Header : DebugPalette.Text;
             UiText.SetColor(UiTreeControl.Label(node), color);
             foreach (Entity cell in UiTreeControl.Cells(node))
                 UiText.SetColor(cell, color);

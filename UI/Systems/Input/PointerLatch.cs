@@ -1,5 +1,5 @@
 
-namespace Xanadu.Systems.Input;
+namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// One frame of pointer state. A press is kept until <see cref="EndFrame"/>, so a

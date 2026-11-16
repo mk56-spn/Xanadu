@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Layering;
+using Xanadu.Core.Layering;
+using Xanadu.Ecs.Kinds;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ecs.Components;
 
 /// <summary>
 /// The layer a placed item draws on and its z inside that layer. Layers run

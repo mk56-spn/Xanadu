@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Systems.Canvas;
+using Xanadu.Core.Maths;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Systems;
+using Xanadu.Tools.Animator.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Animation.Tool;
 
@@ -27,8 +29,9 @@ public sealed class AnimatorGridDrawTests : AnimatorToolTest
         Assert.That(axes, Has.Count.EqualTo(2));
         Assert.That(axes.Exists(line => line.From.X == origin.X && line.To.X == origin.X), Is.True);
         Assert.That(axes.Exists(line => line.From.Y == origin.Y && line.To.Y == origin.Y), Is.True);
-        Assert.That(_canvas.Lines.TrueForAll(line => area.Grow(0.5f).HasPoint(line.From) &&
-                                                     area.Grow(0.5f).HasPoint(line.To)), Is.True);
+        Assert.That(
+            _canvas.Lines.TrueForAll(line => area.Grow(0.5f).HasPoint(line.From) && area.Grow(0.5f).HasPoint(line.To)),
+            Is.True);
     }
 
     [Test]
@@ -55,12 +58,29 @@ public sealed class AnimatorGridDrawTests : AnimatorToolTest
         public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
             Lines.Add(new LineCall(from, to, color));
 
-        public void SetVisible(Handle canvas, bool visible) { }
-        public void SetTransform(Handle canvas, Transform2D transform) { }
-        public void DrawRect(Handle canvas, Rect2 bounds, Color color) { }
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
+        public void SetVisible(Handle canvas, bool visible)
+        {
+        }
+
+        public void SetTransform(Handle canvas, Transform2D transform)
+        {
+        }
+
+        public void DrawRect(Handle canvas, Rect2 bounds, Color color)
+        {
+        }
+
+        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
+
+        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color)
+        {
+        }
     }
 
     private readonly record struct LineCall(Vector2 From, Vector2 To, Color Color);

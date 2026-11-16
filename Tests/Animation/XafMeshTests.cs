@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Animation;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 
@@ -22,17 +23,18 @@ public sealed class XafMeshTests
         XafRigAuthoring.AddBone(package, 0, "thigh", new Vector2(0, -100));
         XafRigAuthoring.AddBone(package, Thigh, "shin", new Vector2(0, 50));
         XafRigAuthoring.AddBone(package, Shin, "foot", new Vector2(0, 50));
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = "leg.svg", Group = "thigh", BoneId = "thigh",
-            Transform = new Transform2D(0f, new Vector2(0, 25)),
-            Mesh = new XafMesh { Detail = 8, Blend = 10f },
-        });
+        package.Attachments.Add(
+            new XafAttachment
+            {
+                SvgPath = "leg.svg", Group = "thigh", BoneId = "thigh",
+                Transform = new Transform2D(0f, new Vector2(0, 25)),
+                Mesh = new XafMesh { Detail = 8, Blend = 10f }
+            });
         return package;
     }
 
-    private static (Vector2[] Points, List<int> Influences, float[][] Weights, Transform2D[] RestBones, Transform2D RestAttachment)
-        Bind(XafPackage package)
+    private static (Vector2[] Points, List<int> Influences, float[][] Weights, Transform2D[] RestBones, Transform2D
+        RestAttachment) Bind(XafPackage package)
     {
         XafPose rest = XafClothLayout.RestPose(package);
         Transform2D[] bones = XafRig.WorldBones(package, rest);
@@ -47,7 +49,8 @@ public sealed class XafMeshTests
     public void ALimbSegmentFollowsItsOwnBoneAndTheOneBelowWithWeightsThatAddUp()
     {
         XafPackage package = Leg();
-        var bind = Bind(package);
+        (Vector2[] Points, List<int> Influences, float[][] Weights, Transform2D[] RestBones, Transform2D RestAttachment)
+            bind = Bind(package);
 
         Assert.That(bind.Influences, Is.EqualTo(new[] { Thigh, Shin }));
         foreach (float[] row in bind.Weights)
@@ -63,9 +66,16 @@ public sealed class XafMeshTests
     public void AtRestNothingMovesAndBendingTheKneeBendsTheLowerEnd()
     {
         XafPackage package = Leg();
-        var bind = Bind(package);
-        Vector2[] still = XafSkinDeform.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bind.RestBones,
-            bind.RestAttachment, bind.RestAttachment);
+        (Vector2[] Points, List<int> Influences, float[][] Weights, Transform2D[] RestBones, Transform2D RestAttachment)
+            bind = Bind(package);
+        Vector2[] still = XafSkinDeform.Deform(
+            bind.Influences,
+            bind.Weights,
+            bind.Points,
+            bind.RestBones,
+            bind.RestBones,
+            bind.RestAttachment,
+            bind.RestAttachment);
         for (int i = 0; i < still.Length; i++)
             Assert.That(still[i].DistanceTo(bind.Points[i]), Is.LessThan(1e-3f));
 
@@ -73,8 +83,14 @@ public sealed class XafMeshTests
         pose.Bones[Shin].Rotation = 1.2f;
         Transform2D[] bones = XafRig.WorldBones(package, pose);
         Transform2D attachment = XafRig.WorldAttachments(package, pose, bones)[0];
-        Vector2[] bent = XafSkinDeform.Deform(bind.Influences, bind.Weights, bind.Points, bind.RestBones, bones,
-            bind.RestAttachment, attachment);
+        Vector2[] bent = XafSkinDeform.Deform(
+            bind.Influences,
+            bind.Weights,
+            bind.Points,
+            bind.RestBones,
+            bones,
+            bind.RestAttachment,
+            attachment);
 
         Assert.That(bent[0].DistanceTo(bind.Points[0]), Is.LessThan(1e-3f), "the hip end stays");
         Assert.That(bent[^1].DistanceTo(bind.Points[^1]), Is.GreaterThan(5f), "the knee end swings with the shin");

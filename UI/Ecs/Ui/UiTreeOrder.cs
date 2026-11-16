@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Orderings over trees: depth-first for a flat list of items, and paint order for entities.</summary>
 public static class UiTreeOrder

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
-namespace Xanadu.Ecs;
+namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
 /// One node of a tree, given in any order: <see cref="Parent"/> is the id of

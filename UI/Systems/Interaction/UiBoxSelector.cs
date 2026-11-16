@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Ecs.Ui;
 
-namespace Xanadu.Systems.Ui;
+namespace Xanadu.Ui.Systems.Interaction;
 
 /// <summary>
 /// The drag-to-select gesture shared by every view that box-selects: it runs a

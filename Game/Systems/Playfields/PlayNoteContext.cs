@@ -5,8 +5,7 @@ using Xanadu.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
-using Xanadu.Theme;
-using Position = Xanadu.Ecs.Position;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Playfields;
 
