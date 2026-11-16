@@ -247,6 +247,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 item.uv = v.uv;
                 item.colour = v.colour;
                 item.local = v.local;
+                item.rest = v.position.xy;
 
                 ItemInput i;
                 i.uv = v.uv;
@@ -257,6 +258,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 i.screenUv = v.position.xy / resolution;
                 i.time = time;
                 i.canvas = canvasOf(item);
+                i.rest = i.canvas;
                 shading = i;
 
                 Thing t;

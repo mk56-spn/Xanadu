@@ -5,7 +5,7 @@
 #   ./run.sh                      -> a menu
 #   ./run.sh game [args]          -> the game (--scene=songselect, --play, --demo, --shot=<png> …)
 #   ./run.sh editor [args]        -> the game, straight into the level editor
-#   ./run.sh labs [args]          -> shader playground, editor and experiments (--tab=<n>, --shader=<file> …)
+#   ./run.sh labs [args]          -> experiments (--tab=<n> …)
 #   ./run.sh animator [args]      -> the animator (--clip=name@seconds …)
 #   ./run.sh shaders [args]       -> the shader tool: shipped effects, edited beside their preview (--open=<name> …)
 #   ./run.sh showcase [args]      -> the UI showcase

@@ -8,24 +8,18 @@ using Xanadu.Host.Tools;
 namespace Xanadu.Labs.Experiments;
 
 /// <summary>
-/// A shader editor inside the lab, the start of the one the game will get: a
-/// level shader slot typed on the left, compiled as you type and drawn on the
-/// right. Slang's problems mark their lines; calls into the library show their
-/// parameter names as inlay hints. The text saves itself to a git-ignored file.
+/// A shader editor inside the lab for the spawner: code typed on the left,
+/// compiled as you type and drawn on the right. Slang's problems mark their
+/// lines; calls into the library show their parameter names as inlay hints. The text saves itself to a git-ignored file.
 /// What the code compiles into and how it is drawn is the preview's
-/// (<see cref="IEditorPreview"/>): a level shader slot, or the spawner.
+/// (<see cref="IEditorPreview"/>). Effects are edited in the shader tool.
 /// </summary>
-internal sealed class ShaderEditor(string name, string workingCopy, string template, string? file,
+internal sealed class ShaderEditor(string name, string workingCopy, string template,
     Func<LabContext, Handle, IEditorPreview> preview) : ILabExperiment
 {
-    /// <summary>A level shader slot: <c>shade</c> on a quad.</summary>
-    public static ShaderEditor Effects(string? file) => new("SHADER EDITOR",
-        "Tools/Labs/Playground/editor.slang", "Tools/Labs/Playground/editor.template.slang", file,
-        (context, item) => new MaterialPreview(context, item));
-
     /// <summary>The spawner: <c>count</c> things from <c>spawn(i)</c>, culled and drawn indirectly on the GPU.</summary>
     public static ShaderEditor Spawner() => new("SPAWNER",
-        "Tools/Labs/Playground/spawner.slang", "Tools/Labs/Playground/spawner.template.slang", null,
+        "Tools/Labs/Playground/spawner.slang", "Tools/Labs/Playground/spawner.template.slang",
         (context, item) => new SpawnerPreview(context, item));
 
     public string Name => name;
@@ -37,12 +31,9 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
 
     public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage(context, parent, area, WorkingFile(), preview);
 
-    /// <summary><c>--editor-file</c>, or the lab's own working copy, made from the template the first time.</summary>
+    /// <summary>The lab's own working copy, made from the template the first time.</summary>
     private string WorkingFile()
     {
-        if (file is not null)
-            return file;
-
         string copy = GamePaths.Full(workingCopy);
         if (!File.Exists(copy))
             File.Copy(GamePaths.Full(template), copy);

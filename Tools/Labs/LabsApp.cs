@@ -13,7 +13,7 @@ internal sealed class LabsApp : TabbedToolApp
 {
     private readonly ILabExperiment[] _experiments;
 
-    public LabsApp(LabsOptions options) : this(options, LabExperiments.All(options))
+    public LabsApp(LabsOptions options) : this(options, LabExperiments.All())
     {
     }
 

@@ -30,11 +30,9 @@ internal interface ILabExperiment : IToolTab
 /// <summary>Every experiment the lab shows, one tab each, in tab order.</summary>
 internal static class LabExperiments
 {
-    public static ILabExperiment[] All(LabsOptions options) =>
+    public static ILabExperiment[] All() =>
     [
         new Experiments.GameplayLab(),
-        new Experiments.ShaderPlayground(options.Shader),
-        Experiments.ShaderEditor.Effects(options.EditorFile),
         new Experiments.ParticleBursts(),
         new Experiments.BlendLab(),
         new Experiments.DepthLab(),
