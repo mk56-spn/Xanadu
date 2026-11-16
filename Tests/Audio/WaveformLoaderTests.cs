@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using NUnit.Framework;
 using Xanadu.Systems.Audio;
+using Xanadu.Model.Audio;
 
 namespace Xanadu.Tests.Audio;
 

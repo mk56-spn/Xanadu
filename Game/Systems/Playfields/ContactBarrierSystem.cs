@@ -5,11 +5,12 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -75,7 +76,7 @@ public sealed class ContactBarrierSystem : QuerySystem<Player, Position, Playfie
                 _entities.CreateEntity(
                     new HitTrail(
                         noteScreen,
-                        paid ? PlayfieldRenderer.ColorFor(note) : Palette.DangerBright,
+                        paid ? PlayfieldColors.ColorFor(note) : Palette.DangerBright,
                         paid ? "PASS" : "BREAK"),
                     EffectLayer.From(noteEntity));
                 buffer.DeleteEntity(noteEntity.Id);

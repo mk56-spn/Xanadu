@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Systems.Input;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
-using Xanadu.Replays;
-using Xanadu.Profiles;
-using Xanadu.Scenes;
-using Xanadu.Settings;
-using SceneState = Xanadu.Ecs.Components.SceneState;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
+using Xanadu.Model.Replays;
+using Xanadu.Model.Profiles;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 using Position = Xanadu.Core.Position;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Ecs;
 
 namespace Xanadu.Systems.Scenes;
 

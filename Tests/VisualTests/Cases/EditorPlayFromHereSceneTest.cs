@@ -1,9 +1,9 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Levels;
-using Xanadu.Scenes;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.VisualTests;
 

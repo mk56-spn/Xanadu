@@ -3,14 +3,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Scenes;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using SceneState = Xanadu.Ecs.Components.SceneState;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Scenes;

@@ -1,12 +1,13 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -19,7 +20,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
     /// </summary>
     public void DrawOutlines(PlayfieldView view, NoteSelection selection)
     {
-        float size = PlayfieldRenderer.NoteSize * view.Scale;
+        float size = PlayfieldMetrics.NoteSize * view.Scale;
 
         foreach (Entity entity in surface.Entities.Cached<Note>().ToEntityList())
         {
@@ -32,11 +33,11 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
                 surface.Target,
                 center,
                 size / 2 + 1.5f,
-                PlayfieldRenderer.SelectedNoteColor,
+                PlayfieldColors.SelectedNoteColor,
                 2);
         }
 
-        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
+        float mineSize = PlayfieldMetrics.MineSize * view.Scale;
         foreach (Entity entity in surface.Entities.Cached<Mine>().ToEntityList())
         {
             if (!selection.Contains(entity))
@@ -48,7 +49,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
                 surface.Target,
                 center,
                 mineSize / 2 + 1.5f,
-                PlayfieldRenderer.SelectedNoteColor,
+                PlayfieldColors.SelectedNoteColor,
                 2);
         }
     }
@@ -70,8 +71,8 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
                 region.Size * shown.Scale);
             bool selected = selection.Contains(entity);
             Color color = selected
-                ? PlayfieldRenderer.BlockSelectedEdge
-                : PlayfieldRenderer.PolygonFill;
+                ? PlayfieldColors.BlockSelectedEdge
+                : PlayfieldColors.PolygonFill;
             surface.Canvas.DrawBorder(surface.Target, rect, color, selected ? 2.5f : 1.5f);
             surface.Canvas.DrawTextLeft(surface.Target, rect.Grow(-4), "SCREEN READ", color);
         }
@@ -101,8 +102,8 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
         foreach (GridHandle handle in GridPlacement.Handles)
         {
             Rect2 nub = GridPlacement.HandleScreenRect(bounds, handle, degrees, view);
-            surface.Canvas.DrawRect(surface.Target, nub, PlayfieldRenderer.HandleEdge);
-            surface.Canvas.DrawRect(surface.Target, nub.Grow(-2), PlayfieldRenderer.BlockSelectedEdge);
+            surface.Canvas.DrawRect(surface.Target, nub, PlayfieldColors.HandleEdge);
+            surface.Canvas.DrawRect(surface.Target, nub.Grow(-2), PlayfieldColors.BlockSelectedEdge);
         }
     }
 
@@ -130,7 +131,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
             handle = SelectionRotation.HandlePoint(bounds, view);
         }
 
-        Color accent = PlayfieldRenderer.BlockSelectedEdge;
+        Color accent = PlayfieldColors.BlockSelectedEdge;
         surface.Canvas.DrawLine(surface.Target, pivot, handle, accent, 1);
         surface.Canvas.DrawCircle(surface.Target, pivot, 3, accent);
         surface.Canvas.DrawCircle(surface.Target, handle, SelectionRotation.HandleRadius, accent);
@@ -138,7 +139,7 @@ public sealed class EditorSelectionDrawer(EditorDrawSurface surface)
             surface.Target,
             handle,
             SelectionRotation.HandleRadius,
-            PlayfieldRenderer.HandleEdge,
+            PlayfieldColors.HandleEdge,
             2);
     }
 }

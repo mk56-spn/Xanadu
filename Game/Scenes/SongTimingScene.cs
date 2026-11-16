@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
 using static Xanadu.Core.Theme.UiMetrics;

@@ -19,7 +19,8 @@ public sealed class ProjectBoundaryTests
             "Xanadu.Editor",
             "Xanadu.Levels",
             "Xanadu.Settings",
-            "Xanadu.Profiles"
+            "Xanadu.Profiles",
+            "Xanadu.Model"
         };
 
         foreach (string file in Directory.GetFiles(Path.Combine(Root, "UI"), "*.cs", SearchOption.AllDirectories))
@@ -40,6 +41,7 @@ public sealed class ProjectBoundaryTests
             string source = File.ReadAllText(file);
             Assert.That(source.Contains("using Xanadu.Ui"), Is.False, file);
             Assert.That(source.Contains("using Xanadu.Scenes"), Is.False, file);
+            Assert.That(source.Contains("using Xanadu.Model"), Is.False, file);
         }
     }
 
@@ -50,7 +52,8 @@ public sealed class ProjectBoundaryTests
         {
             Path.Combine(Root, "Game", "Systems", "Editor"),
             Path.Combine(Root, "Game", "Editor"),
-            Path.Combine(Root, "Game", "Levels")
+            Path.Combine(Root, "Game", "Levels"),
+            Path.Combine(Root, "Model", "Levels")
         };
         string[] direct =
         {

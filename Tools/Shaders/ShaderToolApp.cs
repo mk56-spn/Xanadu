@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
-using MoonWorks.Graphics;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;

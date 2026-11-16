@@ -3,9 +3,8 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
@@ -13,11 +12,11 @@ using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Layout;
 using Position = Xanadu.Core.Position;
-using SceneActionId = Xanadu.Ecs.Components.SceneActionId;
-using SongTempoAction = Xanadu.Ecs.Components.SongTempoAction;
-using SongTimingAdjustKind = Xanadu.Ecs.Components.SongTimingAdjustKind;
-using SongTimingField = Xanadu.Ecs.Components.SongTimingField;
-using SongTimingView = Xanadu.Ecs.Components.SongTimingView;
+using SceneActionId = Xanadu.Model.Ecs.Components.SceneActionId;
+using SongTempoAction = Xanadu.Model.Ecs.Components.SongTempoAction;
+using SongTimingAdjustKind = Xanadu.Model.Ecs.Components.SongTimingAdjustKind;
+using SongTimingField = Xanadu.Model.Ecs.Components.SongTimingField;
+using SongTimingView = Xanadu.Model.Ecs.Components.SongTimingView;
 
 namespace Xanadu.Tests.Scenes;
 

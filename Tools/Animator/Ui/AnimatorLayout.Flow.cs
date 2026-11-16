@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -46,8 +45,8 @@ public static partial class AnimatorLayout
 
         refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth, FlowTextHeight),
             UiTheme.SmallFontSize, UiTheme.Text, TextAlign.Left);
-        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Animation.XafTransitions.MaxFade,
-            Animation.XafTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
+        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Xanadu.Model.Animation.XafTransitions.MaxFade,
+            Xanadu.Model.Animation.XafTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
 
         menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 4, color: Clear);
         // The two long names get the room; IN and OUT share what is left.

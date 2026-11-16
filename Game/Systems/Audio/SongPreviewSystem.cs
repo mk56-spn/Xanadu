@@ -4,8 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 

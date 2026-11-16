@@ -5,6 +5,7 @@ using Xanadu.Core.Layering;
 using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Systems.Editor;

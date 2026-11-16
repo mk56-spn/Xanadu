@@ -1,7 +1,6 @@
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;

@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Editor;
@@ -73,7 +72,7 @@ public sealed class EditorAnalysisSystemTests
     }
 
     private Entity AddNote(long time, float x, float y) => _store.CreateEntity(
-        new Note(time, new Vector2(x, y), Xanadu.Settings.KeybindAction.Action2, NoteKind.Hit));
+        new Note(time, new Vector2(x, y), Xanadu.Model.Settings.KeybindAction.Action2, NoteKind.Hit));
 
     private void Frame() => _root.Update(new UpdateTick(1f / 60f, 0));
 }

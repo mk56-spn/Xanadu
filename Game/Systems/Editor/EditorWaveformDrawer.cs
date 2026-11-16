@@ -2,9 +2,8 @@ using System;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Systems.Audio;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Audio;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Systems.Editor;

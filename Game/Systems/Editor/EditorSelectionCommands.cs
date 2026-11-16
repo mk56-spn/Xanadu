@@ -6,13 +6,15 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ecs.Kinds;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.History;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 

@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Scoring;
+using Xanadu.Model.Scoring;
 
 namespace Xanadu.Tests.Scoring;
 

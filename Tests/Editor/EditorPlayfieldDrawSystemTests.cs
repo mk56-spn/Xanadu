@@ -6,14 +6,14 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Systems.Audio;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Audio;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Editor;
 
@@ -228,7 +228,7 @@ public sealed class EditorPlayfieldDrawSystemTests
     {
         var view = new PlayfieldView(new Vector2(30, 30), 0.6f, new Vector2(1152, 648));
         var store = new EntityStore();
-        Entity note = store.CreateEntity(new Note(1_000, new Vector2(100, 100), Xanadu.Settings.KeybindAction.Action1));
+        Entity note = store.CreateEntity(new Note(1_000, new Vector2(100, 100), Xanadu.Model.Settings.KeybindAction.Action1));
         store.CreateEntity(
             new LevelInfo("Markers"),
             new Playfield(1000, 1000),
@@ -242,11 +242,11 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Color lane = PlayfieldRenderer.ColorFor(Xanadu.Settings.KeybindAction.Action1);
+        Color lane = PlayfieldColors.ColorFor(Xanadu.Model.Settings.KeybindAction.Action1);
         Assert.That(canvas.RectCalls.Any(call => call.Color == lane), Is.True);
         Assert.That(
             canvas.RectCalls.Any(call =>
-                call.Color == PlayfieldRenderer.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y),
+                call.Color == PlayfieldColors.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y),
             Is.True);
     }
 
@@ -302,7 +302,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         var selectedOutlines = canvas.RectCalls.Where(call =>
-            call.Color == PlayfieldRenderer.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y).ToList();
+            call.Color == PlayfieldColors.SelectedNoteColor && call.Bounds.Size.X > call.Bounds.Size.Y).ToList();
         Assert.That(selectedOutlines.Select(call => call.Bounds.Position).Distinct().Count(), Is.EqualTo(4));
     }
 
@@ -370,13 +370,13 @@ public sealed class EditorPlayfieldDrawSystemTests
         Rect2 expected = new(view.PlayfieldToScreen(new Vector2(400, 500)), new Vector2(200, 100) * view.Scale);
         Assert.That(
             canvas.RectCalls.Exists(call =>
-                call.Color == PlayfieldRenderer.BlockSelectedEdge &&
+                call.Color == PlayfieldColors.BlockSelectedEdge &&
                 call.Bounds.Position.IsEqualApprox(expected.Position) &&
                 Mathf.IsEqualApprox(call.Bounds.Size.X, expected.Size.X)),
             Is.True);
         Assert.That(
             canvas.RectCalls.FindAll(call =>
-                call.Color == PlayfieldRenderer.HandleEdge && call.Bounds.Size == new Vector2(10, 10)),
+                call.Color == PlayfieldColors.HandleEdge && call.Bounds.Size == new Vector2(10, 10)),
             Has.Count.EqualTo(4));
     }
 
@@ -479,7 +479,7 @@ public sealed class EditorPlayfieldDrawSystemTests
         Assert.That(canvas.Texts, Does.Contain("chorus"));
         Assert.That(canvas.Texts, Does.Contain("START"));
         Assert.That(
-            canvas.RectCalls.FindAll(call => IsStartMarker(call, ruler, PlayfieldRenderer.StartPointColor)),
+            canvas.RectCalls.FindAll(call => IsStartMarker(call, ruler, PlayfieldColors.StartPointColor)),
             Has.Count.EqualTo(2));
     }
 
@@ -552,7 +552,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.True);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldColors.SelectedNoteColor), Is.True);
     }
 
     [Test]
@@ -564,7 +564,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.True);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldColors.SelectedNoteColor), Is.True);
     }
 
     [Test]
@@ -575,7 +575,7 @@ public sealed class EditorPlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldRenderer.SelectedNoteColor), Is.False);
+        Assert.That(canvas.Lines.Exists(line => line.Color == PlayfieldColors.SelectedNoteColor), Is.False);
     }
 
     [Test]

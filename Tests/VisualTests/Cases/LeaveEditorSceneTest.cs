@@ -1,4 +1,4 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using System;
 using System.Linq;
@@ -7,9 +7,6 @@ using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
-using Xanadu.Levels;
-using Xanadu.Scenes;
-using Xanadu.Settings;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.VisualTests;

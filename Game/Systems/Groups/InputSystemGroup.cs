@@ -1,5 +1,5 @@
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Scenes;
 using Xanadu.Systems.Ui;

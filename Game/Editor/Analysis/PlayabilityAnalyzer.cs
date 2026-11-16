@@ -1,26 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Analysis;
 
 namespace Xanadu.Editor.Analysis;
-
-public enum PlayabilityProblem
-{
-    /// <summary>The note is too far sideways from where the player can be.</summary>
-    TooFarSideways,
-
-    /// <summary>The note is higher than gravity lets the player stay.</summary>
-    TooHigh
-}
-
-public readonly record struct PlayabilityIssue(
-    long TimeMs,
-    Vector2 Position,
-    PlayabilityProblem Problem,
-    float Shortfall);
 
 /// <summary>The playfield as the player sees it, in screen pixels.</summary>
 public readonly record struct PlayabilityGeometry(
@@ -37,7 +23,7 @@ public readonly record struct PlayabilityGeometry(
         new Vector2(playfield.Width, playfield.Height) * view.Scale,
         view.Scale,
         Player.ScaledSize(view.Scale),
-        PlayfieldRenderer.NoteSize * view.Scale,
+        PlayfieldMetrics.NoteSize * view.Scale,
         Box2DPhysicsWorld.DefaultGravity * Box2DPhysicsWorld.PixelsPerMeter,
         windowMs);
 }

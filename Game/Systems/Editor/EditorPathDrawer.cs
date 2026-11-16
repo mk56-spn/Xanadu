@@ -4,8 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Systems.Editor;

@@ -2,24 +2,19 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using Rect2 = Xanadu.Core.Maths.Rect2;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws collidable blocks in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color BlockFill = Colors.White;
-
-    /// <summary>The dark rim of the editor's handles, which are not part of any block.</summary>
-    public static readonly Color HandleEdge = Palette.BorderStrong;
-    public static readonly Color BlockSelectedEdge = Palette.Accent;
-
     /// <summary>A one-way block is see-through, so it reads as something to pass through.</summary>
     private const float OneWayFillAlpha = 0.45f;
 

@@ -8,7 +8,6 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
 using Xanadu.Labs.Experiments.EcsRender.Systems;
-using Xanadu.Labs.Experiments.EcsRender.Systems;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Mw = MoonWorks.Graphics;

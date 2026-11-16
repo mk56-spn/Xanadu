@@ -1,8 +1,7 @@
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Systems.Physics;
 

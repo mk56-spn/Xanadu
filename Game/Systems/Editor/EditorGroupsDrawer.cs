@@ -1,10 +1,10 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -91,7 +91,7 @@ public sealed class EditorGroupsDrawer(EditorDrawSurface surface)
             $"({effect.Offset.X:0.#}, {effect.Offset.Y:0.#})",
             accent);
 
-        Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        Rect2 field = PlayfieldMetrics.FieldRect(view, playfield);
         var banner = new Rect2(
             field.Position + new Vector2(8, 8),
             new Vector2(Mathf.Min(field.Size.X - 16, 620), 24));

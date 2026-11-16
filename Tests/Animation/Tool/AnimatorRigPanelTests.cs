@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;

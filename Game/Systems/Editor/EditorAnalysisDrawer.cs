@@ -2,10 +2,10 @@ using System;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Editor.Analysis;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Analysis;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -119,7 +119,7 @@ public sealed class EditorAnalysisDrawer(EditorDrawSurface surface)
             surface.Target,
             strip,
             $"peak {density.PeakNotes:0.#} notes/s",
-            PlayfieldRenderer.DimTextColor,
+            PlayfieldColors.DimTextColor,
             11);
     }
 }

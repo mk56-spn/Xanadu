@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Storage;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Editor;
 

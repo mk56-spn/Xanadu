@@ -2,7 +2,6 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;

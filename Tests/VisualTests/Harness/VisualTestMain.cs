@@ -4,17 +4,19 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using MoonWorks.Input;
-using Xanadu.Ecs;
+using Xanadu.Model.Ecs;
+using Xanadu.Systems;
 using Xanadu.Host;
 using Xanadu.Host.Rendering;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Editor;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Systems.Ui;
 using Xanadu.Core.Theme;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tests.VisualTests;
 

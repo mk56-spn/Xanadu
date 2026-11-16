@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Systems.Audio;
+using Xanadu.Model.Audio;
 
 namespace Xanadu.Tests.Audio;
 

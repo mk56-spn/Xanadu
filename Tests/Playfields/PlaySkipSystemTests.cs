@@ -3,9 +3,8 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Replays;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Replays;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 

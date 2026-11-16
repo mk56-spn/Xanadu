@@ -6,16 +6,15 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Scenes;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Audio;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Position = Xanadu.Core.Position;
-using SceneState = Xanadu.Ecs.Components.SceneState;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 

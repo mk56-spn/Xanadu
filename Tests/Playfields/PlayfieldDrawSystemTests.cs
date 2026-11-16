@@ -3,11 +3,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -53,7 +53,7 @@ public sealed class PlayfieldDrawSystemTests
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        Rect2 field = PlayfieldMetrics.FieldRect(view, playfield);
         Assert.That(
             canvas.RectCalls.Exists(call => call.Bounds == field && call.Color == new Color("#204060")),
             Is.True);
@@ -97,8 +97,8 @@ public sealed class PlayfieldDrawSystemTests
 
         foreach (RecordingCanvas.LineCall line in canvas.Lines)
         {
-            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldRenderer.GridColor));
-            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldRenderer.AxisColor));
+            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldColors.GridColor));
+            Assert.That(line.Color, Is.Not.EqualTo(PlayfieldColors.AxisColor));
         }
     }
 
@@ -138,9 +138,9 @@ public sealed class PlayfieldDrawSystemTests
                 new Vector2(400, 400),
                 Colors.Cyan,
                 36f,
-                PlayfieldRenderer.NotePopLifetime)
+                PlayfieldMetrics.NotePopLifetime)
             {
-                Age = PlayfieldRenderer.NotePopLifetime * 0.5f
+                Age = PlayfieldMetrics.NotePopLifetime * 0.5f
             });
 
         var canvas = new RecordingCanvas();

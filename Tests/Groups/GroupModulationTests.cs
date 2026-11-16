@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
 

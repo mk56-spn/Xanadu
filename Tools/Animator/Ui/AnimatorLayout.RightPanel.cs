@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -204,7 +203,7 @@ public static partial class AnimatorLayout
         Subhead(menu, "MESH");
         SmallRow(menu, ("MESH", ToolActionKind.ToggleMesh), ("BONES", ToolActionKind.PickMeshBones));
         Stepper(menu, "DETAIL", ToolActionKind.MeshDetailDown, ToolActionKind.MeshDetailUp);
-        SliderRow(menu, "BLEND", AnimatorSliderValue.MeshBlend, 0f, Animation.XafMesh.MaxBlend, 0f, "0",
+        SliderRow(menu, "BLEND", AnimatorSliderValue.MeshBlend, 0f, Xanadu.Model.Animation.XafMesh.MaxBlend, 0f, "0",
             "How wide a zone two bones share the mesh over, in pixels: wider bends softer");
         Subhead(menu, "WEIGHTS");
         SmallRow(menu, ("AUTO WEIGHTS", ToolActionKind.AutoWeights), ("PAINT", ToolActionKind.PaintWeights));

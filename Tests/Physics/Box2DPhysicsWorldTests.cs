@@ -3,7 +3,7 @@ using System.Linq;
 using Box2DSharp.Collision.Shapes;
 using Box2DSharp.Dynamics;
 using NUnit.Framework;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Tests.Physics;

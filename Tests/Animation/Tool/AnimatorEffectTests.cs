@@ -1,6 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Animation;
-using Xanadu.Ecs;
+using Xanadu.Model.Animation;
 using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;

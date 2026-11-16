@@ -2,12 +2,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor.Commands;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -51,7 +52,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
         foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList())
         {
             SetShown(panel, visible, buffer);
-            Outline(panel, PlayfieldRenderer.ColorFor(target), buffer);
+            Outline(panel, PlayfieldColors.ColorFor(target), buffer);
         }
 
         Query.ForEachEntity((ref button, entity) =>
@@ -88,7 +89,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
         if (!swatch.HasComponent<ButtonVisual>())
             return;
 
-        Color color = PlayfieldRenderer.ColorFor(action);
+        Color color = PlayfieldColors.ColorFor(action);
         Color normal = selected ? color : Dimmed(color);
         ref ButtonVisual visual = ref swatch.GetComponent<ButtonVisual>();
         if (visual.Normal == normal)

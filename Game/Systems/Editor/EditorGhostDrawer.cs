@@ -3,11 +3,11 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -38,7 +38,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 Vector2 size = GridPlacement.NewBlockSize(playfield, degrees, placement.BlockSize);
                 Vector2 corner = GridPlacement.Place(pointer, size, playfield, snap);
                 var block = new Rect2(view.PlayfieldToScreen(corner), size * view.Scale);
-                surface.Canvas.DrawRect(surface.Target, block, Faint(PlayfieldRenderer.BlockFill));
+                surface.Canvas.DrawRect(surface.Target, block, Faint(PlayfieldColors.BlockFill));
                 surface.Canvas.DrawBorder(
                     surface.Target,
                     block,
@@ -56,7 +56,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                     surface.Target,
                     triangle,
                     Block.DefaultOutlineWidth * view.Scale,
-                    Faint(PlayfieldRenderer.SpikeColor),
+                    Faint(PlayfieldColors.SpikeColor),
                     Faint(Block.DefaultOutlineColor));
                 break;
 
@@ -66,15 +66,15 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                     GridPlacement.NewFrictionBarHeight(playfield));
                 surface.Canvas.DrawRect(
                     surface.Target,
-                    PlayfieldRenderer.FrictionBarScreenBounds(ghostBar, view),
-                    Faint(PlayfieldRenderer.FrictionBarColor));
+                    PlayfieldMetrics.FrictionBarScreenBounds(ghostBar, view),
+                    Faint(PlayfieldColors.FrictionBarColor));
                 break;
 
             case EditorPlacementMode.Mines:
                 surface.Canvas.DrawCircle(
                     surface.Target,
                     ghost.Screen,
-                    PlayfieldRenderer.MineSize * view.Scale / 2f,
+                    PlayfieldMetrics.MineSize * view.Scale / 2f,
                     Faint(Palette.DangerBright));
                 break;
 
@@ -82,9 +82,9 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 var text = new LevelText(pointer, LevelText.Placeholder);
                 surface.Canvas.DrawTextStyled(
                     surface.Target,
-                    PlayfieldRenderer.DrawArea(PlayfieldRenderer.TextScreenBounds(text, view)),
+                    PlayfieldRenderer.DrawArea(PlayfieldMetrics.TextScreenBounds(text, view)),
                     text.Text,
-                    Faint(PlayfieldRenderer.TextColor),
+                    Faint(PlayfieldColors.TextColor),
                     Math.Max(1, (int)MathF.Round(text.Size * view.Scale)));
                 break;
 
@@ -102,7 +102,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 break;
 
             case EditorPlacementMode.Polygon:
-                surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 3f, Faint(PlayfieldRenderer.PolygonFill));
+                surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 3f, Faint(PlayfieldColors.PolygonFill));
                 break;
 
             case EditorPlacementMode.ScreenRead:
@@ -124,8 +124,8 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                     surface.Canvas,
                     surface.Target,
                     ghost.Screen,
-                    PlayfieldRenderer.StartPointRadius(view),
-                    Faint(PlayfieldRenderer.StartPointColor));
+                    PlayfieldMetrics.StartPointRadius(view),
+                    Faint(PlayfieldColors.StartPointColor));
                 break;
 
             default:
@@ -136,8 +136,8 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                     surface.Target,
                     note,
                     view.PlayfieldToScreen(notePoint),
-                    PlayfieldRenderer.NoteSize * view.Scale / 2f,
-                    Faint(PlayfieldRenderer.ColorFor(note)));
+                    PlayfieldMetrics.NoteSize * view.Scale / 2f,
+                    Faint(PlayfieldColors.ColorFor(note)));
                 break;
         }
     }
@@ -157,9 +157,9 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
             points[i] = view.PlayfieldToScreen(draft.Points[i]);
 
         if (points.Length >= 3)
-            surface.Canvas.DrawPolygon(surface.Target, points, Faint(Faint(PlayfieldRenderer.PolygonFill)));
+            surface.Canvas.DrawPolygon(surface.Target, points, Faint(Faint(PlayfieldColors.PolygonFill)));
         if (points.Length >= 2)
-            surface.Canvas.DrawPolyline(surface.Target, points, PlayfieldRenderer.PolygonFill, 2f);
+            surface.Canvas.DrawPolyline(surface.Target, points, PlayfieldColors.PolygonFill, 2f);
 
         bool closable = false;
         if (editor.TryGetComponent(out EditorPlacementGhost ghost) && ghost.Visible)
@@ -168,19 +168,19 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 surface.Target,
                 points[^1],
                 ghost.Screen,
-                Faint(PlayfieldRenderer.PolygonFill),
+                Faint(PlayfieldColors.PolygonFill),
                 2f);
             closable = points.Length >= 3 &&
                        points[0].DistanceTo(ghost.Screen) <= EditorPolygonTool.CloseRadius;
         }
 
         foreach (Vector2 point in points)
-            surface.Canvas.DrawCircle(surface.Target, point, 3f, PlayfieldRenderer.PolygonFill);
+            surface.Canvas.DrawCircle(surface.Target, point, 3f, PlayfieldColors.PolygonFill);
         surface.Canvas.DrawCircleOutline(
             surface.Target,
             points[0],
             EditorPolygonTool.CloseRadius,
-            closable ? Palette.Accent : Faint(PlayfieldRenderer.PolygonFill),
+            closable ? Palette.Accent : Faint(PlayfieldColors.PolygonFill),
             2f);
     }
 

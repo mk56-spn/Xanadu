@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 
 namespace Xanadu.Tests.Animation;
 

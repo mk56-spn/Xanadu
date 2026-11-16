@@ -1,9 +1,8 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
 using Position = Xanadu.Core.Position;
 
@@ -44,7 +43,7 @@ public sealed class EditorToolGroupsSceneTest : SceneTest
         {
             PlayfieldView view = Context.Entities.Query<EditorPlacement, PlayfieldView>()
                 .ToEntityList()[0].GetComponent<PlayfieldView>();
-            float radius = Xanadu.Systems.Playfields.PlayfieldRenderer.StartPointRadius(view);
+            float radius = Xanadu.Model.Playfields.PlayfieldMetrics.StartPointRadius(view);
             Context.Pointer.Click(new Vector2(760 + radius * 0.8f, 500));
         });
         AddWaitStep("hold", 2);

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Friflo.Engine.ECS;
 using Xanadu.Core.History;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ecs.Kinds;
 using Xanadu.Editor.History;
 

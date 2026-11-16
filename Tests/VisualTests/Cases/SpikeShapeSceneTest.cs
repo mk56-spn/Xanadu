@@ -1,7 +1,5 @@
-using Xanadu.Ecs.Components;
-using Xanadu.Ecs;
-using Xanadu.Levels;
-using Xanadu.Scenes;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.VisualTests;
 

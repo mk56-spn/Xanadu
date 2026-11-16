@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Levels;
 

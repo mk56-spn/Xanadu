@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -21,7 +22,7 @@ public static class HitEffects
         Color color, float radius, int chartIndex = -1)
     {
         entities.CreateEntity(
-            new NotePop(note, position, color, radius, PlayfieldRenderer.NotePopLifetime, chartIndex),
+            new NotePop(note, position, color, radius, PlayfieldMetrics.NotePopLifetime, chartIndex),
             EffectLayer.From(source));
         // The sparks come off the player's body, thrown on the way the hit
         // travels, from the note through the player; the pop stays on the note.
@@ -38,11 +39,11 @@ public static class HitEffects
     public static void SpawnDash(EntityStore entities, Entity noteEntity, Note note, PlayfieldView view, DashDirection heading)
     {
         Vector2 at = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-        float radius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
-        Color color = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
+        float radius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
+        Color color = GroupColor.For(noteEntity, PlayfieldColors.ColorFor(note));
         EffectLayer layer = EffectLayer.From(noteEntity);
         entities.CreateEntity(
-            new NotePop(note, at, color, radius, PlayfieldRenderer.NotePopLifetime, ChartIndex.Of(noteEntity)), layer);
+            new NotePop(note, at, color, radius, PlayfieldMetrics.NotePopLifetime, ChartIndex.Of(noteEntity)), layer);
         Vector2 way = PlayerMovementSystem.DashDirectionVector(heading);
         entities.CreateEntity(new ParticleBurst(at, GameParticles.Hit, color, heading: way));
     }

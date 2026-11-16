@@ -1,7 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Timeline;
-using Xanadu.Systems.Scenes;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Tests.Scenes;
 

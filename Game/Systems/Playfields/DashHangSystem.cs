@@ -2,9 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Systems.Playfields;

@@ -1,9 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Timing;

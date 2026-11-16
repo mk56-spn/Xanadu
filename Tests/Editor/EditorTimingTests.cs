@@ -1,6 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Editor;

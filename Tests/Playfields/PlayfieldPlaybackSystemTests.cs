@@ -1,9 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Systems.Audio;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;

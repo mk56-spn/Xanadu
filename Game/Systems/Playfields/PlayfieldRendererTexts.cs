@@ -1,18 +1,16 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws the text written into a level, in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    /// <summary>Text has no colour of its own: white shows exactly what its self modulate says.</summary>
-    public static readonly Color TextColor = Colors.White;
-
     /// <summary>
     /// Draws one level text centred on its position, at its size scaled by the
     /// view. Empty text draws nothing unless it is selected, so a cleared label
@@ -47,17 +45,4 @@ public static partial class PlayfieldRenderer
     /// </summary>
     public static Rect2 DrawArea(Rect2 bounds) => bounds.GrowIndividual(bounds.Size.X, 0, bounds.Size.X, 0);
 
-    /// <summary>The box a level text roughly fills before it is turned, on screen.</summary>
-    public static Rect2 TextScreenBounds(LevelText text, PlayfieldView view)
-    {
-        Rect2 bounds = text.Bounds;
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
-
-    /// <summary>The upright box around a level text as it is turned, on screen, for box selection.</summary>
-    public static Rect2 TextScreenHull(LevelText text, PlayfieldView view)
-    {
-        Rect2 bounds = TurnedBox.Hull(text.Bounds, text.RotationDegrees);
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
 }

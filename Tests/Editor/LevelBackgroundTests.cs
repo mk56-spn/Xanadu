@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Editor;
 

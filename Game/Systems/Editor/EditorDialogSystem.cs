@@ -6,11 +6,10 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Scenes;
 using Xanadu.Ui.Ecs.Ui;
 

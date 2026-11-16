@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Files;
 using Xanadu.Ui.Ecs.Ui;

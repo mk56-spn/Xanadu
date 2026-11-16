@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Canvas;
 using Position = Xanadu.Core.Position;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -71,9 +71,6 @@ public static partial class PlayfieldRenderer
 
     private static Color ApproachColor(Color lane, float alpha) => new(lane.R, lane.G, lane.B, alpha * lane.A * 0.75f);
 
-    /// <summary>The colour of wall notes.</summary>
-    public static readonly Color WallNoteColor = new(0.55f, 0.95f, 0.85f);
-
     /// <summary>A wall note: a flat upright slab, meant to sit on a wall's face, with a bright core line.</summary>
     private static void DrawWallShape(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
     {
@@ -83,9 +80,6 @@ public static partial class PlayfieldRenderer
         canvas.DrawBorder(rid, slab, color, Mathf.Max(1.5f, radius * 0.08f));
         canvas.DrawLine(rid, center - new Vector2(0, size.Y / 2 - radius * 0.2f), center + new Vector2(0, size.Y / 2 - radius * 0.2f), NoteEdgeColor with { A = color.A }, Mathf.Max(1f, radius * 0.1f));
     }
-
-    /// <summary>A wall note's slab, for a note of this radius: narrow and tall.</summary>
-    public static Vector2 WallNoteSize(float radius) => new(radius * 0.5f, radius * 2.6f);
 
     /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>
     public static void DrawNoteBody(
@@ -151,28 +145,6 @@ public static partial class PlayfieldRenderer
 
     private static Color Faded(Color color, float alpha) => new(color.R, color.G, color.B, alpha);
 
-    /// <summary>Radius of the approach ring at a 0..1 approach amount.</summary>
-    public static float ApproachRadius(float noteRadius, float approach) =>
-        noteRadius * (1f + Math.Clamp(approach, 0f, 1f) * 8f);
-
-    /// <summary>One, two or three dash lengths.</summary>
-    public static int DashStrengthLevel(DashStrength strength) =>
-        strength switch
-        {
-            DashStrength.Double => 2,
-            DashStrength.Triple => 3,
-            _ => 1,
-        };
-
-    /// <summary>The small badge that marks a double or triple dash; empty for a single.</summary>
-    public static string DashStrengthLabel(DashStrength strength) =>
-        strength switch
-        {
-            DashStrength.Double => "×2",
-            DashStrength.Triple => "×3",
-            _ => "",
-        };
-
     /// <summary>Draws one mine while it shows, under its own shader.</summary>
     public static void DrawMine(
         IRectCanvas canvas,
@@ -223,24 +195,4 @@ public static partial class PlayfieldRenderer
         canvas.SelectShader(0);
     }
 
-    public static Color ColorFor(Note note) =>
-        note.Kind switch
-        {
-            NoteKind.Contact => ContactBarrierColor,
-            NoteKind.Wall => WallNoteColor,
-            NoteKind.Neutral => NeutralColor,
-            NoteKind.Dash => DashColor,
-            NoteKind.Momentum => MomentumColor,
-            _ => ColorFor(note.Target),
-        };
-
-    /// <summary>The colour of an action key's notes and Contact bar; direction keys get the neutral colour.</summary>
-    public static Color ColorFor(KeybindAction action)
-    {
-        int bar = ContactCounters.BarOf(action);
-        return bar >= 0 ? ActionColors[bar] : NeutralColor;
-    }
-
-    /// <summary>The colour of Contact bar 0, 1 or 2: its action key's.</summary>
-    public static Color BarColor(int bar) => ActionColors[bar];
 }

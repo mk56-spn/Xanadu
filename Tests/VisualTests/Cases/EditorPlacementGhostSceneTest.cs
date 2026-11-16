@@ -1,7 +1,5 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Scenes;
 
 namespace Xanadu.Tests.VisualTests;
 

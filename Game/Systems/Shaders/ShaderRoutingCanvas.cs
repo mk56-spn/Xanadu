@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 

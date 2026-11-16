@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Ecs.Kinds;

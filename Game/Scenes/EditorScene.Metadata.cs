@@ -1,16 +1,14 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
-using Xanadu.Levels;
-using Xanadu.Settings;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Scenes;
 
@@ -86,7 +84,7 @@ public static class EditorSceneMetadata
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Background));
         AddColorRow(
             panelNode,
-            PlayfieldRenderer.PlayfieldBackground,
+            PlayfieldColors.PlayfieldBackground,
             EditorButtonKind.BackgroundColor,
             EditorButtonKind.ResetBackgroundColor,
             "Choose the map's background colour",
@@ -95,7 +93,7 @@ public static class EditorSceneMetadata
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Outside));
         AddColorRow(
             panelNode,
-            PlayfieldRenderer.PlayBackground,
+            PlayfieldColors.PlayBackground,
             EditorButtonKind.OutsideColor,
             EditorButtonKind.ResetOutsideColor,
             "Choose the colour around the playfield",
@@ -104,7 +102,7 @@ public static class EditorSceneMetadata
         AddMetadataLabel(panelNode, LocalizedText.Get(EditorStrings.Frame));
         AddColorRow(
             panelNode,
-            PlayfieldRenderer.FrameColor,
+            PlayfieldColors.FrameColor,
             EditorButtonKind.FrameColor,
             EditorButtonKind.ResetFrameColor,
             "Choose the colour of the playfield's frame and border line",

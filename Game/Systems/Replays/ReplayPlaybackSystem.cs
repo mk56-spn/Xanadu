@@ -3,10 +3,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Replays;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Replays;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Systems.Replays;
 

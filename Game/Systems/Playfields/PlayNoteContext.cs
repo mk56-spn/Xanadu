@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;

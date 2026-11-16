@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ecs.Kinds;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 

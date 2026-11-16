@@ -3,8 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Ui.Ecs.Ui;
 

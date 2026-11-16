@@ -1,10 +1,11 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -80,7 +81,7 @@ public sealed class EditorPolygonTool(
             EditorSnapshot before = history.Capture();
             Entity created = EditorItems.Place(
                 scene.Store,
-                LevelPolygon.FromOutline(draft.Points, PlayfieldRenderer.PolygonFill));
+                LevelPolygon.FromOutline(draft.Points, PlayfieldColors.PolygonFill));
             history.Record(before, history.Capture());
             editor.GetComponent<NoteSelection>().Note = created;
         }

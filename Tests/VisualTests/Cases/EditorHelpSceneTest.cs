@@ -1,9 +1,7 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Input;
 using Friflo.Engine.ECS;
 using Xanadu.Editor;
-using Xanadu.Ecs;
-using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;

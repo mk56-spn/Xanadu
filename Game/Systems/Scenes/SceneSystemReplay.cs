@@ -2,12 +2,11 @@ using System;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Diagnostics;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
-using Xanadu.Replays;
-using Xanadu.Scenes;
-using SceneState = Xanadu.Ecs.Components.SceneState;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
+using Xanadu.Model.Replays;
+using Xanadu.Model.Scoring;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Systems.Scenes;
 

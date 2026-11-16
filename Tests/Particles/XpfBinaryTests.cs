@@ -4,8 +4,7 @@ using System.Reflection;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Tests.Particles;
 

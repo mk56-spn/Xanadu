@@ -1,9 +1,9 @@
 using System;
 using System.IO;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor.Commands;
 using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Scenes;
 
 namespace Xanadu.Editor;

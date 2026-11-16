@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -28,15 +28,15 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         long playheadTimeMs)
     {
         Vector2 hitPosition = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-        Color hitColor = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(note));
-        float hitRadius = PlayfieldRenderer.NoteSize * view.Scale / 2f;
+        Color hitColor = GroupColor.For(noteEntity, PlayfieldColors.ColorFor(note));
+        float hitRadius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
         score.JudgementPosition = hitPosition;
         score.JudgementTimeMs = playheadTimeMs;
 
         context.Entities.CreateEntity(
             new HitTrail(
                 hitPosition,
-                PlayfieldRenderer.ColorFor(note),
+                PlayfieldColors.ColorFor(note),
                 KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
             EffectLayer.From(noteEntity));
 

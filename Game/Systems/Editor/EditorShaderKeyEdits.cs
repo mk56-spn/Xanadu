@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Linq;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Slang;
 
 namespace Xanadu.Systems.Editor;

@@ -3,13 +3,13 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -81,7 +81,7 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
     /// <summary>A wall note's hitbox in screen space: its slab, sticking out <see cref="Protrude"/> both ways.</summary>
     public static Rect2 HitBox(Vector2 noteScreen, PlayfieldView view)
     {
-        Vector2 slab = PlayfieldRenderer.WallNoteSize(PlayfieldRenderer.NoteSize * view.Scale / 2);
+        Vector2 slab = PlayfieldMetrics.WallNoteSize(PlayfieldMetrics.NoteSize * view.Scale / 2);
         Vector2 size = slab + new Vector2(Protrude * 2 * view.Scale, 0);
         return new Rect2(noteScreen - size / 2, size);
     }
@@ -99,7 +99,7 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
 
         Vector2 contact = new(face, centre.Y);
         entities.CreateEntity(new ParticleBurst(
-            contact, GameParticles.Landing, PlayfieldRenderer.WallNoteColor, new Vector2(4f, size.Y), heading: new Vector2(-side, 0)));
+            contact, GameParticles.Landing, PlayfieldColors.WallNoteColor, new Vector2(4f, size.Y), heading: new Vector2(-side, 0)));
         Pin(body, size, face, side, centre);
     }
 
@@ -122,7 +122,7 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
 
         slide.SinceParticles = 0f;
         entities.CreateEntity(new ParticleBurst(
-            new Vector2(slide.Face, centre.Y + size.Y / 2), GameParticles.Ember, PlayfieldRenderer.WallNoteColor, new Vector2(2f, 6f),
+            new Vector2(slide.Face, centre.Y + size.Y / 2), GameParticles.Ember, PlayfieldColors.WallNoteColor, new Vector2(2f, 6f),
             heading: new Vector2(-slide.Side, -1f)));
     }
 

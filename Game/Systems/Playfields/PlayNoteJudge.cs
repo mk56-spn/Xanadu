@@ -4,15 +4,16 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -37,7 +38,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         var playerRect = new Rect2(
             playerScreen - player.Size / 2,
             player.Size);
-        float mineSize = PlayfieldRenderer.MineSize * view.Scale;
+        float mineSize = PlayfieldMetrics.MineSize * view.Scale;
         long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
         TouchedMine touched = context.Entities.Cached<Mine>().EachEntity(

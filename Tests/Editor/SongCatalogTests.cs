@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Ecs.Storage;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Storage;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Editor;
 

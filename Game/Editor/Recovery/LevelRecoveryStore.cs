@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Xanadu.Core.Diagnostics;
 using Xanadu.Core.Storage;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Editor.Recovery;
 

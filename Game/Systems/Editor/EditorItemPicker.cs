@@ -4,8 +4,10 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ecs.Kinds;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -16,8 +18,8 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed class EditorItemPicker(EditorSceneQuery scene)
 {
-    private const float NoteHitRadius = PlayfieldRenderer.NoteSize / 2;
-    private const float MineHitRadius = PlayfieldRenderer.MineSize / 2;
+    private const float NoteHitRadius = PlayfieldMetrics.NoteSize / 2;
+    private const float MineHitRadius = PlayfieldMetrics.MineSize / 2;
 
     private readonly EntityStore _entities = scene.Store;
 

@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;

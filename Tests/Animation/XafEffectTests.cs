@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
 

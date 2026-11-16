@@ -1,6 +1,6 @@
 using System;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Timeline;
 
 namespace Xanadu.Tests.Animation;

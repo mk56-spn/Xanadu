@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
 

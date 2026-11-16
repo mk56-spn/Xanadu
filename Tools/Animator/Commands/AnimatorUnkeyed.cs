@@ -1,5 +1,5 @@
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 using Xanadu.Tools.Animator.Ecs;
 

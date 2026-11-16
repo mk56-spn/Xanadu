@@ -4,10 +4,14 @@ using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Ecs;
 
 namespace Xanadu.Ecs.Kinds;
 
@@ -45,7 +49,7 @@ public sealed class TextItemKind : ItemKind<LevelText, TextDocument>
     }
 
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
-        screen.Intersects(PlayfieldRenderer.TextScreenHull(Get(entity), GroupOffset.View(entity, view)));
+        screen.Intersects(PlayfieldMetrics.TextScreenHull(Get(entity), GroupOffset.View(entity, view)));
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Text;
 
@@ -129,7 +133,7 @@ public sealed class GrassItemKind : ItemKind<GrassPatch, GrassDocument>
     }
 
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
-        screen.Intersects(PlayfieldRenderer.GrassScreenBounds(Get(entity), GroupOffset.View(entity, view)));
+        screen.Intersects(PlayfieldMetrics.GrassScreenBounds(Get(entity), GroupOffset.View(entity, view)));
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Grass;
 
@@ -216,7 +220,7 @@ public sealed class FlareItemKind : ItemKind<LevelFlare, FlareDocument>
     }
 
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
-        screen.Intersects(PlayfieldRenderer.FlareScreenBounds(Get(entity), GroupOffset.View(entity, view)));
+        screen.Intersects(PlayfieldMetrics.FlareScreenBounds(Get(entity), GroupOffset.View(entity, view)));
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Flare;
 
@@ -287,7 +291,7 @@ public sealed class PolygonItemKind : ItemKind<LevelPolygon, PolygonDocument>
     public override bool Hit(Entity entity, Vector2 point, long playheadMs) => Get(entity).Contains(point);
 
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
-        screen.Intersects(PlayfieldRenderer.PolygonScreenBounds(Get(entity), GroupOffset.View(entity, view)));
+        screen.Intersects(PlayfieldMetrics.PolygonScreenBounds(Get(entity), GroupOffset.View(entity, view)));
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Polygon;
 

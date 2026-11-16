@@ -1,7 +1,7 @@
 using System;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
-using Xanadu.Systems.Shaders;
+using Xanadu.Model.Shaders;
 
 namespace Xanadu.Systems.Particles;
 

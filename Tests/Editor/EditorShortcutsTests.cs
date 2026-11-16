@@ -3,14 +3,15 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Scenes;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tests.Editor;
 

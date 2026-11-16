@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Debug;
 

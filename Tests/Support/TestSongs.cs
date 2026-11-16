@@ -1,4 +1,4 @@
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Support;
 

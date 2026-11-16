@@ -1,6 +1,6 @@
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -31,7 +31,7 @@ public static class NoteReach
     {
         float radius = OnScreen(view.Scale);
         if (character == CharacterKind.Contact)
-            radius += PlayfieldRenderer.NoteSize * view.Scale / 2f;
+            radius += PlayfieldMetrics.NoteSize * view.Scale / 2f;
 
         return playerScreen.DistanceSquaredTo(noteScreen) <= radius * radius;
     }

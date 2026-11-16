@@ -5,16 +5,17 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Input;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 
 namespace Xanadu.Systems.Playfields;
@@ -98,7 +99,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                 WallSlideSystem.End(entity, buffer);
                 // Before the note moves the player, so the copy stays where it hit.
                 HitGhostSystem.Spawn(_entities, entity);
-                Color spray = GroupColor.For(noteEntity, PlayfieldRenderer.ColorFor(movement));
+                Color spray = GroupColor.For(noteEntity, PlayfieldColors.ColorFor(movement));
                 if (movement.Kind == NoteKind.Dash)
                 {
                     HitEffects.SpawnDash(_entities, noteEntity, movement, view, heading);
@@ -140,7 +141,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
                     _entities.CreateEntity(
                         new HitTrail(
                             score.JudgementPosition,
-                            PlayfieldRenderer.ColorFor(movement),
+                            PlayfieldColors.ColorFor(movement),
                             KeybindSettings.KeyLabel(_keybinds.Get(action))),
                         EffectLayer.From(noteEntity));
                 }

@@ -3,10 +3,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -76,7 +76,7 @@ public sealed class PlayfieldDrawSystem :
 
                 // The camera scrolls the whole layer, characters and particles
                 // included; what stays put on screen is drawn inside what it shows.
-                Rect2 frame = PlayfieldRenderer.FieldRect(view, playfield);
+                Rect2 frame = PlayfieldMetrics.FieldRect(view, playfield);
                 if (entity.TryGetComponent(out PlayCamera camera))
                 {
                     shift = camera.LayerShift;

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Editor;
 

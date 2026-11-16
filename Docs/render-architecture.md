@@ -188,7 +188,7 @@ a buffered character on (step 12).
 
 Before step 1 the animator had this (and the editor had none of it):
 - `XafAttachment.ZOrder` as the layer, `MinLayer = -4096`,
-  `MaxLayer = 4096` (`Game/Animation/XafPackage.cs`), with list order as the
+  `MaxLayer = 4096` (`Model/Animation/XafPackage.cs`), with list order as the
   tiebreak.
 - `ArtDrawOrder.Of(layer, order)`: the banded draw index. Gone since step 1;
   `DrawOrder.Banded` (`Core/Layering/`) replaced it.
@@ -216,7 +216,7 @@ The shared core (built in step 1 under `Core/Layering/`):
 Each part as it was planned and then built, with the design choices made on
 the way. Code comments cite these by step number. Written while Godot was the
 engine: where the drawing side has moved to the host, §5 and `Docs/host.md`
-are current. Data files use the versioned binary formats (`Game/Levels/XmfBinary.cs`
+are current. Data files use the versioned binary formats (`Model/Levels/XmfBinary.cs`
 and friends), never JSON.
 
 Step 0 was a spike of the Godot primitives (CanvasGroup fades, z escaping
@@ -252,8 +252,8 @@ its results shaped §5 and are in git history.
   `Tests/Layering/DrawStackTests.cs`.
 
 ### Step 2: Layer and z on every level item
-- Add `Layer` and `Z` to every item component (`Game/Ecs/Components/PlayfieldComponents.cs`,
-  `GrassComponents.cs`, …), their documents (`Game/Levels/LevelDocument.cs`), the
+- Add `Layer` and `Z` to every item component (`Model/Ecs/Components/PlayfieldComponents.cs`,
+  `GrassComponents.cs`, …), their documents (`Model/Levels/LevelDocument.cs`), the
   mappers, and the XMF binary (bump the version, no migration).
 - Default layer for new items depends on the kind (Q10 settled). Keep this
   in one table in code so it's easy to tune:
@@ -397,7 +397,7 @@ its results shaped §5 and are in git history.
   playhead.
 
 **Done 2026-11-05.**
-- `GroupOffset` (`Game/Ecs/Components/GroupComponents.cs`) replaces `GroupBase`: how
+- `GroupOffset` (`Model/Ecs/Components/GroupComponents.cs`) replaces `GroupBase`: how
   far the groups move an item at the playhead. `GroupModulationSystem` now runs
   for play **and** the editor and only writes `GroupOffset`, `GroupColor` and
   `GroupOutlineColor`; it never touches an item's position, and removes all
@@ -550,7 +550,7 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
 - Tests: round trip.
 
 **Done 2026-11-05.**
-- Runtime: `LevelLayers` (`Game/Ecs/Components/LevelLayerComponents.cs`) on the
+- Runtime: `LevelLayers` (`Model/Ecs/Components/LevelLayerComponents.cs`) on the
   level's entity beside `LevelGroups`: a `Dictionary<int, LevelLayer>`. A
   `LevelLayer` has `Name`, `Pass` (`LayerPassKind`: None, BackgroundReader,
   SelfContained), `PassShader` (slot, 0 for none) and `PassKeys`, a list of
@@ -562,7 +562,7 @@ beside the player, hop over it to ±1 and push that side out) and DELETE
   (`Prune`). The editor scene always has the component.
 - Documents: `LayerDocument` (Number, Name, Pass, PassShader, PassKeys) and
   `ShaderKeyDocument` (Param, Time, `float[]` Value, Ease) in
-  `Game/Levels/LevelDocument.cs`. `IChartItems.Layers` is on both `LevelDocument`
+  `Model/Levels/LevelDocument.cs`. `IChartItems.Layers` is on both `LevelDocument`
   and `XmfVariant`, and `LevelStore` copies it both ways between them.
 - XMF: optional chunk `LayerTable` (18) in maps and (13) in mapsets (per
   variant), written by `Game/Levels/XmfLayerTable.cs` in layer order. Strings are
@@ -628,7 +628,7 @@ effect's first frame the group is still where the fade out left it.
 namespace `Xanadu.Rendering`) so the canvas interface can name it: `Mix`, `Add`,
 `Sub`, `Mul`, `Premultiplied`, with `BlendModes.All` / `Step` / `Name` for the
 inspector.
-- **Data:** `ItemBlend(BlendMode)` (`Game/Ecs/Components/BlendComponents.cs`) is on
+- **Data:** `ItemBlend(BlendMode)` (`Model/Ecs/Components/BlendComponents.cs`) is on
   every item from creation (`EditorItems.Create`, so an edit never adds a
   component), carried by the item documents through `IBlendedDocument`, the
   mapper, undo snapshots and the clipboard. XMF has an optional `ItemBlends`
@@ -930,7 +930,7 @@ vanishing.
 - Check: one screenshot of a screen-reading item before and after a region.
 
 **Done 2026-11-06.**
-- **Item.** `ScreenReadRegion(Position, Size)` (`Game/Ecs/Components/ScreenReadComponents.cs`)
+- **Item.** `ScreenReadRegion(Position, Size)` (`Model/Ecs/Components/ScreenReadComponents.cs`)
   is a placed rect with an `ItemLayer` like every other item. It draws no
   body. The editor item plumbing carries it: `EditorItems` position read/write,
   `GridPlacement` bounds (so the resize handles work), picking and marquee,
@@ -984,7 +984,7 @@ smaller, so it fits where it's placed.
 - Tests: the animator layer tests stay green.
 
 **Done 2026-11-06.** The animator now states its order once, in the shared vocabulary.
-- **One order rule.** `Game/Animation/AnimatorDrawOrder` gives every piece its draw
+- **One order rule.** `Model/Animation/AnimatorDrawOrder` gives every piece its draw
   index from the shared `DrawOrder`: an attachment's place in the attachment
   list, then cloth, chains and effects in bands after it on the same layer. It
   also owns the layer panel's row slot, so `AnimatorLayerCommands` and

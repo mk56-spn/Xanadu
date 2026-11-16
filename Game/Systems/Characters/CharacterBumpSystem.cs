@@ -4,11 +4,10 @@ using Box2DSharp.Dynamics;
 using Box2DSharp.Dynamics.Contacts;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 
 namespace Xanadu.Systems.Characters;

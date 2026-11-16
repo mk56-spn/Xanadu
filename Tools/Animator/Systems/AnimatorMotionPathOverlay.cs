@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Tools.Animator.Ecs;

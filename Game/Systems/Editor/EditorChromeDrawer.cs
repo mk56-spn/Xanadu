@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -33,14 +33,14 @@ public sealed class EditorChromeDrawer(EditorDrawSurface surface)
         surface.Canvas.DrawRect(
             surface.Target,
             new Rect2(header.Position.X, header.End.Y - 1, header.Size.X, 1),
-            PlayfieldRenderer.BorderColor);
+            PlayfieldColors.BorderColor);
 
         Rect2 footer = EditorLayout.FooterRect(view);
         surface.Canvas.DrawRect(surface.Target, footer, PanelBackground);
         surface.Canvas.DrawRect(
             surface.Target,
             new Rect2(footer.Position.X, footer.Position.Y, footer.Size.X, 1),
-            PlayfieldRenderer.BorderColor);
+            PlayfieldColors.BorderColor);
 
         DrawZoomLens(view);
     }
@@ -48,7 +48,7 @@ public sealed class EditorChromeDrawer(EditorDrawSurface surface)
     private void DrawZoomLens(PlayfieldView view)
     {
         Vector2 center = EditorLayout.ZoomLensCenter(view);
-        Color color = PlayfieldRenderer.DimTextColor;
+        Color color = PlayfieldColors.DimTextColor;
         const float radius = 5f;
 
         surface.Canvas.DrawLine(

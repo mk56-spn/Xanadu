@@ -2,14 +2,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
@@ -18,6 +17,7 @@ using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -246,10 +246,10 @@ public sealed class PlayNoteInputSystemTests
         Assert.That(pops, Has.Count.EqualTo(1));
         NotePop pop = pops[0].GetComponent<NotePop>();
         Assert.That(pop.Position, Is.EqualTo(new Vector2(500, 500)));
-        Assert.That(pop.Radius, Is.EqualTo(PlayfieldRenderer.NoteSize / 2f));
+        Assert.That(pop.Radius, Is.EqualTo(PlayfieldMetrics.NoteSize / 2f));
         Assert.That(pop.Age, Is.GreaterThanOrEqualTo(0f));
         Assert.That(pop.Age, Is.LessThan(pop.Lifetime));
-        Assert.That(pop.Color, Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.Action2)));
+        Assert.That(pop.Color, Is.EqualTo(PlayfieldColors.ColorFor(KeybindAction.Action2)));
         Assert.That(_store.Query<Note>().Count, Is.Zero);
     }
 

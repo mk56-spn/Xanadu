@@ -1,6 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.History;
 using Xanadu.Tools.Animator.Ecs;
 

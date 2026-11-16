@@ -3,10 +3,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Physics;
 
@@ -97,8 +97,8 @@ public sealed class FrictionBarSystem(Box2DPhysicsWorld physics)
 
     private static void Burst(Entity bar, PlayfieldView view, int amount)
     {
-        Rect2 screen = PlayfieldRenderer.FrictionBarScreenBounds(bar.GetComponent<FrictionBar>(), GroupOffset.View(bar, view));
-        Color tint = GroupColor.For(bar, PlayfieldRenderer.FrictionBarColor);
+        Rect2 screen = PlayfieldMetrics.FrictionBarScreenBounds(bar.GetComponent<FrictionBar>(), GroupOffset.View(bar, view));
+        Color tint = GroupColor.For(bar, PlayfieldColors.FrictionBarColor);
         for (int i = 0; i < amount; i++)
             bar.Store.CreateEntity(new ParticleBurst(screen.GetCenter(), GameParticles.Ember, tint, screen.Size));
     }

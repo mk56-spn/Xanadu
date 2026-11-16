@@ -7,11 +7,11 @@ using NUnit.Framework;
 using Xanadu.Core.Timeline;
 using Xanadu.Tests.Support;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Editor;
 
 namespace Xanadu.Tests.Editor;

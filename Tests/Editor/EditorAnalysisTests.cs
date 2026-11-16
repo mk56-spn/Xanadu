@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor.Analysis;
+using Xanadu.Model.Analysis;
 
 namespace Xanadu.Tests.Editor;
 

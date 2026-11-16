@@ -1,19 +1,15 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    public const float NotePopLifetime = 0.32f;
-
-    /// <summary>How much bigger a hit pop grows by the end of its life.</summary>
-    private const float PopGrowth = 0.6f;
-
     /// <summary>How far the shockwave travels past the note's edge, as a share of the note's radius.</summary>
     private const float RingGrowth = 1.6f;
 
@@ -86,17 +82,4 @@ public static partial class PlayfieldRenderer
         canvas.SelectCommonShader("");
     }
 
-    /// <summary>The note's radius after <paramref name="t"/> of its pop, 0..1: a fast, soft swell.</summary>
-    public static float NotePopRadius(float radius, float t) =>
-        radius * (1f + PopGrowth * PopSwell(t));
-
-    /// <summary>How far through its swell a pop is at <paramref name="t"/> of its life, 0..1.</summary>
-    public static float PopSwell(float t)
-    {
-        float clamped = Math.Clamp(t, 0f, 1f);
-        return 1f - (1f - clamped) * (1f - clamped);
-    }
-
-    /// <summary>Remaining opacity of a pop at <paramref name="t"/> of its life, 0..1.</summary>
-    public static float NotePopAlpha(float t) => 1f - Math.Clamp(t, 0f, 1f);
 }

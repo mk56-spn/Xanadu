@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Tools.Animator.Ui;
 
 namespace Xanadu.Tools.Animator.Ecs;

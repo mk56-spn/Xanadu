@@ -1,10 +1,8 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Input;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Scenes;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;

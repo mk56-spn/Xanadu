@@ -1,17 +1,14 @@
 using Xanadu.Core.Timeline;
 using Xanadu.Ui.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
 using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
-using Xanadu.Levels;
-using Xanadu.Scenes;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 

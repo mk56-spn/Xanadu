@@ -1,8 +1,7 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Physics;

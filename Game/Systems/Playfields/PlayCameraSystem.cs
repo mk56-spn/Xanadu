@@ -2,10 +2,10 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -67,7 +67,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
     /// </summary>
     public static Vector2 Target(PlayCamera camera, Vector2 player, PlayfieldView view, Playfield playfield)
     {
-        Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        Rect2 field = PlayfieldMetrics.FieldRect(view, playfield);
         return new Vector2(
             Axis(player.X, field.Position.X, field.Size.X, camera.Viewport.Position.X, camera.Viewport.Size.X),
             Axis(player.Y, field.Position.Y, field.Size.Y, camera.Viewport.Position.Y, camera.Viewport.Size.Y));

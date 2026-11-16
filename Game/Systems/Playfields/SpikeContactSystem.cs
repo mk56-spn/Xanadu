@@ -3,10 +3,10 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -63,7 +63,7 @@ public sealed class SpikeContactSystem : QuerySystem<Player, Position, Playfield
         _entities.CreateEntity(new ParticleBurst(
             PlayerSmoothing.DrawnPosition(playfield),
             GameParticles.Shatter,
-            PlayfieldRenderer.PlayerColor,
+            PlayfieldColors.PlayerColor,
             size));
 
         if (playfield.TryGetComponent(out PhysicsBody body))

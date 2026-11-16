@@ -1,4 +1,4 @@
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 
 namespace Xanadu.Tools.Animator.Files;
 

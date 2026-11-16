@@ -1,6 +1,6 @@
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Levels;
 

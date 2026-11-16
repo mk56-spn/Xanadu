@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Ecs.Kinds;
 
 /// <summary>Notes: timed, picked by a square the note's size, pasted at the playhead.</summary>
 public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
 {
-    private const float HitRadius = PlayfieldRenderer.NoteSize / 2;
+    private const float HitRadius = PlayfieldMetrics.NoteSize / 2;
 
     public override string Name => "note";
 
@@ -47,7 +48,7 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
             return false;
         }
 
-        return screen.Intersects(TimedKinds.Square(entity, note.Position, PlayfieldRenderer.NoteSize, view));
+        return screen.Intersects(TimedKinds.Square(entity, note.Position, PlayfieldMetrics.NoteSize, view));
     }
 
     protected override int Compare(in Note a, in Note b)
@@ -114,7 +115,7 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
 /// <summary>Mines: timed hazards, picked like notes by their own size.</summary>
 public sealed class MineItemKind : ItemKind<Mine, MineDocument>
 {
-    private const float HitRadius = PlayfieldRenderer.MineSize / 2;
+    private const float HitRadius = PlayfieldMetrics.MineSize / 2;
 
     public override string Name => "mine";
 
@@ -144,7 +145,7 @@ public sealed class MineItemKind : ItemKind<Mine, MineDocument>
         if (MineFade.Alpha(mine, playheadMs) <= 0.05f || !EditorItemPicker.IsInside(mine.Position, playfield))
             return false;
 
-        return screen.Intersects(TimedKinds.Square(entity, mine.Position, PlayfieldRenderer.MineSize, view));
+        return screen.Intersects(TimedKinds.Square(entity, mine.Position, PlayfieldMetrics.MineSize, view));
     }
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.Mine;
@@ -178,7 +179,7 @@ public sealed class MineItemKind : ItemKind<Mine, MineDocument>
 /// <summary>Practice start points: timed, untinted, drawn only in the editor.</summary>
 public sealed class StartPointItemKind : ItemKind<StartPoint, StartPointDocument>
 {
-    private const float HitRadius = PlayfieldRenderer.NoteSize / 2;
+    private const float HitRadius = PlayfieldMetrics.NoteSize / 2;
 
     public override string Name => "start point";
 

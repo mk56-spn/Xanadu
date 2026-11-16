@@ -4,11 +4,11 @@ using NUnit.Framework;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.History;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 

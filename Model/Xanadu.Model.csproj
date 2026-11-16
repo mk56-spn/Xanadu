@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- What the game is: components, level and rig data, settings, shared sizes and colours. No systems. -->
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+    <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+    <PackageReference Include="Box2DSharp" Version="0.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <InternalsVisibleTo Include="Xanadu.Tests" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>

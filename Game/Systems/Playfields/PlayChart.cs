@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -29,12 +30,12 @@ public static class PlayChart
         for (int i = 0; i < notes.Count; i++)
         {
             Note note = notes[i].GetComponent<Note>();
-            Color colour = GroupColor.For(notes[i], PlayfieldRenderer.ColorFor(note));
+            Color colour = GroupColor.For(notes[i], PlayfieldColors.ColorFor(note));
             chart[i] = new ChartNote
             {
                 Place = new Vector4(note.Position.X, note.Position.Y, 0, 0),
                 Colour = new Vector4(colour.R, colour.G, colour.B, colour.A),
-                Timing = new Vector4(note.TimeMs / 1000f, (float)note.Kind, (float)note.Target - (float)Settings.KeybindAction.Action1, i),
+                Timing = new Vector4(note.TimeMs / 1000f, (float)note.Kind, (float)note.Target - (float)KeybindAction.Action1, i),
             };
             notes[i].AddComponent(new ChartIndex(i));
         }

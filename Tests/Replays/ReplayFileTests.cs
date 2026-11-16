@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Replays;
-using Xanadu.Settings;
+using Xanadu.Model.Replays;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Tests.Replays;
 

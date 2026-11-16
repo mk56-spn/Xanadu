@@ -1,9 +1,9 @@
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -22,7 +22,7 @@ public sealed class EditorFieldDrawer(EditorDrawSurface surface)
             EditorBackground);
 
         Rect2 area = EditorViewport.Area(view.ScreenSize);
-        Rect2 field = PlayfieldRenderer.FieldRect(view, playfield);
+        Rect2 field = PlayfieldMetrics.FieldRect(view, playfield);
         if (frame.Outside is { } around)
             surface.Canvas.DrawRect(surface.Target, area, around);
         bool grid = ViewportGrid.IsVisible(surface.Entities);

@@ -1,8 +1,7 @@
 using System;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Storage;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Systems.Characters;
 

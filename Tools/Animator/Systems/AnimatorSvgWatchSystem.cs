@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;
 

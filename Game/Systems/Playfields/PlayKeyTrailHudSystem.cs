@@ -4,11 +4,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -49,7 +49,7 @@ public sealed class PlayKeyTrailHudSystem : QuerySystem<Playhead, KeyTrail, KeyT
             for (int lane = 0; lane < _lanes.Length && lane < hud.Keys.Length; lane++)
             {
                 KeybindAction action = KeybindSettings.Actions[lane];
-                Color color = PlayfieldRenderer.ColorFor(action);
+                Color color = PlayfieldColors.ColorFor(action);
                 float intensity = Math.Clamp(trail.Get(action), 0f, 1f);
                 UiText.SetFill(hud.Keys[lane], intensity > 0f
                     ? new Color(color.R, color.G, color.B, 0.18f + intensity * 0.45f)

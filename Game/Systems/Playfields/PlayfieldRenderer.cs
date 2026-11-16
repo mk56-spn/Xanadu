@@ -3,54 +3,20 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Shaders;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using Position = Xanadu.Core.Position;
 using Rect2 = Xanadu.Core.Maths.Rect2;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Shared playfield geometry and drawing used by editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    public static readonly Color PlayBackground = Palette.Stage;
-    public static readonly Color PlayfieldBackground = Palette.Stage;
-    public static readonly Color BorderColor = Palette.BorderStrong;
-    public static readonly Color GridColor = CanvasGrid.LineColor;
-    public static readonly Color AxisColor = CanvasGrid.AxisColor;
-    public static readonly Color AccentColor = Palette.Accent;
-    public static readonly Color DimTextColor = Palette.TextDim;
-    public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
-    public static readonly Color PlayerColor = Palette.Text;
-    public static readonly Color QueueColor = Palette.Info;
-    public static readonly Color ContactBarrierColor = Palette.TextBright;
-    public static readonly Color NeutralColor = Palette.TextBright;
-    public static readonly Color DashColor = Palette.Cyan;
-    public static readonly Color MomentumColor = Palette.Violet;
-    public static readonly Color GuideColor = Palette.Text;
-    public static readonly Color StartPointColor = Palette.SuccessBright;
-
-    public const float MineSize = 18;
-
-    /// <summary>The three action colours, one per action key; they only need to be told apart at a glance.</summary>
-    private static readonly Color[] ActionColors =
-    {
-        Palette.Pink,
-        Palette.Accent,
-        Palette.Lime,
-    };
-
-    public const float NoteSize = 72;
-
-    public static Rect2 FieldRect(PlayfieldView view, Playfield playfield) =>
-        new(
-            view.ScreenOrigin,
-            new Vector2(playfield.Width * view.Scale, playfield.Height * view.Scale));
-
     public static void DrawPlay(
         IRectCanvas canvas,
         Handle rid,
@@ -111,8 +77,6 @@ public static partial class PlayfieldRenderer
     public const float FrameMinPixels = 3f;
 
     public const float FrameMaxPixels = 12f;
-
-    public static readonly Color FrameColor = Palette.SurfaceAlt;
 
     /// <summary>The frame's width on screen for a playfield drawn at <paramref name="scale"/>.</summary>
     public static float FramePixels(float scale) =>

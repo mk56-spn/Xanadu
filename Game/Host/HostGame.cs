@@ -9,14 +9,16 @@ using MoonWorks.Graphics;
 using MoonWorks.Input;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Systems;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Ecs;
 
 namespace Xanadu.Host;
 

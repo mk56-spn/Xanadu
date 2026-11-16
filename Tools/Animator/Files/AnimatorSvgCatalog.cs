@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Storage;
 
 namespace Xanadu.Tools.Animator.Files;

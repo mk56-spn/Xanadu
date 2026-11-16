@@ -1,8 +1,6 @@
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
-using Xanadu.Levels;
-using Xanadu.Scenes;
+using Xanadu.Model.Levels;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.VisualTests;

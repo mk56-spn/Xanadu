@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;

@@ -3,18 +3,16 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws polygon items, in both editor and play modes.</summary>
 public static partial class PlayfieldRenderer
 {
-    /// <summary>A new polygon's fill.</summary>
-    public static readonly Color PolygonFill = new("#7aa2f7");
-
     /// <summary>
     /// Fills one polygon item, each primitive in its own colour (self modulate
     /// and group fades applied) and with its own shader, else the item's. A
@@ -88,10 +86,4 @@ public static partial class PlayfieldRenderer
             canvas.SelectShader(primitive.Shader.IsNone ? itemSlot : primitive.Shader.Slot, blend);
     }
 
-    /// <summary>The upright box around a polygon item, on screen.</summary>
-    public static Rect2 PolygonScreenBounds(LevelPolygon polygon, PlayfieldView view)
-    {
-        Rect2 bounds = polygon.Bounds;
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
 }

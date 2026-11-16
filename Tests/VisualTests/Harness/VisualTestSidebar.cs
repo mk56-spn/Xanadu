@@ -6,12 +6,10 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Ecs;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Ui;
-using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;

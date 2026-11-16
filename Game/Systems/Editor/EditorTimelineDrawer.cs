@@ -4,13 +4,13 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -52,7 +52,7 @@ public sealed class EditorTimelineDrawer
         TimelineView timeline = frame.Timeline;
         Rect2 ruler = EditorLayout.RulerRect(view);
         _surface.Canvas.DrawRect(_surface.Target, ruler, Palette.SurfaceDeep);
-        _surface.Canvas.DrawBorder(_surface.Target, ruler, PlayfieldRenderer.BorderColor, 1);
+        _surface.Canvas.DrawBorder(_surface.Target, ruler, PlayfieldColors.BorderColor, 1);
 
         if (playhead.DurationMs <= 0)
         {
@@ -60,7 +60,7 @@ public sealed class EditorTimelineDrawer
                 _surface.Target,
                 ruler,
                 "Load a song to enable the timeline",
-                PlayfieldRenderer.DimTextColor);
+                PlayfieldColors.DimTextColor);
             return;
         }
 
@@ -86,7 +86,7 @@ public sealed class EditorTimelineDrawer
             _surface.Canvas.DrawRect(
                 _surface.Target,
                 bounds,
-                PlayfieldRenderer.ColorFor(entity.GetComponent<Note>()));
+                PlayfieldColors.ColorFor(entity.GetComponent<Note>()));
 
             if (frame.Selection.Contains(entity))
             {
@@ -95,7 +95,7 @@ public sealed class EditorTimelineDrawer
                     new Rect2(
                         bounds.Position - new Vector2(1.5f, 1.5f),
                         bounds.Size + new Vector2(3, 3)),
-                    PlayfieldRenderer.SelectedNoteColor,
+                    PlayfieldColors.SelectedNoteColor,
                     1.5f);
             }
         }
@@ -108,7 +108,7 @@ public sealed class EditorTimelineDrawer
         new(22f, MainSnapColor, 2f),
         new(15f, HalfSnapColor, 2f),
         new(10f, QuarterSnapColor),
-        new(5f, PlayfieldRenderer.GridColor));
+        new(5f, PlayfieldColors.GridColor));
 
     private static TimelineAxis Axis(Rect2 ruler, long windowStart, long windowEnd) =>
         new(ruler, windowStart, windowEnd);
@@ -151,12 +151,12 @@ public sealed class EditorTimelineDrawer
             _surface.Canvas.DrawRect(
                 _surface.Target,
                 new Rect2(x, ruler.Position.Y, 2, ruler.Size.Y),
-                PlayfieldRenderer.SelectedNoteColor);
+                PlayfieldColors.SelectedNoteColor);
 
             string label = point.BeatsPerBar == 4
                 ? $"{TempoText.Bpm(point.Bpm)} BPM"
                 : $"{TempoText.Bpm(point.Bpm)} BPM {point.BeatsPerBar}/4";
-            DrawMarkerTag(ruler, x + 2, label, PlayfieldRenderer.SelectedNoteColor, rightOfLine: true);
+            DrawMarkerTag(ruler, x + 2, label, PlayfieldColors.SelectedNoteColor, rightOfLine: true);
         }
     }
 
@@ -172,7 +172,7 @@ public sealed class EditorTimelineDrawer
             if (start.TimeMs < windowStart || start.TimeMs > windowEnd)
                 continue;
 
-            Color color = selection.Contains(entity) ? Colors.White : PlayfieldRenderer.StartPointColor;
+            Color color = selection.Contains(entity) ? Colors.White : PlayfieldColors.StartPointColor;
             float x = Axis(ruler, windowStart, windowEnd).ClampedX(start.TimeMs);
             _surface.Canvas.DrawRect(
                 _surface.Target,

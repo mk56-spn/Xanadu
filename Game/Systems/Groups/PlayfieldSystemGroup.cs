@@ -1,13 +1,12 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using System;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Characters;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Particles;
 using Xanadu.Systems.Physics;

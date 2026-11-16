@@ -1,5 +1,5 @@
 using System;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Ecs;
 

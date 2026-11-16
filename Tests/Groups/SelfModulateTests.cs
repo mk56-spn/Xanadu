@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;

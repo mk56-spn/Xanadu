@@ -1,18 +1,16 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>Draws start points, which are the size of a note so they read at any zoom.</summary>
 public static partial class PlayfieldRenderer
 {
-    /// <summary>A start point's radius on screen: a note's.</summary>
-    public static float StartPointRadius(PlayfieldView view) => NoteSize * view.Scale / 2f;
-
     /// <summary>A start point's ring and "S", at <paramref name="radius"/> around <paramref name="center"/>.</summary>
     public static void DrawStartPointBody(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
     {

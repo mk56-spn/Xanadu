@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -451,10 +450,10 @@ public static partial class AnimatorLayout
         refs.Ui.BoneBendButton = joint[1];
         refs.Ui.BoneLimitButton = joint[2];
         SliderRow(menu, "MIN \u00b0", AnimatorSliderValue.LimitMin, -180f, 180f,
-            -Mathf.RadToDeg(Animation.XafJointLocks.DefaultLimit), "0",
+            -Mathf.RadToDeg(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the negative way from rest; turn LIMIT on first", inner);
         SliderRow(menu, "MAX \u00b0", AnimatorSliderValue.LimitMax, -180f, 180f,
-            Mathf.RadToDeg(Animation.XafJointLocks.DefaultLimit), "0",
+            Mathf.RadToDeg(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the positive way from rest; turn LIMIT on first", inner);
 
         CardSubhead(menu, "BONE");

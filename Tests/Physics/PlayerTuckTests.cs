@@ -2,8 +2,7 @@ using Box2DSharp.Collision;
 using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 

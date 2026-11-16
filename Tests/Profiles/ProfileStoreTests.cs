@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Profiles;
-using Xanadu.Scenes;
+using Xanadu.Model.Profiles;
+using Xanadu.Model.Scoring;
 
 namespace Xanadu.Tests.Profiles;
 

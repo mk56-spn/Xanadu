@@ -4,7 +4,6 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
 using Xanadu.Systems.Groups;
 using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;

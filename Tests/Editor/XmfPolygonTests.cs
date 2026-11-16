@@ -4,7 +4,7 @@ using NUnit.Framework;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Editor;
 

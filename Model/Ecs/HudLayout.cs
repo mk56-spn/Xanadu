@@ -1,0 +1,60 @@
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
+using Xanadu.Ui.Systems.Ui;
+using Xanadu.Ui.Systems.Interaction;
+using Position = Xanadu.Core.Position;
+
+namespace Xanadu.Model.Ecs;
+
+/// <summary>One movable/visibility-toggleable group of play HUD entities.</summary>
+public sealed class HudItemLayout(
+    string id,
+    Vector2 anchor,
+    Rect2 bounds)
+{
+    public string Id = id;
+    public Vector2 Anchor = anchor;
+    public Rect2 Bounds = bounds;
+    public Vector2 Offset;
+    public bool Visible = true;
+    public bool Initialized;
+    public Entity Handle;
+    public readonly List<Entity> Members = new();
+    public readonly List<Vector2> BasePositions = new();
+}
+
+/// <summary>Play HUD layout metadata attached to the playfield entity.</summary>
+public struct HudLayout : IComponent
+{
+    public HudLayout() { }
+
+    public List<HudItemLayout> Items = new();
+    public UiSelectionSet Selection = new();
+    public bool Editing;
+
+    public HudItemLayout Add(
+        string id,
+        Vector2 anchor,
+        Rect2 bounds,
+        params Entity[] members)
+    {
+        var item = new HudItemLayout(id, anchor, bounds);
+        foreach (Entity member in members)
+        {
+            if (member.IsNull)
+                continue;
+
+            item.Members.Add(member);
+            item.BasePositions.Add(
+                member.HasComponent<Position>()
+                    ? member.GetComponent<Position>().Value
+                    : anchor);
+        }
+
+        if (members.Length > 0)
+            item.Handle = members[0];
+        Items.Add(item);
+        return item;
+    }
+}

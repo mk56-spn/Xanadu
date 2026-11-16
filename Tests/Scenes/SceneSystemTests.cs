@@ -7,13 +7,14 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Input;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Scenes;
-using Xanadu.Profiles;
-using Xanadu.Settings;
+using Xanadu.Model.Scoring;
+using Xanadu.Model.Profiles;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
@@ -22,6 +23,7 @@ using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Layout;
 using Xanadu.Ui.Systems.Ui;
 using Position = Xanadu.Core.Position;
+using Xanadu.Ecs;
 
 namespace Xanadu.Tests.Scenes;
 

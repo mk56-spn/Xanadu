@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;

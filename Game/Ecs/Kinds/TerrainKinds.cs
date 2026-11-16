@@ -2,10 +2,13 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Ecs;
 
 namespace Xanadu.Ecs.Kinds;
 
@@ -225,7 +228,7 @@ public sealed class FrictionBarItemKind : ItemKind<FrictionBar, FrictionBarDocum
         Get(entity).Bounds.Grow(FrictionBar.Thickness).HasPoint(point);
 
     public override bool InMarquee(Entity entity, Rect2 screen, PlayfieldView view, Playfield playfield, long playheadMs) =>
-        screen.Intersects(PlayfieldRenderer.FrictionBarScreenBounds(Get(entity), GroupOffset.View(entity, view)));
+        screen.Intersects(PlayfieldMetrics.FrictionBarScreenBounds(Get(entity), GroupOffset.View(entity, view)));
 
     public override PlayfieldDrawKind? DrawKind => PlayfieldDrawKind.FrictionBar;
 

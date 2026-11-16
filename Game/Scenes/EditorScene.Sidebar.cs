@@ -1,16 +1,15 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
-using Xanadu.Levels;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Scenes;
 
@@ -346,7 +345,7 @@ public static class EditorSceneSidebar
                     BlockBrushSize.Platform => "A platform: two cells wide and one high",
                     _ => "A block one cell square; the default",
                 });
-            button.Rect(PlayfieldRenderer.BlockFill, size: BlockPreviewSize(size));
+            button.Rect(PlayfieldColors.BlockFill, size: BlockPreviewSize(size));
         }
     }
 
@@ -428,7 +427,7 @@ public static class EditorSceneSidebar
         for (int bar = 0; bar < ContactCounters.Bars; bar++)
         {
             UiNode row = costSection.Row().Size(inner, 28).Gap(6);
-            row.Text($"BAR {bar + 1}: 0", 12, PlayfieldRenderer.BarColor(bar), TextAlign.Left)
+            row.Text($"BAR {bar + 1}: 0", 12, PlayfieldColors.BarColor(bar), TextAlign.Left)
                 .Size(inner - stepWidth * 2 - 12, 28)
                 .With(new EditorReadout(readouts[bar]));
             row.Button("−", 12, SceneUi.MutedButtonColor)
@@ -465,14 +464,14 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             // Held off the viewport's corner, outlined in the picked key's colour.
             .Anchor(new Vector2(1, 0), margin: NoteElementsMargin)
-            .Border(PlayfieldRenderer.ColorFor(KeybindSettings.ActionKeys[0]), NoteElementsBorder)
+            .Border(PlayfieldColors.ColorFor(KeybindSettings.ActionKeys[0]), NoteElementsBorder)
             .With(new EditorNoteBarPanel());
 
         EditorSceneUi.SidebarLabel(box, "ACTION KEY", inner, 12);
         UiNode swatches = box.Row().Size(inner, swatchSize).Gap(swatchGap);
         foreach (KeybindAction action in KeybindSettings.ActionKeys)
         {
-            Color color = PlayfieldRenderer.ColorFor(action);
+            Color color = PlayfieldColors.ColorFor(action);
             swatches.Rect(color, size: new Vector2(swatchSize, swatchSize))
                 .Input()
                 .With(ButtonVisual.Create(color))

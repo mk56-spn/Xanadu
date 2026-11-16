@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using static Xanadu.Model.Playfields.PlayfieldColors;
+using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -70,13 +72,6 @@ public static partial class PlayfieldRenderer
             rid,
             System.Runtime.InteropServices.CollectionsMarshal.AsSpan(GrassPoints),
             System.Runtime.InteropServices.CollectionsMarshal.AsSpan(GrassColors));
-    }
-
-    /// <summary>The upright box around a grass patch's turned box, on screen.</summary>
-    public static Rect2 GrassScreenBounds(GrassPatch patch, PlayfieldView view)
-    {
-        Rect2 bounds = TurnedBox.Hull(patch.Bounds, patch.RotationDegrees);
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
     }
 
     /// <summary>Outlines a turned box on screen, for a selected item that is not upright.</summary>

@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Scoring;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Scoring;
 using Xanadu.Strings;
 using Xanadu.Systems.Playfields;
-using Xanadu.Systems.Scenes;
+using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;

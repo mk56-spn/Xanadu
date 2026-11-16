@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using Xanadu.Core.Timeline;
-using Xanadu.Levels;
-using Xanadu.Ecs.Storage;
+using Xanadu.Model.Levels;
+using Xanadu.Model.Ecs.Storage;
 
 namespace Xanadu.Tests.Timing;
 

@@ -1,6 +1,5 @@
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Systems.Playfields;
 

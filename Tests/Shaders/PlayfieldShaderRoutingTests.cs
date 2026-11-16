@@ -5,9 +5,8 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 

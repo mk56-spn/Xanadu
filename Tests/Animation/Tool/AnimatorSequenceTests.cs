@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Tools.Animator;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Ecs;

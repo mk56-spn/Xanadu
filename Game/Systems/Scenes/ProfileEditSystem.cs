@@ -1,9 +1,8 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Profiles;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Profiles;
 using Xanadu.Scenes;
 using Xanadu.Ui.Ecs.Ui;
 

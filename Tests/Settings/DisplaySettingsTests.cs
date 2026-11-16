@@ -1,6 +1,6 @@
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Tests.Settings;
 

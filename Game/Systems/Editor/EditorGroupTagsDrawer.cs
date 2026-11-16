@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -60,7 +61,7 @@ public sealed class EditorGroupTagsDrawer(EditorDrawSurface surface)
 
                 // A point item (a note, mine or start point) is tagged beside the circle it draws.
                 if (box.Size == Vector2.Zero)
-                    box = box.Grow(PlayfieldRenderer.NoteSize / 2f);
+                    box = box.Grow(PlayfieldMetrics.NoteSize / 2f);
 
                 Vector2 shift = GroupOffset.Of(item);
                 Vector2 corner = view.PlayfieldToScreen(new Vector2(box.End.X, box.Position.Y) + shift);

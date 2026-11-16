@@ -3,9 +3,7 @@ using System.Globalization;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Levels;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;

@@ -2,11 +2,11 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Scenes;
 
@@ -63,7 +63,7 @@ internal static class PlayKeyTrailBuilder
         for (int lane = 0; lane < laneCount; lane++)
         {
             KeybindAction action = KeybindSettings.Actions[lane];
-            Color color = PlayfieldRenderer.ColorFor(action);
+            Color color = PlayfieldColors.ColorFor(action);
             UiNode column = lanes.Column().Gap(KeyGap);
 
             UiNode history = column.Column().Size(historySize);

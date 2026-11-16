@@ -1,9 +1,9 @@
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
-using Xanadu.Settings;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -16,8 +16,8 @@ public sealed class NoteLaneColorTests
         var note = new Note(1_000, new Vector2(500, 500), KeybindAction.Action2);
 
         Assert.That(
-            PlayfieldRenderer.ColorFor(note.Target),
-            Is.EqualTo(PlayfieldRenderer.ColorFor(KeybindAction.Action2)));
+            PlayfieldColors.ColorFor(note.Target),
+            Is.EqualTo(PlayfieldColors.ColorFor(KeybindAction.Action2)));
     }
 
     [Test]
@@ -25,10 +25,10 @@ public sealed class NoteLaneColorTests
     {
         var colors = new System.Collections.Generic.HashSet<Color>();
         foreach (KeybindAction action in KeybindSettings.ActionKeys)
-            colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, action)));
-        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Neutral)));
-        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Dash)));
-        colors.Add(PlayfieldRenderer.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Momentum)));
+            colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, action)));
+        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Neutral)));
+        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Dash)));
+        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Momentum)));
 
         Assert.That(colors.Count, Is.EqualTo(6));
     }
@@ -39,7 +39,7 @@ public sealed class NoteLaneColorTests
         var colors = new System.Collections.Generic.HashSet<Color>();
 
         foreach (KeybindAction action in KeybindSettings.ActionKeys)
-            colors.Add(PlayfieldRenderer.ColorFor(action));
+            colors.Add(PlayfieldColors.ColorFor(action));
 
         Assert.That(colors.Count, Is.EqualTo(KeybindSettings.ActionKeys.Length));
     }

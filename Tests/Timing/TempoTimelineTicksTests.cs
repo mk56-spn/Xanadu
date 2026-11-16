@@ -3,7 +3,7 @@ using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Levels;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Timing;
 

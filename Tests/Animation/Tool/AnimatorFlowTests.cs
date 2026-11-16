@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Animation;
+using Xanadu.Model.Animation;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;

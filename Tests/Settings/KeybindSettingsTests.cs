@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Settings;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Tests.Settings;
 

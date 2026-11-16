@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -13,8 +13,8 @@ public sealed class DashStrengthTests
     [TestCase(DashStrength.Triple, 3, "×3")]
     public void StrengthLevelAndBadgeFollowTheStrength(DashStrength strength, int level, string badge)
     {
-        Assert.That(PlayfieldRenderer.DashStrengthLevel(strength), Is.EqualTo(level));
-        Assert.That(PlayfieldRenderer.DashStrengthLabel(strength), Is.EqualTo(badge));
+        Assert.That(PlayfieldMetrics.DashStrengthLevel(strength), Is.EqualTo(level));
+        Assert.That(PlayfieldMetrics.DashStrengthLabel(strength), Is.EqualTo(badge));
     }
 
     [TestCase(DashStrength.Single, 250f)]

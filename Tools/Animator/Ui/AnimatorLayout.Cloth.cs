@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Ecs;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Setting = Xanadu.Tools.Animator.Commands.AnimatorClothCommands.Setting;
