@@ -47,6 +47,9 @@ internal sealed class TextAtlas : IDisposable
     /// <summary>The canvas texture id of a page.</summary>
     public ulong TextureId(int page) => _pages[page].Id;
 
+    /// <summary>A page's texture, for a renderer that binds it itself.</summary>
+    public Texture PageTexture(int page) => _pages[page].Texture;
+
     /// <summary>Copies a coverage bitmap in and returns where it went; an empty bitmap takes no room.</summary>
     public AtlasGlyph Add(in GlyphBitmap bitmap)
     {

@@ -42,5 +42,6 @@ internal static class LabExperiments
         new Experiments.IndirectDrawLab(),
         Experiments.ShaderEditor.Spawner(),
         new Experiments.RtsLab(),
+        new Experiments.EcsRender.EcsRenderLab(),
     ];
 }
