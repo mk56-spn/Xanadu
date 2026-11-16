@@ -11,7 +11,8 @@ namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// F4 boxes around buttons and containers; the tree panel carries their legend. The entity picked in the F4
-/// tree is drawn last in its own colour, so its children's boxes cannot hide it.
+/// tree, and the one under the cursor or behind the hovered row, are drawn last in their own colours, so
+/// their children's boxes cannot hide them; one without a box gets a cross.
 /// </summary>
 public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
 {
@@ -43,7 +44,6 @@ public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
 
         _draw.Begin();
 
-        Rect2? selected = null;
         Query.ForEachEntity((ref rect, ref position, entity) =>
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
@@ -51,45 +51,67 @@ public sealed class DebugElementOverlaySystem : QuerySystem<Rectangle, Position>
 
             bool button = entity.HasComponent<ButtonVisual>();
             bool container = entity.HasComponent<UiContainer>();
-            if (!button && !container)
+            bool marked = entity.Tags.HasAny(Tags.Get<UiTreeOverlaySelected, UiTreeOverlayHovered>());
+            if ((!button && !container) || marked || InDebugView(entity))
                 return;
 
             Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-            var bounds = new Rect2(
-                world + rect.Bounds.Position,
-                rect.Bounds.Size);
-            if (entity.Tags.Has<UiTreeOverlaySelected>())
-            {
-                selected = bounds;
-            }
-            else
-            {
-                if (button)
-                    DrawBounds(bounds, DebugPalette.ButtonFill, DebugPalette.ButtonBorder);
-                if (container)
-                    DrawBounds(bounds, DebugPalette.ContainerFill, DebugPalette.ContainerBorder);
-            }
+            var bounds = new Rect2(world + rect.Bounds.Position, rect.Bounds.Size);
+            if (button)
+                DrawBounds(bounds, DebugPalette.ButtonFill, DebugPalette.ButtonBorder);
+            if (container)
+                DrawBounds(bounds, DebugPalette.ContainerFill, DebugPalette.ContainerBorder);
 
-            if (entity.HasComponent<UiAnchor>())
+            if (entity.TryGetComponent(out UiAnchor anchor))
             {
-                UiAnchor anchor = entity.GetComponent<UiAnchor>();
-                Vector2 pin = world +
-                              rect.Bounds.Position +
-                              rect.Bounds.Size * anchor.Anchor;
+                Vector2 pin = world + rect.Bounds.Position + rect.Bounds.Size * anchor.Anchor;
                 _draw.Circle(pin, 6, DebugPalette.Pin);
-                _draw.CircleOutline(
-                    pin,
-                    7,
-                    DebugPalette.PinOutline,
-                    1);
+                _draw.CircleOutline(pin, 7, DebugPalette.PinOutline, 1);
             }
         });
 
-        if (selected is { } picked)
-            DrawBounds(picked, DebugPalette.SelectedFill, DebugPalette.SelectedBorder, UiMetrics.Border.Medium);
+        // Last, so nothing inside them can hide them: the inspected entity, then what the cursor is on.
+        Mark(ref _inspected, Tags.Get<UiTreeOverlaySelected>(), DebugPalette.SelectedFill, DebugPalette.SelectedBorder);
+        Mark(ref _hovered, Tags.Get<UiTreeOverlayHovered>(), DebugPalette.HoveredFill, DebugPalette.HoveredBorder);
 
         _draw.End();
     }
+
+    private ArchetypeQuery<Position>? _inspected;
+    private ArchetypeQuery<Position>? _hovered;
+
+    /// <summary>The F4 tree's marked entity: its box, thick, or a cross at its position when it has none.</summary>
+    private void Mark(ref ArchetypeQuery<Position>? query, Tags tag, Color fill, Color border)
+    {
+        query ??= Query.Store.Query<Position>().AllTags(tag);
+        query.ForEachEntity((ref position, entity) =>
+        {
+            Vector2 at = UiTransform.WorldPosition(entity, position.Value);
+            if (entity.TryGetComponent(out Rectangle rect) && rect.Bounds.Size.X > 0 && rect.Bounds.Size.Y > 0)
+            {
+                DrawBounds(new Rect2(at + rect.Bounds.Position, rect.Bounds.Size), fill, border, UiMetrics.Border.Thick);
+                return;
+            }
+
+            const float arm = 14;
+            float width = UiMetrics.Border.Medium;
+            _draw.Rect(new Rect2(at - new Vector2(arm, width / 2), new Vector2(arm * 2, width)), border);
+            _draw.Rect(new Rect2(at - new Vector2(width / 2, arm), new Vector2(width, arm * 2)), border);
+            _draw.CircleOutline(at, arm * 0.6f, border, 1);
+        });
+    }
+
+    /// <summary>Whether the entity is part of a debug panel, F4's own among them, which get no boxes.</summary>
+    private static bool InDebugView(Entity entity)
+    {
+        for (Entity up = entity; !up.IsNull; up = up.Parent)
+        {
+            if (up.Tags.Has<DebugUi>())
+                return true;
+        }
+        return false;
+    }
+
 
     private void DrawBounds(
         Rect2 bounds,

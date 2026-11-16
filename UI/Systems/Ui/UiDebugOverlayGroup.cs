@@ -17,13 +17,15 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
         IRectCanvas canvas,
         Handle parentCanvas,
         IOverlayToggleSource? toggle = null,
-        int zIndex = 1001)
+        int zIndex = 1001,
+        IPointerInputSource? pointer = null)
     {
         var group = new UiDebugOverlayGroup(
             canvas,
             parentCanvas,
             toggle,
-            zIndex);
+            zIndex,
+            pointer);
         root.Add(group);
         return group;
     }
@@ -32,13 +34,14 @@ public sealed class UiDebugOverlayGroup : SystemGroup, IDisposable
         IRectCanvas canvas,
         Handle parentCanvas,
         IOverlayToggleSource? toggle = null,
-        int zIndex = 1001) : base("UiDebugOverlay")
+        int zIndex = 1001,
+        IPointerInputSource? pointer = null) : base("UiDebugOverlay")
     {
         _overlay = new CanvasItemHandle(parentCanvas, zIndex, visible: false);
         toggle ??= new KeyOverlayToggleSource(DebugKeys.UiTree);
 
         Add(new DebugElementOverlaySystem(canvas, _overlay.Handle, toggle));
-        Add(new UiTreeOverlaySystem(toggle));
+        Add(new UiTreeOverlaySystem(toggle, pointer: pointer));
     }
 
     public void Dispose() => _overlay.Dispose();

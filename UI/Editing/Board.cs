@@ -31,6 +31,17 @@ public sealed class Board
 
     public const float MinWidth = 40, MinHeight = 30;
 
+    /// <summary>How far a line stays off a box it goes round, in board units.</summary>
+    public const float Clearance = 8;
+
+    /// <summary>How much further off a box each further line round it stays.</summary>
+    public const float LaneGap = 6;
+
+    /// <summary>How far to its own side each of two opposite lines between the same boxes runs.</summary>
+    public const float TwoWayGap = 5;
+
+    private const int MaxDetours = 16, MaxLanes = 6;
+
     public readonly List<BoardBox> Boxes = new();
     public readonly List<BoardLink> Links = new();
 
@@ -91,29 +102,227 @@ public sealed class Board
     {
         BoardLink? best = null;
         float bestDistance = reach;
-        foreach (BoardLink link in Links)
+        List<List<Vector2>?> paths = Paths();
+        for (int at = 0; at < paths.Count; at++)
         {
-            if (Ends(link) is not { } ends)
+            if (paths[at] is not { } path)
                 continue;
 
-            float distance = DistanceToSegment(point, ends.From, ends.To);
-            if (distance <= bestDistance)
+            for (int i = 1; i < path.Count; i++)
             {
-                best = link;
-                bestDistance = distance;
+                float distance = DistanceToSegment(point, path[i - 1], path[i]);
+                if (distance <= bestDistance)
+                {
+                    best = Links[at];
+                    bestDistance = distance;
+                }
             }
         }
 
         return best;
     }
 
+    /// <summary>
+    /// The points a line is drawn through: straight from box to box when nothing is
+    /// in the way, otherwise bent round the corners of the boxes it would cross,
+    /// keeping <see cref="Clearance"/> off them. Frames are not in the way (a line
+    /// runs over them). Where no way round is found the line stays straight.
+    /// </summary>
+    public List<Vector2>? Path(BoardLink link)
+    {
+        int index = Links.IndexOf(link);
+        return index < 0 ? null : Paths()[index];
+    }
+
+    /// <summary>
+    /// Every line's <see cref="Path"/>, in the order of <see cref="Links"/> (null where
+    /// a box is gone), worked out together so lines do not lie on each other: each
+    /// further line round the same box keeps <see cref="LaneGap"/> more off it, and
+    /// two lines joining the same boxes in opposite directions run side by side.
+    /// </summary>
+    public List<List<Vector2>?> Paths()
+    {
+        List<BoardBox> solid = Boxes.Where(box => !IsFrame(box)).ToList();
+        var lanes = new Dictionary<int, int>();
+        var paths = new List<List<Vector2>?>(Links.Count);
+        var blocks = new List<Block>();
+        var rounded = new List<int>();
+        foreach (BoardLink link in Links)
+        {
+            if (Find(link.From) is not { } from || Find(link.To) is not { } to)
+            {
+                paths.Add(null);
+                continue;
+            }
+
+            bool twoWay = Links.Contains(new BoardLink(link.To, link.From));
+            (Vector2 a, Vector2 b) = Ends(from.Rect, to.Rect, twoWay ? TwoWayGap : 0);
+            blocks.Clear();
+            foreach (BoardBox box in solid)
+            {
+                float clearance = Clearance + LaneGap * (lanes.GetValueOrDefault(box.Id) % MaxLanes);
+                Rect2 kept = box.Rect.Grow(clearance);
+                if (box != from && box != to && !kept.HasPoint(a) && !kept.HasPoint(b))
+                    blocks.Add(new Block(box.Id, box.Rect, clearance));
+            }
+
+            var path = new List<Vector2> { a };
+            rounded.Clear();
+            int detours = MaxDetours;
+            if (!Route(a, b, blocks, path, rounded, ref detours))
+            {
+                paths.Add([a, b]);
+                continue;
+            }
+
+            foreach (int id in rounded)
+                lanes[id] = lanes.GetValueOrDefault(id) + 1;
+
+            if (path.Count > 2)
+            {
+                path[0] = Edge(from.Rect, path[1]);
+                path[^1] = Edge(to.Rect, path[^2]);
+            }
+
+            paths.Add(path);
+        }
+
+        return paths;
+    }
+
+    /// <summary>A box a line must go round, and how far off it this line keeps.</summary>
+    private readonly record struct Block(int Id, Rect2 Rect, float Clearance);
+
+    /// <summary>
+    /// Adds the way from <paramref name="a"/> (already on the path) to <paramref name="b"/>:
+    /// round the shorter side of the first box in the way, then the same for each
+    /// piece, noting the boxes gone round. False when the detours run out.
+    /// </summary>
+    private static bool Route(Vector2 a, Vector2 b, List<Block> blocks, List<Vector2> path, List<int> rounded, ref int detours)
+    {
+        Block? first = null;
+        float firstAt = float.MaxValue;
+        foreach (Block block in blocks)
+        {
+            if (Crosses(a, b, block.Rect.Grow(block.Clearance - 1), out float at) && at < firstAt)
+            {
+                first = block;
+                firstAt = at;
+            }
+        }
+
+        if (first is not { } hit)
+        {
+            path.Add(b);
+            return true;
+        }
+
+        if (detours-- <= 0)
+            return false;
+
+        if (!rounded.Contains(hit.Id))
+            rounded.Add(hit.Id);
+
+        Rect2 around = hit.Rect.Grow(hit.Clearance);
+        Vector2 along = b - a;
+        Span<Vector2> corners =
+        [
+            around.Position, new(around.End.X, around.Position.Y), around.End, new(around.Position.X, around.End.Y),
+        ];
+        Span<Vector2> left = stackalloc Vector2[4], right = stackalloc Vector2[4];
+        int lefts = 0, rights = 0;
+        foreach (Vector2 corner in corners)
+        {
+            if (along.X * (corner.Y - a.Y) - along.Y * (corner.X - a.X) > 0)
+                left[lefts++] = corner;
+            else
+                right[rights++] = corner;
+        }
+
+        if (lefts == 0 || rights == 0)
+            return false;
+
+        left = left[..lefts];
+        right = right[..rights];
+        SortAlong(left, along);
+        SortAlong(right, along);
+
+        Vector2 from = a;
+        foreach (Vector2 corner in Length(a, left, b) <= Length(a, right, b) ? left : right)
+        {
+            if (!Route(from, corner, blocks, path, rounded, ref detours))
+                return false;
+
+            from = corner;
+        }
+
+        return Route(from, b, blocks, path, rounded, ref detours);
+    }
+
+    private static void SortAlong(Span<Vector2> points, Vector2 along)
+    {
+        for (int i = 1; i < points.Length; i++)
+        {
+            for (int j = i; j > 0 && Vector2.Dot(points[j], along) < Vector2.Dot(points[j - 1], along); j--)
+                (points[j], points[j - 1]) = (points[j - 1], points[j]);
+        }
+    }
+
+    private static float Length(Vector2 a, Span<Vector2> through, Vector2 b)
+    {
+        float length = 0;
+        Vector2 from = a;
+        foreach (Vector2 point in through)
+        {
+            length += Vector2.Distance(from, point);
+            from = point;
+        }
+
+        return length + Vector2.Distance(from, b);
+    }
+
+    /// <summary>Whether the segment passes through the inside of a rect, and how far along (0..1) it gets in.</summary>
+    public static bool Crosses(Vector2 a, Vector2 b, Rect2 rect, out float at) => Span(a, b, rect, out at, out _);
+
+    /// <summary>The stretch (0..1 along the segment) spent inside a rect; false when it never gets in.</summary>
+    private static bool Span(Vector2 a, Vector2 b, Rect2 rect, out float enter, out float leave)
+    {
+        enter = 0;
+        leave = 1;
+        Vector2 d = b - a;
+        return Clip(d.X, rect.Position.X - a.X, rect.End.X - a.X, ref enter, ref leave)
+            && Clip(d.Y, rect.Position.Y - a.Y, rect.End.Y - a.Y, ref enter, ref leave);
+    }
+
+    private static bool Clip(float d, float low, float high, ref float enter, ref float leave)
+    {
+        if (d == 0)
+            return low < 0 && high > 0;
+
+        float first = low / d, second = high / d;
+        if (first > second)
+            (first, second) = (second, first);
+        enter = MathF.Max(enter, first);
+        leave = MathF.Min(leave, second);
+        return enter < leave;
+    }
+
     /// <summary>Where a line is drawn: from the edge of its first box to the edge of its second, along the line between their centres.</summary>
     public (Vector2 From, Vector2 To)? Ends(BoardLink link) =>
         Find(link.From) is { } from && Find(link.To) is { } to ? Ends(from.Rect, to.Rect) : null;
 
-    public static (Vector2 From, Vector2 To) Ends(Rect2 from, Rect2 to)
+    /// <summary>The same, with the whole line moved <paramref name="aside"/> to its right-hand side.</summary>
+    public static (Vector2 From, Vector2 To) Ends(Rect2 from, Rect2 to, float aside = 0)
     {
         Vector2 a = from.GetCenter(), b = to.GetCenter();
+        if (aside != 0 && a != b)
+        {
+            Vector2 along = Vector2.Normalize(b - a);
+            Vector2 start = a + new Vector2(-along.Y, along.X) * aside, d = b - a;
+            if (Span(start, start + d, from, out _, out float leave) && Span(start, start + d, to, out float enter, out _) && leave < enter)
+                return (start + d * leave, start + d * enter);
+        }
+
         return (Edge(from, b), Edge(to, a));
     }
 

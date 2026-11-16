@@ -13,16 +13,18 @@ namespace Xanadu.Systems.Ui;
 /// <summary>
 /// Draws every <see cref="UiBoard"/> into a canvas item of its own under its node,
 /// clipped to the node's box: a dot grid, frames behind the boxes they hold
-/// (titled top-left), boxes with their text wrapped and centred, the lines between
-/// them with an arrowhead, the selection, the link dot and resize corner under the
+/// (titled top-left), the lines between boxes with an arrowhead (over frames, under
+/// boxes, bent round the boxes in their way), boxes with their text wrapped and
+/// centred, the selection, the link dot and resize corner under the
 /// pointer, a line being dragged, and the caret while a box is typed into. Colours
 /// are the theme's roles and categories. Redrawn whole every frame.
 /// </summary>
 public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
-    private const float GridStep = 50, MinGridGap = 24, Pad = 8, LineGap = 1.3f, MinFont = 7;
+    private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7;
 
     private readonly List<string> _lines = new();
+    private readonly List<BoardBox> _boxes = new();
 
     protected override void OnUpdate()
     {
@@ -53,10 +55,24 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         canvas.DrawRect(item, area, roles.Inset);
         Grid(item, state, area, roles);
 
+        _boxes.Clear();
         foreach (BoardBox box in board.PaintOrder())
-            Box(item, board, state, box, roles);
-        foreach (BoardLink link in board.Links)
-            Link(item, board, state, link, roles);
+        {
+            if (board.IsFrame(box))
+                Box(item, state, box, true, roles);
+            else
+                _boxes.Add(box);
+        }
+
+        List<List<Vector2>?> paths = board.Paths();
+        for (int i = 0; i < paths.Count; i++)
+        {
+            if (paths[i] is { } path)
+                Link(item, state, board.Links[i], path, roles);
+        }
+
+        foreach (BoardBox box in _boxes)
+            Box(item, state, box, false, roles);
         Handles(item, board, state, roles);
     }
 
@@ -79,12 +95,11 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         }
     }
 
-    private void Box(Handle item, Board board, BoardState state, BoardBox box, UiThemeRoles roles)
+    private void Box(Handle item, BoardState state, BoardBox box, bool frame, UiThemeRoles roles)
     {
         Rect2 screen = state.ToScreen(box.Rect);
         Rect2 local = new(state.Local(screen.Position), screen.Size);
         Color colour = roles.Category(box.Category);
-        bool frame = board.IsFrame(box);
         bool selected = state.Selected.Contains(box.Id);
 
         canvas.DrawRect(item, local, frame ? roles.Inset.Lerp(colour, 0.08f) : roles.CategoryTone(box.Category).Fill);
@@ -149,13 +164,13 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             _lines.Clear();
     }
 
-    private void Link(Handle item, Board board, BoardState state, BoardLink link, UiThemeRoles roles)
+    private void Link(Handle item, BoardState state, BoardLink link, List<Vector2> path, UiThemeRoles roles)
     {
-        if (board.Ends(link) is not { } ends)
-            return;
-
         Color colour = state.SelectedLink == link ? roles.Accent : roles.TextDim;
-        Arrow(item, state.Local(state.ToScreen(ends.From)), state.Local(state.ToScreen(ends.To)), colour, state.SelectedLink == link ? 3 : 2);
+        float width = state.SelectedLink == link ? LineWidth + 1 : LineWidth;
+        for (int i = 1; i < path.Count - 1; i++)
+            canvas.DrawLine(item, state.Local(state.ToScreen(path[i - 1])), state.Local(state.ToScreen(path[i])), colour, width);
+        Arrow(item, state.Local(state.ToScreen(path[^2])), state.Local(state.ToScreen(path[^1])), colour, width);
     }
 
     private void Arrow(Handle item, Vector2 from, Vector2 to, Color colour, float width)
@@ -167,7 +182,7 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 
         along = Vector2.Normalize(along);
         Vector2 side = new(-along.Y, along.X);
-        const float Length = 12, Half = 6;
+        const float Length = 14, Half = 7;
         canvas.DrawPolygon(item, [to, to - along * Length + side * Half, to - along * Length - side * Half], colour);
     }
 
@@ -176,7 +191,7 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         if (state.Gesture == BoardGestureKind.Link && board.Find(state.Target) is { } from)
         {
             Vector2 start = Board.Edge(from.Rect, state.Pointer);
-            Arrow(item, state.Local(state.ToScreen(start)), state.Local(state.ToScreen(state.Pointer)), roles.Accent, 2);
+            Arrow(item, state.Local(state.ToScreen(start)), state.Local(state.ToScreen(state.Pointer)), roles.Accent, LineWidth);
             return;
         }
 

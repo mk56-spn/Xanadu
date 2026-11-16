@@ -20,7 +20,9 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
         EntityStore store,
         SystemRoot systems,
         IFpsSource fps,
-        IOverlayPageSource? paging = null) : base("Debug")
+        IOverlayPageSource? paging = null,
+        IKeyboardState? keyboard = null,
+        IPointerInputSource? pointer = null) : base("Debug")
     {
         Add(new DebugPressedOverlaySystem(
             toggle,
@@ -29,11 +31,13 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             fps,
             paging,
             gpuMemory: HostPlatform.GpuMemory));
-        Add(new FpsCounterSystem(new KeyOverlayToggleSource(DebugKeys.FrameRate), store, fps));
+        Add(new FpsCounterSystem(new KeyOverlayToggleSource(DebugKeys.FrameRate, keyboard), store, fps));
         _uiOverlay = Xanadu.Systems.Ui.UiDebugOverlayGroup.Attach(
             this,
             canvas,
-            parentCanvas);
+            parentCanvas,
+            new KeyOverlayToggleSource(DebugKeys.UiTree, keyboard),
+            pointer: pointer);
     }
 
     public void Dispose()

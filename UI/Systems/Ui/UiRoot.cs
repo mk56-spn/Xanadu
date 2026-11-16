@@ -68,11 +68,13 @@ public sealed class UiRoot : SystemRoot, IDisposable
             _overlays = new DebugSystemGroup(
                 HostPlatform.NewCanvas(),
                 parentCanvas,
-                new KeyOverlayToggleSource(DebugKeys.Ecs),
+                new KeyOverlayToggleSource(DebugKeys.Ecs, keyboard),
                 entities,
                 this,
                 HostPlatform.Fps,
-                new KeyOverlayPageSource());
+                new KeyOverlayPageSource(),
+                keyboard,
+                pointer);
             Add(_overlays);
         }
     }

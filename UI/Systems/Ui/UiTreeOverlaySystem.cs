@@ -3,45 +3,67 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ecs;
 using Xanadu.Systems.Input;
-using Xanadu.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Ecs.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 
-/// <summary>
-/// F4 panel: a scrolling tree control of the containers and buttons on screen,
-/// nested by the entity tree. Entities that are neither hang off their nearest
-/// listed ancestor. Rows are rebuilt only when the listing changes, so expanding
-/// and collapsing keep working while it is open. The selected row's entity is
-/// tagged for the bounds overlay to colour.
-/// </summary>
-public sealed class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
+/// <summary>What the F4 panel's buttons ask for; row commands carry their pooled row's index.</summary>
+public enum UiTreeCommand
 {
-    private const float PanelWidth = 420;
-    private const float HeaderHeight = UiMetrics.Control.Xs;
-    private const float LegendHeight = UiMetrics.Control.Xs;
-    private const float Padding = UiMetrics.Space.Sm;
+    Pick,
+    Up,
+    All,
+    Toggle,
+    Inspect,
 
+    /// <summary>The full-screen catcher in pick mode: take what is under the cursor.</summary>
+    PickHere,
+}
+
+/// <summary>
+/// F4: the draw visualiser, after osu!framework's. It opens picking: whatever is
+/// under the cursor is outlined and named, and a click opens the tree on it. The
+/// tree lists the chosen root's whole subtree on a pooled list, so its rows are a
+/// fixed set refilled in place and never rebuilt under the pointer. Hovering a row
+/// outlines its entity; clicking a name inspects it (every component and its
+/// fields, live, below the tree), and clicking the inspected name again makes it
+/// the root. UP climbs to the root's parent, ALL lists every root.
+/// </summary>
+/// <remarks>The query is what picking hit-tests: everything with a box.</remarks>
+public sealed partial class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
+{
     private readonly IVisualRidFactory? _visuals;
+    private readonly IPointerInputSource? _pointer;
     private readonly OverlayLatch _latch;
-    private readonly HashSet<Entity> _roots = new();
-    private readonly List<Entity> _ordered = new();
-    private List<UiTreeItem> _items = new();
-    private List<UiTreeItem> _shown = new();
-    private readonly Dictionary<int, (string Source, string Id, string Label)> _labels = new();
-    private int _buttons;
-    private Entity _layer;
-    private Entity _header;
-    private Entity _tree;
-    private Entity _selected;
+    private readonly Queue<UiCommand> _commands = new();
+    private System.IDisposable? _listening;
 
-    public UiTreeOverlaySystem(IOverlayToggleSource toggle, IVisualRidFactory? visuals = null)
+    /// <summary>The tree's root, or null for every root at once.</summary>
+    private Entity _root;
+
+    private Entity _inspected;
+    private Entity _hovered;
+    private bool _picking;
+
+    public UiTreeOverlaySystem(
+        IOverlayToggleSource toggle,
+        IVisualRidFactory? visuals = null,
+        IPointerInputSource? pointer = null)
     {
         _latch = new OverlayLatch(toggle);
         _visuals = visuals;
-        Filter.WithoutAnyTags(Tags.Get<DebugUi>());
+        _pointer = pointer;
     }
+
+    /// <summary>Whether the panel is waiting for a click on the screen.</summary>
+    public bool Picking => _picking;
+
+    /// <summary>The entity the inspector shows, or null.</summary>
+    public Entity Inspected => _inspected;
+
+    /// <summary>The tree's root, or null when it lists every root.</summary>
+    public Entity Root => _root;
 
     protected override void OnUpdate()
     {
@@ -53,194 +75,140 @@ public sealed class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
         }
 
         if (_layer.IsNull)
-            Open();
+            Open(Query.Store);
 
-        Collect();
-        if (!IsShown())
-            Refresh();
-        SyncSelected();
+        while (_commands.TryDequeue(out UiCommand command))
+            Run(command);
+
+        Entity hover = _picking ? PickAt(Pointer()) : HoveredRow();
+        Hover(hover);
+        ShowPickHint(hover);
+        ShowRows();
+        ShowInspector();
     }
 
-    private void Open()
+    private void Run(UiCommand command)
     {
-        Vector2 stage = UiStage.Full.Size;
-        float height = stage.Y - UiMetrics.Space.Lg * 2;
-        float inner = PanelWidth - Padding * 2;
-
-        UiBuilder ui = UiBuilder.Begin(Query.Store, _visuals).Layer(UiLayers.DebugUiTree);
-        _layer = ui.Current;
-        _layer.AddTag<DebugUi>();
-        ui.Container(
-            new Vector2(stage.X - UiMetrics.Space.Lg - PanelWidth / 2, stage.Y / 2),
-            new Vector2(PanelWidth, height),
-            StackDirection.Vertical,
-            spacing: UiMetrics.Space.Xs,
-            color: DebugPalette.Panel,
-            takesInput: true,
-            padding: Padding,
-            main: StackMainAlignment.Start);
-        _header = ui.Text("", new Vector2(inner, HeaderHeight), UiType.Small, DebugPalette.Title, TextAlign.Left);
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(inner, LegendHeight),
-            StackDirection.Horizontal,
-            spacing: UiMetrics.Space.Md,
-            color: new Color(0, 0, 0, 0),
-            main: StackMainAlignment.Start);
-        Legend(ui, "BUTTONS", DebugPalette.ButtonBorder);
-        Legend(ui, "CONTAINERS", DebugPalette.ContainerBorder);
-        Legend(ui, "PINS", DebugPalette.Pin);
-        Legend(ui, "SELECTED", DebugPalette.SelectedBorder);
-        ui.End();
-
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(inner, height - Padding * 2 - HeaderHeight - LegendHeight - UiMetrics.Space.Xs * 2),
-            StackDirection.Vertical,
-            clip: true,
-            color: new Color(0, 0, 0, 0));
-        Entity viewport = ui.Current;
-        ui.Container(
-            Vector2.Zero,
-            new Vector2(inner, 4),
-            StackDirection.Vertical,
-            color: new Color(0, 0, 0, 0),
-            cross: StackCrossAlignment.Start,
-            autoHeight: true,
-            main: StackMainAlignment.Start);
-        Entity content = ui.Current;
-        _tree = ui.Tree(inner);
-        ui.End();
-        ui.End();
-        viewport.AddComponent(new ScrollView());
-        ui.End();
-        _shown.Clear();
+        switch (command.As<UiTreeCommand>())
+        {
+            case UiTreeCommand.Pick:
+                SetPicking(!_picking);
+                break;
+            case UiTreeCommand.PickHere:
+                Entity picked = PickAt(Pointer());
+                SetPicking(false);
+                if (!picked.IsNull)
+                    Reveal(picked);
+                break;
+            case UiTreeCommand.Up:
+                if (!_root.IsNull)
+                    Reroot(_root.Parent);
+                break;
+            case UiTreeCommand.All:
+                Reroot(default);
+                break;
+            case UiTreeCommand.Toggle:
+                Entity toggled = RowEntity(command.Arg);
+                if (!toggled.IsNull && HasListedChild(toggled) && !_expanded.Add(toggled.Id))
+                    _expanded.Remove(toggled.Id);
+                break;
+            case UiTreeCommand.Inspect:
+                Entity row = RowEntity(command.Arg);
+                if (row.IsNull)
+                    break;
+                if (row == _inspected && row != _root)
+                    Reroot(row);
+                else
+                    Inspect(row);
+                break;
+        }
     }
 
-    /// <summary>A word in the colour of the F4 boxes it names.</summary>
-    private static void Legend(UiBuilder ui, string word, Color color) =>
-        ui.Text(word, UiNode.Measure(word, UiType.Caption), UiType.Caption, color, TextAlign.Left);
+    private Vector2 Pointer() => _pointer?.Read().Position ?? new Vector2(float.NaN);
+
+    /// <summary>Opens the tree on <paramref name="entity"/>'s parent with everything under it open, and inspects it.</summary>
+    public void Reveal(Entity entity)
+    {
+        Entity parent = entity.Parent;
+        Reroot(parent.IsNull ? entity : parent);
+        for (Entity up = entity.Parent; !up.IsNull; up = up.Parent)
+            _expanded.Add(up.Id);
+        Inspect(entity);
+        _revealInspected = true;
+    }
+
+    /// <summary>A new root: its whole subtree opens, as osu's visualiser expands all on a new target.</summary>
+    private void Reroot(Entity root)
+    {
+        _root = root;
+        if (!root.IsNull)
+            ExpandAll(root);
+        _toTop = true;
+    }
+
+    private void ExpandAll(Entity entity)
+    {
+        _expanded.Add(entity.Id);
+        foreach (Entity child in entity.ChildEntities)
+            ExpandAll(child);
+    }
+
+    private void Inspect(Entity entity)
+    {
+        if (entity == _inspected)
+            return;
+
+        if (!_inspected.IsNull)
+            _inspected.RemoveTag<UiTreeOverlaySelected>();
+        if (!entity.IsNull)
+            entity.AddTag<UiTreeOverlaySelected>();
+        _inspected = entity;
+    }
+
+    private void Hover(Entity entity)
+    {
+        if (entity == _hovered)
+            return;
+
+        if (!_hovered.IsNull)
+            _hovered.RemoveTag<UiTreeOverlayHovered>();
+        if (!entity.IsNull)
+            entity.AddTag<UiTreeOverlayHovered>();
+        _hovered = entity;
+    }
 
     private void Close()
     {
         if (_layer.IsNull)
             return;
 
-        Mark(default);
+        _listening?.Dispose();
+        _listening = null;
+        _commands.Clear();
+        Hover(default);
+        Inspect(default);
         UiLayout.DeleteSubtree(_layer);
-        _labels.Clear();
         _layer = default;
-        _header = default;
-        _tree = default;
+        _picking = false;
+        _root = default;
+        _expanded.Clear();
+        _listed.Clear();
+        _rowEntities.Clear();
+        _rowParts.Clear();
+        _rowLooks.Clear();
+        _everyRoot = null;
+        _propRows.Clear();
+        _props.Clear();
     }
 
-    private void Collect()
+    /// <summary>Whether the entity belongs to a debug view (this panel among them), which nothing here lists or picks.</summary>
+    private static bool IsDebug(Entity entity)
     {
-        _roots.Clear();
-        _ordered.Clear();
-        _items.Clear();
-        _buttons = 0;
-
-        Query.ForEachEntity((ref _, ref _, entity) =>
+        for (Entity up = entity; !up.IsNull; up = up.Parent)
         {
-            Entity top = entity;
-            while (!top.Parent.IsNull)
-                top = top.Parent;
-            if (_roots.Add(top))
-                _ordered.Add(top);
-        });
-
-        // Archetype order shifts as entities change; ids keep the listing still.
-        _ordered.Sort(static (a, b) => a.Id.CompareTo(b.Id));
-        foreach (Entity root in _ordered)
-            Visit(root, null);
-    }
-
-    private void Visit(Entity entity, string? parent)
-    {
-        if (!entity.Enabled)
-            return;
-
-        bool button = entity.HasComponent<ButtonVisual>();
-        if ((button || entity.HasComponent<UiContainer>()) &&
-            entity.TryGetComponent(out Rectangle rect) &&
-            rect.Bounds.Size.X > 0 &&
-            rect.Bounds.Size.Y > 0)
-        {
-            (string id, string label) = Row(entity, button);
-            _items.Add(new UiTreeItem(id, parent, label));
-            _buttons += button ? 1 : 0;
-            parent = id;
+            if (up.Tags.Has<DebugUi>())
+                return true;
         }
-
-        foreach (Entity child in entity.ChildEntities)
-            Visit(child, parent);
-    }
-
-    /// <summary>A row's id and label, built again only when what the label shows changes.</summary>
-    private (string Id, string Label) Row(Entity entity, bool button)
-    {
-        string source = entity.TryGetComponent(out Text text) && !string.IsNullOrWhiteSpace(text.Value)
-            ? text.Value
-            : button ? "BUTTON" : ContainerKind(entity.GetComponent<UiContainer>());
-
-        if (!_labels.TryGetValue(entity.Id, out (string Source, string Id, string Label) row) ||
-            row.Source != source)
-        {
-            row = (source, entity.Id.ToString(), $"{source.ReplaceLineEndings(" ")}  #{entity.Id}");
-            _labels[entity.Id] = row;
-        }
-        return (row.Id, row.Label);
-    }
-
-    private bool IsShown()
-    {
-        if (_items.Count != _shown.Count)
-            return false;
-
-        for (int i = 0; i < _items.Count; i++)
-        {
-            if (_items[i] != _shown[i])
-                return false;
-        }
-        return true;
-    }
-
-    private static string ContainerKind(in UiContainer container)
-    {
-        if (container.Columns > 0)
-            return $"GRID {container.Columns}";
-        return container.Direction == StackDirection.Vertical ? "V-STACK" : "H-STACK";
-    }
-
-    private void SyncSelected()
-    {
-        if (_tree.HasComponent<UiTreeChanged>())
-            _tree.RemoveComponent<UiTreeChanged>();
-
-        Mark(int.TryParse(UiTreeControl.Selected(_tree), out int id)
-            ? Query.Store.GetEntityById(id)
-            : default);
-    }
-
-    private void Mark(Entity entity)
-    {
-        if (entity == _selected)
-            return;
-
-        if (!_selected.IsNull)
-            _selected.RemoveTag<UiTreeOverlaySelected>();
-        if (!entity.IsNull)
-            entity.AddTag<UiTreeOverlaySelected>();
-        _selected = entity;
-    }
-
-    private void Refresh()
-    {
-        UiBuilder.Begin(Query.Store, _visuals).SetTreeItems(_tree, _items);
-        _header.GetComponent<Text>().Value =
-            $"F4 UI TREE   CONTAINERS {_items.Count - _buttons}   BUTTONS {_buttons}";
-        _header.AddTag<Dirty>();
-        (_items, _shown) = (_shown, _items);
+        return false;
     }
 }

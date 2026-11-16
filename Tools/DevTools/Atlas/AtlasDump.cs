@@ -72,7 +72,7 @@ internal static class AtlasDump
 
         file.WriteLine($"# atlas  {DateTime.Now:yyyy-MM-dd HH:mm}  {map.Nodes.Count} types  builds: {string.Join(", ", map.Assemblies.Select(a => $"{a.Name} {a.Built:HH:mm}"))}");
         file.WriteLine($"# budget  heaviest exe {heaviest}: {components}/{CodeMap.MaxComponents} components, {tags}/{CodeMap.MaxTags} tags (Friflo's own included)");
-        foreach (var group in map.Nodes.GroupBy(n => n.Assembly).OrderBy(g => g.Key))
+        foreach (IGrouping<string, CodeNode> group in map.Nodes.GroupBy(n => n.Assembly).OrderBy(g => g.Key))
             file.WriteLine($"# assembly  {group.Key}: {group.Count()} types, {group.Count(n => n.Kind == NodeKind.Component)} components, {group.Count(n => n.Kind == NodeKind.Tag)} tags");
         file.WriteLine("# lines: <Type>  <relation>  <other>; relations: field, queries, implements, inherits, uses, queried-by, implemented-by, inherited-by, used-by, like");
         file.WriteLine("# like: most alike types of any kind but enums (score, then shape / users / uses; — when neither has any)");
