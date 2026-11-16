@@ -153,6 +153,12 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
                 return true;
             }
 
+            if (FixIndent(editor, input.Position))
+            {
+                breaksRun = true;
+                return true;
+            }
+
             if (layout.Hit(buffer, editor.Host, input.Position) is { } hit)
             {
                 bool twice = _clock - editor.LastClick < DoubleClick && editor.LastClickAt == hit;
@@ -181,6 +187,22 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
 
         Scroll(ref editor, input);
         return null;
+    }
+
+    /// <summary>A press on the marked indent of a line off the steps moves its text to where it belongs.</summary>
+    private static bool FixIndent(in TextEditor editor, Vector2 point)
+    {
+        TextBuffer buffer = editor.Buffer;
+        TextEditorLayout layout = editor.Layout;
+        if (layout.Hit(buffer, editor.Host, point) is not { } hit)
+            return false;
+        string line = buffer.Lines[hit.Line];
+        if (!TextIndent.Misaligned(line) || point.X >= layout.TextLeft + TextIndent.Of(line) * layout.CharWidth)
+            return false;
+        int wanted = editor.Host.WantedIndent(buffer, hit.Line);
+        buffer.Reindent(hit.Line, wanted);
+        buffer.Place(hit.Line, wanted);
+        return true;
     }
 
     private void Scroll(ref TextEditor editor, PointerInput input)
@@ -338,7 +360,8 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
             case Key.Backspace: buffer.Backspace(); break;
             case Key.Delete: buffer.Delete(); break;
             case Key.Enter or Key.KpEnter:
-                buffer.NewLine();
+                buffer.DeleteSelection();
+                buffer.NewLine(indent: editor.Host.WantedIndent(buffer, buffer.Line));
                 return true;
             case Key.Tab when shift:
                 buffer.OutdentLines();

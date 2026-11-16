@@ -34,6 +34,9 @@ public sealed partial class SlangCompletions
         ("void", "update", "void update(inout State s, float dt)",
             "void update(inout State s, float dt)\n{\n    $\n}",
             "Runs once a frame before the item draws, changing the State every pixel then reads as state. dt is the frame's length in seconds."),
+        ("ItemVertex", "deform", "ItemVertex deform(ItemVertex v)",
+            "ItemVertex deform(ItemVertex v)\n{\n    $\n    return v;\n}",
+            "The effect's own vertex stage: runs once per corner before it lands. Move v.position (target pixels) to move the shape; uv, colour and local go on to shade as left. Sees time, beat, the play state and the values; can't read textures."),
     ];
 
     /// <summary>update with the State it changes, for code that has no State yet.</summary>

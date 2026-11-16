@@ -23,6 +23,7 @@ ItemVaryings item(VertexIn v)
     o.uv = v.uv;
     o.colour = v.colour;
     o.local = v.local;
+    o.rest = v.position;
     return o;
 }
 

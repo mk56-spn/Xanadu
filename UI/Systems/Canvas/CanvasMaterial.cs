@@ -9,6 +9,19 @@ namespace Xanadu.Systems.Canvas;
 /// </summary>
 public readonly record struct MaterialParam(string Name, int Channels, bool IsInt, Vector4 Default);
 
+/// <summary>What a material draws in place of its effect's shade (<see cref="CanvasMaterial.Overlay"/>).</summary>
+public enum MaterialOverlay
+{
+    /// <summary>The effect itself.</summary>
+    None,
+
+    /// <summary>Every triangle's edges, line-filled after the vertex stage.</summary>
+    Triangles,
+
+    /// <summary>Lines where uv is 0 and 1 on both axes, from the uv the vertex stage hands on.</summary>
+    UvLines,
+}
+
 /// <summary>
 /// What a canvas item draws with when it isn't the plain canvas shader: a
 /// shader (a Slang effect by its path in the game folder, Docs/host.md §5.5),
@@ -41,8 +54,17 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
 
     /// <summary>A material for a level shader's code; <paramref name="name"/> names it in errors and caches.</summary>
     /// <param name="keepsState">Lets the code keep state with <c>update</c> (Docs/shaders.md); the lab only, for now.</param>
-    public static CanvasMaterial FromSource(string name, string source, BlendMode blend = BlendMode.Mix, bool keepsState = false) =>
-        new(name, blend) { Source = source, KeepsState = keepsState };
+    /// <param name="overlay">Draws one of the shader editor's overlays instead of the code's shade (see <see cref="Overlay"/>).</param>
+    public static CanvasMaterial FromSource(
+        string name, string source, BlendMode blend = BlendMode.Mix, bool keepsState = false, MaterialOverlay overlay = MaterialOverlay.None) =>
+        new(name, blend) { Source = source, KeepsState = keepsState, Overlay = overlay };
+
+    /// <summary>
+    /// Draws a look of the shader editor's instead of the effect's own shade, through
+    /// the effect's own vertex stage (its <c>deform</c>), so it shows where the
+    /// triangles and the uv really land; values still feed the vertex stage.
+    /// </summary>
+    public MaterialOverlay Overlay { get; private init; }
 
     /// <summary>
     /// Whether the code may keep state between frames (an <c>update</c> and its

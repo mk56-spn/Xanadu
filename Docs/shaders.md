@@ -42,15 +42,16 @@ overload.
 12. [Maths and random numbers](#12-maths-and-random-numbers)
 13. [Reading textures and the screen](#13-reading-textures-and-the-screen)
 14. [Keeping state between frames](#14-keeping-state-between-frames)
-15. [Trying things out](#15-trying-things-out)
-16. [Pitfalls](#16-pitfalls)
-17. [From shadertoy](#17-from-shadertoy)
+15. [Moving the corners: `deform`](#15-moving-the-corners-deform)
+16. [Trying things out](#16-trying-things-out)
+17. [Pitfalls](#17-pitfalls)
+18. [From shadertoy](#18-from-shadertoy)
 
 ---
 
 ## 1. A shader
 
-A level's shader slot (and the lab's playground and editor) holds an
+A level's shader slot (and every effect in the shader tool) holds an
 *effect body*: some uniforms and one function, `shade`, which returns the
 pixel's colour.
 
@@ -111,17 +112,10 @@ float4 shade(Canvas canvas)
 | `i.pixel` | The pixel on the target, in pixels. |
 | `i.screenUv` | The pixel on the target, 0..1 (for `sampleScreen`). |
 | `i.time` | Seconds since the game started (the same as `time`). |
+| `i.rest` | The quad at rest, before a `deform` pulled its corners (§15), as a `Canvas`: `i.rest.centred` is this pixel's true place on it. The same as `canvas` without a `deform`. |
 
 The host also keeps the pixel being shaded in `shading` (an `ItemInput`). That
 is how shapes draw without being given a point.
-
-**Values the lab provides.** In the playground and editor, using one of these
-names declares it for you and the lab fills it every frame:
-
-- `mouse`: the pointer, in pixels from the centre like `canvas.centred`,
-  so `s.move(mouse)` puts a shape under it
-- `mouseUv`: the pointer, 0..1 on the stage
-- `resolution`: the stage's size in pixels
 
 **`time`** (seconds since the game started) is global in every shader, lab,
 level or shipped, and in any function it calls: no need to declare it or pass it down.
@@ -130,6 +124,7 @@ level or shipped, and in any function it calls: no need to declare it or pass it
 
 ```slang
 colour c = colours.gold;                 // a colour is a float4: r, g, b, a (straight alpha)
+colour(1.0, 0.3, 1.0);                   // rgb alone (three numbers or a float3) is opaque
 colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);
 colour half = colours.black.withAlpha(0.5);
 colour hue = colours.hsv(0.6, 0.8, 1);   // hue, saturation, value, each 0..1
@@ -139,6 +134,13 @@ colour mixed = top.over(bottom);         // straight-alpha "over"
 - **The type:** `colour` is another name for `float4`. Swizzles (`.rgb`,
   `.a`), arithmetic, `lerp` and anything else that takes a `float4` work on it
   unchanged.
+- **A float3 where a colour is wanted** becomes that colour, opaque:
+  `colour c = rgb;`, `c = rgb;` for a name declared `colour`, `return rgb;` in a
+  function returning `colour` (`colour shade(…)` too), and an argument for a
+  `colour` parameter. Slang can't convert implicitly itself, so the compile
+  wraps each one in `colour(…)` (`SlangColourConversions`) and the editor shows
+  a `(colour)` hint in front of it. A plain `float4` slot still takes only a
+  float4.
 - **Named colours:** the 141 X11/web colours live under `colours.`
   (`colours.gold`, `colours.hotPink`, `colours.transparent`, …). The editor
   shows each one's swatch in completion.
@@ -238,7 +240,7 @@ code before Slang sees it, so chains work anyway, and mean what they say:
 
 `paint` chains the same way (§9). The `-ed` forms are still there for a
 changed copy of a variable that should stay as it is. The rewrite only works
-in effect bodies (level slots, the lab), not in shipped `.slang` files, and
+in effect bodies (level slots), not in shipped `.slang` files, and
 it can move error columns a little on the lines it touches.
 
 **Anchor points:** `anchor.centre`, `.top`, `.bottom`, `.left`, `.right`,
@@ -290,7 +292,49 @@ pointer.
 | `s.haloed(reach, falloff = 1)` / `s.haloed(position, reach, falloff)` | 1 at the edge, fading to 0 `reach` pixels away on both sides; higher `falloff` is tighter |
 | `s.outlined(width, soft = 1)` / `s.outlined(position, width, soft)` | 1 on a line `width` wide just **inside** the edge, so the shape keeps its size (`stroked` is centred on the edge, half outside) |
 | `box.outlined(sides, width, soft = 1)` / `box.outlined(position, sides, width, soft)` | `Box` only: `outlined` on just the chosen sides, joined with `\|`: `side.top \| side.left`, or `side.all`. A chosen side ends at the corner's diagonal where it meets one that isn't |
+| `s.shadowed(reach)`, `s.contoured(spacing, depth = 0.4)`, `s.shown(reach = 80)` | the `sdf.` looks of the distance at the pixel (§8): a shadow hugging the edge, contour lines, the whole field drawn to see it |
 | `s.distance()` / `s.distance(position)` | the signed distance itself: negative inside, in pixels |
+
+### Measured: working a shape out once
+
+Making, copying and joining shapes is free: a shape is a recipe. Every draw
+(`filled`, `stroked`, `c.paint(shape, …)`, a join drawn later) works its
+distance out again, every shape inside it included. So a shape painted and then
+joined into another is worked out twice. `s.measured()` (or
+`s.measured(position)`) works it out once and gives a `Measured`: the distance
+at that point.
+
+Shapes and `Measured` are both `IMeasurable`: anything with a distance. The
+drawing calls without a position (`filled`, `stroked`, `outlined`, `feathered`,
+`haloed`, `shadowed`, `contoured`, `shown`, `distance`) and `c.paint`,
+`painted`, `erase` and `erased` are written once for both. Joins (`or`, `and`,
+`minus`, `melted`, `meltedAnd`, `meltedMinus`) work either way round: two
+shapes give a shape, and a `Measured` on either side gives a `Measured`, the
+shape measured at the `Measured`'s point (`Star6(60).minus(hole)` and
+`hole.minus(Star6(60))` both measure the star once). `m.hollowed(thickness)`
+is the shell, as on a shape.
+`m.grown(amount)` and `m.shrunk(amount)` move the edge out or in by `amount`
+units (one subtraction on the stored distance, nothing worked out again):
+growing rounds sharp corners, shrinking keeps them and loses parts thinner than
+twice `amount`. On a distance that is only a bound (melted, joined, repeated)
+large amounts bulge or pinch a little.
+
+```slang
+let ring = Circle(100).hollowed(10).measured();
+let dot = Circle(30).moved(float2(100, 0)).measured();
+col.paint(ring, colours.red);
+col.paint(dot.and(ring), colours.green);     // a max: nothing worked out again
+```
+
+A `Measured` is fixed at its point: it can't be moved, turned or drawn
+elsewhere, and `m.measured(position)` gives it back unchanged. Place the shape first and measure it last, and keep the shape itself
+for anything drawn at another point (a shadow, a trail, `filled(canvas.centred - mouse)`).
+
+**What a shape costs:** each shape's `/// @cost` tag says what working it out
+costs a pixel, a `Circle` being 1 (a `Box` 2, a `Star6` 3, an `Arc` 4;
+`repeated` adds 2 and the melted joins 1). The editor adds these up from the
+text and warns when a shape is worked out twice at the same point (XS005) or the
+whole effect goes over 32 a pixel (XS006); see `Docs/shader-style.md`.
 
 ## 8. Distances by hand: `sdf.`
 
@@ -510,7 +554,7 @@ which scene is on). `.at(t)` is the way out: progress at a
 reading of the clock you give it.
 
 **Play keys.** `keys.` names the game's seven keys: `left`, `right`, `up`,
-`down` (S D K L by default) and `action1`, `action2`, `action3` (F Space J),
+`down` (F J K L by default) and `action1`, `action2`, `action3` (S Space D),
 plus `anyDirection` and `anyAction` for whichever of those went down last.
 They follow the player's keybinds. `keys.left.since` is the seconds since that
 key was last pressed (1e6 when it never has been), and
@@ -522,8 +566,8 @@ c.paint(Circle(flash.mixed(40, 160)), colours.white.withAlpha(1 - flash.progress
 ```
 
 In a level the presses are the ones the play input reads, while a run is
-playing. In the lab, click the preview so the code lets go of the keyboard,
-then S D K L and F Space J press them. Presses run on real time: scrubbing
+playing. In the shader editor, click the preview so the code lets go of the keyboard,
+then F J K L and S Space D press them. Presses run on real time: scrubbing
 the timeline doesn't move them.
 
 **The run** (`xanadu.play`, part of `import xanadu`). Plain values:
@@ -594,11 +638,11 @@ The timeline draws a clip on a note's clock from each judgement, as it does
 `events.judged`, since it can't know which note the shader will pick.
 
 In the shader editor there is no game, so the editor stands in: the pointer
-on the preview is the player (its speed is the velocity), F fakes a FLAWLESS
-hit, Space a FLAWLESS+, J a miss (breaking the combo), S D K L a dash that
+on the preview is the player (its speed is the velocity), S fakes a FLAWLESS
+hit, Space a FLAWLESS+, D a miss (breaking the combo), F J K L a dash that
 way; accuracy, combo and score follow those. The timeline is the song, with a
-note on every beat: a chart of 64 notes zig-zagging across the preview, and F,
-Space or J judges the one on the nearest beat. It starts over each time the
+note on every beat: a chart of 64 notes zig-zagging across the preview, and S,
+Space or D judges the one on the nearest beat. It starts over each time the
 timeline goes round. Standing, the ground mode, death and Contact's bars are
 sliders under STAND-INS in the values column, shown once the code reads them.
 Song start fakes on the timeline going round; countdown, death, momentum and
@@ -623,10 +667,8 @@ keys read at it as diamonds, and a clip staggered by a pixel's value followed
 by fading copies. A clip on a play key's press or a play event starts from where on the
 timeline it last happened, or says what it is waiting for. Numbers, number locals and plain sums are worked out; a
 clip whose start or length comes from a uniform or the pixel is listed with a
-`?` but not drawn. In the lab the timeline is the shader's clock: it plays
-round the clips' loops, a press on the ruler scrubs (and pauses), the button
-on the left plays and pauses, and a press on a clip's name puts the caret on
-it. In the shader tool, whose effects keep the host's time, it follows that
+`?` but not drawn. A press on a clip's name puts the caret on it. In the
+shader tool, whose effects keep the host's time, the timeline follows that
 time.
 
 ## 12. Maths and random numbers
@@ -636,6 +678,7 @@ time.
 | `PI`, `TAU` | π and 2π |
 | `mod(x, y)` | GLSL's mod: the remainder takes the divisor's sign (HLSL's `fmod` truncates) |
 | `rotate(position, angle)` | a point turned round the origin, clockwise on screen like shapes |
+| `p.angleTo(target)` | the angle from `p` to `target`, clockwise on screen from pointing right, as `rotate` and `rotated` take it: `eye.rotated(eye.placement.offset.angleTo(mouse))` turns a shape's right side towards the pointer |
 | `sin01(x)`, `cos01(x)` | a sine or cosine from 0 to 1: `sin(x) * 0.5 + 0.5` |
 | `saw(x, period = 1)` | a ramp 0 to 1 every `period`, dropping back to 0: `frac(x / period)` |
 | `triangle(x, period = 1)` | up 0 to 1 and back down every `period`, 0 at 0 |
@@ -705,7 +748,7 @@ float4 shade(Canvas canvas)
 - `dt` is the frame's length in seconds. Ease with `1 - exp(-dt * rate)`,
   not a fixed fraction, so it feels the same at any frame rate.
 - `update` sees the same uniforms as `shade` (`mouse`, `time`, sliders).
-- State starts zeroed and may take up to 1 KB. Each material keeps its own.
+- State starts zeroed and may take up to 16 KB. Each material keeps its own.
   A recompile starts it again from zero.
 - If you also bind textures, give them `[[vk::binding(n, 2)]]` numbers from
   2 up, with no gaps.
@@ -714,19 +757,91 @@ float4 shade(Canvas canvas)
   not roll it back, and never will. Levels get kept state once their runtime
   passes it a paused `dt` of 0. Until then a level shader with an `update` is
   an error.
+- **The lab-only folder:** effects in `Assets/Shaders/Lab/` may keep state too.
+  The shader tool lists and runs them (thumbnail and preview), and the game
+  never loads them: its start-up compile skips the folder. Kept state anywhere
+  else under `Assets/Shaders` is still an error. `raymarch_tiled` and
+  `raymarch_single` there compare culling in `update` with a plain single pass.
 
 See `Tools/Labs/Examples/flashlight.slang`.
 
-## 15. Trying things out
+## 15. Moving the corners: `deform`
 
-- **Shader playground** (`./run.sh labs`, first tab): edit
-  `Tools/Labs/Playground/playground.slang` in any editor. Every save
-  recompiles; errors show in the panel and the last good version stays.
-  `--shader=<file>` watches another file, e.g.
-  `./run.sh labs --shader=Tools/Labs/Examples/voronoi.slang`.
-- **Shader editor** (second tab): a code editor with
+`shade` colours pixels where the shape already is. To move the shape itself
+(a flag waving, a squash on the beat, a tilt), declare a `deform`: the effect's
+own vertex stage. It runs once per corner, before the corner lands, and hands
+the corner back moved:
+
+```slang
+[Default(18)] uniform float height;
+
+ItemVertex deform(ItemVertex v)
+{
+    v.position.y += sin(time * 3 + v.uv.x * 9) * height;
+    return v;
+}
+
+float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
+```
+
+| Field | What it is |
+|---|---|
+| `v.position` | Where the corner lands on the target, in pixels (y down). Move this. |
+| `v.uv` | Its uv: 0..1 across a rect. |
+| `v.colour` | Its colour, modulates included. |
+| `v.local` | Where it is in the item's own space. |
+
+- Whatever is left in `uv`, `colour` and `local` goes on to `shade`, blended
+  across the triangle as usual. `canvas` in `shade` follows the moved corners,
+  so shapes drawn with it bend with the mesh, as if painted on it: its
+  `centred` runs with uv over the whole mesh in the quad's own size (the same
+  as `i.rest.size`), so they stay whole across the triangles. Anything that
+  wants the quad as it was before `deform` comes through `i.rest`.
+- **At rest:** `i.rest` is the quad as it was before `deform` pulled it, like
+  an elastic band before the force. Measure a shape at `i.rest.centred` and it
+  stays straight on the target however the mesh bends; the bent mesh still
+  decides where anything shows, so it frames the shape. Each shape chooses:
+
+  ```slang
+  let bent = Circle(100).measured();                       // painted on the mesh
+  let straight = Circle(100).measured(i.rest.centred);     // true on the target
+  ```
+
+  The wrapper keeps each corner's position from before `deform` and blends
+  it like uv; on the quad at rest that position is the corner plus uv along
+  the two sides, which blending keeps true on every bent triangle, so how it
+  and uv change from pixel to pixel gives the rest quad exactly. Where a
+  triangle is squashed too thin to tell, `i.rest` falls back to `canvas`.
+- `deform` sees what `shade` does except textures: `time`, `beat`, `keys.`,
+  the play state (`player.`, `song.`, `notes.` …) and the same uniforms and
+  sliders. `sampleItem`, `sampleScreen` and the effect's own textures are an
+  error there.
+- **It moves corners, not pixels.** A plain rect has four, so it can only
+  squash, tilt or move. A bend needs corners inside: the editors draw their
+  preview as a 48-cell grid for that. Items in a level are drawn as they are.
+- Kept state isn't there: `state` reads as zeros in `deform`.
+- Without a `deform` the host's standard vertex stage draws the effect.
+
+## 16. Trying things out
+
+- **Shader tool** (`./run.sh shaders`): every effect under `Assets/Shaders`
+  in a list; NEW writes `new_shader.slang` (then `new_shader_2`, …) from a
+  template and opens it. TRIANGLES outlines every triangle of the preview's
+  mesh and UV draws lines where uv is 0 (solid) and 1 (dashed), red for u and
+  green for v. Both go through the effect's own vertex stage, so they show
+  where `deform` really put the corners and the uv (`CanvasMaterial.Overlay`:
+  the code drawn with a library function for shade, `overlayTriangles` with a
+  line-filled pipeline, `overlayUvLines`). A code editor with
   - live problems under their lines
   - parameter hints
+  - **points to drag:** with the caret on a `float2(x, y)` of two plain numbers
+    that is a place (given to `moved`, `Line`, `angleTo`, a `Curve`'s points and
+    the like, or to a variable whose name isn't a size or a direction), a dot
+    shows where it lands on the preview, in pixels from its centre. Dragging
+    it writes whole pixels back into the text, the drag one undo step. Every
+    `uniform float2` that reads as a place has a dot too, dragged like its
+    sliders. A dot off the preview sits hollow on its edge
+    (`Slang/SlangPoints.cs`, `PreviewPoints.cs`)
   - completion follows a few rules, so a new wish is a new rule (or a tag in
     the library), never a special case (`Slang/SlangCompletions*.cs`; each rule
     is a row in `SlangCompletionsTests.Rules`):
@@ -776,7 +891,7 @@ See `Tools/Labs/Examples/flashlight.slang`.
 - **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
   metaballs, a shape badge, a screen ripple, a flashlight and clips, each a slot shader.
 
-## 16. Pitfalls
+## 17. Pitfalls
 
 - **Locals start as noise.** `colour c;` isn't black or transparent: it's
   whatever was left over, and the pixel comes out garbled. Give every local a
@@ -803,8 +918,15 @@ See `Tools/Labs/Examples/flashlight.slang`.
   `move(mouse)`. The shader editor warns about it (XS004).
 - **A shape's anchor follows the quad.** `anchor(…)` reads the quad's size when
   it's called, so call it inside `shade`, not at file level.
+- **In the library: no global made from a list of numbers.** The library is
+  precompiled to `.slang-module` files, and Slang can't read back a global like
+  `static PlayFrame p = { … }` or `static float4 v = float4(1, 2, 3, 4)` that
+  another module uses: compiling dies with "Generic type/value shouldn't be
+  handled here!". Set such a global from a function instead (`playState` in
+  `stage.slang` does). `static const` vectors (`colours.gold`) are fine: the
+  precompiler turns them into getters on its own (`SlangModules`).
 
-## 17. From shadertoy
+## 18. From shadertoy
 
 Porting a GLSL shader: each habit beside ours. Our space is pixels from the
 quad's centre, **y down**; shadertoy's `fragCoord` is pixels from the
@@ -815,7 +937,7 @@ bottom-left, y up.
 | `void mainImage(out vec4 fragColor, in vec2 fragCoord)` | `float4 shade(Canvas canvas)`, returning the colour |
 | `iResolution.xy` | `canvas.size` |
 | `iTime` | `time` |
-| `iMouse.xy` | `mouse` in the lab (pixels from the centre, like `canvas.centred`); the button (`iMouse.z`) isn't there yet |
+| `iMouse` | not there yet |
 | `fragCoord / iResolution.xy` | `i.uv`, but y runs down: `float2(i.uv.x, 1 - i.uv.y)` for his |
 | `(fragCoord - 0.5 * iResolution.xy) / iResolution.y` | `canvas.centred / canvas.size.y`, y down (negate `.y` where it matters) |
 | `(2.0 * fragCoord - iResolution.xy) / min(iResolution.x, iResolution.y)` | `canvas.centred * (2.0 / min(canvas.size.x, canvas.size.y))`, y down |

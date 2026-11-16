@@ -64,8 +64,16 @@ public readonly record struct TextCell(int Line, int Column);
 /// <summary>Columns [<see cref="Start"/>, <see cref="End"/>) of a line drawn in a colour; text no run covers is plain.</summary>
 public readonly record struct TextRun(int Start, int End, Color Colour);
 
-/// <summary>A label drawn in front of a column that isn't in the text (a parameter name); the caret steps over it.</summary>
-public readonly record struct TextInlay(int Column, string Label);
+/// <summary>
+/// A label drawn in front of a column that isn't in the text (a parameter name);
+/// the caret steps over it. With a <see cref="Swatch"/> it is drawn as a small
+/// square of that colour instead, taking the label's room.
+/// </summary>
+public readonly record struct TextInlay(int Column, string Label, Color? Swatch = null)
+{
+    /// <summary>A colour square in front of a column, one column wide plus its gap.</summary>
+    public static TextInlay ColourSwatch(int column, Color colour) => new(column, " ", colour);
+}
 
 /// <summary>
 /// A line marked for attention: tinted, the word from <see cref="Underline"/>
@@ -122,6 +130,22 @@ public interface ITextEditorHost
 
     /// <summary>What starts a line comment in this text (<c>//</c>), for Ctrl+/; null where there are none.</summary>
     string? LineComment => null;
+
+    /// <summary>
+    /// The spaces a line belongs at by the code's nesting, for a line off the indent
+    /// steps and for Enter from one; null leaves it to the step below.
+    /// </summary>
+    int? IndentFor(TextBuffer buffer, int line) => null;
+}
+
+public static class TextEditorIndent
+{
+    /// <summary>Where a line's text belongs (<see cref="TextIndent.Wanted"/>), asking the owner when it is off the steps.</summary>
+    public static int WantedIndent(this ITextEditorHost? host, TextBuffer buffer, int line)
+    {
+        string text = buffer.Lines[line];
+        return TextIndent.Wanted(text, TextIndent.Of(text) % TextBuffer.Indent != 0 ? host?.IndentFor(buffer, line) : null);
+    }
 }
 
 /// <summary>

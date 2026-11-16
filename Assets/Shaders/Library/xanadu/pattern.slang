@@ -45,6 +45,7 @@ float2 offGrid(float2 p, float2 spacing) { return abs(p - spacing * round(p / sp
 ///     c.paint(Grid(1, 40), colours.white);                           // 1px white lines every 40px
 ///     c.paint(Grid(2, float2(80, 40)).moved(float2(20, 0)), colours.gold);
 ///     c.paint(Grid(1, 40).moved(float2(time * 20)));                 // scrolls diagonally
+/// @cost 2
 public struct Grid : IShape
 {
     public Placement placement = Placement();
@@ -64,6 +65,7 @@ public struct Grid : IShape
 /// Upright lines `width` thick and `spacing` apart, one through the centre. A shape.
 ///
 ///     c.paint(Columns(2, 24), colours.white);
+/// @cost 1
 public struct Columns : IShape
 {
     public Placement placement = Placement();
@@ -78,6 +80,7 @@ public struct Columns : IShape
 /// Level lines `width` thick and `spacing` apart, one through the centre. A shape.
 ///
 ///     c.paint(Rows(2, 24), colours.white);
+/// @cost 1
 public struct Rows : IShape
 {
     public Placement placement = Placement();
@@ -95,6 +98,7 @@ public struct Rows : IShape
 ///
 ///     c.paint(Stripes(24), colours.gold);                              // even stripes
 ///     c.paint(Stripes(40, 0.25).moved(float2(time * 30, 0)), colours.white);  // thin, sliding
+/// @cost 1
 public struct Stripes : IShape
 {
     public Placement placement = Placement();
@@ -117,6 +121,7 @@ public struct Stripes : IShape
 ///
 ///     c.paint(Checker(32), colours.white.withAlpha(0.1));
 ///     c.paint(Checker(64, 2).rotated(0.3), colours.gold);
+/// @cost 2
 public struct Checker : IShape
 {
     public Placement placement = Placement();

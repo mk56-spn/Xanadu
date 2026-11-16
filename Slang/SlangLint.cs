@@ -20,6 +20,11 @@ namespace Xanadu.Slang;
 /// <item>XS004: <c>mouse</c> passed to <c>anchor</c>/<c>anchored</c>. Anchors are
 /// fractions of the quad; <c>mouse</c> is pixels, so the shape lands far off the
 /// stage. <c>move(mouse)</c> is what was meant.</item>
+/// <item>XS005, XS006: shape work, in SlangLint.Cost.cs.</item>
+/// <item>XS007: a parameter or local named like a function it's in the way of
+/// (<c>float length</c>, then <c>length(d)</c> in its scope). A value can't be called,
+/// so Slang says "no call operation found for type" at the call; the warning goes on
+/// the name, where the fix is.</item>
 /// </list>
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
@@ -39,7 +44,8 @@ public static partial class SlangLint
     private static partial Regex Mouse();
 
     /// <param name="typeNames">Types a local can be declared with: Slang's and the library's.</param>
-    public static List<SlangProblem> Check(string source, IReadOnlySet<string> typeNames)
+    /// <param name="shapeCosts">Each shape's cost from the library's tags (<see cref="SlangHints.Costs"/>); without it the cost rules don't run.</param>
+    public static List<SlangProblem> Check(string source, IReadOnlySet<string> typeNames, IReadOnlyDictionary<string, float>? shapeCosts = null)
     {
         string code = Blank(source);
         var problems = new List<SlangProblem>();
@@ -70,8 +76,101 @@ public static partial class SlangLint
 
         problems.AddRange(MouseAnchors(code));
         problems.AddRange(WholeDivisions(code));
+        problems.AddRange(HiddenFunctions(code, typeNames));
+        if (shapeCosts is { Count: > 0 })
+            problems.AddRange(ShapeCosts(code, shapeCosts));
         problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
         return problems;
+    }
+
+    /// <summary>A name followed by an optional generic list and a '(': where a function's header might start.</summary>
+    [GeneratedRegex(@"\b([A-Za-z_]\w*)\s*(?:<[^<>(){};]*>)?\s*\(")]
+    private static partial Regex NameThenParen();
+
+    /// <summary>A local given a type and a name: <c>float l =</c>, <c>let d =</c>, <c>float2 a, b;</c>.</summary>
+    [GeneratedRegex(@"\b([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*(?==(?!=)|;|,)")]
+    private static partial Regex LocalName();
+
+    private static readonly HashSet<string> NotFunctions = ["if", "for", "while", "switch", "return", "else"];
+
+    /// <summary>Each function the code declares: its parameter list (inside the brackets) and its body (inside the braces).</summary>
+    private static List<(int ParamsFrom, int ParamsTo, int BodyFrom, int BodyTo)> Functions(string code)
+    {
+        var functions = new List<(int, int, int, int)>();
+        foreach (Match header in NameThenParen().Matches(code))
+        {
+            if (NotFunctions.Contains(header.Groups[1].Value) || !Regex.IsMatch(code[..header.Index], @"[\w>]\s+$"))
+                continue;
+            int open = header.Index + header.Length - 1, depth = 0, close = open;
+            for (; close < code.Length; close++)
+            {
+                if (code[close] == '(')
+                    depth++;
+                else if (code[close] == ')' && --depth == 0)
+                    break;
+            }
+
+            int brace = close + 1;
+            while (brace < code.Length && char.IsWhiteSpace(code[brace]))
+                brace++;
+            if (brace < code.Length && code[brace] == '{')
+                functions.Add((open + 1, close, brace + 1, ScopeEnd(code, brace + 1)));
+        }
+
+        return functions;
+    }
+
+    /// <summary>XS007: each parameter or local whose name is called as a function where it's in scope.</summary>
+    private static IEnumerable<SlangProblem> HiddenFunctions(string code, IReadOnlySet<string> typeNames)
+    {
+        var functions = Functions(code);
+        var names = new List<(int At, string Name, int From, int To)>();
+        foreach ((int paramsFrom, int paramsTo, int bodyFrom, int bodyTo) in functions)
+        {
+            string list = code[paramsFrom..paramsTo];
+            int depth = 0, start = 0;
+            for (int i = 0; i <= list.Length; i++)
+            {
+                if (i < list.Length && list[i] is '(' or '<' or '[')
+                    depth++;
+                else if (i < list.Length && list[i] is ')' or '>' or ']')
+                    depth--;
+                else if (i == list.Length || (list[i] == ',' && depth == 0))
+                {
+                    string head = list[start..i].Split('=')[0];
+                    Match name = Regex.Match(head, @"([A-Za-z_]\w*)\s*$");
+                    if (name.Success && !typeNames.Contains(name.Groups[1].Value))
+                        names.Add((paramsFrom + start + name.Groups[1].Index, name.Groups[1].Value, bodyFrom, bodyTo));
+                    start = i + 1;
+                }
+            }
+        }
+
+        foreach (Match local in LocalName().Matches(code))
+        {
+            string type = local.Groups[1].Value;
+            if (!(typeNames.Contains(type) || type is "let" or "var") || !functions.Exists(f => f.BodyFrom <= local.Index && local.Index < f.BodyTo))
+                continue;
+            int from = local.Index + local.Length;
+            names.Add((local.Groups[2].Index, local.Groups[2].Value, from, ScopeEnd(code, from)));
+        }
+
+        foreach ((int at, string name, int from, int to) in names)
+        {
+            foreach (Match call in Regex.Matches(code[from..to], $@"(?<![\w.]){Regex.Escape(name)}\s*\("))
+            {
+                // A declaration of a function by that name (a type before it) isn't a call.
+                Match before = Regex.Match(code[..(from + call.Index)], @"([\w>]+)\s+$");
+                if (before.Success && (typeNames.Contains(before.Groups[1].Value) || before.Groups[1].Value.EndsWith('>')))
+                    continue;
+                (int line, int column) = Place(code, at);
+                int callLine = Place(code, from + call.Index).Line;
+                yield return new SlangProblem(line, column,
+                    $"XS007 · {name} here hides the {name}() function, so the call on line {callLine} can't reach it; give this another name",
+                    Warning: true);
+                break;
+            }
+        }
     }
 
     /// <summary>A name declared int or uint (<c>int count</c>, <c>static const int trail</c>, <c>for (int i …</c>).</summary>
@@ -123,7 +222,7 @@ public static partial class SlangLint
                 continue;
 
             string left = code[leftStart..leftEnd], right = code[rightStart..rightEnd];
-            if (!Whole(left) || !Whole(right) || WantsInt(code, leftStart, ints, intBodies))
+            if (!Whole(left) || !Whole(right) || !WholeProduct(code, leftStart, Whole) || WantsInt(code, leftStart, ints, intBodies))
                 continue;
 
             (int line, int column) = Place(code, leftStart);
@@ -132,6 +231,33 @@ public static partial class SlangLint
                 line, column,
                 $"XS002 · {left} / {right} divides whole numbers, so the fraction is dropped; write {fix}",
                 Warning: true);
+        }
+    }
+
+    /// <summary>
+    /// Whether the factors before a division's left word (<c>2.0 * extent * k / n</c>: the
+    /// <c>/</c> divides the whole product) are all whole numbers too; one that isn't a plain
+    /// whole word (a float, a call, a bracket) makes the product unknown, so it's let be.
+    /// </summary>
+    private static bool WholeProduct(string code, int leftStart, Func<string, bool> whole)
+    {
+        int at = leftStart;
+        while (true)
+        {
+            int op = at;
+            while (op > 0 && code[op - 1] is ' ' or '\t')
+                op--;
+            if (op == 0 || code[op - 1] is not ('*' or '/' or '%') || (op > 1 && code[op - 2] == '/'))
+                return true;
+            int end = op - 1;
+            while (end > 0 && code[end - 1] is ' ' or '\t')
+                end--;
+            int start = end;
+            while (start > 0 && (char.IsLetterOrDigit(code[start - 1]) || code[start - 1] is '_' or '.'))
+                start--;
+            if (start == end || !whole(code[start..end]))
+                return false;
+            at = start;
         }
     }
 

@@ -1,11 +1,11 @@
 # Shader style rules
 
-The house style for Xanadu shaders (level shader slots, the playground, the
+The house style for Xanadu shaders (level shader slots, the shader tool, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** XS002, XS003 and XS004 are checked: the shader editor shows them as warnings
-(`Slang/SlangLint.cs`). The rest are collected here as they come
+**Status:** XS002 to XS007 are checked: the shader editor shows them as warnings
+(`Slang/SlangLint.cs`, the shape-cost rules in `Slang/SlangLint.Cost.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
 Each rule says what it flags, why, how to fix it, and how hard it complains:
@@ -125,4 +125,74 @@ triangle.anchor(mouse);
 
 // fine
 triangle.move(mouse);
+```
+
+## XS005 · A shape worked out twice (warning) · checked
+
+**Flags** a named shape drawn a second time at the same point with nothing
+changed in between: painted, then joined into another shape that's drawn;
+`filled` and then `stroked`; `distance(p)` and then `filled(p, …)`.
+
+**Why** A shape is a recipe. Every draw works its distance out again, so the
+second draw repeats all the first one's maths.
+
+**Fix** Measure it once and draw the `Measured`:
+`let ring = Circle(100).hollowed(10).measured();`. For a fill plus an
+outline, `c.paint(shape, Look(…))` is the same two draws, so measure first if
+the shape is dear.
+
+**Not flagged** A shape moved, turned, scaled, anchored or given a new value
+between draws (that's another shape), one drawn at a different point
+(`distance(p)` and `distance(mouse)`), and a `Measured` (it's free to draw).
+
+```slang
+// flagged: ring is worked out by both paints
+col.paint(ring, colours.red);
+col.paint(dot.and(ring), colours.green);
+
+// fine
+let ring = Circle(100).hollowed(10).measured();
+col.paint(ring, colours.red);
+col.paint(dot.and(ring), colours.green);
+```
+
+## XS006 · Too much shape work a pixel (warning) · checked
+
+**Flags** an effect whose draws add up to more than 32 shape costs a pixel,
+shown on `shade`. Each shape costs its library `/// @cost` tag (a `Circle` is 1,
+a `Box` 2, a `Star6` 3; `repeated` adds 2, the melted joins 1). A draw costs
+every shape inside it, a `Look` paints twice, and a draw in a `for` counts once
+per pass. The bound is read from a number or a `const int`, and taken as 8 passes
+when the text doesn't give one.
+
+**Why** Every pixel of the quad pays it, every frame.
+
+**Fix** Measure shapes drawn more than once (XS005), draw fewer, or join
+distances by hand in a loop (§8 of `Docs/shaders.md`) so each shape is worked
+out once.
+
+**Not flagged** Work the text can't see. A helper function counts once,
+wherever it's called from, and a branch counts as though it always runs.
+
+## XS007 · A name that hides a function (warning) · checked
+
+**Flags** a parameter or local with the same name as a function that's called
+while the name is in scope: `float2 reach(float2 from, float2 to, float length)`
+whose body calls `length(d)`. The warning goes on the name.
+
+**Why** Inside its scope the name means the value, and a value can't be
+called. Slang reports it at the call as `no call operation found for type`,
+which doesn't say what's wrong.
+
+**Fix** Give the value another name: `span`, `size`, `reach`.
+
+**Not flagged** A name that's never called in its scope, or a call outside it
+(before a local is declared, or after its block closes).
+
+```slang
+// flagged
+float2 reach(float2 from, float2 to, float length) { return from + normalize(to - from) * length(to - from); }
+
+// fine
+float2 reach(float2 from, float2 to, float span) { return from + normalize(to - from) * span; }
 ```

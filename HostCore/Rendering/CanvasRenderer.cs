@@ -352,7 +352,9 @@ internal sealed class CanvasRenderer : IDisposable
                 new Vector2(x, y),
                 new Vector2(v.U, v.V),
                 new Color(v.R * tint.R, v.G * tint.G, v.B * tint.B, v.A * tint.A),
-                new Vector2(v.LX, v.LY));
+                new Vector2(v.LX, v.LY),
+                v.Rest.Transformed(t),
+                v.Index);
             if (job.IsGroup)
             {
                 job.MinX = MathF.Min(job.MinX, x);
@@ -387,10 +389,13 @@ internal sealed class CanvasRenderer : IDisposable
         Reserve(6);
         Color color = entry.Color;
         Span<Vector2> corners = [new(x0, y0), new(x1, y0), new(x1, y1), new(x0, y0), new(x1, y1), new(x0, y1)];
+        ReadOnlySpan<uint> points = [0, 1, 2, 0, 2, 3];
+        // Its uv is the screen's, so the quad at rest is the whole target.
+        var rest = new RestFrame(Vector2.Zero, new Vector2(_width, 0), new Vector2(0, _height));
         for (int i = 0; i < 6; i++)
         {
             Vector2 p = corners[i];
-            _vertices[_vertexCount + i] = new CanvasVertex(p, new Vector2(p.X / _width, p.Y / _height), color, p);
+            _vertices[_vertexCount + i] = new CanvasVertex(p, new Vector2(p.X / _width, p.Y / _height), color, p, rest, points[i]);
         }
 
         CanvasItem item = entry.Item;
@@ -492,6 +497,8 @@ internal sealed class CanvasRenderer : IDisposable
 
         var frame = FrameUniforms.Now(_width, _height, time);
         commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
+        // A deforming effect's vertex stage reads the frame too; only its time and play state matter there.
+        commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
         commands.PushFragmentUniformData(frame, 0);
         Begin(pass);
         GraphicsPipeline? bound = null;
@@ -566,6 +573,14 @@ internal sealed class CanvasRenderer : IDisposable
                 pass.BindFragmentStorageBuffers(_chart!);
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, batch.Material, batch.Owner?.InstanceValues);
+            if (effect.Compiled.Vertex is { } vertex)
+            {
+                if (vertex.StorageBuffers > 0)
+                    pass.BindVertexStorageBuffers(_chart!);
+                if (vertex.ParamsSize > 0)
+                    PushParams(commands, vertex, batch.Material, batch.Owner?.InstanceValues, stage: ParamsStage.Vertex);
+            }
+
             pass.DrawPrimitives(batch.Count, 1, batch.Start, 0);
             drawnSinceCopy = true;
         }
@@ -582,7 +597,9 @@ internal sealed class CanvasRenderer : IDisposable
         _updated.Clear();
         foreach (Batch batch in _batches)
         {
-            if (batch.Material is not { KeepsState: true } material || !_updated.Add(material))
+            // Code that asked for state, or a lab-only effect file (Docs/shaders.md §14).
+            if (batch.Material is not { } material || !(material.KeepsState || (material.Source is null && SlangShaders.IsLabOnly(material.Shader)))
+                || !_updated.Add(material))
                 continue;
 
             CanvasEffect effect = _pipelines.Effect(material);
@@ -602,7 +619,7 @@ internal sealed class CanvasRenderer : IDisposable
 
             commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time });
             if (compiled.ParamsSize > 0)
-                PushParams(commands, compiled, material, null, compute: true);
+                PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
             ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
             pass.BindComputePipeline(update);
             pass.BindStorageBuffers(_chart!);
@@ -630,7 +647,10 @@ internal sealed class CanvasRenderer : IDisposable
     }
 
     /// <summary>Packs an effect's values (its defaults, then the material's, then the item's own) into uniform buffer 1.</summary>
-    private static unsafe void PushParams(CommandBuffer commands, CompiledShader compiled, CanvasMaterial? material, Dictionary<string, Vector4>? instance, bool compute = false)
+    /// <summary>Which stage a values block goes to.</summary>
+    private enum ParamsStage { Fragment, Vertex, Compute }
+
+    private static unsafe void PushParams(CommandBuffer commands, CompiledShader compiled, CanvasMaterial? material, Dictionary<string, Vector4>? instance, ParamsStage stage = ParamsStage.Fragment)
     {
         Span<byte> bytes = stackalloc byte[compiled.ParamsSize];
         bytes.Clear();
@@ -655,10 +675,18 @@ internal sealed class CanvasRenderer : IDisposable
 
         fixed (byte* data = bytes)
         {
-            if (compute)
-                commands.PushComputeUniformData(data, (uint)bytes.Length, 1);
-            else
-                commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
+            switch (stage)
+            {
+                case ParamsStage.Compute:
+                    commands.PushComputeUniformData(data, (uint)bytes.Length, 1);
+                    break;
+                case ParamsStage.Vertex:
+                    commands.PushVertexUniformData(data, (uint)bytes.Length, 1);
+                    break;
+                default:
+                    commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
+                    break;
+            }
         }
     }
 

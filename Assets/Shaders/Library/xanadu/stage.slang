@@ -27,6 +27,12 @@
 //     uniform float4 tint;
 //     float4 shade(ItemInput i) { return i.colour * tint * strength; }
 //     float4 shade(Canvas canvas) { return tint * (canvas.centred.x > 0 ? 1 : 0); }
+//
+// A body may also declare `ItemVertex deform(ItemVertex v)`: its own vertex
+// stage, run on every corner before it lands. It sees the same globals (time,
+// beat, the play state, the chart) and the same values; it can't read textures.
+//
+//     ItemVertex deform(ItemVertex v) { v.position.y += sin(time * 4 + v.uv.x * 6) * 8; return v; }
 module stage;
 
 /// @hidden
@@ -56,6 +62,32 @@ public struct ItemVaryings
     public float2 uv : TEXCOORD0;
     public float4 colour : COLOR0;
     public float2 local : TEXCOORD1;
+    /// Where the corner was before `deform` moved it, in target pixels: blended across
+    /// the triangle like uv, it gives `rest`, the quad as it was. Where it landed, without one.
+    public float2 rest : TEXCOORD2;
+};
+
+/// One corner of what is drawn, as an effect's `deform` sees it and changes it:
+/// the vertex stage, before it lands on the target. Moving `position` moves the
+/// shape; uv, colour and local travel on to `shade` as they are left.
+public struct ItemVertex
+{
+    /// Where it lands on the target, in pixels (y down).
+    public float2 position;
+    /// Its UV: 0..1 across a rect.
+    public float2 uv;
+    /// Its colour, modulates included.
+    public float4 colour;
+    /// Where it is in the item's own space.
+    public float2 local;
+    /// The quad at rest it belongs to, on the target, before any deform: `rest.position`
+    /// is the quad's middle (`v.rest.position + rotate(v.position - v.rest.position, a)`
+    /// turns round it), `rest.centred` this corner's place on it from there. Lines and
+    /// untextured shapes, whose uv doesn't span them, give it no size.
+    public Canvas rest;
+    /// Its point in the item's mesh: triangles that share a corner share it, so it can
+    /// seed per-point randomness that keeps the mesh joined.
+    public uint index;
 };
 
 /// The play state, as the host hands it over each frame (xanadu.play reads it:
@@ -120,7 +152,15 @@ public struct Frame
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
 [[vk::binding(1, 2)]] public Sampler2D screenTexture;
-[[vk::binding(0, 3)]] public ConstantBuffer<Frame> frame;
+// The frame is fragment uniform buffer 0; a deforming effect's vertex stage
+// reads it as vertex uniform buffer 2 (the host says, when it compiles one).
+#ifndef XANADU_FRAME_BINDING
+#define XANADU_FRAME_BINDING 0
+#endif
+#ifndef XANADU_FRAME_SET
+#define XANADU_FRAME_SET 3
+#endif
+[[vk::binding(XANADU_FRAME_BINDING, XANADU_FRAME_SET)]] public ConstantBuffer<Frame> frame;
 
 // The chart sits right after an effect's samplers (SDL_GPU puts storage buffers
 // there), so where depends on how many textures the effect declares: the host
@@ -190,35 +230,78 @@ public struct ItemInput
     /// Seconds since the game started; the global `time` is the same, and reaches everywhere.
     public float time;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
+    /// After a `deform` it follows the moved corners, so shapes drawn with it bend with them:
+    /// `centred` runs with uv across the whole bent mesh in the quad's own `size` (rest's),
+    /// so they stay whole. Anything that wants the quad as it was comes through `rest`.
     public Canvas canvas;
+    /// The quad at rest, as it was before `deform` moved its corners (an elastic band before
+    /// the pull), and this pixel's true place on it: shapes drawn at `rest.centred` stay
+    /// straight on the target while the mesh bends (the bent mesh still bounds what shows).
+    /// The same as `canvas` without a `deform`.
+    public Canvas rest;
 };
+
+/// A canvas from its two sides, its uv-(0, 0) corner, and this pixel's uv on it.
+/// @hidden
+public Canvas canvasFrom(float2 xAxis, float2 yAxis, float2 corner, float2 uv)
+{
+    Canvas c;
+    c.xAxis = xAxis;
+    c.yAxis = yAxis;
+    c.size = float2(length(xAxis), length(yAxis));
+    c.corner = corner;
+    c.position = corner + 0.5 * (xAxis + yAxis);
+    c.centred = (uv - 0.5) * c.size;
+    c.rotation = atan2(xAxis.y, xAxis.x);
+    float2 along = xAxis / max(c.size.x, 1e-9);
+    float2 across = float2(-along.y, along.x);
+    float upright = dot(yAxis, across);
+    c.shear = abs(upright) > 1e-9 ? dot(yAxis, along) / upright : 0.0;
+    return c;
+}
+
+/// A canvas for a pixel where uv doesn't run across anything: all zeros at the pixel.
+/// @hidden
+public Canvas noCanvas(float2 pixel)
+{
+    Canvas c;
+    c.size = float2(0.0); c.position = pixel; c.corner = pixel;
+    c.rotation = 0.0; c.shear = 0.0; c.xAxis = float2(0.0); c.yAxis = float2(0.0); c.centred = float2(0.0);
+    return c;
+}
 
 /// The quad under a pixel: uv's change per target pixel, inverted, gives the
 /// quad's sides in pixels, and walking back from this pixel by its uv gives the corner.
 /// @hidden
 public Canvas canvasOf(ItemVaryings v)
 {
-    Canvas c;
     float2 perX = ddx(v.uv), perY = ddy(v.uv);
     float det = perX.x * perY.y - perY.x * perX.y;
     if (abs(det) < 1e-12)
-    {
-        c.size = float2(0.0); c.position = v.position.xy; c.corner = v.position.xy;
-        c.rotation = 0.0; c.shear = 0.0; c.xAxis = float2(0.0); c.yAxis = float2(0.0); c.centred = float2(0.0);
-        return c;
-    }
+        return noCanvas(v.position.xy);
+    float2 xAxis = float2(perY.y, -perX.y) / det;
+    float2 yAxis = float2(-perY.x, perX.x) / det;
+    return canvasFrom(xAxis, yAxis, v.position.xy - xAxis * v.uv.x - yAxis * v.uv.y, v.uv);
+}
 
-    c.xAxis = float2(perY.y, -perX.y) / det;
-    c.yAxis = float2(-perY.x, perX.x) / det;
-    c.size = float2(length(c.xAxis), length(c.yAxis));
-    c.corner = v.position.xy - c.xAxis * v.uv.x - c.yAxis * v.uv.y;
-    c.position = c.corner + 0.5 * (c.xAxis + c.yAxis);
-    c.centred = (v.uv - 0.5) * c.size;
-    c.rotation = atan2(c.xAxis.y, c.xAxis.x);
-    float2 along = c.xAxis / max(c.size.x, 1e-9);
-    float2 across = float2(-along.y, along.x);
-    float upright = dot(c.yAxis, across);
-    c.shear = abs(upright) > 1e-9 ? dot(c.yAxis, along) / upright : 0.0;
+/// The quad at rest under a pixel: on the quad before `deform`, the rest position is
+/// corner + xAxis * uv.x + yAxis * uv.y, and blending keeps that true on every bent
+/// triangle, so how rest and uv change from pixel to pixel gives the sides exactly
+/// (rest's change times uv's change inverted). This pixel's true place is then where the
+/// target pixel falls on that quad. Where the bent triangle is too thin to say, `bent`.
+/// @hidden
+public Canvas restCanvasOf(ItemVaryings v, Canvas bent)
+{
+    float2 uvX = ddx(v.uv), uvY = ddy(v.uv);
+    float2 restX = ddx(v.rest), restY = ddy(v.rest);
+    float det = uvX.x * uvY.y - uvY.x * uvX.y;
+    if (abs(det) < 1e-12)
+        return bent;
+    float2 xAxis = (restX * uvY.y - restY * uvX.y) / det;
+    float2 yAxis = (restY * uvX.x - restX * uvY.x) / det;
+    float2 corner = v.rest - xAxis * v.uv.x - yAxis * v.uv.y;
+    Canvas c = canvasFrom(xAxis, yAxis, corner, v.uv);
+    c.centred = (c.uvAt(v.position.xy) - 0.5) * c.size;
     return c;
 }
 
@@ -243,12 +326,73 @@ public static float4 actionKeys = float4(1e6);
 
 /// The play state from the frame, for xanadu.play. Set before `shade` runs;
 /// at rest (every event never) in `update`.
-public static PlayFrame playState = {
-    float4(0.0), float4(0.0, 0.0, 1.0, 1.0), float4(0.0), float4(0.0), float4(1.0, 0.0, 0.0, 0.0),
-    float4(0.0), float4(0.0, 0.0, 0.0, 5.0), float4(0.0, 1e6, 0.0, 120.0),
-    { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) },
-    float4(0.0, 1.0, 0.0, 0.0)
-};
+/// (Set from a function: Slang can't read a global made from a list of numbers back
+/// out of the precompiled library.)
+public static PlayFrame playState = restingPlay();
+
+/// @hidden
+PlayFrame restingPlay()
+{
+    PlayFrame p = {};
+    p.playfield = float4(0.0, 0.0, 1.0, 1.0);
+    p.score = float4(1.0, 0.0, 0.0, 0.0);
+    p.contact = float4(0.0, 0.0, 0.0, 5.0);
+    p.song = float4(0.0, 1e6, 0.0, 120.0);
+    p.events = { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) };
+    p.chart = float4(0.0, 1.0, 0.0, 0.0);
+    return p;
+}
+
+/// Sets the globals (time, beat, keys, play state) from the frame for a vertex
+/// stage, as input() does for a pixel.
+/// @hidden
+public void vertexClock()
+{
+    time = frame.time;
+    directionKeys = frame.directionKeys;
+    actionKeys = frame.actionKeys;
+    playState = frame.play;
+    beat = frame.play.song.x;
+}
+
+/// The shader editor's triangle overlay: drawn line-filled through the effect's own
+/// vertex stage, so every triangle's edges show where its corners landed.
+/// @hidden
+public float4 overlayTriangles(ItemInput i)
+{
+    return float4(1.0, 1.0, 1.0, 0.85);
+}
+
+/// The shader editor's uv overlay: lines where u (red) and v (green) are 0 (solid)
+/// and 1 (dashed), from the uv the vertex stage handed on, so a deform that moves
+/// or scales uv moves the lines with it.
+/// @hidden
+public float4 overlayUvLines(ItemInput i)
+{
+    // About 1.5 pixels either side of each line, whatever uv's scale on screen.
+    float2 width = max(fwidth(i.uv), float2(1e-6)) * 1.5;
+    float2 near0 = 1.0 - saturate(abs(i.uv) / width);
+    float2 near1 = 1.0 - saturate(abs(i.uv - 1.0) / width);
+    float dash = step(0.5, frac((i.pixel.x + i.pixel.y) / 12.0));
+    float u = max(near0.x, near1.x * dash);
+    float v = max(near0.y, near1.y * dash);
+    float3 rgb = (u * float3(1.0, 0.3, 0.3) + v * float3(0.3, 1.0, 0.4)) / max(u + v, 1e-6);
+    return float4(rgb, max(u, v));
+}
+
+/// What the vertex stage passes on for a corner where it lands.
+/// @hidden
+public ItemVaryings varyings(ItemVertex v)
+{
+    ItemVaryings o;
+    float2 ndc = v.position / frame.screen * 2.0 - 1.0;
+    o.position = float4(ndc.x, -ndc.y, 0.0, 1.0);
+    o.uv = v.uv;
+    o.colour = v.colour;
+    o.local = v.local;
+    o.rest = v.position;
+    return o;
+}
 
 /// @hidden
 public ItemInput input(ItemVaryings v)
@@ -267,6 +411,12 @@ public ItemInput input(ItemVaryings v)
     playState = frame.play;
     beat = frame.play.song.x;
     i.canvas = canvasOf(v);
+    i.rest = restCanvasOf(v, i.canvas);
+    // Painted on the bent mesh: centred runs with uv over every triangle, measured in the
+    // quad's own size (rest's, the same everywhere). Each triangle's own stretch would
+    // give each its own size and cut shapes at the edges. Without a deform they agree.
+    i.canvas.size = i.rest.size;
+    i.canvas.centred = (v.uv - 0.5) * i.rest.size;
     shading = i;
     return i;
 }

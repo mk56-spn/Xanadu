@@ -99,7 +99,11 @@ internal abstract class HostApp : Game
     protected float Seconds => (float)(DateTime.UtcNow - _started).TotalSeconds;
 
     /// <summary>Runs before any instance's base constructor makes the graphics device, which is when the layer must be in place.</summary>
-    static HostApp() => GpuTimes.Install();
+    static HostApp()
+    {
+        GpuTimes.Install();
+        HostLateTickLog.Install();
+    }
 
     protected HostApp(string title, HostWindowOptions window, HostUi ui = HostUi.Standard) : base(
         new AppInfo("Xanadu", title),

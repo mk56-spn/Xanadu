@@ -158,9 +158,9 @@ public sealed class SlangCompletionsTests
     [Test]
     public void AnIndexedArrayFieldWalksOnToItsElement()
     {
-        // A float2's components; an unindexed array has none.
+        // A float2's components and the library's float2 members; an unindexed array has none.
         List<string> element = Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints[state.pointer + 1].");
-        Assert.That(element, Is.EquivalentTo(new[] { "x", "y" }));
+        Assert.That(element, Is.EquivalentTo(new[] { "x", "y", "angleTo" }));
         Assert.That(element, Does.Not.Contain("prevTime"));
         Assert.That(Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints."), Is.Empty);
     }
@@ -171,9 +171,9 @@ public sealed class SlangCompletionsTests
         Assert.That(Names("float4 shade()\n{\n    float3 v;\n    v."), Is.SupersetOf(new[] { "x", "y", "z", "r", "g", "b", "xy", "rgb" }));
         // A colour has the library's own members and its channels too.
         Assert.That(Names("float4 shade()\n{\n    colour c;\n    c."), Is.SupersetOf(new[] { "rgb", "a", "paint" }));
-        Assert.That(Names("float4 shade()\n{\n    float4 v;\n    v.xy."), Is.EquivalentTo(new[] { "x", "y" }));
+        Assert.That(Names("float4 shade()\n{\n    float4 v;\n    v.xy."), Is.EquivalentTo(new[] { "x", "y", "angleTo" }));
         // mouse is provided as a float2.
-        Assert.That(Names("float4 shade()\n{\n    float a = mouse."), Is.EquivalentTo(new[] { "x", "y" }));
+        Assert.That(Names("float4 shade()\n{\n    float a = mouse."), Is.EquivalentTo(new[] { "x", "y", "angleTo" }));
     }
 
     [Test]
@@ -365,6 +365,12 @@ public sealed class SlangCompletionsTests
         TestName = "Tag: @hidden library names are never offered")]
     [TestCase(Body + "let v = inpu", new string[0], new[] { "input" },
         TestName = "Tag: @hidden input() is host plumbing")]
+    [TestCase(Body + "let c = Circle(40);\n    let m = c.meas", new[] { "measured" }, new string[0],
+        TestName = "Members: every shape can be measured")]
+    [TestCase(Body + "let c = Circle(40);\n    let m = c.measured();\n    float a = m.fi", new[] { "filled" }, new string[0],
+        TestName = "Members: a measured shape draws like a shape")]
+    [TestCase(Body + "let m = Circle(40).moved(float2(1, 0)).measured();\n    let j = m.an", new[] { "and" }, new[] { "anchor", "move" },
+        TestName = "Members: a measured shape joins but can't be placed")]
     public void Rules(string code, string[] first, string[] absent)
     {
         List<string> names = Names(code);

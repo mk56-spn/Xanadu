@@ -9,8 +9,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// <summary>
 /// The run a shader sees (<see cref="ShaderPlay"/>, <c>xanadu.play</c>) while
 /// it is edited, with no game behind it: the pointer on the preview is the
-/// player, the play keys fake what happens (F a hit, Space a FLAWLESS+, J a
-/// miss, S D K L a dash that way), the timeline is the song with a note on
+/// player, the play keys fake what happens (S a hit, Space a FLAWLESS+, D a
+/// miss, F J K L a dash that way), the timeline is the song with a note on
 /// every beat (a <see cref="ShaderChart"/> zig-zagging across the preview; a
 /// faked hit or miss judges the nearest one), and what can't be faked that way
 /// (standing, dead, the ground mode, Contact's bars) is a slider in the values

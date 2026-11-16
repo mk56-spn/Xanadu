@@ -150,7 +150,7 @@ public sealed partial class SlangCompletions
         _code.Scopes.ContainsKey("State") && code.Any(line => Regex.IsMatch(line, @"\bvoid\s+update\s*\("));
 
     /// <summary>A name's type, from how the code declares it; only types the library or the code's own structs know.</summary>
-    private string? VariableType(string name, IReadOnlyList<string> code)
+    private string? VariableType(string name, IReadOnlyList<string> code, int depth = 0)
     {
         if (name == KeptState && KeepsState(code))
             return "State";
@@ -165,14 +165,61 @@ public sealed partial class SlangCompletions
                     return type;
             }
 
-            Match let = LetConstructed().Match(line);
-            string built = let.Success ? _aliases.GetValueOrDefault(let.Groups[2].Value, let.Groups[2].Value) : "";
-            if (let.Success && let.Groups[1].Value == name && HasScope(built))
+            if (LetType(line, name, code, depth) is { } built)
                 return built;
         }
 
         return provided is not null && HasScope(provided) ? _aliases.GetValueOrDefault(provided, provided) : null;
     }
+
+    /// <summary>
+    /// A let's type from its value: the struct it makes (<c>Box(…)</c>) or the variable it starts
+    /// from, then each <c>.method(…)</c> by what that returns (<c>let m = c.measured()</c> → Measured).
+    /// Null when any step is unknown or the value goes on past the calls.
+    /// </summary>
+    private string? LetType(string line, string name, IReadOnlyList<string> code, int depth)
+    {
+        Match let = LetValue().Match(line);
+        if (!let.Success || let.Groups[1].Value != name || depth > 8)
+            return null;
+        string value = let.Groups[2].Value;
+        for (string before = ""; before != value;)
+        {
+            before = value;
+            value = Regex.Replace(value, @"\([^()]*\)", "\u0002");
+        }
+
+        Match chain = CallChain().Match(value);
+        if (!chain.Success || !Regex.IsMatch(value[chain.Length..], @"^\s*(;|//|$)"))
+            return null;
+        string head = chain.Groups[1].Value;
+        string? scope = chain.Groups[2].Success
+            ? (_aliases.GetValueOrDefault(head, head) is var made && IsTypeName(head) && HasScope(made) ? made : null)
+            : head == name ? null : VariableType(head, code, depth + 1);
+        foreach (Capture call in chain.Groups[3].Captures)
+        {
+            if (scope is null)
+                return null;
+            Completion member = Members(scope).Find(m => m.Name == call.Value && m.Kind is CompletionKind.Method or CompletionKind.Function);
+            int arrow = member.Detail?.LastIndexOf("→ ", StringComparison.Ordinal) ?? -1;
+            if (arrow < 0)
+                return null;
+            string returns = member.Detail![(arrow + 2)..].Split('<')[0].Trim();
+            scope = Resolve(scope, returns);
+            if (!HasScope(scope))
+                return null;
+        }
+
+        return scope;
+    }
+
+    /// <summary>A let and its value, to the end of the line.</summary>
+    [GeneratedRegex(@"\blet\s+(\w+)\s*=\s*(.*)$")]
+    private static partial Regex LetValue();
+
+    /// <summary>A value whose calls are collapsed to \u0002: its first name, whether that's called, then each .method called after it.</summary>
+    [GeneratedRegex(@"^([A-Za-z_]\w*)\s*(\u0002)?(?:\s*\.\s*(\w+)\s*\u0002)*")]
+    private static partial Regex CallChain();
 
     private List<Completion> Members(string scope)
     {

@@ -3,6 +3,7 @@
 // from OpenTK's Color4).
 //
 //     colour c = colours.gold;     a colour is a float4 (straight alpha), .rgb and all
+//     colour(1.0, 0.3, 1.0)        rgb alone (three numbers or a float3) is opaque
 //     colours.hsv(h, s, v)         hue, saturation, value (each 0..1) to a colour
 //     colours.hue(h)               the hue at full saturation and value
 //     top.over(bottom)             straight-alpha "over"
@@ -18,6 +19,12 @@ public typealias colour = float4;
 
 public extension float4
 {
+    /// An opaque colour from red, green and blue: colour(1.0, 0.3, 1.0) has alpha 1.
+    public __init(float r, float g, float b) { this = float4(r, g, b, 1.0); }
+
+    /// An opaque colour from an rgb: colour(c.rgb) has alpha 1.
+    public __init(float3 rgb) { this = float4(rgb, 1.0); }
+
     /// The same colour with alpha `a`: colours.black.withAlpha(0.5).
     public colour withAlpha(float a) { return colour(this.rgb, a); }
 

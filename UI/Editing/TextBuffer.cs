@@ -171,17 +171,20 @@ public sealed class TextBuffer
         Version++;
     }
 
-    /// <summary>Enter: splits the line, the new one indented like this one plus <paramref name="extraIndent"/> spaces.</summary>
-    public void NewLine(int extraIndent = 0)
+    /// <summary>
+    /// Enter: splits the line, the new one indented like this one (or <paramref name="indent"/>
+    /// spaces when given) plus <paramref name="extraIndent"/> spaces.
+    /// </summary>
+    public void NewLine(int extraIndent = 0, int? indent = null)
     {
         DeleteSelection();
         string line = _lines[Line];
-        int indent = line.Length - line.TrimStart(' ').Length + extraIndent;
+        int spaces = Math.Max(0, (indent ?? TextIndent.Of(line)) + extraIndent);
         string after = line[Column..].TrimStart(' ');
         _lines[Line] = line[..Column].TrimEnd(' ');
-        _lines.Insert(Line + 1, new string(' ', indent) + after);
+        _lines.Insert(Line + 1, new string(' ', spaces) + after);
         Line++;
-        Column = indent;
+        Column = spaces;
         _wantedColumn = Column;
         Version++;
     }
@@ -302,6 +305,9 @@ public sealed class TextBuffer
         _wantedColumn = Column;
         Version++;
     }
+
+    /// <summary>Puts a line's text <paramref name="spaces"/> in, the caret kept on the same text.</summary>
+    public void Reindent(int line, int spaces) => Edit(line, 0, TextIndent.Of(_lines[line]), new string(' ', spaces));
 
     /// <summary>
     /// Replaces columns [from, to) of any line, the caret kept on the same text: after the

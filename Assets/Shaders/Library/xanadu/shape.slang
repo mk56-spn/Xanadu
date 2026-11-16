@@ -25,6 +25,8 @@
 // minus and melted build new shapes from it; filled, stroked and haloed draw it,
 // from the quad's centre unless given a point (the pixel being shaded, at
 // canvas.centred). distance(position) is the signed distance (negative inside).
+// measured() works a shape out once into a Measured; shapes and Measured are
+// both IMeasurable, so drawing, painting and joins take either.
 // Sizes are full widths and heights, in the units of the position (pixels by default),
 // so Box(canvas.size) fills the quad. Round shapes take a radius. Most
 // distances are Inigo Quilez's (iquilezles.org/articles/distfunctions2d).
@@ -147,9 +149,19 @@ public interface IPlaced
     public property Placement placement { get; set; }
 }
 
+/// Anything with a signed distance: a shape (measured anywhere) or a Measured (fixed at its point).
+/// Drawing (filled, stroked, …) and painting take either; joins between them give a Measured.
+public interface IMeasurable
+{
+    /// Its distance at the pixel being shaded: a shape from the quad's centre, a Measured itself.
+    public Measured measured();
+    /// Its distance at `position`. A Measured has only its own point and gives itself back.
+    public Measured measured(float2 position);
+}
+
 /// A shape: a signed distance, centred, then placed. Drawn with filled, stroked, outlined, haloed or c.paint.
 /// @fits float
-public interface IShape : IPlaced
+public interface IShape : IPlaced, IMeasurable
 {
     /// Signed distance from p in the shape's own space, before its placement: negative inside.
     public float local(float2 p);
@@ -157,6 +169,7 @@ public interface IShape : IPlaced
 
 // ---- Shapes ----------------------------------------------------------------
 
+/// @cost 1
 public struct Circle : IShape
 {
     public Placement placement = Placement();
@@ -168,6 +181,7 @@ public struct Circle : IShape
 }
 
 /// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to draw with stroked or haloed.
+/// @cost 2
 public struct Line : IShape
 {
     public Placement placement = Placement();
@@ -186,6 +200,7 @@ public struct Line : IShape
 }
 
 /// A box `size` wide and high, its corners rounded by `radius`.
+/// @cost 2
 public struct Box : IShape
 {
     public Placement placement = Placement();
@@ -224,6 +239,7 @@ public extension Box
 }
 
 /// A box `size` wide and high with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
+/// @cost 3
 public struct CornerBox : IShape
 {
     public Placement placement = Placement();
@@ -243,6 +259,7 @@ public struct CornerBox : IShape
 }
 
 /// A box `size` wide and high with its corners cut off at 45° by `chamfer`.
+/// @cost 3
 public struct ChamferBox : IShape
 {
     public Placement placement = Placement();
@@ -266,6 +283,7 @@ public struct ChamferBox : IShape
 }
 
 /// A plus sign `size.x` across (end to end) with arms `size.y` thick, `radius` rounding it.
+/// @cost 3
 public struct Cross : IShape
 {
     public Placement placement = Placement();
@@ -287,6 +305,7 @@ public struct Cross : IShape
 }
 
 /// A ring `thickness` wide with a gap: `gap` is the gap's half angle in radians (0 for a full ring), facing down.
+/// @cost 4
 public struct Arc : IShape
 {
     public Placement placement = Placement();
@@ -311,6 +330,7 @@ public struct Arc : IShape
 }
 
 /// An equilateral triangle pointing up, `radius` from its centre to each side's middle × √3.
+/// @cost 3
 public struct Triangle : IShape
 {
     public Placement placement = Placement();
@@ -333,6 +353,7 @@ public struct Triangle : IShape
 }
 
 /// A slanted box `width` wide and `height` high, its top shifted right by `skew`.
+/// @cost 4
 public struct Parallelogram : IShape
 {
     public Placement placement = Placement();
@@ -361,6 +382,7 @@ public struct Parallelogram : IShape
 }
 
 /// A six-pointed star.
+/// @cost 3
 public struct Star6 : IShape
 {
     public Placement placement = Placement();
@@ -380,6 +402,7 @@ public struct Star6 : IShape
 }
 
 /// A crescent: a circle of `radius` with a bite of radius `bite` taken from `offset` to its right.
+/// @cost 4
 public struct Moon : IShape
 {
     public Placement placement = Placement();
@@ -533,10 +556,14 @@ public extension<S : IShape> S
         return local(at.toLocal(position)) * at.scale;
     }
 
-    /// distance at the pixel being shaded, from the quad's centre.
-    public float distance() { return distance(shading.canvas.centred); }
+    /// Worked out once at `position`: a Measured that filled, and, paint and the rest reuse.
+    public Measured measured(float2 position) { return Measured(distance(position), position); }
+
+    /// measured at the pixel being shaded, from the quad's centre.
+    public Measured measured() { return measured(shading.canvas.centred); }
 
     /// `count` copies in a circle, each `radius` out from the centre.
+    /// @cost 2
     public Repeated<S> repeated(float count, float radius) { Repeated<S> r; r.placement = Placement(); r.shape = this; r.count = count; r.radius = radius; return r; }
 
     /// Just a shell `thickness` wide round its edge.
@@ -552,13 +579,34 @@ public extension<S : IShape> S
     public Difference<S, T> minus<T : IShape>(T other) { Difference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
 
     /// This shape and `other` melted together over `blend` units.
+    /// @cost 1
     public SmoothUnion<S, T> melted<T : IShape>(T other, float blend) { SmoothUnion<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// Only where this shape and `other` overlap, the edge rounded over `blend` units.
+    /// @cost 1
     public SmoothIntersection<S, T> meltedAnd<T : IShape>(T other, float blend) { SmoothIntersection<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
 
     /// This shape with `other` cut out of it, the cut rounded over `blend` units.
+    /// @cost 1
     public SmoothDifference<S, T> meltedMinus<T : IShape>(T other, float blend) { SmoothDifference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+
+    /// This and a measured shape together, this measured at its point.
+    public Measured or(Measured other) { return measured(other.at).or(other); }
+
+    /// Only where this and a measured shape overlap, this measured at its point.
+    public Measured and(Measured other) { return measured(other.at).and(other); }
+
+    /// This with a measured shape cut out of it, this measured at its point.
+    public Measured minus(Measured other) { return measured(other.at).minus(other); }
+
+    /// This and a measured shape melted together over `blend` units, this measured at its point.
+    public Measured melted(Measured other, float blend) { return measured(other.at).melted(other, blend); }
+
+    /// Only where this and a measured shape overlap, rounded over `blend` units, this measured at its point.
+    public Measured meltedAnd(Measured other, float blend) { return measured(other.at).meltedAnd(other, blend); }
+
+    /// This with a measured shape cut out, the cut rounded over `blend` units, this measured at its point.
+    public Measured meltedMinus(Measured other, float blend) { return measured(other.at).meltedMinus(other, blend); }
 
     /// 1 inside, 0 outside, the edge smoothed over `soft` units.
     public float filled(float2 position, float soft = 1.0) { return sdf.filled(distance(position), soft); }
@@ -569,25 +617,102 @@ public extension<S : IShape> S
     /// 1 inside, fading to 0 `width` units outside the edge (filled fades across it instead).
     public float feathered(float2 position, float width) { return sdf.feathered(distance(position), width); }
 
-    /// feathered at the pixel being shaded, from the quad's centre.
-    public float feathered(float width) { return feathered(shading.canvas.centred, width); }
-
     /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
     public float haloed(float2 position, float reach, float falloff = 1.0) { return sdf.haloed(distance(position), reach, falloff); }
-
-    /// filled at the pixel being shaded, from the quad's centre.
-    public float filled(float soft = 1.0) { return filled(shading.canvas.centred, soft); }
 
     /// 1 on a line `width` wide just inside the edge, 0 elsewhere: the shape keeps its size
     /// (stroked is centred on the edge instead, half outside).
     public float outlined(float2 position, float width, float soft = 1.0) { return sdf.stroked(distance(position) + width * 0.5, width, soft); }
+}
 
-    /// outlined at the pixel being shaded, from the quad's centre.
-    public float outlined(float width, float soft = 1.0) { return outlined(shading.canvas.centred, width, soft); }
+// ---- Measured: a shape worked out once ----------------------------------------
 
-    /// stroked at the pixel being shaded, from the quad's centre.
-    public float stroked(float width, float soft = 1.0) { return stroked(shading.canvas.centred, width, soft); }
+/// A shape already worked out at one point: its distance there, and the point. A shape is a
+/// recipe that runs again for every filled, and or paint; measure it once you're done placing
+/// it and everything after reuses the number. Copying one never works anything out again.
+///
+///     let ring = Circle(100).hollowed(10).measured();
+///     let dot = Circle(30).moved(float2(100, 0)).measured();
+///     c.paint(ring, colours.red);
+///     c.paint(dot.and(ring), colours.green);       // a max, nothing measured again
+///
+/// It can't be moved or drawn somewhere else (a shadow, a trail): keep the shape for that.
+public struct Measured : IMeasurable
+{
+    /// The signed distance at `at`: negative inside.
+    public float d;
+    /// The point it was measured at; a shape joined to it is measured there too.
+    public float2 at;
 
-    /// haloed at the pixel being shaded, from the quad's centre.
-    public float haloed(float reach, float falloff = 1.0) { return haloed(shading.canvas.centred, reach, falloff); }
+    public __init(float d, float2 at) { this.d = d; this.at = at; }
+
+    /// Itself: it was measured already.
+    public Measured measured() { return this; }
+
+    /// Itself: it only knows its own point, so `position` is not used. Keep the shape to measure elsewhere.
+    public Measured measured(float2 position) { return this; }
+
+    /// Just a shell round its edge, `thickness` out on each side (as a shape's hollowed).
+    public Measured hollowed(float thickness) { return Measured(abs(d) - thickness, at); }
+
+    /// The edge moved `amount` units out (d - amount): sharp corners come out rounded. One
+    /// subtraction on the stored distance; the shape isn't worked out again.
+    public Measured grown(float amount) { return Measured(d - amount, at); }
+
+    /// The edge moved `amount` units in (d + amount): corners stay sharp, parts thinner than
+    /// twice `amount` vanish. One addition on the stored distance.
+    public Measured shrunk(float amount) { return Measured(d + amount, at); }
+
+    /// This and `other` together; a shape is measured at the same point.
+    public Measured or<T : IMeasurable>(T other) { return Measured(min(d, other.measured(at).d), at); }
+
+    /// Only where this and `other` overlap; a shape is measured at the same point.
+    public Measured and<T : IMeasurable>(T other) { return Measured(max(d, other.measured(at).d), at); }
+
+    /// This with `other` cut out of it; a shape is measured at the same point.
+    public Measured minus<T : IMeasurable>(T other) { return Measured(max(d, -other.measured(at).d), at); }
+
+    /// This and `other` melted together over `blend` units; a shape is measured at the same point.
+    public Measured melted<T : IMeasurable>(T other, float blend) { return Measured(sdf.melted(d, other.measured(at).d, blend), at); }
+
+    /// Only where this and `other` overlap, the edge rounded over `blend` units; a shape is measured at the same point.
+    public Measured meltedAnd<T : IMeasurable>(T other, float blend) { return Measured(sdf.meltedAnd(d, other.measured(at).d, blend), at); }
+
+    /// This with `other` cut out of it, the cut rounded over `blend` units; a shape is measured at the same point.
+    public Measured meltedMinus<T : IMeasurable>(T other, float blend) { return Measured(sdf.meltedMinus(d, other.measured(at).d, blend), at); }
+}
+
+// ---- What everything measurable can do ----------------------------------------
+
+/// Drawing, once for shapes and Measured alike: a shape is measured at the pixel being shaded,
+/// from the quad's centre (its overloads taking a position draw elsewhere); a Measured uses its number.
+public extension<M : IMeasurable> M
+{
+    /// The signed distance: negative inside.
+    public float distance() { return measured().d; }
+
+    /// 1 inside, 0 outside, the edge smoothed over `soft` units.
+    public float filled(float soft = 1.0) { return sdf.filled(measured().d, soft); }
+
+    /// 1 on a line `width` wide along the edge, 0 elsewhere.
+    public float stroked(float width, float soft = 1.0) { return sdf.stroked(measured().d, width, soft); }
+
+    /// 1 on a line `width` wide just inside the edge, 0 elsewhere: the shape keeps its size
+    /// (stroked is centred on the edge instead, half outside).
+    public float outlined(float width, float soft = 1.0) { return sdf.stroked(measured().d + width * 0.5, width, soft); }
+
+    /// 1 inside, fading to 0 `width` units outside the edge (filled fades across it instead).
+    public float feathered(float width) { return sdf.feathered(measured().d, width); }
+
+    /// 1 at the edge fading to 0 `reach` units away on both sides, shaped by `falloff` (higher is tighter).
+    public float haloed(float reach, float falloff = 1.0) { return sdf.haloed(measured().d, reach, falloff); }
+
+    /// A shadow hugging the edge on both sides, 63% back to 1 `reach` units out; multiply a colour by it.
+    public float shadowed(float reach) { return sdf.shadowed(measured().d, reach); }
+
+    /// Contour lines `spacing` units apart: 1 on a line, 1 - `depth` between; multiply a colour by it.
+    public float contoured(float spacing, float depth = 0.4) { return sdf.contoured(measured().d, spacing, depth); }
+
+    /// The field drawn the way Inigo Quilez draws one, scaled from `reach`: for seeing a distance.
+    public float4 shown(float reach = 80.0) { return sdf.shown(measured().d, reach); }
 }

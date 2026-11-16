@@ -32,7 +32,7 @@ Agreed with the user. Don't revisit them without asking.
 | P4 | **The test suite stays green** and runs without a window (~2300 tests). See §7. |
 | P5 | **MoonWorks is vendored from source**, pinned to a commit, as a trimmed copy in `External/MoonWorks/` (it is not on NuGet). Patch it locally when needed; zlib allows that, and `External/README.md` lists the patches. **Never send AI-written PRs upstream**: their `AGENTS.md` forbids it. |
 | P6 | **Native libs come from Moonside's bundle**, not the OS (SDL3, FAudio, IRO, Wellspring, dav1dfile). `External/fetch-moonlibs.sh` fetches it with a SHA-256 check into gitignored `External/moonlibs/`; run it once after cloning. |
-| P7 | **Shaders are [Slang](https://shader-slang.org)**, compiled to SPIR-V **at runtime** through the `Slangc.NET` NuGet package, because players write shaders and will get shader libraries. Slang's real modules replace GLSL's text-pasting `#include`. If `Slangc.NET` is abandoned, call `libslang` directly. |
+| P7 | **Shaders are [Slang](https://shader-slang.org)**, compiled to SPIR-V **at runtime** by `libslang`, called directly (`Slang/SlangNative.cs`; the `Slangc.NET` NuGet package only ships the native library), because players write shaders and will get shader libraries. Slang's real modules replace GLSL's text-pasting `#include`. |
 | P8 | **Maths types:** vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). `Color`, `Rect2`, `Rect2I`, `Transform2D`, the `I` vectors and `Mathf` are our own types in `Xanadu.Maths`, copied from Godot 4.4 (MIT). Canvas ids are `Handle`. |
 | P10 | **No mesh shaders** (SDL_GPU doesn't expose them). GPU-made geometry = compute into a storage buffer + vertex pulling + indirect draws. |
 | P11 | **Shaders are exposed to players as slots, not whole shaders** (§3). |
@@ -45,12 +45,16 @@ Agreed with the user. Don't revisit them without asking.
 
 | Slot | Default | Player can |
 |---|---|---|
-| Vertex | the host's standard quad | pick a library modifier (wobble, perspective tilt, squash) or write `ItemVertex deform(ItemVertex v, ItemInput i)` |
+| Vertex | the host's standard quad | pick a library modifier (wobble, perspective tilt, squash) or write `ItemVertex deform(ItemVertex v)` |
 | Fragment | plain colour or texture | pick library effects or write `float4 shade(Canvas canvas)` (it may take `ItemInput i` too); several in a row form a **chain** |
 | Blend | mix | dropdown: hardware modes (mix, add, subtract, multiply, screen, min, max, premultiplied) are free; "exotic" modes (overlay, soft and hard light, dodge, burn, difference, exclusion, HSL) go through a group buffer and the composite shader |
 | State (later) | 2D defaults | depth test and write once 2D depth exists |
 
-Built today: the fragment slot with one effect, and the blend modes Godot had.
+Built today: the fragment slot with one effect, a body's own `deform` as its
+vertex stage (Docs/shaders.md §15: it compiles beside the fragment as vertex
+set 0/1, its values are vertex uniform buffer 1 laid out as the fragment's, the
+frame is vertex buffer 2, the chart vertex storage buffer 0 when read; no
+textures), and the blend modes Godot had. No library modifiers yet.
 The rest is under "Later" (§6).
 
 - **The contract** is the Slang module `xanadu.stage`
@@ -94,7 +98,7 @@ The rest is under "Later" (§6).
   - compute: sampled textures → read-only storage textures → read-only storage
     buffers in `set = 0`; read-write storage textures → read-write storage
     buffers in `set = 1`; uniforms in `set = 2`.
-- **Slang usage:** `SlangCompiler.Compile([path, "-target", "spirv", "-entry", <name>, "-stage", compute|vertex|fragment])`.
+- **Slang usage:** `SlangShaders.Compile(path, <name>, compute|vertex|fragment)`: a `slangc` command line (`path -target spirv -entry <name> -stage <stage>`) run in process.
   The SPIR-V entry point comes out as **`main`**. Bindings are
   `[[vk::binding(index, set)]]`; varyings match by declaration order. Don't
   name an entry point after an intrinsic (`dot`): it shadows it. Errors come
@@ -266,6 +270,19 @@ host fills; tests leave the headless defaults.
   entry and flags, every library module, and the Slangc.NET version. Shipped
   effects compile at start (`WarmShipped`); a level's slots when it appears
   (`WarmLevelShaders`). Blend variants are pipeline state, made on first use.
+- **Slang only starts on a cache miss.** Its session costs about 200 ms and
+  200 MB and never gives the memory back, so there is one for the process
+  (`SlangNative`), made on first use, every call taking a turn on it; a second
+  one to compile in parallel isn't worth its memory. The host's own shaders
+  (particles, screen mips) go through the cache too, so a launch with a warm
+  cache never makes it. The shader editor starts it in the background as it
+  opens (`SlangShaders.Prepare`).
+- **The library is precompiled** to `.slang-module` files (`SlangModules`),
+  one folder per library state and set of defines under
+  `shader_cache_slang/modules/`. Each module is also kept in `modules/store/`
+  by what it was built from (its text, its imports, and the defines only if
+  its own text reads one), so an edit rebuilds the edited module and what
+  imports it, and another chart binding rebuilds only `xanadu.stage`.
 - **Shipped effects** are `.slang` files under `Assets/Shaders` (note
   background, flare, rainbow, frosted glass, text gradient, colour picker,
   editor waveform), written exactly as level shader slots are (below) and
@@ -298,7 +315,7 @@ host fills; tests leave the headless defaults.
   | Module | Contents |
   |---|---|
   | `xanadu.math` | `PI`, `TAU`, GLSL-style `mod`, `rotate`, `random(seed)` / `random2` / `random3` (0..1, PCG hashes of the seed's bits, so large or fractional seeds stay random) |
-  | `xanadu.shape` | `IShape`, the shapes (`Circle`, `Line`, `Box`, …), placement (`rotate`/`rotated`, `move`/`moved`, `scale`/`scaled`, `anchor`/`anchored`), combining (`or`, `and`, `minus`, `melted`, `meltedAnd`, `meltedMinus`, `repeated`, `hollowed`), drawing (`filled`, `stroked`, `haloed`, `outlined` inside the edge, on a `Box` by `side.` flags), and `sdf.` for distances built by hand |
+  | `xanadu.shape` | `IShape`, the shapes (`Circle`, `Line`, `Box`, …), placement (`rotate`/`rotated`, `move`/`moved`, `scale`/`scaled`, `anchor`/`anchored`), combining (`or`, `and`, `minus`, `melted`, `meltedAnd`, `meltedMinus`, `repeated`, `hollowed`), drawing (`filled`, `stroked`, `haloed`, `outlined` inside the edge, on a `Box` by `side.` flags), `IMeasurable` (shapes and `Measured` alike: drawing, painting and joins in both directions, a `Measured` on either side giving a `Measured`; `grown`/`shrunk` on a `Measured`), and `sdf.` for distances built by hand |
   | `xanadu.colour` | the `colour` type (an alias for `float4`, straight alpha, so `.rgb` and the maths work as ever; `uniform colour tint;` is fine), `top.over(bottom)` and `c.withAlpha(a)` on any colour, and under `colours.`: `hsv`, `hue` (both give an opaque `colour`) and the X11/web colours as `colours.gold`, `colours.midnightBlue`, … |
   | `xanadu.ease` | `ease.inOutSine(t)` and the other 30 Penner easings, `ease.by(n, t)` |
   | `xanadu.blend` | `blend.Blend` (a `blend.Mode` for the colours, a `blend.Alpha` for the alpha) with presets `blend.screen` and 11 more, `blend.behind`, `blend.erase`, and `.behind` / `.erasing` / `.over`; `blend.composite`; the bare colour formulas under `blend.colours.` |
@@ -405,14 +422,6 @@ host fills; tests leave the headless defaults.
   from a `LabContext`); stages that render on their own get
   `IToolStage.Render` (called from `HostApp.RenderOffscreen`) and show the
   result through `LabContext.Show`. Panel rows live in `LabPanel`.
-  - **Shader playground:** watches `Tools/Labs/Playground/playground.slang`
-    (gitignored, made from the template) or `--shader=<file>`, recompiles off
-    the frame on save and swaps it in; errors show in mono in the panel and the
-    last good version stays. The format is a level slot, so anything made here
-    pastes into a level. Sets `mouse` (pixels from the centre), `mouseUv` and `resolution`.
-    `Tools/Labs/Examples/` holds common 2D effects written against the
-    library (plasma, starfield, Voronoi, tunnel, metaballs, a shape badge, a
-    screen ripple, a flashlight), each opened with `./run.sh labs --shader=<file>`.
   - **Kept state** (lab only): an effect body with `void update(inout State s,
     float dt)` gets a 1 KB storage buffer per material. `CanvasRenderer`
     runs `update` once a frame as a one-thread compute pass
@@ -421,16 +430,16 @@ host fills; tests leave the headless defaults.
     read-only buffer 0. `CanvasMaterial.KeepsState`
     gates it; level materials leave it off, so `update` is a compile error
     there.
-  - **Shader editor** (tab 1; the start of the in-game shader editor): a
-    level slot typed in the lab, compiled 0.3 s after typing stops, saved to the git-ignored
-    `Playground/editor.slang` (started from `editor.template.slang`). It uses
-    the whole body (`ILabExperiment.FullWidth`, no side panel): code left with
+  - **Shader editor** (`ShaderCodeEditor`; the start of the in-game shader
+    editor): lives in the shader tool (`./run.sh shaders`, where NEW makes an
+    effect from a template under `Assets/Shaders/` and opens it) and the lab's
+    Spawner tab. Compiled 0.3 s after typing stops. Code left with
     a status bar under it, a 16:9 preview top right (the playfield's shape;
     the pointer counts only over it), problems and a key guide under that.
     Linting is Slang's own errors: the line tinted, the word underlined, the
     message on a row under the line, listed under the preview (a click jumps).
     Under the problems, a slider per declared value and channel
-    (`EditorTuning`), except the ones the lab fills; ranges are guessed as the
+    (`EditorTuning`), except the ones the preview fills; ranges are guessed as the
     F2 tuner does (`Core/Rendering/UniformRanges`), tuning survives recompiles.
     Inlay hints show library parameter names (`Box(size: …, radius: …)`)
     without them being in the text; they come from the library's `public`
@@ -442,7 +451,7 @@ host fills; tests leave the headless defaults.
     (`Canvas canvas`, `ItemInput i`, `let b = Box(…)`). Up/Down, Tab/Enter,
     Esc, click. No calls in the chain, no inference past that. While typing
     a word it offers the code's own names first (uniforms, locals, functions
-    and the lab's provided values), then Slang's types, keywords and common
+    and the preview's provided values), then Slang's types, keywords and common
     intrinsics and the library's top-level names (shapes, `colour`, `rotate`,
     namespaces, which take their dot). It stays shut where a new name is being
     given (`float4 |`, `let |`) and once the word is already a whole name, so

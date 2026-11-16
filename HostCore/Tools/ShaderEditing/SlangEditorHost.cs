@@ -15,6 +15,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// at the caret lit and boxed, an unmatched one red), each loop's index in a
 /// colour by its nesting, colour swizzles by channel, names that do nothing
 /// faded (<see cref="SlangUnused"/>), the library's parameter names as inlays,
+/// a colour square in front of each colour constant (<see cref="SlangColours"/>),
 /// problems as marked lines, and the completion list taking
 /// its keys and clicks first. Enter after <c>{</c> indents a step; <c>}</c>
 /// typed on an empty line steps back one. An opening bracket brings its
@@ -30,7 +31,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// a name declared elsewhere (the library's) goes to <see cref="GoElsewhere"/>.
 /// </para>
 /// </summary>
-internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) : ITextEditorHost
+internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup) : ITextEditorHost
 {
     /// <summary>A fixed colour per kind of token (not editable yet).</summary>
     private static readonly Dictionary<TokenKind, Color> Colours = new()
@@ -118,11 +119,21 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
     /// <summary>What Slang and the lint found, by 1-based line; the first on a line is the one shown.</summary>
     public IReadOnlyList<SlangProblem> Problems { get; set; } = [];
 
+    /// <summary>
+    /// The float3s the last compile took as colours, with the text each covered: a hint shows only
+    /// while that text is still where it was, so edits since don't leave it hanging on something else.
+    /// </summary>
+    public IReadOnlyList<(ColourConversion Place, string Text)> ColourConversions { get; set; } = [];
+
+    /// <summary>The inlay in front of a float3 taken as a colour, read as the cast it stands for.</summary>
+    private const string ConversionLabel = "(colour)";
+
     /// <summary>The names that do nothing, found again whenever the text changes.</summary>
     public IReadOnlyList<Faded> Faded => _faded;
 
     private List<Faded> _faded = [];
     private List<LoopIndex> _loopIndexes = [];
+    private Dictionary<string, System.Numerics.Vector4> _declaredColours = new();
     private int _fadedVersion = -1;
 
     /// <summary>Why the name at a place is faded, or null when it isn't.</summary>
@@ -148,6 +159,7 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
             _fadedVersion = buffer.Version;
             _faded = SlangUnused.Find(buffer.Lines);
             _loopIndexes = SlangLoops.Find(buffer.Lines);
+            _declaredColours = SlangColours.Declared(buffer.Lines);
         }
 
         List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, Tokens);
@@ -230,6 +242,16 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
 
         foreach (InlayHint hint in hints.For(text))
             decor.Inlays.Add(new TextInlay(hint.Column, hint.Label));
+        foreach ((ColourConversion place, string covered) in ColourConversions)
+        {
+            if (place.Line == line && place.Column + covered.Length <= text.Length
+                && string.CompareOrdinal(text, place.Column, covered, 0, covered.Length) == 0)
+                decor.Inlays.Add(new TextInlay(place.Column, ConversionLabel));
+        }
+        foreach (ColourUse use in colourConstants.In(text, _declaredColours))
+            decor.Inlays.Add(TextInlay.ColourSwatch(use.Column, new Color(use.Colour.X, use.Colour.Y, use.Colour.Z, use.Colour.W)));
+        // Swatches go in front of a name, hints in front of an argument: at one column the swatch sits nearer the text.
+        decor.Inlays.Sort((a, b) => a.Column != b.Column ? a.Column.CompareTo(b.Column) : (a.Swatch is null ? 0 : 1).CompareTo(b.Swatch is null ? 0 : 1));
 
         foreach (SlangProblem problem in Problems)
         {
@@ -303,7 +325,8 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         if (key is Key.Enter or Key.KpEnter && line[..buffer.Column].TrimEnd().EndsWith('{'))
         {
             bool closing = !buffer.HasSelection && line[buffer.Column..].TrimStart().StartsWith('}');
-            buffer.NewLine(TextBuffer.Indent);
+            buffer.DeleteSelection();
+            buffer.NewLine(TextBuffer.Indent, ((ITextEditorHost)this).WantedIndent(buffer, buffer.Line));
             if (closing)
             {
                 int caret = buffer.Column;
@@ -315,6 +338,65 @@ internal sealed class SlangEditorHost(SlangHints hints, CompletionPopup popup) :
         }
 
         return false;
+    }
+
+    /// <summary>Each line's depth by the braces open at its start, -1 inside an open ( or [ (a continuation, deeper by choice).</summary>
+    private int[] _depths = [];
+    private int _depthsVersion = -1;
+
+    /// <summary>A step per brace open at the line's start, one fewer when it starts with the closing one.</summary>
+    public int? IndentFor(TextBuffer buffer, int line)
+    {
+        if (_depthsVersion != buffer.Version)
+        {
+            _depthsVersion = buffer.Version;
+            _depths = Depths(buffer.Lines);
+        }
+
+        if (line >= _depths.Length || _depths[line] < 0)
+            return null;
+        string text = buffer.Lines[line].TrimStart();
+        int depth = _depths[line] - (text.StartsWith('}') ? 1 : 0);
+        // The one statement under a brace-less if, else, for or while sits a step in.
+        if (!text.StartsWith('{') && !text.StartsWith('}') && line > 0 && UnbracedBody(buffer.Lines[line - 1]))
+            depth++;
+        return Math.Max(0, depth) * TextBuffer.Indent;
+    }
+
+    private static bool UnbracedBody(string previous)
+    {
+        string code = previous.Trim();
+        int comment = code.IndexOf("//", StringComparison.Ordinal);
+        if (comment >= 0)
+            code = code[..comment].TrimEnd();
+        if (code.EndsWith('{') || code.EndsWith(';') || code.EndsWith('}'))
+            return false;
+        return code is "else" || code.StartsWith("if ", StringComparison.Ordinal) || code.StartsWith("if(", StringComparison.Ordinal)
+               || code.StartsWith("else ", StringComparison.Ordinal) || code.StartsWith("for ", StringComparison.Ordinal)
+               || code.StartsWith("for(", StringComparison.Ordinal) || code.StartsWith("while", StringComparison.Ordinal);
+    }
+
+    private int[] Depths(IReadOnlyList<string> lines)
+    {
+        var depths = new int[lines.Count];
+        List<Bracket> brackets = SlangBrackets.Find(lines, Tokens);
+        int next = 0, braces = 0, groups = 0;
+        for (int line = 0; line < lines.Count; line++)
+        {
+            depths[line] = groups > 0 ? -1 : braces;
+            for (; next < brackets.Count && brackets[next].Line == line; next++)
+            {
+                switch (lines[line][brackets[next].Column])
+                {
+                    case '{': braces++; break;
+                    case '}': braces = Math.Max(0, braces - 1); break;
+                    case '(' or '[': groups++; break;
+                    case ')' or ']': groups = Math.Max(0, groups - 1); break;
+                }
+            }
+        }
+
+        return depths;
     }
 
     public bool TakeTyped(TextBuffer buffer, string text)

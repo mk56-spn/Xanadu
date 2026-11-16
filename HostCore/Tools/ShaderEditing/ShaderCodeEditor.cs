@@ -27,6 +27,10 @@ internal readonly record struct ShaderEditorBoxes(Rect2 Code, Rect2 Bar, Rect2 P
 /// owner hands it boxes (<see cref="Place"/>) and tells it again when they move.
 /// Shared by the shader tool and the lab's editor tabs.
 /// <para>
+/// A place written as <c>float2(x, y)</c> under the caret, and every <c>uniform float2</c>
+/// that reads as one, is a dot on the preview to drag (<see cref="PreviewPoints"/>).
+/// </para>
+/// <para>
 /// Going to a library name's declaration (F12, Ctrl+click) opens its module in
 /// a tab of its own over the code. A library tab is read-only until the first
 /// try at an edit is answered yes; Ctrl+S there writes the module and compiles
@@ -47,6 +51,7 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <summary>The boxes it was last placed in, to lay out again when the timeline wants another height.</summary>
     private ShaderEditorBoxes _boxes;
     private readonly PlayStandIns _standIns = new();
+    private readonly PreviewPoints _points = new();
     private readonly IRectCanvas _canvas;
     private readonly Handle _chromeItem;
     private int _clipsVersion = -1;
@@ -105,11 +110,16 @@ internal sealed class ShaderCodeEditor : IDisposable
     private readonly HoverPopup _hover;
     private List<SlangProblem> _shownProblems = [];
 
+    /// <summary>The float3s the last compile took as colours, with the text each covered then (only the first line's, for one spanning lines).</summary>
+    private List<(ColourConversion Place, string Text)> _shownConversions = [];
+
     /// <summary>The editor's own warnings (<see cref="SlangLint"/>) for the text being compiled.</summary>
     private List<SlangProblem> _lint = [];
 
     /// <summary>Every type a local can be declared with, for the lint: Slang's and the library's.</summary>
     private readonly HashSet<string> _typeNames;
+    /// <summary>Each shape's cost a pixel, from the library's @cost tags, for the cost warnings.</summary>
+    private readonly Dictionary<string, float> _shapeCosts;
     private int _compiledVersion = -1;
     private float _sinceEdit;
     private bool _wasHeld;
@@ -117,7 +127,7 @@ internal sealed class ShaderCodeEditor : IDisposable
     private Vector2 _pointer;
     private string _status = "compiling…";
     private Color _statusColour = Palette.TextMuted;
-    private Task<(int Version, string Source, PreviewBuild? Build, string? Error, long Ms)>? _compiling;
+    private Task<(int Version, string Source, PreviewBuild? Build, string? Error, long Ms, double SlangMs, List<SlangProblem> Lint)>? _compiling;
 
     /// <param name="preview">Makes the preview, drawing under the item it is given.</param>
     public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorBoxes boxes, string text, Func<Handle, IEditorPreview> preview)
@@ -125,6 +135,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         _preview = boxes.Preview;
         _pointer = _preview.GetCenter();
         (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
+        // The text as opened is usually in the shader cache; the first edit isn't, and shouldn't wait for Slang to start.
+        SlangShaders.Prepare();
 
         // Made first, so everything after draws over the code.
         _editor = TextEditors.Create(entities, parent, code, text);
@@ -153,12 +165,13 @@ internal sealed class ShaderCodeEditor : IDisposable
         string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
+        _shapeCosts = hints.Costs;
         (_completions, _declarations) = ReadLibrary();
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
         _strip = new EditorTabs(canvas, Child(parent)) { Area = strip, Code = code };
-        _host = new SlangEditorHost(hints, _popup) { Save = Save, GoElsewhere = GoElsewhere };
+        _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) { Save = Save, GoElsewhere = GoElsewhere };
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Host = _host;
         _tabs.Add(new Tab(_view.Label, null, editor.Buffer, editor.History, ""));
@@ -404,6 +417,7 @@ internal sealed class ShaderCodeEditor : IDisposable
             Open(place);
         }
 
+        _points.Follow(_open == 0 ? Main.Buffer : null, _completions.ParameterNames);
         if (pointerFree && !asking)
             Point(frame, pressed);
 
@@ -411,6 +425,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         TextBuffer buffer = editor.Buffer;
         bool onMain = _open == 0;
         _host.Problems = onMain ? _shownProblems : [];
+        _host.ColourConversions = onMain ? _shownConversions : [];
 
         if (did.SteppedHistory && _popup.Open)
             _popup.Dismiss(buffer);
@@ -459,6 +474,7 @@ internal sealed class ShaderCodeEditor : IDisposable
             _shownProblems));
         _timeline.Draw(_canvas, _chromeItem);
         _tuning.Draw();
+        _points.Draw(_canvas, _chromeItem, _preview, _tuning, frame.Mouse);
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
@@ -467,8 +483,8 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
     private static readonly MoonWorks.Input.KeyCode[] PlayKeys =
     [
-        MoonWorks.Input.KeyCode.S, MoonWorks.Input.KeyCode.D, MoonWorks.Input.KeyCode.K, MoonWorks.Input.KeyCode.L,
-        MoonWorks.Input.KeyCode.F, MoonWorks.Input.KeyCode.Space, MoonWorks.Input.KeyCode.J,
+        MoonWorks.Input.KeyCode.F, MoonWorks.Input.KeyCode.J, MoonWorks.Input.KeyCode.K, MoonWorks.Input.KeyCode.L,
+        MoonWorks.Input.KeyCode.S, MoonWorks.Input.KeyCode.Space, MoonWorks.Input.KeyCode.D,
     ];
 
     /// <summary>
@@ -492,8 +508,10 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it.</summary>
     private void Point(in ToolFrame frame, bool pressed)
     {
-        // A held slider takes the pointer from everything else.
+        // A held slider or point takes the pointer from everything else.
         if (_tuning.Point(frame.Mouse, frame.Held, pressed))
+            return;
+        if (_points.Point(Main.Buffer, Main.History, _completions.ParameterNames, _preview, _tuning, frame.Mouse, frame.Held, pressed, Focus))
             return;
 
         if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
@@ -519,20 +537,25 @@ internal sealed class ShaderCodeEditor : IDisposable
         int version = buffer.Version;
         Compiling?.Invoke(source);
 
-        _lint = SlangLint.Check(source, _typeNames);
         if (!_everCompiled)
             (_status, _statusColour) = ("compiling…", Palette.TextMuted);
         IEditorPreview view = _view;
+        // The warnings are read beside the compile, off the frame too; the type names and costs are never changed after start.
+        HashSet<string> typeNames = _typeNames;
+        Dictionary<string, float> shapeCosts = _shapeCosts;
+        Task<List<SlangProblem>> lint = Task.Run(() => SlangLint.Check(source, typeNames, shapeCosts));
         _compiling = Task.Run(() =>
         {
             var clock = Stopwatch.StartNew();
+            SlangShaders.ResetSlangTime();
             try
             {
-                return (version, source, (PreviewBuild?)view.Compile(source), (string?)null, clock.ElapsedMilliseconds);
+                var build = (PreviewBuild?)view.Compile(source);
+                return (version, source, build, (string?)null, clock.ElapsedMilliseconds, SlangShaders.SlangMilliseconds, lint.Result);
             }
             catch (Exception exception)
             {
-                return (version, source, null, exception.Message, clock.ElapsedMilliseconds);
+                return (version, source, null, exception.Message, clock.ElapsedMilliseconds, SlangShaders.SlangMilliseconds, lint.Result);
             }
         });
     }
@@ -543,8 +566,14 @@ internal sealed class ShaderCodeEditor : IDisposable
             return;
 
         _compiling = null;
-        (int version, string source, PreviewBuild? build, string? error, long ms) = done.Result;
+        (int version, string source, PreviewBuild? build, string? error, long ms, double slangMs, List<SlangProblem> lint) = done.Result;
         _compiledVersion = version;
+        _lint = lint;
+        string[] compiledLines = source.Split('\n');
+        _shownConversions = SlangShaders.ColourConversionsOf(source)
+            .Where(c => c.Line < compiledLines.Length)
+            .Select(c => (c, compiledLines[c.Line][c.Column..Math.Min(compiledLines[c.Line].Length, c.Column + c.Length)]))
+            .ToList();
         string said = "";
         if (error is null)
         {
@@ -571,7 +600,12 @@ internal sealed class ShaderCodeEditor : IDisposable
         _everCompiled = true;
         int warnings = _lint.Count;
         string warned = warnings == 0 ? "" : $" · {warnings} warning{(warnings == 1 ? "" : "s")}";
-        (_status, _statusColour) = ($"compiled in {ms} ms{warned}{said}", warnings == 0 ? Palette.Success : Palette.Warning);
+        // Slang's own share apart from ours (wrapping, rewrites, reflection); none at all when the cache had it.
+        string split = slangMs > 0 ? $" (ours {Math.Max(0, ms - (long)slangMs)} · slang {(long)slangMs})" : " (cached)";
+        // The library from source is the slow path: say why it couldn't be precompiled.
+        if (SlangShaders.ModuleProblem is { } unbuilt)
+            split += $" · library not precompiled: {unbuilt}";
+        (_status, _statusColour) = ($"compiled in {ms} ms{split}{warned}{said}", warnings == 0 ? Palette.Success : Palette.Warning);
     }
 
     /// <summary>Slang's problems and the editor's warnings together, by line; Slang's first on a shared line.</summary>

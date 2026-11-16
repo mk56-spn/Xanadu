@@ -9,6 +9,8 @@ namespace Xanadu.Ui.Editing;
 /// Delete, Tab with nothing selected) runs together into one step until the
 /// caret moves on its own or typing pauses; any other edit (Enter, paste, cut,
 /// replacing a selection, anything an owner does to the text) is a step of its own.
+/// An owner changing the text over many frames (a drag) holds the history
+/// (<see cref="Hold"/>, <see cref="LetGo"/>): everything in between is one step.
 /// </summary>
 public sealed class TextHistory
 {
@@ -27,6 +29,12 @@ public sealed class TextHistory
     private int _seenVersion;
     private float _idle;
 
+    /// <summary>Held: every change runs into one step until <see cref="LetGo"/>.</summary>
+    private bool _held;
+
+    /// <summary>Let go since the last frame: the held step closes once the last change is seen.</summary>
+    private bool _closing;
+
     public TextHistory(TextBuffer buffer)
     {
         _buffer = buffer;
@@ -43,15 +51,16 @@ public sealed class TextHistory
         {
             bool caretMoved = (_buffer.Line, _buffer.Column, _buffer.Anchor) != (_latest.Line, _latest.Column, _latest.Anchor);
             _idle += delta;
-            if (_runStart is not null && (caretMoved || _idle >= RunPause))
+            if (_runStart is not null && (_closing || (!_held && (caretMoved || _idle >= RunPause))))
                 CloseRun();
+            _closing = false;
             if (caretMoved)
                 _latest = _latest with { Line = _buffer.Line, Column = _buffer.Column, Anchor = _buffer.Anchor };
             return;
         }
 
         TextSnapshot now = _buffer.Snapshot();
-        if (typing)
+        if (typing || _held || _closing)
             _runStart ??= _latest;
         else
         {
@@ -62,6 +71,29 @@ public sealed class TextHistory
         _idle = 0;
         _latest = now;
         _seenVersion = _buffer.Version;
+        if (_closing)
+        {
+            CloseRun();
+            _closing = false;
+        }
+    }
+
+    /// <summary>Starts one step that every change joins, whatever makes it, until <see cref="LetGo"/>; typing before it is a step of its own.</summary>
+    public void Hold()
+    {
+        if (_held)
+            return;
+        CloseRun();
+        _held = true;
+    }
+
+    /// <summary>Ends what <see cref="Hold"/> started; the next <see cref="After"/> closes the step, a change made this frame included.</summary>
+    public void LetGo()
+    {
+        if (!_held)
+            return;
+        _held = false;
+        _closing = true;
     }
 
     public bool Undo() => Step(undo: true);

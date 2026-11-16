@@ -26,7 +26,7 @@ public static partial class SlangUnused
     public const string NeverRead = "given values that nothing reads";
 
     /// <summary>What the host calls: used though the code never names them again.</summary>
-    private static readonly HashSet<string> Entries = ["shade", "update"];
+    private static readonly HashSet<string> Entries = ["shade", "update", "deform"];
 
     private static readonly HashSet<string> NotTypes =
     [

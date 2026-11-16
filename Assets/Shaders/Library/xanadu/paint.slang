@@ -56,8 +56,8 @@ public extension float4
         this = blend.composite(how, this, top, coverage);
     }
 
-    /// Lays `top` on this colour inside `shape` (its fill), by `how`.
-    [mutating] public void paint<S : IShape>(S shape, colour top = colours.white, blend.Blend how = blend.normal)
+    /// Lays `top` on this colour inside `shape`, a shape or a Measured (its fill), by `how`.
+    [mutating] public void paint<M : IMeasurable>(M shape, colour top = colours.white, blend.Blend how = blend.normal)
     {
         this.paint(shape.filled(), top, how);
     }
@@ -69,7 +69,7 @@ public extension float4
     }
 
     /// Paints `shape` in `look`: its fill, then its outline on top, by `how`.
-    [mutating] public void paint<S : IShape>(S shape, Look look, blend.Blend how = blend.normal)
+    [mutating] public void paint<M : IMeasurable>(M shape, Look look, blend.Blend how = blend.normal)
     {
         this.paint(shape.filled(look.soft), look.fill, how);
         this.paint(shape.outlined(look.width, look.soft), look.outline, how);
@@ -83,7 +83,7 @@ public extension float4
     }
 
     /// A copy with `shape` painted in `look`.
-    public colour painted<S : IShape>(S shape, Look look, blend.Blend how = blend.normal)
+    public colour painted<M : IMeasurable>(M shape, Look look, blend.Blend how = blend.normal)
     {
         colour r = this;
         r.paint(shape, look, how);
@@ -107,7 +107,7 @@ public extension float4
     }
 
     /// A copy with `top` laid on inside `shape`.
-    public colour painted<S : IShape>(S shape, colour top = colours.white, blend.Blend how = blend.normal)
+    public colour painted<M : IMeasurable>(M shape, colour top = colours.white, blend.Blend how = blend.normal)
     {
         colour r = this;
         r.paint(shape.filled(), top, how);
@@ -122,7 +122,7 @@ public extension float4
     }
 
     /// Makes this colour see-through inside `shape` (its fill, soft edge and all).
-    [mutating] public void erase<S : IShape>(S shape)
+    [mutating] public void erase<M : IMeasurable>(M shape)
     {
         this.erase(shape.filled());
     }
@@ -136,7 +136,7 @@ public extension float4
     }
 
     /// A copy made see-through inside `shape`.
-    public colour erased<S : IShape>(S shape)
+    public colour erased<M : IMeasurable>(M shape)
     {
         colour r = this;
         r.erase(shape.filled());

@@ -241,6 +241,7 @@ internal sealed class CanvasTree : ICanvasServer
             return;
 
         int[] indices = Triangulate.Polygon(points);
+        int first = item.Points;
         for (int i = 0; i + 2 < indices.Length; i += 3)
         {
             int a = indices[i], b = indices[i + 1], c = indices[i + 2];
@@ -248,8 +249,11 @@ internal sealed class CanvasTree : ICanvasServer
                 points[a], points[b], points[c],
                 ColorAt(colors, a), ColorAt(colors, b), ColorAt(colors, c),
                 default,
-                uvs is null ? default : (uvs[a], uvs[b], uvs[c]));
+                uvs is null ? default : (uvs[a], uvs[b], uvs[c]),
+                (first + a, first + b, first + c));
         }
+
+        item.Points = first + points.Length;
     }
 
     public void AddTriangleArray(Handle rid, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Handle texture = default)
@@ -257,6 +261,7 @@ internal sealed class CanvasTree : ICanvasServer
         if (Find(rid) is not { } item || colors.Length == 0)
             return;
 
+        int first = item.Points;
         for (int i = 0; i + 2 < indices.Length; i += 3)
         {
             int a = indices[i], b = indices[i + 1], c = indices[i + 2];
@@ -267,8 +272,11 @@ internal sealed class CanvasTree : ICanvasServer
                 points[a], points[b], points[c],
                 ColorAt(colors, a), ColorAt(colors, b), ColorAt(colors, c),
                 texture.Id,
-                uvs is null ? default : (uvs[a], uvs[b], uvs[c]));
+                uvs is null ? default : (uvs[a], uvs[b], uvs[c]),
+                (first + a, first + b, first + c));
         }
+
+        item.Points = first + points.Length;
     }
 
     public void AddTextureRect(Handle rid, Rect2 rect, Handle texture)
@@ -325,6 +333,13 @@ internal sealed class CanvasItem(ulong id)
 
     public readonly List<CanvasVertex> Vertices = new();
 
+    /// <summary>
+    /// Mesh points added so far: the next command's points are numbered from here, so a
+    /// vertex's <see cref="CanvasVertex.Index"/> is its point in the item, shared by every
+    /// triangle that uses it.
+    /// </summary>
+    public int Points;
+
     /// <summary>GPU particles drawn after the item's own draws; made by the first burst into it.</summary>
     public ParticleField? Particles;
 
@@ -335,6 +350,7 @@ internal sealed class CanvasItem(ulong id)
     {
         Vertices.Clear();
         Runs.Clear();
+        Points = 0;
         CommandTransform = Transform2D.Identity;
     }
 
@@ -355,24 +371,32 @@ internal sealed class CanvasItem(ulong id)
             Runs.Add((Vertices.Count, texture));
     }
 
+    /// <param name="index">Each corner's point in the item's mesh; null makes three new points.</param>
     public void Triangle(
         Vector2 a, Vector2 b, Vector2 c,
         Color ca, Color cb, Color cc,
         ulong texture,
-        (Vector2 A, Vector2 B, Vector2 C) uv = default)
+        (Vector2 A, Vector2 B, Vector2 C) uv = default,
+        (int A, int B, int C)? index = null)
     {
         UseTexture(texture);
         Transform2D t = CommandTransform;
         Vector2 pa = t * a, pb = t * b, pc = t * c;
-        Vertices.Add(new CanvasVertex(pa, uv.A, ca, pa));
-        Vertices.Add(new CanvasVertex(pb, uv.B, cb, pb));
-        Vertices.Add(new CanvasVertex(pc, uv.C, cc, pc));
+        var rest = RestFrame.Of(pa, pb, pc, uv.A, uv.B, uv.C);
+        (int A, int B, int C) at = index ?? (Points, Points + 1, Points + 2);
+        if (index is null)
+            Points += 3;
+        Vertices.Add(new CanvasVertex(pa, uv.A, ca, pa, rest, (uint)at.A));
+        Vertices.Add(new CanvasVertex(pb, uv.B, cb, pb, rest, (uint)at.B));
+        Vertices.Add(new CanvasVertex(pc, uv.C, cc, pc, rest, (uint)at.C));
     }
 
     public void Quad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color color, ulong texture)
     {
-        Triangle(a, b, c, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1)));
-        Triangle(a, c, d, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 1)));
+        int first = Points;
+        Triangle(a, b, c, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1)), (first, first + 1, first + 2));
+        Triangle(a, c, d, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 1)), (first, first + 2, first + 3));
+        Points = first + 4;
     }
 
     /// <summary>A straight line as a quad; widths under one pixel draw one pixel wide.</summary>
@@ -435,15 +459,48 @@ internal sealed class CanvasItem(ulong id)
 }
 
 /// <summary>
-/// One vertex as the GPU reads it: pixel position, texture UV, colour, and its
-/// position in the item's own space (an effect's <c>local</c>, Godot's VERTEX).
+/// The quad at rest a triangle belongs to: its uv-(0, 0) corner and its two sides, in
+/// pixels. On a quad, position = corner + xAxis * u + yAxis * v, so a triangle's three
+/// corners and their uvs give it exactly; every triangle of a mesh whose uv runs evenly
+/// across it (a rect, a grid) gives the same one. Where uv doesn't span the triangle
+/// (lines, untextured shapes) the sides are zero and the corner is the triangle's middle.
+/// </summary>
+internal readonly record struct RestFrame(Vector2 Corner, Vector2 XAxis, Vector2 YAxis)
+{
+    public static RestFrame Of(Vector2 pa, Vector2 pb, Vector2 pc, Vector2 ua, Vector2 ub, Vector2 uc)
+    {
+        Vector2 d1 = pb - pa, d2 = pc - pa, e1 = ub - ua, e2 = uc - ua;
+        float det = e1.X * e2.Y - e2.X * e1.Y;
+        if (MathF.Abs(det) < 1e-12f)
+            return new RestFrame((pa + pb + pc) / 3f, Vector2.Zero, Vector2.Zero);
+
+        // [xAxis yAxis] · [e1 e2] = [d1 d2], so the sides are [d1 d2] · [e1 e2]⁻¹.
+        Vector2 xAxis = (d1 * e2.Y - d2 * e1.Y) / det;
+        Vector2 yAxis = (d2 * e1.X - d1 * e2.X) / det;
+        return new RestFrame(pa - xAxis * ua.X - yAxis * ua.Y, xAxis, yAxis);
+    }
+
+    /// <summary>The same quad under a transform: the corner moved, the sides turned and scaled.</summary>
+    public RestFrame Transformed(in Transform2D t) => new(t * Corner, t.BasisXform(XAxis), t.BasisXform(YAxis));
+}
+
+/// <summary>
+/// One vertex as the GPU reads it: pixel position, texture UV, colour, its
+/// position in the item's own space (an effect's <c>local</c>, Godot's VERTEX),
+/// the quad at rest it belongs to (a deform's <c>v.rest</c>) and its point in the
+/// item's mesh (<c>v.index</c>; triangles sharing a corner share it).
 /// </summary>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-internal struct CanvasVertex(Vector2 position, Vector2 uv, Color color, Vector2 local) : MoonWorks.Graphics.IVertexType
+internal struct CanvasVertex(Vector2 position, Vector2 uv, Color color, Vector2 local, RestFrame rest, uint index) : MoonWorks.Graphics.IVertexType
 {
     public float X = position.X, Y = position.Y, U = uv.X, V = uv.Y;
     public float R = color.R, G = color.G, B = color.B, A = color.A;
     public float LX = local.X, LY = local.Y;
+    public float CornerX = rest.Corner.X, CornerY = rest.Corner.Y;
+    public float XAxisX = rest.XAxis.X, XAxisY = rest.XAxis.Y, YAxisX = rest.YAxis.X, YAxisY = rest.YAxis.Y;
+    public uint Index = index;
+
+    public readonly RestFrame Rest => new(new Vector2(CornerX, CornerY), new Vector2(XAxisX, XAxisY), new Vector2(YAxisX, YAxisY));
 
     public static MoonWorks.Graphics.VertexElementFormat[] Formats { get; } =
     [
@@ -451,7 +508,11 @@ internal struct CanvasVertex(Vector2 position, Vector2 uv, Color color, Vector2 
         MoonWorks.Graphics.VertexElementFormat.Float2,
         MoonWorks.Graphics.VertexElementFormat.Float4,
         MoonWorks.Graphics.VertexElementFormat.Float2,
+        MoonWorks.Graphics.VertexElementFormat.Float2,
+        MoonWorks.Graphics.VertexElementFormat.Float2,
+        MoonWorks.Graphics.VertexElementFormat.Float2,
+        MoonWorks.Graphics.VertexElementFormat.Uint,
     ];
 
-    public static uint[] Offsets { get; } = [0, 8, 16, 32];
+    public static uint[] Offsets { get; } = [0, 8, 16, 32, 40, 48, 56, 64];
 }

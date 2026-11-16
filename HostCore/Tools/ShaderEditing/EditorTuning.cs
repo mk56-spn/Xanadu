@@ -98,6 +98,31 @@ internal sealed class EditorTuning
     public Vector4 StandIn(string name, float fallback) =>
         _tuned.TryGetValue(name, out Vector4 value) ? value : new Vector4(fallback);
 
+    /// <summary>The <c>uniform float2</c>s that read as places (<see cref="SlangPoints.IsPlaceName"/>), for dragging on the preview.</summary>
+    public IEnumerable<(string Name, Vector2 Value)> Points()
+    {
+        foreach ((string name, int channels, _) in _values)
+        {
+            if (channels == 2 && SlangPoints.IsPlaceName(name))
+                yield return (name, new Vector2(_tuned[name].X, _tuned[name].Y));
+        }
+    }
+
+    /// <summary>A float2 dragged on the preview: its value, its sliders' ranges widened to hold it.</summary>
+    public void SetPoint(string name, Vector2 value)
+    {
+        if (!_tuned.TryGetValue(name, out Vector4 old))
+            return;
+        _tuned[name] = old with { X = value.X, Y = value.Y };
+        for (int c = 0; c < 2; c++)
+        {
+            string key = Key(name, c);
+            float v = c == 0 ? value.X : value.Y;
+            if (_ranges.TryGetValue(key, out var range))
+                _ranges[key] = (Math.Min(range.Min, v), Math.Max(range.Max, v));
+        }
+    }
+
     /// <summary>Puts the tuned values on a material.</summary>
     public void Apply(CanvasMaterial material)
     {

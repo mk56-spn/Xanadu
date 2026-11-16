@@ -4,7 +4,8 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// What an effect's <c>shade</c> asks for. It returns <c>float4</c> and takes
+/// What an effect's <c>shade</c> asks for. It returns <c>float4</c> (or <c>colour</c>,
+/// the same type, which lets it return a float3 as opaque) and takes
 /// any of <c>Canvas</c> (the quad under the pixel, usually all it needs) and
 /// <c>ItemInput</c> (everything else: uv, the item's colour, screen place), in
 /// any order and under any names, or nothing at all:
@@ -19,7 +20,7 @@ public static partial class ShadeSignature
     /// <summary>The usual way to write it, for messages and new effects.</summary>
     public const string Usual = "float4 shade(Canvas canvas)";
 
-    [GeneratedRegex(@"\bfloat4\s+shade\s*\(([^)]*)\)")]
+    [GeneratedRegex(@"\b(?:float4|colour)\s+shade\s*\(([^)]*)\)")]
     private static partial Regex Shade();
 
     [GeneratedRegex(@"^\s*(?:in\s+)?(\w+)\s+\w+\s*$")]

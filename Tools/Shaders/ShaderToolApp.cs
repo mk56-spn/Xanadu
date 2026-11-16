@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
+using MoonWorks.Graphics;
 using Xanadu.Ecs;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
+using Xanadu.Slang;
 using Xanadu.Systems.Canvas;
 using Xanadu.Systems.Ui;
 using Xanadu.Theme;
@@ -20,7 +23,8 @@ namespace Xanadu.Tools.Shaders;
 /// live thumbnail; the picked one's code in the shared Slang editor
 /// (<see cref="ShaderCodeEditor"/>) with its preview and problems on the right.
 /// Edits stay in memory, kept per shader while others are picked, until saved
-/// (Ctrl+S or SAVE) or put back (REVERT). It is all containers: the code, its
+/// (Ctrl+S or SAVE) or put back (REVERT). NEW makes an effect from the
+/// template (<see cref="ShaderFiles.Create"/>) and opens it. It is all containers: the code, its
 /// status bar, the divider, the preview and the column under it are slots the
 /// editor reads its boxes from; dragging the divider only resizes a container.
 /// </summary>
@@ -30,6 +34,17 @@ internal sealed class ShaderToolApp : HostApp
     private const float Gap = UiMetrics.Space.Md;
     private const float ListWidth = 300;
     private const float ThumbWidth = 112, ThumbHeight = 63;
+
+    /// <summary>Frames a lab-only effect's still is drawn for (its update fills its state first), then it stops.</summary>
+    private const int StillFrames = 4;
+
+    /// <summary>
+    /// Lab-only effects (raymarchers and the like) are too heavy to draw live in the list on
+    /// every frame, so each gets a still: drawn into a texture for <see cref="StillFrames"/>
+    /// frames when the tool opens or the file is saved, then left as it is. By file index:
+    /// the texture the thumbnail shows, and the offscreen item drawing it while it's live.
+    /// </summary>
+    private readonly Dictionary<int, (Texture Target, Handle Root, int Left)> _stills = new();
     private const float StatusHeight = 32;
 
     /// <summary>The preview column's width at first, and the least the code and the column can be dragged to.</summary>
@@ -41,14 +56,19 @@ internal sealed class ShaderToolApp : HostApp
     /// <summary>Stages draw above the ECS layer they sit on.</summary>
     private const int StageZ = UiLayers.Base + 1;
 
-    private readonly ShaderFile[] _files;
-    private readonly Entity[] _rows;
-    private readonly Entity[] _thumbs;
+    private readonly List<ShaderFile> _files;
+    private readonly List<Entity> _rows = new();
+    private readonly List<Entity> _thumbs = new();
 
     /// <summary>Edited text not yet saved, by file; a file without an entry is as on disk.</summary>
     private readonly Dictionary<ShaderFile, string> _unsaved = new();
 
-    private Entity _title, _save, _revert, _note;
+    private Entity _title, _save, _revert, _note, _new, _trianglesButton, _uvButton;
+
+    /// <summary>The preview's overlays, kept across shaders: the triangles' edges, and where uv is 0 and 1.</summary>
+    private bool _showTriangles, _showUv;
+    private EffectPreview? _effect;
+    private UiNode _list;
     private Entity _body, _side, _preview;
     private Entity _codeSlot, _barSlot, _sideSlot, _dividerSlot;
     private readonly HashSet<long> _held = new();
@@ -70,10 +90,8 @@ internal sealed class ShaderToolApp : HostApp
 
     public ShaderToolApp(HostWindowOptions window, string? open) : base("Xanadu Shaders", window)
     {
-        _files = ShaderFiles.All();
-        _rows = new Entity[_files.Length];
-        _thumbs = new Entity[_files.Length];
-        _wanted = Math.Max(0, Array.FindIndex(_files, file => file.Name == open || file.Path == open));
+        _files = ShaderFiles.All().ToList();
+        _wanted = Math.Max(0, _files.FindIndex(file => file.Name == open || file.Path == open));
         Build();
     }
 
@@ -84,18 +102,12 @@ internal sealed class ShaderToolApp : HostApp
         UiNode body = page.Row().Gap(Gap).Cross(StackCrossAlignment.Stretch).Grow();
         _body = body;
 
-        UiNode list = body.Panel().Width(ListWidth).Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch);
-        list.Text("SHADERS", UiType.Section).AccentText();
-        for (int i = 0; i < _files.Length; i++)
-        {
-            UiNode row = list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
-            // The effect as shipped, drawn live with its own defaults; saving makes it compile again.
-            _thumbs[i] = row.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight))
-                .With(new UiMaterial(new CanvasMaterial(_files[i].Path)))
-                .Input()
-                .Tooltip(_files[i].Path);
-            _rows[i] = row.Button(_files[i].Name, UiType.Small).Quiet().Grow().Height(ThumbHeight);
-        }
+        _list = body.Panel().Width(ListWidth).Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch);
+        UiNode head = _list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
+        head.Text("SHADERS", UiType.Section).AccentText().Grow();
+        _new = head.Button("NEW", UiType.Small).Secondary().Tooltip("Make a new effect from the template and open it");
+        for (int i = 0; i < _files.Count; i++)
+            AddRow(i);
 
         // The editor: code over its status bar, the divider, then the preview over its column.
         UiNode editor = body.Row().Cross(StackCrossAlignment.Stretch).Grow();
@@ -104,6 +116,10 @@ internal sealed class ShaderToolApp : HostApp
         _title = bar.Text("", UiType.Label).AccentText().Grow();
         // Sized for its longest words: a text box is measured from what it holds when made.
         _note = bar.Text("unsaved changes", UiType.Small, align: TextAlign.Right).DimText();
+        _trianglesButton = bar.Button("TRIANGLES", UiType.Small).Secondary()
+            .Tooltip("Outline every triangle of the preview's mesh, where the vertex stage put it");
+        _uvButton = bar.Button("UV", UiType.Small).Secondary()
+            .Tooltip("Lines where uv is 0 (solid) and 1 (dashed): red for u, green for v, after the vertex stage");
         _revert = bar.Button("REVERT", UiType.Small).Secondary().Tooltip("Put the code back as the file has it");
         _save = bar.Button("SAVE", UiType.Small).Primary().Tooltip("Write the code to the file (Ctrl+S)");
         _codeSlot = code.Column().Grow();
@@ -116,14 +132,89 @@ internal sealed class ShaderToolApp : HostApp
         _sideSlot = side.Column().Grow();
     }
 
+    /// <summary>A file's row in the list: its thumbnail and its name.</summary>
+    private void AddRow(int i)
+    {
+        UiNode row = _list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
+        // The effect as shipped, drawn live with its own defaults; saving makes it compile again.
+        _thumbs.Add((SlangShaders.IsLabOnly(_files[i].Path)
+                ? row.Image(Still(i), new Vector2(ThumbWidth, ThumbHeight))
+                : row.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(_files[i].Path))))
+            .Input()
+            .Tooltip(_files[i].Path));
+        _rows.Add(row.Button(_files[i].Name, UiType.Small).Quiet().Grow().Height(ThumbHeight));
+    }
+
+    /// <summary>NEW: writes a fresh effect from the template, lists it and opens it.</summary>
+    private void New()
+    {
+        if (!ShaderFiles.Create(out ShaderFile? file, out string? error))
+        {
+            UiText.Set(_note, "not made: " + error);
+            return;
+        }
+
+        _files.Add(file!);
+        AddRow(_files.Count - 1);
+        _wanted = _files.Count - 1;
+    }
+
+    /// <summary>A lab-only effect's still: a frame-sized texture it's drawn into, offscreen, for a few frames.</summary>
+    private Handle Still(int index)
+    {
+        Texture target = Renderer.CreateTarget("still " + _files[index].Name);
+        Handle texture = Canvas.MintRid();
+        Renderer.Textures[texture.Id] = target;
+        _stills[index] = (target, default, 0);
+        Redraw(index);
+        return texture;
+    }
+
+    /// <summary>Draws a still again from the file: the whole frame, so the effect keeps its own coordinates.</summary>
+    private void Redraw(int index)
+    {
+        if (!_stills.TryGetValue(index, out var still))
+            return;
+        Handle root = still.Left > 0 ? still.Root : Canvas.CreateItem();
+        CanvasServer.Current.Clear(root);
+        CanvasServer.Current.AddRect(root, new Rect2(0, 0, Width, Height), Colors.White);
+        CanvasServer.Current.SetMaterial(root, new CanvasMaterial(_files[index].Path));
+        if (still.Left == 0)
+            Renderer.AddOffscreen(Canvas.Item(root)!, still.Target);
+        _stills[index] = (still.Target, root, StillFrames);
+    }
+
+    /// <summary>Counts the live stills down; each stops drawing when it reaches 0.</summary>
+    private void SettleStills()
+    {
+        foreach ((int index, var still) in _stills.ToArray())
+        {
+            if (still.Left == 0)
+                continue;
+            if (still.Left > 1)
+            {
+                _stills[index] = still with { Left = still.Left - 1 };
+                continue;
+            }
+
+            if (Canvas.Item(still.Root) is { } root)
+                Renderer.RemoveOffscreen(root);
+            Canvas.Free(still.Root);
+            _stills[index] = (still.Target, default, 0);
+        }
+    }
+
     private static float PreviewHeight(float width) => MathF.Round(width * 9f / 16f);
 
     protected override void Tick(float delta, float time)
     {
+        SettleStills();
         if (!UiLayout.Settled(_codeSlot) || !UiLayout.Settled(_sideSlot))
             return;
 
-        for (int i = 0; i < _files.Length; i++)
+        if (Clicked(_new))
+            New();
+        for (int i = 0; i < _files.Count; i++)
         {
             if (Clicked(_rows[i]) || Clicked(_thumbs[i]))
                 _wanted = i;
@@ -134,6 +225,10 @@ internal sealed class ShaderToolApp : HostApp
         if (_code is null)
             return;
 
+        if (Clicked(_trianglesButton))
+            Toggle(ref _showTriangles, _trianglesButton);
+        if (Clicked(_uvButton))
+            Toggle(ref _showUv, _uvButton);
         if (Clicked(_save))
             Save();
         if (Clicked(_revert))
@@ -166,12 +261,17 @@ internal sealed class ShaderToolApp : HostApp
         _boxes = Boxes();
         string label = file.Name + ".slang";
         _code = new ShaderCodeEditor(Entities, _codeItem, _boxes, text,
-            item => new EffectPreview(Renderer.Pipelines, item, label));
+            item =>
+            {
+                _effect = new EffectPreview(Renderer.Pipelines, item, label, SlangShaders.IsLabOnly(file.Path));
+                _effect.ShowOverlays(_showTriangles, _showUv);
+                return _effect;
+            });
         _code.SaveRequested += Save;
         _seenVersion = -1;
 
         UiText.Set(_title, file.Path);
-        for (int i = 0; i < _rows.Length; i++)
+        for (int i = 0; i < _rows.Count; i++)
         {
             // Bright blue only for the one open; the rest at rest.
             UiNode row = UiNode.Wrap(_rows[i]);
@@ -181,6 +281,19 @@ internal sealed class ShaderToolApp : HostApp
                 row.Quiet();
             _rows[i].AddTag<Dirty>();
         }
+    }
+
+    /// <summary>Flips an overlay: bright blue while it shows (the buttons at rest are muted).</summary>
+    private void Toggle(ref bool on, Entity button)
+    {
+        on = !on;
+        UiNode node = UiNode.Wrap(button);
+        if (on)
+            node.Primary();
+        else
+            node.Secondary();
+        button.AddTag<Dirty>();
+        _effect?.ShowOverlays(_showTriangles, _showUv);
     }
 
     /// <summary>Remembers the open shader's text while another is picked, if it differs from the file.</summary>
@@ -212,6 +325,7 @@ internal sealed class ShaderToolApp : HostApp
         _seenVersion = -1;
         // The thumbnail draws the file, so it compiles again from what was just written.
         Renderer.Pipelines.Reload(file.Path);
+        Redraw(_picked);
     }
 
     /// <summary>Puts the file's text back: a fresh editor on it.</summary>
@@ -241,7 +355,7 @@ internal sealed class ShaderToolApp : HostApp
         UiText.Set(_note, changed ? "unsaved changes" : "saved");
         UiLayout.SetDisabled(_save, !changed);
         UiLayout.SetDisabled(_revert, !changed);
-        for (int i = 0; i < _files.Length; i++)
+        for (int i = 0; i < _files.Count; i++)
             UiText.Set(_rows[i], _unsaved.ContainsKey(_files[i]) ? _files[i].Name + " •" : _files[i].Name);
     }
 

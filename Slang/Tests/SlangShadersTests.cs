@@ -29,6 +29,79 @@ public sealed class SlangShadersTests
         Assert.That(compiled.Update, Is.Null);
     }
 
+    [Test]
+    public void ADeformGivesTheEffectItsOwnVertexStageWithTheSameValues()
+    {
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test", """
+            import xanadu;
+            [Default(8)] uniform float height;
+            uniform float4 tint;
+            ItemVertex deform(ItemVertex v) { v.position.y += sin(time * 4 + v.uv.x * 6) * height; return v; }
+            float4 shade(ItemInput i) { return i.colour * tint; }
+            """);
+
+        Assert.That(compiled.Vertex, Is.Not.Null);
+        CompiledShader vertex = compiled.Vertex!;
+        Assert.That(BitConverter.ToUInt32(vertex.Spirv, 0), Is.EqualTo(0x07230203u));
+        // The values block is laid out as the fragment's, so one push fits both.
+        Assert.That(vertex.Params.Select(p => (p.Name, p.Offset)), Is.EqualTo(compiled.Params.Select(p => (p.Name, p.Offset))));
+        Assert.That(vertex.ParamsSize, Is.EqualTo(compiled.ParamsSize));
+        // View, values, frame; nothing in the fragment's sets.
+        Assert.That(vertex.UniformBuffers, Is.EqualTo((uint)SlangShaders.VertexFrameSlot + 1));
+        Assert.That(SpirvScan.BindsSet(vertex.Spirv, 2) || SpirvScan.BindsSet(vertex.Spirv, 3), Is.False);
+        Assert.That(vertex.StorageBuffers, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void ABodyWithoutDeformKeepsTheStandardVertexStage() =>
+        Assert.That(SlangShaders.CompileEffectBody("test", "float4 shade(ItemInput i) { return i.colour; }").Vertex, Is.Null);
+
+    [Test]
+    public void ADeformThatReadsTheChartBindsItInTheVertexStage()
+    {
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test", """
+            import xanadu;
+            ItemVertex deform(ItemVertex v) { v.position.x += chart[0].place.x; return v; }
+            float4 shade(ItemInput i) { return i.colour; }
+            """);
+
+        Assert.That(compiled.Vertex!.StorageBuffers, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ADeformThatSamplesATextureSaysOnlyShadeCan()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("test", """
+            import xanadu;
+            ItemVertex deform(ItemVertex v) { v.position.y += screenTexture.SampleLevel(v.uv, 0).r; return v; }
+            float4 shade(ItemInput i) { return i.colour; }
+            """));
+
+        Assert.That(error!.Message, Does.Contain("deform can't read textures"));
+    }
+
+    [Test]
+    public void ADeformingEffectDrawsShapesBentOrAtRest() =>
+        Assert.That(SlangShaders.CompileEffectBody("test", """
+            import xanadu;
+            ItemVertex deform(ItemVertex v) { v.position += random(v.local) * 22 * sin(time); return v; }
+            float4 shade(ItemInput i, Canvas canvas)
+            {
+                let bent = Circle(100).measured();
+                let straight = Circle(100).measured(i.rest.centred);
+                return colours.white.painted(bent.outlined(2), colours.red).painted(straight.outlined(2) * i.rest.aspect, colours.gold);
+            }
+            """).Vertex, Is.Not.Null);
+
+    [Test]
+    public void AKeptStateEffectCanDeform() =>
+        Assert.That(SlangShaders.CompileEffectBody("test", """
+            struct State { float x; };
+            void update(inout State s, float dt) { s.x += dt; }
+            ItemVertex deform(ItemVertex v) { v.position.x += time; return v; }
+            float4 shade(ItemInput i) { return i.colour * state.x; }
+            """, keepsState: true).Vertex, Is.Not.Null);
+
     [TestCase("colour c = colours.black; c.paint(Linear(400).rotated(PI / 2), colours.navy, colours.black); return c;")]
     [TestCase("colour c = colours.black; c.paint(Radial(200).anchored(anchor.top), colours.gold, colours.transparent, blend.screen); return c;")]
     [TestCase("return Conical().rotated(0.5).moved(float2(10, 0)).amount();")]
@@ -50,9 +123,29 @@ public sealed class SlangShadersTests
             "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
     }
 
+    [TestCase("colour c = colours.transparent; let ring = Circle(100).hollowed(10).measured(); let dot = Circle(30).moved(float2(100, 0)).measured(); c.paint(ring, colours.red); c.paint(dot.and(ring), colours.green); return c;")]
+    [TestCase("let m = Circle(40).measured(); colour c = colours.black; c.paint(m.minus(Box(float2(20), 4)).melted(Star6(30), 8), Look(colours.gold, colours.white, 2)); c.erase(m.hollowed(2)); return c.painted(m.stroked(3) + m.haloed(40) + m.feathered(4), colours.red);")]
+    [TestCase("let m = Circle(40).measured(canvas.centred - float2(10, 0)); return m.shown() * m.shadowed(20) * m.contoured(10) + m.or(m).meltedAnd(m, 3).meltedMinus(Circle(5), 2).filled();")]
+    [TestCase("let m = Star6(60).melted(Circle(40), 20).measured(); return colours.white.painted(m.filled() + m.grown(10).stroked(2) + m.shrunk(10).or(m.grown(20)).stroked(2), colours.red);")]
+    [TestCase("let hole = Circle(20).measured(); colour c = colours.black; c.paint(Star6(60).minus(hole).melted(Box(float2(30)), 4), Look(colours.gold, colours.white, 2)); c.erase(Circle(5).or(hole.grown(2))); return c.painted(Box(float2(80)).meltedAnd(hole, 3).meltedMinus(hole, 2), colours.red) * Circle(50).shadowed(20) * Circle(50).contoured(10) + Circle(5).and(hole).shown();")]
+    [TestCase("let a = Circle(40).measured(); let b = Box(float2(30)).measured(); return colours.white.painted(a.or(b).and(a.measured()).minus(b.measured(canvas.centred)), colours.red) * a.distance();")]
+    public void MeasuredShapesDrawAndJoinLikeShapes(string body)
+    {
+        Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
+            "import xanadu;\nfloat4 shade(Canvas canvas) { " + body + " }"));
+    }
+
+    [Test]
+    public void APointGivesTheAngleToAnother()
+    {
+        Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",
+            "import xanadu;\nfloat4 shade(Canvas canvas) { let eye = Box(float2(60, 12), 6).moved(float2(-80, 0)); float2 target = float2(40, 30); return colours.white.painted(eye.rotated(eye.placement.offset.angleTo(target)), colours.red) * float2(0).angleTo(canvas.centred); }"));
+    }
+
     [TestCase("colour c = colours.gold; c.invert(); c.grey(); c.brighten(1.2); c.saturateBy(1.5); c.contrast(1.1); c.tint(colours.navy, 0.3); c.shiftHue(0.25); return c;")]
     [TestCase("return colours.gold.inverted().greyed().brightened(0.8).saturatedBy(0.5).contrasted(2).tinted(colours.red, 0.5).hueShifted(0.5).withRgb(float3(1, 0, 0));")]
     [TestCase("float l = colours.gold.luminance(); return l;")]
+    [TestCase("colour a = colour(1.0, 0.3, 1.0); colour b = colour(a.rgb * 0.5); colour c = colour(0.2, 0.4, 0.6, 0.5); return a.over(b).over(c);")]
     public void ColoursChangeTheirRgbAndKeepTheirAlpha(string body)
     {
         Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("test",

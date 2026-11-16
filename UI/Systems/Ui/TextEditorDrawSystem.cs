@@ -16,7 +16,9 @@ namespace Xanadu.Systems.Ui;
 /// the caret's line, the selection behind the text, the caret, and what the
 /// owner adds (<see cref="ITextEditorHost"/>): coloured runs, inlays as small
 /// pills, boxed cells, and marked lines (tinted, a word underlined, a note on a
-/// row of its own under the line, so it is never cut off by a long line).
+/// row of its own under the line, so it is never cut off by a long line), and
+/// a faint guide down each indent step (blank lines carry the guides of the
+/// code around them).
 /// Redrawn whole every frame; only the visible rows are drawn.
 /// </summary>
 public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextEditor>
@@ -34,6 +36,9 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
     private static readonly Color InlayPill = new(0.55f, 0.65f, 0.95f, 0.10f);
     private static readonly Color CaretLine = new(1, 1, 1, 0.04f);
     private static readonly Color SelectionFill = new(0.35f, 0.55f, 1f, 0.30f);
+    private static readonly Color SwatchRing = new(1, 1, 1, 0.35f);
+    private static readonly Color IndentGuide = new(1, 1, 1, 0.07f);
+    private static readonly Color StrayIndent = new(0.98f, 0.57f, 0.24f, 0.22f);
 
     private readonly List<TextCell> _boxed = new();
 
@@ -77,6 +82,18 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
             if (buffer.HasSelection)
                 DrawSelection(item, layout, buffer, index, decor.Inlays, y);
 
+            int guides = GuideLevel(buffer, index);
+            for (int step = 0; step < guides; step++)
+                canvas.DrawRect(item, new Rect2(layout.TextLeft + VisualColumn(decor.Inlays, step * TextBuffer.Indent) * charWidth, y, 1, LineHeight), IndentGuide);
+            // Off the steps: the stray part of the indent marked, clicked to put the text where it belongs.
+            if (TextIndent.Misaligned(line))
+            {
+                float from = layout.TextLeft + VisualColumn(decor.Inlays, guides * TextBuffer.Indent) * charWidth;
+                float to = layout.TextLeft + VisualColumn(decor.Inlays, TextIndent.Of(line)) * charWidth;
+                canvas.DrawRect(item, new Rect2(from, y + 1, to - from, LineHeight - 2), StrayIndent);
+                canvas.DrawRect(item, new Rect2(from, y, 1, LineHeight), Palette.Warning);
+            }
+
             canvas.DrawTextMono(
                 item, new Rect2(layout.Area.Position.X, y, Gutter - TextPadding, LineHeight), (index + 1).ToString(),
                 index == buffer.Line ? Plain : GutterText, FontSize, TextAlign.Right);
@@ -114,6 +131,34 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         }
     }
 
+    /// <summary>
+    /// How many indent guides a line shows: its whole indent steps, so the text
+    /// itself is never crossed. A blank line takes the shallower of the nearest
+    /// non-blank lines above and below, so guides run through gaps in a block.
+    /// </summary>
+    private static int GuideLevel(TextBuffer buffer, int index)
+    {
+        int own = Indent(buffer.Lines[index]);
+        if (own >= 0)
+            return own / TextBuffer.Indent;
+
+        int above = -1, below = -1;
+        for (int i = index - 1; i >= 0 && above < 0; i--)
+            above = Indent(buffer.Lines[i]);
+        for (int i = index + 1; i < buffer.Lines.Count && below < 0; i++)
+            below = Indent(buffer.Lines[i]);
+        return Math.Max(0, Math.Min(above, below)) / TextBuffer.Indent;
+    }
+
+    /// <summary>Leading spaces of a line, or -1 for a blank one.</summary>
+    private static int Indent(string line)
+    {
+        int spaces = 0;
+        while (spaces < line.Length && line[spaces] == ' ')
+            spaces++;
+        return spaces == line.Length ? -1 : spaces;
+    }
+
     /// <summary>The selected part of one line; a line the selection runs past shows one more column for its line break.</summary>
     private void DrawSelection(Handle item, TextEditorLayout layout, TextBuffer buffer, int index, List<TextInlay> inlays, float y)
     {
@@ -145,7 +190,10 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
             DrawText(item, layout, line, decor.Runs, logical, inlay.Column, visual, y);
             visual += inlay.Column - logical;
             logical = inlay.Column;
-            DrawInlay(item, layout, inlay.Label, visual, y);
+            if (inlay.Swatch is { } swatch)
+                DrawSwatch(item, layout, swatch, visual, y);
+            else
+                DrawInlay(item, layout, inlay.Label, visual, y);
             visual += inlay.Label.Length + 1;
         }
 
@@ -163,6 +211,17 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         float x = layout.TextLeft + visualColumn * charWidth + (room - pill) / 2 - charWidth / 2;
         canvas.DrawRect(item, new Rect2(x, y + 3, pill, LineHeight - 6), InlayPill);
         canvas.DrawTextMono(item, new Rect2(x + 4 - TextPadding, y, textWidth + TextPadding * 2 + 8, LineHeight), label, InlayText, InlaySize, TextAlign.Left);
+    }
+
+    /// <summary>A colour square in its one column, ringed so a dark or see-through colour still shows; alpha shows as the background through it.</summary>
+    private void DrawSwatch(Handle item, TextEditorLayout layout, Color colour, int visualColumn, float y)
+    {
+        const float Size = 10;
+        float x = layout.TextLeft + visualColumn * layout.CharWidth + (layout.CharWidth - Size) / 2;
+        float top = y + (LineHeight - Size) / 2;
+        canvas.DrawRect(item, new Rect2(x, top, Size, Size), SwatchRing);
+        canvas.DrawRect(item, new Rect2(x + 1, top + 1, Size - 2, Size - 2), Background);
+        canvas.DrawRect(item, new Rect2(x + 1, top + 1, Size - 2, Size - 2), colour);
     }
 
     /// <summary>Columns [from, to) of a line, each run in its colour and the rest plain, starting at a visual column.</summary>

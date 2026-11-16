@@ -13,10 +13,13 @@ using Xanadu.Slang;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
-internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, ComputePipeline? update = null) : IDisposable
+internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null) : IDisposable
 {
     public Shader Shader { get; } = shader;
     public CompiledShader Compiled { get; } = compiled;
+
+    /// <summary>Its own vertex stage, from its <c>deform</c>; null draws with the standard one.</summary>
+    public Shader? Vertex { get; } = vertex;
 
     /// <summary>A kept-state effect's once-a-frame <c>update</c>; null when it keeps none.</summary>
     public ComputePipeline? Update { get; } = update;
@@ -25,11 +28,13 @@ internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, Compu
     {
         Shader.Dispose();
         Update?.Dispose();
+        Vertex?.Dispose();
     }
 }
 
 /// <summary>
-/// The canvas's pipelines: the standard vertex stage with each fragment effect,
+/// The canvas's pipelines: the standard vertex stage (or an effect's own, from its
+/// <c>deform</c>) with each fragment effect,
 /// one per blend mode used (Docs/host.md §3: blend is pipeline state,
 /// not shader code). Effects compile the first time they are drawn and are kept;
 /// one that fails to compile logs its error once and draws plain.
@@ -45,7 +50,8 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly Shader _vertex;
     private readonly CanvasEffect _plain;
     private readonly Dictionary<string, CanvasEffect?> _effects = new();
-    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?), GraphicsPipeline> _pipelines = new();
+    /// <summary>By effect, blend and whether it draws only the triangles' edges (the triangles overlay).</summary>
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines), GraphicsPipeline> _pipelines = new();
 
     public CanvasPipelines(GraphicsDevice device, TextureFormat format)
     {
@@ -65,7 +71,7 @@ internal sealed class CanvasPipelines : IDisposable
     public CanvasEffect Effect(Xanadu.Systems.Canvas.CanvasMaterial? material)
     {
         if (material?.Source is not { } source)
-            return Effect(material?.Shader ?? "");
+            return Effect(material?.Shader ?? "", material?.Overlay ?? Xanadu.Systems.Canvas.MaterialOverlay.None);
 
         // Keyed by the code, not the name: two slots may share a name, and an edit makes a new effect.
         string key = SourceKey(material, source);
@@ -73,7 +79,7 @@ internal sealed class CanvasPipelines : IDisposable
         {
             try
             {
-                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState));
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState, ShadeWith(material.Overlay)));
             }
             catch (Exception exception)
             {
@@ -87,24 +93,36 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     private static string SourceKey(Xanadu.Systems.Canvas.CanvasMaterial material, string source) =>
-        (material.KeepsState ? "state:" : "source:") + source;
+        (material.KeepsState ? "state:" : "source:") + OverlayKey(material.Overlay) + source;
+
+    private static string OverlayKey(Xanadu.Systems.Canvas.MaterialOverlay overlay) =>
+        overlay == Xanadu.Systems.Canvas.MaterialOverlay.None ? "" : overlay + ":";
+
+    /// <summary>The library function an overlay draws instead of shade; null for the effect itself.</summary>
+    private static string? ShadeWith(Xanadu.Systems.Canvas.MaterialOverlay overlay) => overlay switch
+    {
+        Xanadu.Systems.Canvas.MaterialOverlay.Triangles => SlangShaders.TrianglesOverlay,
+        Xanadu.Systems.Canvas.MaterialOverlay.UvLines => SlangShaders.UvOverlay,
+        _ => null,
+    };
 
     /// <summary>The effect at a path in the game folder (entry point <c>shade</c>), or the plain one if it can't be built.</summary>
-    public CanvasEffect Effect(string path)
+    public CanvasEffect Effect(string path, Xanadu.Systems.Canvas.MaterialOverlay overlay = Xanadu.Systems.Canvas.MaterialOverlay.None)
     {
         if (path.Length == 0)
             return _plain;
 
-        if (!_effects.TryGetValue(path, out CanvasEffect? effect))
+        string key = OverlayKey(overlay) + path;
+        if (!_effects.TryGetValue(key, out CanvasEffect? effect))
         {
-            effect = TryCompile(path);
-            _effects[path] = effect;
+            effect = TryCompile(path, ShadeWith(overlay));
+            _effects[key] = effect;
         }
 
         return effect ?? _plain;
     }
 
-    private CanvasEffect? TryCompile(string path)
+    private CanvasEffect? TryCompile(string path, string? shadeWith)
     {
         string file = GamePaths.Full(path);
         if (!File.Exists(file))
@@ -115,8 +133,8 @@ internal sealed class CanvasPipelines : IDisposable
 
         try
         {
-            // Written as level shaders are: the same wrapper calls its shade.
-            return Make(SlangShaders.CompileEffectBody(path, File.ReadAllText(file)));
+            // Written as level shaders are: the same wrapper calls its shade. Lab-only ones may keep state.
+            return Make(SlangShaders.CompileEffectBody(path, File.ReadAllText(file), SlangShaders.IsLabOnly(path), shadeWith));
         }
         catch (Exception exception)
         {
@@ -145,7 +163,16 @@ internal sealed class CanvasPipelines : IDisposable
                 ThreadCountX = 1, ThreadCountY = 1, ThreadCountZ = 1,
             })
             : null;
-        return new CanvasEffect(shader, compiled, update);
+        Shader? vertex = compiled.Vertex is { } stage
+            ? Shader.Create(_device, stage.Spirv, "main", new ShaderCreateInfo
+            {
+                Format = ShaderFormat.SPIRV,
+                Stage = ShaderStage.Vertex,
+                NumStorageBuffers = (uint)stage.StorageBuffers,
+                NumUniformBuffers = stage.UniformBuffers,
+            })
+            : null;
+        return new CanvasEffect(shader, compiled, update, vertex);
     }
 
     /// <summary>
@@ -168,8 +195,11 @@ internal sealed class CanvasPipelines : IDisposable
     /// </summary>
     public void Reload(string path)
     {
-        if (_effects.Remove(path, out CanvasEffect? effect))
-            Drop(effect);
+        foreach (Xanadu.Systems.Canvas.MaterialOverlay overlay in Enum.GetValues<Xanadu.Systems.Canvas.MaterialOverlay>())
+        {
+            if (_effects.Remove(OverlayKey(overlay) + path, out CanvasEffect? effect))
+                Drop(effect);
+        }
     }
 
     /// <summary>Frees an effect and every pipeline made with it.</summary>
@@ -178,7 +208,7 @@ internal sealed class CanvasPipelines : IDisposable
         if (effect is null)
             return;
 
-        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
+        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom, bool Lines) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
         {
             if (key.Effect != effect)
                 continue;
@@ -198,7 +228,7 @@ internal sealed class CanvasPipelines : IDisposable
 
     /// <summary>
     /// Compiles every shipped effect (each <c>.slang</c> under <c>Assets/Shaders</c>
-    /// outside the library) with mix; called once at start, so screens and the
+    /// outside the library and the lab-only folder) with mix; called once at start, so screens and the
     /// playfield never compile one mid-song.
     /// </summary>
     public void WarmShipped(Action<int, int>? progress = null)
@@ -206,7 +236,7 @@ internal sealed class CanvasPipelines : IDisposable
         string root = GamePaths.Full("Assets/Shaders");
         string library = Path.Combine(root, "Library");
         string[] files = Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
-            .Where(file => !file.StartsWith(library, StringComparison.Ordinal))
+            .Where(file => !file.StartsWith(library, StringComparison.Ordinal) && !SlangShaders.IsLabOnly(file))
             .ToArray();
         for (int i = 0; i < files.Length; i++)
         {
@@ -217,23 +247,27 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     /// <summary>The pipeline for an effect drawn with a material's blend: its custom one when it has it, else its mode.</summary>
-    public GraphicsPipeline Pipeline(CanvasEffect effect, Xanadu.Systems.Canvas.CanvasMaterial? material) =>
-        material?.Custom is { } custom
-            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey)
-            : Pipeline(effect, material?.Blend ?? BlendMode.Mix);
-
-    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null)
+    /// <remarks>The triangles overlay draws line-filled: each triangle's edges, wherever its corners landed.</remarks>
+    public GraphicsPipeline Pipeline(CanvasEffect effect, Xanadu.Systems.Canvas.CanvasMaterial? material)
     {
-        if (_pipelines.TryGetValue((effect, blend, custom), out GraphicsPipeline? pipeline))
+        bool lines = material?.Overlay == Xanadu.Systems.Canvas.MaterialOverlay.Triangles;
+        return material?.Custom is { } custom
+            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines)
+            : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines);
+    }
+
+    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false)
+    {
+        if (_pipelines.TryGetValue((effect, blend, custom, lines), out GraphicsPipeline? pipeline))
             return pipeline;
 
         pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
         {
-            VertexShader = _vertex,
+            VertexShader = effect.Vertex ?? _vertex,
             FragmentShader = effect.Shader,
             VertexInputState = VertexInputState.CreateSingleBinding<CanvasVertex>(),
             PrimitiveType = PrimitiveType.TriangleList,
-            RasterizerState = RasterizerState.CCW_CullNone,
+            RasterizerState = lines ? RasterizerState.CCW_Wireframe : RasterizerState.CCW_CullNone,
             MultisampleState = MultisampleState.None,
             DepthStencilState = DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
@@ -241,7 +275,7 @@ internal sealed class CanvasPipelines : IDisposable
                 ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = custom is { } state ? Blend(state) : Blend(blend) }],
             },
         });
-        _pipelines[(effect, blend, custom)] = pipeline;
+        _pipelines[(effect, blend, custom, lines)] = pipeline;
         return pipeline;
     }
 

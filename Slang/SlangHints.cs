@@ -55,6 +55,16 @@ public sealed partial class SlangHints
     /// <summary>The library's namespaces (<c>color</c>, <c>ease</c>, …), for colouring.</summary>
     public HashSet<string> Namespaces { get; } = new();
 
+    /// <summary>
+    /// What working out each shape costs a pixel, from the library's <c>/// @cost n</c> tags: by
+    /// struct for a shape (<c>Circle</c> is 1, the unit) and by method for a change that adds its
+    /// own work (<c>repeated</c>, <c>melted</c>). For the cost warnings (<see cref="SlangLint"/>).
+    /// </summary>
+    public Dictionary<string, float> Costs { get; } = new();
+
+    [GeneratedRegex(@"///\s*@cost\s+(\d+(?:\.\d+)?)[^\n]*\n(?:[ \t]*(?:///|\[)[^\n]*\n)*[ \t]*public\s+(?:struct\s+(\w+)|[\w<>:, ]+?\s+(\w+)\s*(?:<[^>()]*>)?\s*\()")]
+    private static partial Regex CostTag();
+
     [GeneratedRegex(@"public\s+typealias\s+(\w+)")]
     private static partial Regex TypeAlias();
 
@@ -77,6 +87,8 @@ public sealed partial class SlangHints
     /// <summary>Adds the declarations in one library file.</summary>
     public void Read(string source)
     {
+        foreach (Match tag in CostTag().Matches(source))
+            Costs[tag.Groups[2].Success ? tag.Groups[2].Value : tag.Groups[3].Value] = float.Parse(tag.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
         source = WithoutComments(source);
         var structs = Struct().Matches(source).Select(match => (match.Index, Name: match.Groups[1].Value)).ToList();
         foreach (var declared in structs)

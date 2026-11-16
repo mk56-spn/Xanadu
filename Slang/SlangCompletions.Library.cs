@@ -41,6 +41,9 @@ public sealed partial class SlangCompletions
     /// <summary>Each call's overloads by scope ("" for top level, a struct for its constructors) and name: their parameter types, generic ones as their constraint.</summary>
     private readonly Dictionary<(string Scope, string Name), List<string[]>> _parameters = new();
 
+    /// <summary>Each call's overloads by name alone, every scope together: their parameter names (<c>moved</c> → offset).</summary>
+    private readonly Dictionary<string, List<string[]>> _parameterNames = new(StringComparer.Ordinal);
+
     /// <summary>The library's top-level names: free functions and constants, structs, aliases, namespaces.</summary>
     private readonly List<Completion> _globals = new();
 
@@ -396,7 +399,26 @@ public sealed partial class SlangCompletions
         if (!_parameters.TryGetValue((scope, name), out var overloads))
             _parameters[(scope, name)] = overloads = [];
         overloads.Add(types);
+
+        string[] names = SplitArguments(parameters)
+            .Select(p => Regex.Match(p, @"^\s*(?:(?:in|out|inout|const)\s+)*[A-Za-z_][\w<>]*\s+([A-Za-z_]\w*)").Groups[1].Value)
+            .ToArray();
+        if (!_parameterNames.TryGetValue(name, out var named))
+            _parameterNames[name] = named = [];
+        named.Add(names);
     }
+
+    /// <summary>
+    /// The names the library gives the argument at <paramref name="index"/> of a call to
+    /// <paramref name="name"/>, in every scope and overload that has one there (<c>moved</c>, 0 →
+    /// offset; a struct's name for its constructors). Empty for a name the library doesn't declare.
+    /// </summary>
+    public IReadOnlyList<string> ParameterNames(string name, int index) =>
+        (_parameterNames.GetValueOrDefault(name) ?? [])
+            .Where(names => index < names.Length && names[index].Length > 0)
+            .Select(names => names[index])
+            .Distinct()
+            .ToList();
 
     /// <summary>A return type with the method's own generic names as their constraints: <c>Union&lt;S, T&gt;</c> for <c>T : IShape</c> → <c>Union&lt;S, IShape&gt;</c>.</summary>
     private static string Constrained(string type, string generics)

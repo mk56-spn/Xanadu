@@ -45,6 +45,18 @@ public float2 rotate(float2 position, float angle)
     return float2(c * position.x - s * position.y, s * position.x + c * position.y);
 }
 
+public extension float2
+{
+    /// The angle from this point to `target`, in radians clockwise on screen (y down) from
+    /// pointing right: what rotate and a shape's rotated take, so `s.rotated(s.placement.offset.angleTo(p))`
+    /// points a shape's right-hand side at p. 0 when they're the same point.
+    public float angleTo(float2 target)
+    {
+        float2 to = target - this;
+        return atan2(to.y, to.x);
+    }
+}
+
 // Repeatable random numbers in 0..1 from a seed: the seed's exact bits go
 // through Jarzynski and Olano's PCG hashes (jcgt.org/published/0009/03/02), so
 // big, negative or fractional seeds are as random as small ones (the old

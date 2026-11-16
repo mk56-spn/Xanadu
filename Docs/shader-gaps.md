@@ -17,6 +17,7 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
 | Nearest point and distance to the cell edge over a fixed set of points (`map`, `normalmap`: 70 lines of loops) | missing | Ashanoha | maybe `pattern.voronoi(position, points)` over an array: nearest point and edge distance; wait for a second shader that wants it |
+| No 3D: distances (`length(p - c) - r`), a camera ray from the pixel (`normalize(float3(uv, focal))`), a field's normal (4 tetrahedron samples), a march loop | missing | raymarch tiled + single | a `xanadu.space` module: 3D shapes as IShape3 values, `Camera(focal).ray()`, `normalOf(field, p)`; wait to see whether levels want 3D at all |
 
 ## Fixed
 
@@ -31,7 +32,7 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Contrast on a plain number (`lerp(v, 0.5, 0.3)`) | pulse dots | `v.contrast(f)`, `v.contrasted(f)` |
 | A tile's middle (`floor(pos) + 0.5`) came out as `tile.id - 0.5` | diamond ripple | `tile.centre` |
 | A repeating ramp by hand (`2.0 * fract(x * 0.5)`) | diamond ripple | `saw(x, period)`, `triangle(x, period)` |
-| Porting conventions worked out each time (y up, `mat2` order, uv scales, alpha) | diamond ripple | shaders.md §17 "From shadertoy" |
+| Porting conventions worked out each time (y up, `mat2` order, uv scales, alpha) | diamond ripple | shaders.md §18 "From shadertoy" |
 | Folding space into slices round a point (`pmod`) | Ashanoha | `pattern.slice(count)`: `.local`, `.index`, `.turn` |
 | Oblong tiles by hand | Ashanoha | `pattern.tile` with a `float2` size |
 | iq's cosine palette by hand | Ashanoha | `colours.palette(t, a, b, c, d)`, `colours.rainbow(t, middle, swing)` |

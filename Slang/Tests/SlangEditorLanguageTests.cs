@@ -409,6 +409,74 @@ public sealed class SlangSyntaxTests
     }
 }
 
+/// <summary>XS002 on a product: the division takes everything multiplied before it.</summary>
+[TestFixture]
+public sealed class WholeProductLintTests
+{
+    private static readonly IReadOnlySet<string> Types = new HashSet<string>(SlangSyntax.BuiltInTypes);
+
+    [Test]
+    public void AFloatAnywhereInTheProductMakesItAFloatDivision()
+    {
+        Assert.That(SlangLint.Check("static const int GRID = 4;\nfloat edge(int k, float extent) { return -extent + 2.0 * extent * k / GRID; }", Types), Is.Empty);
+    }
+
+    [Test]
+    public void AProductOfWholeNumbersIsStillFlagged()
+    {
+        Assert.That(SlangLint.Check("float4 shade(int n, int k) { float f = n * k / 3; return float4(f); }", Types).Single().Message,
+            Does.StartWith("XS002"));
+    }
+}
+
+/// <summary>XS007: a value named like a function that's called where it's in scope.</summary>
+[TestFixture]
+public sealed class HiddenFunctionLintTests
+{
+    private static readonly IReadOnlySet<string> Types = new HashSet<string>(SlangSyntax.BuiltInTypes) { "colour" };
+
+    [Test]
+    public void AParameterHidingAFunctionItsBodyCallsIsFlaggedOnTheParameter()
+    {
+        SlangProblem problem = SlangLint.Check("""
+            float2 reach(float2 from, float2 to, float length)
+            {
+                float2 d = to - from;
+                return from + d / max(length(d), 1e-4) * length;
+            }
+            """, Types).Single();
+        Assert.That(problem.Message, Does.StartWith("XS007 · length here hides the length() function, so the call on line 4"));
+        Assert.That((problem.Line, problem.Column), Is.EqualTo((1, 44)));
+    }
+
+    [Test]
+    public void ALocalHidesOnlyFromWhereItsDeclared()
+    {
+        SlangProblem problem = SlangLint.Check("""
+            float4 shade()
+            {
+                float a = length(float2(1, 0));
+                float length = a * 2;
+                return float4(length(float2(length, 0)));
+            }
+            """, Types).Single();
+        Assert.That(problem.Line, Is.EqualTo(4));
+    }
+
+    [Test]
+    public void ANameThatIsNeverCalledOrIsOutOfScopeIsFine()
+    {
+        Assert.That(SlangLint.Check("""
+            float grow(float length) { return length * 2; }
+            float4 shade()
+            {
+                { float dot = 1; }
+                return float4(dot(float2(1, 0), float2(1, 0)), grow(2), 0, 1);
+            }
+            """, Types), Is.Empty);
+    }
+}
+
 /// <summary>Parameter names shown as hints in calls into the library.</summary>
 [TestFixture]
 public sealed class SlangHintsTests
@@ -632,5 +700,127 @@ public sealed class SlangLibraryDeclarationsTests
     {
         Assert.That(Library.Find("x = sin(t);", 5), Is.Null);
         Assert.That(Library.Find("x = eases(t);", 5), Is.Null);
+    }
+}
+
+/// <summary>XS005 and XS006: shape work read from the text, at the real library's @cost tags.</summary>
+[TestFixture]
+public sealed class ShapeCostLintTests
+{
+    private static readonly IReadOnlySet<string> Types = new HashSet<string>(SlangSyntax.BuiltInTypes) { "colour", "Circle" };
+    private static SlangHints _hints = null!;
+
+    [OneTimeSetUp]
+    public void ReadTheLibrary() => _hints = SlangHints.FromLibrary(System.IO.Path.Combine(ShippedLibrary.Path, "xanadu"));
+
+    private static List<SlangProblem> Check(string body) =>
+        SlangLint.Check("float4 shade(Canvas canvas)\n{\n" + body + "\n}", Types, _hints.Costs);
+
+    [Test]
+    public void ShapesAndTheChangesThatAddWorkHaveCosts()
+    {
+        Assert.That(_hints.Costs["Circle"], Is.EqualTo(1));
+        Assert.That(_hints.Costs["Star6"], Is.EqualTo(3));
+        Assert.That(_hints.Costs["Grid"], Is.EqualTo(2));
+        Assert.That(_hints.Costs["repeated"], Is.EqualTo(2));
+        Assert.That(_hints.Costs, Does.Not.ContainKey("hollowed"));
+    }
+
+    [Test]
+    public void AShapeDrawnTwiceUnchangedIsFlaggedWhereItsDrawnAgain()
+    {
+        SlangProblem problem = Check("""
+                colour col = colours.transparent;
+                Circle dot = Circle(30);
+                dot.move(float2(100, 0));
+                let ring = Circle(100).hollowed(10);
+                col.paint(ring, colours.red);
+                col.paint(dot.and(ring), colours.green);
+                return col;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS005 · ring"));
+        Assert.That(problem.Line, Is.EqualTo(8));
+    }
+
+    [Test]
+    public void AShapeMovedBetweenDrawsIsAnotherShape()
+    {
+        Assert.That(Check("""
+                colour col = colours.transparent;
+                Circle circ1 = Circle(10);
+                Circle circ2 = Circle(100);
+                col.paint(circ1, colours.red);
+                circ1.move(float2(100, 0));
+                let f = circ1.minus(circ2);
+                col.paint(f, colours.green);
+                return col;
+            """), Is.Empty);
+    }
+
+    [Test]
+    public void TheSameShapeAtTwoPointsIsTwoPiecesOfWork()
+    {
+        Assert.That(Check("""
+                float2 p = canvas.centred * 0.01;
+                let disk = Circle(0.5);
+                float d = disk.distance(p);
+                float dm = disk.distance(mouse);
+                return float4(d, dm, disk.filled(2), 1);
+            """), Is.Empty);
+    }
+
+    [Test]
+    public void AMeasuredShapeIsWorkedOutOnce()
+    {
+        Assert.That(Check("""
+                colour col = colours.transparent;
+                let ring = Circle(100).hollowed(10).measured();
+                let dot = Circle(30).moved(float2(100, 0)).measured();
+                col.paint(ring, colours.red);
+                col.paint(dot.and(ring), colours.green);
+                col.paint(ring.stroked(2), colours.white);
+                return col;
+            """), Is.Empty);
+    }
+
+    [Test]
+    public void AShapeJoinedToAMeasuredIsWorkedOutAtTheJoin()
+    {
+        SlangProblem problem = Check("""
+                colour col = colours.transparent;
+                let star = Star6(60);
+                let hole = Circle(20).measured();
+                col.paint(star.minus(hole), colours.gold);
+                col.paint(star.stroked(2), colours.white);
+                return col;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS005 · star"));
+        Assert.That(problem.Line, Is.EqualTo(7));
+    }
+
+    [Test]
+    public void ALoopOverTheBudgetIsFlaggedOnShade()
+    {
+        SlangProblem problem = Check("""
+                colour c = colours.black;
+                for (int i = 0; i < 20; i++)
+                    c.paint(Star6(10).moved(float2(i * 20, 0)), colours.gold);
+                return c;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS006 · about 60 circles"));
+        Assert.That(problem.Line, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ALookPaintsTwiceAndALoopWithoutABoundIsAGuess()
+    {
+        SlangProblem problem = Check("""
+                colour c = colours.black;
+                for (int i = 0; i < count; i++)
+                    c.paint(Star6(10).moved(float2(i * 20, 0)), Look(colours.gold, colours.white, 2));
+                return c;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS006 · about 48 circles"));
+        Assert.That(problem.Message, Does.Contain("taken as 8 passes"));
     }
 }
