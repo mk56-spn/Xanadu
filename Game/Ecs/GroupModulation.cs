@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Xanadu.Timeline;
 
 namespace Xanadu.Ecs;
 
@@ -30,7 +31,7 @@ public static class GroupModulation
         IReadOnlyList<GroupDefinition> groups,
         int group,
         float seconds,
-        Xanadu.Levels.TempoMap? tempo = null)
+        Xanadu.Timeline.TempoMap? tempo = null)
     {
         if (group < 0 || group >= groups.Count)
             return 1f;
@@ -47,7 +48,7 @@ public static class GroupModulation
         IReadOnlyList<GroupDefinition> groups,
         uint mask,
         float seconds,
-        Xanadu.Levels.TempoMap? tempo = null)
+        Xanadu.Timeline.TempoMap? tempo = null)
     {
         Vector2 total = Vector2.Zero;
         foreach (GroupDefinition group in Members(groups, mask))
@@ -83,7 +84,7 @@ public static class GroupModulation
         out Color mix,
         out float coverage,
         out float alpha,
-        Xanadu.Levels.TempoMap? tempo = null)
+        Xanadu.Timeline.TempoMap? tempo = null)
     {
         var started = new List<(GroupEffect Effect, int Group)>();
         for (int i = 0; i < groups.Count && i < GroupLimits.Count; i++)
@@ -135,7 +136,7 @@ public static class GroupModulation
         ref float coverage,
         GroupEffect effect,
         float seconds,
-        Xanadu.Levels.TempoMap? tempo)
+        Xanadu.Timeline.TempoMap? tempo)
     {
         float p = effect.Progress(seconds, tempo);
         float next = coverage + p - coverage * p;
@@ -154,7 +155,7 @@ public static class GroupModulation
     private static List<(GroupEffect Effect, int Group)> Sorted(
         List<(GroupEffect Effect, int Group)> effects,
         float seconds,
-        Xanadu.Levels.TempoMap? tempo)
+        Xanadu.Timeline.TempoMap? tempo)
     {
         var indexed = new List<(GroupEffect Effect, int Group, int Order)>();
         for (int i = 0; i < effects.Count; i++)

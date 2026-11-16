@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Xanadu.Levels;
 using Xanadu.Systems.Playfields;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Playfields;
 

@@ -18,6 +18,7 @@ public enum SceneKind
     Settings,
     SongTiming,
     ProfileEdit,
+    Bench,
 }
 
 /// <summary>Persistent game scene state and the next requested scene.</summary>

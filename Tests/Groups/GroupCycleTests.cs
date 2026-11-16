@@ -2,6 +2,7 @@ using System.Linq;
 using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Levels;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Groups;
 

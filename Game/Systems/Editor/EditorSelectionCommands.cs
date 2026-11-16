@@ -233,7 +233,7 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         Playhead playhead = editor.GetComponent<Playhead>();
         // A step in beats, so items keep their place on the grid across tempo changes.
         double stepBeats = EditorTiming.StepBeats(playhead) * Math.Sign(direction);
-        Xanadu.Levels.TempoMap tempo = playhead.Tempo;
+        Xanadu.Timeline.TempoMap tempo = playhead.Tempo;
         long maxTime = playhead.DurationMs > 0
             ? playhead.DurationMs
             : long.MaxValue;

@@ -10,6 +10,7 @@ using Xanadu.Scenes;
 using SceneState = Xanadu.Ecs.SceneState;
 using Xanadu.Settings;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Timeline;
 
 namespace Xanadu.Systems.Scenes;
 
@@ -79,6 +80,7 @@ public sealed class SceneControllerRegistry
         registry.Register(new ResultsController());
         registry.Register(new SettingsController());
         registry.Register(new OffsetWizardController());
+        registry.Register(new BenchController());
         return registry;
     }
 
@@ -376,6 +378,13 @@ public sealed class SceneControllerRegistry
     {
         public SceneKind Kind => SceneKind.OffsetWizard;
         public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Visuals);
+        public SceneKind BackTarget => SceneKind.Main;
+    }
+
+    private sealed class BenchController : ISceneController
+    {
+        public SceneKind Kind => SceneKind.Bench;
+        public void Build(SceneBuildContext c) => BenchScene.Build(c.Entities, c.Root, c.Visuals);
         public SceneKind BackTarget => SceneKind.Main;
     }
 }

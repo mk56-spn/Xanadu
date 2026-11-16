@@ -30,13 +30,13 @@ public sealed class KeybindSettingsTests
     {
         var settings = new KeybindSettings(_path);
 
-        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.S));
-        Assert.That(settings.Get(KeybindAction.Right), Is.EqualTo(Key.D));
+        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.F));
+        Assert.That(settings.Get(KeybindAction.Right), Is.EqualTo(Key.J));
         Assert.That(settings.Get(KeybindAction.Up), Is.EqualTo(Key.K));
         Assert.That(settings.Get(KeybindAction.Down), Is.EqualTo(Key.L));
-        Assert.That(settings.Get(KeybindAction.Action1), Is.EqualTo(Key.F));
+        Assert.That(settings.Get(KeybindAction.Action1), Is.EqualTo(Key.S));
         Assert.That(settings.Get(KeybindAction.Action2), Is.EqualTo(Key.Space));
-        Assert.That(settings.Get(KeybindAction.Action3), Is.EqualTo(Key.J));
+        Assert.That(settings.Get(KeybindAction.Action3), Is.EqualTo(Key.D));
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class KeybindSettingsTests
 
         var reloaded = new KeybindSettings(_path);
         Assert.That(reloaded.Get(KeybindAction.Left), Is.EqualTo(Key.A));
-        Assert.That(reloaded.Get(KeybindAction.Right), Is.EqualTo(Key.D));
+        Assert.That(reloaded.Get(KeybindAction.Right), Is.EqualTo(Key.J));
     }
 
     [Test]
@@ -60,10 +60,10 @@ public sealed class KeybindSettingsTests
         var settings = new KeybindSettings(_path);
         settings.BeginCapture(KeybindAction.Left);
 
-        Assert.That(settings.TryCapture(Key.D), Is.True);
+        Assert.That(settings.TryCapture(Key.J), Is.True);
 
-        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.D));
-        Assert.That(settings.Get(KeybindAction.Right), Is.EqualTo(Key.S));
+        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.J));
+        Assert.That(settings.Get(KeybindAction.Right), Is.EqualTo(Key.F));
     }
 
     [Test]
@@ -74,7 +74,7 @@ public sealed class KeybindSettingsTests
 
         Assert.That(settings.TryCapture(Key.Escape), Is.True);
         Assert.That(settings.Capturing, Is.Null);
-        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.S));
+        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.F));
     }
 
     [Test]
@@ -85,7 +85,7 @@ public sealed class KeybindSettingsTests
 
         Assert.That(settings.TryCapture(Key.F6), Is.True, "the press is consumed");
         Assert.That(settings.Capturing, Is.EqualTo(KeybindAction.Left), "but the capture stays open");
-        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.S));
+        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.F));
     }
 
     [Test]
@@ -96,7 +96,7 @@ public sealed class KeybindSettingsTests
 
         Assert.That(settings.TryCapture(Key.Shift), Is.True);
         Assert.That(settings.Capturing, Is.EqualTo(KeybindAction.Left));
-        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.S));
+        Assert.That(settings.Get(KeybindAction.Left), Is.EqualTo(Key.F));
     }
 
     [Test]

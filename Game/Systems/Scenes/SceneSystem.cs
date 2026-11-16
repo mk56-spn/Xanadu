@@ -91,6 +91,10 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             SceneKind.OffsetWizard,
             SceneActionId.Back,
             context => context.Scenes.TryBack());
+        _actionRegistry.Register(
+            SceneKind.Bench,
+            SceneActionId.Back,
+            context => context.Scenes.TryBack());
     }
 
     public ProfileStore Profiles => _profiles;

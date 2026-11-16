@@ -16,9 +16,9 @@
 
 | Role | Keys |
 | --- | --- |
-| Left / right | S / D |
+| Left / right | F / J |
 | Up / down | K / L |
-| Actions | F, Space, J |
+| Actions | S, Space, D |
 
 - Players can rebind keys as they please; the defaults don't matter much.
 - Why not WASD: it can't handle high-speed pressing.
@@ -141,6 +141,32 @@
 
 - Mostly TBD.
 - Landing in spikes hits the player; the mapper places spikes with that in mind.
+
+## Wants → answers (2026-11-15 board)
+
+### Wants
+
+| Want | Answer |
+|---|---|
+| Slow song downtime management | Ability to manoeuvre the char in a smooth way |
+| High bpm | Reuse direction keys for other actions |
+| Preserve momentum of char to represent vocals whilst preserving the ability to respond to impactful minor notes | Fire ephemeral projectiles / ghosts out to keep the main movement whilst having impactful visuals |
+| Avoid dead time character stillness, ergo we dont want the character grounded during such | Character is suspended in the air and has aerial movement by default |
+| Preserve decision in player movement direction | Directional notes of a sort that send you along curves as opposed to having a harsh line |
+| Lets the character still do sharp movements where it makes sense | Directional dash |
+| Situations where we have double layered long extended sounds and therefore character movement is taken by 1 | Hold notes |
+| Emphasize intent of play not just musicality | Action note that enables or disables hover |
+
+### Direction keys
+
+- Reuse direction keys for other actions
+- Directional dash
+- Directional notes of a sort that send you along curves as opposed to having a harsh line
+
+### Action keys
+
+- Building up contact by presenting the respective colour of action that builds up the contact you need → Contact
+- Action note that enables or disables hover
 
 ## Contact
 

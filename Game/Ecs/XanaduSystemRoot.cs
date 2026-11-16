@@ -139,6 +139,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Offsets,
             Keyboard,
             () => Scenes.TryBack()));
+        Add(new BenchSystem(entities, new MiniaudioTrackAudio(), Keyboard));
         Add(new Xanadu.Systems.Audio.SongPreviewSystem(entities, _previewAudio));
         _audioSystems = new AudioSystemGroup(
             _trackAudio,

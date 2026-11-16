@@ -112,13 +112,13 @@ public sealed class KeybindSettings
 
     public static Key DefaultFor(KeybindAction action) => action switch
     {
-        KeybindAction.Left => Key.S,
-        KeybindAction.Right => Key.D,
+        KeybindAction.Left => Key.F,
+        KeybindAction.Right => Key.J,
         KeybindAction.Up => Key.K,
         KeybindAction.Down => Key.L,
-        KeybindAction.Action1 => Key.F,
+        KeybindAction.Action1 => Key.S,
         KeybindAction.Action2 => Key.Space,
-        KeybindAction.Action3 => Key.J,
+        KeybindAction.Action3 => Key.D,
         _ => Key.None,
     };
 

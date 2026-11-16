@@ -85,7 +85,7 @@ public readonly record struct GroupEffect(
     /// it ends. The easing curve is applied to the fraction of the span. A
     /// cycling effect reads its current cycle (see <see cref="Amount"/>).
     /// </summary>
-    public float Progress(float seconds, Xanadu.Levels.TempoMap? tempo = null)
+    public float Progress(float seconds, Xanadu.Timeline.TempoMap? tempo = null)
     {
         if (Cycling && tempo is not null)
             return CycleAt(seconds, tempo).Progress;
@@ -100,7 +100,7 @@ public readonly record struct GroupEffect(
     /// How much of the effect applies: <see cref="Progress"/>, plus the whole
     /// cycles already done for a stacking move.
     /// </summary>
-    public float Amount(float seconds, Xanadu.Levels.TempoMap? tempo = null)
+    public float Amount(float seconds, Xanadu.Timeline.TempoMap? tempo = null)
     {
         if (!Cycling || tempo is null)
             return Progress(seconds, tempo);
@@ -109,10 +109,10 @@ public readonly record struct GroupEffect(
     }
 
     /// <summary>When the cycle playing at a time began, in seconds (the start itself without cycles).</summary>
-    public float CycleStart(float seconds, Xanadu.Levels.TempoMap? tempo = null) =>
+    public float CycleStart(float seconds, Xanadu.Timeline.TempoMap? tempo = null) =>
         Cycling && tempo is not null ? CycleAt(seconds, tempo).Start : Start;
     /// <summary>Cycle <paramref name="index"/>'s start and end in seconds (0 is the effect itself).</summary>
-    public (float Start, float End) CycleSpan(int index, Xanadu.Levels.TempoMap tempo)
+    public (float Start, float End) CycleSpan(int index, Xanadu.Timeline.TempoMap tempo)
     {
         double first = tempo.BeatAt(Start * 1000.0);
         double length = tempo.BeatAt(End * 1000.0) - first;
@@ -120,7 +120,7 @@ public readonly record struct GroupEffect(
         return ((float)(tempo.TimeAt(begin) / 1000.0), (float)(tempo.TimeAt(begin + length) / 1000.0));
     }
 
-    private (int Index, float Progress, float Start) CycleAt(float seconds, Xanadu.Levels.TempoMap tempo)
+    private (int Index, float Progress, float Start) CycleAt(float seconds, Xanadu.Timeline.TempoMap tempo)
     {
         double first = tempo.BeatAt(Start * 1000.0);
         double length = tempo.BeatAt(End * 1000.0) - first;

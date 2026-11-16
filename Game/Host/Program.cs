@@ -7,13 +7,4 @@ using Xanadu.Host;
 // dotnet run --project Host -- --resolution=1920x1080
 // dotnet run --project Host -- --scene=<name>       -> starts on that screen (a SceneKind name)
 
-// MoonWorks logs every tick that runs late; with one update per tick that is
-// every slow frame, which buries everything else in the console.
-System.Action<string> info = MoonWorks.Logger.LogInfo;
-MoonWorks.Logger.LogInfo = message =>
-{
-    if (!message.StartsWith("Exceeded max update time", System.StringComparison.Ordinal))
-        info(message);
-};
-
 new HostGame(HostOptions.Parse(args)).Run();

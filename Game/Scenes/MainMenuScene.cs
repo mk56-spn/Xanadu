@@ -45,7 +45,7 @@ public static class MainMenuScene
             .At(new Vector2(stage.Center.X, SubtitleY));
 
         // A dark panel behind the buttons, so they read over the moving notes.
-        float menuHeight = PlayHeight + MenuHeight * 2 + LastHeight * 2 + UiMetrics.Space.Md * 4;
+        float menuHeight = PlayHeight + MenuHeight * 2 + LastHeight * 3 + UiMetrics.Space.Md * 5;
         ui.Rect(
                 default,
                 size: new Vector2(MenuWidth, menuHeight) + Vector2.One * SceneUi.BackingPad * 2)
@@ -91,6 +91,14 @@ public static class MainMenuScene
             .Secondary()
             .Size(MenuWidth, LastHeight)
             .On(SceneKind.Profiles);
+
+        // A feel test: a library song with the background pulsing on its beats.
+        menu.Button(
+                LocalizedText.Get(MainMenuStrings.Bench),
+                UiType.Small)
+            .Secondary()
+            .Size(MenuWidth, LastHeight)
+            .On(SceneKind.Bench);
 
         ui.Text(
                 LocalizedText.Get(MainMenuStrings.Footer),

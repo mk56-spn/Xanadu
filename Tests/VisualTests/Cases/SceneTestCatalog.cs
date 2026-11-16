@@ -21,6 +21,8 @@ public static class SceneTestCatalog
         new ProfileEditSceneTest(),
         new ProfileTintSceneTest(),
         new MainMenuSceneTest(),
+        new UiTreeSceneTest(click: false),
+        new UiTreeSceneTest(click: true),
         new SongSelectSceneTest(),
         new EditorWaveformSceneTest(),
         new EditorMetadataSceneTest(),
