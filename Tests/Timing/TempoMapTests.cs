@@ -3,6 +3,7 @@ using NUnit.Framework;
 using Xanadu.Ecs;
 using Xanadu.Levels;
 using Xanadu.Systems.Editor;
+using Xanadu.Timeline;
 
 namespace Xanadu.Tests.Timing;
 

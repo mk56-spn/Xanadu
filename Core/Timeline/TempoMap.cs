@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Levels;
+namespace Xanadu.Timeline;
 
 /// <summary>One tempo section: from <see cref="TimeMs"/> on, <see cref="Bpm"/> beats a minute, <see cref="BeatsPerBar"/> to a bar.</summary>
 public readonly record struct TempoPoint(double TimeMs, double Bpm, int BeatsPerBar = 4);
