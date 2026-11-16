@@ -5,8 +5,9 @@ using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
-using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -61,7 +62,7 @@ public sealed class EditorPaintTool(EditorSceneQuery scene, EditorHistory histor
     /// </summary>
     public Entity Paint(Entity editor, Vector2 pointer, Playfield playfield)
     {
-        if (!EditorItemPicker.IsInside(pointer, playfield))
+        if (!PlayfieldGrid.IsInside(pointer, playfield))
             return default;
 
         EntityStore entities = scene.Store;

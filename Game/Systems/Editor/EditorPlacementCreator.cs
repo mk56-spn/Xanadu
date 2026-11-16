@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
-using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -29,7 +29,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             PlayfieldView startView = editor.GetComponent<PlayfieldView>();
             Playfield startField = editor.GetComponent<Playfield>();
             Vector2 startPosition = startView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(startPosition, startField))
+            if (!PlayfieldGrid.IsInside(startPosition, startField))
                 return;
 
             Playhead startPlayhead = editor.GetComponent<Playhead>();
@@ -50,7 +50,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         {
             PlayfieldView textView = editor.GetComponent<PlayfieldView>();
             Vector2 textPosition = textView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(textPosition, editor.GetComponent<Playfield>()))
+            if (!PlayfieldGrid.IsInside(textPosition, editor.GetComponent<Playfield>()))
                 return;
 
             EditorSnapshot textBefore = history.Capture();
@@ -67,7 +67,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             PlayfieldView regionView = editor.GetComponent<PlayfieldView>();
             Playfield regionField = editor.GetComponent<Playfield>();
             Vector2 centre = regionView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(centre, regionField))
+            if (!PlayfieldGrid.IsInside(centre, regionField))
                 return;
 
             ScreenReadRegion region = ScreenReadRegion.Centred(
@@ -98,7 +98,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         {
             PlayfieldView grassView = editor.GetComponent<PlayfieldView>();
             Vector2 grassPosition = grassView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(grassPosition, editor.GetComponent<Playfield>()))
+            if (!PlayfieldGrid.IsInside(grassPosition, editor.GetComponent<Playfield>()))
                 return;
 
             // The click is where the blades stand; with snap on, the base and left
@@ -123,7 +123,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         {
             PlayfieldView flareView = editor.GetComponent<PlayfieldView>();
             Vector2 flarePosition = flareView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(flarePosition, editor.GetComponent<Playfield>()))
+            if (!PlayfieldGrid.IsInside(flarePosition, editor.GetComponent<Playfield>()))
                 return;
 
             // The click is where the core goes; with snap on, it sits on the half-cell grid.
@@ -147,7 +147,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             PlayfieldView barView = editor.GetComponent<PlayfieldView>();
             Playfield barField = editor.GetComponent<Playfield>();
             Vector2 barPosition = barView.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(barPosition, barField))
+            if (!PlayfieldGrid.IsInside(barPosition, barField))
                 return;
 
             float height = GridPlacement.NewFrictionBarHeight(barField);
@@ -168,7 +168,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
             Playfield playfield = editor.GetComponent<Playfield>();
             Vector2 position = view.ScreenToPlayfield(screenPosition);
-            if (!EditorItemPicker.IsInside(position, playfield))
+            if (!PlayfieldGrid.IsInside(position, playfield))
                 return;
 
             Playhead playhead = editor.GetComponent<Playhead>();
@@ -189,7 +189,7 @@ public sealed class EditorPlacementCreator(EditorSceneQuery scene, EditorHistory
         Playfield playfield = editor.GetComponent<Playfield>();
         Playhead playhead = editor.GetComponent<Playhead>();
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
-        if (!EditorItemPicker.IsInside(playfieldPosition, playfield))
+        if (!PlayfieldGrid.IsInside(playfieldPosition, playfield))
             return;
 
         if (editor.GetComponent<LevelInfo>().Song is null)

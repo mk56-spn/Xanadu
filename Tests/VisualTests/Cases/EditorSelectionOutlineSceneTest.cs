@@ -1,6 +1,6 @@
 using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.VisualTests;
 

@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 using Xanadu.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;

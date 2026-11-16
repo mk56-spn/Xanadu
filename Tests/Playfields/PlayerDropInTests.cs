@@ -2,6 +2,7 @@ using Box2DSharp.Dynamics;
 using NUnit.Framework;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 

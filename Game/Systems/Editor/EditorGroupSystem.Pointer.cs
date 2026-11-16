@@ -8,6 +8,7 @@ using Xanadu.Editor.Commands;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

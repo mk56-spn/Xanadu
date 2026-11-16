@@ -9,6 +9,7 @@ using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.History;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

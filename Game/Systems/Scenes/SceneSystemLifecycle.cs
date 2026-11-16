@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Rendering;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Scoring;

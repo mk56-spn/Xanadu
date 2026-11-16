@@ -1,7 +1,6 @@
 using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Levels;
-using Xanadu.Systems.Characters;
 using Xanadu.Model.Settings;
 using Position = Xanadu.Core.Position;
 

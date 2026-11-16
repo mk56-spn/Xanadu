@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Ecs;

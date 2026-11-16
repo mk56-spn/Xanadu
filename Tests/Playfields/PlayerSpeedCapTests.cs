@@ -6,6 +6,7 @@ using Xanadu.Editor.Analysis;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -17,7 +18,7 @@ public sealed class PlayerSpeedCapTests
     [Test]
     public void TheCapIsWhatTheStrongestMomentumNoteGives()
     {
-        var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: Box2DPhysicsWorld.MaxMomentum);
+        var note = new Note(0, Vector2.Zero, kind: NoteKind.Momentum, momentum: PhysicsScale.MaxMomentum);
 
         Assert.That(PlayerMovementSystem.MomentumSpeed(note), Is.EqualTo(Max).Within(0.0001f));
     }
@@ -59,8 +60,8 @@ public sealed class PlayerSpeedCapTests
     [Test]
     public void TheAnalyzerFallsAtTerminalSpeedOnceItReachesIt()
     {
-        float gravity = Box2DPhysicsWorld.DefaultGravity * Box2DPhysicsWorld.PixelsPerMeter;
-        float terminal = Max * Box2DPhysicsWorld.PixelsPerMeter;
+        float gravity = PhysicsScale.DefaultGravity * PhysicsScale.PixelsPerMeter;
+        float terminal = Max * PhysicsScale.PixelsPerMeter;
 
         Assert.That(PlayabilityAnalyzer.FallDistance(gravity, 0.1f), Is.EqualTo(0.5f * gravity * 0.01f).Within(0.01f));
         Assert.That(

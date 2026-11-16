@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Physics;
 
@@ -59,10 +60,10 @@ public sealed class PlayerTuckTests
 
         AABB box = body.FixtureList[0].GetAABB(0);
         Assert.That(
-            box.LowerBound.Y * Box2DPhysicsWorld.PixelsPerMeter,
+            box.LowerBound.Y * PhysicsScale.PixelsPerMeter,
             Is.EqualTo(100 - Size.Y / 2).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
         Assert.That(
-            box.UpperBound.Y * Box2DPhysicsWorld.PixelsPerMeter,
+            box.UpperBound.Y * PhysicsScale.PixelsPerMeter,
             Is.EqualTo(100 + Size.Y / 2 - 40).Within(1.5f)); // Box2D pads the AABB by its 1 px polygon skin.
         Assert.That(body.Mass, Is.EqualTo(1f).Within(1e-4f));
     }

@@ -5,6 +5,7 @@ using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -70,7 +71,7 @@ public sealed class PlayerArenaSystem : QuerySystem<Player, PhysicsBody, Positio
     /// <summary>Sideways speed, in metres per second, after sliding on the floor; it stops rather than reverses.</summary>
     public static float AfterFriction(float speed, float delta)
     {
-        float loss = GroundFriction * Box2DPhysicsWorld.DefaultGravity * delta;
+        float loss = GroundFriction * PhysicsScale.DefaultGravity * delta;
         return Math.Abs(speed) <= loss ? 0f : speed - Math.Sign(speed) * loss;
     }
 }

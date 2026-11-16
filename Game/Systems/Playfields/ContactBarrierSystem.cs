@@ -5,7 +5,6 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;

@@ -181,7 +181,7 @@ internal sealed class HostGame : HostApp
                 continue;
 
             for (int slot = 1; slot <= ShaderLimits.Count; slot++)
-                if (Xanadu.Systems.Shaders.LevelSlotMaterials.MaterialOf(shaders, slot) is { } material)
+                if (Xanadu.Drawers.Passes.LevelSlotMaterials.MaterialOf(shaders, slot) is { } material)
                     Renderer.Pipelines.Warm(material);
         }
     }

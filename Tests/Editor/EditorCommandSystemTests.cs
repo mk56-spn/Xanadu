@@ -13,6 +13,7 @@ using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Model.Settings;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Editor;
 

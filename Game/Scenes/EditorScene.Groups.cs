@@ -6,6 +6,7 @@ using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Editor;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Scenes;
 
@@ -113,8 +114,8 @@ public static class EditorSceneGroups
             "Snap items to the grid. Off by default: items go exactly where they are put",
             on: false);
         Relabel(gridSnap, "GRID SNAP ON", "GRID SNAP OFF");
-        Entity collision = Xanadu.Editor.PlacementCollision.Attach(
-            gridItems.Button(Xanadu.Editor.PlacementCollision.Label, 12, SceneUi.MutedButtonColor)
+        Entity collision = Xanadu.Model.Editor.PlacementCollision.Attach(
+            gridItems.Button(Xanadu.Model.Editor.PlacementCollision.Label, 12, SceneUi.MutedButtonColor)
                 .Size(MenuItemWidth, 28)
                 .Entity);
         Relabel(collision, "COLLISION ON", "COLLISION OFF");

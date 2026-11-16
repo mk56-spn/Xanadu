@@ -6,6 +6,7 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Editor;

@@ -4,7 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Editor;
+using Xanadu.Drawers.Editor;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;

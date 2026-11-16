@@ -6,6 +6,7 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

@@ -7,6 +7,7 @@ using Xanadu.Editor.Commands;
 using Xanadu.Editor.Recovery;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Editor;
+using Xanadu.Drawers.Editor;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
@@ -33,7 +34,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         ITrackAudio metronomeAudio,
         EditorHistory history,
         IWheelSource? wheel = null,
-        Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
+        Xanadu.Drawers.Passes.IPassSurfaces? passes = null,
         Func<Rect2, Rect2>? toPixels = null,
         Func<bool>? autosaveToFile = null,
         ToastSystem? toasts = null) : base("Editor")

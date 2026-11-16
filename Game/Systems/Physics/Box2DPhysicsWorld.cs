@@ -5,6 +5,8 @@ using Box2DSharp.Dynamics;
 using Box2DSharp.Dynamics.Contacts;
 using Xanadu.Model.Ecs.Components;
 
+using static Xanadu.Model.Physics.PhysicsScale;
+
 namespace Xanadu.Systems.Physics;
 
 /// <summary>
@@ -13,11 +15,7 @@ namespace Xanadu.Systems.Physics;
 /// </summary>
 public sealed class Box2DPhysicsWorld : IDisposable
 {
-    public const float PixelsPerMeter = 100f;
     public const float FixedTimeStep = 1f / 240f;
-
-    /// <summary>The fixed downward pull, in metres per second squared.</summary>
-    public const float DefaultGravity = 22.2f;
 
     /// <summary>The gravity momentum values are authored against, in metres per second squared.</summary>
     public const float MomentumReferenceGravity = 15f;
@@ -28,9 +26,6 @@ public sealed class Box2DPhysicsWorld : IDisposable
     /// speed has to grow with the square root of gravity.
     /// </summary>
     public static float MomentumScale => MathF.Sqrt(DefaultGravity / MomentumReferenceGravity);
-
-    /// <summary>The largest momentum a note can be authored with, the triple strength.</summary>
-    public const float MaxMomentum = 1200f;
 
     /// <summary>
     /// The speed the strongest momentum note gives, in metres per second. The

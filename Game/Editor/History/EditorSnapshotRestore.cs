@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 
 namespace Xanadu.Editor.History;
 

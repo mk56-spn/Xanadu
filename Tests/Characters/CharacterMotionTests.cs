@@ -8,6 +8,7 @@ using Xanadu.Systems.Characters;
 using Xanadu.Systems.Physics;
 using Xanadu.Tests.Support;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Characters;
 
@@ -50,7 +51,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Entity player = Player(Floor);
         Root.Update(new UpdateTick(1f / 240f, 0));
-        player.AddComponent(new CharacterBump { Age = CharacterBumpSystem.Seconds });
+        player.AddComponent(new CharacterBump { Age = CharacterBump.Seconds });
 
         CharacterMotionSystem.DashExit(player, new Vector2(250, 0));
         Root.Update(new UpdateTick(1f / 240f, 0));
@@ -69,7 +70,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
     {
         Entity player = Player(Floor - 200);
         Root.Update(new UpdateTick(1f / 240f, 0));
-        player.AddComponent(new CharacterBump { Age = CharacterBumpSystem.Seconds });
+        player.AddComponent(new CharacterBump { Age = CharacterBump.Seconds });
         CharacterMotionState before = State(player);
 
         CharacterMotionSystem.DashExit(player, new Vector2(0, -250));
@@ -390,7 +391,7 @@ public sealed class CharacterMotionTests : EcsSystemTest
 
     private static void Slide(Entity player, float pixelsPerSecond) =>
         player.GetComponent<PhysicsBody>().Body.SetLinearVelocity(
-            new Vector2(pixelsPerSecond / Box2DPhysicsWorld.PixelsPerMeter, 0f));
+            new Vector2(pixelsPerSecond / PhysicsScale.PixelsPerMeter, 0f));
 
     [TestCase(CharacterMotionSystem.SlideStartSpeed)]
     [TestCase(-CharacterMotionSystem.SlideStartSpeed)]

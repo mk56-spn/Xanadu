@@ -9,7 +9,6 @@ using Xanadu.Core.Rendering;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Characters;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;

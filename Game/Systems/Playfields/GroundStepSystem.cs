@@ -5,6 +5,7 @@ using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -56,7 +57,7 @@ public sealed class GroundStepSystem : QuerySystem<GroundStep, PhysicsBody, Posi
 
             Vector2 at = body.Body.GetPosition();
             body.Body.SetTransform(
-                new Vector2(at.X + delta / Box2DPhysicsWorld.PixelsPerMeter, at.Y),
+                new Vector2(at.X + delta / PhysicsScale.PixelsPerMeter, at.Y),
                 body.Body.GetAngle());
             body.Body.SetLinearVelocity(new Vector2(0f, body.Body.LinearVelocity.Y));
             position.Value = Box2DPhysicsWorld.ToScreen(body.Body.GetPosition());

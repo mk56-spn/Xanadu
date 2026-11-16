@@ -8,6 +8,7 @@ using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Editor.Commands;

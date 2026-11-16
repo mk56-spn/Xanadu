@@ -5,7 +5,6 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
@@ -16,6 +15,7 @@ using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Input;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Physics;
 
 
 namespace Xanadu.Systems.Playfields;
@@ -228,7 +228,7 @@ public sealed class PlayerMovementSystem : QuerySystem<Player, Position, Playfie
 
     /// <summary>The speed, in metres per second, a momentum note gives.</summary>
     public static float MomentumSpeed(Note note) =>
-        note.Momentum / Box2DPhysicsWorld.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale;
+        note.Momentum / PhysicsScale.PixelsPerMeter * Box2DPhysicsWorld.MomentumScale;
 
     private bool TryFindMovementNote(
         KeybindAction action,

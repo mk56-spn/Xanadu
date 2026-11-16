@@ -5,16 +5,15 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.History;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Playfields;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Playfields;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

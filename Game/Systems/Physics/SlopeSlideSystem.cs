@@ -4,6 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Physics;
 
@@ -38,7 +39,7 @@ public sealed class SlopeSlideSystem : QuerySystem<Player, PhysicsBody, Playfiel
                 return;
 
             GroundStepSystem.Cancel(entity, buffer);
-            body.Body.SetLinearVelocity(downhill * (Speed * view.Scale / Box2DPhysicsWorld.PixelsPerMeter));
+            body.Body.SetLinearVelocity(downhill * (Speed * view.Scale / PhysicsScale.PixelsPerMeter));
         });
     }
 

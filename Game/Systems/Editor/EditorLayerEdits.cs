@@ -4,9 +4,9 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Layering;
 using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
+using Xanadu.Drawers.Playfields;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

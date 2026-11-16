@@ -7,6 +7,7 @@ using Xanadu.Systems.Ui;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -45,7 +46,7 @@ public sealed partial class EditorGroupSystem
         }
         else if (state.EaseFor == EditorEaseTarget.Key)
         {
-            if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys) ||
+            if (!EditorShaderKeyEdits.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys) ||
                 !HasSelectedKey(state, keys, uniform, out ShaderKey key))
             {
                 return;

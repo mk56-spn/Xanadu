@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
-using Xanadu.Systems.Playfields;
+using Xanadu.Model.Kinds;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -107,13 +106,6 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
 
     /// <summary>The editor's layers: items on hidden or locked ones can't be picked.</summary>
     private EditorLayers Layers() => EditorLayers.Of(scene.Editor());
-
-    /// <summary>True when a playfield point is inside the field.</summary>
-    public static bool IsInside(Vector2 position, Playfield playfield) =>
-        position.X >= 0 &&
-        position.Y >= 0 &&
-        position.X <= playfield.Width &&
-        position.Y <= playfield.Height;
 
     /// <summary>
     /// A picked point moved into the item's placed frame: items are picked where

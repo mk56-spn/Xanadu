@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
-using Xanadu.Systems.Playfields;
 
 namespace Xanadu.Tests.VisualTests;
 

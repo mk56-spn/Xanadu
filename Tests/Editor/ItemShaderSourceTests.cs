@@ -11,6 +11,7 @@ using Xanadu.Editor.History;
 using Xanadu.Model.Levels;
 using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Editor;
 

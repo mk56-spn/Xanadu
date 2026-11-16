@@ -3,9 +3,9 @@ using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
-using Xanadu.Systems.Playfields;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Playfields;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -19,9 +19,6 @@ public sealed class EditorPolygonTool(
     EditorItemPicker picker,
     EditorHistory history)
 {
-    /// <summary>A click this close to the first point, in screen pixels, closes the outline.</summary>
-    public const float CloseRadius = 12f;
-
     /// <summary>Acts on Enter and Esc, and drops the outline when the tool is put away.</summary>
     public void Update(Entity editor)
     {
@@ -56,14 +53,14 @@ public sealed class EditorPolygonTool(
 
         ref EditorPolygonDraft draft = ref editor.GetComponent<EditorPolygonDraft>();
         if (draft.Points.Count >= 3 &&
-            view.PlayfieldToScreen(draft.Points[0]).DistanceTo(screenPosition) <= CloseRadius)
+            view.PlayfieldToScreen(draft.Points[0]).DistanceTo(screenPosition) <= EditorPolygonDraft.CloseRadius)
         {
             Finish(editor, ref draft);
             return true;
         }
 
         Vector2 point = view.ScreenToPlayfield(screenPosition);
-        if (!EditorItemPicker.IsInside(point, playfield))
+        if (!PlayfieldGrid.IsInside(point, playfield))
             return true;
 
         if (ViewportSnap.IsOn(scene.Store))

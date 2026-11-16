@@ -7,6 +7,7 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Characters;
 
@@ -194,7 +195,7 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
             entity.TryGetComponent(out PlayfieldView view) &&
             entity.TryGetComponent(out Playfield playfield))
         {
-            float scale = Box2DPhysicsWorld.PixelsPerMeter;
+            float scale = PhysicsScale.PixelsPerMeter;
             Vector2 velocity = body.Body.LinearVelocity * scale;
             float gravity = body.Body.World.Gravity.Y * scale * Box2DPhysicsWorld.GravityScale(body.Body);
             if (velocity.Y > 0f &&
@@ -340,12 +341,12 @@ public sealed class CharacterMotionSystem : QuerySystem<CharacterRig, Player, Po
 
     private static float UpwardSpeed(Entity entity) =>
         entity.TryGetComponent(out PhysicsBody body)
-            ? -body.Body.LinearVelocity.Y * Box2DPhysicsWorld.PixelsPerMeter
+            ? -body.Body.LinearVelocity.Y * PhysicsScale.PixelsPerMeter
             : 0f;
 
     private static float SidewaysSpeed(Entity entity) =>
         entity.TryGetComponent(out PhysicsBody body)
-            ? Math.Abs(body.Body.LinearVelocity.X) * Box2DPhysicsWorld.PixelsPerMeter
+            ? Math.Abs(body.Body.LinearVelocity.X) * PhysicsScale.PixelsPerMeter
             : 0f;
 
     /// <summary>Before play starts the player has no body and just stands where it was placed.</summary>

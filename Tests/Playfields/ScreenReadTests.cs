@@ -6,17 +6,16 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 using Xanadu.Systems.Editor;
-using Xanadu.Systems.Playfields;
-using Xanadu.Systems.Shaders;
+using Xanadu.Drawers.Playfields;
+using Xanadu.Drawers.Passes;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Playfields;
 

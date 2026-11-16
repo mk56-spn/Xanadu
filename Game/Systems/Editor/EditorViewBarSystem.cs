@@ -9,6 +9,7 @@ using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Model.Editor;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Editor;

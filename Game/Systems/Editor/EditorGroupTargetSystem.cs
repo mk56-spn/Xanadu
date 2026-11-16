@@ -6,6 +6,7 @@ using Xanadu.Editor;
 using Xanadu.Editor.History;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

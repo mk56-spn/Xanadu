@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Items;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Shaders;

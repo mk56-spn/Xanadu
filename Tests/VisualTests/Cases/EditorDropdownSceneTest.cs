@@ -9,7 +9,6 @@ using Xanadu.Systems.Editor;
 using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;

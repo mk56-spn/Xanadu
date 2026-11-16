@@ -10,6 +10,7 @@ using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -114,7 +115,7 @@ public sealed class WallSlideSystem(EntityStore entities, OffsetSettings? offset
         }
 
         Pin(body, size, slide.Face, slide.Side, centre);
-        body.Body.SetLinearVelocity(new Vector2(0f, Speed * view.Scale / Box2DPhysicsWorld.PixelsPerMeter));
+        body.Body.SetLinearVelocity(new Vector2(0f, Speed * view.Scale / PhysicsScale.PixelsPerMeter));
 
         slide.SinceParticles += delta;
         if (slide.SinceParticles < ParticleSeconds)

@@ -3,10 +3,10 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
 using Xanadu.Tests.Support;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Editor;
 

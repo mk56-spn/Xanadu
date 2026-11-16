@@ -8,6 +8,7 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Characters;
+using Xanadu.Drawers.Characters;
 using Xanadu.Tests.Support;
 using Position = Xanadu.Core.Position;
 

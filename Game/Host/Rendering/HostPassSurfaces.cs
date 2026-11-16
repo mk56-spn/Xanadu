@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Shaders;
+using Xanadu.Drawers.Passes;
 using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Host.Rendering;

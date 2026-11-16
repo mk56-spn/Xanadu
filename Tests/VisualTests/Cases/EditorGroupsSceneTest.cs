@@ -1,7 +1,6 @@
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
 using Position = Xanadu.Core.Position;
@@ -9,6 +8,7 @@ using Xanadu.Ecs;
 using Xanadu.Model.Ecs;
 using Xanadu.Core.Rendering;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.VisualTests;
 

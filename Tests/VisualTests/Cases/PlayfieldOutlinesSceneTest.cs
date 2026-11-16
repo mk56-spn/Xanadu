@@ -2,6 +2,7 @@ using Xanadu.Model.Ecs.Components;
 using Friflo.Engine.ECS;
 using Xanadu.Ecs;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.VisualTests;
 

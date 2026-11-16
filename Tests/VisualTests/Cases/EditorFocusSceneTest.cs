@@ -2,7 +2,6 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Systems.Editor;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 

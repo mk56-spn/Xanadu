@@ -60,6 +60,37 @@
     is null, so check `IsNull`; `entity.Store` gets the store. Components live in
     archetypes, not in the handle.
 
+### Finding a specific entity
+
+**Use an indexed component, never `UniqueEntity`.** Friflo's `UniqueEntity` /
+`GetUniqueEntity` is the old way to name one entity; don't add new uses. Give the
+entity a component implementing `IIndexedComponent<TValue>` (one field, returned
+by `GetIndexedValue()`) and look it up by value: `store.ComponentIndex<TComponent,
+TValue>()[value]` returns the matching entities in O(1), and a query narrows to
+them with `.HasValue<TComponent, TValue>(value)` (example: `Layer` in
+`UI/Ecs/Ui/UiComponents.cs`, queried in `DrawableInitialiseSystem`). One indexed
+type covers every value, so prefer an enum or int key shared by a whole family of
+entities over a new component per entity. `GetEntitiesWithComponentValue` is
+obsolete too; use `ComponentIndex`.
+
+Pick the right tool for "which entities": a **tag** for a fixed kind or state, an
+**indexed component** for a value you look entities up by (a group, a layer, a
+named switch), a **link component** (`ILinkComponent`, `ILinkRelation` for many)
+for a relationship to another entity.
+
+**"I want *that* entity"** — one particular entity, not a kind or a value:
+
+- **Code that made it, or was handed it:** keep the `Entity` handle. It is a small
+  struct; check `IsNull` before use.
+- **A component that points at it** (an owner, a target, the item being dragged or
+  edited): an `ILinkComponent` whose indexed value is the target `Entity`; never a
+  plain `Entity` or `int` id field. Friflo indexes links, so the other direction is
+  free: `entity.GetIncomingLinks<T>()` lists everything pointing at it. Several
+  targets from one entity: `ILinkRelation`.
+- **Its parent or children:** the entity tree (point 9), not a link.
+- **"The" one of its kind** (the editor, the player): query its tag. If several
+  share the tag and differ by a key, that key is an indexed component.
+
 Working examples of the slice this project uses: `Docs/ecs/README.md`.
 
 ## UI

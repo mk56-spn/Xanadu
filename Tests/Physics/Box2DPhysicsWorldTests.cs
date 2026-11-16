@@ -5,6 +5,7 @@ using Box2DSharp.Dynamics;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Physics;
 
@@ -46,9 +47,9 @@ public sealed class Box2DPhysicsWorldTests
         {
             physics.Step(Box2DPhysicsWorld.FixedTimeStep);
             Assert.That(
-                MathF.Abs(body.GetPosition().Y - settled) * Box2DPhysicsWorld.PixelsPerMeter,
+                MathF.Abs(body.GetPosition().Y - settled) * PhysicsScale.PixelsPerMeter,
                 Is.LessThan(0.1f));
-            Assert.That(MathF.Abs(body.LinearVelocity.Y) * Box2DPhysicsWorld.PixelsPerMeter, Is.LessThan(5f));
+            Assert.That(MathF.Abs(body.LinearVelocity.Y) * PhysicsScale.PixelsPerMeter, Is.LessThan(5f));
         }
     }
 
@@ -77,7 +78,7 @@ public sealed class Box2DPhysicsWorldTests
             }
         }
 
-        float height = (start - peak) * Box2DPhysicsWorld.PixelsPerMeter;
+        float height = (start - peak) * PhysicsScale.PixelsPerMeter;
         float seconds = peakStep * Box2DPhysicsWorld.FixedTimeStep;
         TestContext.Out.WriteLine($"peak {height} px in {seconds} s");
 
@@ -91,7 +92,7 @@ public sealed class Box2DPhysicsWorldTests
     {
         using var physics = new Box2DPhysicsWorld();
 
-        Assert.That(Box2DPhysicsWorld.DefaultGravity, Is.EqualTo(22.2f).Within(0.01f));
+        Assert.That(PhysicsScale.DefaultGravity, Is.EqualTo(22.2f).Within(0.01f));
         Assert.That(physics.Gravity, Is.EqualTo(22.2f).Within(0.01f));
     }
 
@@ -104,8 +105,8 @@ public sealed class Box2DPhysicsWorldTests
         Assert.That(body.Mass, Is.EqualTo(1f).Within(0.01f));
 
         var shape = (PolygonShape)body.FixtureList[0].Shape;
-        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * Box2DPhysicsWorld.PixelsPerMeter;
-        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * Box2DPhysicsWorld.PixelsPerMeter;
+        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * PhysicsScale.PixelsPerMeter;
+        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * PhysicsScale.PixelsPerMeter;
 
         Assert.That(width, Is.EqualTo(30f).Within(0.1f));
         Assert.That(height, Is.EqualTo(100f).Within(0.1f));

@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Characters;
+using Xanadu.Drawers.Characters;
 
 namespace Xanadu.Tests.Characters;
 
@@ -12,9 +13,9 @@ public sealed class CharacterBumpTests
     [Test]
     public void TheFlinchJoltsThenDiesAway()
     {
-        Assert.That(CharacterBumpSystem.Envelope(0.03f), Is.GreaterThan(0.6f));
-        Assert.That(CharacterBumpSystem.Envelope(CharacterBumpSystem.Seconds), Is.EqualTo(0f));
-        Assert.That(CharacterBumpSystem.Envelope(-0.1f), Is.EqualTo(0f));
+        Assert.That(CharacterBumpPose.Envelope(0.03f), Is.GreaterThan(0.6f));
+        Assert.That(CharacterBumpPose.Envelope(CharacterBump.Seconds), Is.EqualTo(0f));
+        Assert.That(CharacterBumpPose.Envelope(-0.1f), Is.EqualTo(0f));
     }
 
     [TestCase(false)]
@@ -26,7 +27,7 @@ public sealed class CharacterBumpTests
         // A wall ahead of her pushes back the other way.
         var bump = new CharacterBump { Normal = new Vector2(faceLeft ? 1f : -1f, 0f), Strength = 1f, Age = 0.03f };
 
-        CharacterBumpSystem.ApplyFlinch(package, pose, bump, faceLeft);
+        CharacterBumpPose.ApplyFlinch(package, pose, bump, faceLeft);
 
         // Rig space faces right: a negative turn tips the top backwards.
         Assert.That(pose.Bones[0].Rotation, Is.LessThan(0f));
@@ -38,9 +39,9 @@ public sealed class CharacterBumpTests
         XafPackage package = Rig();
         var pose = new XafPose(1, 0);
         var bump = new CharacterBump
-            { Normal = new Vector2(-1f, 0f), Strength = 1f, Age = CharacterBumpSystem.Seconds };
+            { Normal = new Vector2(-1f, 0f), Strength = 1f, Age = CharacterBump.Seconds };
 
-        CharacterBumpSystem.ApplyFlinch(package, pose, bump, false);
+        CharacterBumpPose.ApplyFlinch(package, pose, bump, false);
 
         Assert.That(pose.Bones[0].Rotation, Is.EqualTo(0f));
     }

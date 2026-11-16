@@ -3,7 +3,6 @@ using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 
 namespace Xanadu.Tests.Editor;

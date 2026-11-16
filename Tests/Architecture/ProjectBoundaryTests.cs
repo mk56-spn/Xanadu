@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Architecture;
 
@@ -52,7 +53,8 @@ public sealed class ProjectBoundaryTests
         {
             Path.Combine(Root, "Game", "Systems", "Editor"),
             Path.Combine(Root, "Game", "Editor"),
-            Path.Combine(Root, "Game", "Levels"),
+            Path.Combine(Root, "Model", "Editor"),
+            Path.Combine(Root, "Model", "Kinds"),
             Path.Combine(Root, "Model", "Levels")
         };
         string[] direct =

@@ -6,6 +6,7 @@ using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Scenes;
 using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Groups;
 

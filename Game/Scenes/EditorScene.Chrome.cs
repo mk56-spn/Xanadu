@@ -4,9 +4,8 @@ using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
 using Xanadu.Editor;
-using Xanadu.Systems.Editor;
+using Xanadu.Model.Editor;
 using Xanadu.Strings;
-using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;

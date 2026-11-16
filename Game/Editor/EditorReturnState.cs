@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Timeline;
 using Xanadu.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 using Xanadu.Model.Levels;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Editor;
 

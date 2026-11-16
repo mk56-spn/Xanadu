@@ -7,13 +7,13 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Ecs;
 using Xanadu.Model.Ecs;
-using Xanadu.Ecs.Components;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Editor;
 using Xanadu.Editor.History;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 using Xanadu.Slang;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

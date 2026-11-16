@@ -10,6 +10,7 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -72,7 +73,7 @@ public sealed partial class EditorGroupSystem
             return false;
 
         state.SelectedKey = -1f;
-        if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
+        if (!EditorShaderKeyEdits.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
             return false;
 
         List<ShaderKey> pins = EditorShaderKeyEdits.Lane(keys, uniform.Name);
@@ -116,7 +117,7 @@ public sealed partial class EditorGroupSystem
             return;
         }
 
-        if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
+        if (!EditorShaderKeyEdits.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
             return;
 
         float time = EditorGroupLayout.TimeForX(lane, state.ViewStart, state.ViewSpan, input.Position.X);
@@ -154,7 +155,7 @@ public sealed partial class EditorGroupSystem
         }
 
         Place(name, EditorGroupLayout.Place(EditorGroupPart.KeyName, 0, dialog), origin, buffer);
-        if (!TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
+        if (!EditorShaderKeyEdits.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys))
         {
             UiText.Set(name, "NO SHADER", buffer);
             UiText.SetColor(name, Palette.TextDim, buffer);
@@ -188,7 +189,7 @@ public sealed partial class EditorGroupSystem
     private void CommitKeyFields(Entity editor, ref EditorGroupState state, GroupDefinition group, Playhead playhead)
     {
         EditorGroupState current = state;
-        bool selected = TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys) &&
+        bool selected = EditorShaderKeyEdits.TrySelectedSetting(editor, state, group, out InstanceUniform uniform, out List<ShaderKey> keys) &&
                         HasSelectedKey(state, keys, uniform, out _);
         float from = state.SelectedKey;
         float? retimed = null;

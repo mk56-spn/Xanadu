@@ -9,7 +9,7 @@ using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 using Xanadu.Editor;
 using Xanadu.Editor.Commands;
 using Xanadu.Editor.History;
@@ -17,6 +17,7 @@ using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

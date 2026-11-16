@@ -9,6 +9,8 @@ using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Editor;
 
@@ -81,7 +83,7 @@ public sealed class EditorAutoAdvanceTests
     {
         Entity snap = ViewportSnap.Attach(_store.CreateEntity(), "snap");
         snap.GetComponent<Toggle>().Value = true;
-        Vector2 cell = Systems.Playfields.PlayfieldGrid.Cell(_editor.GetComponent<Playfield>());
+        Vector2 cell = Xanadu.Model.Playfields.PlayfieldGrid.Cell(_editor.GetComponent<Playfield>());
 
         Click(new Vector2(cell.X * 3 + cell.X * 0.3f, cell.Y * 5 + cell.Y * 0.7f));
 

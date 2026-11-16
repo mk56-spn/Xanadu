@@ -82,18 +82,21 @@ public struct CharacterAttack : IComponent
 
 /// <summary>
 /// A rigged player's last bump into a block's side or underside, for the
-/// flinch it shows (<see cref="Xanadu.Systems.Characters.CharacterBumpSystem"/>).
+/// flinch it shows (CharacterBumpSystem notices it, CharacterBumpPose draws it).
 /// Purely visual: the physics never feels it.
 /// </summary>
 public struct CharacterBump : IComponent
 {
+    /// <summary>How long a flinch lasts, in seconds.</summary>
+    public const float Seconds = 0.45f;
+
     /// <summary>Which way the block pushed, on screen: from the block towards the player.</summary>
     public Vector2 Normal;
 
     /// <summary>How hard the bump was, 0 to 1.</summary>
     public float Strength;
 
-    /// <summary>Seconds since the bump; past <c>CharacterBumpSystem.Seconds</c> it shows nothing.</summary>
+    /// <summary>Seconds since the bump; past <see cref="Seconds"/> it shows nothing.</summary>
     public float Age;
 
     /// <summary>The sides touching last frame (<c>CharacterBumpSystem</c>'s bits), so only a new touch bumps.</summary>

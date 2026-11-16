@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Storage;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Model.Settings;
 

@@ -5,6 +5,7 @@ using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Playfields;
 
@@ -55,7 +56,7 @@ public sealed class PlayerPathRecordSystem
             if (!hit && moved < MinMove && playhead.TimeMs - last.TimeMs < MaxGapMs)
                 return;
 
-            float speed = body.Body.LinearVelocity.Length() * Box2DPhysicsWorld.PixelsPerMeter;
+            float speed = body.Body.LinearVelocity.Length() * PhysicsScale.PixelsPerMeter;
             float elapsed = System.Math.Max(delta, (playhead.TimeMs - last.TimeMs) / 1000f);
             bool jump = moved * view.Scale > speed * elapsed * 2f + JumpSlack;
             samples.Add(new PlayerPathSample(at, playhead.TimeMs, jump, hit));

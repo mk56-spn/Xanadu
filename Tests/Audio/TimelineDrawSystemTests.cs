@@ -5,7 +5,7 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Audio;
+using Xanadu.Drawers.Timeline;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Audio;

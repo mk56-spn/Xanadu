@@ -1,6 +1,6 @@
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Systems.Shaders;
+using Xanadu.Drawers.Passes;
 
 namespace Xanadu.Tests.Support.Fakes;
 

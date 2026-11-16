@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.History;
 using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ecs.Kinds;
+using Xanadu.Model.Kinds;
 using Xanadu.Editor.History;
 
 namespace Xanadu.Editor;

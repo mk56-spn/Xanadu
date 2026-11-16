@@ -12,6 +12,7 @@ using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Tests.Groups;
 

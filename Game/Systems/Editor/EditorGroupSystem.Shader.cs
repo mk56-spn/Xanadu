@@ -9,6 +9,7 @@ using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 
@@ -19,41 +20,6 @@ namespace Xanadu.Systems.Editor;
 /// </summary>
 public sealed partial class EditorGroupSystem
 {
-    /// <summary>
-    /// The setting the shader row edits and the keys of the track it's on (the
-    /// item-shader track, or the buffer's while TRACK BUF is on). False when the
-    /// track has no shader or its shader declares no instance uniforms.
-    /// </summary>
-    public static bool TrySelectedSetting(
-        Entity editor,
-        EditorGroupState state,
-        GroupDefinition group,
-        out InstanceUniform uniform,
-        out List<ShaderKey> keys)
-    {
-        keys = state.BufferTrack ? group.BufferKeys : group.ShaderKeys;
-        List<InstanceUniform> uniforms = ShaderParams(editor, state.BufferTrack ? group.BufferShader : group.Shader);
-        if (uniforms.Count == 0)
-        {
-            uniform = default;
-            return false;
-        }
-
-        uniform = uniforms[Math.Clamp(state.ShaderParam, 0, uniforms.Count - 1)];
-        return true;
-    }
-
-    /// <summary>The instance uniforms the open group's shader declares, in order.</summary>
-    private static List<InstanceUniform> ShaderParams(Entity editor, int slot)
-    {
-        if (slot == 0 || !editor.TryGetComponent(out LevelShaders shaders))
-            return new List<InstanceUniform>();
-
-        return shaders.Get(slot) is { } found
-            ? ShaderSourceUniforms.InstanceUniforms(found.Source)
-            : new List<InstanceUniform>();
-    }
-
     /// <summary>The shader track row: its readouts and which of its buttons apply now.</summary>
     private void ShowShaderTrack(
         Entity editor,
@@ -71,7 +37,7 @@ public sealed partial class EditorGroupSystem
         Tint(Piece(EditorGroupPart.TrackItem), bufferTrack ? ActionIdle : ToggleOn, buffer);
         Tint(Piece(EditorGroupPart.TrackBuffer), bufferTrack ? ToggleOn : group.Buffered ? ActionIdle : Unavailable, buffer);
 
-        List<InstanceUniform> uniforms = ShaderParams(editor, trackSlot);
+        List<InstanceUniform> uniforms = EditorShaderKeyEdits.ShaderParams(editor, trackSlot);
         if (trackSlot == 0 || uniforms.Count == 0)
         {
             UiText.Set(
@@ -149,7 +115,7 @@ public sealed partial class EditorGroupSystem
             if (next != current)
             {
                 // Keys of settings the new shader also declares carry over.
-                List<InstanceUniform> declared = ShaderParams(editor, next);
+                List<InstanceUniform> declared = EditorShaderKeyEdits.ShaderParams(editor, next);
                 Edit(() =>
                 {
                     if (bufferTrack)
@@ -191,7 +157,7 @@ public sealed partial class EditorGroupSystem
 
         int slot = bufferTrack ? group.BufferShader : group.Shader;
         List<ShaderKey> keys = bufferTrack ? group.BufferKeys : group.ShaderKeys;
-        List<InstanceUniform> uniforms = ShaderParams(editor, slot);
+        List<InstanceUniform> uniforms = EditorShaderKeyEdits.ShaderParams(editor, slot);
         if (uniforms.Count == 0)
             return;
 

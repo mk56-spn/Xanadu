@@ -13,7 +13,6 @@ using Xanadu.Systems.Input;
 using Xanadu.Systems.Physics;
 using Xanadu.Model.Profiles;
 using Xanadu.Model.Settings;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 using Xanadu.Systems.Scenes;
 using Xanadu.Systems.Ui;
@@ -64,8 +63,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
     public ToastSystem Toasts { get; }
 
-    private readonly Xanadu.Systems.Shaders.IPassSurfaces? _playPassSurfaces;
-    private readonly Xanadu.Systems.Shaders.IPassSurfaces? _editorPassSurfaces;
+    private readonly Xanadu.Drawers.Passes.IPassSurfaces? _playPassSurfaces;
+    private readonly Xanadu.Drawers.Passes.IPassSurfaces? _editorPassSurfaces;
 
     public OffsetSettings Offsets { get; }
 
@@ -88,7 +87,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         IKeyboardState? keyboard = null,
         HudLayoutSettings? hudLayout = null,
         IWheelSource? wheel = null,
-        Func<Xanadu.Systems.Shaders.IPassSurfaces>? passSurfaces = null) : base(entities, "Xanadu")
+        Func<Xanadu.Drawers.Passes.IPassSurfaces>? passSurfaces = null) : base(entities, "Xanadu")
     {
         IRectCanvas canvas = HostPlatform.NewCanvas();
         // The host's offscreen targets for self-contained layers; none in tests.

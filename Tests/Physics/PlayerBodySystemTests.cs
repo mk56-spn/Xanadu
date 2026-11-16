@@ -8,6 +8,7 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Physics;
 
@@ -66,8 +67,8 @@ public sealed class PlayerBodySystemTests
 
         Body body = player.GetComponent<PhysicsBody>().Body;
         var shape = (PolygonShape)body.FixtureList[0].Shape;
-        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * Box2DPhysicsWorld.PixelsPerMeter;
-        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * Box2DPhysicsWorld.PixelsPerMeter;
+        float width = (shape.Vertices.Max(v => v.X) - shape.Vertices.Min(v => v.X)) * PhysicsScale.PixelsPerMeter;
+        float height = (shape.Vertices.Max(v => v.Y) - shape.Vertices.Min(v => v.Y)) * PhysicsScale.PixelsPerMeter;
 
         Assert.That(width, Is.EqualTo(30f).Within(0.1f));
         Assert.That(height, Is.EqualTo(100f).Within(0.1f));

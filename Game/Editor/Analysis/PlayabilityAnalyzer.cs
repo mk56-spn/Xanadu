@@ -5,6 +5,7 @@ using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Analysis;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Editor.Analysis;
 
@@ -24,7 +25,7 @@ public readonly record struct PlayabilityGeometry(
         view.Scale,
         Player.ScaledSize(view.Scale),
         PlayfieldMetrics.NoteSize * view.Scale,
-        Box2DPhysicsWorld.DefaultGravity * Box2DPhysicsWorld.PixelsPerMeter,
+        PhysicsScale.DefaultGravity * PhysicsScale.PixelsPerMeter,
         windowMs);
 }
 
@@ -151,7 +152,7 @@ public static class PlayabilityAnalyzer
     /// <summary>How far, in pixels, a player falls from rest in this time, stopping at the terminal speed.</summary>
     public static float FallDistance(float gravity, float seconds)
     {
-        float terminal = Box2DPhysicsWorld.MaxSpeed * Box2DPhysicsWorld.PixelsPerMeter;
+        float terminal = Box2DPhysicsWorld.MaxSpeed * PhysicsScale.PixelsPerMeter;
         float accelerating = Math.Min(seconds, terminal / gravity);
         return 0.5f * gravity * accelerating * accelerating + terminal * (seconds - accelerating);
     }

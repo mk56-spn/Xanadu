@@ -7,7 +7,7 @@ using Xanadu.Core.Rendering;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Systems.Playfields;
+using Xanadu.Drawers.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tests.Shaders;

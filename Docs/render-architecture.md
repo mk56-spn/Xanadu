@@ -274,7 +274,7 @@ its results shaped §5 and are in git history.
 
 **Done 2026-11-05.**
 - Layer and z are one component, `ItemLayer(Layer, Z)`
-  (`Game/Ecs/Components/LayerComponents.cs`), not fields on each kind's struct. It
+  (`Model/Ecs/Components/LayerComponents.cs`), not fields on each kind's struct. It
   sits beside `ItemGroups` and `ItemShader` and holds the kind defaults
   (`ItemLayer.Polygons` −3, `Terrain` −2, `Gameplay` −1, `Grass` 1, `Texts` 2).
 - `EditorItems.Create` attaches the kind's default layer at z 0 to every
@@ -319,7 +319,7 @@ its results shaped §5 and are in git history.
   screenshot.
 
 **Done 2026-11-05.**
-- `PlayfieldDrawList` (`Game/Systems/Playfields/PlayfieldDrawList.cs`) gathers every
+- `PlayfieldDrawList` (`Drawers/Playfields/PlayfieldDrawList.cs`) gathers every
   item and effect as `PlayfieldDrawEntry(Layer, Z, Kind, Entity)` and sorts
   back to front by layer, z, **kind**, then entity id (list order). The kind
   order (`PlayfieldDrawKind`: polygons, blocks, spikes, grass, texts, notes,
@@ -348,7 +348,7 @@ its results shaped §5 and are in git history.
     backmost rail note's layer, or the gameplay layer with no rail notes. Each
     rail note draws at its own slot.
 - **Effects:** a new `EffectLayer(Layer, Z)` component
-  (`Game/Ecs/Components/LayerComponents.cs`) is copied from the source item when
+  (`Model/Ecs/Components/LayerComponents.cs`) is copied from the source item when
   the effect spawns (`EffectLayer.From`), since the source is deleted right
   after. Effects sort after every item on the same layer and z, which is
   "just above it". Without a source (`EffectLayer.Loose`) they go in front of
@@ -487,7 +487,7 @@ its results shaped §5 and are in git history.
 
 **Done 2026-11-05.**
 - Editor-only state is one component on the editor entity, `EditorLayers`
-  (`Game/Ecs/Components/EditorLayerComponents.cs`): open, current row, solo,
+  (`Model/Ecs/Components/EditorLayerComponents.cs`): open, current row, solo,
   scroll, and the hidden / locked / kept (empty but added) sets and names.
   `Shows(layer)` (not hidden, and the soloed one if any; the wedge always) and
   `Picks(layer)` (shown and not locked) are what drawing and picking ask.

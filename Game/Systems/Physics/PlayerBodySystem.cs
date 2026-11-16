@@ -2,8 +2,9 @@ using Box2DSharp.Dynamics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Physics;
 
@@ -47,7 +48,7 @@ public sealed class PlayerBodySystem : QuerySystem<Player, Position>
                 PlayerFriction.IsOn(entity) ? CharacterFriction : 0f);
 
             if (playing)
-                body.SetLinearVelocity(new Vector2(0f, session.DropSpeed + Box2DPhysicsWorld.DefaultGravity * late));
+                body.SetLinearVelocity(new Vector2(0f, session.DropSpeed + PhysicsScale.DefaultGravity * late));
 
             buffer.AddComponent(entity.Id, new PhysicsBody(body));
             buffer.AddComponent(entity.Id, new PlayerSmoothing(position.Value));

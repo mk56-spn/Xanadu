@@ -10,6 +10,7 @@ using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Drawers.Passes;
 
 namespace Xanadu.Systems.Shaders;
 

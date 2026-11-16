@@ -4,9 +4,9 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Systems.Physics;
 
@@ -50,7 +50,7 @@ public sealed class FrictionBarSystem(Box2DPhysicsWorld physics)
             ref PlayerFriction friction = ref entity.GetComponent<PlayerFriction>();
             PlayfieldView view = entity.GetComponent<PlayfieldView>();
             Box2DSharp.Dynamics.Body body = entity.GetComponent<PhysicsBody>().Body;
-            float speed = Math.Abs(body.LinearVelocity.X) * Box2DPhysicsWorld.PixelsPerMeter;
+            float speed = Math.Abs(body.LinearVelocity.X) * PhysicsScale.PixelsPerMeter;
             bool moved = Math.Abs(centre.X - friction.LastX) <= speed * delta * 2f + CrossSlack;
 
             if (moved && TryCross(entity, view, friction.LastX, centre, out Entity crossed))

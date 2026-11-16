@@ -8,12 +8,11 @@ using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Strings;
 using Position = Xanadu.Core.Position;
-using Xanadu.Levels;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Characters;
 using Xanadu.Systems.Playfields;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;

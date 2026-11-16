@@ -6,11 +6,13 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Audio;
 using Xanadu.Systems.Characters;
+using Xanadu.Drawers.Characters;
 using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Particles;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
+using Xanadu.Drawers.Playfields;
 using Xanadu.Systems.Replays;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
@@ -47,7 +49,7 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         ReplayKeyboard? replayKeyboard = null,
         IOverlayToggleSource? hitboxToggle = null,
         MapOffsetSettings? mapOffsets = null,
-        Xanadu.Systems.Shaders.IPassSurfaces? passes = null,
+        Xanadu.Drawers.Passes.IPassSurfaces? passes = null,
         Func<Rect2, Rect2>? toPixels = null,
         IOverlayToggleSource? groundToggle = null) : base("Playfield")
     {

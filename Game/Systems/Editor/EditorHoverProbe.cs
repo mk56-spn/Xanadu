@@ -1,5 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Playfields;
 
 namespace Xanadu.Systems.Editor;
 
@@ -35,7 +37,7 @@ public sealed class EditorHoverProbe(EditorSceneQuery scene, EditorItemPicker pi
         PlayfieldView view = editor.GetComponent<PlayfieldView>();
         Vector2 position = view.ScreenToPlayfield(screenPosition);
         if (!EditorViewport.Area(view.ScreenSize).HasPoint(screenPosition) ||
-            !EditorItemPicker.IsInside(position, editor.GetComponent<Playfield>()))
+            !PlayfieldGrid.IsInside(position, editor.GetComponent<Playfield>()))
         {
             return false;
         }

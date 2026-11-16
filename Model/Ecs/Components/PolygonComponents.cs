@@ -94,6 +94,9 @@ public struct LevelPolygon(Vector2 position, Xif item, float rotationDegrees = 0
 /// </summary>
 public struct EditorPolygonDraft() : IComponent
 {
+    /// <summary>A click this close to the first point, in screen pixels, closes the outline.</summary>
+    public const float CloseRadius = 12f;
+
     public List<Vector2> Points = new();
 
     /// <summary>Set by Enter and Esc; the input system acts on them next frame.</summary>

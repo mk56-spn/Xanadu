@@ -3,6 +3,7 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Systems.Editor;
 

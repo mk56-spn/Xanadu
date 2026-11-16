@@ -6,6 +6,7 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Physics;
 
 namespace Xanadu.Tests.Playfields;
 
@@ -108,7 +109,7 @@ public sealed class PlayerArenaFrictionTests
 
         Run(frames, delta);
 
-        float expected = 5f - PlayerArenaSystem.GroundFriction * Box2DPhysicsWorld.DefaultGravity * 0.5f;
+        float expected = 5f - PlayerArenaSystem.GroundFriction * PhysicsScale.DefaultGravity * 0.5f;
         Assert.That(body.LinearVelocity.X, Is.EqualTo(expected).Within(0.01f));
     }
 
@@ -155,7 +156,7 @@ public sealed class PlayerArenaFrictionTests
         for (int i = 0; i < 120; i++)
             _physics.Step(Box2DPhysicsWorld.FixedTimeStep);
 
-        float floor = 5f - PlayerArenaSystem.GroundFriction * Box2DPhysicsWorld.DefaultGravity * 0.5f;
+        float floor = 5f - PlayerArenaSystem.GroundFriction * PhysicsScale.DefaultGravity * 0.5f;
         Assert.That(onBlock.LinearVelocity.X, Is.EqualTo(floor).Within(0.25f));
     }
 }
