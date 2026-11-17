@@ -21,8 +21,7 @@ public static class HitEffects
         Color color, float radius, int chartIndex = -1)
     {
         entities.CreateEntity(
-            new NotePop(note, position, color, radius, PlayfieldMetrics.NotePopLifetime, chartIndex),
-            EffectLayer.From(source));
+            new NotePop(note, position, color, radius, PlayfieldMetrics.NotePopLifetime, chartIndex));
         // The sparks come off the player's body, thrown on the way the hit
         // travels, from the note through the player; the pop stays on the note.
         Vector2 origin = playfield.TryGetComponent(out Position body) ? body.Value : position;

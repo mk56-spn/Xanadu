@@ -13,7 +13,7 @@ namespace Xanadu.Systems.Playfields;
 public sealed class PlayNoteMisses(PlayNoteContext context)
 {
     private readonly ArchetypeQuery<Note> _open =
-        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed, NoteSteering>());
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed, NoteSteering, NoteHolding>());
     private readonly List<int> _late = [];
 
     public void Mark(Entity playfield)
@@ -39,9 +39,13 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Miss;
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
-            score.JudgementPosition = view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position));
+            score.JudgementPosition = view.PlayfieldToScreen(note.Position);
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
+
+            // A missed hold head takes its tail with it.
+            if (note.IsHold)
+                PlayScoring.Count(ref score, Judgement.Miss);
         }
     }
 
@@ -52,8 +56,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
 
         public void Execute(ref Note note, int id)
         {
-            // Contact barriers are chart checks, not scored notes.
-            if (NoteRules.IsScored(note.Kind) && note.TimeMs + MissWindow < JudgedTime)
+            if (note.TimeMs + MissWindow < JudgedTime)
                 Late.Add(id);
         }
     }

@@ -330,8 +330,7 @@ internal sealed class VisualTestMain : HostApp
             _paneSize,
             new KeybindSettings(persist: false),
             transitions: false,
-            keyboard: _keyboard,
-            passSurfaces: () => new HostPassSurfaces(Canvas, Renderer));
+            keyboard: _keyboard);
         _ui = new UiRoot(_entities, _testHost, _pointer, _paneSize, _keyboard);
         _ui.Run(_systems);
 

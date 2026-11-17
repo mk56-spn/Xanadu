@@ -141,7 +141,7 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
                     _commands.Enqueue(EditorCommand.SetSnap(division));
 
                 bool current = playhead.SnapDivision == division;
-                Tint(button, playhead.SnapOff ? SceneColors.Muted : current ? Palette.Primary : Palette.PrimaryMuted, buffer);
+                Tint(button, playhead.SnapOff ? Palette.Muted : current ? Palette.Primary : Palette.PrimaryMuted, buffer);
             }
         });
     }
@@ -159,7 +159,7 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
         Vector2 size = Size(menu);
         Vector2 button = UiTransform.WorldPosition(trigger, trigger.GetComponent<Position>().Value);
         float left = button.X - Size(trigger).X / 2f;
-        float top = EditorGroupLayout.BarArea(view.ScreenSize).End.Y + MenuGap;
+        float top = button.Y + Size(trigger).Y / 2f + MenuGap;
         Vector2 centre = new(left + size.X / 2f, top + size.Y / 2f);
         ref Position position = ref menu.GetComponent<Position>();
         if (position.Value == centre)

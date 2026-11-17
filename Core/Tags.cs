@@ -54,6 +54,9 @@ public struct NoteMissed : ITag { }
 /// <summary>Marks a play curve note whose head was hit: it stays, judged, while its path steers the body.</summary>
 public struct NoteSteering : ITag { }
 
+/// <summary>Marks a play hold note whose head was hit: it stays, held, until its tail is judged.</summary>
+public struct NoteHolding : ITag { }
+
 /// <summary>Marks a playfield entity whose audio is paused by the pause screen.</summary>
 public struct PlayPaused : ITag { }
 

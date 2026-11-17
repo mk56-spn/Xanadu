@@ -16,10 +16,4 @@ public readonly record struct EditorFrame(
     TimelineView Timeline,
     WaveformPreview Preview,
     UiMarqueeBox Box,
-    LevelGroups Groups,
-    EditorGroupState GroupState,
-    Color? Background,
-    Color? Outside,
-    Color? Frame,
-    PlayerPath? Path,
     float Seconds);

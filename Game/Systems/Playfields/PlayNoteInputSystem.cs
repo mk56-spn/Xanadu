@@ -13,9 +13,9 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Systems.Playfields;
 
 /// <summary>
-/// Routes a key press to what it should judge: a mine the player touched, or,
-/// for an action key, an action note in reach and in the window. Direction keys
-/// are left to <see cref="PlayerMovementSystem"/>.
+/// Routes an action key press to the note it should judge: one in reach and in
+/// the window. A direction key takes a hit route's turn first (<see cref="PlayRouteTurns"/>),
+/// else a route note's head or a dash. Held hold notes are judged at their tails (<see cref="PlayHolds"/>).
 /// The judging itself lives in <see cref="PlayNoteJudge"/>, with the hit
 /// effects in <see cref="PlayNoteHits"/> and the run changes in
 /// <see cref="PlayNoteActions"/>; missed notes are left to
@@ -29,6 +29,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     private readonly KeyPress _presses = new();
     private readonly PlayNoteJudge _judge;
     private readonly PlayNoteMisses _misses;
+    private readonly PlayRouteTurns _turns;
+    private readonly PlayHolds _holds;
 
     public PlayNoteInputSystem(
         EntityStore entities,
@@ -46,6 +48,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             offsets ?? new OffsetSettings(persist: false));
         _judge = new PlayNoteJudge(context, new PlayNoteHits(context, new PlayNoteActions()));
         _misses = new PlayNoteMisses(context);
+        _turns = new PlayRouteTurns(context);
+        _holds = new PlayHolds(context, keyboard);
     }
 
     protected override void OnUpdate()
@@ -70,13 +74,13 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             // Level shaders read each key's last press (keys. in xanadu.anim).
             ShaderKeys.Press((int)action);
 
-            // Direction keys steer: their notes are resolved by the movement system.
-            if (_judge.Mine(action, playfield) || KeybindSettings.IsDirection(action))
+            if (KeybindSettings.IsDirection(action) && _turns.Press(action, playfield))
                 continue;
 
             _judge.Note(action, playfield);
         }
 
+        _holds.Update(playfield);
         _misses.Mark(playfield);
     }
 

@@ -9,6 +9,7 @@ using Xanadu.Systems.Editor;
 using Xanadu.Strings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Editor;
 
 namespace Xanadu.Scenes;
 
@@ -76,19 +77,6 @@ public static class EditorSceneSidebar
         }
     }
 
-    /// <summary>
-    /// The shared XIF editor for the selected polygon, on a layer of its own just
-    /// right of the tool strip, below the header. It hides while no polygon is selected.
-    /// </summary>
-    internal static void BuildXifPanel(EntityStore entities, Entity root, EditorShellRects shell)
-    {
-        UiNode layer = UiNode.Layer(entities, root, UiLayers.EditorXif, null, UiStage.Full);
-        var home = new Vector2(
-            shell.ToolStrip.End.X + EditorShellMetrics.ToolGap * 2 + XifEditorPanel.Width / 2,
-            shell.ToolStrip.Position.Y + EditorShellMetrics.ToolGap * 2 + XifEditorPanel.Height / 2);
-        XifEditorPanel.Build(layer, home, new EditorXifHost(entities));
-    }
-
     private static string ToolTooltip(EditorTool tool)
     {
         string key = EditorPlacementKeybinds.LabelFor(tool.Mode);
@@ -129,8 +117,8 @@ public static class EditorSceneSidebar
 
     /// <summary>
     /// The shell's right panel, docked to the right edge for the full height of
-    /// the middle row. Its controls flow top to bottom, so an open dropdown
-    /// pushes the groups down by itself.
+    /// the middle row. Empty for now: what a selected note can change comes
+    /// back here as it is rebuilt.
     /// </summary>
     internal static void BuildSidebar(UiNode ui, Entity editor, EditorShellRects shell)
     {
@@ -143,227 +131,10 @@ public static class EditorSceneSidebar
             .Input()
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(1, 0));
-
-        // Each part folds away under its header, so a long column stays short.
-        panel.Collapsible("SELECTION", inner, out UiNode selection);
-        UiNode modulate = selection.ColorField(
-            "COLOUR",
-            inner,
-            "Self modulate of the selection: its colour is multiplied by this, and on a block this is the interior. Type #rrggbb or #rrggbbaa; leave blank for white. A group's colour fade overrides it.");
-        editor.AddComponent(new EditorSelfModulateField(modulate.Entity));
-        BuildBlockOutline(selection, editor, inner);
-        BuildTextPanel(selection, editor, inner);
-        BuildStartPanel(selection, inner);
-        EditorSceneLayers.BuildInspector(selection, editor, inner);
-        EditorSceneAlign.Build(selection, editor, inner);
-
-        UiNode groups = panel.Collapsible("GROUPS", inner, out UiNode groupBody);
-        EditorSceneGroups.BuildGroupGrid(groupBody, editor, inner, UiCollapsibleControl.HeaderOf(groups.Entity));
+        panel.Collapsible("SELECTION", inner, out _);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
     }
-
-    /// <summary>The selected blocks' outline: its width, where 0 is none, and its own colour.</summary>
-    private static void BuildBlockOutline(UiNode panel, Entity editor, float inner)
-    {
-        const float height = 28;
-        UiNode section = panel.Column()
-            .Width(inner)
-            .AutoHeight()
-            .Gap(UiTheme.ContainerSpacing)
-            .Main(StackMainAlignment.Start)
-            .Hidden();
-
-        // Each setting is ruled off from the one before; the rules live in the
-        // section so they hide with it.
-        EditorSceneUi.Separator(section, inner);
-        UiNode color = section.ColorField(
-            "OUTLINE",
-            inner,
-            "The colour of the selected blocks' and spikes' outline. A group's colour fade overrides it.");
-
-        EditorSceneUi.Separator(section, inner);
-
-        // THICKNESS, then − value +, the value bright between its buttons.
-        const float valueWidth = 44;
-        UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
-        row.Text("THICKNESS", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner - height * 2 - valueWidth - UiTheme.ContainerSpacing * 3, height);
-        row.Button("-", 13, SceneUi.MutedButtonColor)
-            .Size(height, height)
-            .With(EditorButton.Of(EditorButtonKind.OutlineStep, -1))
-            .Tooltip("Thinner outline; at 0 there is none");
-        Entity width = row.Text("0", 14, SceneUi.TextColor, TextAlign.Center)
-            .Size(valueWidth, height)
-            .Entity;
-        row.Button("+", 13, SceneUi.MutedButtonColor)
-            .Size(height, height)
-            .With(EditorButton.Of(EditorButtonKind.OutlineStep, 1))
-            .Tooltip("Thicker outline");
-
-        editor.AddComponent(new EditorBlockOutlinePanel(section.Entity, width, color.Entity));
-    }
-
-    /// <summary>
-    /// The selected start point's time and starting momentum; hidden until one
-    /// start point is selected. <see cref="EditorMetadataSystem"/> shows it and
-    /// keeps the fields in step with the start point.
-    /// </summary>
-    private static void BuildStartPanel(UiNode panel, float inner)
-    {
-        UiNode section = panel.Column()
-            .Width(inner)
-            .AutoHeight()
-            .Gap(UiTheme.ContainerSpacing)
-            .Main(StackMainAlignment.Start)
-            .Hidden();
-
-        EditorSceneUi.Separator(section, inner);
-        StartField(section, inner, LocalizedText.Get(EditorStrings.StartTime), EditorFieldKind.StartTime);
-        StartField(section, inner, LocalizedText.Get(EditorStrings.StartMomentumX), EditorFieldKind.StartMomentumX);
-        StartField(section, inner, LocalizedText.Get(EditorStrings.StartMomentumY), EditorFieldKind.StartMomentumY);
-        section.Entity.AddComponent(new EditorPanel(EditorPanelKind.Start, Vector2.Zero));
-    }
-
-    private static void StartField(UiNode section, float inner, string label, EditorFieldKind kind)
-    {
-        section.Text(label, UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner, 18);
-        section.Rect(Palette.SurfaceInset, "", new Vector2(inner, 28))
-            .Input()
-            .With(new TextStyle(13, UiTheme.Text))
-            .Align(TextAlign.Left)
-            .With(new TextField("", true))
-            .With(new EditorField(kind));
-    }
-
-    /// <summary>The selected texts' words and size; hidden until a text is selected.</summary>
-    private static void BuildTextPanel(UiNode panel, Entity editor, float inner)
-    {
-        const float height = 28;
-        UiNode section = panel.Column()
-            .Width(inner)
-            .AutoHeight()
-            .Gap(UiTheme.ContainerSpacing)
-            .Main(StackMainAlignment.Start)
-            .Hidden();
-
-        EditorSceneUi.Separator(section, inner);
-        section.Text("TEXT", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner, 18);
-        Entity field = section.Rect(Palette.SurfaceInset, LevelText.Placeholder, new Vector2(inner, height))
-            .Input()
-            .With(new TextStyle(13, UiTheme.Text))
-            .Align(TextAlign.Left)
-            .With(new TextField(LevelText.Placeholder))
-            .Tooltip("The selected text's words; click anywhere else to finish")
-            .Entity;
-
-        EditorSceneUi.Separator(section, inner);
-        UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
-        Entity size = row.Text("SIZE", UiTheme.SmallFontSize, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
-        row.Button("-", 13, SceneUi.MutedButtonColor)
-            .Size(height, height)
-            .With(EditorButton.Of(EditorButtonKind.TextSize, -1))
-            .Tooltip("Smaller text");
-        row.Button("+", 13, SceneUi.MutedButtonColor)
-            .Size(height, height)
-            .With(EditorButton.Of(EditorButtonKind.TextSize, 1))
-            .Tooltip("Bigger text");
-
-        editor.AddComponent(new EditorTextPanel(section.Entity, field, size));
-    }
-
-    /// <summary>
-    /// The grass tool's section of the left panel: the selected grass's
-    /// settings, or the brush's when none is selected. One stepper row per
-    /// setting, then the colour.
-    /// </summary>
-    private static void BuildGrassPanel(UiNode panel, Entity editor, float inner)
-    {
-        const float height = 28;
-        UiNode section = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Grass);
-        EditorSceneUi.SidebarLabel(section, "GRASS", inner, 12);
-
-        GrassSetting[] settings = System.Enum.GetValues<GrassSetting>();
-        var readouts = new Entity[settings.Length];
-        foreach (GrassSetting setting in settings)
-        {
-            (string less, string more) = GrassTooltips(setting);
-            UiNode row = section.Row().Size(inner, height).Gap(UiTheme.ContainerSpacing).Main(StackMainAlignment.Start);
-            readouts[(int)setting] = row.Text(
-                    EditorGrassPanelSystem.Label(setting, new GrassPatch()),
-                    UiTheme.SmallFontSize,
-                    SceneUi.DimTextColor,
-                    TextAlign.Left)
-                .Size(inner - (height + UiTheme.ContainerSpacing) * 2, height);
-            row.Button("-", 13, SceneUi.MutedButtonColor)
-                .Size(height, height)
-                .With(EditorButton.Of(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, -1)))
-                .Tooltip(less);
-            row.Button("+", 13, SceneUi.MutedButtonColor)
-                .Size(height, height)
-                .With(EditorButton.Of(EditorButtonKind.GrassStep, EditorGrassPanelSystem.StepArg(setting, 1)))
-                .Tooltip(more);
-        }
-
-        UiNode color = section.ColorField(
-            "BLADES",
-            inner,
-            "The grass's colour; each blade strays from it by the variation. Self modulate multiplies it, and a group's colour fade overrides it.");
-        editor.AddComponent(new EditorGrassPanel(section.Entity, readouts, color.Entity));
-    }
-
-    /// <summary>
-    /// The block tool's sizes, side by side: the quarter block, a cell, and the
-    /// platform. Each button draws the block it places, to scale with the others.
-    /// </summary>
-    private static void BuildBlockSize(UiNode panel, float inner)
-    {
-        UiNode section = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.BlockSize);
-        EditorSceneUi.SidebarLabel(section, "BLOCK SIZE", inner, 12);
-
-        const float sizeGap = 6;
-        const float buttonHeight = 32;
-        float sizeWidth = (inner - sizeGap * 2) / 3;
-        UiNode sizes = section.Row().Size(inner, buttonHeight).Gap(sizeGap);
-        foreach (BlockBrushSize size in new[] { BlockBrushSize.Quarter, BlockBrushSize.Cell, BlockBrushSize.Platform })
-        {
-            UiNode button = sizes.Row()
-                .Size(sizeWidth, buttonHeight)
-                .Fill(SceneUi.MutedButtonColor)
-                .Input()
-                .Main(StackMainAlignment.Center)
-                .Cross(StackCrossAlignment.Center)
-                .With(ButtonVisual.Create(SceneUi.MutedButtonColor))
-                .With(EditorButton.Of(EditorButtonKind.BlockSize, (int)size))
-                .Tooltip(size switch
-                {
-                    BlockBrushSize.Quarter => "A quarter block: half a cell wide and half a cell high",
-                    BlockBrushSize.Platform => "A platform: two cells wide and one high",
-                    _ => "A block one cell square; the default",
-                });
-            button.Rect(PlayfieldColors.BlockFill, size: BlockPreviewSize(size));
-        }
-    }
-
-    /// <summary>A block's preview in the size buttons: a cell is 14 px, the rest to scale.</summary>
-    private static Vector2 BlockPreviewSize(BlockBrushSize size) => size switch
-    {
-        BlockBrushSize.Quarter => new Vector2(7, 7),
-        BlockBrushSize.Platform => new Vector2(28, 14),
-        _ => new Vector2(14, 14),
-    };
-
-    private static (string Less, string More) GrassTooltips(GrassSetting setting) => setting switch
-    {
-        GrassSetting.Width => ("Narrower patch", "Wider patch"),
-        GrassSetting.Length => ("Shorter blades", "Longer blades"),
-        GrassSetting.Density => ("Fewer blades", "More blades"),
-        GrassSetting.Sway => ("Less sway; at 0 the blades stand still", "More sway"),
-        _ => ("Blades closer to the grass colour", "Blades stray further from the grass colour"),
-    };
 
     /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>
     internal static void BuildLeftPanel(UiNode ui, Entity editor)
@@ -379,65 +150,39 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             .Anchor(Vector2.Zero);
 
-        BuildBlockSize(panel, inner);
-
-        UiNode strengthSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.MoveStrength);
-        EditorSceneUi.SidebarLabel(strengthSection, "MOVE STRENGTH", inner, 12);
-        const float strengthGap = 6;
-        float strengthWidth = (inner - strengthGap * 2) / 3;
-        UiNode strengths = strengthSection.Row().Size(inner, 28).Gap(strengthGap);
+        UiNode speedSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.MoveStrength);
+        EditorSceneUi.SidebarLabel(speedSection, "SPEED", inner, 12);
+        const float speedGap = 6;
+        float speedWidth = (inner - speedGap * 2) / 3;
+        UiNode speeds = speedSection.Row().Size(inner, 28).Gap(speedGap);
         for (int i = 0; i < 3; i++)
         {
             var strength = (DashStrength)i;
-            strengths.Button(
+            speeds.Button(
                     i == 0 ? "1×" : i == 1 ? "2×" : "3×",
                     12,
                     SceneUi.MutedButtonColor)
-                .Size(strengthWidth, 28)
+                .Size(speedWidth, 28)
                 .With(EditorButton.Strength(strength))
-                .Tooltip(strength switch
-                {
-                    DashStrength.Double => "Dashes carry twice as far; momentum notes push twice as hard",
-                    DashStrength.Triple => "Dashes carry three times as far; momentum notes push three times as hard",
-                    _ => "One dash length; one momentum push",
-                });
+                .Tooltip($"The next route runs at {NoteRoute.SpeedOf(strength):0} units a second");
         }
 
-        UiNode diagonalSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.Diagonal);
-        EditorSceneUi.SidebarLabel(diagonalSection, "DIAGONAL", inner, 12);
-        UiNode diagonalRow = diagonalSection.Row().Size(inner, 28).Gap(6);
-        diagonalRow.Text("RHOMBUS: OFF", 12, SceneUi.DimTextColor, TextAlign.Left)
-            .Size(inner - 86, 28)
-            .With(new EditorReadout(EditorReadoutKind.Diagonal));
-        diagonalRow.Button("TOGGLE", 12, SceneUi.MutedButtonColor)
-            .Size(80, 28)
-            .With(EditorButton.Of(EditorButtonKind.Diagonal))
-            .Tooltip("A rhombus note turns the pressed way 45° clockwise: up becomes up-right");
-
-        BuildGrassPanel(panel, editor, inner);
-        EditorSceneFlarePanel.Build(panel, editor, inner);
-
-        // One stepper row per bar, in its action key's colour: at most 4 a bar,
-        // and at most two bars a barrier.
-        UiNode costSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.ContactCost);
-        EditorSceneUi.SidebarLabel(costSection, "CONTACT COST", inner, 12);
-        EditorReadoutKind[] readouts = { EditorReadoutKind.ContactFirst, EditorReadoutKind.ContactSecond, EditorReadoutKind.ContactThird };
-        const float stepWidth = 36;
-        for (int bar = 0; bar < ContactCounters.Bars; bar++)
-        {
-            UiNode row = costSection.Row().Size(inner, 28).Gap(6);
-            row.Text($"BAR {bar + 1}: 0", 12, PlayfieldColors.BarColor(bar), TextAlign.Left)
-                .Size(inner - stepWidth * 2 - 12, 28)
-                .With(new EditorReadout(readouts[bar]));
-            row.Button("−", 12, SceneUi.MutedButtonColor)
-                .Size(stepWidth, 28)
-                .With(EditorButton.ContactCost(bar, -1))
-                .Tooltip("Ask one less of this bar");
-            row.Button("+", 12, SceneUi.MutedButtonColor)
-                .Size(stepWidth, 28)
-                .With(EditorButton.ContactCost(bar, 1))
-                .Tooltip("Ask one more of this bar (at most 4, and two bars a barrier)");
-        }
+        // Label, then - and +: the length steps by the snap, so it is discrete.
+        UiNode holdSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.HoldLength);
+        EditorSceneUi.SidebarLabel(holdSection, "HOLD LENGTH", inner, 12);
+        const float stepWidth = 32;
+        UiNode holdRow = holdSection.Row().Size(inner, 28).Gap(speedGap);
+        holdRow.Text("1 BEAT", 12, UiTheme.Text, TextAlign.Left)
+            .Size(inner - (stepWidth + speedGap) * 2, 28)
+            .With(new EditorHoldLengthReadout());
+        holdRow.Button("-", 12, SceneUi.MutedButtonColor)
+            .Size(stepWidth, 28)
+            .With(EditorButton.Of(EditorButtonKind.HoldLength, -1))
+            .Tooltip("Shorter by one snap step (the selected holds, else new ones)");
+        holdRow.Button("+", 12, SceneUi.MutedButtonColor)
+            .Size(stepWidth, 28)
+            .With(EditorButton.Of(EditorButtonKind.HoldLength, 1))
+            .Tooltip("Longer by one snap step (the selected holds, else new ones)");
 
         editor.AddComponent(new EditorLeftMenu(panel.Entity));
     }

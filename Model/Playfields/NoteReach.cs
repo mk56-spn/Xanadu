@@ -6,10 +6,7 @@ namespace Xanadu.Model.Playfields;
 
 /// <summary>
 /// How close the player has to be to a note for a press to count as being on
-/// it. Notes are checked against a sphere around the player rather than the
-/// character's damage box, which is far too thin to stand on a note reliably.
-/// Damage is unaffected: mines still use the box. Contact reaches a note as
-/// soon as the sphere touches its edge; everyone else has to reach its center.
+/// it: a sphere around the player reaches a note as soon as it touches its edge.
 /// </summary>
 public static class NoteReach
 {
@@ -26,12 +23,9 @@ public static class NoteReach
     public static bool Contains(
         Vector2 playerScreen,
         PlayfieldView view,
-        Vector2 noteScreen,
-        CharacterKind? character = null)
+        Vector2 noteScreen)
     {
-        float radius = OnScreen(view.Scale);
-        if (character == CharacterKind.Contact)
-            radius += PlayfieldMetrics.NoteSize * view.Scale / 2f;
+        float radius = OnScreen(view.Scale) + PlayfieldMetrics.NoteSize * view.Scale / 2f;
 
         return playerScreen.DistanceSquaredTo(noteScreen) <= radius * radius;
     }

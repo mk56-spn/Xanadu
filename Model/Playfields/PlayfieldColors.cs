@@ -8,8 +8,8 @@ namespace Xanadu.Model.Playfields;
 /// <summary>The playfield's colours: what a note, a bar or a piece of terrain is coloured, for whoever draws it or matches it.</summary>
 public static class PlayfieldColors
 {
-    public static readonly Color PlayBackground = Palette.Stage;
-    public static readonly Color PlayfieldBackground = Palette.Stage;
+    public static readonly Color PlayBackground = Palette.DeepBlue;
+    public static readonly Color PlayfieldBackground = Palette.DeepBlue;
     public static readonly Color BorderColor = Palette.BorderStrong;
     public static readonly Color GridColor = CanvasGrid.LineColor;
     public static readonly Color AxisColor = CanvasGrid.AxisColor;
@@ -17,32 +17,12 @@ public static class PlayfieldColors
     public static readonly Color DimTextColor = Palette.TextDim;
     public static readonly Color SelectedNoteColor = new(1f, 0.9f, 0.3f);
     public static readonly Color PlayerColor = Palette.Text;
-    public static readonly Color QueueColor = Palette.Info;
-    public static readonly Color ContactBarrierColor = Palette.TextBright;
     public static readonly Color NeutralColor = Palette.TextBright;
-    public static readonly Color DashColor = Palette.Cyan;
-    public static readonly Color MomentumColor = Palette.Violet;
     public static readonly Color GuideColor = Palette.Text;
-    public static readonly Color StartPointColor = Palette.SuccessBright;
     public static readonly Color FrameColor = Palette.SurfaceAlt;
-    public static readonly Color BlockFill = Colors.White;
 
     /// <summary>The dark rim of the editor's handles, which are not part of any block.</summary>
     public static readonly Color HandleEdge = Palette.BorderStrong;
-
-    public static readonly Color BlockSelectedEdge = Palette.Accent;
-
-    /// <summary>Spikes have no colour of their own: white shows exactly what their self modulate says.</summary>
-    public static readonly Color SpikeColor = Colors.White;
-
-    /// <summary>Text has no colour of its own: white shows exactly what its self modulate says.</summary>
-    public static readonly Color TextColor = Colors.White;
-
-    /// <summary>A new polygon's fill.</summary>
-    public static readonly Color PolygonFill = new("#7aa2f7");
-
-    /// <summary>A friction bar is orange, for now: a placeholder look until it has its own art.</summary>
-    public static readonly Color FrictionBarColor = Palette.Warning;
 
     /// <summary>The colour of curve notes: white, so their self modulate shows as picked.</summary>
     public static readonly Color CurveColor = Colors.White;
@@ -51,9 +31,9 @@ public static class PlayfieldColors
     public static readonly Color FloorColor = Palette.SurfaceAlt;
     public static readonly Color FloorEdgeColor = Palette.BorderStrong;
 
-    /// <summary>The curve rework's hovering square: blue, with a brighter edge.</summary>
-    public static readonly Color SquareFill = Palette.PrimarySoft;
-    public static readonly Color SquareEdge = Palette.Primary;
+    /// <summary>The rework's hovering body: blue, with a brighter edge.</summary>
+    public static readonly Color BodyFill = Palette.PrimarySoft;
+    public static readonly Color BodyEdge = Palette.Primary;
 
     /// <summary>The colour of wall notes.</summary>
     public static readonly Color WallNoteColor = new(0.55f, 0.95f, 0.85f);
@@ -66,24 +46,15 @@ public static class PlayfieldColors
         Palette.Lime,
     };
 
-    public static Color ColorFor(Note note) =>
-        note.Kind switch
-        {
-            NoteKind.Contact => ContactBarrierColor,
-            NoteKind.Wall => WallNoteColor,
-            NoteKind.Neutral => NeutralColor,
-            NoteKind.Dash => DashColor,
-            NoteKind.Momentum => MomentumColor,
-            _ => ColorFor(note.Target),
-        };
+    /// <summary>A note's colour: its key's, or the neutral colour for a dash, which any direction key hits.</summary>
+    public static Color ColorFor(Note note) => note.IsDash ? NeutralColor : ColorFor(note.Target);
 
-    /// <summary>The colour of an action key's notes and Contact bar; direction keys get the neutral colour.</summary>
-    public static Color ColorFor(KeybindAction action)
+    /// <summary>The colour of an action key's notes; direction keys get the neutral colour.</summary>
+    public static Color ColorFor(KeybindAction action) => action switch
     {
-        int bar = ContactCounters.BarOf(action);
-        return bar >= 0 ? ActionColors[bar] : NeutralColor;
-    }
-
-    /// <summary>The colour of Contact bar 0, 1 or 2: its action key's.</summary>
-    public static Color BarColor(int bar) => ActionColors[bar];
+        KeybindAction.Action1 => ActionColors[0],
+        KeybindAction.Action2 => ActionColors[1],
+        KeybindAction.Action3 => ActionColors[2],
+        _ => NeutralColor,
+    };
 }

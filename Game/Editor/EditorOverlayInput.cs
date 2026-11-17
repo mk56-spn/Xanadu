@@ -15,9 +15,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         IsBindingsHelpVisible(),
         IsWarningOpen(),
         !FindFocusedTextField().IsNull,
-        IsGroupTargetEditing(),
-        IsGroupOverlayOpen(),
-        IsDraftingPolygon());
+        IsDraftingCurve());
 
     public void Run(EditorShortcuts.Binding binding)
     {
@@ -28,9 +26,6 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
                 break;
             case EditorShortcut.PreviewHere:
                 StartPreview(true);
-                break;
-            case EditorShortcut.ToggleShaders:
-                ToggleShaderDialog();
                 break;
             case EditorShortcut.CloseDialog:
                 // The song picker can't be closed while the level has no song: Escape leaves instead.
@@ -60,18 +55,6 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.Paste:
                 _commands.Enqueue(EditorCommand.PasteSelection());
                 break;
-            case EditorShortcut.CloseTarget:
-                CloseGroupTarget();
-                break;
-            case EditorShortcut.ReopenTargetedGroup:
-                ReopenTargetedGroup();
-                break;
-            case EditorShortcut.CloseGroupLayer:
-                if (IsGroupPaletteOpen())
-                    CloseGroupPalette();
-                else
-                    CloseGroupOverlay();
-                break;
             case EditorShortcut.Timeline:
                 if (!_editor.IsNull && _editor.TryGetComponent(out TimelineHost timeline))
                     TimelineShortcuts.Run(timeline.Host, binding.Timeline);
@@ -79,11 +62,11 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.Place:
                 SetPlacementMode(binding.Placement);
                 break;
-            case EditorShortcut.FinishPolygon:
-                _editor.GetComponent<EditorPolygonDraft>().FinishRequested = true;
+            case EditorShortcut.FinishCurve:
+                _editor.GetComponent<EditorRouteDraft>().FinishRequested = true;
                 break;
-            case EditorShortcut.CancelPolygon:
-                _editor.GetComponent<EditorPolygonDraft>().CancelRequested = true;
+            case EditorShortcut.CancelCurve:
+                _editor.GetComponent<EditorRouteDraft>().CancelRequested = true;
                 break;
             case EditorShortcut.Back:
                 _onBack?.Invoke();
@@ -94,38 +77,17 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.Delete:
                 DeleteSelectedNote();
                 break;
-            case EditorShortcut.RotateSelection:
-                _commands.Enqueue(EditorCommand.RotateSelection());
-                break;
-            case EditorShortcut.FlipHorizontal:
-                _commands.Enqueue(EditorCommand.FlipSelection(true));
-                break;
-            case EditorShortcut.FlipVertical:
-                _commands.Enqueue(EditorCommand.FlipSelection(false));
-                break;
-            case EditorShortcut.CycleOneWay:
-                _commands.Enqueue(EditorCommand.CycleOneWay());
-                break;
-            case EditorShortcut.CycleSlope:
-                _commands.Enqueue(EditorCommand.CycleSlope());
-                break;
             case EditorShortcut.MoveLeft:
                 _commands.Enqueue(EditorCommand.MoveSelection(-1));
                 break;
             case EditorShortcut.MoveRight:
                 _commands.Enqueue(EditorCommand.MoveSelection(1));
                 break;
-            case EditorShortcut.MoveForward:
-                _commands.Enqueue(EditorCommand.MoveInLayer(1));
-                break;
-            case EditorShortcut.MoveBack:
-                _commands.Enqueue(EditorCommand.MoveInLayer(-1));
-                break;
         }
     }
 
-    private bool IsDraftingPolygon() =>
-        !_editor.IsNull && _editor.TryGetComponent(out EditorPolygonDraft draft) && draft.Active;
+    private bool IsDraftingCurve() =>
+        !_editor.IsNull && _editor.TryGetComponent(out EditorRouteDraft draft) && draft.Active;
 
     private void DeleteSelectedNote()
     {
@@ -141,25 +103,11 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             return;
 
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
-        SetStatus(
-            mode switch
-            {
-                EditorPlacementMode.Notes => "Place action note",
-                EditorPlacementMode.Neutral => "Place neutral note",
-                EditorPlacementMode.Dash => "Place dash",
-                EditorPlacementMode.Momentum => "Place momentum",
-                EditorPlacementMode.Blocks => "Place blocks",
-                EditorPlacementMode.Spikes => "Place spikes",
-                EditorPlacementMode.Contact => "Place contact barrier",
-                EditorPlacementMode.Wall => "Place wall note",
-                EditorPlacementMode.Curve => "Place curve",
-                EditorPlacementMode.Text => "Place text",
-                EditorPlacementMode.Grass => "Place grass",
-                EditorPlacementMode.Flare => "Place flare",
-                EditorPlacementMode.FrictionBar => "Place friction field",
-                EditorPlacementMode.Polygon => "Draw a polygon: click its points, then the first again",
-                _ => "Placement mode"
-            });
+        SetStatus(mode switch
+        {
+            EditorPlacementMode.Curve => "Curve notes: click the head, then each point",
+            _ => "Placement mode",
+        });
     }
 
     private void Undo()

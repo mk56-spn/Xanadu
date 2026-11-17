@@ -30,20 +30,6 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 items.Add(copy);
         }
 
-        return new EditorSnapshot(items, CaptureGroups(), CaptureLayers());
-    }
-
-    private LevelLayers? CaptureLayers()
-    {
-        foreach (Entity entity in entities.Query<LevelLayers>().ToEntityList())
-            return entity.GetComponent<LevelLayers>().Clone();
-        return null;
-    }
-
-    private GroupDefinition[]? CaptureGroups()
-    {
-        foreach (Entity entity in entities.Query<LevelGroups>().ToEntityList())
-            return entity.GetComponent<LevelGroups>().Clone().Groups;
-        return null;
+        return new EditorSnapshot(items);
     }
 }

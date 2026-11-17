@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
@@ -39,6 +40,9 @@ public sealed partial class EditorOverlay
     /// </summary>
     private bool NativeDialogVisible() => FileDialogOpen?.Invoke() ?? false;
 
+    /// <summary>Whether the host's file picker is up; the pointer is held off the ECS UI while it is.</summary>
+    public Func<bool>? FileDialogOpen { get; set; }
+
     private void SetStatus(string message)
     {
         Entity editor = FindEditor();
@@ -47,85 +51,6 @@ public sealed partial class EditorOverlay
 
         ref EditorHud hud = ref editor.GetComponent<EditorHud>();
         hud.SetStatus(message);
-    }
-
-    /// <summary>Whether a group's overlay screen is up, which takes over the keyboard and the pointer.</summary>
-    private bool IsGroupOverlayOpen()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().Open >= 0)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>Whether an effect's move target is being dragged on the playfield.</summary>
-    private bool IsGroupTargetEditing()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().TargetEdit)
-                return true;
-        }
-
-        return false;
-    }
-
-    private void CloseGroupTarget()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            ref EditorGroupState state = ref entity.GetComponent<EditorGroupState>();
-            state.TargetEdit = false;
-            state.DragRow = -1;
-        }
-    }
-
-    /// <summary>Leaves target dragging and reopens the group's timing overlay.</summary>
-    private void ReopenTargetedGroup()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            ref EditorGroupState state = ref entity.GetComponent<EditorGroupState>();
-            state.TargetEdit = false;
-            state.PaletteOpen = false;
-            state.DragRow = -1;
-            if (state.SelectedGroup >= 0)
-                state.Open = state.SelectedGroup;
-        }
-    }
-
-    private bool IsGroupPaletteOpen()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().PaletteOpen)
-                return true;
-        }
-
-        return false;
-    }
-
-    private void CloseGroupPalette()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            ref EditorGroupState state = ref entity.GetComponent<EditorGroupState>();
-            state.PaletteOpen = false;
-        }
-    }
-
-    /// <summary>Closes the group overlay.</summary>
-    private void CloseGroupOverlay()
-    {
-        foreach (Entity entity in _entities.Query<EditorGroupState>().ToEntityList())
-        {
-            ref EditorGroupState state = ref entity.GetComponent<EditorGroupState>();
-            state.Open = -1;
-            state.DragRow = -1;
-        }
     }
 
     private bool IsWarningOpen() => _entities.Query<WarningPopup>().Count > 0;

@@ -14,7 +14,6 @@ public enum EditorShortcut
 {
     Preview,
     PreviewHere,
-    ToggleShaders,
     CloseDialog,
     ToggleHelp,
     FitView,
@@ -23,35 +22,19 @@ public enum EditorShortcut
     Redo,
     Copy,
     Paste,
-    CloseTarget,
-    ReopenTargetedGroup,
-    CloseGroupLayer,
     Timeline,
     Place,
     Back,
     Forward,
     Delete,
-    RotateSelection,
-    FlipHorizontal,
-    FlipVertical,
-    CycleOneWay,
-
-    /// <summary>Steps the selected blocks through box, ramp up right and ramp up left.</summary>
-    CycleSlope,
     MoveLeft,
     MoveRight,
 
-    /// <summary>Moves the selection one place forward through its layer.</summary>
-    MoveForward,
+    /// <summary>Finishes the curve being laid into a curve note.</summary>
+    FinishCurve,
 
-    /// <summary>Moves the selection one place back through its layer.</summary>
-    MoveBack,
-
-    /// <summary>Closes the outline the polygon tool is laying into a shape.</summary>
-    FinishPolygon,
-
-    /// <summary>Drops the outline the polygon tool is laying.</summary>
-    CancelPolygon,
+    /// <summary>Drops the curve being laid.</summary>
+    CancelCurve,
 }
 
 /// <summary>When a binding can fire. <see cref="EditorShortcuts.ActiveScopes"/> says which are live.</summary>
@@ -69,20 +52,14 @@ public enum EditorShortcutScope
     /// <summary>The F9 binding list is open.</summary>
     Help = 4,
 
-    /// <summary>An effect's move target is being dragged on the playfield.</summary>
-    TargetEdit = 8,
-
-    /// <summary>A group's overlay is up; it is modal, so <see cref="Field"/> is off.</summary>
-    GroupOverlay = 16,
-
     /// <summary>Working on the playfield with nothing in the way.</summary>
     Field = 32,
 
     /// <summary>An editor dialog is up; it is modal, so only the keys that close it work.</summary>
     Dialog = 64,
 
-    /// <summary>The polygon tool is laying an outline, which Enter and Esc finish before they do anything else.</summary>
-    PolygonDraft = 128,
+    /// <summary>A curve is being laid, which Enter and Esc finish before they do anything else.</summary>
+    CurveDraft = 128,
 }
 
 /// <summary>Every key binding in the level editor; the first live match wins.</summary>
@@ -92,7 +69,7 @@ public static class EditorShortcuts
         KeyChord Chord,
         EditorShortcut Action,
         EditorShortcutScope Scope,
-        EditorPlacementMode Placement = EditorPlacementMode.Notes,
+        EditorPlacementMode Placement = EditorPlacementMode.Curve,
         TimelineCommand Timeline = TimelineCommand.TogglePlay);
 
     public static readonly IReadOnlyList<Binding> All = Build();
@@ -103,9 +80,7 @@ public static class EditorShortcuts
         bool help,
         bool warning,
         bool typing,
-        bool targetEdit,
-        bool groupOverlay,
-        bool polygonDraft = false)
+        bool curveDraft = false)
     {
         if (dialog)
             return EditorShortcutScope.Dialog;
@@ -115,17 +90,11 @@ public static class EditorShortcuts
             scopes |= EditorShortcutScope.Help;
         if (!typing)
             scopes |= EditorShortcutScope.NotTyping;
-        if (warning)
-            return scopes;
-        if (targetEdit)
-            scopes |= EditorShortcutScope.TargetEdit;
-        if (typing)
+        if (warning || typing)
             return scopes;
 
-        if (groupOverlay)
-            return scopes | EditorShortcutScope.GroupOverlay;
         scopes |= EditorShortcutScope.Field;
-        return polygonDraft ? scopes | EditorShortcutScope.PolygonDraft : scopes;
+        return curveDraft ? scopes | EditorShortcutScope.CurveDraft : scopes;
     }
 
     public static Binding? Find(KeyChord chord, EditorShortcutScope scopes)
@@ -143,15 +112,12 @@ public static class EditorShortcuts
     {
         const EditorShortcutScope always = EditorShortcutScope.Always;
         const EditorShortcutScope notTyping = EditorShortcutScope.NotTyping;
-        const EditorShortcutScope target = EditorShortcutScope.TargetEdit;
-        const EditorShortcutScope group = EditorShortcutScope.GroupOverlay;
         const EditorShortcutScope field = EditorShortcutScope.Field;
 
         var bindings = new List<Binding>
         {
             new(new KeyChord(DebugKeys.Preview), EditorShortcut.Preview, always),
             new(new KeyChord(DebugKeys.Preview, Shift: true), EditorShortcut.PreviewHere, always),
-            new(new KeyChord(DebugKeys.EditorShaders), EditorShortcut.ToggleShaders, always | EditorShortcutScope.Dialog),
             new(new KeyChord(Key.Escape), EditorShortcut.CloseDialog, EditorShortcutScope.Dialog),
             new(new KeyChord(DebugKeys.EditorHelp), EditorShortcut.ToggleHelp, always),
             new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
@@ -163,30 +129,17 @@ public static class EditorShortcuts
             new(new KeyChord(Key.C, Ctrl: true), EditorShortcut.Copy, notTyping),
             new(new KeyChord(Key.V, Ctrl: true), EditorShortcut.Paste, notTyping),
 
-            new(new KeyChord(Key.Escape), EditorShortcut.CloseTarget, target),
-            new(new KeyChord(Key.T), EditorShortcut.ReopenTargetedGroup, target),
-
-            new(new KeyChord(Key.Escape), EditorShortcut.CloseGroupLayer, group),
-            new(new KeyChord(Key.Space), EditorShortcut.Timeline, group, Timeline: TimelineCommand.TogglePlay),
-
-            new(new KeyChord(Key.Escape), EditorShortcut.CancelPolygon, EditorShortcutScope.PolygonDraft),
-            new(new KeyChord(Key.Enter), EditorShortcut.FinishPolygon, EditorShortcutScope.PolygonDraft),
-            new(new KeyChord(Key.KpEnter), EditorShortcut.FinishPolygon, EditorShortcutScope.PolygonDraft),
+            new(new KeyChord(Key.Escape), EditorShortcut.CancelCurve, EditorShortcutScope.CurveDraft),
+            new(new KeyChord(Key.Enter), EditorShortcut.FinishCurve, EditorShortcutScope.CurveDraft),
+            new(new KeyChord(Key.KpEnter), EditorShortcut.FinishCurve, EditorShortcutScope.CurveDraft),
 
             new(new KeyChord(Key.Escape), EditorShortcut.Back, field),
             new(new KeyChord(Key.Enter), EditorShortcut.Forward, field),
             new(new KeyChord(Key.KpEnter), EditorShortcut.Forward, field),
-            new(new KeyChord(Key.R), EditorShortcut.RotateSelection, field),
-            new(new KeyChord(Key.H), EditorShortcut.FlipHorizontal, field),
-            new(new KeyChord(Key.V), EditorShortcut.FlipVertical, field),
-            new(new KeyChord(Key.O), EditorShortcut.CycleOneWay, field),
-            new(new KeyChord(Key.L), EditorShortcut.CycleSlope, field),
             new(new KeyChord(Key.Delete), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Backspace), EditorShortcut.Delete, field),
             new(new KeyChord(Key.Left), EditorShortcut.MoveLeft, field),
             new(new KeyChord(Key.Right), EditorShortcut.MoveRight, field),
-            new(new KeyChord(Key.Bracketright, Ctrl: true, Shift: true), EditorShortcut.MoveForward, field),
-            new(new KeyChord(Key.Bracketleft, Ctrl: true, Shift: true), EditorShortcut.MoveBack, field),
         };
 
         foreach ((KeyChord chord, TimelineCommand command) in TimelineShortcuts.All)

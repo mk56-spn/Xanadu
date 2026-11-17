@@ -90,7 +90,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
 
         ClearPreviewIfLeaving(next);
-        CapturePreviewPath();
         DestroyScene();
 
         _sceneRoot = _entities.CreateEntity();
@@ -107,16 +106,17 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             _loadLevels,
             next == SceneKind.Editor ? _pendingEditorEntry : playEntry,
             results,
-            _pendingStart,
+            _pendingStartMs,
             replay,
             RecordReplay: _replays is not null &&
                           next == SceneKind.Play &&
                           replay is null &&
-                          _pendingStart is null &&
+                          _pendingStartMs is null &&
                           !IsEditorPreview,
-            CanWatchReplay: _lastReplay is not null);
+            CanWatchReplay: _lastReplay is not null,
+            Preview: next == SceneKind.Play && IsEditorPreview);
         _pendingEditorEntry = null;
-        _pendingStart = null;
+        _pendingStartMs = null;
 
         if (!_controllers.Build(next, context))
         {
@@ -130,7 +130,6 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
         state.Current = next;
         state.Pending = next;
-        StartPreviewPathRecording(next);
         RestorePreviewPlayhead(next);
         _director.Apply(next);
     }
@@ -203,15 +202,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         foreach (Entity pop in _entities.Query<NotePop>().ToEntityList())
             pop.DeleteEntity();
 
-        foreach (Entity flare in _entities.Query<DashFlare>().ToEntityList())
-            flare.DeleteEntity();
-
         ShaderChart.Clear();
 
-        foreach (Entity ghost in _entities.Query<HitGhost>().ToEntityList())
-            ghost.DeleteEntity();
-
-        foreach (Entity trail in _entities.Query<KeyPressTrail>().ToEntityList())
-            trail.DeleteEntity();
     }
 }

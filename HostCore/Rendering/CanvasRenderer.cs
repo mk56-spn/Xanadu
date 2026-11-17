@@ -114,6 +114,18 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly CanvasPipelines _pipelines;
     private readonly Texture _white;
     private readonly Texture _screen;
+
+    /// <summary>
+    /// The main frame's multisampled target (MSAA): the tree draws into it and
+    /// it resolves into the frame at each pass end, so screen copies and the
+    /// window see smoothed edges. Null when the GPU can't multisample the format.
+    /// Offscreen roots and buffered groups stay single-sampled.
+    /// </summary>
+    private readonly Texture? _msaa;
+    private readonly SampleCount _samples;
+
+    /// <summary>The MSAA sample count asked for; drops to what the GPU can do.</summary>
+    public const SampleCount WantedSamples = SampleCount.Four;
     private readonly ScreenMips _mips;
     private readonly Sampler _sampler;
     private readonly uint _width, _height;
@@ -177,6 +189,11 @@ internal sealed class CanvasRenderer : IDisposable
             TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget, levels);
         _mips = new ScreenMips(device, format, width, height, levels);
 
+        _samples = Supported(device, format, WantedSamples);
+        if (_samples != SampleCount.One)
+            _msaa = Texture.Create2D(device, "msaa frame", width, height, format, TextureUsageFlags.ColorTarget, 1, _samples);
+        _pipelines.MainSamples = _samples;
+
         // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
         _sampler = Sampler.Create(device, SamplerCreateInfo.LinearClamp);
 
@@ -188,6 +205,18 @@ internal sealed class CanvasRenderer : IDisposable
             if (_states.Remove(material, out Buffer? state))
                 state.Dispose();
         };
+    }
+
+    /// <summary>The most samples a pixel, up to <paramref name="wanted"/>, the GPU can render <paramref name="format"/> with.</summary>
+    private static SampleCount Supported(GraphicsDevice device, TextureFormat format, SampleCount wanted)
+    {
+        for (SampleCount samples = wanted; samples > SampleCount.One; samples--)
+        {
+            if (SDL3.SDL.SDL_GPUTextureSupportsSampleCount(device.Handle, (SDL3.SDL.SDL_GPUTextureFormat)format, (SDL3.SDL.SDL_GPUSampleCount)samples))
+                return samples;
+        }
+
+        return SampleCount.One;
     }
 
     /// <summary>Makes a target the size of the frame, for an offscreen root or a group.</summary>
@@ -227,7 +256,7 @@ internal sealed class CanvasRenderer : IDisposable
         foreach (Job job in _jobs)
         {
             using (commands.Scope(job.IsGroup ? "group target" : job.Target == target ? "main target" : "offscreen target"))
-                Draw(commands, job, time);
+                Draw(commands, job, time, job.Target == target && _msaa is not null);
         }
     }
 
@@ -488,9 +517,27 @@ internal sealed class CanvasRenderer : IDisposable
         commands.EndCopyPass(copy);
     }
 
-    private void Draw(CommandBuffer commands, Job job, float time)
+    /// <summary>A pass on a job's target; with <paramref name="msaa"/>, on the multisampled frame, resolved into the target when it ends.</summary>
+    private RenderPass BeginPass(CommandBuffer commands, Job job, bool msaa, bool load)
     {
-        RenderPass pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, job.Clear));
+        if (!msaa)
+            return commands.BeginRenderPass(load ? new ColorTargetInfo(job.Target, LoadOp.Load) : new ColorTargetInfo(job.Target, job.Clear));
+
+        // Resolved and kept: a screen copy mid-frame reads the resolve, and the pass then carries on drawing.
+        return commands.BeginRenderPass(new ColorTargetInfo
+        {
+            Texture = _msaa!,
+            LoadOp = load ? LoadOp.Load : LoadOp.Clear,
+            ClearColor = job.Clear,
+            StoreOp = StoreOp.ResolveAndStore,
+            ResolveTexture = job.Target,
+        });
+    }
+
+    private void Draw(CommandBuffer commands, Job job, float time, bool msaa)
+    {
+        SampleCount samples = msaa ? _samples : SampleCount.One;
+        RenderPass pass = BeginPass(commands, job, msaa, load: false);
         if (job.BatchCount == 0)
         {
             commands.EndRenderPass(pass);
@@ -513,7 +560,7 @@ internal sealed class CanvasRenderer : IDisposable
             {
                 pass.SetScissor(batch.Clip);
                 Particles.Draw(commands, pass, field, batch.Transform, batch.Color, _width, _height,
-                    Textures.GetValueOrDefault(batch.Texture) ?? _white, _sampler);
+                    Textures.GetValueOrDefault(batch.Texture) ?? _white, _sampler, samples);
                 commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height });
                 Begin(pass);
                 bound = null;
@@ -533,13 +580,13 @@ internal sealed class CanvasRenderer : IDisposable
                 commands.EndRenderPass(pass);
                 CopyScreen(commands, job.Target);
                 commands.PushFragmentUniformData(frame, 0);
-                pass = commands.BeginRenderPass(new ColorTargetInfo(job.Target, LoadOp.Load));
+                pass = BeginPass(commands, job, msaa, load: true);
                 Begin(pass);
                 bound = null;
                 drawnSinceCopy = false;
             }
 
-            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material);
+            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, batch.Material, samples);
             if (batch.Material?.Custom is { UsesConstant: true } custom)
                 pass.SetBlendConstants(new MoonWorks.Graphics.Color(custom.Constant.R, custom.Constant.G, custom.Constant.B, custom.Constant.A));
             if (pipeline != bound)
@@ -733,6 +780,7 @@ internal sealed class CanvasRenderer : IDisposable
         Particles.Dispose();
         _white.Dispose();
         _screen.Dispose();
+        _msaa?.Dispose();
         _mips.Dispose();
         _sampler.Dispose();
         _zeros.Dispose();

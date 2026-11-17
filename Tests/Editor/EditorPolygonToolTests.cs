@@ -39,7 +39,7 @@ public sealed class EditorPolygonToolTests
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(1000, 1000)),
             new NoteSelection(default),
             new EditorPlacement { Mode = EditorPlacementMode.Polygon },
-            new EditorPolygonDraft());
+            new EditorCurveDraft());
 
         // The editor starts with snapping off, so points land where they are clicked.
         Entity snap = _store.CreateEntity(new Toggle(ViewportSnap.Label, ViewportSnap.Label, false));
@@ -56,7 +56,7 @@ public sealed class EditorPolygonToolTests
         Frame();
     }
 
-    private EditorPolygonDraft Draft => _editor.GetComponent<EditorPolygonDraft>();
+    private EditorCurveDraft Draft => _editor.GetComponent<EditorCurveDraft>();
 
     private void LayTriangle()
     {
@@ -91,13 +91,13 @@ public sealed class EditorPolygonToolTests
     public void EnterClosesAndEscDrops()
     {
         LayTriangle();
-        _editor.GetComponent<EditorPolygonDraft>().CancelRequested = true;
+        _editor.GetComponent<EditorCurveDraft>().CancelRequested = true;
         Frame();
         Assert.That(Draft.Active, Is.False);
         Assert.That(_store.Query<LevelPolygon>().Count, Is.Zero);
 
         LayTriangle();
-        _editor.GetComponent<EditorPolygonDraft>().FinishRequested = true;
+        _editor.GetComponent<EditorCurveDraft>().FinishRequested = true;
         Frame();
         Assert.That(_store.Query<LevelPolygon>().Count, Is.EqualTo(1));
     }
@@ -107,7 +107,7 @@ public sealed class EditorPolygonToolTests
     {
         Click(new Vector2(200, 200));
         Click(new Vector2(400, 200));
-        _editor.GetComponent<EditorPolygonDraft>().FinishRequested = true;
+        _editor.GetComponent<EditorCurveDraft>().FinishRequested = true;
         Frame();
 
         Assert.That(_store.Query<LevelPolygon>().Count, Is.Zero);

@@ -24,8 +24,8 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         Vector2 playerScreen,
         long playheadTimeMs)
     {
-        Vector2 hitPosition = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-        Color hitColor = GroupColor.For(noteEntity, PlayfieldColors.ColorFor(note));
+        Vector2 hitPosition = view.PlayfieldToScreen(note.Position);
+        Color hitColor = PlayfieldColors.ColorFor(note);
         float hitRadius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
         score.JudgementPosition = hitPosition;
         score.JudgementTimeMs = playheadTimeMs;
@@ -34,8 +34,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             new HitTrail(
                 hitPosition,
                 PlayfieldColors.ColorFor(note),
-                KeybindSettings.KeyLabel(context.Keybinds.Get(action))),
-            EffectLayer.From(noteEntity));
+                KeybindSettings.KeyLabel(context.Keybinds.Get(action))));
 
         // Read before the hit takes the note away.
         int chartIndex = ChartIndex.Of(noteEntity);

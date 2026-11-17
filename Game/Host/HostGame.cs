@@ -49,8 +49,7 @@ internal sealed class HostGame : HostApp
             director,
             UiStage.Design1080,
             keyboard: Keyboard,
-            wheel: Pointer,
-            passSurfaces: () => new HostPassSurfaces(Canvas, Renderer));
+            wheel: Pointer);
         _fileDialog = new HostFileDialog(MainWindow);
         _systems.Scenes.AddSongRequested = () => _fileDialog.OpenAudio(AddSong);
         UseSystems(_systems);
@@ -87,7 +86,6 @@ internal sealed class HostGame : HostApp
                 fromPlayhead: true),
             history: _systems.EditorHistory)
         {
-            PickShaderFile = then => _fileDialog.OpenShader(then),
             FileDialogOpen = () => _fileDialog.IsOpen,
         };
         _systems.Scenes.SaveEditor = () => Xanadu.Editor.EditorOverlay.SaveForLeaving(_editorOverlay);
@@ -155,7 +153,6 @@ internal sealed class HostGame : HostApp
     protected override void Tick(float delta, float time)
     {
         _editorOverlay?.Tick();
-        WarmLevelShaders();
     }
 
     protected override string ScreenshotName()
@@ -165,26 +162,6 @@ internal sealed class HostGame : HostApp
     }
 
     protected override void Notify(string message) => _systems.Toasts.Show(message);
-
-    private readonly HashSet<ShaderSlot?[]> _warmedSlots = new(ReferenceEqualityComparer.Instance);
-
-    /// <summary>
-    /// Compiles a level's shader slots the frame its shaders appear (a level
-    /// loaded for play or editing), rather than when each is first drawn.
-    /// </summary>
-    private void WarmLevelShaders()
-    {
-        foreach (Entity entity in Entities.Query<LevelShaders>().ToEntityList())
-        {
-            LevelShaders shaders = entity.GetComponent<LevelShaders>();
-            if (shaders.Slots is null || !_warmedSlots.Add(shaders.Slots))
-                continue;
-
-            for (int slot = 1; slot <= ShaderLimits.Count; slot++)
-                if (Xanadu.Drawers.Passes.LevelSlotMaterials.MaterialOf(shaders, slot) is { } material)
-                    Renderer.Pipelines.Warm(material);
-        }
-    }
 
     protected override void Shutdown()
     {

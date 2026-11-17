@@ -27,8 +27,8 @@ public static class DebugKeys
     /// <summary>F5: preview what the open tool is editing; Shift is its variant.</summary>
     public const Key Preview = Key.F5;
 
-    /// <summary>F6: gameplay hitboxes.</summary>
-    public const Key Hitboxes = Key.F6;
+    /// <summary>F6: a graph of the play body's x and y speed over song time.</summary>
+    public const Key SpeedGraph = Key.F6;
 
     /// <summary>F7: gameplay HUD layout editing.</summary>
     public const Key HudLayout = Key.F7;

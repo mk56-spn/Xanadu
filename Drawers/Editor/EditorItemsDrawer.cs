@@ -1,27 +1,17 @@
 using System;
-using Friflo.Engine.ECS;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Drawers.Playfields;
-using Xanadu.Drawers.Passes;
 
 namespace Xanadu.Drawers.Editor;
 
-/// <summary>
-/// The editor's playfield items, drawn the way play draws them: layer by layer,
-/// back to front, with the player wedge between the layers behind it and those
-/// in front (Docs/render-architecture.md §3).
-/// </summary>
-public sealed class EditorItemsDrawer(EditorDrawSurface surface, IPassSurfaces? passes = null)
+/// <summary>The editor's playfield items, drawn the way play draws them.</summary>
+public sealed class EditorItemsDrawer(EditorDrawSurface surface)
 {
     /// <summary>
     /// Draws every item, with <paramref name="drawWedge"/> drawing what stands
-    /// in for the player in the wedge.
+    /// in for the player.
     /// </summary>
-    public void Draw(EditorFrame frame, Action? drawWedge)
-    {
-        Func<Entity, bool> isSelected = frame.Selection.Contains;
-        EditorLayers layers = EditorLayers.Of(frame.Entity);
-        PlayfieldRenderer.DrawLayers(
+    public void Draw(EditorFrame frame, Action? drawWedge) =>
+        PlayfieldRenderer.DrawItems(
             surface.Canvas,
             surface.Target,
             surface.Entities,
@@ -31,12 +21,7 @@ public sealed class EditorItemsDrawer(EditorDrawSurface surface, IPassSurfaces? 
                 frame.Playhead,
                 frame.Seconds,
                 Editor: true,
-                isSelected,
-                frame.Selection.Note,
-                layers.Shows,
-                frame.Entity.TryGetComponent(out LevelGroups groups) ? groups.Groups : null,
-                frame.Entity.TryGetComponent(out LevelLayers table) ? table.Layers : null,
-                passes),
+                frame.Selection.Contains,
+                frame.Selection.Note),
             drawWedge);
-    }
 }

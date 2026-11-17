@@ -30,12 +30,12 @@ public static class PlayChart
         for (int i = 0; i < notes.Count; i++)
         {
             Note note = notes[i].GetComponent<Note>();
-            Color colour = GroupColor.For(notes[i], PlayfieldColors.ColorFor(note));
+            Color colour = PlayfieldColors.ColorFor(note);
             chart[i] = new ChartNote
             {
                 Place = new Vector4(note.Position.X, note.Position.Y, 0, 0),
                 Colour = new Vector4(colour.R, colour.G, colour.B, colour.A),
-                Timing = new Vector4(note.TimeMs / 1000f, (float)note.Kind, (float)note.Target - (float)KeybindAction.Action1, i),
+                Timing = new Vector4(note.TimeMs / 1000f, 0f, (float)note.Target - (float)KeybindAction.Action1, i),
             };
             notes[i].AddComponent(new ChartIndex(i));
         }
@@ -55,7 +55,7 @@ public static class PlayChart
 
         Note played = note.GetComponent<Note>();
         bool missed = judgement == Judgement.Miss;
-        Vector2 place = GroupOffset.Shown(note, played.Position);
+        Vector2 place = played.Position;
         ShaderChart.Judge(
             index,
             (played.TimeMs - offsetMs) / 1000f,

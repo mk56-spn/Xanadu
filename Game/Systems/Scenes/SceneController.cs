@@ -29,10 +29,11 @@ public sealed record SceneBuildContext(
     Func<List<LevelEntry>> LoadLevels,
     LevelEntry? Entry = null,
     PlayResults? Results = null,
-    StartPoint? Start = null,
+    long? StartMs = null,
     Replay? Replay = null,
     bool RecordReplay = false,
-    bool CanWatchReplay = false);
+    bool CanWatchReplay = false,
+    bool Preview = false);
 
 /// <summary>A scene-specific builder registered with the scene manager.</summary>
 public interface ISceneController
@@ -331,9 +332,10 @@ public sealed class SceneControllerRegistry
             c.Entry!,
             c.Keybinds,
             c.Visuals,
-            c.Start,
+            c.StartMs,
             c.Replay,
-            c.RecordReplay);
+            c.RecordReplay,
+            c.Preview);
         public bool TryForward(SceneSystem system) => system.RequestPlaySkip();
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool PausesOnBack => true;

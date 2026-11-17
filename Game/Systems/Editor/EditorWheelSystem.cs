@@ -49,12 +49,6 @@ public sealed class EditorWheelSystem(EditorCommandBus commands, IWheelSource wh
             return true;
         }
 
-        foreach (Entity entity in store.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().Open >= 0)
-                return true;
-        }
-
         return false;
     }
 }

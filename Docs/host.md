@@ -545,7 +545,7 @@ No hurry; none of this is parity.
   draws show up as a cost.
 - [ ] 2D depth buffer: per-item depth, per-pixel sprite depth maps, sampled
   depth (fog, outlines, soft particles).
-- [ ] MSAA (decide how it interacts with depth sampling, §4).
+- [x] MSAA: 4× (or the most the GPU allows) on the main frame only, resolved at every pass end so screen copies read the resolve; offscreen roots and buffered groups stay single-sampled. Pipelines are cached per sample count. Still open: how it meets sampled depth (§4).
 - [ ] Photoshop-style blend modes via group composite.
 - [ ] 2D lighting: point and directional lights, normal maps, 1D shadow maps
   with PCF, light masks. Later: SDF or radiance-cascade GI (the radiance lab's

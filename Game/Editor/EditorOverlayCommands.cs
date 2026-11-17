@@ -41,34 +41,6 @@ public sealed partial class EditorOverlay
                 StartPreview(true);
                 break;
 
-            case EditorButtonKind.BackgroundColor:
-                EditorDialogs.Open(_entities, EditorDialogKind.MapColor);
-                break;
-
-            case EditorButtonKind.ResetBackgroundColor:
-                _commands.Enqueue(EditorCommand.SetBackgroundColor(null));
-                break;
-
-            case EditorButtonKind.OutsideColor:
-                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Outside);
-                break;
-
-            case EditorButtonKind.ResetOutsideColor:
-                _commands.Enqueue(EditorCommand.SetOutsideColor(null));
-                break;
-
-            case EditorButtonKind.FrameColor:
-                EditorDialogs.Open(_entities, EditorDialogKind.MapColor, (int)EditorColorTarget.Frame);
-                break;
-
-            case EditorButtonKind.ResetFrameColor:
-                _commands.Enqueue(EditorCommand.SetFrameColor(null));
-                break;
-
-            case EditorButtonKind.ImportShader:
-                OpenShaderImport();
-                break;
-
             case EditorButtonKind.Leave:
                 _onBack?.Invoke();
                 break;
@@ -82,10 +54,7 @@ public sealed partial class EditorOverlay
     /// <summary>The request kinds the overlay acts on and clears.</summary>
     private static bool Handles(EditorButtonKind kind) =>
         kind is EditorButtonKind.Save or EditorButtonKind.LoadSong or EditorButtonKind.Preview
-            or EditorButtonKind.PreviewHere or EditorButtonKind.BackgroundColor or EditorButtonKind.ResetBackgroundColor
-            or EditorButtonKind.OutsideColor or EditorButtonKind.ResetOutsideColor or EditorButtonKind.FrameColor
-            or EditorButtonKind.ResetFrameColor or EditorButtonKind.ImportShader or EditorButtonKind.Leave
-            or EditorButtonKind.QuietSave;
+            or EditorButtonKind.PreviewHere or EditorButtonKind.Leave or EditorButtonKind.QuietSave;
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
     private void StartPreview(bool fromPlayhead = false)

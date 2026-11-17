@@ -77,6 +77,8 @@ public enum EditorButtonKind
     FlareStep,
     /// <summary>Lines the selection up; the argument is an <see cref="Xanadu.Editor.AlignEdge"/>.</summary>
     Align,
+    /// <summary>Steps the hold length by one snap step; the argument is the step, negative for shorter.</summary>
+    HoldLength,
 }
 
 /// <summary>

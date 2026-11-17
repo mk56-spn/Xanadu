@@ -25,7 +25,7 @@ public static class PlayScene
     internal const float SideInset = 40;
 
     /// <summary>The most of the field, in units, the screen shows at once.</summary>
-    public const float ViewSize = 1000;
+    public const float ViewSize = 2000;
 
     public static void Build(
         EntityStore entities,
@@ -33,9 +33,10 @@ public static class PlayScene
         LevelEntry entry,
         KeybindSettings keybinds,
         IVisualRidFactory? visuals = null,
-        StartPoint? start = null,
+        long? startMs = null,
         Replay? replay = null,
-        bool record = false)
+        bool record = false,
+        bool preview = false)
     {
         LevelDocument document = entry.Document;
         LoadedSong? song = entry.Song;
@@ -75,66 +76,33 @@ public static class PlayScene
             new PlayfieldView(origin, scale, screen),
             new PlayfieldMode(PlayfieldKind.Play),
             new Player(playerSize),
-            // The top of the field, for a level with no notes; PlayerDropIn
-            // moves her above the first note. A start point puts her where it says.
+            // The curve player puts the square at the first curve note's head on its first frame.
             new Position(new Vector2(
                 origin.X + fieldWidth / 2,
-                origin.Y + playerSize.Y / 2)),
-            new Character(1f));
+                origin.Y + fieldHeight / 2)));
 
         playfieldEntity.AddComponent(new PlayCamera(viewport));
-        playfieldEntity.AddComponent(LevelShaders.Create());
+        if (preview)
+            playfieldEntity.AddComponent(new BodyTrace());
         root.AddChild(playfieldEntity);
-        playfieldEntity.AddComponent(new PlayerCharacter(CharacterKind.Contact));
-        playfieldEntity.AddComponent(new ContactCounters());
-        playfieldEntity.AddComponent(new KeyTrail());
-        string[] keyLabels = new string[KeybindSettings.Actions.Length];
-        for (int i = 0; i < keyLabels.Length; i++)
-        {
-            keyLabels[i] = KeybindSettings.KeyLabel(
-                keybinds.Get(KeybindSettings.Actions[i]));
-        }
-        playfieldEntity.AddComponent(new KeyTrailLabels(keyLabels));
 
         LevelDocumentMapper.Apply(entities, playfieldEntity, document, song);
         PlayChart.Load(entities);
 
-        if (start is StartPoint point)
+        if (startMs is long from)
         {
             ref Playhead playhead = ref playfieldEntity.GetComponent<Playhead>();
-            playhead.TimeMs = point.TimeMs;
-            playhead.SeekRequestMs = point.TimeMs;
-            Vector2 spawn = playfieldEntity.TryGetComponent(out LevelGroups levelGroups)
-                ? SpawnPosition(levelGroups, point, playhead.Tempo)
-                : point.Position;
-            ref Position playerPosition = ref playfieldEntity.GetComponent<Position>();
-            playerPosition.Value = playfieldEntity
-                .GetComponent<PlayfieldView>()
-                .PlayfieldToScreen(spawn);
+            playhead.TimeMs = from;
+            playhead.SeekRequestMs = from;
         }
 
         PlayHudBuilder.Build(
             entities, root, playfieldEntity, screen, document, song, origin, viewport,
-            fieldHeight, visuals, start?.TimeMs ?? 0);
-
-        // Without a start point she drops in onto the first note; a start point
-        // fades her in where it says, from a standstill.
-        ref PlaySession session = ref playfieldEntity.GetComponent<PlaySession>();
-        if (start is null &&
-            PlayerDropIn.Aim(document, playfieldEntity, session.StartTimeMs, out Vector2 dropSpawn, out long dropStartMs))
-        {
-            playfieldEntity.GetComponent<Position>().Value = dropSpawn;
-            session.DropStartMs = dropStartMs;
-            session.DropSpeed = PlayerDropIn.EntrySpeed;
-        }
+            fieldHeight, visuals, startMs ?? 0);
 
         if (replay is not null)
             playfieldEntity.AddComponent(new ReplayPlayer(replay));
         else if (record)
             playfieldEntity.AddComponent(ReplayRecorder.Create());
     }
-
-    /// <summary>Where the player starts: the start point plus its groups' move at its time.</summary>
-    public static Vector2 SpawnPosition(LevelGroups groups, StartPoint start, TempoMap? tempo = null) =>
-        start.Position + GroupModulation.Offset(groups.Groups, start.Groups, start.TimeMs / 1000f, tempo);
 }

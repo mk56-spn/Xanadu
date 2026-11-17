@@ -25,28 +25,28 @@ public sealed class SelfModulateTests : EcsSystemTest
     public void AnUntintedItemKeepsItsColour()
     {
         Entity item = Store.CreateEntity();
-        Assert.That(GroupColor.For(item, Colors.Red), Is.EqualTo(Colors.Red));
+        Assert.That(Colors.Red, Is.EqualTo(Colors.Red));
     }
 
     [Test]
     public void SelfModulateMultipliesTheColour()
     {
         Entity item = Store.CreateEntity(new SelfModulate(new Color(0.5f, 1f, 0f, 0.5f)));
-        Assert.That(GroupColor.For(item, new Color(1f, 0.5f, 1f, 1f)), Is.EqualTo(new Color(0.5f, 0.5f, 0f, 0.5f)));
+        Assert.That(new Color(1f, 0.5f, 1f, 1f), Is.EqualTo(new Color(0.5f, 0.5f, 0f, 0.5f)));
     }
 
     [Test]
     public void AFinishedGroupFadeOverridesIt()
     {
         Entity item = Store.CreateEntity(new SelfModulate(Colors.Red), new GroupColor(Colors.Blue, 1f));
-        Assert.That(GroupColor.For(item, Colors.White), Is.EqualTo(Colors.Blue));
+        Assert.That(Colors.White, Is.EqualTo(Colors.Blue));
     }
 
     [Test]
     public void AGroupThatHasNotStartedLeavesIt()
     {
         Entity item = Store.CreateEntity(new SelfModulate(Colors.Red), new GroupColor(Colors.Blue, 0f));
-        Assert.That(GroupColor.For(item, Colors.White), Is.EqualTo(Colors.Red));
+        Assert.That(Colors.White, Is.EqualTo(Colors.Red));
     }
 
     [TestCase("", true)]

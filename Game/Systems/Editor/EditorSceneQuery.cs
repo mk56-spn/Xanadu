@@ -62,31 +62,9 @@ public sealed class EditorSceneQuery(EntityStore entities)
         return default;
     }
 
-    public bool IsGroupTargetEditing()
-    {
-        foreach (Entity entity in Store.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().TargetEdit)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>True while a warning, the group overlay or a scene confirmation sits over the editor.</summary>
-    public bool IsModalOpen()
-    {
-        if (Store.Query<WarningPopup>().Count > 0 || Store.Query<SceneConfirmation>().Count > 0)
-            return true;
-
-        foreach (Entity entity in Store.Query<EditorGroupState>().ToEntityList())
-        {
-            if (entity.GetComponent<EditorGroupState>().Open >= 0)
-                return true;
-        }
-
-        return false;
-    }
+    /// <summary>True while a warning or a scene confirmation sits over the editor.</summary>
+    public bool IsModalOpen() =>
+        Store.Query<WarningPopup>().Count > 0 || Store.Query<SceneConfirmation>().Count > 0;
 
     /// <summary>True when a control that takes input covers the screen point.</summary>
     public bool IsOverPanel(Vector2 screenPosition)

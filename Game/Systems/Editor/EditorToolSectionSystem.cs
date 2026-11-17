@@ -9,38 +9,16 @@ namespace Xanadu.Systems.Editor;
 /// <summary>Which tools use which part of the left panel.</summary>
 public static class EditorToolSections
 {
+    /// <summary>The 1×/2×/3× speed buttons: the speed new curve points get.</summary>
     public static readonly EditorPlacementMode[] MoveStrength =
     {
-        EditorPlacementMode.Dash,
-        EditorPlacementMode.Momentum,
         EditorPlacementMode.Curve,
     };
 
-    /// <summary>Directional notes can be rhombuses.</summary>
-    public static readonly EditorPlacementMode[] Diagonal =
+    /// <summary>The hold length stepper: how many beats new holds (or the selected ones) last.</summary>
+    public static readonly EditorPlacementMode[] HoldLength =
     {
-        EditorPlacementMode.Dash,
-        EditorPlacementMode.Momentum,
-    };
-
-    public static readonly EditorPlacementMode[] BlockSize =
-    {
-        EditorPlacementMode.Blocks,
-    };
-
-    public static readonly EditorPlacementMode[] ContactCost =
-    {
-        EditorPlacementMode.Contact,
-    };
-
-    public static readonly EditorPlacementMode[] Grass =
-    {
-        EditorPlacementMode.Grass,
-    };
-
-    public static readonly EditorPlacementMode[] Flare =
-    {
-        EditorPlacementMode.Flare,
+        EditorPlacementMode.Hold,
     };
 }
 
@@ -77,7 +55,6 @@ public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
             UiLayout.SetHidden(entity, buffer, !shown);
         });
 
-        // The open group panel sits over where this panel floats.
-        UiLayout.SetHidden(editor.GetComponent<EditorLeftMenu>().Panel, buffer, !any || EditorGroupState.IsOpen(editor));
+        UiLayout.SetHidden(editor.GetComponent<EditorLeftMenu>().Panel, buffer, !any);
     }
 }

@@ -137,43 +137,6 @@ internal static class PlayHudBuilder
 
         BuildErrorBar(ui, playfield, screen, hud);
 
-        var contactArea = new Rect2(screen.X / 2 - 160, 80, 320, 26);
-        Entity contactBacking = ui.HudBacking(contactArea);
-        // One label per Contact bar, in its action key's colour, so a bar reads
-        // as the notes that fill it.
-        var bars = new Entity[ContactCounters.Bars];
-        for (int bar = 0; bar < bars.Length; bar++)
-        {
-            bars[bar] = ui.HudText(new Vector2(screen.X / 2 + (bar - 1) * 100, 92),
-                new Vector2(90, 22),
-                $"0/{ContactCounters.Cap}",
-                13,
-                PlayfieldColors.BarColor(bar),
-                new Color(0, 0, 0, 0));
-        }
-
-        hud.Add(
-            "contact_counters",
-            new Vector2(screen.X / 2, 92),
-            contactArea,
-            new[] { contactBacking, bars[0], bars[1], bars[2] });
-        playfield.AddComponent(new ContactCounterHud(bars[0], bars[1], bars[2]));
-
-        // Which ground mode is on while both are tested; F8 switches.
-        Entity groundText = ui.HudText(
-            new Vector2(screen.X - 150, 96),
-            new Vector2(220, 22),
-            "GROUND: SKID  (F8)",
-            13,
-            SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0));
-        hud.Add(
-            "ground_mode",
-            new Vector2(screen.X - 150, 96),
-            new Rect2(screen.X - 260, 84, 220, 24),
-            groundText);
-        playfield.AddComponent(new GroundModeHud(groundText));
-
         hud.Add(
             "accuracy",
             new Vector2(screen.X - 150, 68),
@@ -271,18 +234,14 @@ internal static class PlayHudBuilder
             new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
             countdown);
 
-        // The curve rework keeps PAUSE, the song's name, the status, the
-        // countdown and the scoring (curve heads are judged); the character's
-        // HUD is still built, for its systems, but hidden.
-        if (!PlayRules.Classic)
+        // The rework shows PAUSE, the song's name, the status, the countdown and
+        // the scoring; the rest of the HUD is still built, for its systems, but hidden.
+        foreach (HudItemLayout item in hud.Items)
         {
-            foreach (HudItemLayout item in hud.Items)
-            {
-                if (item.Id is "song_info" or "status" or "countdown" or "score" or "combo" or "accuracy" or "judgement_counts")
-                    continue;
-                foreach (Entity member in item.Members)
-                    UiLayout.SetHidden(member, true);
-            }
+            if (item.Id is "song_info" or "status" or "countdown" or "score" or "combo" or "accuracy" or "judgement_counts")
+                continue;
+            foreach (Entity member in item.Members)
+                UiLayout.SetHidden(member, true);
         }
 
         playfield.AddComponent(hud);
@@ -302,29 +261,21 @@ internal static class PlayHudBuilder
                 comboText,
                 accuracyText,
                 judgementText,
-                document.Notes.Count(note => NoteRules.IsScored(note.Kind))));
+                // A hold is judged twice: head and tail.
+                document.Notes.Count + document.Notes.Count(note => note.HoldTailMs > 0)));
         long lastNote = document.Notes.Count > 0
             ? document.Notes.Max(note => note.TimeMs)
             : -1;
-        long lastMine = document.Mines.Count > 0
-            ? document.Mines.Max(mine => mine.TimeMs)
-            : -1;
-        // A curve note lasts until the body leaves its last point.
+        // A route note lasts until its end, a hold until its tail.
         foreach (NoteDocument note in document.Notes)
-        {
-            if (note.BuildPath() is { } path)
-                lastNote = Math.Max(lastNote, CurvePath.Of(new Note(note.TimeMs, new Vector2(note.X, note.Y), path: path)).EndMs);
-        }
+            lastNote = Math.Max(lastNote, note.ToNote().EndMs);
 
         playfield.AddComponent(new PlaySession(
             status,
             countdown,
-            Math.Max(lastNote, lastMine),
+            lastNote,
             startMs,
-            PlaySkipSystem.SkipTarget(
-                document.Notes.Select(note => note.TimeMs)
-                    .Concat(document.Mines.Select(mine => mine.TimeMs)),
-                startMs),
+            PlaySkipSystem.SkipTarget(document.Notes.Select(note => note.TimeMs), startMs),
             skipButton));
 
         Entity mapOffset = ui.HudText(

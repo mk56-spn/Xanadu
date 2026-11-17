@@ -31,8 +31,6 @@ public static class EditorSceneDialogs
         var dialogs = new EditorDialogs();
         BuildSongDialog(ui, screen, ref dialogs);
         BuildRecoveryDialog(ui, screen, ref dialogs);
-        BuildShaderDialog(ui, screen, ref dialogs);
-        BuildColorDialog(ui, screen, ref dialogs);
         editor.AddComponent(dialogs);
     }
 
@@ -119,58 +117,4 @@ public static class EditorSceneDialogs
         DialogButton(row, "DISCARD", 150, EditorDialogAction.Discard, muted: true);
     }
 
-    private static void BuildShaderDialog(UiNode ui, Vector2 screen, ref EditorDialogs dialogs)
-    {
-        const float width = 620;
-        float inner = width - DialogPad * 2;
-        UiNode panel = Dialog(ui, screen, EditorDialogKind.Shaders, width, 540, "LEVEL SHADERS");
-        panel.Text(
-                $"Up to {ShaderLimits.Count} canvas shaders per level. Pick a slot, then:",
-                UiType.Small,
-                SceneUi.DimTextColor,
-                TextAlign.Center)
-            .Size(inner, 20);
-        dialogs.ShaderList = DialogList(panel, inner, 230);
-        dialogs.ShaderInfo = panel.Text("", UiType.Small, SceneUi.DimTextColor, TextAlign.Center)
-            .Size(inner, 22)
-            .Entity;
-
-        const float wide = 186;
-        UiNode slot = panel.Row().Gap(DialogGap);
-        DialogButton(slot, "IMPORT .SLANG…", wide, EditorDialogAction.ImportShader);
-        DialogButton(slot, "REMOVE", wide, EditorDialogAction.RemoveShader, muted: true);
-
-        UiNode items = panel.Row().Gap(DialogGap);
-        DialogButton(items, "APPLY TO SELECTION", wide, EditorDialogAction.ApplyShader);
-        DialogButton(items, "CLEAR SELECTION", wide, EditorDialogAction.ClearShader, muted: true);
-
-        const float narrow = 132;
-        UiNode special = panel.Row().Gap(6);
-        DialogButton(special, "USE ON PLAYER", narrow, EditorDialogAction.PlayerShader);
-        DialogButton(special, "USE ON FIELD", narrow, EditorDialogAction.FieldShader);
-        DialogButton(special, "PLAYER OFF", narrow, EditorDialogAction.PlayerShaderOff, muted: true);
-        DialogButton(special, "FIELD OFF", narrow, EditorDialogAction.FieldShaderOff, muted: true);
-
-        DialogButton(panel, "CLOSE", 140, EditorDialogAction.Close, muted: true);
-    }
-
-    private static void BuildColorDialog(UiNode ui, Vector2 screen, ref EditorDialogs dialogs)
-    {
-        const float width = 460;
-        float inner = width - DialogPad * 2;
-        UiNode panel = Dialog(ui, screen, EditorDialogKind.MapColor, width, 360, "", out dialogs.ColorTitle);
-        dialogs.ColorHint = panel.Text("", UiType.Small, SceneUi.DimTextColor, TextAlign.Center)
-            .Size(inner, 22)
-            .Entity;
-
-        // The picker places its own parts round its square, so it gets a slot of its own.
-        const float slotHeight = ColorPickerLayout.Height + ColorPickerLayout.AlphaHeight + 16;
-        UiNode slot = panel.Column().Size(inner, slotHeight);
-        var square = new Vector2(
-            -inner / 2 + ColorPickerLayout.Size.X / 2 + 20,
-            -slotHeight / 2 + ColorPickerLayout.Size.Y / 2 + 4);
-        dialogs.ColorPicker = slot.ColorPicker(square, Colors.White).Entity;
-
-        DialogButton(panel, "DONE", 140, EditorDialogAction.Close);
-    }
 }

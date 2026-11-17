@@ -1,110 +1,46 @@
-using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
-using Xanadu.Ui.Systems;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Drawers.Passes;
-using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Model.Playfields;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Drawers.Playfields;
 
 /// <summary>Draws the shared playfield for play scenes.</summary>
-public sealed class PlayfieldDrawSystem :
+public sealed class PlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas, Handle playfield) :
     QuerySystem<PlayfieldView, Playfield, Playhead, PlayfieldMode>
 {
-    private readonly EntityStore _entities;
-    private readonly ShaderRoutingCanvas _canvas;
-    /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
-
-    /// <summary>The rendering-server items shaded draws go to; null when tests hand in their own.</summary>
-    private readonly ServerShaderCanvasItems? _serverItems;
-    private readonly Handle _playfield;
-    private readonly IPassSurfaces? _passes;
-
-    /// <summary>The clock grass sways by; it keeps running through pauses.</summary>
+    /// <summary>A clock that keeps running through pauses, for anything drawn that moves on its own.</summary>
     private float _seconds;
-
-    public PlayfieldDrawSystem(
-        EntityStore entities,
-        IRectCanvas canvas,
-        Handle playfield,
-        IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null,
-        IShaderCanvasItems? shaderItems = null)
-    {
-        _entities = entities;
-
-        // Tests have no rendering server: calling it outside the engine jumps to a
-        // null native pointer and kills the whole test host, so they pass a fake.
-        _canvas = new ShaderRoutingCanvas(canvas, playfield, shaderItems ?? (_serverItems = new ServerShaderCanvasItems()), toPixels);
-        _playfield = playfield;
-        _passes = passes;
-    }
 
     protected override void OnUpdate()
     {
-        _canvas.Clear(_playfield);
+        canvas.Clear(playfield);
         _seconds += Tick.deltaTime;
         Vector2 shift = Vector2.Zero;
 
-        Query.ForEachEntity((
-            ref view,
-            ref playfield,
-            ref playhead,
-            ref mode,
-            entity) =>
+        // One play entity at most.
+        foreach (Entity entity in Query.ToEntityList())
         {
-            if (mode.Kind == PlayfieldKind.Play)
+            if (entity.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Play)
+                continue;
+
+            PlayfieldView view = entity.GetComponent<PlayfieldView>();
+            Playfield field = entity.GetComponent<Playfield>();
+
+            // The camera scrolls the whole layer, particles included; what stays
+            // put on screen is drawn inside what it shows.
+            Rect2 frame = PlayfieldMetrics.FieldRect(view, field);
+            if (entity.TryGetComponent(out PlayCamera camera))
             {
-                LevelShaders shaders = entity.TryGetComponent(out LevelShaders found)
-                    ? found
-                    : LevelShaders.Create();
-                if (_serverItems is not null)
-                    _serverItems.SlotMaterialOf = (slot, blend) => LevelSlotMaterials.MaterialOf(shaders, slot, blend);
-
-                Color? background = null;
-                Color? outside = null;
-                Color? frameColor = null;
-                if (entity.TryGetComponent(out LevelInfo info))
-                {
-                    background = info.Background;
-                    outside = info.Outside;
-                    frameColor = info.Frame;
-                }
-
-                // The camera scrolls the whole layer, characters and particles
-                // included; what stays put on screen is drawn inside what it shows.
-                Rect2 frame = PlayfieldMetrics.FieldRect(view, playfield);
-                if (entity.TryGetComponent(out PlayCamera camera))
-                {
-                    shift = camera.LayerShift;
-                    frame = frame.Intersection(camera.Visible);
-                }
-
-                PlayfieldRenderer.DrawPlay(
-                    _canvas,
-                    _playfield,
-                    _entities,
-                    view,
-                    playfield,
-                    playhead,
-                    shaders.FieldSlot,
-                    shaders.PlayerSlot,
-                    background,
-                    shift,
-                    frame,
-                    outside,
-                    frameColor,
-                    _seconds,
-                    entity.TryGetComponent(out LevelGroups groups) ? groups.Groups : null,
-                    entity.TryGetComponent(out LevelLayers layers) ? layers.Layers : null,
-                    _passes,
-                    entity.Tags.Has<DivaNotes>());
+                shift = camera.LayerShift;
+                frame = frame.Intersection(camera.Visible);
             }
-        });
 
-        _canvas.SetTransform(_playfield, new Transform2D(0f, -shift));
+            PlayfieldRenderer.DrawPlay(canvas, playfield, entities, view, field, entity.GetComponent<Playhead>(), shift, frame, _seconds);
+        }
+
+        canvas.SetTransform(playfield, new Transform2D(0f, -shift));
     }
 }

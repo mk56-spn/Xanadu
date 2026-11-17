@@ -5,33 +5,19 @@ namespace Xanadu.Editor;
 
 /// <summary>
 ///     Keyboard shortcuts that choose the editor placement mode: the number keys,
-///     on the main row or the keypad, in tool order.
+///     on the main row or the keypad, in tool order. The curve tool is 1.
 /// </summary>
 public static class EditorPlacementKeybinds
 {
     private static readonly (Key Main, Key Pad, EditorPlacementMode Mode)[] Bindings =
     {
-        (Key.Key1, Key.Kp1, EditorPlacementMode.Notes),
-        (Key.Key2, Key.Kp2, EditorPlacementMode.Neutral),
-        (Key.Key3, Key.Kp3, EditorPlacementMode.Dash),
-        (Key.Key4, Key.Kp4, EditorPlacementMode.Momentum),
-        (Key.Key5, Key.Kp5, EditorPlacementMode.Blocks),
-        (Key.Key6, Key.Kp6, EditorPlacementMode.Spikes),
-        (Key.Key7, Key.Kp7, EditorPlacementMode.Contact),
-        (Key.Key8, Key.Kp8, EditorPlacementMode.Mines),
-        (Key.Key9, Key.Kp9, EditorPlacementMode.FrictionBar),
-        (Key.Key0, Key.Kp0, EditorPlacementMode.Text)
+        (Key.Key1, Key.Kp1, EditorPlacementMode.Curve),
+        (Key.Key2, Key.Kp2, EditorPlacementMode.Dash),
+        (Key.Key3, Key.Kp3, EditorPlacementMode.Hold),
     };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {
-        // The number keys pick classic tools, which the curve rework unplugs.
-        if (!Xanadu.Model.Playfields.PlayRules.Classic)
-        {
-            mode = EditorPlacementMode.Curve;
-            return false;
-        }
-
         foreach ((Key main, Key pad, EditorPlacementMode bound) in Bindings)
         {
             if (key == main || key == pad)
@@ -41,11 +27,11 @@ public static class EditorPlacementKeybinds
             }
         }
 
-        mode = EditorPlacementMode.Notes;
+        mode = EditorPlacementMode.Curve;
         return false;
     }
 
-    /// <summary>Label shown in the F9 editor-binding list.</summary>
+    /// <summary>Label shown in the F9 editor-binding list and on the tool's button.</summary>
     public static string LabelFor(EditorPlacementMode mode)
     {
         foreach ((Key main, _, EditorPlacementMode bound) in Bindings)

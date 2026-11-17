@@ -29,13 +29,18 @@ public static partial class PlayfieldRenderer
     {
         float size = NoteSize * view.Scale;
         Note note = entity.GetComponent<Note>();
-        float alpha = NoteFade.Alpha(note, playhead.TimeMs);
+        // A route note's head stays as long as its route shows, so the route is never headless.
+        // A hold's head stays to its tail too, riding the bar while held.
+        float alpha = note.IsRoute ? RouteFade.Alpha(RoutePath.Of(note), playhead.TimeMs)
+            : note.IsHold ? NoteSpanFade.Alpha(note, playhead.TimeMs)
+            : NoteFade.Alpha(note, playhead.TimeMs);
         if (alpha <= 0)
             return;
 
-        Vector2 center = view.PlayfieldToScreen(note.Position);
+        Vector2 center = view.PlayfieldToScreen(
+            entity.Tags.Has<NoteHolding>() ? HoldPoint(note, playhead.TimeMs) : note.Position);
         float radius = size / 2;
-        Color laneColor = GroupColor.For(entity, ColorFor(note));
+        Color laneColor = ColorFor(note);
         Color color = entity.Tags.Has<NoteMissed>()
             ? new Color(0.4f, 0.4f, 0.5f, alpha * laneColor.A * 0.45f)
             : new Color(laneColor.R, laneColor.G, laneColor.B, alpha * laneColor.A);
@@ -43,8 +48,6 @@ public static partial class PlayfieldRenderer
         float approach = NoteFade.Approach(note.TimeMs, playhead.TimeMs);
         float approachRadius = approach >= 0 ? ApproachRadius(radius, approach) : 0f;
         var ring = ApproachColor(laneColor, alpha);
-
-        SelectItemShader(canvas, entity);
 
         if (approach >= 0)
             canvas.DrawCircleOutline(rid, center, approachRadius, ring, 2);
@@ -91,109 +94,67 @@ public static partial class PlayfieldRenderer
         float radius,
         Color color)
     {
-        switch (note.Kind)
+        if (note.IsDash)
+            DrawDashShape(canvas, rid, center, radius, color);
+        else
+            DrawHitShape(canvas, rid, center, radius, color);
+    }
+
+    /// <summary>Where along a hold's bar the song is, from its head at its time to its tail at its end.</summary>
+    private static Vector2 HoldPoint(Note note, long playheadMs)
+    {
+        long length = note.EndMs - note.TimeMs;
+        float t = length > 0 ? Math.Clamp((playheadMs - note.TimeMs) / (float)length, 0f, 1f) : 1f;
+        return Vector2.Lerp(note.Position, note.TailPosition, t);
+    }
+
+    /// <summary>
+    /// A hold's bar, under its head: a wide band in the key's colour from the
+    /// head to a ring at the tail. Only for looks: the hold only checks the key.
+    /// While held, the part already behind the head is bright.
+    /// </summary>
+    public static void DrawHoldBar(IRectCanvas canvas, Handle rid, Entity entity, PlayfieldView view, Playhead playhead, bool selected)
+    {
+        Note note = entity.GetComponent<Note>();
+        float alpha = NoteSpanFade.Alpha(note, playhead.TimeMs);
+        if (selected)
+            alpha = MathF.Max(alpha, 0.5f);
+        if (alpha <= 0 || !note.IsHold)
+            return;
+
+        Color lane = ColorFor(note);
+        bool missed = entity.Tags.Has<NoteMissed>();
+        Color color = missed
+            ? new Color(0.4f, 0.4f, 0.5f, alpha * 0.3f)
+            : new Color(lane.R, lane.G, lane.B, alpha * lane.A * 0.4f);
+        Vector2 head = view.PlayfieldToScreen(note.Position);
+        Vector2 tail = view.PlayfieldToScreen(note.TailPosition);
+        float width = NoteSize * view.Scale * 0.55f;
+        float radius = NoteSize * view.Scale / 2f;
+
+        if (selected)
+            canvas.DrawLine(rid, head, tail, Faded(SelectedNoteColor, alpha), width + 6f);
+        canvas.DrawLine(rid, head, tail, color, width);
+        canvas.DrawCircle(rid, tail, width / 2f, color);
+        canvas.DrawCircleOutline(rid, tail, radius * 0.8f, Faded(NoteEdgeColor, color.A * 1.6f), 3f);
+
+        if (entity.Tags.Has<NoteHolding>())
         {
-            case NoteKind.Dash:
-                DrawDashShape(canvas, rid, note, center, radius, color);
-                break;
-            case NoteKind.Momentum:
-                DrawMomentumShape(canvas, rid, note, center, radius, color);
-                break;
-            case NoteKind.Contact:
-                DrawBarrierShape(canvas, rid, note, center, radius, color);
-                break;
-            case NoteKind.Wall:
-                DrawWallShape(canvas, rid, center, radius, color);
-                break;
-            case NoteKind.Neutral:
-                DrawNeutralShape(canvas, rid, center, radius, color);
-                break;
-            default:
-                DrawHitShape(canvas, rid, center, radius, color);
-                break;
+            Vector2 at = view.PlayfieldToScreen(HoldPoint(note, playhead.TimeMs));
+            canvas.DrawLine(rid, head, at, new Color(lane.R, lane.G, lane.B, alpha * lane.A), width);
         }
     }
 
-    /// <summary>Guide lines in hit order, under the notes; simultaneous notes meet at a hub dot.</summary>
-    public static void DrawNoteGuides(
-        IRectCanvas canvas,
-        Handle rid,
-        EntityStore entities,
-        PlayfieldView view,
-        Playhead playhead)
+    /// <summary>The editor's mark of how far a dash teleports: a faint ring that far round the note.</summary>
+    public static void DrawDashReach(IRectCanvas canvas, Handle rid, Note note, PlayfieldView view, Playhead playhead, bool selected)
     {
-        float radius = NoteSize * view.Scale / 2;
-        var points = new List<NoteGuides.Point>();
-        foreach (Entity entity in entities.Cached<Note>().ToEntityList())
-        {
-            Note note = entity.GetComponent<Note>();
-            float alpha = NoteFade.Alpha(note, playhead.TimeMs);
-            if (alpha > 0)
-                points.Add(new NoteGuides.Point(note.TimeMs, view.PlayfieldToScreen(GroupOffset.Shown(entity, note.Position)), alpha));
-        }
-
-        if (points.Count < 2)
+        float alpha = MathF.Max(NoteFade.Alpha(note, playhead.TimeMs), selected ? 0.5f : 0f);
+        if (alpha <= 0 || !note.IsDash)
             return;
 
-        NoteGuides.Layout layout = NoteGuides.Build(points, radius);
-        foreach (NoteGuides.Segment guide in layout.Guides)
-            canvas.DrawLine(rid, guide.From, guide.To, Faded(GuideColor, guide.Alpha * 0.6f), 2);
-        foreach (NoteGuides.Segment spoke in layout.Spokes)
-            canvas.DrawLine(rid, spoke.From, spoke.To, Faded(GuideColor, spoke.Alpha * 0.8f), 2);
-        foreach (NoteGuides.Hub hub in layout.Hubs)
-            canvas.DrawCircle(rid, hub.Center, radius * NoteGuides.HubRadiusScale, Faded(GuideColor, hub.Alpha));
+        Color color = selected ? SelectedNoteColor : NeutralColor;
+        canvas.DrawCircleOutline(rid, view.PlayfieldToScreen(note.Position), note.DashLength * view.Scale, Faded(color, alpha * 0.35f), 2f);
     }
 
     private static Color Faded(Color color, float alpha) => new(color.R, color.G, color.B, alpha);
-
-    /// <summary>Draws one mine while it shows, under its own shader.</summary>
-    public static void DrawMine(
-        IRectCanvas canvas,
-        Handle rid,
-        Entity entity,
-        PlayfieldView view,
-        Playhead playhead)
-    {
-        float size = MineSize * view.Scale;
-        Mine mine = entity.GetComponent<Mine>();
-        float alpha = MineFade.Alpha(mine, playhead.TimeMs);
-        if (alpha <= 0)
-            return;
-
-        SelectItemShader(canvas, entity);
-        Vector2 center = view.PlayfieldToScreen(mine.Position);
-        var bounds = new Rect2(
-            center - new Vector2(size / 2, size / 2),
-            new Vector2(size, size));
-        Color color = GroupColor.For(entity, new Color(1f, 0.22f, 0.16f, alpha));
-
-        canvas.DrawRect(
-            rid,
-            bounds,
-            new Color(0.08f, 0.02f, 0.02f, alpha * 0.9f));
-        canvas.DrawBorder(rid, bounds, color, 2);
-        canvas.DrawBorder(
-            rid,
-            new Rect2(
-                bounds.Position + new Vector2(3, 3),
-                bounds.Size - new Vector2(6, 6)),
-            new Color(1f, 0.55f, 0.2f, alpha),
-            1);
-        canvas.DrawLine(
-            rid,
-            bounds.Position + new Vector2(5, 5),
-            bounds.End - new Vector2(5, 5),
-            color,
-            2);
-        canvas.DrawLine(
-            rid,
-            new Vector2(bounds.End.X - 5, bounds.Position.Y + 5),
-            new Vector2(bounds.Position.X + 5, bounds.End.Y - 5),
-            color,
-            2);
-
-
-        canvas.SelectShader(0);
-    }
-
 }

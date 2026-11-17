@@ -53,7 +53,10 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly CanvasEffect _plain;
     private readonly Dictionary<string, CanvasEffect?> _effects = new();
     /// <summary>By effect, blend and whether it draws only the triangles' edges (the triangles overlay).</summary>
-    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines), GraphicsPipeline> _pipelines = new();
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines, SampleCount Samples), GraphicsPipeline> _pipelines = new();
+
+    /// <summary>The main frame's MSAA sample count, set by the renderer; warming makes pipelines for it as well as for single-sampled targets.</summary>
+    public SampleCount MainSamples { get; set; } = SampleCount.One;
 
     public CanvasPipelines(GraphicsDevice device, TextureFormat format)
     {
@@ -210,7 +213,7 @@ internal sealed class CanvasPipelines : IDisposable
         if (effect is null)
             return;
 
-        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom, bool Lines) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
+        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom, bool Lines, SampleCount Samples) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
         {
             if (key.Effect != effect)
                 continue;
@@ -225,8 +228,11 @@ internal sealed class CanvasPipelines : IDisposable
     public event Action<CanvasMaterial>? Forgotten;
 
     /// <summary>Compiles a material's effect and its pipeline now, so its first draw doesn't stall.</summary>
-    public void Warm(CanvasMaterial material) =>
+    public void Warm(CanvasMaterial material)
+    {
         Pipeline(Effect(material), material);
+        Pipeline(Effect(material), material, MainSamples);
+    }
 
     /// <summary>
     /// Compiles every shipped effect (each <c>.slang</c> under <c>Assets/Shaders</c>
@@ -244,23 +250,25 @@ internal sealed class CanvasPipelines : IDisposable
         {
             string path = "Assets/Shaders/" + Path.GetRelativePath(root, files[i]).Replace('\\', '/');
             Pipeline(Effect(path), BlendMode.Mix);
+            Pipeline(Effect(path), BlendMode.Mix, samples: MainSamples);
             progress?.Invoke(i + 1, files.Length);
         }
     }
 
     /// <summary>The pipeline for an effect drawn with a material's blend: its custom one when it has it, else its mode.</summary>
     /// <remarks>The triangles overlay draws line-filled: each triangle's edges, wherever its corners landed.</remarks>
-    public GraphicsPipeline Pipeline(CanvasEffect effect, CanvasMaterial? material)
+    public GraphicsPipeline Pipeline(CanvasEffect effect, CanvasMaterial? material, SampleCount samples = SampleCount.One)
     {
         bool lines = material?.Overlay == MaterialOverlay.Triangles;
         return material?.Custom is { } custom
-            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines)
-            : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines);
+            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines, samples)
+            : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines, samples: samples);
     }
 
-    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false)
+    /// <summary>The pipeline for an effect and blend, drawing into a target with <paramref name="samples"/> samples a pixel.</summary>
+    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false, SampleCount samples = SampleCount.One)
     {
-        if (_pipelines.TryGetValue((effect, blend, custom, lines), out GraphicsPipeline? pipeline))
+        if (_pipelines.TryGetValue((effect, blend, custom, lines, samples), out GraphicsPipeline? pipeline))
             return pipeline;
 
         pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
@@ -270,14 +278,14 @@ internal sealed class CanvasPipelines : IDisposable
             VertexInputState = VertexInputState.CreateSingleBinding<CanvasVertex>(),
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = lines ? RasterizerState.CCW_Wireframe : RasterizerState.CCW_CullNone,
-            MultisampleState = MultisampleState.None,
+            MultisampleState = new MultisampleState { SampleCount = samples },
             DepthStencilState = DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = custom is { } state ? Blend(state) : Blend(blend) }],
             },
         });
-        _pipelines[(effect, blend, custom, lines)] = pipeline;
+        _pipelines[(effect, blend, custom, lines, samples)] = pipeline;
         return pipeline;
     }
 

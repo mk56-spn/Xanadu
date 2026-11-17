@@ -90,18 +90,6 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
                     ApplyLevel(command.Document, command.Text ?? "", editor, buffer, isOnDisk: false);
                 return true;
 
-            case EditorCommandType.SetBackgroundColor:
-                level.Background = command.ColorValue;
-                return true;
-
-            case EditorCommandType.SetOutsideColor:
-                level.Outside = command.ColorValue;
-                return true;
-
-            case EditorCommandType.SetFrameColor:
-                level.Frame = command.ColorValue;
-                return true;
-
             case EditorCommandType.SetLevelFile:
                 SetLevelFile(editor, command.Text ?? "");
                 // Directly after the query, so the autosave system later in
@@ -170,8 +158,6 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
         bool isOnDisk = true)
     {
         document.Notes ??= new();
-        document.Mines ??= new();
-        document.StartPoints ??= new();
         document.Notes.RemoveAll(note => note is null);
 
         editor.GetComponent<EditorMetronome>().Enabled = false;

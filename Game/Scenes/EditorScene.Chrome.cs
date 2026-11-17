@@ -45,7 +45,6 @@ public static class EditorSceneChrome
         EditorSceneSidebar.BuildToolStrip(middle, flyouts, shell);
         BuildViewportColumn(middle, editor, shell);
         EditorSceneSidebar.BuildSidebar(middle, editor, shell);
-        EditorSceneSidebar.BuildXifPanel(entities, root, shell);
 
         Footer footer = BuildFooter(page, screen);
 

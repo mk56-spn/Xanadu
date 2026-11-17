@@ -45,17 +45,7 @@ public sealed class EditorTimelineHost(
     {
         get
         {
-            EntityStore store = editor.Store;
-            if (store.Query<WarningPopup>().Count > 0)
-                return true;
-
-            foreach (Entity entity in store.Query<EditorGroupState>().ToEntityList())
-            {
-                if (entity.GetComponent<EditorGroupState>().Open >= 0)
-                    return true;
-            }
-
-            return false;
+            return editor.Store.Query<WarningPopup>().Count > 0;
         }
     }
 
@@ -86,7 +76,7 @@ public sealed class EditorTimelineHost(
     {
         var query = new EditorSceneQuery(editor.Store);
         Playhead playhead = Playhead;
-        if (playhead.DurationMs <= 0 || query.IsModalOpen() || query.IsGroupTargetEditing())
+        if (playhead.DurationMs <= 0 || query.IsModalOpen())
             return null;
 
         Rect2 ruler = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());

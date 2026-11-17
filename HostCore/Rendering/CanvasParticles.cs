@@ -151,7 +151,12 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     private readonly GraphicsDevice _device;
     private readonly CanvasTree _tree;
     private readonly ComputePipeline _step;
-    private readonly GraphicsPipeline _draw;
+    private readonly Shader _vertex;
+    private readonly Shader _fragment;
+    private readonly TextureFormat _format;
+
+    /// <summary>The draw pipeline per sample count, made the first time a target with that count draws particles.</summary>
+    private readonly Dictionary<SampleCount, GraphicsPipeline> _draws = new();
     private readonly Buffer _effects;
     private readonly TransferBuffer _effectUpload;
     private readonly Vector4[] _rows = new Vector4[MaxEffects * RowSize];
@@ -175,26 +180,12 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
                 ThreadCountX = ThreadsPerGroup, ThreadCountY = 1, ThreadCountZ = 1,
             });
 
-        Shader vertex = Shader.Create(device, SlangShaders.Compile(module, "quad", "vertex"), "main",
+        _format = format;
+        _vertex = Shader.Create(device, SlangShaders.Compile(module, "quad", "vertex"), "main",
             new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumStorageBuffers = 2, NumUniformBuffers = 1 });
-        Shader fragment = Shader.Create(device, SlangShaders.Compile(module, "shadeParticle", "fragment"), "main",
+        _fragment = Shader.Create(device, SlangShaders.Compile(module, "shadeParticle", "fragment"), "main",
             new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Fragment, NumSamplers = 1 });
-        _draw = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
-        {
-            VertexShader = vertex,
-            FragmentShader = fragment,
-            VertexInputState = VertexInputState.Empty,
-            PrimitiveType = PrimitiveType.TriangleList,
-            RasterizerState = RasterizerState.CCW_CullNone,
-            MultisampleState = MultisampleState.None,
-            DepthStencilState = DepthStencilState.Disable,
-            TargetInfo = new GraphicsPipelineTargetInfo
-            {
-                ColorTargetDescriptions = [new ColorTargetDescription { Format = format, BlendState = CanvasPipelines.Blend(BlendMode.Mix) }],
-            },
-        });
-        vertex.Dispose();
-        fragment.Dispose();
+        DrawPipeline(SampleCount.One);
 
         _effects = Buffer.Create<Vector4>(device, "particle effects",
             BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.GraphicsStorageRead, (uint)_rows.Length);
@@ -277,9 +268,9 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     /// Leaves the particle pipeline bound and vertex uniform slot 0 overwritten.
     /// </summary>
     public void Draw(CommandBuffer commands, RenderPass pass, ParticleField field, Transform2D transform, Color modulate,
-        float width, float height, Texture strip, Sampler sampler)
+        float width, float height, Texture strip, Sampler sampler, SampleCount samples = SampleCount.One)
     {
-        pass.BindGraphicsPipeline(_draw);
+        pass.BindGraphicsPipeline(DrawPipeline(samples));
         pass.BindVertexStorageBuffers(field.Buffer, _effects);
         pass.BindFragmentSamplers(new TextureSamplerBinding(strip, sampler));
         commands.PushVertexUniformData(new DrawUniforms
@@ -290,6 +281,30 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             R = modulate.R, G = modulate.G, B = modulate.B, A = modulate.A,
         });
         pass.DrawPrimitives(6, ParticleField.Capacity, 0, 0);
+    }
+
+    /// <summary>The particle draw pipeline for a target with <paramref name="samples"/> samples a pixel.</summary>
+    public GraphicsPipeline DrawPipeline(SampleCount samples)
+    {
+        if (_draws.TryGetValue(samples, out GraphicsPipeline? pipeline))
+            return pipeline;
+
+        pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
+        {
+            VertexShader = _vertex,
+            FragmentShader = _fragment,
+            VertexInputState = VertexInputState.Empty,
+            PrimitiveType = PrimitiveType.TriangleList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = new MultisampleState { SampleCount = samples },
+            DepthStencilState = DepthStencilState.Disable,
+            TargetInfo = new GraphicsPipelineTargetInfo
+            {
+                ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = CanvasPipelines.Blend(BlendMode.Mix) }],
+            },
+        });
+        _draws[samples] = pipeline;
+        return pipeline;
     }
 
     /// <summary>The effect's row in the table, sampled the first time it is emitted.</summary>
@@ -325,7 +340,10 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         foreach (ParticleField field in _fields)
             field.Dispose();
         _step.Dispose();
-        _draw.Dispose();
+        foreach (GraphicsPipeline pipeline in _draws.Values)
+            pipeline.Dispose();
+        _vertex.Dispose();
+        _fragment.Dispose();
         _effects.Dispose();
         _effectUpload.Dispose();
     }

@@ -1,17 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Xanadu.Core.Items;
-using Xanadu.Core.Timeline;
-using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Playfields;
 
 namespace Xanadu.Model.Levels;
 
 /// <summary>
 /// XMF map serialization for level documents, plus the normalization every
-/// load goes through. Levels are binary; the map shares XAF character
-/// packages' chunked container.
+/// load goes through.
 /// </summary>
 public static class LevelSerializer
 {
@@ -23,243 +18,55 @@ public static class LevelSerializer
 
     public static LevelDocument Normalize(LevelDocument document)
     {
-        if (document.Version <= 0)
-            document.Version = 1;
         if (string.IsNullOrWhiteSpace(document.Id))
             document.Id = Guid.NewGuid().ToString("N");
         if (string.IsNullOrWhiteSpace(document.Slug))
             document.Slug = "level-" + document.Id[..Math.Min(8, document.Id.Length)];
+        document.Name ??= "Untitled";
+        document.SongId ??= "";
 
-        document.Shaders ??= new();
-        Func<int, int> validShader = NormalizeShaderPool(document.Shaders);
-        NormalizeChartItems(document, validShader);
+        document.Notes ??= new();
+        document.Notes.RemoveAll(note => note is null);
+        foreach (NoteDocument note in document.Notes)
+        {
+            NormalizeRoute(note);
+            NormalizeDashAndHold(note);
+        }
         return document;
     }
 
-    public static byte[] SerializeMapset(XmfMapset mapset) =>
-        XmfBinary.WriteMapset(mapset);
-    public static XmfMapset NormalizeMapset(XmfMapset mapset)
-    {
-        if (mapset.Version <= 0)
-            mapset.Version = 1;
-        if (string.IsNullOrWhiteSpace(mapset.Id))
-            mapset.Id = Guid.NewGuid().ToString("N");
-        if (string.IsNullOrWhiteSpace(mapset.Slug))
-            mapset.Slug = "mapset-" + mapset.Id[..Math.Min(8, mapset.Id.Length)];
-
-        mapset.Shaders ??= new();
-        Func<int, int> validShader = NormalizeShaderPool(mapset.Shaders);
-
-        mapset.Variants ??= new();
-        mapset.Variants.RemoveAll(variant => variant is null);
-        foreach (XmfVariant variant in mapset.Variants)
-        {
-            if (string.IsNullOrWhiteSpace(variant.Id))
-                variant.Id = Guid.NewGuid().ToString("N");
-            if (string.IsNullOrWhiteSpace(variant.Slug))
-                variant.Slug = "variant-" + variant.Id[..Math.Min(8, variant.Id.Length)];
-            variant.Name ??= "Untitled";
-            NormalizeChartItems(variant, validShader);
-        }
-
-        return mapset;
-    }
-
-    /// <summary>Keeps only shaders a pool may carry, one per slot, and returns a validator for references to it.</summary>
-    private static Func<int, int> NormalizeShaderPool(List<ShaderDocument> shaders)
-    {
-        var seen = new HashSet<int>();
-        shaders.RemoveAll(shader =>
-            shader is null ||
-            !LevelShaders.IsSlot(shader.Slot) ||
-            !seen.Add(shader.Slot) ||
-            !ShaderSourceRules.IsAcceptable(shader.Source, out _));
-        foreach (ShaderDocument shader in shaders)
-        {
-            shader.Name ??= "";
-            shader.Params ??= new();
-        }
-
-        return slot => seen.Contains(slot) && shaders.Exists(s => s.Slot == slot) ? slot : 0;
-    }
-
-    /// <summary>Normalizes a chart's placed items, and the shader references they and it carry.</summary>
-    private static void NormalizeChartItems(IChartItems chart, Func<int, int> validShader)
-    {
-        chart.Notes ??= new();
-        chart.Notes.RemoveAll(note => note is null);
-        chart.Mines ??= new();
-        chart.Mines.RemoveAll(mine => mine is null);
-        chart.StartPoints ??= new();
-        chart.StartPoints.RemoveAll(start => start is null);
-        chart.Blocks ??= new();
-        chart.Blocks.RemoveAll(block => block is null);
-        chart.Spikes ??= new();
-        chart.Spikes.RemoveAll(spike => spike is null);
-        chart.FrictionBars ??= new();
-        chart.FrictionBars.RemoveAll(bar => bar is null);
-        chart.Texts ??= new();
-        chart.Texts.RemoveAll(text => text is null);
-        chart.Grass ??= new();
-        chart.Grass.RemoveAll(grass => grass is null);
-        chart.Flares ??= new();
-        chart.Flares.RemoveAll(flare => flare is null);
-        chart.Polygons ??= new();
-        chart.Polygons.RemoveAll(polygon => polygon is null);
-        chart.ScreenReads ??= new();
-        chart.ScreenReads.RemoveAll(region => region is null);
-        chart.Groups ??= new();
-        chart.Groups.RemoveAll(group => group is null || group.Id is < 0 or >= GroupLimits.Count);
-
-        foreach (GroupDocument group in chart.Groups)
-        {
-            group.Name ??= "";
-            group.Effects ??= new();
-            group.Effects.RemoveAll(effect => effect is null);
-            foreach (GroupEffectDocument effect in group.Effects)
-            {
-                if (!Enum.IsDefined(effect.Ease))
-                    effect.Ease = EasePreset.Linear;
-            }
-        }
-
-        foreach (NoteDocument note in chart.Notes)
-        {
-            note.Groups ??= new();
-            note.Item ??= new();
-            NormalizeItem(note.Item, validShader);
-            NormalizePath(note);
-        }
-        foreach (StartPointDocument start in chart.StartPoints)
-            start.Groups ??= new();
-        foreach (MineDocument mine in chart.Mines)
-        {
-            mine.Groups ??= new();
-            mine.Shader = validShader(mine.Shader);
-        }
-        foreach (BlockDocument block in chart.Blocks)
-        {
-            block.Groups ??= new();
-            block.Shader = validShader(block.Shader);
-            block.OneWay = block.OneWay is >= 0 and <= (int)BlockOneWay.Left ? block.OneWay : 0;
-            block.Slope = block.Slope is >= 0 and <= (int)BlockSlope.UpLeft ? block.Slope : 0;
-            block.OutlineWidth = Math.Clamp(block.OutlineWidth, 0f, Block.MaxOutlineWidth);
-        }
-        foreach (SpikeDocument spike in chart.Spikes)
-        {
-            spike.Groups ??= new();
-            spike.RotationDegrees = SpikeRules.NormalizeDegrees(spike.RotationDegrees);
-            spike.OutlineWidth = Math.Clamp(spike.OutlineWidth, 0f, Block.MaxOutlineWidth);
-            spike.Shader = validShader(spike.Shader);
-        }
-
-        foreach (TextDocument text in chart.Texts)
-        {
-            text.Groups ??= new();
-            text.Text ??= "";
-            text.Size = Math.Clamp(text.Size, LevelText.MinSize, LevelText.MaxSize);
-            text.Shader = validShader(text.Shader);
-        }
-
-        foreach (GrassDocument grass in chart.Grass)
-        {
-            grass.Groups ??= new();
-            grass.Shader = validShader(grass.Shader);
-            grass.Rotation = Xanadu.Model.Ecs.TurnedBox.Normalize(grass.Rotation);
-        }
-
-        foreach (FlareDocument flare in chart.Flares)
-        {
-            flare.Groups ??= new();
-            flare.Shader = validShader(flare.Shader);
-            flare.Rotation = Xanadu.Model.Ecs.TurnedBox.Normalize(flare.Rotation);
-        }
-
-        foreach (TextDocument text in chart.Texts)
-            text.Rotation = Xanadu.Model.Ecs.TurnedBox.Normalize(text.Rotation);
-
-        // A shape keeps only polygons it can draw; one left with none is dropped.
-        foreach (PolygonDocument polygon in chart.Polygons)
-        {
-            polygon.Groups ??= new();
-            polygon.Shader = validShader(polygon.Shader);
-            polygon.Rotation = Xanadu.Model.Ecs.TurnedBox.Normalize(polygon.Rotation);
-            polygon.Item ??= new();
-            NormalizeItem(polygon.Item, validShader);
-            polygon.Item.Primitives.RemoveAll(primitive =>
-                primitive is null || !primitive.IsPolygon || primitive.Points is not { Count: >= XifEditing.MinPolygonPoints });
-        }
-        chart.Polygons.RemoveAll(polygon => polygon.Item.Primitives.Count == 0);
-
-        foreach (ScreenReadDocument region in chart.ScreenReads)
-        {
-            region.Width = Math.Max(1f, region.Width);
-            region.Height = Math.Max(1f, region.Height);
-        }
-
-        chart.BackgroundColor = LevelBackground.Normalize(chart.BackgroundColor);
-        chart.OutsideColor = LevelBackground.Normalize(chart.OutsideColor);
-        chart.FrameColor = LevelBackground.Normalize(chart.FrameColor);
-        chart.PlayerShader = validShader(chart.PlayerShader);
-        chart.FieldShader = validShader(chart.FieldShader);
-    }
-
-    /// <summary>Keeps only shader references a Xif may carry, and clears the rest.</summary>
-    private static void NormalizeItem(Xif item, Func<int, int> validMapSlot)
-    {
-        item.Primitives ??= new();
-        item.Shaders ??= new();
-        item.Params ??= new();
-
-        foreach (XifShaderRef shader in item.Shaders)
-            shader.Path ??= "";
-        item.Shaders.RemoveAll(shader => shader is null || !IsResolvableShaderRef(shader, validMapSlot));
-
-        foreach (XifPrimitive primitive in item.Primitives)
-        {
-            primitive.Kind ??= "";
-            primitive.Ref ??= "";
-            primitive.Shader ??= new();
-            primitive.Shader.Path ??= "";
-            if (!primitive.Shader.IsNone && !IsResolvableShaderRef(primitive.Shader, validMapSlot))
-                primitive.Shader = new();
-        }
-    }
-
-    /// <summary>Whether a shader reference points at a slot or path its item may actually use.</summary>
-    private static bool IsResolvableShaderRef(XifShaderRef shader, Func<int, int> validMapSlot) =>
-        shader.Scope switch
-        {
-            XifShaderScope.Map => validMapSlot(shader.Slot) != 0,
-            XifShaderScope.Common => CommonShaders.IsKnown(shader.Path),
-            _ => false,
-        };
-
     /// <summary>
-    /// A curve note keeps the points it can run through, its head on the note;
-    /// a path left without the head and one more point is dropped.
+    /// A route note keeps rising times after its head, at most
+    /// <see cref="NoteRoute.MaxTimes"/>, and a known speed; a route left with no time is dropped.
     /// </summary>
-    private static void NormalizePath(NoteDocument note)
+    /// <summary>A note is one of route, dash or hold at most (route first, then dash); lengths below zero are none.</summary>
+    private static void NormalizeDashAndHold(NoteDocument note)
     {
-        if (note.Path is null)
+        if (note.DashLength < 0f || note.Route is not null)
+            note.DashLength = 0f;
+        if (note.HoldTailMs < 0 || note.Route is not null || note.DashLength > 0f)
+            note.HoldTailMs = 0;
+        if (note.HoldTailMs == 0)
+            note.HoldX = note.HoldY = 0f;
+    }
+
+    private static void NormalizeRoute(NoteDocument note)
+    {
+        if (note.Route is null)
             return;
-        note.Path.RemoveAll(point => point is null || !float.IsFinite(point.X) || !float.IsFinite(point.Y));
-        if (note.Path.Count > NotePath.MaxPoints)
-            note.Path.RemoveRange(NotePath.MaxPoints, note.Path.Count - NotePath.MaxPoints);
-        foreach (CurvePointDocument point in note.Path)
+        note.Route.RemoveAll(time => time <= 0);
+        note.Route.Sort();
+        for (int i = note.Route.Count - 1; i > 0; i--)
         {
-            point.Speed = float.IsFinite(point.Speed)
-                ? Math.Clamp(point.Speed, NotePath.MinSpeed, NotePath.MaxSpeed)
-                : Note.DefaultMomentum;
+            if (note.Route[i] == note.Route[i - 1])
+                note.Route.RemoveAt(i);
         }
 
-        if (note.Path.Count < NotePath.MinPoints)
-        {
-            note.Path = null;
-            return;
-        }
-
-        note.Path[0].X = note.X;
-        note.Path[0].Y = note.Y;
+        if (note.Route.Count > NoteRoute.MaxTimes)
+            note.Route.RemoveRange(NoteRoute.MaxTimes, note.Route.Count - NoteRoute.MaxTimes);
+        if (note.Route.Count < NoteRoute.MinTimes)
+            note.Route = null;
+        if (!Enum.IsDefined(note.RouteStrength))
+            note.RouteStrength = DashStrength.Single;
     }
 }

@@ -49,20 +49,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
         }
 
         LevelInfo level = editor.GetComponent<LevelInfo>();
-        Playhead playhead = editor.GetComponent<Playhead>();
-        UpdateBackgroundColorControl(level);
-        bool hasSelectedStart = TryGetSelectedStart(
-            editor,
-            out Entity selectedStartEntity,
-            out StartPoint selectedStart);
-
-        if (EditorPanel.Find(_entities, EditorPanelKind.Start) is { IsNull: false } startPanelEntity)
-        {
-            bool visible = hasSelectedStart;
-            // It sits in the sidebar's SELECTION card, whose layout places it.
-            if (UiLayout.IsHidden(startPanelEntity) == visible)
-                UiLayout.SetHidden(startPanelEntity, CommandBuffer, !visible);
-        }
 
         foreach (Entity entity in _entities
                      .Query<EditorField, TextField>()
@@ -73,9 +59,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
             ref TextField field = ref entity.GetComponent<TextField>();
             bool focused = entity.Tags.Has<TextFieldFocused>();
 
-            bool hasStart = hasSelectedStart;
-            Entity startEntity = selectedStartEntity;
-            StartPoint start = selectedStart;
             if (!focused)
             {
                 string expected = binding.Kind switch
@@ -83,15 +66,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
                     EditorFieldKind.LevelName => level.Name,
                     EditorFieldKind.Artist => level.Artist,
                     EditorFieldKind.Difficulty => level.Difficulty,
-                    EditorFieldKind.StartTime => hasStart
-                        ? start.TimeMs.ToString()
-                        : "",
-                    EditorFieldKind.StartMomentumX => hasStart
-                        ? start.Momentum.X.ToString("0.###", CultureInfo.InvariantCulture)
-                        : "",
-                    EditorFieldKind.StartMomentumY => hasStart
-                        ? start.Momentum.Y.ToString("0.###", CultureInfo.InvariantCulture)
-                        : "",
                     _ => "",
                 };
                 if (field.Value != expected)
@@ -113,111 +87,8 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
                     if (field.Value != level.Difficulty)
                         _commands.Enqueue(EditorCommand.SetDifficulty(field.Value));
                     break;
-                case EditorFieldKind.StartTime when hasStart:
-                    if (long.TryParse(field.Value, out long startTime))
-                    {
-                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
-                        point.TimeMs = Math.Max(0, startTime);
-                    }
-                    break;
-                case EditorFieldKind.StartMomentumX when hasStart:
-                    if (float.TryParse(
-                            field.Value,
-                            NumberStyles.Float,
-                            CultureInfo.InvariantCulture,
-                            out float momentumX))
-                    {
-                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
-                        point.Momentum.X = momentumX;
-                    }
-                    break;
-                case EditorFieldKind.StartMomentumY when hasStart:
-                    if (float.TryParse(
-                            field.Value,
-                            NumberStyles.Float,
-                            CultureInfo.InvariantCulture,
-                            out float momentumY))
-                    {
-                        ref StartPoint point = ref startEntity.GetComponent<StartPoint>();
-                        point.Momentum.Y = momentumY;
-                    }
-                    break;
             }
         }
     }
 
-    /// <summary>Mirrors the level's background and outside colours onto their metadata swatches and hex labels.</summary>
-    private void UpdateBackgroundColorControl(LevelInfo level)
-    {
-        foreach (Entity entity in _entities.Query<EditorColorRow>().WithDisabled().ToEntityList())
-        {
-            EditorColorRow row = entity.GetComponent<EditorColorRow>();
-            (Color? stored, Color fallback) = row.Target switch
-            {
-                EditorColorTarget.Outside => (level.Outside, LevelBackground.OutsideDefault),
-                EditorColorTarget.Frame => (level.Frame, LevelBackground.FrameDefault),
-                _ => (level.Background, LevelBackground.Default),
-            };
-
-            if (row.Hex)
-            {
-                ShowHex(entity, stored);
-                continue;
-            }
-
-            // A colour dragged onto the swatch sets the level's, as EDIT would.
-            if (UiColorDrop.Take(entity, out Color dropped))
-            {
-                _commands.Enqueue(row.Target switch
-                {
-                    EditorColorTarget.Outside => EditorCommand.SetOutsideColor(dropped),
-                    EditorColorTarget.Frame => EditorCommand.SetFrameColor(dropped),
-                    _ => EditorCommand.SetBackgroundColor(dropped),
-                });
-            }
-
-            ShowSwatch(entity, stored ?? fallback);
-        }
-    }
-
-    private void ShowSwatch(Entity entity, Color color) => UiText.SetFill(entity, color, CommandBuffer);
-
-    private void ShowHex(Entity entity, Color? stored)
-    {
-        string label = stored is { } value
-            ? LevelBackground.Format(value)
-            : "DEFAULT";
-        if (!entity.HasComponent<Text>())
-            return;
-
-        ref Text text = ref entity.GetComponent<Text>();
-        if (text.Value == label)
-            return;
-
-        text.Value = label;
-        CommandBuffer.AddTag<Dirty>(entity.Id);
-    }
-
-    private static bool TryGetSelectedStart(
-        Entity editor,
-        out Entity startEntity,
-        out StartPoint start)
-    {
-        startEntity = default;
-        start = default;
-        if (!editor.HasComponent<NoteSelection>())
-            return false;
-
-        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
-        {
-            if (!entity.HasComponent<StartPoint>())
-                continue;
-
-            startEntity = entity;
-            start = entity.GetComponent<StartPoint>();
-            return true;
-        }
-
-        return false;
-    }
 }

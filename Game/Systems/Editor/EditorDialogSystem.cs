@@ -48,8 +48,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         Filter.WithDisabled();
     }
 
-    private const float ShaderRefresh = 0.2f;
-    private const string ShaderHint = "Tune a shader's uniforms with F2 while it is on screen; they save with the level.";
     private static readonly Color RowIdle = Palette.SurfaceRaised;
     private static readonly Color RowPicked = Palette.Primary;
 
@@ -69,23 +67,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         {
             if (PressedNow(button))
                 Act(editor, action, command.Arg);
-        }
-
-        Entity colorDialog = EditorDialogs.Find(entities, EditorDialogKind.MapColor);
-        if (!colorDialog.IsNull && !UiLayout.IsHidden(colorDialog))
-            FollowPicker(editor);
-
-        Entity shaderDialog = EditorDialogs.Find(entities, EditorDialogKind.Shaders);
-        if (!shaderDialog.IsNull && !UiLayout.IsHidden(shaderDialog))
-        {
-            ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-            dialogs.ShaderRefreshIn -= Tick.deltaTime;
-            if (dialogs.ShaderRefreshIn <= 0f)
-            {
-                // Commands land on the next frame, so the list catches up a moment later.
-                dialogs.ShaderRefreshIn = ShaderRefresh;
-                FillShaders(editor);
-            }
         }
     }
 
@@ -129,14 +110,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
                 case EditorDialogKind.Song:
                     FillSongs(editor);
                     break;
-                case EditorDialogKind.Shaders:
-                    UiText.Set(editor.GetComponent<EditorDialogs>().ShaderInfo, ShaderHint);
-                    editor.GetComponent<EditorDialogs>().ShaderRefreshIn = 0f;
-                    FillShaders(editor);
-                    break;
-                case EditorDialogKind.MapColor:
-                    ShowColor(editor, (EditorColorTarget)state.Arg);
-                    break;
             }
 
             UiLayout.SetHidden(dialog, false);
@@ -147,7 +120,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     private void Act(Entity editor, EditorDialogAction action, int arg)
     {
         ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-        int slot = dialogs.Shader;
         switch (action)
         {
             case EditorDialogAction.Close:
@@ -180,35 +152,6 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
                 AnswerRecovery(editor, restore: false);
                 break;
 
-            case EditorDialogAction.PickShader:
-                dialogs.Shader = arg;
-                FillShaders(editor);
-                break;
-            case EditorDialogAction.ImportShader:
-                if (editor.HasComponent<EditorUiRequest>())
-                    editor.GetComponent<EditorUiRequest>().Kind = EditorButtonKind.ImportShader;
-                break;
-            case EditorDialogAction.RemoveShader:
-                commands.Enqueue(EditorCommand.RemoveShader(slot));
-                break;
-            case EditorDialogAction.ApplyShader:
-                commands.Enqueue(EditorCommand.AssignShader(slot));
-                break;
-            case EditorDialogAction.ClearShader:
-                commands.Enqueue(EditorCommand.AssignShader(0));
-                break;
-            case EditorDialogAction.PlayerShader:
-                commands.Enqueue(EditorCommand.SetPlayerShader(slot));
-                break;
-            case EditorDialogAction.FieldShader:
-                commands.Enqueue(EditorCommand.SetFieldShader(slot));
-                break;
-            case EditorDialogAction.PlayerShaderOff:
-                commands.Enqueue(EditorCommand.SetPlayerShader(0));
-                break;
-            case EditorDialogAction.FieldShaderOff:
-                commands.Enqueue(EditorCommand.SetFieldShader(0));
-                break;
         }
     }
 
@@ -348,92 +291,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 
     // ---------------------------------------------------------------- shaders
 
-    private void FillShaders(Entity editor)
-    {
-        ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-        if (!editor.TryGetComponent(out LevelShaders shaders))
-            return;
-
-        var uses = new int[ShaderLimits.Count + 1];
-        foreach (Entity item in entities.Query<ItemShader>().ToEntityList())
-        {
-            int slot = item.GetComponent<ItemShader>().Slot;
-            if (slot is >= 1 and <= ShaderLimits.Count)
-                uses[slot]++;
-        }
-
-        var labels = new List<string>(ShaderLimits.Count);
-        for (int i = 0; i < ShaderLimits.Count; i++)
-        {
-            int slot = i + 1;
-            ShaderSlot? shader = shaders.Slots[i];
-            string text = shader is null
-                ? $"{slot}:  (empty)"
-                : $"{slot}:  {(shader.Name.Length > 0 ? shader.Name : "unnamed")}   ·   {uses[slot]} objects";
-            if (shaders.PlayerSlot == slot)
-                text += "   [player]";
-            if (shaders.FieldSlot == slot)
-                text += "   [field]";
-            labels.Add(text);
-        }
-
-        dialogs.Shader = Math.Clamp(dialogs.Shader, 1, ShaderLimits.Count);
-        FillRows(dialogs.ShaderList, labels, EditorDialogAction.PickShader, 1);
-        TintRows(dialogs.ShaderList, dialogs.Shader - 1);
-    }
-
-    /// <summary>Sets an editor dialog's shader message, such as how an import went.</summary>
-    public static void ShowShaderInfo(Entity editor, string message)
-    {
-        if (!editor.IsNull && editor.TryGetComponent(out EditorDialogs dialogs))
-            UiText.Set(dialogs.ShaderInfo, message);
-    }
-
     // ----------------------------------------------------------------- colour
-
-    private static void ShowColor(Entity editor, EditorColorTarget target)
-    {
-        ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-        LevelInfo level = editor.GetComponent<LevelInfo>();
-        dialogs.ColorTarget = target;
-        (string title, string hint, Color color) = target switch
-        {
-            EditorColorTarget.Outside => (
-                "COLOUR OUTSIDE THE PLAYFIELD",
-                "The colour around the map's playfield. It saves with the level.",
-                level.Outside ?? LevelBackground.OutsideDefault),
-            EditorColorTarget.Frame => (
-                "PLAYFIELD FRAME COLOUR",
-                "The frame and border line round the map's playfield. It saves with the level.",
-                level.Frame ?? LevelBackground.FrameDefault),
-            _ => (
-                "MAP BACKGROUND COLOUR",
-                "The colour behind the map's playfield. It saves with the level.",
-                level.Background ?? LevelBackground.Default),
-        };
-
-        UiText.Set(dialogs.ColorTitle, title);
-        UiText.Set(dialogs.ColorHint, hint);
-        dialogs.ColorPicker.GetComponent<UiColorPicker>().Color = color;
-        dialogs.ColorShown = dialogs.ColorPicker.GetComponent<UiColorPicker>().Color;
-    }
-
-    /// <summary>Applies the picker's colour live as it changes.</summary>
-    private void FollowPicker(Entity editor)
-    {
-        ref EditorDialogs dialogs = ref editor.GetComponent<EditorDialogs>();
-        Color picked = dialogs.ColorPicker.GetComponent<UiColorPicker>().Color;
-        if (picked.IsEqualApprox(dialogs.ColorShown))
-            return;
-
-        dialogs.ColorShown = picked;
-        commands.Enqueue(dialogs.ColorTarget switch
-        {
-            EditorColorTarget.Outside => EditorCommand.SetOutsideColor(picked),
-            EditorColorTarget.Frame => EditorCommand.SetFrameColor(picked),
-            _ => EditorCommand.SetBackgroundColor(picked),
-        });
-    }
 
     // ------------------------------------------------------------------- rows
 

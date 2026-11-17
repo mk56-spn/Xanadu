@@ -24,12 +24,9 @@ public sealed class EditorHoverProbe(EditorSceneQuery scene, EditorItemPicker pi
 
     private bool WouldPlaceAt(Vector2 screenPosition, Entity editor, bool hasPickedSelection)
     {
-        // The polygon tool lays points over items and selections alike.
-        bool polygon = editor.HasComponent<EditorPlacement>() &&
-                       editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Polygon;
-        if (scene.IsGroupTargetEditing() ||
-            scene.IsModalOpen() ||
-            (!polygon && hasPickedSelection))
+        // A curve being laid shows its next point over notes and selections alike.
+        bool drafting = editor.TryGetComponent(out EditorRouteDraft draft) && draft.Active;
+        if (scene.IsModalOpen() || (!drafting && hasPickedSelection))
         {
             return false;
         }
@@ -50,6 +47,6 @@ public sealed class EditorHoverProbe(EditorSceneQuery scene, EditorItemPicker pi
 
         return !scene.IsOverNoteBar(screenPosition) &&
                !scene.IsOverPanel(screenPosition) &&
-               (polygon || picker.FindItemAt(position, editor.GetComponent<Playhead>().TimeMs).IsNull);
+               (drafting || picker.FindItemAt(position, editor.GetComponent<Playhead>().TimeMs).IsNull);
     }
 }

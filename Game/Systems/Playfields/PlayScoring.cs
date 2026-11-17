@@ -8,9 +8,12 @@ namespace Xanadu.Systems.Playfields;
 /// <summary>Shared judgement application for notes and movement notes.</summary>
 public static class PlayScoring
 {
-    public static Judgement Apply(ref ScoreState score, long offsetMs)
+    public static Judgement Apply(ref ScoreState score, long offsetMs) =>
+        Apply(ref score, ScoreRules.Judge(offsetMs), offsetMs);
+
+    /// <summary>Scores a judgement already decided, such as a hold tail still held at its time.</summary>
+    public static Judgement Apply(ref ScoreState score, Judgement judgement, long offsetMs)
     {
-        Judgement judgement = ScoreRules.Judge(offsetMs);
 
         if (judgement != Judgement.Miss)
             score.NotesHit++;

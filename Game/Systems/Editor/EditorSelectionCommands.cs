@@ -18,8 +18,7 @@ using Xanadu.Model.Editor;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The editor's selection commands: copying and pasting, deleting, moving in
-/// time, turning and mirroring, and the one-way block cycle.
+/// The editor's selection commands: copying and pasting, deleting and moving in time.
 /// </summary>
 public sealed class EditorSelectionCommands(EditorCommandContext context)
 {
@@ -32,22 +31,6 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         {
             case EditorCommandType.DeleteSelection:
                 DeleteSelection(editor);
-                return true;
-
-            case EditorCommandType.RotateSelection:
-                RotateSelection(editor);
-                return true;
-
-            case EditorCommandType.FlipSelection:
-                FlipSelection(editor, command.IntValue != 0);
-                return true;
-
-            case EditorCommandType.CycleOneWay:
-                CycleOneWay(editor);
-                return true;
-
-            case EditorCommandType.CycleSlope:
-                CycleSlope(editor);
                 return true;
 
             case EditorCommandType.CopySelection:
@@ -72,144 +55,6 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
 
             default:
                 return false;
-        }
-    }
-
-    /// <summary>
-    /// Turns the selection a quarter turn clockwise around its centre as one
-    /// undo step; new spikes then paint the way the first selected one points.
-    /// With nothing selected, the block and spike tools turn the brush alone.
-    /// </summary>
-    private void RotateSelection(Entity editor)
-    {
-        if (!TryCaptureSelection(editor, out List<RotationStart> starts, out Vector2 pivot))
-        {
-            if (editor.HasComponent<EditorPlacement>())
-            {
-                ref EditorPlacement brush = ref editor.GetComponent<EditorPlacement>();
-                if (brush.Mode is EditorPlacementMode.Spikes or EditorPlacementMode.Blocks)
-                    brush.Degrees = SpikeRules.NormalizeDegrees(brush.Degrees + 90f);
-            }
-
-            return;
-        }
-
-        Playfield playfield = editor.GetComponent<Playfield>();
-        EditorSnapshot before = context.History.Capture();
-        foreach (RotationStart start in starts)
-            SelectionRotation.Apply(start, pivot, Mathf.Pi / 2, playfield, ViewportSnap.IsOn(context.Entities));
-        context.History.Record(before, context.History.Capture());
-
-        SyncSpikeBrush(editor, starts);
-    }
-
-    /// <summary>Mirrors the selection across its centre as one undo step.</summary>
-    private void FlipSelection(Entity editor, bool horizontal)
-    {
-        if (!TryCaptureSelection(editor, out List<RotationStart> starts, out Vector2 pivot))
-            return;
-
-        Playfield playfield = editor.GetComponent<Playfield>();
-        EditorSnapshot before = context.History.Capture();
-        foreach (RotationStart start in starts)
-            SelectionRotation.ApplyFlip(start, pivot, horizontal, playfield, ViewportSnap.IsOn(context.Entities));
-        context.History.Record(before, context.History.Capture());
-
-        SyncSpikeBrush(editor, starts);
-    }
-
-    /// <summary>
-    /// Steps the selected blocks through solid, then one-way up, right, down and
-    /// left, as one undo step. They all take the side after the first one's, so
-    /// a mixed selection ends up matching. Other selected items are left alone.
-    /// </summary>
-    private void CycleOneWay(Entity editor)
-    {
-        List<Entity> blocks = SelectedBlocks(editor);
-        if (blocks.Count == 0)
-            return;
-
-        BlockOneWay next = blocks[0].GetComponent<Block>().OneWay == BlockOneWay.Left
-            ? BlockOneWay.Off
-            : blocks[0].GetComponent<Block>().OneWay + 1;
-        EditorSnapshot before = context.History.Capture();
-        foreach (Entity block in blocks)
-            block.GetComponent<Block>().OneWay = next;
-        context.History.Record(before, context.History.Capture());
-    }
-
-    /// <summary>
-    /// Steps the selected blocks through box, ramp rising right and ramp rising
-    /// left, as one undo step, all taking the shape after the first one's.
-    /// </summary>
-    private void CycleSlope(Entity editor)
-    {
-        List<Entity> blocks = SelectedBlocks(editor);
-        if (blocks.Count == 0)
-            return;
-
-        BlockSlope next = blocks[0].GetComponent<Block>().Slope == BlockSlope.UpLeft
-            ? BlockSlope.Off
-            : blocks[0].GetComponent<Block>().Slope + 1;
-        EditorSnapshot before = context.History.Capture();
-        foreach (Entity block in blocks)
-            block.GetComponent<Block>().Slope = next;
-        context.History.Record(before, context.History.Capture());
-    }
-
-    /// <summary>The blocks among the editor's selection.</summary>
-    private static List<Entity> SelectedBlocks(Entity editor)
-    {
-        var blocks = new List<Entity>();
-        if (!editor.HasComponent<NoteSelection>())
-            return blocks;
-
-        foreach (Entity entity in editor.GetComponent<NoteSelection>().AllNotes)
-        {
-            if (EditorItems.IsItem(entity) && entity.HasComponent<Block>())
-                blocks.Add(entity);
-        }
-
-        return blocks;
-    }
-
-    private static bool TryCaptureSelection(
-        Entity editor,
-        out List<RotationStart> starts,
-        out Vector2 pivot)
-    {
-        starts = new List<RotationStart>();
-        pivot = default;
-        if (!editor.HasComponent<NoteSelection>() || !editor.HasComponent<Playfield>())
-            return false;
-
-        IReadOnlyList<Entity> selection = editor.GetComponent<NoteSelection>().AllNotes;
-        if (!SelectionRotation.TryGetItemBounds(selection, out Rect2 bounds))
-            return false;
-
-        pivot = bounds.GetCenter();
-        foreach (Entity entity in selection)
-        {
-            if (EditorItems.IsItem(entity) && EditorItemPosition.TryGet(entity, out _))
-                starts.Add(SelectionRotation.Capture(entity));
-        }
-
-        return true;
-    }
-
-    private static void SyncSpikeBrush(Entity editor, List<RotationStart> starts)
-    {
-        if (!editor.HasComponent<EditorPlacement>())
-            return;
-
-        foreach (RotationStart start in starts)
-        {
-            if (start.Entity.HasComponent<Spike>())
-            {
-                editor.GetComponent<EditorPlacement>().Degrees =
-                    start.Entity.GetComponent<Spike>().RotationDegrees;
-                return;
-            }
         }
     }
 
@@ -345,14 +190,12 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
             if (item.Kind.Pasted(item.Value, offset, timeMs, playfield, context.Entities) is not { } value)
                 continue;
 
-            created.Add(item.Kind.Restore(context.Entities, item.WithValue(value), buffer));
+            created.Add(item.Kind.Restore(context.Entities, item.WithValue(value)));
         }
 
         if (created.Count == 0)
             return;
 
-        // The copies keep their layers and their order among themselves, in front of what was there.
-        ItemLayer.OnTop(context.Entities, created);
         editor.GetComponent<NoteSelection>().SetMany(created);
         context.History.Record(before, context.History.Capture());
     }

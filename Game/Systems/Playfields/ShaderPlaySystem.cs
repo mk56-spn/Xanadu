@@ -37,8 +37,7 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
                 ShaderPlay.PlayfieldSize = new Vector2(playfield.Width, playfield.Height) * view.Scale;
             }
 
-            ShaderPlay.Dead = entity.Tags.Has<PlayerShattered>() ||
-                              (entity.TryGetComponent(out PlaySession session) && session.Died);
+            ShaderPlay.Dead = entity.TryGetComponent(out PlaySession session) && session.Died;
 
             if (entity.TryGetComponent(out ScoreState score))
             {
@@ -48,9 +47,6 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
                 ShaderPlay.Score = score.Score;
                 ShaderPlay.LastJudgement = score.HasJudgement ? (float)score.LastJudgement : 0;
             }
-
-            if (entity.TryGetComponent(out ContactCounters bars))
-                ShaderPlay.ContactBars = new Vector3(bars.First, bars.Second, bars.Third);
 
             ShaderPlay.SongProgress = playhead.DurationMs > 0
                 ? Math.Clamp(playhead.TimeMs / (float)playhead.DurationMs, 0f, 1f)

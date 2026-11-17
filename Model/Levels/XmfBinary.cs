@@ -3,102 +3,74 @@ using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 
 namespace Xanadu.Model.Levels;
 
 /// <summary>An XMF map file that could not be read.</summary>
 public sealed class XmfFormatException(string message) : Exception(message);
 
-/// <summary>The chunks of an XMF map file. Every chunk but the strings and meta is left out when it would be empty.</summary>
+/// <summary>The chunks of an XMF map file. The notes chunk is left out when there are none.</summary>
 public enum XmfChunk : uint
 {
     Strings = 1,
     Meta = 2,
-    Shaders = 3,
-    Groups = 4,
-    Layers = 5,
-
     Notes = 10,
-    Mines = 11,
-    StartPoints = 12,
-    Blocks = 13,
-    Spikes = 14,
-    Texts = 15,
-    Grass = 16,
-    Flares = 17,
-    Polygons = 18,
-    ScreenReads = 19,
-    FrictionBars = 20,
 }
 
 /// <summary>
-/// Binary XMF map format. It shares its container — magic, version, chunk
-/// directory and string table — with XAF packages. Inside, every list is a
-/// count of length-framed records (<see cref="XmfRecords"/>), and every item
-/// record opens with the same header (groups, shader, shader source, layer, z,
-/// blend, colour), then its kind's own fields. A new item kind is a new chunk;
-/// a new field is appended to its record.
+/// Binary XMF map format, 1.2: the level's settings and its notes. 1.2 notes
+/// carry a route (turn times and one speed choice); 1.0 and 1.1 files carried
+/// free-form curve paths, which are read past and their notes kept as plain notes. It shares
+/// its container (magic, version, chunk directory, string table) with XAF
+/// packages, and every list is a count of length-framed records
+/// (<see cref="XmfRecords"/>), so a record grows by appending fields and a new
+/// kind of thing is a new chunk. 0.x files, from the classic game, are not read.
 /// </summary>
-public static partial class XmfBinary
+public static class XmfBinary
 {
-    public const ushort MajorVersion = 0;
-    public const ushort MinorVersion = 1;
+    public const ushort MajorVersion = 1;
+    public const ushort MinorVersion = 3;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
 
-    /// <summary>The longest text one item may hold, in characters.</summary>
-    public const int MaxTextLength = 4_096;
+    /// <summary>The most notes one level may hold.</summary>
+    public const uint MaxNotes = 100_000;
 
     private const string Format = "XMF";
 
     private static readonly byte[] Magic = "XMF1"u8.ToArray();
 
+    public static void Save(string path, LevelDocument document) =>
+        BinaryFile.Save(path, Write(document));
+
     public static byte[] Write(LevelDocument document)
     {
         var strings = new StringTable(Format);
-        var chunks = new List<(XmfChunk Id, byte[] Data)>
-        {
-            (XmfChunk.Meta, XmfChrome.WriteMeta(document, strings)),
-        };
+        byte[] meta = WriteMeta(document, strings);
+        byte[]? notes = document.Notes.Count > 0 ? XmfRecords.WriteList(document.Notes, WriteNote) : null;
 
-        void Add<T>(XmfChunk id, List<T>? list, Func<List<T>, byte[]> write)
-        {
-            if (list is { Count: > 0 })
-                chunks.Add((id, write(list)));
-        }
-
-        Add(XmfChunk.Shaders, document.Shaders, list => XmfRecords.WriteList(list, (w, s) => XmfChrome.WriteShader(w, s, strings)));
-        Add(XmfChunk.Groups, document.Groups, list => XmfRecords.WriteList(list, (w, g) => XmfChrome.WriteGroup(w, g, strings)));
-        Add(XmfChunk.Layers, XmfChrome.Ordered(document.Layers), list => XmfRecords.WriteList(list, XmfChrome.WriteLayer));
-        Add(XmfChunk.Notes, document.Notes, list => XmfRecords.WriteItems(list, (w, n) => XmfItems.WriteNote(w, n, strings)));
-        Add(XmfChunk.Mines, document.Mines, list => XmfRecords.WriteItems(list, XmfItems.WriteMine));
-        Add(XmfChunk.StartPoints, document.StartPoints, list => XmfRecords.WriteItems(list, (w, s) => XmfItems.WriteStartPoint(w, s, strings)));
-        Add(XmfChunk.Blocks, document.Blocks, list => XmfRecords.WriteItems(list, XmfItems.WriteBlock));
-        Add(XmfChunk.Spikes, document.Spikes, list => XmfRecords.WriteItems(list, XmfItems.WriteSpike));
-        Add(XmfChunk.Texts, document.Texts, list => XmfRecords.WriteItems(list, XmfItems.WriteText));
-        Add(XmfChunk.Grass, document.Grass, list => XmfRecords.WriteItems(list, XmfItems.WriteGrass));
-        Add(XmfChunk.Flares, document.Flares, list => XmfRecords.WriteItems(list, XmfItems.WriteFlare));
-        Add(XmfChunk.Polygons, document.Polygons, list => XmfRecords.WriteItems(list, (w, p) => XmfItems.WritePolygon(w, p, strings)));
-        Add(XmfChunk.ScreenReads, document.ScreenReads, list => XmfRecords.WriteItems(list, XmfItems.WriteScreenRead));
-        Add(XmfChunk.FrictionBars, document.FrictionBars, list => XmfRecords.WriteItems(list, XmfItems.WriteFrictionBar));
-
-        // The table is written last, once every chunk has put its strings in it.
+        // The table is written first in the file but last here, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
         file.Add((uint)XmfChunk.Strings, strings.Write());
-        foreach ((XmfChunk id, byte[] data) in chunks)
-            file.Add((uint)id, data);
+        file.Add((uint)XmfChunk.Meta, meta);
+        if (notes is not null)
+            file.Add((uint)XmfChunk.Notes, notes);
         return file.ToArray();
     }
 
-    public static LevelDocument Read(byte[] data) => Guard(() => ReadMap(data));
-
-    /// <summary>Runs a read and reports whatever went wrong as a format error, for both level and mapset files.</summary>
-    internal static T Guard<T>(Func<T> read)
+    public static LevelDocument Read(byte[] data)
     {
         try
         {
-            return read();
+            ChunkReader file = ChunkReader.Open(data, Magic, MajorVersion, Format);
+            StringTable strings = StringTable.Read(file.Get((uint)XmfChunk.Strings, Format), Format);
+            LevelDocument document = ReadMeta(file.Get((uint)XmfChunk.Meta, Format), strings);
+            document.Notes = file.TryGet((uint)XmfChunk.Notes, out Chunk notes)
+                ? XmfRecords.ReadList(notes, MaxNotes, "note", reader => ReadNote(reader, file.Minor))
+                : new List<NoteDocument>();
+            return document;
         }
         catch (Exception exception) when (exception is FormatException or IOException)
         {
@@ -106,41 +78,99 @@ public static partial class XmfBinary
         }
     }
 
-    private static LevelDocument ReadMap(byte[] data)
+    private static byte[] WriteMeta(LevelDocument document, StringTable strings)
     {
-        ChunkReader file = ChunkReader.Open(data, Magic, MajorVersion, Format);
-        StringTable strings = StringTable.Read(file.Get((uint)XmfChunk.Strings, Format), Format);
-        LevelDocument document = XmfChrome.ReadMeta(file.Get((uint)XmfChunk.Meta, Format), strings);
-
-        List<T> List<T>(XmfChunk id, Func<Chunk, List<T>> read) =>
-            file.TryGet((uint)id, out Chunk chunk) ? read(chunk) : new List<T>();
-
-        document.Shaders = List(XmfChunk.Shaders, c => XmfRecords.ReadList(c, ShaderLimits.Count, "shader", r => XmfChrome.ReadShader(r, strings)));
-        document.Groups = List(XmfChunk.Groups, c => XmfRecords.ReadList(c, GroupLimits.Count, "group", r => XmfChrome.ReadGroup(r, strings)));
-        document.Layers = List(XmfChunk.Layers, c => XmfRecords.ReadList(c, XmfChrome.LayerLimit, "layer", XmfChrome.ReadLayer));
-        document.Notes = List(XmfChunk.Notes, c => XmfRecords.ReadItems<NoteDocument>(c, "note", (r, n) => XmfItems.ReadNote(r, n, strings)));
-        document.Mines = List(XmfChunk.Mines, c => XmfRecords.ReadItems<MineDocument>(c, "mine", XmfItems.ReadMine));
-        document.StartPoints = List(XmfChunk.StartPoints, c => XmfRecords.ReadItems<StartPointDocument>(c, "start point", (r, s) => XmfItems.ReadStartPoint(r, s, strings)));
-        document.Blocks = List(XmfChunk.Blocks, c => XmfRecords.ReadItems<BlockDocument>(c, "block", XmfItems.ReadBlock));
-        document.Spikes = List(XmfChunk.Spikes, c => XmfRecords.ReadItems<SpikeDocument>(c, "spike", XmfItems.ReadSpike));
-        document.Texts = List(XmfChunk.Texts, c => XmfRecords.ReadItems<TextDocument>(c, "text", XmfItems.ReadText));
-        document.Grass = List(XmfChunk.Grass, c => XmfRecords.ReadItems<GrassDocument>(c, "grass", XmfItems.ReadGrass));
-        document.Flares = List(XmfChunk.Flares, c => XmfRecords.ReadItems<FlareDocument>(c, "flare", XmfItems.ReadFlare));
-        document.Polygons = List(XmfChunk.Polygons, c => XmfRecords.ReadItems<PolygonDocument>(c, "polygon", (r, p) => XmfItems.ReadPolygon(r, p, strings)));
-        document.ScreenReads = List(XmfChunk.ScreenReads, c => XmfRecords.ReadItems<ScreenReadDocument>(c, "screen-read region", XmfItems.ReadScreenRead));
-        document.FrictionBars = List(XmfChunk.FrictionBars, c => XmfRecords.ReadItems<FrictionBarDocument>(c, "friction bar", XmfItems.ReadFrictionBar));
-        return document;
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        XmfRecords.Write(writer, document, (w, d) =>
+        {
+            strings.WriteIndex(w, d.Id);
+            strings.WriteIndex(w, d.Slug);
+            strings.WriteIndex(w, d.SongId);
+            strings.WriteIndex(w, d.Name);
+            w.Write(d.SnapDivision);
+            w.Write(d.PlayfieldWidth);
+            w.Write(d.PlayfieldHeight);
+        });
+        writer.Flush();
+        return stream.ToArray();
     }
 
-    internal static uint ReadCount(BinaryReader reader, uint max, string what)
+    private static LevelDocument ReadMeta(Chunk chunk, StringTable strings)
     {
-        uint count = reader.ReadUInt32();
-        if (count > max)
-            throw new FormatException($"XMF {what} count is too large.");
-        return count;
+        using BinaryReader reader = chunk.OpenReader();
+        return XmfRecords.Read(reader, "meta", r => new LevelDocument
+        {
+            Id = strings.ReadIndex(r),
+            Slug = strings.ReadIndex(r),
+            SongId = strings.ReadIndex(r),
+            Name = strings.ReadIndex(r),
+            SnapDivision = r.ReadInt32(),
+            PlayfieldWidth = r.ReadInt32(),
+            PlayfieldHeight = r.ReadInt32(),
+        });
     }
 
-    internal static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum
+    /// <summary>A note: time, place, key, then a route note's turn times (a count, then ms after the head each) and its speed choice, then (1.3) a dash's length and a hold's tail time and offset.</summary>
+    private static void WriteNote(BinaryWriter writer, NoteDocument note)
+    {
+        writer.Write(note.TimeMs);
+        writer.Write(note.X);
+        writer.Write(note.Y);
+        writer.Write((byte)note.Target);
+        List<long> route = note.Route ?? [];
+        writer.Write((ushort)route.Count);
+        foreach (long time in route)
+            writer.Write(time);
+        writer.Write((byte)note.RouteStrength);
+        writer.Write(note.DashLength);
+        writer.Write(note.HoldTailMs);
+        writer.Write(note.HoldX);
+        writer.Write(note.HoldY);
+    }
+
+    private static NoteDocument ReadNote(BinaryReader reader, ushort minor)
+    {
+        var note = new NoteDocument
+        {
+            TimeMs = reader.ReadInt64(),
+            X = reader.ReadSingle(),
+            Y = reader.ReadSingle(),
+            Target = ReadEnum<KeybindAction>(reader),
+        };
+        if (!float.IsFinite(note.X) || !float.IsFinite(note.Y))
+            throw new FormatException("XMF note is not on the field.");
+
+        // Before 1.2 the rest was a curve path, which routes replaced: the note stays, plain.
+        if (minor < 2)
+            return note;
+
+        int count = reader.ReadUInt16();
+        if (count > NoteRoute.MaxTimes)
+            throw new FormatException("XMF route note has too many turns.");
+        if (count > 0)
+        {
+            note.Route = new List<long>(count);
+            for (int i = 0; i < count; i++)
+                note.Route.Add(reader.ReadInt64());
+        }
+
+        note.RouteStrength = ReadEnum<DashStrength>(reader);
+
+        // 1.3 added dash lengths and hold tails.
+        if (minor < 3)
+            return note;
+
+        note.DashLength = reader.ReadSingle();
+        note.HoldTailMs = reader.ReadInt64();
+        note.HoldX = reader.ReadSingle();
+        note.HoldY = reader.ReadSingle();
+        if (!float.IsFinite(note.DashLength) || !float.IsFinite(note.HoldX) || !float.IsFinite(note.HoldY))
+            throw new FormatException("XMF note has a broken dash or hold.");
+        return note;
+    }
+
+    private static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum
     {
         byte value = reader.ReadByte();
         T result = (T)Enum.ToObject(typeof(T), value);
@@ -148,7 +178,4 @@ public static partial class XmfBinary
             throw new FormatException($"XMF {typeof(T).Name} value {value} is out of range.");
         return result;
     }
-
-    internal static string ClipText(string? text) =>
-        text is null ? "" : text.Length > MaxTextLength ? text[..MaxTextLength] : text;
 }

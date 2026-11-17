@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Drawers.Passes;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using Position = Xanadu.Core.Position;
@@ -25,50 +24,24 @@ public static partial class PlayfieldRenderer
         PlayfieldView view,
         Playfield playfield,
         Playhead playhead,
-        int fieldShader = 0,
-        int playerShader = 0,
-        Color? background = null,
         Vector2 camera = default,
         Rect2? frame = null,
-        Color? outside = null,
-        Color? frameColor = null,
-        float seconds = 0f,
-        GroupDefinition[]? groups = null,
-        IReadOnlyDictionary<int, LevelLayer>? layers = null,
-        IPassSurfaces? passes = null,
-        bool divaNotes = false)
+        float seconds = 0f)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
-        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), outside ?? PlayBackground);
+        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), PlayBackground);
 
         Rect2 field = FieldRect(view, playfield);
-        DrawFieldFrame(canvas, rid, field, view.Scale, frameColor);
-        canvas.SelectShader(fieldShader);
-        canvas.DrawRect(rid, field, background ?? PlayfieldBackground);
-        canvas.DrawBorder(rid, field, frameColor ?? BorderColor, 2);
-        canvas.SelectShader(0);
+        DrawFieldFrame(canvas, rid, field, view.Scale, null);
+        canvas.DrawRect(rid, field, PlayfieldBackground);
+        canvas.DrawBorder(rid, field, BorderColor, 2);
 
-        // The player wedge holds the player and what it leaves, under the player shader.
-        DrawLayers(
+        DrawItems(
             canvas,
             rid,
             entities,
-            new PlayfieldItemFrame(
-                view,
-                playfield,
-                playhead,
-                seconds,
-                Editor: false,
-                Groups: groups,
-                Layers: layers,
-                Passes: passes,
-                DivaNotes: divaNotes),
-            () =>
-            {
-                canvas.SelectShader(playerShader);
-                DrawHitGhosts(canvas, rid, entities);
-                DrawPlayer(canvas, rid, entities, view);
-            });
+            new PlayfieldItemFrame(view, playfield, playhead, seconds, Editor: false),
+            () => DrawPlayer(canvas, rid, entities, view));
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }
 

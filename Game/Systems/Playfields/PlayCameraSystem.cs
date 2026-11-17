@@ -15,6 +15,8 @@ namespace Xanadu.Systems.Playfields;
 /// straight there when the player does (a wrap, a restart, a seek), and shakes
 /// briefly when a note is hit. While the player drops into a run, it holds on
 /// the first note instead.
+/// For now (<see cref="Follows"/> off) it does none of that: it is put on the
+/// player's spawn once and stays still, with no shake.
 /// </summary>
 public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position, PlayfieldView, Playfield>
 {
@@ -23,6 +25,9 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
     /// player is near the middle of the screen: barely drifting.
     /// </summary>
     public const float FollowNear = 0.5f;
+
+    /// <summary>Whether the camera moves at all; off for now, so the view stays where the player spawned.</summary>
+    public static readonly bool Follows = false;
 
     /// <summary>
     /// How quickly the view catches up once the player reaches the screen's
@@ -87,6 +92,16 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
         float delta = Tick.deltaTime;
         Query.ForEachEntity((ref camera, ref player, ref position, ref view, ref playfield, entity) =>
         {
+            if (!Follows)
+            {
+                if (!camera.Placed)
+                    camera.Offset = Target(camera, PlayerSmoothing.DrawnPosition(entity), view, playfield);
+                camera.Placed = true;
+                camera.Kick = 0f;
+                camera.KickOffset = Vector2.Zero;
+                return;
+            }
+
             if (!camera.DroppedIn && DropFocus(ref camera, entity, view, out Vector2 focus))
             {
                 camera.Offset = Target(camera, focus, view, playfield);
@@ -142,7 +157,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
             return false;
         }
 
-        focus = view.PlayfieldToScreen(GroupOffset.Shown(camera.DropNote, note.Position));
+        focus = view.PlayfieldToScreen(note.Position);
         return true;
     }
 

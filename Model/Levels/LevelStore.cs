@@ -61,26 +61,9 @@ public static class LevelStore
     public static void EnsureDirectory() =>
         System.IO.Directory.CreateDirectory(Directory);
 
-    /// <summary>
-    /// Saves a level as the one variant of it in <paramref name="path"/>. If
-    /// the mapset there already has other variants, they are kept; only the
-    /// variant with this level's identity is replaced or added.
-    /// </summary>
-    public static void Save(LevelDocument document, string path)
-    {
-        XmfMapset mapset = TryLoadMapset(path) ?? new XmfMapset();
-        mapset.SongId = document.SongId;
-        mapset.Shaders = document.Shaders ?? new List<ShaderDocument>();
-
-        XmfVariant variant = ToVariant(document);
-        int index = mapset.Variants.FindIndex(v => v.Id == variant.Id);
-        if (index >= 0)
-            mapset.Variants[index] = variant;
-        else
-            mapset.Variants.Add(variant);
-
-        SaveMapset(mapset, path);
-    }
+    /// <summary>Saves a level, replacing whatever file is at <paramref name="path"/>.</summary>
+    public static void Save(LevelDocument document, string path) =>
+        XmfBinary.Save(path, document);
 
     public static void Delete(string path)
     {
@@ -88,44 +71,8 @@ public static class LevelStore
             File.Delete(path);
     }
 
-    /// <summary>Loads a level from its mapset's first variant.</summary>
-    public static LevelDocument Load(string path)
-    {
-        XmfMapset mapset = LoadMapset(path);
-        XmfVariant variant = mapset.Variants.Count > 0 ? mapset.Variants[0] : new XmfVariant();
-        return ToLevelDocument(mapset, variant);
-    }
-
-    public static XmfMapset LoadMapset(string path) =>
-        LevelSerializer.NormalizeMapset(XmfBinary.ReadMapset(File.ReadAllBytes(path)));
-
-    public static void SaveMapset(XmfMapset mapset, string path) =>
-        XmfBinary.SaveMapset(path, mapset);
-
-    private static XmfMapset? TryLoadMapset(string path)
-    {
-        if (!File.Exists(path))
-            return null;
-
-        try
-        {
-            return LoadMapset(path);
-        }
-        catch (Exception)
-        {
-            // The save is about to replace this file. Keep the unreadable one beside
-            // it so any other variants in it are not lost along with it.
-            File.Copy(path, path + ".unreadable", overwrite: true);
-            return null;
-        }
-    }
-
-    /// <summary>The variant a level document's own chart makes.</summary>
-    public static XmfVariant ToVariant(LevelDocument document) => XmfVariant.From(document);
-
-    /// <summary>The level document a variant makes, carrying its mapset's song and shaders.</summary>
-    public static LevelDocument ToLevelDocument(XmfMapset mapset, XmfVariant variant) =>
-        variant.ToDocument(mapset.Version, mapset.SongId, mapset.Shaders);
+    public static LevelDocument Load(string path) =>
+        LevelSerializer.Deserialize(File.ReadAllBytes(path));
 
     /// <summary>A level with its song opened from the library, ready to play or preview.</summary>
     public static LevelEntry Entry(string path, LevelDocument document)

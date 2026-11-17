@@ -67,7 +67,6 @@ public sealed class EditorTimelineDrawer
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         _waveform.Draw(ruler, frame.Preview, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);
-        DrawStartMarkers(ruler, frame.Selection, windowStart, windowEnd);
         var painter = new TimelinePainter(_surface.Canvas, _surface.Target);
         TimelineAxis axis = Axis(ruler, windowStart, windowEnd);
         painter.RulerTicks(axis, ruler, TempoTimelineTicks.For(axis, playhead.Tempo), RulerLook);
@@ -97,9 +96,24 @@ public sealed class EditorTimelineDrawer
     }
 
     /// <summary>
-    /// Each curve note as a band from its start to where the body leaves it, along
-    /// the ruler's foot, with a tick where it reaches each of its points.
+    /// Each route note as a band from its head to its end, along the ruler's
+    /// foot, with a tick at each of its turns.
     /// </summary>
+    /// <summary>A hold's band at the ruler's foot, from its head to its tail, in its key's colour.</summary>
+    private void DrawHoldSpan(Rect2 ruler, TimeWindow window, float top, float height, Note note, bool selected)
+    {
+        if (note.EndMs < window.Start || note.TimeMs > window.End)
+            return;
+
+        float from = window.XForTime(ruler, Math.Max(note.TimeMs, window.Start));
+        float to = window.XForTime(ruler, Math.Min(note.EndMs, window.End));
+        var band = new Rect2(from, top, Math.Max(2f, to - from), height);
+        Color fill = PlayfieldColors.ColorFor(note);
+        _surface.Canvas.DrawRect(_surface.Target, band, new Color(fill.R, fill.G, fill.B, 0.55f));
+        if (selected)
+            _surface.Canvas.DrawBorder(_surface.Target, band.Grow(1.5f), PlayfieldColors.SelectedNoteColor, 1.5f);
+    }
+
     private void DrawCurveSpans(Rect2 ruler, NoteSelection selection, long windowStart, long windowEnd)
     {
         var window = new TimeWindow(windowStart, windowEnd);
@@ -110,10 +124,16 @@ public sealed class EditorTimelineDrawer
             for (int index = 0; index < notes.Length; index++)
             {
                 Note curve = notes.Span[index];
-                if (curve.Path is null)
+                if (curve.IsHold)
+                {
+                    DrawHoldSpan(ruler, window, top, height, curve, selection.Contains(chunk.EntityAt(index)));
+                    continue;
+                }
+
+                if (curve.Route is not { } route)
                     continue;
                 Entity entity = chunk.EntityAt(index);
-                CurvePath path = CurvePath.Of(curve);
+                RoutePath path = RoutePath.Of(curve);
                 if (path.EndMs < windowStart || path.StartMs > windowEnd)
                     continue;
 
@@ -122,9 +142,9 @@ public sealed class EditorTimelineDrawer
                 var band = new Rect2(from, top, Math.Max(2f, to - from), height);
                 Color fill = PlayfieldColors.CurveColor;
                 _surface.Canvas.DrawRect(_surface.Target, band, new Color(fill.R, fill.G, fill.B, 0.55f));
-                for (int i = 0; i < curve.Path.Count; i++)
+                for (int i = 1; i <= route.Turns; i++)
                 {
-                    long at = path.TimeAtAnchor(i);
+                    long at = path.TimeAt(i);
                     if (at < windowStart || at > windowEnd)
                         continue;
                     float x = window.XForTime(ruler, at);
@@ -193,33 +213,6 @@ public sealed class EditorTimelineDrawer
             DrawMarkerTag(ruler, x + 2, label, PlayfieldColors.SelectedNoteColor, rightOfLine: true);
         }
     }
-
-    /// <summary>
-    /// Each start point as a full-height line on the ruler with its name
-    /// tagged to the left, so it does not cover a BPM label at the same time.
-    /// </summary>
-    private void DrawStartMarkers(Rect2 ruler, NoteSelection selection, long windowStart, long windowEnd)
-    {
-        foreach (Entity entity in _surface.Entities.Cached<StartPoint>().ToEntityList())
-        {
-            StartPoint start = entity.GetComponent<StartPoint>();
-            if (start.TimeMs < windowStart || start.TimeMs > windowEnd)
-                continue;
-
-            Color color = selection.Contains(entity) ? Colors.White : PlayfieldColors.StartPointColor;
-            float x = Axis(ruler, windowStart, windowEnd).ClampedX(start.TimeMs);
-            _surface.Canvas.DrawRect(
-                _surface.Target,
-                new Rect2(x - 1, ruler.Position.Y, 2, ruler.Size.Y),
-                color);
-
-            DrawMarkerTag(ruler, x - 1, StartLabel(start), color, rightOfLine: false);
-        }
-    }
-
-    /// <summary>The start point's name, or "START" when it has none.</summary>
-    public static string StartLabel(StartPoint start) =>
-        string.IsNullOrWhiteSpace(start.Name) ? "START" : start.Name;
 
     /// <summary>
     /// A horizontal tag at the top of the ruler beside a marker line, on a

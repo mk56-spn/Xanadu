@@ -12,19 +12,15 @@ namespace Xanadu.Editor;
 
 /// <summary>
 ///     How the editor was left when a preview began. Returning rebuilds the editor
-///     from its document, so this puts the view, tool settings, snap, metronome,
-///     layer toggles and selection back. Items are remembered by what they are,
+///     from its document, so this puts the view, tool settings, snap, metronome
+///     and selection back. Items are remembered by what they are,
 ///     since their entities do not survive.
 /// </summary>
 public sealed class EditorReturnState
 {
     private readonly List<ItemKey> _selection = new();
-    private EditorGroupState _groups;
-    private bool _hasGroups;
-    private bool _hasLayers;
     private bool _hasPlacement;
     private bool _hasTimeline;
-    private EditorLayers _layers;
     private bool _metronome;
     private EditorPlacement _placement;
     private int _snapDivision;
@@ -46,11 +42,7 @@ public sealed class EditorReturnState
             _hasPlacement = editor.TryGetComponent(out EditorPlacement placement),
             _placement = placement,
             _snapDivision = editor.TryGetComponent(out Playhead playhead) ? playhead.SnapDivision : 0,
-            _metronome = editor.TryGetComponent(out EditorMetronome metronome) && metronome.Enabled,
-            _hasLayers = editor.TryGetComponent(out EditorLayers layers),
-            _layers = layers,
-            _hasGroups = editor.TryGetComponent(out EditorGroupState groups),
-            _groups = groups
+            _metronome = editor.TryGetComponent(out EditorMetronome metronome) && metronome.Enabled
         };
 
         if (editor.TryGetComponent(out NoteSelection selection))
@@ -76,17 +68,6 @@ public sealed class EditorReturnState
             editor.GetComponent<Playhead>().SnapDivision = _snapDivision;
         if (editor.HasComponent<EditorMetronome>())
             editor.GetComponent<EditorMetronome>().Enabled = _metronome;
-        if (_hasLayers && editor.HasComponent<EditorLayers>())
-            editor.GetComponent<EditorLayers>() = _layers;
-
-        // The group overlay itself stays closed; what it points at and how it snaps carry over.
-        if (_hasGroups && editor.HasComponent<EditorGroupState>())
-        {
-            ref EditorGroupState groups = ref editor.GetComponent<EditorGroupState>();
-            groups.BarGroup = _groups.BarGroup;
-            groups.SoloGroup = _groups.SoloGroup;
-            groups.Snap = _groups.Snap;
-        }
 
         if (_selection.Count == 0 || !editor.HasComponent<NoteSelection>())
             return;
@@ -101,41 +82,6 @@ public sealed class EditorReturnState
 
         if (found.Count > 0)
             editor.GetComponent<NoteSelection>().SetMany(found);
-    }
-
-    /// <summary>
-    ///     A start at the playhead with the player where the last preview's path had
-    ///     them then; failing that, at the last start before it, or else the field's
-    ///     bottom middle, where a level begins.
-    /// </summary>
-    public static StartPoint StartAtPlayhead(
-        EntityStore entities,
-        LevelDocument document,
-        List<StartPoint> starts,
-        long playheadMs)
-    {
-        Vector2 position = new(document.PlayfieldWidth / 2f, document.PlayfieldHeight - Player.ScaledSize(1f).Y / 2f);
-        Vector2 direction = new(0, -1);
-        foreach (StartPoint start in starts)
-        {
-            if (start.TimeMs <= playheadMs)
-            {
-                position = start.Position;
-                direction = start.Direction;
-            }
-        }
-
-        Entity editor = FindEditor(entities);
-        if (!editor.IsNull && editor.TryGetComponent(out PlayerPath path))
-        {
-            foreach (PlayerPathSample sample in path.Samples)
-            {
-                if (sample.TimeMs <= playheadMs)
-                    position = sample.Position;
-            }
-        }
-
-        return new StartPoint("", playheadMs, position, Vector2.Zero, direction);
     }
 
     private static Entity FindEditor(EntityStore entities)

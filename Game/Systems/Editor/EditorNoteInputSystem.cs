@@ -22,7 +22,10 @@ namespace Xanadu.Systems.Editor;
 // Reads the pointer outside UI (BannedSymbols.txt): viewport: placing and dragging on the playfield, until the viewport has its own design.
 #pragma warning disable RS0030
 
-/// <summary>Adds, selects and drags notes in playfield coordinates; the timeline strip is the shared timeline's.</summary>
+/// <summary>
+/// Lays route notes, drags out dash and hold notes, and selects and drags notes,
+/// in playfield coordinates; the timeline strip is the shared timeline's.
+/// </summary>
 public sealed class EditorNoteInputSystem : QuerySystem<Note>
 {
     private readonly EntityStore _entities;
@@ -31,8 +34,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private readonly EditorSceneQuery _scene;
     private readonly EditorItemPicker _picker;
     private readonly EditorHoverProbe _hover;
-    private readonly EditorPolygonTool _polygonTool;
-    private readonly EditorCurvePointTool _curvePoints;
+    private readonly EditorRouteTool _routeTool;
 
     private bool _wasPressed;
 
@@ -41,15 +43,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     /// the next click on empty space places again rather than deselecting it.
     /// </summary>
     private Entity _placed;
-    private readonly EditorPlacementCreator _creator;
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
     private readonly Dictionary<int, Vector2> _dragStartPositions = new();
     private EditorSnapshot _dragBefore;
     private readonly NoteBox _box;
-    private readonly EditorPaintTool _paint;
-    private readonly EditorResizeTool _resize;
-    private readonly EditorRotationTool _rotation;
 
     public EditorNoteInputSystem(
         EntityStore entities,
@@ -62,12 +60,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _scene = new EditorSceneQuery(entities);
         _picker = new EditorItemPicker(_scene);
         _hover = new EditorHoverProbe(_scene, _picker);
-        _polygonTool = new EditorPolygonTool(_scene, _picker, history);
-        _curvePoints = new EditorCurvePointTool(_scene, history);
-        _paint = new EditorPaintTool(_scene, history);
-        _resize = new EditorResizeTool(_scene, history);
-        _rotation = new EditorRotationTool(_scene, history);
-        _creator = new EditorPlacementCreator(_scene, history);
+        _routeTool = new EditorRouteTool(_scene, history);
         _box = new NoteBox(this);
     }
 
@@ -77,14 +70,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         bool pressed = input.Pressed;
         Entity editor = _scene.Editor();
         bool picked = HasPickedSelection(editor);
-        _polygonTool.Update(editor);
-
-        if (_scene.IsGroupTargetEditing())
-        {
-            _hover.Update(input.Position, pressed, picked);
-            _wasPressed = pressed;
-            return;
-        }
+        _routeTool.Update(editor);
 
         if (pressed && !_wasPressed)
             OnPress(input.Position, input.Shift);
@@ -108,8 +94,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
         _box.Cancel(editor);
-        _resize.Cancel();
-        _curvePoints.Cancel();
 
         // The ruler strip is the shared timeline's (TimelineInputSystem, through EditorTimelineHost).
         if (EditorLayout.RulerRect(view).HasPoint(screenPosition))
@@ -126,19 +110,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
 
-        // The polygon tool takes every press on the field, even over items, so outlines can cross them.
-        if (_polygonTool.TryDraft(editor, screenPosition, view, playfield))
+        // A route being laid takes every press, even over notes: each one adds a turn.
+        if (_routeTool.Drafting(editor) && _routeTool.TryDraft(editor, screenPosition, view, playfield))
             return;
-
-        // Handles hang over the field's edge, so they get the press before the
-        // inside test would turn an edge drag away.
-        if (_rotation.TryBegin(screenPosition, editor, view) ||
-            _resize.TryBegin(screenPosition, editor, view) ||
-            _curvePoints.TryBegin(screenPosition, editor, view))
-        {
-            CancelDrag();
-            return;
-        }
 
         if (!PlayfieldGrid.IsInside(playfieldPosition, playfield))
             return;
@@ -146,17 +120,6 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Entity hit = _picker.FindItemAt(playfieldPosition, playhead.TimeMs);
 
         ref NoteSelection selection = ref editor.GetComponent<NoteSelection>();
-
-        // An empty spot with a block or spike tool starts a paint stroke instead
-        // of arming a placement, so dragging lays a run. Shift still box-selects,
-        // and a selection has to be cleared before anything new goes down.
-        if (hit.IsNull && !shift && EditorPaintTool.IsGridMode(editor) && !HasPickedSelection(editor))
-        {
-            Entity painted = _paint.Begin(editor, playfieldPosition, playfield);
-            if (!painted.IsNull)
-                _placed = painted;
-            return;
-        }
 
         if (!hit.IsNull)
         {
@@ -180,29 +143,64 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 if (EditorItems.IsItem(selected) &&
                     EditorItemPosition.TryGet(selected, out Vector2 selectedPosition))
                 {
-                    // Blocks and spikes are dragged by their corner, which is what snaps.
-                    _dragStartPositions[selected.Id] =
-                        GridPlacement.TryGet(selected, out Rect2 box, out _) ? box.Position : selectedPosition;
+                    _dragStartPositions[selected.Id] = selectedPosition;
                 }
             }
 
-            if (hit.HasComponent<Note>() &&
-                editor.HasComponent<EditorPlacement>())
-            {
-                Note selected = hit.GetComponent<Note>();
-                if (selected.Kind == NoteKind.Hit)
-                    editor.GetComponent<EditorPlacement>().Note = selected.Target;
-            }
+            // The key picker shows the picked note's key, so the next curve matches it.
+            if (hit.HasComponent<Note>() && editor.HasComponent<EditorPlacement>())
+                editor.GetComponent<EditorPlacement>().Note = hit.GetComponent<Note>().Target;
 
             return;
         }
 
-        // Shift-dragging adds to the selection; a plain press may place a note or
-        // clear the selection when released without dragging, or box-select when dragged.
+        // Shift-dragging adds to the selection; a plain press starts a curve, or
+        // clears the selection when released without dragging, or box-selects when dragged.
         if (shift)
             _box.BeginAdditive(screenPosition, selection.AllNotes);
+        else if (IsDragTool(editor) && !HasPickedSelection(editor))
+            StartDragDraft(editor, playfieldPosition, playhead, playfield);
         else
             _box.Arm(screenPosition);
+    }
+
+    /// <summary>Whether the current tool lays its note by pressing and dragging out (dash, hold).</summary>
+    private static bool IsDragTool(Entity editor) =>
+        editor.TryGetComponent(out EditorPlacement placement) &&
+        placement.Mode is EditorPlacementMode.Dash or EditorPlacementMode.Hold;
+
+    /// <summary>Puts a dash's or hold's head down at the snapped playhead; dragging then sets its length or tail.</summary>
+    private void StartDragDraft(Entity editor, Vector2 point, Playhead playhead, Playfield playfield)
+    {
+        if (editor.GetComponent<LevelInfo>().Song is null)
+        {
+            EditorWarningPopup.Request(editor, EditorWarningPopup.NoSongMessage);
+            return;
+        }
+
+        if (ViewportSnap.IsOn(_entities))
+            point = PlayfieldGrid.NearestCrossing(point, playfield);
+        ref EditorDragDraft draft = ref editor.GetComponent<EditorDragDraft>();
+        draft.Active = true;
+        draft.Mode = editor.GetComponent<EditorPlacement>().Mode;
+        draft.Head = point;
+        draft.Current = point;
+        draft.StartMs = EditorTiming.Snap(playhead.TimeMs, playhead);
+    }
+
+    /// <summary>Turns the dragged-out draft into a selected note, as one undo step.</summary>
+    private void FinishDragDraft(Entity editor, ref EditorDragDraft draft)
+    {
+        draft.Active = false;
+        if (EditorItems.WouldOverfill(_entities, editor))
+            return;
+
+        Note note = EditorPlacementNote.Build(editor, draft.StartMs, draft.Head, draft.Current);
+        EditorSnapshot before = _history.Capture();
+        Entity created = EditorItems.Place(_entities, note);
+        _history.Record(before, _history.Capture());
+        editor.GetComponent<NoteSelection>().Note = created;
+        _placed = created;
     }
 
     private void OnHold(Vector2 screenPosition, bool shift)
@@ -215,34 +213,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Playfield playfield = editor.GetComponent<Playfield>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
 
-        if (_rotation.Active)
+        if (editor.TryGetComponent(out EditorDragDraft dragDraft) && dragDraft.Active)
         {
-            _rotation.Update(screenPosition, shift, editor, view, playfield);
-            return;
-        }
-
-        if (_resize.Active)
-        {
-            _resize.Update(screenPosition, shift, view, playfield);
-            return;
-        }
-
-        if (_curvePoints.Active)
-        {
-            _curvePoints.Update(screenPosition, view, playfield);
+            Vector2 to = view.ScreenToPlayfield(screenPosition);
+            if (ViewportSnap.IsOn(_entities))
+                to = PlayfieldGrid.NearestCrossing(to, playfield);
+            editor.GetComponent<EditorDragDraft>().Current = to;
             return;
         }
 
         if (_box.Drag(editor, screenPosition))
             return;
-
-        if (_paint.Active)
-        {
-            Entity painted = _paint.Paint(editor, view.ScreenToPlayfield(screenPosition), playfield);
-            if (!painted.IsNull)
-                _placed = painted;
-            return;
-        }
 
         if (!EditorItems.IsItem(_draggedEntity) ||
             !EditorItemPosition.TryGet(_draggedEntity, out _))
@@ -262,19 +243,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             if (!EditorItems.IsItem(entity))
                 continue;
 
-            if (GridPlacement.TryGet(entity, out Rect2 box, out _))
-            {
-                bool snap = ViewportSnap.IsOn(_entities);
-                Vector2 corner = ItemKinds.Of(entity)!.SettleDrag(start + delta, box.Size, playfield, snap);
-                GridPlacement.SetBounds(entity, new Rect2(corner, box.Size));
-                continue;
-            }
-
             Vector2 target = new(
                 Math.Clamp(start.X + delta.X, 0, playfield.Width),
                 Math.Clamp(start.Y + delta.Y, 0, playfield.Height));
-            // Notes follow the snap button like blocks do, landing on grid crossings.
-            if (entity.HasComponent<Note>() && ViewportSnap.IsOn(_entities))
+            // Notes follow the snap button, landing on grid crossings.
+            if (ViewportSnap.IsOn(_entities))
                 target = PlayfieldGrid.NearestCrossing(target, playfield);
             EditorItemPosition.Set(entity, target);
         }
@@ -284,27 +257,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     {
         Entity editor = _scene.Editor();
 
-        if (_paint.Active)
+        if (!editor.IsNull && editor.TryGetComponent(out EditorDragDraft dragDraft) && dragDraft.Active)
         {
-            _paint.End(editor);
-            return;
-        }
-
-        if (_rotation.Active)
-        {
-            _rotation.End(editor);
-            return;
-        }
-
-        if (_resize.Active)
-        {
-            _resize.End();
-            return;
-        }
-
-        if (_curvePoints.Active)
-        {
-            _curvePoints.End();
+            FinishDragDraft(editor, ref editor.GetComponent<EditorDragDraft>());
             return;
         }
 
@@ -324,8 +279,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            _creator.Create(editor, _box.Start);
-            _placed = editor.GetComponent<NoteSelection>().Note;
+            // A click on empty field starts a route there, with the route tool.
+            if (editor.GetComponent<EditorPlacement>().Mode != EditorPlacementMode.Curve)
+                return;
+            PlayfieldView view = editor.GetComponent<PlayfieldView>();
+            _routeTool.TryDraft(editor, _box.Start, view, editor.GetComponent<Playfield>());
             return;
         }
 

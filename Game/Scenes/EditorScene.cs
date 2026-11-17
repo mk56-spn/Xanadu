@@ -43,14 +43,10 @@ public static class EditorScene
         editor.AddComponent(new UiMarqueeBox());
         editor.AddComponent(new WaveformPreview(""));
         editor.AddComponent(new EditorPlacement());
-        editor.AddComponent(new EditorPolygonDraft());
+        editor.AddComponent(new EditorRouteDraft());
+        editor.AddComponent(new EditorDragDraft());
         editor.AddComponent(new EditorPlacementGhost());
         editor.AddComponent(new EditorUiRequest());
-        editor.AddComponent(LevelGroups.Create());
-        editor.AddComponent(EditorGroupState.Closed);
-        editor.AddComponent(EditorLayers.Create());
-        editor.AddComponent(LevelLayers.Create());
-        editor.AddComponent(LevelShaders.Create());
 
         if (parent is { } root)
             root.AddChild(editor);

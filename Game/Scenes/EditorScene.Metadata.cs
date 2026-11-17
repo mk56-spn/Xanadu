@@ -26,9 +26,6 @@ public static class EditorSceneMetadata
         Playhead playhead = editor.GetComponent<Playhead>();
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
-        EditorSceneGroups.BuildGroupOverlay(entities, root, screen);
-        EditorSceneGroups.BuildGroupBar(entities, root, editor, screen);
-
         // Popups sit above the chrome (960) and below the header menus (970).
         UiNode panelUi = UiNode.Layer(entities, root, UiLayers.EditorMetadata, null, UiStage.Full);
         Vector2 home = new(
@@ -148,22 +145,8 @@ public static class EditorSceneMetadata
             "MOUSE WHEEL            Seek 500 ms",
             "SHIFT + WHEEL          Seek 2 seconds",
             "CTRL + WHEEL           Zoom field, or timeline over it",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Notes),-23}Place action notes",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Neutral),-23}Place neutral notes",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Dash),-23}Place dash notes",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Momentum),-23}Place momentum notes",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Contact),-23}Place contact barriers",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Mines),-23}Place mines",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.FrictionBar),-23}Place friction fields",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Blocks),-23}Place blocks (drag to paint)",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Spikes),-23}Place spikes (drag to paint)",
-            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Text),-23}Place text (edit it in the sidebar)",
-            $"{"GRASS TOOL",-23}Place grass (tune it in the sidebar)",
-            $"{"POLYGON TOOL",-23}Click points; first point or ENTER closes, ESC drops",
-            "R                      Rotate selection a quarter turn",
-            "H / V                  Flip selection across / up and down",
-            "O                      Make selected blocks one-way",
-            "L                      Make selected blocks ramps (right, left, off)",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Curve),-23}Curve tool: click the head, then each point",
+            "ENTER / ESC            Finish / drop the curve being laid",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo (or CTRL+SHIFT+Z)",
             "CTRL+S                 Save",

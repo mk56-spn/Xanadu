@@ -20,11 +20,6 @@ public enum EditorCommandType
     LoadSong,
     LoadSongById,
     DeleteSelection,
-    RotateSelection,
-    FlipSelection,
-    CycleOneWay,
-    CycleSlope,
-    MoveInLayer,
     CopySelection,
     PasteSelection,
     SetTarget,
@@ -35,14 +30,6 @@ public enum EditorCommandType
     ApplyLevel,
     RecoverLevel,
     SetLevelFile,
-    ImportShader,
-    RemoveShader,
-    AssignShader,
-    SetPlayerShader,
-    SetFieldShader,
-    SetBackgroundColor,
-    SetOutsideColor,
-    SetFrameColor
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -91,22 +78,6 @@ public readonly record struct EditorCommand(
     public static EditorCommand DeleteSelection() =>
         new(EditorCommandType.DeleteSelection);
 
-    public static EditorCommand RotateSelection() =>
-        new(EditorCommandType.RotateSelection);
-
-    public static EditorCommand FlipSelection(bool horizontal) =>
-        new(EditorCommandType.FlipSelection, IntValue: horizontal ? 1 : 0);
-
-    public static EditorCommand CycleOneWay() =>
-        new(EditorCommandType.CycleOneWay);
-
-    public static EditorCommand CycleSlope() =>
-        new(EditorCommandType.CycleSlope);
-
-    /// <summary>Moves the selection one place forward (+1) or back (-1) through its layer.</summary>
-    public static EditorCommand MoveInLayer(int direction) =>
-        new(EditorCommandType.MoveInLayer, IntValue: direction);
-
     public static EditorCommand CopySelection() =>
         new(EditorCommandType.CopySelection);
 
@@ -138,33 +109,4 @@ public readonly record struct EditorCommand(
     public static EditorCommand SetLevelFile(string path) =>
         new(EditorCommandType.SetLevelFile, path);
 
-    /// <summary>Puts shader source into a 1-based slot, replacing what was there.</summary>
-    public static EditorCommand ImportShader(int slot, string name, string source) =>
-        new(EditorCommandType.ImportShader, name, slot, Text2: source);
-
-    /// <summary>Empties a slot and takes the shader off everything that used it.</summary>
-    public static EditorCommand RemoveShader(int slot) =>
-        new(EditorCommandType.RemoveShader, IntValue: slot);
-
-    /// <summary>Sets the shader of the selected items; 0 takes it off.</summary>
-    public static EditorCommand AssignShader(int slot) =>
-        new(EditorCommandType.AssignShader, IntValue: slot);
-
-    public static EditorCommand SetPlayerShader(int slot) =>
-        new(EditorCommandType.SetPlayerShader, IntValue: slot);
-
-    public static EditorCommand SetFieldShader(int slot) =>
-        new(EditorCommandType.SetFieldShader, IntValue: slot);
-
-    /// <summary>Sets the playfield background; null returns it to the theme default.</summary>
-    public static EditorCommand SetBackgroundColor(Color? color) =>
-        new(EditorCommandType.SetBackgroundColor, ColorValue: color);
-
-    /// <summary>Sets the colour around the playfield; null returns it to the theme default.</summary>
-    public static EditorCommand SetOutsideColor(Color? color) =>
-        new(EditorCommandType.SetOutsideColor, ColorValue: color);
-
-    /// <summary>Sets the playfield's frame and border line; null returns them to the theme default.</summary>
-    public static EditorCommand SetFrameColor(Color? color) =>
-        new(EditorCommandType.SetFrameColor, ColorValue: color);
 }

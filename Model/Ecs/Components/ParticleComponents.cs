@@ -39,8 +39,11 @@ public static class GameParticles
     /// </summary>
     public const string DashLeaf = "dash-leaf";
 
+    /// <summary>Soft dots puffing out of the hovering body's bottom and fading, so something holds it up; white, so the tint gives them the body's colour.</summary>
+    public const string Thrust = "thrust";
+
     /// <summary>Every name above, which the library must hold for gameplay to look right.</summary>
-    public static readonly string[] All = { Landing, Dash, Hit, DashStreak, Shatter, Ember, DashLeaf };
+    public static readonly string[] All = { Landing, Dash, Hit, DashStreak, Shatter, Ember, DashLeaf, Thrust };
 }
 
 /// <summary>

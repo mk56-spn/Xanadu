@@ -59,7 +59,7 @@ public struct BenchBody : IComponent
 {
     public Vector2 Position;
 
-    /// <summary>The point on the curve nearest the body, the one the line pulls toward; only meaningful while <see cref="OnCurve"/>.</summary>
+    /// <summary>The curve's point at the song time, the one the body chases; only meaningful while <see cref="OnCurve"/>.</summary>
     public Vector2 Target;
 
     public bool OnCurve;

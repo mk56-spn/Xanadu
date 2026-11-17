@@ -2,7 +2,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
@@ -20,49 +19,21 @@ public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tool
 /// <summary>The tool strip's buttons, top to bottom, and the tools each one holds.</summary>
 public static class EditorToolGroups
 {
-    /// <summary>The strip the editor shows: the classic tools, or the curve rework's single curve tool (<see cref="PlayRules"/>).</summary>
-    public static readonly EditorToolGroupInfo[] All = PlayRules.Classic ? Classic : Rework;
-
-    /// <summary>The curve rework: curve notes are the only thing to place; the floor is built in.</summary>
-    private static EditorToolGroupInfo[] Rework => new EditorToolGroupInfo[]
+    /// <summary>The strip the editor shows: route notes, dashes and holds.</summary>
+    public static readonly EditorToolGroupInfo[] All =
     {
         new("Curves", new EditorTool[]
         {
-            new(EditorPlacementMode.Curve, "~", "Curve notes: click the points (each takes the 1×/2×/3× speed picked), then the last again or Enter; Esc drops it"),
+            new(EditorPlacementMode.Curve, "~", "Curve notes: click the head, then each point (each takes the 1×/2×/3× speed picked), then the last again or Enter; Esc drops it"),
         }),
-    };
-
-    /// <summary>The classic tools, unplugged while the curve rework is on.</summary>
-    private static EditorToolGroupInfo[] Classic => new EditorToolGroupInfo[]
-    {
-        new("Notes", new EditorTool[]
+        new("Dash", new EditorTool[]
         {
-            new(EditorPlacementMode.Notes, "🎵", "Action notes: one colour per action key"),
-            new(EditorPlacementMode.Neutral, "○", "Neutral notes: any action key; under Contact, the key loads its bar"),
-            new(EditorPlacementMode.Dash, "➜", "Dash notes: the player picks the way"),
-            new(EditorPlacementMode.Momentum, "M", "Momentum notes: the player picks the way"),
-            new(EditorPlacementMode.Contact, "◎", "Contact barriers"),
-            new(EditorPlacementMode.Wall, "▮", "Wall notes: set one on a wall's face; touched on its beat, the player sticks and slides down"),
+            new(EditorPlacementMode.Dash, "»", "Dash notes: press where it goes and drag out how far it teleports; the player's direction key picks the way"),
         }),
-        new("Start points", new EditorTool[] { new(EditorPlacementMode.Start, "⚑", "Start points") }),
-        new("Blocks", new EditorTool[] { new(EditorPlacementMode.Blocks, "■", "Blocks") }),
-        new("Spikes and mines", new EditorTool[]
+        new("Hold", new EditorTool[]
         {
-            new(EditorPlacementMode.Spikes, "▲", "Spikes"),
-            new(EditorPlacementMode.Mines, "✹", "Mines"),
-            new(EditorPlacementMode.FrictionBar, "┃", "Friction fields: crossing one turns the ground's friction on, so a slide stops past it"),
+            new(EditorPlacementMode.Hold, "H", "Hold notes: press the head and drag to where the tail sits; the length in beats is set in the tool panel"),
         }),
-        new("Text and screen reads", new EditorTool[]
-        {
-            new(EditorPlacementMode.Text, "T", "Text"),
-            new(EditorPlacementMode.ScreenRead, "▭", "Screen-read regions: a rect that refreshes the screen read where it is reached"),
-        }),
-        new("Decorations", new EditorTool[]
-        {
-            new(EditorPlacementMode.Grass, "🌿", "Grass"),
-            new(EditorPlacementMode.Flare, "✦", "Flares: a shader-drawn lens flare along one or two axes"),
-        }, Icon: "❖"),
-        new("Polygons", new EditorTool[] { new(EditorPlacementMode.Polygon, "⬟", "Polygons: click the points, then the first again or Enter; Esc drops it") }),
     };
 
     /// <summary>The icon the strip shows for a group: its own when it has one, else its current tool's when that is in it, else its first tool's.</summary>

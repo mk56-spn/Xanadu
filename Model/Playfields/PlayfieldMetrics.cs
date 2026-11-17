@@ -61,43 +61,4 @@ public static class PlayfieldMetrics
             DashStrength.Triple => "×3",
             _ => "",
         };
-
-    /// <summary>A bar's box on screen.</summary>
-    public static Rect2 FrictionBarScreenBounds(FrictionBar bar, PlayfieldView view) =>
-        new(view.PlayfieldToScreen(bar.Position), bar.Bounds.Size * view.Scale);
-
-    /// <summary>The upright box around a polygon item, on screen.</summary>
-    public static Rect2 PolygonScreenBounds(LevelPolygon polygon, PlayfieldView view)
-    {
-        Rect2 bounds = polygon.Bounds;
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
-
-    /// <summary>The upright box around a grass patch's turned box, on screen.</summary>
-    public static Rect2 GrassScreenBounds(GrassPatch patch, PlayfieldView view)
-    {
-        Rect2 bounds = TurnedBox.Hull(patch.Bounds, patch.RotationDegrees);
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
-
-    /// <summary>The upright box around a flare's turned box, on screen.</summary>
-    public static Rect2 FlareScreenBounds(LevelFlare flare, PlayfieldView view)
-    {
-        Rect2 bounds = TurnedBox.Hull(flare.Bounds, flare.RotationDegrees);
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
-
-    /// <summary>The box a level text roughly fills before it is turned, on screen.</summary>
-    public static Rect2 TextScreenBounds(LevelText text, PlayfieldView view)
-    {
-        Rect2 bounds = text.Bounds;
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
-
-    /// <summary>The upright box around a level text as it is turned, on screen, for box selection.</summary>
-    public static Rect2 TextScreenHull(LevelText text, PlayfieldView view)
-    {
-        Rect2 bounds = TurnedBox.Hull(text.Bounds, text.RotationDegrees);
-        return new Rect2(view.PlayfieldToScreen(bounds.Position), bounds.Size * view.Scale);
-    }
 }

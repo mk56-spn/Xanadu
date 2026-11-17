@@ -51,12 +51,6 @@ public sealed class AppShortcutSystem(
     {
         switch (chord.Key)
         {
-            case Key.Bracketleft:
-                scenes.CyclePreviewStart(-1);
-                break;
-            case Key.Bracketright:
-                scenes.CyclePreviewStart(1);
-                break;
             case Key.Escape:
                 scenes.TryBack();
                 break;

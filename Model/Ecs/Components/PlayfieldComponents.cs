@@ -148,42 +148,7 @@ public struct PlayCamera(Rect2 viewport) : IComponent
     public readonly Rect2 Visible => new(Viewport.Position + Offset, Viewport.Size);
 }
 
-/// <summary>
-/// What a note does. Action notes are hit with F, Space or J: a coloured
-/// <see cref="Hit"/> note with its own key, a <see cref="Neutral"/> note with any.
-/// Directional notes (<see cref="Dash"/>, <see cref="Momentum"/>) are hit with a
-/// direction key and carry only their strength; the player picks the way.
-/// A <see cref="Contact"/> barrier is a check, not a press.
-/// </summary>
-public enum NoteKind
-{
-    Hit,
-    Neutral,
-    Dash,
-    Momentum,
-    Contact,
-
-    /// <summary>
-    /// A flat note embedded on a wall. Touching it on its beat sticks the
-    /// player to the wall, sliding down (<see cref="Xanadu.Systems.Playfields.WallSlideSystem"/>).
-    /// </summary>
-    Wall,
-}
-
-/// <summary>The eight ways a directional note can send the player, clockwise from up.</summary>
-public enum DashDirection
-{
-    Up,
-    UpRight,
-    Right,
-    DownRight,
-    Down,
-    DownLeft,
-    Left,
-    UpLeft,
-}
-
-/// <summary>How far a dash note carries the player: one, two or three dash lengths.</summary>
+/// <summary>The three speed buttons: which fixed speed a route runs at (<see cref="NoteRoute.SpeedOf"/>).</summary>
 public enum DashStrength
 {
     Single,
@@ -192,300 +157,62 @@ public enum DashStrength
 }
 
 /// <summary>
-/// What a Contact barrier asks of each bar, one bar per action key. A barrier
-/// asks at most <see cref="MaxCost"/> of a bar and of at most
-/// <see cref="MaxBars"/> bars.
+/// A hold note's tail: when it ends, ms after the head, and where the tail sits
+/// from the head. The bar between them is only for looks; the hold only checks the key stays down.
 /// </summary>
-public struct BarCosts(int first = 0, int second = 0, int third = 0)
+public readonly record struct NoteHold(long TailMs, Vector2 Tail)
 {
-    public const int MaxCost = 4;
-    public const int MaxBars = 2;
-
-    public int First = first;
-    public int Second = second;
-    public int Third = third;
-
-    /// <summary>The cost for bar 0, 1 or 2.</summary>
-    public int this[int bar]
-    {
-        readonly get => bar switch { 0 => First, 1 => Second, _ => Third };
-        set
-        {
-            if (bar == 0) First = value;
-            else if (bar == 1) Second = value;
-            else Third = value;
-        }
-    }
-
-    /// <summary>How many bars this barrier asks anything of.</summary>
-    public readonly int UsedBars => (First > 0 ? 1 : 0) + (Second > 0 ? 1 : 0) + (Third > 0 ? 1 : 0);
-
-    /// <summary>
-    /// Sets one bar's cost inside the limits: no more than <see cref="MaxCost"/>,
-    /// and a new bar only while fewer than <see cref="MaxBars"/> are in use.
-    /// </summary>
-    public readonly BarCosts With(int bar, int cost)
-    {
-        BarCosts next = this;
-        cost = System.Math.Clamp(cost, 0, MaxCost);
-        if (cost > 0 && this[bar] == 0 && UsedBars >= MaxBars)
-            return this;
-        next[bar] = cost;
-        return next;
-    }
+    /// <summary>The shortest hold, ms.</summary>
+    public const long MinTailMs = 1;
 }
 
+/// <summary>
+/// A note: an action note, hit with its key on its time. A route note also
+/// carries a <see cref="NoteRoute"/>: hitting its head with a direction key sends the body down it.
+/// A dash note (<see cref="DashLength"/> above 0) is hit with any direction key and teleports the
+/// body that far that way from the note. A hold note (<see cref="Hold"/>) is held with its key to its tail.
+/// </summary>
 public struct Note(
     long timeMs,
     Vector2 position,
     KeybindAction target = KeybindAction.Action1,
-    NoteKind kind = NoteKind.Hit,
-    DashStrength dashStrength = DashStrength.Single,
-    float momentum = Note.DefaultMomentum,
-    bool diagonal = false,
-    BarCosts costs = default,
-    NotePath? path = null) : IComponent
+    NoteRoute? route = null,
+    float dashLength = 0f,
+    NoteHold? hold = null) : IComponent
 {
-    /// <summary>
-    /// A momentum note's speed, in playfield units per second. The tuning
-    /// default is a single dash-length shove; charts can author any value.
-    /// </summary>
-    public const float DefaultMomentum = 600f;
-
     public long TimeMs = timeMs;
     public Vector2 Position = position;
 
-    /// <summary>The action key a coloured <see cref="NoteKind.Hit"/> note asks for; ignored by other kinds.</summary>
+    /// <summary>The action key the note asks for (a hold's key too); a dash takes any direction key instead.</summary>
     public KeybindAction Target = target;
 
-    public NoteKind Kind = kind;
-
-    /// <summary>A dash note's distance; ignored by other kinds.</summary>
-    public DashStrength DashStrength = dashStrength;
-
-    /// <summary>A momentum note's speed in playfield units per second; ignored by other kinds.</summary>
-    public float Momentum = momentum;
-
     /// <summary>
-    /// A directional note drawn as a rhombus: it turns the pressed direction 45°
-    /// clockwise, so up becomes up-right. Ignored by other kinds.
+    /// A route note's turns: hitting the head (this note) with a direction key
+    /// sends the body down the route that way from <see cref="TimeMs"/>; a miss
+    /// leaves the body alone. Null on a plain note.
     /// </summary>
-    public bool Diagonal = diagonal;
+    public NoteRoute? Route = route;
 
-    /// <summary>What a Contact barrier asks of each bar; ignored by other kinds.</summary>
-    public BarCosts Costs = costs;
+    /// <summary>A dash note's teleport distance, playfield units; 0 on every other note.</summary>
+    public float DashLength = dashLength;
 
-    /// <summary>
-    /// A curve note's path: hitting the head (this note) steers the body along
-    /// it from <see cref="TimeMs"/>; a miss leaves the body alone. Its first
-    /// point is always <see cref="Position"/>. Null on every other note.
-    /// </summary>
-    public NotePath? Path = path;
+    /// <summary>A hold note's tail; null on every other note.</summary>
+    public NoteHold? Hold = hold;
 
-    public readonly bool IsCurve => Path is { Count: >= NotePath.MinPoints };
-}
+    public readonly bool IsRoute => Route is not null;
 
-/// <summary>A mine hazard placed in playfield coordinates.</summary>
-public struct Mine(
-    long timeMs,
-    Vector2 position,
-    long fadeInMs = 600,
-    long fadeOutMs = 600) : IComponent
-{
-    public long TimeMs = timeMs;
-    public Vector2 Position = position;
-    public long FadeInMs = fadeInMs;
-    public long FadeOutMs = fadeOutMs;
-}
+    public readonly bool IsDash => DashLength > 0f;
 
-/// <summary>
-/// Text written into a level: a centred label on the playfield, turned about
-/// its centre. It has no timing of its own; groups fade and move it like any
-/// other item.
-/// </summary>
-public struct LevelText(Vector2 position, string text, float size = LevelText.DefaultSize, float rotationDegrees = 0f) : IComponent
-{
-    public const float DefaultSize = 64f;
-    public const float MinSize = 16f;
-    public const float MaxSize = 512f;
+    public readonly bool IsHold => Hold is not null;
 
-    /// <summary>The text placed with the text tool, until it is retyped.</summary>
-    public const string Placeholder = "TEXT";
+    /// <summary>When the note is over: a route's end, a hold's tail, else the note's own time.</summary>
+    public readonly long EndMs =>
+        Route is { } route ? TimeMs + route.DurationMs :
+        Hold is { } hold ? TimeMs + hold.TailMs :
+        TimeMs;
 
-    /// <summary>The centre of the text, in playfield units.</summary>
-    public Vector2 Position = position;
-
-    public string Text = text;
-
-    /// <summary>The height of a line, in playfield units.</summary>
-    public float Size = size;
-
-    /// <summary>How far the text is turned about its centre, clockwise, in degrees.</summary>
-    public float RotationDegrees = rotationDegrees;
-
-    /// <summary>
-    /// The box the text roughly fills before it is turned, in playfield units: wide enough for its
-    /// characters at an average glyph width, so it can be picked and outlined.
-    /// </summary>
-    public readonly Rect2 Bounds
-    {
-        get
-        {
-            int length = string.IsNullOrEmpty(Text) ? 1 : Text.Length;
-            var size = new Vector2(Size * 0.66f * length, Size * 1.25f);
-            return new Rect2(Position - size / 2, size);
-        }
-    }
-}
-
-/// <summary>
-/// A spike tile in playfield coordinates. It is permanent geometry, never
-/// timed: touching it kills the player on contact.
-/// </summary>
-public struct Spike(
-    Vector2 position,
-    Vector2 size,
-    float rotationDegrees = 0f,
-    float outlineWidth = Block.DefaultOutlineWidth,
-    Color? outlineColor = null) : IComponent
-{
-    /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
-    public Vector2 Position = position;
-
-    public Vector2 Size = size;
-
-    /// <summary>Where the tip points, in degrees clockwise from up. Any angle: a spike is not a physics body.</summary>
-    public float RotationDegrees = rotationDegrees;
-
-    /// <summary>Outline thickness in playfield units, drawn inside the triangle; 0 is no outline.</summary>
-    public float OutlineWidth = outlineWidth;
-
-    /// <summary>The outline's own colour, as with a block's. The interior's is the spike's <see cref="SelfModulate"/>.</summary>
-    public Color OutlineColor = outlineColor ?? Block.DefaultOutlineColor;
-
-    public readonly Vector2 Center => Position + Size / 2;
-
-    public readonly Rect2 Bounds => new(Position, Size);
-
-    /// <summary>Whether a playfield point is inside the spike's turned box.</summary>
-    public readonly bool Contains(Vector2 point) =>
-        Bounds.HasPoint(Center + (point - Center).Rotated(-Mathf.DegToRad(RotationDegrees)));
-}
-
-/// <summary>
-/// A friction bar: an upright line in playfield coordinates. The ground has
-/// no friction, so a slide carries on at its speed; crossing a bar turns the
-/// ground's friction on, and the player slows to a stop past it. The next
-/// momentum push turns friction off again.
-/// </summary>
-public struct FrictionBar(Vector2 position, float height) : IComponent
-{
-    /// <summary>How wide the bar is drawn and picked, in playfield units.</summary>
-    public const float Thickness = 12f;
-
-    /// <summary>Top-left corner of its box.</summary>
-    public Vector2 Position = position;
-
-    public float Height = height;
-
-    /// <summary>The line the player crosses.</summary>
-    public readonly float X => Position.X + Thickness / 2;
-
-    public readonly Vector2 Center => Position + new Vector2(Thickness, Height) / 2;
-
-    public readonly Rect2 Bounds => new(Position, new Vector2(Thickness, Height));
-}
-
-/// <summary>
-/// The one side of a block the player collides with; every other side lets it
-/// through. Up is the usual platform: land on it, jump up through it. The
-/// directions run clockwise from Up, the same order as spike turns.
-/// </summary>
-public enum BlockOneWay
-{
-    Off,
-    Up,
-    Right,
-    Down,
-    Left,
-}
-
-/// <summary>
-/// A block cut into a ramp: the solid half under the diagonal of its box. Up
-/// right rises to the right (the box's bottom-left corner to its top-right);
-/// up left the other way. Landing on the ramp slides the player down it at one
-/// speed, the same for every slope (<see cref="Xanadu.Systems.Physics.SlopeSlideSystem"/>).
-/// </summary>
-public enum BlockSlope
-{
-    Off,
-    UpRight,
-    UpLeft,
-}
-
-/// <summary>
-/// Static level geometry in playfield coordinates. Blocks never move in play;
-/// they are there so the player collides with them.
-/// </summary>
-public struct Block(
-    Vector2 position,
-    Vector2 size,
-    BlockOneWay oneWay = BlockOneWay.Off,
-    float outlineWidth = Block.DefaultOutlineWidth,
-    Color? outlineColor = null,
-    uint fillGroups = Block.AllGroups,
-    uint outlineGroups = Block.AllGroups,
-    BlockSlope slope = BlockSlope.Off) : IComponent
-{
-    public const float DefaultOutlineWidth = 3f;
-    public const float MaxOutlineWidth = 32f;
-
-    /// <summary>A colour link mask that follows every group the block is in.</summary>
-    public const uint AllGroups = uint.MaxValue;
-
-    /// <summary>A slightly darker white than the default white body, shared with spikes.</summary>
-    public static readonly Color DefaultOutlineColor = new(0.84f, 0.84f, 0.86f);
-
-    /// <summary>Top-left corner, so both edges can sit on grid lines.</summary>
-    public Vector2 Position = position;
-
-    public Vector2 Size = size;
-
-    /// <summary>The only side that collides, or Off for a block solid all round.</summary>
-    public BlockOneWay OneWay = oneWay;
-
-    /// <summary>Outline thickness in playfield units, drawn inside the block; 0 is no outline.</summary>
-    public float OutlineWidth = outlineWidth;
-
-    /// <summary>The outline's own colour. The interior's is the block's <see cref="SelfModulate"/>.</summary>
-    public Color OutlineColor = outlineColor ?? DefaultOutlineColor;
-
-    /// <summary>The groups whose colour fades reach the interior; only groups the block is in count.</summary>
-    public uint FillGroups = fillGroups;
-
-    /// <summary>The groups whose colour fades reach the outline; only groups the block is in count.</summary>
-    public uint OutlineGroups = outlineGroups;
-
-    /// <summary>Off for a box; otherwise the block is a ramp.</summary>
-    public BlockSlope Slope = slope;
-
-    public readonly Vector2 Center => Position + Size / 2;
-
-    public readonly Vector2 End => Position + Size;
-
-    public readonly Rect2 Bounds => new(Position, Size);
-
-    /// <summary>
-    /// A ramp's three corners in a box at <paramref name="topLeft"/> of
-    /// <paramref name="size"/>, y down: the two bottom corners and the high one.
-    /// </summary>
-    public static Vector2[] RampCorners(Vector2 topLeft, Vector2 size, BlockSlope slope)
-    {
-        Vector2 bottomLeft = topLeft + new Vector2(0, size.Y);
-        Vector2 bottomRight = topLeft + size;
-        Vector2 high = slope == BlockSlope.UpRight ? topLeft + new Vector2(size.X, 0) : topLeft;
-        return [bottomLeft, bottomRight, high];
-    }
+    /// <summary>Where a hold's tail sits on the field; the note itself for any other note.</summary>
+    public readonly Vector2 TailPosition => Hold is { } hold ? Position + hold.Tail : Position;
 }
 
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>
@@ -498,35 +225,4 @@ public enum PlayfieldKind
 public struct PlayfieldMode(PlayfieldKind kind) : IComponent
 {
     public PlayfieldKind Kind = kind;
-}
-
-/// <summary>
-/// On a play playfield: notes approach the DIVA+ way from the notes lab — a
-/// target with a clock hand, the note flying in onto it, and a spark running
-/// the guide line. Always on in play.
-/// </summary>
-public struct DivaNotes : ITag;
-
-/// <summary>The play HUD label that names the ground mode.</summary>
-public struct GroundModeHud(Entity label) : IComponent
-{
-    public Entity Label = label;
-}
-
-/// <summary>
-/// The DIVA+ guide spark's leg: the last hit moment it leaves from and the
-/// moment it runs to. Hit notes are deleted, so the moment just hit is
-/// remembered here. Positions are playfield units, where the notes were shown.
-/// </summary>
-public struct DivaSpark : IComponent
-{
-    public bool HasFrom;
-    public long FromMs;
-    public Vector2 From;
-    public bool FromChord;
-
-    public bool HasNext;
-    public long NextMs;
-    public Vector2 Next;
-    public bool NextChord;
 }

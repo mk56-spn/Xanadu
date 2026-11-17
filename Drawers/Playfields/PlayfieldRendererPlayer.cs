@@ -1,90 +1,74 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 using Position = Xanadu.Core.Position;
 using static Xanadu.Model.Playfields.PlayfieldColors;
-using static Xanadu.Model.Playfields.PlayfieldMetrics;
-using Xanadu.Model.Playfields;
 
 namespace Xanadu.Drawers.Playfields;
 
 public static partial class PlayfieldRenderer
 {
+    /// <summary>The player: the hovering blue body, 1 wide by 2.5 tall, where the curve player put it, leaning toward where it heads (<see cref="PlayRules.Tilt"/>) and bobbing slightly (<see cref="PlayRules.Bob"/>).</summary>
     public static void DrawPlayer(
         IRectCanvas canvas,
         Handle rid,
         EntityStore entities,
         PlayfieldView view)
     {
-        foreach (Entity entity in entities.Cached<Player, Position>().ToEntityList())
+        // One player at most.
+        foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
         {
-            if (entity.Tags.Has<PlayerShattered>())
-            {
-                return;
-            }
-
-            Player player = entity.GetComponent<Player>();
-            Vector2 center = PlayerSmoothing.DrawnPosition(entity);
+            Vector2 center = entity.GetComponent<Position>().Value;
             if (entity.TryGetComponent(out PlayCamera camera))
                 center += camera.Subpixel;
-            Vector2 size = player.Size;
 
-            // The curve rework's player is the hovering blue square.
-            if (!PlayRules.Classic)
-            {
-                float side = PlayRules.SquareSize * view.Scale;
-                var square = new Rect2(center - new Vector2(side, side) / 2, new Vector2(side, side));
-                canvas.DrawRect(rid, square, SquareFill);
-                canvas.DrawBorder(rid, square, SquareEdge, 2);
-                return;
-            }
+            Vector2 half = PlayRules.BodySize * view.Scale / 2;
+            if (entity.TryGetComponent(out BodyTrace trace))
+                DrawBodyTrace(canvas, rid, trace.Points, view, center);
 
-            // The character rig's art stands in for the box once it is on screen.
-            if (entity.Tags.Has<CharacterRigVisible>())
-                return;
-
-            var bounds = new Rect2(
-                center - size / 2,
-                size);
-
-            float alpha = PlayerDropIn.Alpha(entity);
+            bool moved = entity.TryGetComponent(out CurveBody curveBody);
+            float alpha = moved ? curveBody.Alpha : 1f;
             if (alpha <= 0f)
-                return;
+                continue;
+            if (moved)
+                center.Y += PlayRules.Bob(curveBody.SongMs) * view.Scale;
 
-            Color fill = PlayerColor;
-            Color border = QueueColor;
-            fill.A *= alpha;
-            border.A *= alpha;
-            canvas.DrawRect(rid, bounds, fill);
-            canvas.DrawBorder(rid, bounds, border, 2);
-            return;
+            float tilt = moved ? PlayRules.Tilt(curveBody.Velocity) : 0f;
+            float cos = MathF.Cos(tilt);
+            float sin = MathF.Sin(tilt);
+            Span<Vector2> corners = stackalloc Vector2[5];
+            corners[0] = center + Turn(-half.X, -half.Y);
+            corners[1] = center + Turn(half.X, -half.Y);
+            corners[2] = center + Turn(half.X, half.Y);
+            corners[3] = center + Turn(-half.X, half.Y);
+            corners[4] = corners[0];
+            canvas.DrawPolygon(rid, corners[..4], Faded(BodyFill, alpha));
+            canvas.DrawPolyline(rid, corners, Faded(BodyEdge, alpha), 2);
+
+            Vector2 Turn(float x, float y) => new(x * cos - y * sin, x * sin + y * cos);
+            static Color Faded(Color color, float alpha) => new(color.R, color.G, color.B, color.A * alpha);
         }
     }
 
     /// <summary>
-    /// The see-through boxes a player without rig art leaves when it hits a
-    /// note; the rig draw system draws the rest as copies of the art.
+    /// The line the body's centre has run along: in an editor preview up to where it is now
+    /// (<paramref name="center"/>, shifted like the body), and back in the editor the last preview's whole line.
     /// </summary>
-    public static void DrawHitGhosts(IRectCanvas canvas, Handle rid, EntityStore entities)
+    public static void DrawBodyTrace(IRectCanvas canvas, Handle rid, List<Vector2>? points, PlayfieldView view, Vector2? center = null)
     {
-        foreach (Entity entity in entities.Cached<HitGhost>().ToEntityList())
-        {
-            if (entity.Tags.Has<HitGhostRigged>())
-                continue;
+        if (points is null || points.Count + (center is null ? 0 : 1) < 2)
+            return;
 
-            HitGhost ghost = entity.GetComponent<HitGhost>();
-            float alpha = ghost.Alpha;
-            if (alpha <= 0f)
-                continue;
-
-            var bounds = new Rect2(ghost.Center - ghost.Size / 2, ghost.Size);
-            canvas.DrawRect(rid, bounds, PlayerColor with { A = PlayerColor.A * alpha });
-            canvas.DrawBorder(rid, bounds, QueueColor with { A = QueueColor.A * alpha }, 2);
-        }
+        var screen = new Vector2[points.Count + (center is null ? 0 : 1)];
+        for (int i = 0; i < points.Count; i++)
+            screen[i] = view.PlayfieldToScreen(points[i]);
+        if (center is Vector2 end)
+            screen[^1] = end;
+        Color edge = BodyEdge;
+        canvas.DrawPolyline(rid, screen, new Color(edge.R, edge.G, edge.B, edge.A * 0.6f), 2);
     }
-
-
 }

@@ -116,6 +116,9 @@ public static class Palette
     /// <summary>A lighter primary for secondary lanes and calm analysis states.</summary>
     public static readonly Color PrimarySoft = new("#3b82f6");
 
+    /// <summary>A deep navy, well darker than <see cref="PrimarySoft"/>: the playfield's backdrop, so the blue body stands out on blue instead of on black.</summary>
+    public static readonly Color DeepBlue = new("#0b1733");
+
     /// <summary>A deeper primary for occupied cells and pressed states.</summary>
     public static readonly Color PrimaryDeep = new("#1d4ed8");
 

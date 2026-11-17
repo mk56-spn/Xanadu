@@ -11,17 +11,15 @@ namespace Xanadu.Model.Kinds;
 /// <typeparamref name="T"/> and its document <typeparamref name="TDoc"/>:
 /// finding, copying, restoring, sorting and mapping to and from the level
 /// document. A kind writes how its value maps to its document and back, and
-/// how it sorts; the header is handled here for every kind.
+/// how it sorts.
 /// </summary>
 public abstract class ItemKind<T, TDoc> : ItemKind
     where T : struct, IComponent
-    where TDoc : ItemDocument, new()
+    where TDoc : class
 {
     public override bool Has(Entity entity) => !entity.IsNull && entity.HasComponent<T>();
 
     public override EntityList All(EntityStore entities) => entities.Query<T>().ToEntityList();
-
-    public sealed override int DefaultLayer => ItemLayer.DefaultFor<T>();
 
     protected static T Get(Entity entity) => entity.GetComponent<T>();
 
@@ -34,18 +32,8 @@ public abstract class ItemKind<T, TDoc> : ItemKind
     /// <summary>A value that shares nothing with the entity's; only kinds holding references override it.</summary>
     protected virtual T Detach(T value) => value;
 
-    protected sealed override Entity Create(EntityStore entities, object value, in ItemHeader header)
-    {
-        Entity created = EditorItems.Create(entities, Made(Detach((T)value), header), header.Shader);
-        Made(created);
-        return created;
-    }
-
-    /// <summary>The value as it goes into a new item; start points copy their groups into it.</summary>
-    protected virtual T Made(T value, in ItemHeader header) => value;
-
-    /// <summary>Runs on every new item of this kind, however it was made.</summary>
-    protected virtual void Made(Entity created) { }
+    protected sealed override Entity Create(EntityStore entities, object value) =>
+        EditorItems.Create(entities, Detach((T)value));
 
     public sealed override int Compare(object a, object b) => Compare((T)a, (T)b);
 
@@ -63,48 +51,32 @@ public abstract class ItemKind<T, TDoc> : ItemKind
 
     // --- the level document -------------------------------------------------
 
-    /// <summary>The chart's list of this kind, made when it is missing.</summary>
-    protected abstract List<TDoc> List(IChartItems chart);
+    /// <summary>The level's list of this kind.</summary>
+    protected abstract List<TDoc> List(LevelDocument level);
 
-    /// <summary>The item's own fields as a document; the header is written after.</summary>
-    protected abstract TDoc ToDocument(in T value, Entity entity);
+    /// <summary>The item as a document.</summary>
+    protected abstract TDoc ToDocument(in T value);
 
     /// <summary>The value a document describes.</summary>
     protected abstract T FromDocument(TDoc document);
 
-    /// <summary>Orders the document's list; by position unless a kind is timed.</summary>
+    /// <summary>Orders the document's list.</summary>
     protected virtual int CompareDocuments(TDoc a, TDoc b) => 0;
 
-    /// <summary>Makes an item from a document; notes override it to take their shaders from their Xif.</summary>
-    protected virtual Entity CreateFromDocument(EntityStore entities, TDoc document)
+    public override void CaptureInto(EntityStore entities, LevelDocument level)
     {
-        ItemHeader header = ItemHeader.Of(document);
-        Entity created = EditorItems.Create(entities, Made(FromDocument(document), header), document.Shader);
-        Made(created);
-        return created;
-    }
-
-    public override void CaptureInto(EntityStore entities, IChartItems chart)
-    {
-        List<TDoc> list = List(chart);
+        List<TDoc> list = List(level);
         foreach (Entity entity in All(entities))
-        {
-            TDoc document = ToDocument(entity.GetComponent<T>(), entity);
-            ItemHeader.Of(entity).WriteTo(document);
-            list.Add(document);
-        }
-
+            list.Add(ToDocument(entity.GetComponent<T>()));
         list.Sort(CompareDocuments);
     }
 
-    public override void ApplyFrom(EntityStore entities, IChartItems chart)
+    public override void ApplyFrom(EntityStore entities, LevelDocument level)
     {
         DeleteAll(entities);
-        foreach (TDoc document in List(chart))
-            ItemHeader.Of(document).ApplyTo(CreateFromDocument(entities, document), Tintable);
+        foreach (TDoc document in List(level))
+            EditorItems.Create(entities, FromDocument(document));
     }
-
-    public override IEnumerable<ItemDocument> Documents(IChartItems chart) => List(chart);
 
     // --- shared orders ------------------------------------------------------
 

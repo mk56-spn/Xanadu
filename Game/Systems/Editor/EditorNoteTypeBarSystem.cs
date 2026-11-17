@@ -40,10 +40,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
         if (editor.IsNull)
             return;
 
-        // The open group and layers panels sit over where this bar floats.
-        bool visible = ShowsFor(editor.GetComponent<EditorPlacement>().Mode) &&
-            !EditorGroupState.IsOpen(editor) &&
-            !EditorLayers.Of(editor).Open;
+        bool visible = ShowsFor(editor.GetComponent<EditorPlacement>().Mode);
         KeybindAction target = editor.GetComponent<EditorPlacement>().Note;
         CommandBuffer buffer = CommandBuffer;
 
@@ -70,10 +67,11 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
     }
 
     /// <summary>
-    /// Only coloured action notes carry a key, curve heads among them: the bar picks which of the three.
+    /// Only coloured action notes carry a key, curve heads and holds among them: the bar picks which of the three.
+    /// A dash takes any direction key, so it has none.
     /// </summary>
     public static bool ShowsFor(EditorPlacementMode mode) =>
-        mode is EditorPlacementMode.Notes or EditorPlacementMode.Curve;
+        mode is EditorPlacementMode.Curve or EditorPlacementMode.Hold;
 
     /// <summary>The unselected variant of a note colour.</summary>
     public static Color Dimmed(Color color) => color.Lerp(DimTo, Dimming);

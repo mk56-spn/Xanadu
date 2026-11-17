@@ -42,7 +42,9 @@ internal static class XmfRecords
 
     internal static List<T> ReadList<T>(BinaryReader reader, uint max, string what, Func<BinaryReader, T> read)
     {
-        uint count = XmfBinary.ReadCount(reader, max, what);
+        uint count = reader.ReadUInt32();
+        if (count > max)
+            throw new FormatException($"XMF {what} count is too large.");
         var entries = new List<T>((int)Math.Min(count, 4096));
         for (uint i = 0; i < count; i++)
             entries.Add(Read(reader, what, read));
@@ -80,49 +82,4 @@ internal static class XmfRecords
 
     /// <summary>Whether a record still has fields after the ones read so far.</summary>
     internal static bool More(BinaryReader record) => record.BaseStream.Position < record.BaseStream.Length;
-
-    /// <summary>The header every item record starts with: what <see cref="ItemDocument"/> holds.</summary>
-    internal static void WriteHeader(BinaryWriter writer, ItemDocument item)
-    {
-        writer.Write(ItemGroups.FromList(item.Groups));
-        writer.Write(item.Shader);
-        writer.Write((sbyte)item.ShaderSource);
-        writer.Write(item.Layer);
-        writer.Write(item.Z);
-        writer.Write((byte)item.Blend);
-        writer.Write(item.SelfModulate);
-    }
-
-    internal static void ReadHeader(BinaryReader reader, ItemDocument item)
-    {
-        item.Groups = ItemGroups.ToList(reader.ReadUInt32());
-        item.Shader = reader.ReadInt32();
-        int source = reader.ReadSByte();
-        if (source < -1 || source >= GroupLimits.Count)
-            throw new FormatException($"XMF item shader source {source} is not a group.");
-        item.ShaderSource = source;
-        item.Layer = reader.ReadInt32();
-        item.Z = reader.ReadInt32();
-        item.Blend = XmfBinary.ReadEnum<BlendMode>(reader);
-        item.SelfModulate = reader.ReadUInt32();
-    }
-
-    /// <summary>An item record: the shared header, then the kind's own fields.</summary>
-    internal static byte[] WriteItems<T>(IReadOnlyList<T> items, Action<BinaryWriter, T> body)
-        where T : ItemDocument =>
-        WriteList(items, (writer, item) =>
-        {
-            WriteHeader(writer, item);
-            body(writer, item);
-        });
-
-    internal static List<T> ReadItems<T>(Chunk chunk, string what, Action<BinaryReader, T> body)
-        where T : ItemDocument, new() =>
-        ReadList(chunk, XmfItemIO.MaxItems, what, reader =>
-        {
-            var item = new T();
-            ReadHeader(reader, item);
-            body(reader, item);
-            return item;
-        });
 }

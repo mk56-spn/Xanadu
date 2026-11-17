@@ -15,11 +15,11 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Systems.Scenes;
 
 /// <summary>
-/// The bench's map run: when the song has an editor map with curve notes, the
+/// The bench's map run: when the song has an editor map with route notes (each run straight ahead, no turns taken), the
 /// bench plays that map instead of making notes up from the beat. The body is
-/// airborne by default. While the song is on a curve, the curve is an attractor
-/// line (<see cref="CurveAttractor"/>): the body keeps its own motion and is
-/// pulled toward the line's nearest point. Off a curve it glides on, slowly losing speed.
+/// airborne by default. While the song is on a curve, the curve's point at the
+/// song time moves along the track and the body chases it directly
+/// (<see cref="CurveAttractor"/>), never riding the line. Off a curve it glides on, slowly losing speed.
 /// The camera follows the body; the map's notes show near their time but are
 /// not played yet.
 /// </summary>
@@ -51,7 +51,7 @@ public sealed partial class BenchSystem
     private Vector2 _bodyVelocity;
 
     /// <summary>The point on the current curve nearest the body, the one the line pulls toward.</summary>
-    private Vector2 _nearest;
+    private Vector2 _point;
     private Vector2 _camera;
     private double _lastMapMs = double.NaN;
     private Vector2? _surfaceAt;
@@ -77,7 +77,7 @@ public sealed partial class BenchSystem
     }
 
     private static int CurveCount(LevelDocument level) =>
-        level.Notes.Count(note => note.Path is { Count: >= NotePath.MinPoints });
+        level.Notes.Count(note => note.Route is { Count: >= NoteRoute.MinTimes });
 
     /// <summary>Puts the body at the first curve's start, still, with the camera on it.</summary>
     private void ResetMapRun()
@@ -122,13 +122,13 @@ public sealed partial class BenchSystem
             return;
         }
 
-        CurvePath? on = map.On(timeMs);
+        RoutePath? on = map.On(timeMs);
         bool held = false;
         if (on is not null)
-            _bodyVelocity += CurveAttractor.Accelerate(on, _body, _bodyVelocity, out _nearest, out held) * delta;
+            _bodyVelocity += CurveAttractor.Accelerate(on, timeMs, _body, _bodyVelocity, out _point, out held) * delta;
         if (!held)
         {
-            _nearest = _body;
+            _point = _body;
             _bodyVelocity *= MathF.Exp(-GlideDrag * delta);
         }
 
@@ -141,11 +141,11 @@ public sealed partial class BenchSystem
         if (view.Player.IsNull)
             return;
 
-        CurvePath? on = double.IsNaN(timeMs) ? null : map.On(timeMs);
+        RoutePath? on = double.IsNaN(timeMs) ? null : map.On(timeMs);
         view.Player.AddComponent(new BenchBody
         {
             Position = _body,
-            Target = on is null ? _body : _nearest,
+            Target = on is null ? _body : _point,
             OnCurve = on is not null,
             SongMs = timeMs,
         });
@@ -208,7 +208,7 @@ public sealed partial class BenchSystem
         int used = 0;
         for (int i = 0; i < map.Curves.Count && used < pool.Length; i++)
         {
-            CurvePath path = map.Curves[i];
+            RoutePath path = map.Curves[i];
             if (now < path.StartMs - CurveShowsBeforeMs || now > path.EndMs + CurveShowsAfterMs)
                 continue;
 
@@ -221,7 +221,7 @@ public sealed partial class BenchSystem
             HideCurve(pool[used], used);
     }
 
-    private void PlaceCurve(Entity line, int slot, int curve, CurvePath path, Color stroke)
+    private void PlaceCurve(Entity line, int slot, int curve, RoutePath path, Color stroke)
     {
         if (line.IsNull || !line.TryGetComponent(out Position position))
             return;
@@ -301,7 +301,7 @@ public sealed partial class BenchSystem
 /// <summary>A level as the bench plays it: its curve notes laid out by start time, and its notes.</summary>
 public sealed class BenchMap
 {
-    private BenchMap(string name, List<CurvePath> curves, List<Note> notes)
+    private BenchMap(string name, List<RoutePath> curves, List<Note> notes)
     {
         Name = name;
         Curves = curves;
@@ -310,33 +310,33 @@ public sealed class BenchMap
 
     public string Name { get; }
 
-    public IReadOnlyList<CurvePath> Curves { get; }
+    public IReadOnlyList<RoutePath> Curves { get; }
 
     public IReadOnlyList<Note> Notes { get; }
 
     public static BenchMap From(LevelDocument level)
     {
-        var curves = new List<CurvePath>();
+        var curves = new List<RoutePath>();
         foreach (NoteDocument note in level.Notes)
         {
-            if (note.BuildPath() is { } path)
-                curves.Add(CurvePath.Of(new Note(note.TimeMs, new Vector2(note.X, note.Y), path: path)));
+            if (note.BuildRoute() is { } route)
+                curves.Add(RoutePath.Of(new Note(note.TimeMs, new Vector2(note.X, note.Y), route: route)));
         }
 
         curves.Sort(static (a, b) => a.StartMs.CompareTo(b.StartMs));
 
         var notes = new List<Note>();
         foreach (NoteDocument note in level.Notes)
-            notes.Add(new Note(note.TimeMs, new Vector2(note.X, note.Y), note.Target, note.Kind, note.DashStrength, note.Momentum, note.Diagonal));
+            notes.Add(note.ToNote());
         notes.Sort(static (a, b) => a.TimeMs.CompareTo(b.TimeMs));
         return new BenchMap(level.Name, curves, notes);
     }
 
     /// <summary>The curve the song is on: of those covering the time, the one that started last.</summary>
-    public CurvePath? On(double timeMs)
+    public RoutePath? On(double timeMs)
     {
-        CurvePath? on = null;
-        foreach (CurvePath curve in Curves)
+        RoutePath? on = null;
+        foreach (RoutePath curve in Curves)
         {
             if (curve.StartMs > timeMs)
                 break;

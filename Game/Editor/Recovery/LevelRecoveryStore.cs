@@ -95,10 +95,7 @@ public sealed class LevelRecoveryStore(string directory)
         LevelDocument copy = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
         copy.Id = "";
         copy.Slug = "";
-        copy.Notes = copy.Notes.OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y).ThenBy(n => n.Kind)
-            .ThenBy(n => n.Target).ThenBy(n => n.DashStrength).ThenBy(n => n.Momentum).ThenBy(n => n.Diagonal)
-            .ThenBy(n => n.CostFirst).ThenBy(n => n.CostSecond).ThenBy(n => n.CostThird).ToList();
-        copy.Mines = copy.Mines.OrderBy(m => m.TimeMs).ThenBy(m => m.X).ThenBy(m => m.Y).ToList();
+        copy.Notes = copy.Notes.OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y).ThenBy(n => n.Target).ToList();
         return Convert.ToHexString(SHA256.HashData(LevelSerializer.Serialize(copy)));
     }
 
