@@ -50,7 +50,6 @@ public static class EditorScene
         editor.AddComponent(EditorGroupState.Closed);
         editor.AddComponent(EditorLayers.Create());
         editor.AddComponent(LevelLayers.Create());
-        editor.AddComponent(EditorAnalysis.Create());
         editor.AddComponent(LevelShaders.Create());
 
         if (parent is { } root)

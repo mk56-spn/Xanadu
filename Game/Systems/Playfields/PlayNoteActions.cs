@@ -5,7 +5,6 @@ using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Position = Xanadu.Core.Position;
 

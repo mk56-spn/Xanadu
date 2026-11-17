@@ -271,15 +271,6 @@ internal static class PlayHudBuilder
             new Rect2(screen.X / 2 - 350, screen.Y / 2 - 90, 700, 180),
             countdown);
 
-        float shownBottom = origin.Y + Mathf.Min(fieldHeight, viewport.Size.Y);
-        Vector2 trailCenter = PlayKeyTrailBuilder.DefaultCenter(origin, shownBottom);
-        Vector2 trailSize = PlayKeyTrailBuilder.Size;
-        hud.Add(
-            "key_trail",
-            trailCenter,
-            new Rect2(trailCenter - trailSize / 2, trailSize),
-            PlayKeyTrailBuilder.Build(ui, playfield, trailCenter));
-
         // The curve rework keeps PAUSE, the song's name, the status, the
         // countdown and the scoring (curve heads are judged); the character's
         // HUD is still built, for its systems, but hidden.

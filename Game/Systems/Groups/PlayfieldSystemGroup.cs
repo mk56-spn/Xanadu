@@ -1,17 +1,12 @@
 using Friflo.Engine.ECS;
-using Xanadu.Model.Playfields;
 using Friflo.Engine.ECS.Systems;
 using System;
-using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Systems.Audio;
-using Xanadu.Systems.Characters;
-using Xanadu.Drawers.Characters;
 using Xanadu.Model.Settings;
 using Xanadu.Systems.Input;
 using Xanadu.Systems.Particles;
-using Xanadu.Systems.Physics;
 using Xanadu.Systems.Playfields;
 using Xanadu.Drawers.Playfields;
 using Xanadu.Systems.Replays;
@@ -23,14 +18,12 @@ namespace Xanadu.Systems.Groups;
 
 /// <summary>
 /// Shared playback and playfield rendering for editor and play scenes. Owns the
-/// playfield's layer tree: the field itself, the character art drawn over it,
-/// particle bursts, the F6 hitbox outlines, and the HUD edit overlay.
+/// playfield's layer tree: the field itself, particle bursts, the F6 hitbox
+/// outlines, and the HUD edit overlay.
 /// </summary>
 public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
 {
     private readonly CanvasItemHandle _playfield;
-    private readonly CanvasItemHandle _ghosts;
-    private readonly CanvasItemHandle _characters;
     private readonly CanvasItemHandle _particleCanvas;
     private readonly CanvasItemHandle _hitboxes;
     private readonly CanvasItemHandle _hudOverlay;
@@ -46,31 +39,21 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         OffsetSettings offsets,
         IPointerInputSource? pointer = null,
         HudLayoutSettings? hudLayout = null,
-        ICharacterRigFiles? rigFiles = null,
         ReplayKeyboard? replayKeyboard = null,
         IOverlayToggleSource? hitboxToggle = null,
         MapOffsetSettings? mapOffsets = null,
         Xanadu.Drawers.Passes.IPassSurfaces? passes = null,
-        Func<Rect2, Rect2>? toPixels = null,
-        IOverlayToggleSource? groundToggle = null) : base("Playfield")
+        Func<Rect2, Rect2>? toPixels = null) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
-        // The fading copies a character leaves on a hit: before the characters,
-        // so the live art always draws over them.
-        _ghosts = new CanvasItemHandle(_playfield.Handle, 0);
-
-        // Character rig art: a child of the playfield, so it draws over the field.
-        _characters = new CanvasItemHandle(_playfield.Handle, 0);
-
-        // Particle bursts: after the characters, so they draw over the rig.
+        // Particle bursts: over the field.
         _particleCanvas = new CanvasItemHandle(_playfield.Handle, 0);
         _particles = HostPlatform.Particles is { } server
             ? new CanvasParticleEmitter(_particleCanvas.Handle, server)
             : new SilentParticleEmitter();
 
-        // The F6 hitbox outlines: after the art, so the rig cannot hide them,
-        // but still inside the playfield's layer so the HUD stays on top.
+        // The F6 hitbox outlines: inside the playfield's layer so the HUD stays on top.
         _hitboxes = new CanvasItemHandle(_playfield.Handle, 0, visible: false);
 
         _hudOverlay = new CanvasItemHandle(parentCanvas, 950);
@@ -89,68 +72,18 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new ReplayPlaybackSystem(keybinds, replayKeyboard));
         }
 
-        // The curve rework (PlayRules): a hovering square follows the curve notes it hits.
-        // The classic movement and character are unplugged, not deleted.
-        if (PlayRules.Classic)
-        {
-            Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
-            Add(new DashHangSystem());
-            Add(new PlayerArenaSystem());
-            Add(new SpikeContactSystem(entities));
-            Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
-            Add(new PlayKeyTrailHudSystem(entities));
-            Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
-            Add(new GroundStepSystem());
-            Add(new GroundModeSystem(keybinds, keyboard, groundToggle));
-            Add(new SlopeSlideSystem());
-            Add(new WallSlideSystem(entities, offsets));
-            Add(new ContactBarrierSystem(entities, offsets));
-            Add(new TrailAgeSystem<HitTrail>());
-            Add(new NotePopSystem());
-            Add(new TrailAgeSystem<DashTrail>());
-            Add(new TrailAgeSystem<DashFlare>());
-            Add(new HitGhostSystem());
-            Add(new ParticleBurstSystem(_particles));
-        }
-        else
-        {
-            // Curve notes are notes: their heads are judged and scored like any action note.
-            Add(new CurvePlayerSystem());
-            Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
-            Add(new TrailAgeSystem<HitTrail>());
-            Add(new NotePopSystem());
-            Add(new ParticleBurstSystem(_particles));
-        }
-
+        // The square follows the curve notes whose heads were hit; heads are judged like any action note.
+        Add(new CurvePlayerSystem());
+        Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+        Add(new TrailAgeSystem<HitTrail>());
+        Add(new NotePopSystem());
+        Add(new ParticleBurstSystem(_particles));
         Add(new HudLayoutSystem(
             canvas,
             pointer ?? new NullPointerInputSource(),
             keyboard,
             hudLayout ?? new HudLayoutSettings(persist: false),
             _hudOverlay.Handle));
-        if (PlayRules.Classic)
-        {
-            Add(new ContactCounterSystem());
-            Add(new PlayerSmoothingSystem());
-            Add(new PlayerPathRecordSystem());
-            if (rigFiles is not null)
-            {
-                Add(new CharacterRigLoadSystem(rigFiles));
-                Add(new CharacterMotionSystem());
-                Add(new CharacterAttackSystem());
-                Add(new CharacterBumpSystem());
-                Add(new CharacterRigAnimateSystem());
-                Add(new CharacterRigDrawSystem(
-                    () => new SvgAttachmentVisuals(_characters.Handle),
-                    new CharacterRigGhosts(
-                        _ghosts.Handle,
-                        root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false }),
-                    _characters.Handle));
-            }
-
-            Add(new DivaNotesSystem(entities));
-        }
-
         Add(new PlayScoreSystem());
         Add(new ComboHudSystem());
         Add(new PlayCameraSystem());
@@ -177,8 +110,6 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         (_particles as IDisposable)?.Dispose();
         _hitboxes.Dispose();
         _particleCanvas.Dispose();
-        _characters.Dispose();
-        _ghosts.Dispose();
         _playfield.Dispose();
         _hudOverlay.Dispose();
     }

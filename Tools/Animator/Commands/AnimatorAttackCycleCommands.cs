@@ -9,7 +9,7 @@ namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Cycles the contact rig's attacks in context, on a metronome. Each attack
-/// fires on a beat the way <see cref="Xanadu.Systems.Characters.CharacterAttackSystem"/>
+/// fires on a beat the way the classic game's attack system did
 /// fires one on a note hit (<see cref="XafStrike"/>: from its contact frame,
 /// over the base, fading back out), so the hit can be judged against the click.
 /// </summary>

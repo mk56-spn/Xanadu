@@ -10,7 +10,6 @@ using Xanadu.Systems.Audio;
 using Xanadu.Systems.Characters;
 using Xanadu.Systems.Groups;
 using Xanadu.Systems.Input;
-using Xanadu.Systems.Physics;
 using Xanadu.Model.Profiles;
 using Xanadu.Model.Settings;
 using Xanadu.Model.Levels;
@@ -26,7 +25,7 @@ using Xanadu.Ecs;
 namespace Xanadu.Systems;
 
 /// <summary>
-/// The game's own systems: scenes, physics, audio, playfield, editor. It owns no UI:
+/// The game's own systems: scenes, audio, playfield, editor. It owns no UI:
 /// the host's <see cref="UiRoot"/> runs UI input before it and layout, drawing and
 /// the debug overlays after it, on the same store.
 /// </summary>
@@ -43,7 +42,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly MiniaudioTrackAudio _metronomeAudio = new();
     private readonly MiniaudioTrackAudio _previewAudio = new();
 
-    public Box2DPhysicsWorld Physics { get; } = new();
 
     public EditorHistory EditorHistory { get; }
 
@@ -94,7 +92,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _playPassSurfaces = passSurfaces?.Invoke();
         _editorPassSurfaces = passSurfaces?.Invoke();
         _entities = entities;
-        entities.OnEntityDelete += OnEntityDelete;
         EditorHistory = new EditorHistory(entities);
         Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
@@ -136,7 +133,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(new Xanadu.Systems.Scenes.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectDragSystem(pointerInput, Scenes));
         Add(new Xanadu.Systems.Scenes.SongSelectScrollSystem());
-        Add(new PhysicsSystemGroup(Physics, entities));
         Add(new Xanadu.Systems.Scenes.ProfileEditSystem(Profiles));
         Add(new OffsetWizardSystem(
             entities,
@@ -166,13 +162,11 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Offsets,
             pointerInput,
             Hud,
-            new DiskCharacterRigFiles(),
             PlayKeyboard,
             new KeyOverlayToggleSource(DebugKeys.Hitboxes, Keyboard),
             MapOffsets,
             _playPassSurfaces,
-            toPixels,
-            new KeyOverlayToggleSource(DebugKeys.GroundMode, Keyboard));
+            toPixels);
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
@@ -213,11 +207,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             _editorWheel.Enabled = scene == SceneKind.Editor;
     }
 
-    private void OnEntityDelete(EntityDelete entityDelete)
-    {
-        if (entityDelete.Entity.TryGetComponent<PhysicsBody>(out PhysicsBody body))
-            Physics.DestroyBody(body.Body);
-    }
 
 
     /// <summary>Launches play from the selected or closest saved start point.</summary>
@@ -283,12 +272,10 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     public void Dispose()
     {
         _sceneDirector.Changed -= OnSceneChanged;
-        _entities.OnEntityDelete -= OnEntityDelete;
         _trackAudio.Dispose();
         _playfieldAudio.Dispose();
         _metronomeAudio.Dispose();
         _previewAudio.Dispose();
-        Physics.Dispose();
         _editorSystems.Dispose();
         _playfieldSystems.Dispose();
         (_playPassSurfaces as IDisposable)?.Dispose();

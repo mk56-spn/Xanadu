@@ -80,7 +80,6 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorMetadataSystem(entities, commands));
         Add(new EditorHudSystem(entities, toasts));
         Add(new WaveformPreviewSystem());
-        Add(new EditorAnalysisSystem(entities));
         _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas, passes, toPixels);
         Add(_draw);
         Add(new WarningPopupSystem(entities));

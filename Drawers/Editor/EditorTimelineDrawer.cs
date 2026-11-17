@@ -35,13 +35,11 @@ public sealed class EditorTimelineDrawer
     private static readonly Color MarkerTagBackground = Palette.WithAlpha(Palette.SurfaceDeep, 0.94f);
 
     private readonly EditorDrawSurface _surface;
-    private readonly EditorAnalysisDrawer _analysis;
     private readonly EditorWaveformDrawer _waveform;
 
     public EditorTimelineDrawer(EditorDrawSurface surface)
     {
         _surface = surface;
-        _analysis = new EditorAnalysisDrawer(surface);
         _waveform = new EditorWaveformDrawer(surface);
     }
 
@@ -66,12 +64,6 @@ public sealed class EditorTimelineDrawer
 
         (long windowStart, long windowEnd) = EditorLayout.TimelineWindow(playhead, timeline);
 
-        _analysis.Draw(
-            frame.Analysis,
-            playhead,
-            EditorLayout.AnalysisRect(view),
-            windowStart,
-            windowEnd);
         DrawBeatBands(ruler, playhead, windowStart, windowEnd);
         _waveform.Draw(ruler, frame.Preview, windowStart, windowEnd);
         DrawBpmMarker(ruler, playhead, windowStart, windowEnd);

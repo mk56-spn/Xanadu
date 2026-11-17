@@ -17,7 +17,6 @@
 #   ./run.sh devtools autopsy game|editor|labs|animator|shaders [args]
 #                                 -> runs that target with the CPU sampler on, then opens
 #                                    AUTOPSY on METHODS once it closes
-#   ./run.sh devtools moves           -> opens on MOVES, the character's move system charted by hand
 #   ./run.sh devtools arch            -> opens on ARCH, the architecture as it should be, drawn by hand on a board (Docs/architecture.xab)
 set -euo pipefail
 

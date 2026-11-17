@@ -4,8 +4,6 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Characters;
-using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Playfields;
@@ -44,32 +42,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         if (!actions.Hit(ref score, noteEntity, offsetMs, playfield, action))
             return false;
 
-        FaceHit(playfield, hitPosition.X, playerScreen.X);
-        GroundStepSystem.OnHit(playfield, note.TimeMs, playheadTimeMs + offsetMs, hitPosition.X, playerScreen.X);
-
-        // The curve rework has no character, so nothing would age a ghost away.
-        if (PlayRules.Classic)
-            HitGhostSystem.Launch(context.Entities, playfield, hitPosition - playerScreen);
-        CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
-
         HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius, chartIndex);
         return true;
-    }
-
-    /// <summary>
-    /// Turns the character towards a note it just hit, the way a horizontal dash
-    /// turns it towards the dash. A note directly above or below leaves the
-    /// facing alone.
-    /// </summary>
-    private static void FaceHit(Entity playfield, float noteScreenX, float playerScreenX)
-    {
-        float dx = noteScreenX - playerScreenX;
-        if (dx == 0f)
-            return;
-
-        if (!playfield.HasComponent<CharacterFacing>())
-            playfield.AddComponent(new CharacterFacing());
-
-        playfield.GetComponent<CharacterFacing>().Left = dx < 0f;
     }
 }

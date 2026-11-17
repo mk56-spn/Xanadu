@@ -18,7 +18,6 @@ public readonly record struct EditorFrame(
     UiMarqueeBox Box,
     LevelGroups Groups,
     EditorGroupState GroupState,
-    EditorAnalysis Analysis,
     Color? Background,
     Color? Outside,
     Color? Frame,

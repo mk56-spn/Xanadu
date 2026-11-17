@@ -30,20 +30,4 @@ public static class HitEffects
         entities.CreateEntity(new ParticleBurst(origin, GameParticles.Hit, color, area, heading: origin - position));
         PlayCameraSystem.Kick(playfield);
     }
-
-    /// <summary>
-    /// A hit dash note pops out with sparks where it stood, thrown the way it
-    /// sends the player.
-    /// </summary>
-    public static void SpawnDash(EntityStore entities, Entity noteEntity, Note note, PlayfieldView view, DashDirection heading)
-    {
-        Vector2 at = view.PlayfieldToScreen(GroupOffset.Shown(noteEntity, note.Position));
-        float radius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
-        Color color = GroupColor.For(noteEntity, PlayfieldColors.ColorFor(note));
-        EffectLayer layer = EffectLayer.From(noteEntity);
-        entities.CreateEntity(
-            new NotePop(note, at, color, radius, PlayfieldMetrics.NotePopLifetime, ChartIndex.Of(noteEntity)), layer);
-        Vector2 way = PlayerMovementSystem.DashDirectionVector(heading);
-        entities.CreateEntity(new ParticleBurst(at, GameParticles.Hit, color, heading: way));
-    }
 }

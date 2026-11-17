@@ -3,7 +3,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Rendering;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Physics;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Systems.Playfields;
@@ -26,10 +25,9 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
 
             // On the target: the camera moves the playfield layer by its shift.
             Vector2 shift = entity.TryGetComponent(out PlayCamera camera) ? camera.Shift : Vector2.Zero;
-            Vector2 at = entity.TryGetComponent(out PlayerSmoothing smoothing) ? smoothing.Drawn : position.Value;
-            ShaderPlay.Position = at - shift;
-            ShaderPlay.Velocity = entity.TryGetComponent(out PhysicsBody body)
-                ? Box2DPhysicsWorld.ToScreen(body.Body.LinearVelocity)
+            ShaderPlay.Position = position.Value - shift;
+            ShaderPlay.Velocity = entity.TryGetComponent(out CurveBody body)
+                ? body.Velocity * view.Scale
                 : Vector2.Zero;
 
             if (entity.TryGetComponent(out Playfield playfield))
@@ -37,10 +35,8 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
                 ShaderPlay.PlayfieldCorner = view.ScreenOrigin - shift;
                 ShaderPlay.PixelsPerUnit = view.Scale;
                 ShaderPlay.PlayfieldSize = new Vector2(playfield.Width, playfield.Height) * view.Scale;
-                ShaderPlay.Grounded = PlayerGround.TryStanding(entity, view, playfield, position.Value, out _);
             }
 
-            ShaderPlay.Dashing = entity.HasComponent<DashHang>();
             ShaderPlay.Dead = entity.Tags.Has<PlayerShattered>() ||
                               (entity.TryGetComponent(out PlaySession session) && session.Died);
 

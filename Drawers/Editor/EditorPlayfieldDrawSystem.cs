@@ -148,7 +148,6 @@ public sealed class EditorPlayfieldDrawSystem : SystemGroup
                     entity.TryGetComponent(out UiMarqueeBox marquee) ? marquee : default,
                     entity.TryGetComponent(out LevelGroups groups) ? groups : default,
                     entity.TryGetComponent(out EditorGroupState groupState) ? groupState : EditorGroupState.Closed,
-                    entity.TryGetComponent(out EditorAnalysis analysis) ? analysis : default,
                     background,
                     outside,
                     frameColor,

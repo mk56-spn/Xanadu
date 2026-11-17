@@ -62,7 +62,7 @@ public static class AnimatorFlowCommands
 
     /// <summary>The hand-overs the game's motion system can ask this rig for.</summary>
     public static List<(string From, string To)> GameTransitions(XafPackage package) =>
-        CharacterMotionSystem.Transitions(package).ConvertAll(pair => (pair.From.Id(), pair.To.Id()));
+        CharacterTransitions.Transitions(package).ConvertAll(pair => (pair.From.Id(), pair.To.Id()));
 
     public static void Select(Entity session, string target)
     {

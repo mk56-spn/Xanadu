@@ -23,14 +23,13 @@ var sort = AtlasStage.SortMode.Name;
 bool reverse = false, similar = false, methods = false;
 string root = FindRoot();
 int first = 0;
-if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "moves" or "arch")
+if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "arch")
 {
     tab = args[0] switch
     {
         "atlas" => DevToolsApp.AtlasTab,
         "autopsy" => DevToolsApp.AutopsyTab,
-        "arch" => DevToolsApp.ArchTab,
-        _ => DevToolsApp.MovesTab,
+        _ => DevToolsApp.ArchTab,
     };
     first = 1;
 }

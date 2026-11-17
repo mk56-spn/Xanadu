@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Physics;
 using Xanadu.Systems.Input;
 using Position = Xanadu.Core.Position;
 
