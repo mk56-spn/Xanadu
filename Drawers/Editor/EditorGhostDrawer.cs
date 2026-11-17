@@ -1,5 +1,6 @@
 using Xanadu.Ui.Systems.Canvas;
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
@@ -105,6 +106,10 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
                 surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 3f, Faint(PlayfieldColors.PolygonFill));
                 break;
 
+            case EditorPlacementMode.Curve:
+                surface.Canvas.DrawCircle(surface.Target, ghost.Screen, 4f, Faint(PlayfieldColors.CurveColor));
+                break;
+
             case EditorPlacementMode.ScreenRead:
                 ScreenReadRegion region = ScreenReadRegion.Centred(pointer, ScreenReadRegion.StartSize(view.ScreenSize / view.Scale));
                 region.Position = GridPlacement.Settle(region.Position, region.Size, playfield, snap);
@@ -152,6 +157,12 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
         if (!editor.TryGetComponent(out EditorPolygonDraft draft) || !draft.Active)
             return;
 
+        if (draft.Mode == EditorPlacementMode.Curve)
+        {
+            DrawCurveDraft(editor, view, draft);
+            return;
+        }
+
         var points = new Vector2[draft.Points.Count];
         for (int i = 0; i < points.Length; i++)
             points[i] = view.PlayfieldToScreen(draft.Points[i]);
@@ -181,6 +192,39 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
             points[0],
             EditorPolygonDraft.CloseRadius,
             closable ? Palette.Accent : Faint(PlayfieldColors.PolygonFill),
+            2f);
+    }
+
+    /// <summary>
+    /// The curve the curve tool is laying: the smooth path through its points
+    /// and on to the pointer, its points ringed by speed, and a ring on the last
+    /// point that lights up once a click there would finish it.
+    /// </summary>
+    private void DrawCurveDraft(Entity editor, PlayfieldView view, EditorPolygonDraft draft)
+    {
+        var points = new List<Vector2>(draft.Points);
+        var speeds = new List<float>(draft.Speeds);
+        Vector2 last = view.PlayfieldToScreen(draft.Points[^1]);
+        bool finishable = false;
+        if (editor.TryGetComponent(out EditorPlacementGhost ghost) && ghost.Visible)
+        {
+            finishable = draft.Points.Count >= NotePath.MinPoints &&
+                         last.DistanceTo(ghost.Screen) <= EditorPolygonDraft.CloseRadius;
+            if (!finishable)
+            {
+                points.Add(view.ScreenToPlayfield(ghost.Screen));
+                speeds.Add(speeds[^1]);
+            }
+        }
+
+        CurvePath path = CurvePath.Of(draft.StartMs, points, speeds);
+        PlayfieldRenderer.DrawCurvePath(surface.Canvas, surface.Target, path.Points, view, Faint(PlayfieldColors.CurveColor), 3f);
+        PlayfieldRenderer.DrawCurvePoints(surface.Canvas, surface.Target, draft.Points, draft.Speeds, view, PlayfieldColors.CurveColor);
+        surface.Canvas.DrawCircleOutline(
+            surface.Target,
+            last,
+            EditorPolygonDraft.CloseRadius,
+            finishable ? Palette.Accent : Faint(PlayfieldColors.CurveColor),
             2f);
     }
 

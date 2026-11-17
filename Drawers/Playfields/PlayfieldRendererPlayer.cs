@@ -32,6 +32,16 @@ public static partial class PlayfieldRenderer
                 center += camera.Subpixel;
             Vector2 size = player.Size;
 
+            // The curve rework's player is the hovering blue square.
+            if (!PlayRules.Classic)
+            {
+                float side = PlayRules.SquareSize * view.Scale;
+                var square = new Rect2(center - new Vector2(side, side) / 2, new Vector2(side, side));
+                canvas.DrawRect(rid, square, SquareFill);
+                canvas.DrawBorder(rid, square, SquareEdge, 2);
+                return;
+            }
+
             // The character rig's art stands in for the box once it is on screen.
             if (entity.Tags.Has<CharacterRigVisible>())
                 return;

@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Systems.Editor;
@@ -19,7 +20,20 @@ public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tool
 /// <summary>The tool strip's buttons, top to bottom, and the tools each one holds.</summary>
 public static class EditorToolGroups
 {
-    public static readonly EditorToolGroupInfo[] All =
+    /// <summary>The strip the editor shows: the classic tools, or the curve rework's single curve tool (<see cref="PlayRules"/>).</summary>
+    public static readonly EditorToolGroupInfo[] All = PlayRules.Classic ? Classic : Rework;
+
+    /// <summary>The curve rework: curve notes are the only thing to place; the floor is built in.</summary>
+    private static EditorToolGroupInfo[] Rework => new EditorToolGroupInfo[]
+    {
+        new("Curves", new EditorTool[]
+        {
+            new(EditorPlacementMode.Curve, "~", "Curve notes: click the points (each takes the 1×/2×/3× speed picked), then the last again or Enter; Esc drops it"),
+        }),
+    };
+
+    /// <summary>The classic tools, unplugged while the curve rework is on.</summary>
+    private static EditorToolGroupInfo[] Classic => new EditorToolGroupInfo[]
     {
         new("Notes", new EditorTool[]
         {

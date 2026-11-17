@@ -44,6 +44,17 @@ public static class PlayfieldColors
     /// <summary>A friction bar is orange, for now: a placeholder look until it has its own art.</summary>
     public static readonly Color FrictionBarColor = Palette.Warning;
 
+    /// <summary>The colour of curve notes: white, so their self modulate shows as picked.</summary>
+    public static readonly Color CurveColor = Colors.White;
+
+    /// <summary>The curve rework's fixed floor and its top edge.</summary>
+    public static readonly Color FloorColor = Palette.SurfaceAlt;
+    public static readonly Color FloorEdgeColor = Palette.BorderStrong;
+
+    /// <summary>The curve rework's hovering square: blue, with a brighter edge.</summary>
+    public static readonly Color SquareFill = Palette.PrimarySoft;
+    public static readonly Color SquareEdge = Palette.Primary;
+
     /// <summary>The colour of wall notes.</summary>
     public static readonly Color WallNoteColor = new(0.55f, 0.95f, 0.85f);
 

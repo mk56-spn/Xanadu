@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Items;
 using Xanadu.Core.Storage;
@@ -29,6 +30,18 @@ internal static class XmfItems
         writer.Write((byte)note.CostFirst);
         writer.Write((byte)note.CostSecond);
         writer.Write((byte)note.CostThird);
+
+        // A curve note's path, an optional tail: notes without one end here.
+        if (note.Path is { Count: > 0 } path)
+        {
+            writer.Write((ushort)path.Count);
+            foreach (CurvePointDocument point in path)
+            {
+                writer.Write(point.X);
+                writer.Write(point.Y);
+                writer.Write(point.Speed);
+            }
+        }
     }
 
     internal static void ReadNote(BinaryReader reader, NoteDocument note, StringTable strings)
@@ -46,11 +59,35 @@ internal static class XmfItems
         note.CostFirst = reader.ReadByte();
         note.CostSecond = reader.ReadByte();
         note.CostThird = reader.ReadByte();
+        if (XmfRecords.More(reader))
+            note.Path = ReadPath(reader);
 
         if (!float.IsFinite(note.Momentum) || note.Momentum < 0f)
             throw new FormatException("XMF momentum note has an invalid magnitude.");
         if (note.CostFirst > BarCosts.MaxCost || note.CostSecond > BarCosts.MaxCost || note.CostThird > BarCosts.MaxCost)
             throw new FormatException("XMF contact barrier asks more of a bar than it can.");
+    }
+
+    private static List<CurvePointDocument> ReadPath(BinaryReader reader)
+    {
+        int count = reader.ReadUInt16();
+        if (count > NotePath.MaxPoints)
+            throw new FormatException("XMF curve note has too many points.");
+        var path = new List<CurvePointDocument>(count);
+        for (int i = 0; i < count; i++)
+        {
+            var point = new CurvePointDocument
+            {
+                X = reader.ReadSingle(),
+                Y = reader.ReadSingle(),
+                Speed = reader.ReadSingle(),
+            };
+            if (!float.IsFinite(point.X) || !float.IsFinite(point.Y) || !float.IsFinite(point.Speed) || point.Speed <= 0f)
+                throw new FormatException("XMF curve note has an invalid point.");
+            path.Add(point);
+        }
+
+        return path;
     }
 
     internal static void WriteMine(BinaryWriter writer, MineDocument mine)

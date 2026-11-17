@@ -32,6 +32,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private readonly EditorItemPicker _picker;
     private readonly EditorHoverProbe _hover;
     private readonly EditorPolygonTool _polygonTool;
+    private readonly EditorCurvePointTool _curvePoints;
 
     private bool _wasPressed;
 
@@ -62,6 +63,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _picker = new EditorItemPicker(_scene);
         _hover = new EditorHoverProbe(_scene, _picker);
         _polygonTool = new EditorPolygonTool(_scene, _picker, history);
+        _curvePoints = new EditorCurvePointTool(_scene, history);
         _paint = new EditorPaintTool(_scene, history);
         _resize = new EditorResizeTool(_scene, history);
         _rotation = new EditorRotationTool(_scene, history);
@@ -107,6 +109,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         _box.Cancel(editor);
         _resize.Cancel();
+        _curvePoints.Cancel();
 
         // The ruler strip is the shared timeline's (TimelineInputSystem, through EditorTimelineHost).
         if (EditorLayout.RulerRect(view).HasPoint(screenPosition))
@@ -129,7 +132,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         // Handles hang over the field's edge, so they get the press before the
         // inside test would turn an edge drag away.
-        if (_rotation.TryBegin(screenPosition, editor, view) || _resize.TryBegin(screenPosition, editor, view))
+        if (_rotation.TryBegin(screenPosition, editor, view) ||
+            _resize.TryBegin(screenPosition, editor, view) ||
+            _curvePoints.TryBegin(screenPosition, editor, view))
         {
             CancelDrag();
             return;
@@ -222,6 +227,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
+        if (_curvePoints.Active)
+        {
+            _curvePoints.Update(screenPosition, view, playfield);
+            return;
+        }
+
         if (_box.Drag(editor, screenPosition))
             return;
 
@@ -288,6 +299,12 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         if (_resize.Active)
         {
             _resize.End();
+            return;
+        }
+
+        if (_curvePoints.Active)
+        {
+            _curvePoints.End();
             return;
         }
 

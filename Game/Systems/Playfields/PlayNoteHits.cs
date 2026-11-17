@@ -47,7 +47,9 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         FaceHit(playfield, hitPosition.X, playerScreen.X);
         GroundStepSystem.OnHit(playfield, note.TimeMs, playheadTimeMs + offsetMs, hitPosition.X, playerScreen.X);
 
-        HitGhostSystem.Launch(context.Entities, playfield, hitPosition - playerScreen);
+        // The curve rework has no character, so nothing would age a ghost away.
+        if (PlayRules.Classic)
+            HitGhostSystem.Launch(context.Entities, playfield, hitPosition - playerScreen);
         CharacterAttackSystem.Trigger(playfield, hitPosition.Y, playerScreen.Y);
 
         HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius, chartIndex);

@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Scenes;
@@ -29,6 +30,11 @@ public static class BenchScene
     public const int NotePool = 16;
 
     public const float NoteRadius = 22;
+
+    /// <summary>How many curve-note lines the bench keeps to draw a map with.</summary>
+    public const int CurvePool = 24;
+
+    public const float CurveWidth = 6;
 
     /// <summary>The quarter disks behind the player: their radius and the gap between them.</summary>
     public const float QuarterRadius = 95;
@@ -62,9 +68,18 @@ public static class BenchScene
 
         float top = stage.Height * SurfaceAt;
         float depth = stage.Height - top;
-        ui.Rect(Palette.SurfaceAlt, size: new Vector2(stage.Width, depth))
-            .At(new Vector2(centerX, top + depth / 2));
+        Entity surface = ui.Rect(Palette.SurfaceAlt, size: new Vector2(stage.Width, depth))
+            .At(new Vector2(centerX, top + depth / 2))
+            .Entity;
         Vector2 hidden = new(-1000, -1000);
+        var curves = new Entity[CurvePool];
+        for (int i = 0; i < curves.Length; i++)
+        {
+            curves[i] = ui.Shape([Vector2.Zero, Vector2.One], Colors.Transparent, PlayfieldColors.CurveColor, CurveWidth, closed: false)
+                .At(hidden)
+                .Entity;
+        }
+
         var notes = new Entity[NotePool];
         for (int i = 0; i < notes.Length; i++)
             notes[i] = ui.Shape(Disk(NoteRadius), Palette.TextMuted).At(hidden).Entity;
@@ -108,7 +123,7 @@ public static class BenchScene
             .Size(ActionWidth, ActionHeight)
             .On(SceneActionId.Back);
 
-        ui.With(new BenchView(background, title, info, player, quarters, notes));
+        ui.With(new BenchView(background, title, info, player, quarters, notes, surface, curves));
     }
 
     private static Vector2[] Disk(float radius)

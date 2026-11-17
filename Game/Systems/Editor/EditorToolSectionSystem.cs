@@ -13,6 +13,7 @@ public static class EditorToolSections
     {
         EditorPlacementMode.Dash,
         EditorPlacementMode.Momentum,
+        EditorPlacementMode.Curve,
     };
 
     /// <summary>Directional notes can be rhombuses.</summary>

@@ -89,15 +89,25 @@ public struct LevelPolygon(Vector2 position, Xif item, float rotationDegrees = 0
 }
 
 /// <summary>
-/// The outline the polygon tool is laying down, on the editor entity: one
-/// point per click until it is closed into a <see cref="LevelPolygon"/>.
+/// The points the polygon or curve tool is laying down, on the editor entity:
+/// one point per click until it is closed into a <see cref="LevelPolygon"/> or
+/// finished into a <see cref="CurveNote"/>.
 /// </summary>
 public struct EditorPolygonDraft() : IComponent
 {
-    /// <summary>A click this close to the first point, in screen pixels, closes the outline.</summary>
+    /// <summary>A click this close to the first point (polygon) or the last (curve), in screen pixels, finishes the draft.</summary>
     public const float CloseRadius = 12f;
 
     public List<Vector2> Points = new();
+
+    /// <summary>A curve's speed at each point, from the strength picked when it was clicked; unused by polygons.</summary>
+    public List<float> Speeds = new();
+
+    /// <summary>A curve's start time: the snapped playhead when its first point went down.</summary>
+    public long StartMs;
+
+    /// <summary>Which tool laid the points: polygon or curve.</summary>
+    public EditorPlacementMode Mode = EditorPlacementMode.Polygon;
 
     /// <summary>Set by Enter and Esc; the input system acts on them next frame.</summary>
     public bool FinishRequested;

@@ -280,6 +280,20 @@ internal static class PlayHudBuilder
             new Rect2(trailCenter - trailSize / 2, trailSize),
             PlayKeyTrailBuilder.Build(ui, playfield, trailCenter));
 
+        // The curve rework keeps PAUSE, the song's name, the status, the
+        // countdown and the scoring (curve heads are judged); the character's
+        // HUD is still built, for its systems, but hidden.
+        if (!PlayRules.Classic)
+        {
+            foreach (HudItemLayout item in hud.Items)
+            {
+                if (item.Id is "song_info" or "status" or "countdown" or "score" or "combo" or "accuracy" or "judgement_counts")
+                    continue;
+                foreach (Entity member in item.Members)
+                    UiLayout.SetHidden(member, true);
+            }
+        }
+
         playfield.AddComponent(hud);
 
         playfield.AddComponent(new JudgementCounter(
@@ -304,6 +318,13 @@ internal static class PlayHudBuilder
         long lastMine = document.Mines.Count > 0
             ? document.Mines.Max(mine => mine.TimeMs)
             : -1;
+        // A curve note lasts until the body leaves its last point.
+        foreach (NoteDocument note in document.Notes)
+        {
+            if (note.BuildPath() is { } path)
+                lastNote = Math.Max(lastNote, CurvePath.Of(new Note(note.TimeMs, new Vector2(note.X, note.Y), path: path)).EndMs);
+        }
+
         playfield.AddComponent(new PlaySession(
             status,
             countdown,

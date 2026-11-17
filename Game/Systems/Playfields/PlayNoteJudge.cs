@@ -22,7 +22,7 @@ namespace Xanadu.Systems.Playfields;
 public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
 {
     private readonly ArchetypeQuery<Note> _open =
-        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed, NoteSteering>());
 
     public bool Mine(KeybindAction action, Entity playfield)
     {

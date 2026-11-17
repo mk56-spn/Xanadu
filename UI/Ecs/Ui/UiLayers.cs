@@ -34,8 +34,6 @@ public static class UiLayers
     /// <summary>The XIF editor for the selected polygon, beside the tool strip.</summary>
     public const int EditorXif = 963;
 
-    /// <summary>The tool groups' flyouts, beside the tool strip and over the tool settings and the XIF editor.</summary>
-    public const int EditorToolFlyout = 964;
     public const int EditorRail = 965;
     public const int EditorLists = 970;
     public const int EditorHelp = 970;
@@ -51,6 +49,13 @@ public static class UiLayers
 
     /// <summary>The layers panel the bar's LAYERS button opens, docked to the view's right edge.</summary>
     public const int EditorLayers = 983;
+
+    /// <summary>
+    /// The tool groups' flyouts, beside the tool strip: over the tool settings,
+    /// the XIF editor and the view's group bar, which a long flyout runs under.
+    /// It shares a number with the layers panel, which docks to the far side.
+    /// </summary>
+    public const int EditorToolFlyout = 983;
 
     /// <summary>
     /// The SHD lists of the group and layers panels: above both, so an open

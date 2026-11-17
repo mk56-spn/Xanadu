@@ -11,7 +11,10 @@ using Xanadu.Model.Editor;
 
 namespace Xanadu.Model.Kinds;
 
-/// <summary>Notes: timed, picked by a square the note's size, pasted at the playhead.</summary>
+/// <summary>
+/// Notes: timed, picked by a square the note's size, pasted at the playhead.
+/// A curve note moves with its path, and is also picked anywhere near its line.
+/// </summary>
 public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
 {
     private const float HitRadius = PlayfieldMetrics.NoteSize / 2;
@@ -20,7 +23,18 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
 
     public override Vector2 Position(Entity entity) => Get(entity).Position;
 
-    public override void SetPosition(Entity entity, Vector2 position) => Ref(entity).Position = position;
+    public override void SetPosition(Entity entity, Vector2 position)
+    {
+        ref Note note = ref Ref(entity);
+        note.Path = note.Path?.Moved(position - note.Position);
+        note.Position = position;
+    }
+
+    public override Rect2 Hull(Entity entity)
+    {
+        Note note = Get(entity);
+        return note.Path?.Bounds ?? new Rect2(note.Position, Vector2.Zero);
+    }
 
     public override long? Time(Entity entity) => Get(entity).TimeMs;
 
@@ -35,6 +49,13 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
     public override bool Hit(Entity entity, Vector2 point, long playheadMs)
     {
         Note note = Get(entity);
+        if (note.IsCurve)
+        {
+            CurvePath path = CurvePath.Of(note);
+            return CurveFade.Alpha(path, playheadMs) > 0 &&
+                   (TimedKinds.Within(point, note.Position, HitRadius) || path.DistanceTo(point) <= HitRadius);
+        }
+
         return NoteFade.Alpha(note, playheadMs) > 0 && TimedKinds.Within(point, note.Position, HitRadius);
     }
 
@@ -70,7 +91,7 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
             if ((order = a.Costs[bar].CompareTo(b.Costs[bar])) != 0)
                 return order;
         }
-        return 0;
+        return NotePath.Compare(a.Path, b.Path);
     }
 
     protected override Note? Pasted(Note value, Vector2 offset, long timeMs, Playfield playfield, EntityStore entities) =>
@@ -93,6 +114,7 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         CostFirst = note.Costs.First,
         CostSecond = note.Costs.Second,
         CostThird = note.Costs.Third,
+        Path = NoteDocument.PathDocument(note.Path),
         Item = Xif.FromEcs(ItemShader.Of(entity), ItemCommonShader.Of(entity)),
     };
 
@@ -104,7 +126,8 @@ public sealed class NoteItemKind : ItemKind<Note, NoteDocument>
         note.DashStrength,
         note.Momentum,
         note.Diagonal,
-        new BarCosts(note.CostFirst, note.CostSecond, note.CostThird));
+        new BarCosts(note.CostFirst, note.CostSecond, note.CostThird),
+        note.BuildPath());
 
     /// <summary>A note's shaders live in its Xif: a map slot, a common shader, or both.</summary>
     protected override Entity CreateFromDocument(EntityStore entities, NoteDocument note) =>

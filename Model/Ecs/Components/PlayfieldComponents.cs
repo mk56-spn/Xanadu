@@ -243,7 +243,8 @@ public struct Note(
     DashStrength dashStrength = DashStrength.Single,
     float momentum = Note.DefaultMomentum,
     bool diagonal = false,
-    BarCosts costs = default) : IComponent
+    BarCosts costs = default,
+    NotePath? path = null) : IComponent
 {
     /// <summary>
     /// A momentum note's speed, in playfield units per second. The tuning
@@ -273,6 +274,15 @@ public struct Note(
 
     /// <summary>What a Contact barrier asks of each bar; ignored by other kinds.</summary>
     public BarCosts Costs = costs;
+
+    /// <summary>
+    /// A curve note's path: hitting the head (this note) steers the body along
+    /// it from <see cref="TimeMs"/>; a miss leaves the body alone. Its first
+    /// point is always <see cref="Position"/>. Null on every other note.
+    /// </summary>
+    public NotePath? Path = path;
+
+    public readonly bool IsCurve => Path is { Count: >= NotePath.MinPoints };
 }
 
 /// <summary>A mine hazard placed in playfield coordinates.</summary>

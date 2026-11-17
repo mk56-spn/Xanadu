@@ -14,7 +14,7 @@ namespace Xanadu.Systems.Playfields;
 public sealed class PlayNoteMisses(PlayNoteContext context)
 {
     private readonly ArchetypeQuery<Note> _open =
-        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed, NoteSteering>());
     private readonly List<int> _late = [];
 
     public void Mark(Entity playfield)

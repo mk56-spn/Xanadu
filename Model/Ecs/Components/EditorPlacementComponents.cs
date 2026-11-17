@@ -33,6 +33,9 @@ public enum EditorPlacementMode
 
     /// <summary>A friction field: crossing it turns the ground's friction on.</summary>
     FrictionBar,
+
+    /// <summary>A curve note: a smooth path through clicked points that the body is pulled along.</summary>
+    Curve,
 }
 
 /// <summary>The block the block tool lays down, as fractions of a grid cell.</summary>
@@ -54,7 +57,7 @@ public enum BlockBrushSize
 /// </summary>
 public struct EditorPlacement() : IComponent
 {
-    public EditorPlacementMode Mode = EditorPlacementMode.Notes;
+    public EditorPlacementMode Mode = Xanadu.Model.Playfields.PlayRules.Classic ? EditorPlacementMode.Notes : EditorPlacementMode.Curve;
 
     /// <summary>The size of the block the block tool places.</summary>
     public BlockBrushSize BlockSize = BlockBrushSize.Cell;

@@ -39,9 +39,9 @@ public static class EditorPlacementNote
 
     /// <summary>
     /// The three movement strength buttons pick a dash distance and a momentum
-    /// push, so a mapper gets a consistent 1×/2×/3× language.
+    /// push (and a curve point's speed), so a mapper gets a consistent 1×/2×/3× language.
     /// </summary>
-    private static float MomentumFor(DashStrength strength) => strength switch
+    public static float MomentumFor(DashStrength strength) => strength switch
     {
         DashStrength.Double => 900f,
         DashStrength.Triple => PhysicsScale.MaxMomentum,

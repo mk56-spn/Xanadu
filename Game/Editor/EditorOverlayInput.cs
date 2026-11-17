@@ -152,6 +152,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
                 EditorPlacementMode.Spikes => "Place spikes",
                 EditorPlacementMode.Contact => "Place contact barrier",
                 EditorPlacementMode.Wall => "Place wall note",
+                EditorPlacementMode.Curve => "Place curve",
                 EditorPlacementMode.Text => "Place text",
                 EditorPlacementMode.Grass => "Place grass",
                 EditorPlacementMode.Flare => "Place flare",

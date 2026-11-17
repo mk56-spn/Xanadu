@@ -70,10 +70,10 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
     }
 
     /// <summary>
-    /// Only coloured action notes carry a key: the bar picks which of the three.
+    /// Only coloured action notes carry a key, curve heads among them: the bar picks which of the three.
     /// </summary>
     public static bool ShowsFor(EditorPlacementMode mode) =>
-        mode is EditorPlacementMode.Notes;
+        mode is EditorPlacementMode.Notes or EditorPlacementMode.Curve;
 
     /// <summary>The unselected variant of a note colour.</summary>
     public static Color Dimmed(Color color) => color.Lerp(DimTo, Dimming);

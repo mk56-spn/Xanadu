@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Layering;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs;
 
 namespace Xanadu.Drawers.Playfields;
@@ -63,6 +64,17 @@ public static class PlayfieldDrawList
         bool startPoints)
     {
         into.Clear();
+
+        // The curve rework draws its notes (curve notes) and their hit effects; the rest stays in the level, unplugged.
+        if (!PlayRules.Classic)
+        {
+            AddNotes(entities, into);
+            AddEffects<NotePop>(entities, into, PlayfieldDrawKind.NotePop);
+            AddEffects<HitTrail>(entities, into, PlayfieldDrawKind.HitTrail);
+            into.Sort();
+            return;
+        }
+
         AddItems<Mine>(entities, into, PlayfieldDrawKind.Mine);
         if (startPoints)
             AddItems<StartPoint>(entities, into, PlayfieldDrawKind.StartPoint);

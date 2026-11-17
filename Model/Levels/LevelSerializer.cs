@@ -128,6 +128,7 @@ public static class LevelSerializer
             note.Groups ??= new();
             note.Item ??= new();
             NormalizeItem(note.Item, validShader);
+            NormalizePath(note);
         }
         foreach (StartPointDocument start in chart.StartPoints)
             start.Groups ??= new();
@@ -233,4 +234,32 @@ public static class LevelSerializer
             XifShaderScope.Common => CommonShaders.IsKnown(shader.Path),
             _ => false,
         };
+
+    /// <summary>
+    /// A curve note keeps the points it can run through, its head on the note;
+    /// a path left without the head and one more point is dropped.
+    /// </summary>
+    private static void NormalizePath(NoteDocument note)
+    {
+        if (note.Path is null)
+            return;
+        note.Path.RemoveAll(point => point is null || !float.IsFinite(point.X) || !float.IsFinite(point.Y));
+        if (note.Path.Count > NotePath.MaxPoints)
+            note.Path.RemoveRange(NotePath.MaxPoints, note.Path.Count - NotePath.MaxPoints);
+        foreach (CurvePointDocument point in note.Path)
+        {
+            point.Speed = float.IsFinite(point.Speed)
+                ? Math.Clamp(point.Speed, NotePath.MinSpeed, NotePath.MaxSpeed)
+                : Note.DefaultMomentum;
+        }
+
+        if (note.Path.Count < NotePath.MinPoints)
+        {
+            note.Path = null;
+            return;
+        }
+
+        note.Path[0].X = note.X;
+        note.Path[0].Y = note.Y;
+    }
 }

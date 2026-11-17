@@ -1,13 +1,44 @@
 [
   {
     "Version": 1,
+    "Id": "f0cbceb6c6674d039b64fb84185d62bf",
+    "Slug": "bench-metronome-f0cbceb6",
+    "Title": "Bench Metronome",
+    "Artist": "Visual tests",
+    "Genre": "",
+    "AudioPath": "audio.wav",
+    "Bpm": 120,
+    "OffsetMs": 0,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
+    "ContentHash": "beba4e2db81286e086df6845cb3cf3e1185eecc3ca5cef9629d3ac02940bd8c6"
+  },
+  {
+    "Version": 1,
+    "Id": "fb7e17f4efaa48deb6b74d673de24ddb",
+    "Slug": "dear-brave-fb7e17f4",
+    "Title": "Dear Brave",
+    "Artist": "Kano",
+    "Genre": "",
+    "AudioPath": "audio.mp3",
+    "Bpm": 188,
+    "OffsetMs": 2154,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
+    "ContentHash": "e2423f44e2d90815d371e4d737f13f829d52cce0ee3fa2388e3f5fc872b3af53"
+  },
+  {
+    "Version": 1,
     "Id": "cfd622f1f39b48cf8d13c84b10f44694",
     "Slug": "mortal-coil-cfd622f1",
     "Title": "Mortal Coil",
     "Artist": "Helblinde",
+    "Genre": "",
     "AudioPath": "audio.mp3",
     "Bpm": 200,
     "OffsetMs": 1211,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
     "ContentHash": "c5687b4250ff9dd25af82d3f87534d38b5d0e5db3a23553e0d43169691e75335"
   },
   {
@@ -16,32 +47,13 @@
     "Slug": "our-everlasting-dream-6b426dcb",
     "Title": "Our Everlasting Dream",
     "Artist": "Helblinde",
+    "Genre": "",
     "AudioPath": "audio.mp3",
     "Bpm": 175,
     "OffsetMs": 0,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
     "ContentHash": "731c226ecaa24f2996afe8dd5f35579823d384cd810f6342f67a9675d6e6f084"
-  },
-  {
-    "Version": 1,
-    "Id": "eac04a0008ff452d8646767147cc4071",
-    "Slug": "unconquered-eac04a00",
-    "Title": "Unconquered",
-    "Artist": "Helblinde",
-    "AudioPath": "audio.mp3",
-    "Bpm": 140,
-    "OffsetMs": -11,
-    "ContentHash": "e8de13fcb2a90225abdc233137b74917e563da8840cf1add674f8971bb62f7b7"
-  },
-  {
-    "Version": 1,
-    "Id": "fb7e17f4efaa48deb6b74d673de24ddb",
-    "Slug": "dear-brave-fb7e17f4",
-    "Title": "Dear Brave",
-    "Artist": "Kano",
-    "AudioPath": "audio.mp3",
-    "Bpm": 188,
-    "OffsetMs": 2154,
-    "ContentHash": "e2423f44e2d90815d371e4d737f13f829d52cce0ee3fa2388e3f5fc872b3af53"
   },
   {
     "Version": 1,
@@ -49,9 +61,26 @@
     "Slug": "sand-dream-dcbe1313",
     "Title": "Sand Dream",
     "Artist": "Yuki Kajiura",
+    "Genre": "",
     "AudioPath": "audio.mp3",
     "Bpm": 82,
     "OffsetMs": 1486,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
     "ContentHash": "5ef889c3d89b07420a7febcf74ff451d28d9ac42f71ec59a41f4b0b9fdd702a7"
+  },
+  {
+    "Version": 1,
+    "Id": "eac04a0008ff452d8646767147cc4071",
+    "Slug": "unconquered-eac04a00",
+    "Title": "Unconquered",
+    "Artist": "Helblinde",
+    "Genre": "",
+    "AudioPath": "audio.mp3",
+    "Bpm": 140,
+    "OffsetMs": -11,
+    "BeatsPerBar": 4,
+    "TempoChanges": [],
+    "ContentHash": "e8de13fcb2a90225abdc233137b74917e563da8840cf1add674f8971bb62f7b7"
   }
 ]

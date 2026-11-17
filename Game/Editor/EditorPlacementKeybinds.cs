@@ -25,6 +25,13 @@ public static class EditorPlacementKeybinds
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {
+        // The number keys pick classic tools, which the curve rework unplugs.
+        if (!Xanadu.Model.Playfields.PlayRules.Classic)
+        {
+            mode = EditorPlacementMode.Curve;
+            return false;
+        }
+
         foreach ((Key main, Key pad, EditorPlacementMode bound) in Bindings)
         {
             if (key == main || key == pad)

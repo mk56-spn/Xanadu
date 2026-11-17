@@ -410,6 +410,17 @@ public sealed class ScreenReadDocument : ItemDocument
     public float Height { get; set; } = ScreenReadRegion.DefaultHeight;
 }
 
+/// <summary>One point of a curve note's path.</summary>
+public sealed class CurvePointDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    /// <summary>The body's speed at the point, playfield units a second.</summary>
+    public float Speed { get; set; }
+}
+
 /// <summary>Serializable practice start state.</summary>
 public sealed class StartPointDocument : ItemDocument
 {
@@ -476,4 +487,37 @@ public sealed class NoteDocument : ItemDocument
     public int CostSecond { get; set; }
 
     public int CostThird { get; set; }
+
+    /// <summary>
+    /// A curve note's path, the head (this note's place) first, each point with
+    /// the body's speed there; null or empty on every other note.
+    /// </summary>
+    public List<CurvePointDocument>? Path { get; set; }
+
+    /// <summary>The path as the note component carries it; null without one.</summary>
+    public NotePath? BuildPath()
+    {
+        if (Path is not { Count: >= NotePath.MinPoints })
+            return null;
+        var points = new Vector2[Path.Count];
+        var speeds = new float[Path.Count];
+        for (int i = 0; i < points.Length; i++)
+        {
+            points[i] = new Vector2(Path[i].X, Path[i].Y);
+            speeds[i] = Path[i].Speed;
+        }
+
+        return new NotePath(points, speeds);
+    }
+
+    /// <summary>The document form of a note's path; null without one.</summary>
+    public static List<CurvePointDocument>? PathDocument(NotePath? path)
+    {
+        if (path is null)
+            return null;
+        var points = new List<CurvePointDocument>(path.Count);
+        for (int i = 0; i < path.Count; i++)
+            points.Add(new CurvePointDocument { X = path.Points[i].X, Y = path.Points[i].Y, Speed = path.Speeds[i] });
+        return points;
+    }
 }

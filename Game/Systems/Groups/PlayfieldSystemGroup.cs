@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Xanadu.Model.Playfields;
 using Friflo.Engine.ECS.Systems;
 using System;
 using Xanadu.Model.Animation;
@@ -88,53 +89,73 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             Add(new ReplayPlaybackSystem(keybinds, replayKeyboard));
         }
 
-        Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
-        Add(new DashHangSystem());
-        Add(new PlayerArenaSystem());
-        Add(new SpikeContactSystem(entities));
-        Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
-        Add(new PlayKeyTrailHudSystem(entities));
-        Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
-        Add(new GroundStepSystem());
-        Add(new GroundModeSystem(keybinds, keyboard, groundToggle));
-        Add(new SlopeSlideSystem());
-        Add(new WallSlideSystem(entities, offsets));
-        Add(new ContactBarrierSystem(entities, offsets));
-        Add(new TrailAgeSystem<HitTrail>());
-        Add(new NotePopSystem());
-        Add(new TrailAgeSystem<DashTrail>());
-        Add(new TrailAgeSystem<DashFlare>());
-        Add(new HitGhostSystem());
-        Add(new ParticleBurstSystem(_particles));
+        // The curve rework (PlayRules): a hovering square follows the curve notes it hits.
+        // The classic movement and character are unplugged, not deleted.
+        if (PlayRules.Classic)
+        {
+            Add(new PlayerMovementSystem(entities, keybinds, keyboard, offsets));
+            Add(new DashHangSystem());
+            Add(new PlayerArenaSystem());
+            Add(new SpikeContactSystem(entities));
+            Add(new PlayKeyTrailSystem(entities, keybinds, keyboard));
+            Add(new PlayKeyTrailHudSystem(entities));
+            Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+            Add(new GroundStepSystem());
+            Add(new GroundModeSystem(keybinds, keyboard, groundToggle));
+            Add(new SlopeSlideSystem());
+            Add(new WallSlideSystem(entities, offsets));
+            Add(new ContactBarrierSystem(entities, offsets));
+            Add(new TrailAgeSystem<HitTrail>());
+            Add(new NotePopSystem());
+            Add(new TrailAgeSystem<DashTrail>());
+            Add(new TrailAgeSystem<DashFlare>());
+            Add(new HitGhostSystem());
+            Add(new ParticleBurstSystem(_particles));
+        }
+        else
+        {
+            // Curve notes are notes: their heads are judged and scored like any action note.
+            Add(new CurvePlayerSystem());
+            Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+            Add(new TrailAgeSystem<HitTrail>());
+            Add(new NotePopSystem());
+            Add(new ParticleBurstSystem(_particles));
+        }
+
         Add(new HudLayoutSystem(
             canvas,
             pointer ?? new NullPointerInputSource(),
             keyboard,
             hudLayout ?? new HudLayoutSettings(persist: false),
             _hudOverlay.Handle));
-        Add(new ContactCounterSystem());
-        Add(new PlayerSmoothingSystem());
-        Add(new PlayerPathRecordSystem());
-        Add(new PlayCameraSystem());
-        Add(new ShaderPlaySystem());
-        Add(new PlayScoreSystem());
-        Add(new ComboHudSystem());
-        if (rigFiles is not null)
+        if (PlayRules.Classic)
         {
-            Add(new CharacterRigLoadSystem(rigFiles));
-            Add(new CharacterMotionSystem());
-            Add(new CharacterAttackSystem());
-            Add(new CharacterBumpSystem());
-            Add(new CharacterRigAnimateSystem());
-            Add(new CharacterRigDrawSystem(
-                () => new SvgAttachmentVisuals(_characters.Handle),
-                new CharacterRigGhosts(
-                    _ghosts.Handle,
-                    root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false }),
-                _characters.Handle));
+            Add(new ContactCounterSystem());
+            Add(new PlayerSmoothingSystem());
+            Add(new PlayerPathRecordSystem());
+            if (rigFiles is not null)
+            {
+                Add(new CharacterRigLoadSystem(rigFiles));
+                Add(new CharacterMotionSystem());
+                Add(new CharacterAttackSystem());
+                Add(new CharacterBumpSystem());
+                Add(new CharacterRigAnimateSystem());
+                Add(new CharacterRigDrawSystem(
+                    () => new SvgAttachmentVisuals(_characters.Handle),
+                    new CharacterRigGhosts(
+                        _ghosts.Handle,
+                        root => new SvgAttachmentVisuals(root, containLayers: true) { Particles = false }),
+                    _characters.Handle));
+            }
+
+            Add(new DivaNotesSystem(entities));
         }
 
-        Add(new DivaNotesSystem(entities));
+        Add(new PlayScoreSystem());
+        Add(new ComboHudSystem());
+        Add(new PlayCameraSystem());
+        Add(new ShaderPlaySystem());
+
         Add(new PlayfieldDrawSystem(entities, canvas, _playfield.Handle, passes, toPixels));
         if (hitboxToggle is not null)
         {

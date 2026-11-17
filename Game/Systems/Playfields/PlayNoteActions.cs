@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
@@ -32,7 +33,11 @@ public sealed class PlayNoteActions
             playfield.GetComponent<ContactCounters>().Add(action);
         }
 
-        noteEntity.DeleteEntity();
+        // A curve note's head is judged like any note; its path then steers the body (CurvePlayerSystem).
+        if (note.IsCurve)
+            noteEntity.AddTag<NoteSteering>();
+        else
+            noteEntity.DeleteEntity();
         return true;
     }
 

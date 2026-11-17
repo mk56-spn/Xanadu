@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Drawers.Passes;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Model.Playfields;
 using static Xanadu.Model.Playfields.PlayfieldColors;
 using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
@@ -59,6 +61,8 @@ public static partial class PlayfieldRenderer
         SetGroupTracks(frame.Groups, frame.Seconds);
         PlayfieldDrawList.Gather(entities, DrawEntries, startPoints: frame.Editor);
         bool playing = IsPlaying(entities);
+        if (!PlayRules.Classic)
+            DrawFloor(canvas, rid, frame.View, frame.Playfield);
 
         // A buffered group's members draw together at its lowest slot instead
         // of in their own places (D12/D13).
@@ -350,6 +354,14 @@ public static partial class PlayfieldRenderer
                     DrawNoteGuides(canvas, rid, entities, view, frame.Playhead);
                 break;
             case PlayfieldDrawKind.Note:
+                // A curve note's path goes under its head; once the head is hit, only the path is left.
+                if (entity.GetComponent<Note>().IsCurve)
+                {
+                    DrawCurve(canvas, rid, entity, view, frame.Playhead, selected);
+                    if (entity.Tags.Has<NoteSteering>())
+                        break;
+                }
+
                 if (frame.DivaNotes)
                     DrawDivaNote(canvas, rid, entity, view, frame.Playhead, DivaPulse(frame.Playhead));
                 else

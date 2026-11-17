@@ -10,6 +10,10 @@ public sealed class PhysicsSystemGroup : SystemGroup
     public PhysicsSystemGroup(Box2DPhysicsWorld physics, EntityStore entities)
         : base("Physics")
     {
+        // The curve rework moves the player without physics (PlayRules); the world stays unplugged.
+        if (!Xanadu.Model.Playfields.PlayRules.Classic)
+            return;
+
         Add(new BlockBodySystem(physics, entities));
         Add(new PlayerBodySystem(physics));
         Add(new PlayerSpeedCapSystem());
