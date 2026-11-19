@@ -44,5 +44,6 @@ internal static class LabExperiments
         Experiments.ShaderEditor.Spawner(),
         new Experiments.RtsLab(),
         new Experiments.EcsRender.EcsRenderLab(),
+        new Experiments.CjkGridLab(),
     ];
 }

@@ -27,12 +27,28 @@ internal sealed unsafe class HostText : IDisposable
     private const string SansPath = "Assets/Fonts/SourceSans3-Variable.ttf";
     private const string MonoPath = "Assets/Fonts/JetBrainsMono-Regular.ttf";
 
-    /// <summary>Tried in order for characters the main faces lack: symbols, then emoji (drawn in one colour), then JetBrains Mono.</summary>
+    /// <summary>Tried in order for characters the main faces lack: symbols, then emoji (drawn in one colour), then a system CJK font (<see cref="SystemCjkPaths"/>), then JetBrains Mono.</summary>
     private static readonly string[] FallbackPaths =
     [
         "Assets/Fonts/NotoSansSymbols2-Regular.ttf",
         "Assets/Fonts/NotoSansSymbols-Variable.ttf",
         "Assets/Fonts/NotoEmoji-Regular.ttf",
+    ];
+
+    /// <summary>
+    /// A system CJK font, tried after the bundled fallbacks: the first of these
+    /// that exists (Linux, then Windows). None is bundled yet, so a machine with
+    /// none of them draws CJK as missing boxes. For a .ttc the first face is used.
+    /// </summary>
+    private static readonly string[] SystemCjkPaths =
+    [
+        "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/google-droid-sans-fonts/DroidSansFallbackFull.ttf",
+        "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+        @"C:\Windows\Fonts\YuGothR.ttc",
+        @"C:\Windows\Fonts\msgothic.ttc",
     ];
 
     /// <summary>One glyph image: its face, size, glyph, and what was made of it.</summary>
@@ -62,13 +78,15 @@ internal sealed unsafe class HostText : IDisposable
             new(library, sans, 1, "Source Sans 3 Bold", weight: 700),
             new(library, mono, 2, "JetBrains Mono"),
         };
-        var fallbacks = new FontFace[FallbackPaths.Length];
-        for (int i = 0; i < fallbacks.Length; i++)
+        var fallbacks = new List<FontFace>(FallbackPaths.Length + 1);
+        foreach (string path in FallbackPaths)
         {
-            string path = FallbackPaths[i];
-            fallbacks[i] = new FontFace(
-                library, File.ReadAllBytes(GamePaths.Full(path)), faces.Count + i, Path.GetFileNameWithoutExtension(path), weight: 400);
+            fallbacks.Add(new FontFace(
+                library, File.ReadAllBytes(GamePaths.Full(path)), faces.Count + fallbacks.Count, Path.GetFileNameWithoutExtension(path), weight: 400));
         }
+
+        if (Array.Find(SystemCjkPaths, File.Exists) is { } cjk)
+            fallbacks.Add(new FontFace(library, File.ReadAllBytes(cjk), faces.Count + fallbacks.Count, Path.GetFileNameWithoutExtension(cjk)));
 
         // Mono last: it has the box-drawing lines (┃ └) the others lack.
         FontFace[] chain = [.. fallbacks, faces[(int)FontKind.Mono]];
