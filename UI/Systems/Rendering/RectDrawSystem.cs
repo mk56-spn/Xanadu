@@ -33,7 +33,13 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
             bool hasContainer = entity.TryGetComponent(out UiContainer container);
             float skew = hasContainer ? container.Skew : 0;
             float chamfer = entity.TryGetComponent(out UiChamfer cut) ? cut.Size : 0;
-            if (skew != 0 || chamfer > 0)
+            // An invisible fill (most text and layout boxes) draws nothing: an empty quad
+            // between two glyphs breaks the renderer's batching on the texture change.
+            // A material may still paint over a clear fill, so those keep it.
+            if (fillColor.Value.A <= 0f && !entity.HasComponent<UiMaterial>())
+            {
+            }
+            else if (skew != 0 || chamfer > 0)
             {
                 _canvas.DrawPolygon(
                     visual.Value,
