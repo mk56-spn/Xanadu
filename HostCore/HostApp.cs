@@ -69,6 +69,7 @@ internal abstract class HostApp : Game
     private bool _screenshotRequested;
     private string? _requestedShot;
     private readonly HostFrameProbe? _probe;
+    private readonly HostFramePhases _phases = new();
     private readonly Autopsy.AutopsyRecorder? _autopsy;
     private readonly Autopsy.CpuSampler? _sampler;
 
@@ -147,6 +148,7 @@ internal abstract class HostApp : Game
         HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerRidFactory(loadsAssets: true), Fps);
         HostPlatform.Particles = Renderer.Particles;
         HostPlatform.GpuMemory = _gpuMemory;
+        HostPlatform.FramePhases = _phases;
         TextureServer.Use(new HostTextures(GraphicsDevice, Canvas, Renderer));
         UiIcons.Loader = UiIcons.FromResources;
         HostPlatform.GlyphStrip = atlas =>
@@ -344,6 +346,7 @@ internal abstract class HostApp : Game
             _autopsy?.BeginFrame();
         _drawnSinceUpdate = false;
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        long lap = started;
         _probe?.BeginPhase();
         TextInput.Update(Inputs.Keyboard, delta);
         // While a code editor has the keys, F12 is its go-to-declaration.
@@ -353,9 +356,13 @@ internal abstract class HostApp : Game
         Pointer.Poll();
         float time = (float)(now - _started).TotalSeconds;
         BeforeSystems(delta);
+        _phases.Lap(HostFramePhases.Phase.Input, ref lap);
         _ui?.Update(new UpdateTick(delta, time));
+        _phases.Lap(HostFramePhases.Phase.UiAndSystems, ref lap);
         Tick(delta, time);
         Pointer.EndFrame();
+        _phases.Lap(HostFramePhases.Phase.ExeTick, ref lap);
+        _phases.Add(HostFramePhases.Phase.Update, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         _probe?.EndUpdate();
         if (_autopsy is not null)
         {
@@ -380,6 +387,7 @@ internal abstract class HostApp : Game
     {
         _probe?.BeginPhase();
         _drawStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        _drawLap = _drawStarted;
         _acquireMs = 0;
         try
         {
@@ -388,12 +396,17 @@ internal abstract class HostApp : Game
         finally
         {
             _probe?.EndDraw();
+            // Whatever followed the canvas: the blit, the submit, a shot.
+            _phases.Lap(HostFramePhases.Phase.Submit, ref _drawLap);
+            _phases.Add(HostFramePhases.Phase.Draw, System.Diagnostics.Stopwatch.GetElapsedTime(_drawStarted).TotalMilliseconds);
+            _phases.EndFrame();
             _drawnSinceUpdate = true;
             _autopsy?.AddDraw(System.Diagnostics.Stopwatch.GetElapsedTime(_drawStarted).TotalMilliseconds, _acquireMs);
         }
     }
 
     private long _drawStarted;
+    private long _drawLap;
     private double _acquireMs;
     private long _frameNumber;
 
@@ -401,9 +414,11 @@ internal abstract class HostApp : Game
     {
         Fps.Frame();
         CommandBuffer commands = GraphicsDevice.AcquireCommandBuffer();
+        _phases.Lap(HostFramePhases.Phase.AcquireCommands, ref _drawLap);
         long acquire = System.Diagnostics.Stopwatch.GetTimestamp();
         Texture? swapchain = commands.AcquireSwapchainTexture(MainWindow);
         _acquireMs = System.Diagnostics.Stopwatch.GetElapsedTime(acquire).TotalMilliseconds;
+        _phases.Lap(HostFramePhases.Phase.WaitSwapchain, ref _drawLap);
         _probe?.EndAcquire();
         if (swapchain is null)
         {
@@ -413,14 +428,17 @@ internal abstract class HostApp : Game
 
         GpuTimes.Poll();
         Text.Atlas.Flush();
+        _phases.Lap(HostFramePhases.Phase.AtlasFlush, ref _drawLap);
         // "frame" closes before any submit below; GpuTimes counts frames by it.
         GpuScope frame = commands.Scope(GpuTimes.FrameName(_autopsy?.Number ?? _frameNumber++));
         using (commands.Scope("offscreen"))
             RenderOffscreen(commands);
+        _phases.Lap(HostFramePhases.Phase.Offscreen, ref _drawLap);
 
         Color background = Palette.Background;
         using (commands.Scope("canvas"))
-            Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds);
+            Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds, _phases);
+        _phases.Lap(HostFramePhases.Phase.Canvas, ref _drawLap);
         using (commands.Scope("blit to window"))
             commands.Blit(Target, swapchain, Filter.Linear);
         frame.Dispose();

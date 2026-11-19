@@ -31,7 +31,8 @@ public sealed class DebugSystemGroup : SystemGroup, IDisposable
             systems,
             fps,
             paging,
-            gpuMemory: HostPlatform.GpuMemory));
+            gpuMemory: HostPlatform.GpuMemory,
+            phases: HostPlatform.FramePhases));
         Add(new FpsCounterSystem(new KeyOverlayToggleSource(DebugKeys.FrameRate, keyboard), store, fps));
         _uiOverlay = UiDebugOverlayGroup.Attach(
             this,

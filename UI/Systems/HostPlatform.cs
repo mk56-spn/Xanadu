@@ -34,6 +34,9 @@ public static class HostPlatform
     /// <summary>Video memory use for the F3 overlay; null where nothing can read it (tests).</summary>
     public static IGpuMemorySource? GpuMemory { get; set; }
 
+    /// <summary>Where the frame goes, part by part, for the F3 overlay; null where nothing times it (tests).</summary>
+    public static IFramePhaseSource? FramePhases { get; set; }
+
     private static System.Func<IRectCanvas>? _newCanvas;
 
     /// <summary>A canvas for a system root to draw through: the host's, with its text, else shapes only.</summary>

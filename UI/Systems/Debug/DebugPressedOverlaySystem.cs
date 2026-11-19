@@ -28,6 +28,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private readonly IFpsSource? _fpsSource;
     private readonly IOverlayPageSource? _paging;
     private readonly IGpuMemorySource? _gpuMemory;
+    private readonly IFramePhaseSource? _phases;
     private readonly IVisualRidFactory? _visuals;
     private readonly OverlayLatch _latch;
     private readonly Dictionary<BaseSystem, string> _names = new();
@@ -65,9 +66,11 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         IFpsSource? fpsSource = null,
         IOverlayPageSource? paging = null,
         IVisualRidFactory? visuals = null,
-        IGpuMemorySource? gpuMemory = null)
+        IGpuMemorySource? gpuMemory = null,
+        IFramePhaseSource? phases = null)
     {
         _gpuMemory = gpuMemory;
+        _phases = phases;
         _latch = new OverlayLatch(toggle);
         _store = store;
         _systems = systems;
@@ -120,6 +123,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         UiNode metrics = Panel(panels);
         metrics.Text("F3 ECS DEBUG", FontSize, DebugPalette.Title);
         BuildSummary(metrics);
+        BuildPhases(metrics);
 
         BuildSystemTree(metrics);
         if (_systems is not null)
@@ -165,6 +169,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         double fps = _fpsSource?.GetFps() ?? 60;
         float systemsMs = _systems is null ? 0 : RefreshSystems(_systems, delta);
         RefreshSummary(delta, fps, systemsMs);
+        RefreshPhases(delta);
     }
 
     /// <summary>Sets a line of text, widening it if it has outgrown its box.</summary>

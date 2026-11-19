@@ -230,19 +230,23 @@ internal sealed class CanvasRenderer : IDisposable
     public void RemoveOffscreen(CanvasItem root) => _offscreen.RemoveAll(entry => entry.Root == root);
 
     /// <summary>Draws the whole frame into <paramref name="target"/>, cleared to <paramref name="clear"/>; <paramref name="time"/> is an effect's TIME.</summary>
-    public void Render(CommandBuffer commands, Texture target, MwColor clear, float time)
+    public void Render(CommandBuffer commands, Texture target, MwColor clear, float time, HostFramePhases? phases = null)
     {
+        long lap = HostFramePhases.Now;
         _jobs.Clear();
         _groupTargetsUsed = 0;
         foreach ((CanvasItem root, Texture offscreen) in _offscreen)
             CollectJob(root, offscreen, new MwColor(0, 0, 0, 0), group: false, Transform2D.Identity, FullClip);
         CollectJob(_tree.Root, target, clear, group: false, Transform2D.Identity, FullClip);
+        phases?.Lap(HostFramePhases.Phase.Collect, ref lap);
 
         Build();
+        phases?.Lap(HostFramePhases.Phase.Build, ref lap);
         using (commands.Scope("upload vertices"))
             Upload(commands);
         using (commands.Scope("upload chart"))
             UploadChart(commands);
+        phases?.Lap(HostFramePhases.Phase.Upload, ref lap);
 
         // The particles and kept state move by the frame's time, before any pass draws them.
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
@@ -251,6 +255,7 @@ internal sealed class CanvasRenderer : IDisposable
             UpdateStates(commands, dt, time);
         using (commands.Scope("particles step"))
             Particles.Step(commands, dt);
+        phases?.Lap(HostFramePhases.Phase.ShaderStates, ref lap);
 
         LastCopyCount = 0;
         foreach (Job job in _jobs)
@@ -258,6 +263,8 @@ internal sealed class CanvasRenderer : IDisposable
             using (commands.Scope(job.IsGroup ? "group target" : job.Target == target ? "main target" : "offscreen target"))
                 Draw(commands, job, time, job.Target == target && _msaa is not null);
         }
+
+        phases?.Lap(HostFramePhases.Phase.DrawPasses, ref lap);
     }
 
     private Rect FullClip => new() { X = 0, Y = 0, W = (int)_width, H = (int)_height };
@@ -463,6 +470,7 @@ internal sealed class CanvasRenderer : IDisposable
         else
             _batches.Add(batch);
     }
+
 
     private int _jobFirstBatch;
 
