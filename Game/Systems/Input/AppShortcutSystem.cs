@@ -2,6 +2,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Settings;
+using Xanadu.Systems.Audio;
 using Xanadu.Systems.Editor;
 using Xanadu.Systems.Scenes;
 using Xanadu.Ui.Systems.Input;
@@ -15,7 +16,8 @@ namespace Xanadu.Systems.Input;
 public sealed class AppShortcutSystem(
     IKeyPressSource keys,
     KeybindSettings keybinds,
-    SceneSystem scenes) : QuerySystem<EditorShortcutHost>
+    SceneSystem scenes,
+    FeedbackSoundPlayer? sounds = null) : QuerySystem<EditorShortcutHost>
 {
     protected override void OnUpdate()
     {
@@ -52,6 +54,7 @@ public sealed class AppShortcutSystem(
         switch (chord.Key)
         {
             case Key.Escape:
+                sounds?.Play(FeedbackSound.Back);
                 scenes.TryBack();
                 break;
             case Key.Enter:

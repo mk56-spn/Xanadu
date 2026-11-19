@@ -1,0 +1,2 @@
+hit.flac: osu!'s normal-hitnormal.wav from https://github.com/ppy/osu-resources
+(osu.Game.Resources/Samples/Gameplay), converted to FLAC.

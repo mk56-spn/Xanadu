@@ -1,0 +1,7 @@
+Menu sounds from Etterna's Rebirth theme (Themes/Rebirth/Sounds/sfx),
+https://github.com/etternagame/etterna, converted from Ogg Vorbis to FLAC.
+
+The theme is MIT licensed (Copyright (c) 2020 Barinade); its sfx folder credits:
+
+  game sfx provided by MonochromeMedia
+  https://monochromemedia.carrd.co/
