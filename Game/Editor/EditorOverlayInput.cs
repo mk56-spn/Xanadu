@@ -15,7 +15,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         IsBindingsHelpVisible(),
         IsWarningOpen(),
         !FindFocusedTextField().IsNull,
-        IsDraftingCurve());
+        IsDrafting());
 
     public void Run(EditorShortcuts.Binding binding)
     {
@@ -62,11 +62,11 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.Place:
                 SetPlacementMode(binding.Placement);
                 break;
-            case EditorShortcut.FinishCurve:
-                _editor.GetComponent<EditorRouteDraft>().FinishRequested = true;
+            case EditorShortcut.FinishDraft:
+                _editor.GetComponent<EditorSpanDraft>().FinishRequested = true;
                 break;
-            case EditorShortcut.CancelCurve:
-                _editor.GetComponent<EditorRouteDraft>().CancelRequested = true;
+            case EditorShortcut.CancelDraft:
+                _editor.GetComponent<EditorSpanDraft>().CancelRequested = true;
                 break;
             case EditorShortcut.Back:
                 _onBack?.Invoke();
@@ -86,8 +86,8 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         }
     }
 
-    private bool IsDraftingCurve() =>
-        !_editor.IsNull && _editor.TryGetComponent(out EditorRouteDraft draft) && draft.Active;
+    private bool IsDrafting() =>
+        !_editor.IsNull && _editor.TryGetComponent(out EditorSpanDraft draft) && draft.Active;
 
     private void DeleteSelectedNote()
     {
@@ -105,7 +105,9 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
-            EditorPlacementMode.Curve => "Curve notes: click the head, then each point",
+            EditorPlacementMode.Curve => "Route notes: click the head, move the playhead, click each turn, right click ends",
+            EditorPlacementMode.Hold => "Hold notes: click the head, move the playhead, click the tail",
+            EditorPlacementMode.Dash => "Dash notes: press and drag out how far it teleports",
             _ => "Placement mode",
         });
     }

@@ -7,13 +7,13 @@ namespace Xanadu.Model.Ecs.Components;
 /// <summary>What clicking the field places.</summary>
 public enum EditorPlacementMode
 {
-    /// <summary>A route note: an action note at the first point clicked, with a turn at each click after.</summary>
+    /// <summary>A route note: the head where first clicked at the playhead, then a turn at the playhead with each click after, until Enter.</summary>
     Curve,
 
     /// <summary>A dash note: pressed where it goes, dragged out to how far it teleports.</summary>
     Dash,
 
-    /// <summary>A hold note: pressed at its head, dragged to where its tail sits; its length in beats is the tool's.</summary>
+    /// <summary>A hold note: the head where first clicked at the playhead, then the tail where clicked next, at the playhead then.</summary>
     Hold,
 }
 
@@ -27,13 +27,10 @@ public struct EditorPlacement() : IComponent
 
     /// <summary>The 1×/2×/3× speed new curve points get.</summary>
     public DashStrength Strength = DashStrength.Single;
-
-    /// <summary>How long new hold notes last, beats.</summary>
-    public double HoldBeats = 1d;
 }
 
 /// <summary>
-/// A dash or hold note being dragged out, on the editor entity: the head's place
+/// A dash note being dragged out, on the editor entity: the head's place
 /// and time from the press, and where the pointer is now.
 /// </summary>
 public struct EditorDragDraft : IComponent
@@ -45,7 +42,7 @@ public struct EditorDragDraft : IComponent
     public long StartMs;
 }
 
-/// <summary>The hold length readout in the tool panel, which shows the selected hold's length, else the tool's.</summary>
+/// <summary>The hold length readout in the tool panel, which shows the selected hold's length.</summary>
 public struct EditorHoldLengthReadout : IComponent;
 
 /// <summary>A part of the left panel that only shows for the tools that use it.</summary>

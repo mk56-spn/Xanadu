@@ -30,6 +30,9 @@ public static class EditorItems
     public static int Count(EntityStore entities) =>
         entities.Query().AllTags(Tags.Get<EditorItem>()).Count;
 
+    /// <summary>Whether the level holds <see cref="MaxItems"/> already; unlike <see cref="WouldOverfill"/>, says nothing.</summary>
+    public static bool IsFull(EntityStore entities) => Count(entities) >= MaxItems;
+
     /// <summary>
     /// Whether adding <paramref name="adding"/> more objects would pass
     /// <see cref="MaxItems"/>. When it would, the editor's status says so.

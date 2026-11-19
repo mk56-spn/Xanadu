@@ -24,8 +24,8 @@ public sealed class EditorHoverProbe(EditorSceneQuery scene, EditorItemPicker pi
 
     private bool WouldPlaceAt(Vector2 screenPosition, Entity editor, bool hasPickedSelection)
     {
-        // A curve being laid shows its next point over notes and selections alike.
-        bool drafting = editor.TryGetComponent(out EditorRouteDraft draft) && draft.Active;
+        // A route or hold being laid shows its next point over notes and selections alike.
+        bool drafting = editor.TryGetComponent(out EditorSpanDraft draft) && draft.Active;
         if (scene.IsModalOpen() || (!drafting && hasPickedSelection))
         {
             return false;

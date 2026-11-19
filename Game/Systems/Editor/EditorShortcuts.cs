@@ -30,11 +30,11 @@ public enum EditorShortcut
     MoveLeft,
     MoveRight,
 
-    /// <summary>Finishes the curve being laid into a curve note.</summary>
-    FinishCurve,
+    /// <summary>Finishes the route or hold being laid, ending it at the playhead (as right click does).</summary>
+    FinishDraft,
 
-    /// <summary>Drops the curve being laid.</summary>
-    CancelCurve,
+    /// <summary>Drops the route or hold being laid.</summary>
+    CancelDraft,
 }
 
 /// <summary>When a binding can fire. <see cref="EditorShortcuts.ActiveScopes"/> says which are live.</summary>
@@ -58,8 +58,8 @@ public enum EditorShortcutScope
     /// <summary>An editor dialog is up; it is modal, so only the keys that close it work.</summary>
     Dialog = 64,
 
-    /// <summary>A curve is being laid, which Enter and Esc finish before they do anything else.</summary>
-    CurveDraft = 128,
+    /// <summary>A route or hold is being laid, which Enter and Esc finish before they do anything else.</summary>
+    Draft = 128,
 }
 
 /// <summary>Every key binding in the level editor; the first live match wins.</summary>
@@ -80,7 +80,7 @@ public static class EditorShortcuts
         bool help,
         bool warning,
         bool typing,
-        bool curveDraft = false)
+        bool drafting = false)
     {
         if (dialog)
             return EditorShortcutScope.Dialog;
@@ -94,7 +94,7 @@ public static class EditorShortcuts
             return scopes;
 
         scopes |= EditorShortcutScope.Field;
-        return curveDraft ? scopes | EditorShortcutScope.CurveDraft : scopes;
+        return drafting ? scopes | EditorShortcutScope.Draft : scopes;
     }
 
     public static Binding? Find(KeyChord chord, EditorShortcutScope scopes)
@@ -129,9 +129,9 @@ public static class EditorShortcuts
             new(new KeyChord(Key.C, Ctrl: true), EditorShortcut.Copy, notTyping),
             new(new KeyChord(Key.V, Ctrl: true), EditorShortcut.Paste, notTyping),
 
-            new(new KeyChord(Key.Escape), EditorShortcut.CancelCurve, EditorShortcutScope.CurveDraft),
-            new(new KeyChord(Key.Enter), EditorShortcut.FinishCurve, EditorShortcutScope.CurveDraft),
-            new(new KeyChord(Key.KpEnter), EditorShortcut.FinishCurve, EditorShortcutScope.CurveDraft),
+            new(new KeyChord(Key.Escape), EditorShortcut.CancelDraft, EditorShortcutScope.Draft),
+            new(new KeyChord(Key.Enter), EditorShortcut.FinishDraft, EditorShortcutScope.Draft),
+            new(new KeyChord(Key.KpEnter), EditorShortcut.FinishDraft, EditorShortcutScope.Draft),
 
             new(new KeyChord(Key.Escape), EditorShortcut.Back, field),
             new(new KeyChord(Key.Enter), EditorShortcut.Forward, field),

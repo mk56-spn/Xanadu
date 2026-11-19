@@ -23,7 +23,7 @@ namespace Xanadu.Systems.Editor;
 #pragma warning disable RS0030
 
 /// <summary>
-/// Lays route notes, drags out dash and hold notes, and selects and drags notes,
+/// Lays route and hold notes (through <see cref="EditorSpanTool"/>), drags out dash notes, and selects and drags notes,
 /// in playfield coordinates; the timeline strip is the shared timeline's.
 /// </summary>
 public sealed class EditorNoteInputSystem : QuerySystem<Note>
@@ -34,9 +34,10 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private readonly EditorSceneQuery _scene;
     private readonly EditorItemPicker _picker;
     private readonly EditorHoverProbe _hover;
-    private readonly EditorRouteTool _routeTool;
+    private readonly EditorSpanTool _spanTool;
 
     private bool _wasPressed;
+    private bool _wasSecondary;
 
     /// <summary>
     /// The item a placement just selected. It stays selected for editing, but
@@ -60,7 +61,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _scene = new EditorSceneQuery(entities);
         _picker = new EditorItemPicker(_scene);
         _hover = new EditorHoverProbe(_scene, _picker);
-        _routeTool = new EditorRouteTool(_scene, history);
+        _spanTool = new EditorSpanTool(_scene, history);
         _box = new NoteBox(this);
     }
 
@@ -70,7 +71,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         bool pressed = input.Pressed;
         Entity editor = _scene.Editor();
         bool picked = HasPickedSelection(editor);
-        _routeTool.Update(editor);
+        _spanTool.Update(editor, FieldPointer(editor, input.Position));
+        if (input.SecondaryPressed && !_wasSecondary)
+            OnSecondaryPress(editor, input.Position);
+        _wasSecondary = input.SecondaryPressed;
+        TakeSpanPlaced();
 
         if (pressed && !_wasPressed)
             OnPress(input.Position, input.Shift);
@@ -81,6 +86,29 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         _hover.Update(input.Position, pressed, picked);
         _wasPressed = pressed;
+    }
+
+    /// <summary>The pointer in playfield units when it is over the open field, not over any editor UI.</summary>
+    private Vector2? FieldPointer(Entity editor, Vector2 screenPosition)
+    {
+        if (editor.IsNull || _scene.IsModalOpen() || IsOverEditorUi(editor, screenPosition))
+            return null;
+        Vector2 point = editor.GetComponent<PlayfieldView>().ScreenToPlayfield(screenPosition);
+        return PlayfieldGrid.IsInside(point, editor.GetComponent<Playfield>()) ? point : null;
+    }
+
+    private bool IsOverEditorUi(Entity editor, Vector2 screenPosition) =>
+        EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>()).HasPoint(screenPosition) ||
+        (editor.TryGetComponent(out EditorSidebar sidebar) && sidebar.Bounds.HasPoint(screenPosition)) ||
+        _scene.IsOverNoteBar(screenPosition) ||
+        _scene.IsOverPanel(screenPosition);
+
+    /// <summary>Right click over the field ends the route or hold being laid, as in osu!'s editor.</summary>
+    private void OnSecondaryPress(Entity editor, Vector2 screenPosition)
+    {
+        if (editor.IsNull || _scene.IsModalOpen() || IsOverEditorUi(editor, screenPosition))
+            return;
+        _spanTool.Finish(editor, screenPosition, editor.GetComponent<PlayfieldView>(), editor.GetComponent<Playfield>());
     }
 
     private void OnPress(Vector2 screenPosition, bool shift)
@@ -96,23 +124,17 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _box.Cancel(editor);
 
         // The ruler strip is the shared timeline's (TimelineInputSystem, through EditorTimelineHost).
-        if (EditorLayout.RulerRect(view).HasPoint(screenPosition))
-            return;
-
-        if (editor.HasComponent<EditorSidebar>() &&
-            editor.GetComponent<EditorSidebar>().Bounds.HasPoint(screenPosition))
-        {
-            return;
-        }
-
-        if (_scene.IsOverNoteBar(screenPosition) || _scene.IsOverPanel(screenPosition))
+        if (IsOverEditorUi(editor, screenPosition))
             return;
 
         Vector2 playfieldPosition = view.ScreenToPlayfield(screenPosition);
 
-        // A route being laid takes every press, even over notes: each one adds a turn.
-        if (_routeTool.Drafting(editor) && _routeTool.TryDraft(editor, screenPosition, view, playfield))
+        // A route or hold being laid takes every press, even over notes: each one marks a time.
+        if (_spanTool.Drafting(editor) && _spanTool.TryDraft(editor, screenPosition, view, playfield))
+        {
+            TakeSpanPlaced();
             return;
+        }
 
         if (!PlayfieldGrid.IsInside(playfieldPosition, playfield))
             return;
@@ -154,8 +176,9 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             return;
         }
 
-        // Shift-dragging adds to the selection; a plain press starts a curve, or
-        // clears the selection when released without dragging, or box-selects when dragged.
+        // Shift-dragging adds to the selection; a plain press starts a dash, or
+        // (released without dragging) clears the selection or starts a route or hold,
+        // or box-selects when dragged.
         if (shift)
             _box.BeginAdditive(screenPosition, selection.AllNotes);
         else if (IsDragTool(editor) && !HasPickedSelection(editor))
@@ -164,12 +187,21 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             _box.Arm(screenPosition);
     }
 
-    /// <summary>Whether the current tool lays its note by pressing and dragging out (dash, hold).</summary>
+    /// <summary>Whether the current tool lays its note by pressing and dragging out (dash).</summary>
     private static bool IsDragTool(Entity editor) =>
         editor.TryGetComponent(out EditorPlacement placement) &&
-        placement.Mode is EditorPlacementMode.Dash or EditorPlacementMode.Hold;
+        placement.Mode is EditorPlacementMode.Dash;
 
-    /// <summary>Puts a dash's or hold's head down at the snapped playhead; dragging then sets its length or tail.</summary>
+    /// <summary>A note the span tool just laid counts as just placed: the next empty click places again.</summary>
+    private void TakeSpanPlaced()
+    {
+        if (_spanTool.Placed.IsNull)
+            return;
+        _placed = _spanTool.Placed;
+        _spanTool.Placed = default;
+    }
+
+    /// <summary>Puts a dash's head down at the snapped playhead; dragging then sets its length.</summary>
     private void StartDragDraft(Entity editor, Vector2 point, Playhead playhead, Playfield playfield)
     {
         if (editor.GetComponent<LevelInfo>().Song is null)
@@ -279,11 +311,11 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
                 return;
             }
 
-            // A click on empty field starts a route there, with the route tool.
-            if (editor.GetComponent<EditorPlacement>().Mode != EditorPlacementMode.Curve)
+            // A click on empty field starts a route or hold there.
+            if (!EditorSpanTool.Lays(editor.GetComponent<EditorPlacement>().Mode))
                 return;
             PlayfieldView view = editor.GetComponent<PlayfieldView>();
-            _routeTool.TryDraft(editor, _box.Start, view, editor.GetComponent<Playfield>());
+            _spanTool.TryDraft(editor, _box.Start, view, editor.GetComponent<Playfield>());
             return;
         }
 

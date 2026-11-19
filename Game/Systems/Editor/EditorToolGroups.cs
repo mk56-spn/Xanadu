@@ -24,7 +24,7 @@ public static class EditorToolGroups
     {
         new("Curves", new EditorTool[]
         {
-            new(EditorPlacementMode.Curve, "~", "Curve notes: click the head, then each point (each takes the 1×/2×/3× speed picked), then the last again or Enter; Esc drops it"),
+            new(EditorPlacementMode.Curve, "~", "Route notes: click the head, move the playhead on and click for each turn; right click or Enter ends it at the playhead, Esc drops it. Runs at the 1×/2×/3× speed picked"),
         }),
         new("Dash", new EditorTool[]
         {
@@ -32,7 +32,7 @@ public static class EditorToolGroups
         }),
         new("Hold", new EditorTool[]
         {
-            new(EditorPlacementMode.Hold, "H", "Hold notes: press the head and drag to where the tail sits; the length in beats is set in the tool panel"),
+            new(EditorPlacementMode.Hold, "H", "Hold notes: click the head, move the playhead on, then click (left or right) where the tail sits; Esc drops it"),
         }),
     };
 

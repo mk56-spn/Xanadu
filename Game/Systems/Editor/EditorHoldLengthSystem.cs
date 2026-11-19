@@ -12,9 +12,9 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Systems.Editor;
 
 /// <summary>
-/// The hold length stepper: - and + step by one snap step. With holds
-/// selected they step those (one undo step); otherwise the length new holds
-/// get. The readout shows the first selected hold's length, else the tool's.
+/// The hold length stepper: - and + step the selected holds by one snap step
+/// (one undo step). A hold just laid is selected, so it can be trimmed straight
+/// away. The readout shows the first selected hold's length.
 /// </summary>
 public sealed class EditorHoldLengthSystem(EntityStore entities, EditorHistory history) : QuerySystem<EditorHoldLengthReadout>
 {
@@ -38,11 +38,7 @@ public sealed class EditorHoldLengthSystem(EntityStore entities, EditorHistory h
 
             int arg = button.GetComponent<UiCommand>().Arg;
             if (_holds.Count == 0)
-            {
-                ref EditorPlacement placement = ref editor.GetComponent<EditorPlacement>();
-                placement.HoldBeats = Stepped(placement.HoldBeats, arg, step);
                 continue;
-            }
 
             EditorSnapshot before = history.Capture();
             foreach (Entity hold in _holds)
@@ -56,10 +52,9 @@ public sealed class EditorHoldLengthSystem(EntityStore entities, EditorHistory h
             history.Record(before, history.Capture());
         }
 
-        double shown = _holds.Count > 0
-            ? EditorPlacementNote.HoldBeats(playhead.Tempo, _holds[0].GetComponent<Note>().TimeMs, _holds[0].GetComponent<Note>().Hold!.Value.TailMs)
-            : editor.GetComponent<EditorPlacement>().HoldBeats;
-        string text = Label(shown);
+        string text = _holds.Count > 0
+            ? Label(EditorPlacementNote.HoldBeats(playhead.Tempo, _holds[0].GetComponent<Note>().TimeMs, _holds[0].GetComponent<Note>().Hold!.Value.TailMs))
+            : "-";
         CommandBuffer buffer = CommandBuffer;
         Query.ForEachEntity((ref _, entity) => UiText.Set(entity, text, buffer));
     }

@@ -15,7 +15,7 @@ public static class EditorToolSections
         EditorPlacementMode.Curve,
     };
 
-    /// <summary>The hold length stepper: how many beats new holds (or the selected ones) last.</summary>
+    /// <summary>The hold length stepper: how many beats the selected holds last.</summary>
     public static readonly EditorPlacementMode[] HoldLength =
     {
         EditorPlacementMode.Hold,

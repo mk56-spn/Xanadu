@@ -270,6 +270,52 @@ namespace Xanadu.Core.Maths
         }
 
         /// <summary>
+        /// The part of the segment from <paramref name="from"/> to <paramref name="to"/>
+        /// inside this rect (Liang–Barsky); false when none of it is.
+        /// </summary>
+        public readonly bool ClipSegment(ref Vector2 from, ref Vector2 to)
+        {
+            Vector2 d = to - from;
+            real_t enter = 0, leave = 1;
+            Vector2 end = _position + _size;
+            if (!Clip(-d.X, from.X - _position.X, ref enter, ref leave) ||
+                !Clip(d.X, end.X - from.X, ref enter, ref leave) ||
+                !Clip(-d.Y, from.Y - _position.Y, ref enter, ref leave) ||
+                !Clip(d.Y, end.Y - from.Y, ref enter, ref leave))
+            {
+                return false;
+            }
+
+            Vector2 start = from;
+            from = start + d * enter;
+            to = start + d * leave;
+            return true;
+
+            static bool Clip(real_t p, real_t q, ref real_t enter, ref real_t leave)
+            {
+                if (p == 0)
+                    return q >= 0;
+                real_t r = q / p;
+                if (p < 0)
+                {
+                    if (r > leave)
+                        return false;
+                    if (r > enter)
+                        enter = r;
+                }
+                else
+                {
+                    if (r < enter)
+                        return false;
+                    if (r < leave)
+                        leave = r;
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
         /// Returns <see langword="true"/> if the <see cref="Rect2"/> contains a point,
         /// or <see langword="false"/> otherwise.
         /// </summary>
