@@ -8,8 +8,8 @@ namespace Xanadu.Systems.Playfields;
 
 /// <summary>
 /// What a hit note leaves behind so the hit lands with some weight: the note
-/// pops and sends out a shockwave, sparks in its colour fly off it, and the
-/// camera gets a small kick.
+/// pops and sends out a shockwave, sparks in its colour fly off it, the body
+/// punches (<see cref="BodyPunch"/>) and the camera gets a small kick.
 /// </summary>
 public static class HitEffects
 {
@@ -28,5 +28,7 @@ public static class HitEffects
         Vector2 area = playfield.TryGetComponent(out Player player) ? player.Size : default;
         entities.CreateEntity(new ParticleBurst(origin, GameParticles.Hit, color, area, heading: origin - position));
         PlayCameraSystem.Kick(playfield);
+        if (playfield.HasComponent<BodyPunch>() && playfield.TryGetComponent(out Playhead playhead))
+            playfield.GetComponent<BodyPunch>().HitMs = playhead.TimeMs;
     }
 }

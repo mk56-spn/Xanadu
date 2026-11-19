@@ -64,11 +64,14 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
             delta = (float)Math.Max(0d, clock - body.SongMs) / 1000f;
 
             Move(ref body, clock, delta, playfield, playhead.Tempo);
-            Dash(ref body, clock, playfield);
+            List<Vector2>? trace = entity.HasComponent<BodyTrace>() ? entity.GetComponent<BodyTrace>().Points : null;
+            if (restarted)
+                trace?.Clear();
+            Dash(ref body, clock, playfield, trace);
             body.SongMs = clock;
             body.Alpha = PlayRules.BodyAlpha(clock, _firstNoteMs);
-            if (entity.HasComponent<BodyTrace>())
-                Trace(entity.GetComponent<BodyTrace>().Points, body.Position, restarted);
+            if (trace is not null)
+                Trace(trace, body.Position);
             entity.AddComponent(body);
             entity.GetComponent<Position>().Value = entity.GetComponent<PlayfieldView>().PlayfieldToScreen(body.Position);
         }
@@ -105,9 +108,10 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     /// Teleports the body for each hit dash whose time has come: from the dash
     /// note, its length the way it was hit, so where it lands never depends on
     /// the hit's timing; then on by the time since the note at the speed it
-    /// keeps. A running route's point pulls it back on its own.
+    /// keeps. A running route's point pulls it back on its own. The trace gets
+    /// the takeoff and landing at the note's time, so the jump draws straight.
     /// </summary>
-    private void Dash(ref CurveBody body, double now, Playfield playfield)
+    private void Dash(ref CurveBody body, double now, Playfield playfield, List<Vector2>? trace)
     {
         foreach (Entity entity in _dashes)
         {
@@ -117,7 +121,14 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
 
             ref DashRun run = ref entity.GetComponent<DashRun>();
             Vector2 landing = note.Position + RouteHeadings.Step(run.Heading) * note.DashLength;
-            body.Position = landing + body.Velocity * (float)((now - note.TimeMs) / 1000d);
+            Vector2 since = body.Velocity * (float)((now - note.TimeMs) / 1000d);
+            if (trace is not null)
+            {
+                trace.Add(body.Position - since);
+                trace.Add(landing);
+            }
+
+            body.Position = landing + since;
             run.Applied = true;
             Contain(ref body, playfield);
         }
@@ -190,11 +201,9 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
         return left;
     }
 
-    /// <summary>Lays the body's centre on the preview trace when it has moved far enough; a restart starts the line over.</summary>
-    private static void Trace(List<Vector2> points, Vector2 at, bool restarted)
+    /// <summary>Lays the body's centre on the preview trace when it has moved far enough.</summary>
+    private static void Trace(List<Vector2> points, Vector2 at)
     {
-        if (restarted)
-            points.Clear();
         if (points.Count == 0 || Vector2.Distance(points[^1], at) >= BodyTrace.Spacing)
             points.Add(at);
     }

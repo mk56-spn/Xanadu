@@ -119,12 +119,14 @@ internal static class PlayHudBuilder
             14,
             SceneUi.DimTextColor);
 
+        // Tall enough for the judgement's slam (JudgementPop), glowing in its colour.
         Entity judgementText = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2 - 120),
-            new Vector2(520, 44),
+            new Vector2(520, 64),
             "",
             28,
             theme.Accent,
-            new Color(0, 0, 0, 0));
+            new Color(0, 0, 0, 0))
+            .Glow(new Color(0, 0, 0, 0), 14f, 1.4f);
 
         Entity timingText = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2 - 90),
             new Vector2(520, 22),

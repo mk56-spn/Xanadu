@@ -45,6 +45,29 @@ public struct CurveBody : IComponent
 }
 
 /// <summary>
+/// When the body last hit a note, on the play entity, so it can punch: squash
+/// wide and flash white for a moment after. Song time, ms; the drawer works the
+/// punch out from the body's clock, so scrubbing back before the hit drops it.
+/// </summary>
+public struct BodyPunch() : IComponent
+{
+    /// <summary>How long a punch lasts, ms.</summary>
+    public const double LengthMs = 180;
+
+    public double HitMs = double.NegativeInfinity;
+
+    /// <summary>How hard the punch is at <paramref name="nowMs"/>: 1 on the hit, easing to 0.</summary>
+    public readonly float At(double nowMs)
+    {
+        double age = nowMs - HitMs;
+        if (age < 0 || age >= LengthMs)
+            return 0f;
+        float k = 1f - (float)(age / LengthMs);
+        return k * k;
+    }
+}
+
+/// <summary>
 /// The line the body has drawn through its centre so far, on the play entity
 /// only in an editor preview, so the mapper sees the path a run takes; back in
 /// the editor the last preview's line is kept on the editor entity until the next one.

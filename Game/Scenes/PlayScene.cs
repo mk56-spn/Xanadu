@@ -24,8 +24,11 @@ public static class PlayScene
     private const float BottomInset = 54;
     internal const float SideInset = 40;
 
-    /// <summary>The most of the field, in units, the screen shows at once.</summary>
+    /// <summary>The field size, in units, that would fit the screen whole before <see cref="PlayZoom"/>.</summary>
     public const float ViewSize = 2000;
+
+    /// <summary>How far the play view is zoomed in past fitting a ViewSize field whole.</summary>
+    public const float PlayZoom = 1.3f;
 
     public static void Build(
         EntityStore entities,
@@ -42,9 +45,9 @@ public static class PlayScene
         LoadedSong? song = entry.Song;
         Vector2 screen = UiStage.Full.Size;
 
-        // A field up to ViewSize units fits the screen whole, as it always did;
-        // a bigger one is shown at that same scale and the camera follows the
-        // player across it.
+        // A field up to ViewSize units fits the screen whole, then the view
+        // zooms in by PlayZoom; whatever no longer fits, the camera follows
+        // the player across.
         var viewport = new Rect2(
             SideInset,
             TopInset,
@@ -55,7 +58,7 @@ public static class PlayScene
             document.PlayfieldHeight)));
         float available = Mathf.Min(viewport.Size.X, viewport.Size.Y);
         float renderedSize = Mathf.Min(logicalSize, Mathf.Max(1, available));
-        float scale = renderedSize / logicalSize;
+        float scale = renderedSize / logicalSize * PlayZoom;
 
         float fieldWidth = document.PlayfieldWidth * scale;
         float fieldHeight = document.PlayfieldHeight * scale;
@@ -82,6 +85,7 @@ public static class PlayScene
                 origin.Y + fieldHeight / 2)));
 
         playfieldEntity.AddComponent(new PlayCamera(viewport));
+        playfieldEntity.AddComponent(new BodyPunch());
         if (preview)
             playfieldEntity.AddComponent(new BodyTrace());
         root.AddChild(playfieldEntity);

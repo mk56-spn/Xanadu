@@ -46,7 +46,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             bool showJudgement =
                 score.HasJudgement &&
                 playhead.TimeMs >= score.JudgementTimeMs &&
-                playhead.TimeMs - score.JudgementTimeMs <= 700;
+                playhead.TimeMs - score.JudgementTimeMs <= JudgementPop.ShowMs;
 
             UiText.Set(
                 score.JudgementText,
@@ -55,18 +55,12 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                     : "",
                 buffer);
 
+            float age = (float)(playhead.TimeMs - score.JudgementTimeMs);
             if (showJudgement &&
                 !score.JudgementText.IsNull &&
                 score.JudgementText.HasComponent<TextStyle>())
             {
-                ref TextStyle style =
-                    ref score.JudgementText.GetComponent<TextStyle>();
-                Color color = ColorFor(score.LastJudgement);
-                if (style.Color != color)
-                {
-                    style.Color = color;
-                    buffer.AddTag<Dirty>(score.JudgementText.Id);
-                }
+                Pop(score.JudgementText, ColorFor(score.LastJudgement), age, buffer);
             }
 
             if (entity.HasComponent<ErrorBar>())
@@ -103,10 +97,27 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 // sits on it; it is not a HUD element that can be moved away.
                 ref Position position =
                     ref score.JudgementText.GetComponent<Position>();
-                position.Value = JudgementScreenPosition(entity, score);
+                position.Value = JudgementScreenPosition(entity, score) - new Vector2(0, JudgementPop.Rise(age));
                 buffer.AddTag<Moved>(score.JudgementText.Id);
             }
         });
+    }
+
+    /// <summary>The judgement's look <paramref name="age"/> ms after it landed (<see cref="JudgementPop"/>).</summary>
+    private static void Pop(Entity text, Color color, float age, CommandBuffer buffer)
+    {
+        ref TextStyle style = ref text.GetComponent<TextStyle>();
+        int size = JudgementPop.FontSize(age);
+        Color shown = JudgementPop.Color(color, age);
+        if (style.Color != shown || style.FontSize != size)
+        {
+            style.Color = shown;
+            style.FontSize = size;
+            buffer.AddTag<Dirty>(text.Id);
+        }
+
+        if (text.HasComponent<TextGlow>())
+            text.GetComponent<TextGlow>().Color = color with { A = 0.8f * JudgementPop.Fade(age) };
     }
 
     private static Vector2 JudgementScreenPosition(Entity entity, ScoreState score) =>
