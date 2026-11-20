@@ -33,7 +33,7 @@ Agreed with the user. Don't revisit them without asking.
 | P5 | **MoonWorks is vendored from source**, pinned to a commit, as a trimmed copy in `External/MoonWorks/` (it is not on NuGet). Patch it locally when needed; zlib allows that, and `External/README.md` lists the patches. **Never send AI-written PRs upstream**: their `AGENTS.md` forbids it. |
 | P6 | **Native libs come from Moonside's bundle**, not the OS (SDL3, FAudio, IRO, Wellspring, dav1dfile). `External/fetch-moonlibs.sh` fetches it with a SHA-256 check into gitignored `External/moonlibs/`; run it once after cloning. |
 | P7 | **Shaders are [Slang](https://shader-slang.org)**, compiled to SPIR-V **at runtime** by `libslang`, called directly (`Slang/SlangNative.cs`; the `Slangc.NET` NuGet package only ships the native library), because players write shaders and will get shader libraries. Slang's real modules replace GLSL's text-pasting `#include`. |
-| P8 | **Maths types:** vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). `Color`, `Rect2`, `Rect2I`, `Transform2D`, the `I` vectors and `Mathf` are our own types in `Xanadu.Maths`, copied from Godot 4.4 (MIT). Canvas ids are `Handle`. |
+| P8 | **Maths types:** vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). Scalar maths is .NET's (`Math`, `MathF`, `float.*`). `Color` (float, so HDR and fades stay exact; MoonWorks' byte `Color` only at the GPU edge), `Rect2`, `Transform2D` and a slim `Mathf` of Godot-only helpers are our own types in `Xanadu.Maths`, copied from Godot 4.4 (MIT) and trimmed to what is used (2026-11-20). Canvas ids are `Handle`. |
 | P10 | **No mesh shaders** (SDL_GPU doesn't expose them). GPU-made geometry = compute into a storage buffer + vertex pulling + indirect draws. |
 | P11 | **Shaders are exposed to players as slots, not whole shaders** (§3). |
 
@@ -194,47 +194,65 @@ host fills; tests leave the headless defaults.
 
 ### 5.3 Canvas tree and renderer
 
-- **`CanvasTree`** (`HostCore/Rendering`): the retained items. An item draws
-  before its children; siblings sort by draw index, then by when they were
-  parented; z is relative to the parent and sorts the whole tree. Ids are
-  minted as `Handle`s; textures share the id space (`CanvasRenderer.Textures`).
-- **Draw commands:** rect, line, polyline (mitred), multiline, polygon (ear
-  clipping, `Core/Rendering/Triangulate.cs`), triangle array, circle, textured
-  rect, set-transform.
-- **`CanvasRenderer`** draws a frame as a list of jobs, each one root into one
-  target, in order: every offscreen root (self-contained layers), every
-  buffered group (nested first, each into a pooled frame-sized texture), then
-  the tree into the frame. All vertices go up in one upload; each job is one
-  render pass. Batches break on texture, clip rect and material; an item with
-  instance values is a batch of its own. Batches never merge across jobs.
-- **Materials:** `CanvasMaterial` holds an effect path (or a level slot's
-  source), a blend (or a full `CustomBlend`), named values and textures.
-  Values pack as the effect's `[Default]`s, then the material's, then the
-  item's instance values. `CanvasPipelines` caches a pipeline per (effect,
-  blend, custom blend); a missing or broken effect logs once and draws plain.
-- **Shader routing:** `ShaderRoutingCanvas` splits one item's draws into runs
-  of child items, one per change of shader, so things stack exactly as drawn
-  (`SelectCommonShader`, `SelectShader`, `SetShaderValue`, `NewRun`).
-- **Buffered groups:** the group's image is premultiplied and composited back
-  as one quad over what its content covered (plus 2 px), with the group item's
-  material, self modulate × inherited modulate, and instance values (buffer
-  keys). `Frame.itemPremultiplied` makes `xanadu.stage` hand effects straight
-  colour, so any slot shader works on a composite.
-- **Screen reads:** before the first batch in a pass whose SPIR-V samples the
-  screen (`CompiledShader.ReadsScreen` scans for set 2, binding 1; reflection
-  lists unused globals too), the pass ends, the target is blitted into the
-  screen texture, and the pass resumes. Later reads share that copy; an item
-  with `SetCopyScreen` copies again if anything was drawn since. A read is
-  therefore always current (better than Godot's snapshot; see
-  `render-architecture.md` D10). `ScreenMips` builds levels 1–6 through a
-  13-tap Gaussian-like filter (`HostCore/Shaders/screen_mips.slang`), so the
-  frosted glass reads smooth from one low-mip tap.
-- **Self-contained layers:** `HostPassSurfaces` gives each layer a parentless
-  item drawn into its own texture before the frame; `ShaderRoutingCanvas` puts
-  the root's transform on every surface, and the pass quad covers the screen
-  in the root's coordinates.
-- **Known difference:** a screen read inside a buffered group samples the
-  group's own image so far, not the screen behind it.
+Rebuilt 2026-11-20 off the Godot canvas model: primitives, a GPU pool, a
+compute expand stage and a depth buffer.
+
+- **Recordings.** A canvas item (`CanvasTree`, `HostCore/Rendering`) records
+  *primitives* (`Primitive.cs`), not triangles: boxes (rect, rounded, stroked,
+  two-colour ramp), discs and rings, textured quads (one per glyph, one per
+  sprite) and free triangles (polygons, mitred polylines, meshes). Lines are
+  boxes along them. Nothing is tessellated on the CPU unless an effect needs a
+  mesh.
+- **Mounts, not mirrors.** `ICanvasServer.Mount(item, ICanvasMount)` hangs a
+  source under an item; each frame the renderer asks it what to draw there.
+  The UI is one: `UiCanvasMount` walks layers and the entity tree, working out
+  transform, `LayerOpacity`, `LocalZIndex`, container clips and visibility
+  (`Enabled`, the `CanvasHidden` tag) from components on the spot. UI entities
+  keep only their own recording (`VisualItem`); there are no parenting,
+  transform, visibility or opacity sync systems. Rig art
+  (`SvgAttachmentVisuals`) is a mount too, listing its items by layer and
+  order. Game groups and tools still hang items under the root with a z.
+- **Pool.** Every recording's primitives live on the GPU in its own space, in a
+  range that stays while it fits (`Resident`). A recording goes up again only
+  when its content changes: a hash of the primitives means a drawer that
+  clears and redraws the same picture every frame sends nothing. Settled
+  screens send 0 primitives a frame. A full pool starts a bigger empty one and
+  everything drawn is sent once.
+- **Instances and the expand stage.** Per frame the CPU walks the tree in
+  order and sends one `GpuInstance` per drawn range: transform, tint, clip,
+  depth base, its place in the output and its texture slots.
+  `primitive_expand.slang` (compute, one workgroup an instance) writes each
+  primitive in pixels, in order: placed, tinted, clipped, its depth, its run
+  slot. A primitive outside its clip becomes a skip (folded away by the vertex
+  stage), so order needs no scan.
+- **Depth.** Each primitive has the depth of its place in the frame. Plain
+  opaque rects (square, solid, whole-pixel) leave the ordered list for an
+  opaque pre-pass, cut to their clip, counted into an indirect draw with an
+  atomic add: drawn first with depth writes, they hide what they cover from
+  everything after. Everything else draws in order with the depth test on.
+  Effects (on the standard vertex stage) and particles test the depth of their
+  place, never writing it; only an effect with its own `deform` sets its own
+  depth, so once one has drawn, no later rect in that pass may join the pre-pass.
+- **Drawing.** One pipeline (`primitives.slang`) pulls records by vertex id
+  (six a record) and shapes them by signed distance (`xanadu.shape`), so edges
+  are smooth at any turn or scale; up to eight textures a draw (glyph pages,
+  images). The editor is two draw calls; HEAD before the rebuild was 55.
+- **Material runs.** `SelectCommonShader` / `SetShaderValue` / `NewRun` on a
+  canvas start a run in the item (`ICanvasServer.SelectRun`); the renderer cuts
+  the item into plain ranges (instances) and shaded ranges (effect steps), in
+  order. An item with a material (`SetMaterial`) is shaded whole. Shaded
+  draws keep the effect path: primitives cut into `CanvasVertex` triangles
+  (`Primitive.Tessellate`), values packed per run (`[Default]`s, material,
+  run). Level shader slots went with v2; `SelectShader(0)` is plain.
+- **Screen reads:** before the first effect in a pass whose SPIR-V samples the
+  screen (`CompiledShader.ReadsScreen`), the pass ends, the target is blitted
+  into the screen texture with mips (`ScreenMips`), and the pass resumes
+  (colour and depth loaded); later reads in the pass share that copy.
+- **Gone:** canvas groups, `SetCopyScreen`, per-item instance values, and the
+  layering surface on `IRectCanvas` (`BeginLayer`, `BeginBuffer`, `CopyScreen`,
+  `ToLocal`), unused since the v2 rework.
+- **Offscreen roots** (`AddOffscreen`, the shader tool's stills) draw into their
+  own target, single-sampled, before the frame.
 - **GPU scopes:** `using (commands.Scope("name"))` names GPU work for the
   timing layer (§5.10). Open and close it on the same side of a render pass.
 

@@ -101,6 +101,11 @@ self modulate (static colour)
 
 ## 5. How it maps onto the host
 
+> **Stale (2026-11-20).** The v2 rework removed layered level drawing and
+> `ShaderRoutingCanvas`, and the renderer has since been rebuilt (primitives,
+> GPU pool, compute expand, depth; `Docs/host.md` §5.3). What follows describes
+> the old canvas-item mapping and is kept only as history until layering returns.
+
 The renderer itself is described in `Docs/host.md` §5.3; this is how layering
 uses it. (Until 2026-11-10 this mapped onto Godot's RenderingServer; the old
 version is in git history.)
