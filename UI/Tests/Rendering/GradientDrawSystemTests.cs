@@ -20,7 +20,7 @@ public sealed class GradientDrawSystemTests
         store.CreateEntity(
             new Rectangle(new Rect2(-100, -25, 200, 50)),
             new Drawable(0),
-            new VisualRid(default),
+            new VisualItem(default),
             new LinearGradient(Colors.Black, Colors.White),
             Tags.Get<Dirty>());
 

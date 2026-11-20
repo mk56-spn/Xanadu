@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Xanadu.Core.Rendering;
 using System;
 using Xanadu.Core.Maths;
 
@@ -13,6 +15,42 @@ public class ServerRectCanvas : IRectCanvas
 {
     protected static ICanvasServer Server => CanvasServer.Current;
 
+    private readonly Dictionary<(string, BlendMode), CanvasMaterial> _materials = new();
+    private CanvasMaterial? _material;
+    private Dictionary<string, Vector4>? _values;
+
+    /// <summary>Shades the draws that follow with a common shader by path (none for an empty path), in a run of their own.</summary>
+    public void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix)
+    {
+        if (path.Length == 0)
+        {
+            _material = null;
+            _values = null;
+            return;
+        }
+
+        if (!_materials.TryGetValue((path, blend), out CanvasMaterial? material))
+            _materials[(path, blend)] = material = new CanvasMaterial(path, blend);
+        _material = material;
+        _values = null;
+    }
+
+    /// <summary>Level shader slots went with the v2 rework: slot 0 (plain) is the only one left.</summary>
+    public void SelectShader(int slot, BlendMode blend = BlendMode.Mix, int sourceGroup = -1)
+    {
+        if (slot == 0)
+            SelectCommonShader("");
+    }
+
+    /// <summary>A value for the shaded draws that follow, in the current run.</summary>
+    public void SetShaderValue(string param, Vector4 value, int size) => (_values ??= new Dictionary<string, Vector4>())[param] = value;
+
+    /// <summary>Starts a new run even with the same shader, so values set now reach only the draws that follow.</summary>
+    public void NewRun() => _values = new Dictionary<string, Vector4>();
+
+    /// <summary>Puts the item's next draws in the selected run, before every draw.</summary>
+    protected void Route(Handle canvas) => Server.SelectRun(canvas, _material, _values);
+
     public virtual void Clear(Handle canvas) => Server.Clear(canvas);
 
     public virtual void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
@@ -27,24 +65,37 @@ public class ServerRectCanvas : IRectCanvas
     public void SetTransform(Handle canvas, Transform2D transform) =>
         Server.SetTransform(canvas, transform);
 
-    public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture) =>
+    public void DrawTexture(Handle canvas, Rect2 bounds, Handle texture)
+    {
+        Route(canvas);
         Server.AddTextureRect(canvas, bounds, texture);
+    }
 
-    public void DrawRect(Handle canvas, Rect2 bounds, Color color) =>
+    public void DrawRect(Handle canvas, Rect2 bounds, Color color)
+    {
+        Route(canvas);
         Server.AddRect(canvas, bounds, color);
+    }
 
     public void DrawCircle(
         Handle canvas,
         Vector2 center,
         float radius,
-        Color color) =>
+        Color color)
+    {
+        Route(canvas);
         Server.AddCircle(canvas, center, radius, color);
+    }
 
-    public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) =>
+    public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width)
+    {
+        Route(canvas);
         Server.AddLine(canvas, from, to, color, width, true);
+    }
 
     public void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal)
     {
+        Route(canvas);
         Vector2 topRight = new(bounds.End.X, bounds.Position.Y);
         Vector2 bottomLeft = new(bounds.Position.X, bounds.End.Y);
         Server.AddPolygon(
@@ -57,6 +108,7 @@ public class ServerRectCanvas : IRectCanvas
 
     public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color)
     {
+        Route(canvas);
         if (points.Length < 3)
             return;
 
@@ -68,6 +120,7 @@ public class ServerRectCanvas : IRectCanvas
 
     public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors)
     {
+        Route(canvas);
         int count = points.Length - points.Length % 3;
         if (count < 3 || colors.Length < count)
             return;
@@ -81,6 +134,7 @@ public class ServerRectCanvas : IRectCanvas
 
     public void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs)
     {
+        Route(canvas);
         int count = points.Length - points.Length % 3;
         if (count < 3 || colors.Length < count || uvs.Length < count)
             return;
@@ -94,6 +148,7 @@ public class ServerRectCanvas : IRectCanvas
 
     public void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
+        Route(canvas);
         if (rects.IsEmpty)
             return;
 
@@ -124,6 +179,7 @@ public class ServerRectCanvas : IRectCanvas
         float width,
         bool antialiased = true)
     {
+        Route(canvas);
         if (points.Length < 2)
             return;
 

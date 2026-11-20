@@ -7,7 +7,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Redraws every bar graph each frame, since its values change continuously.</summary>
-public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, VisualRid>
+public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, VisualItem>
 {
     private const float CapHeight = 3;
     private const float MinHeight = 2;
@@ -34,15 +34,15 @@ public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, Visua
 
             float span = anchor[i].X - anchor[i - 1].X;
             float t = span <= 0 ? 1 : (x - anchor[i - 1].X) / span;
-            return Mathf.Lerp(anchor[i - 1].Y, anchor[i].Y, t);
+            return float.Lerp(anchor[i - 1].Y, anchor[i].Y, t);
         }
 
         return anchor[^1].Y;
     }
 
-    private readonly record struct DrawBars(IRectCanvas Canvas) : IEach<UiBarGraph, Drawable, VisualRid>
+    private readonly record struct DrawBars(IRectCanvas Canvas) : IEach<UiBarGraph, Drawable, VisualItem>
     {
-        public void Execute(ref UiBarGraph graph, ref Drawable _, ref VisualRid visual)
+        public void Execute(ref UiBarGraph graph, ref Drawable _, ref VisualItem visual)
         {
             Canvas.Clear(visual.Value);
             Vector2[] anchor = graph.Anchor;
@@ -63,10 +63,10 @@ public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, Visua
                 float topLeft = AnchorY(anchor, barLeft);
                 float topRight = AnchorY(anchor, barRight);
                 float height = MinHeight +
-                               Mathf.Clamp(graph.Values[i], 0, 1) * (graph.MaxHeight - MinHeight);
-                float bottom = Mathf.Max(
+                               Math.Clamp(graph.Values[i], 0, 1) * (graph.MaxHeight - MinHeight);
+                float bottom = Math.Max(
                     AnchorY(anchor, x) + height,
-                    Mathf.Max(topLeft, topRight) + MinHeight);
+                    Math.Max(topLeft, topRight) + MinHeight);
 
                 if (topLeft == topRight)
                 {

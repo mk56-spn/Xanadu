@@ -65,8 +65,8 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
 
         // Wedge 0 points along +X, so its lower boundary is the line at -step/2.
         Vector2[] points = _canvas.Polygons[0].Points;
-        float boundary = -Mathf.Tau / 8 / 2;
-        Vector2 normal = new(-Mathf.Sin(boundary), Mathf.Cos(boundary));
+        float boundary = -float.Tau / 8 / 2;
+        Vector2 normal = new(-MathF.Sin(boundary), MathF.Cos(boundary));
         Assert.That(
             points[0].Dot(normal),
             Is.EqualTo(points[1].Dot(normal)).Within(0.001f));
@@ -130,7 +130,7 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(new Rect2(-100, -100, 200, 200)),
             new Drawable(0),
-            default(VisualRid),
+            default(VisualItem),
             new UiWheel
             {
                 Selected = selected,
@@ -146,7 +146,7 @@ public sealed class WheelDrawSystemTests : EcsSystemTest
     {
         float max = 0;
         foreach (Vector2 point in points)
-            max = Mathf.Max(max, point.Length());
+            max = Math.Max(max, point.Length());
         return max;
     }
 

@@ -217,7 +217,7 @@ internal abstract class TabbedToolApp : HostApp
         if (_stages[selected] is null)
         {
             _items[selected] = CanvasServer.Current.CreateItem();
-            CanvasServer.Current.SetParent(_items[selected], Canvas.RootRid);
+            CanvasServer.Current.SetParent(_items[selected], Canvas.RootHandle);
             CanvasServer.Current.SetZIndex(_items[selected], StageZ);
             _area = UiLayout.Box(_slot);
             _stages[selected] = CreateStage(selected, _items[selected], _area);

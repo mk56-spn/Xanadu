@@ -51,12 +51,12 @@ public static class TimelineEaseBand
 
         float middle = row.Position.Y + row.Size.Y / 2f;
         var pieces = new List<EaseBandPiece>();
-        float start = Mathf.Max(fromX, left);
-        float end = Mathf.Min(toX, right);
+        float start = Math.Max(fromX, left);
+        float end = Math.Min(toX, right);
         if (end <= start)
             return pieces;
 
-        float tickLeft = Mathf.Max(toX - StepTickWidth, start);
+        float tickLeft = Math.Max(toX - StepTickWidth, start);
         if (tickLeft > start)
             pieces.Add(new(Bar(start, tickLeft, middle, HairHalf), false));
         if (end > tickLeft)
@@ -68,8 +68,8 @@ public static class TimelineEaseBand
     public static List<EaseBandPiece> Hairline(float fromX, float toX, float left, float right, Rect2 row)
     {
         var pieces = new List<EaseBandPiece>();
-        float start = Mathf.Max(fromX, left);
-        float end = Mathf.Min(toX, right);
+        float start = Math.Max(fromX, left);
+        float end = Math.Min(toX, right);
         if (end > start)
             pieces.Add(new(Bar(start, end, row.Position.Y + row.Size.Y / 2f, HairHalf), false));
         return pieces;
@@ -86,10 +86,10 @@ public static class TimelineEaseBand
         Func<float, float> progress, float fromX, float toX, float left, float right, Rect2 row)
     {
         float middle = row.Position.Y + row.Size.Y / 2f;
-        float maxHalf = Mathf.Max(row.Size.Y / 2f - RowPadding, HairHalf);
+        float maxHalf = Math.Max(row.Size.Y / 2f - RowPadding, HairHalf);
         var pieces = new List<EaseBandPiece>();
-        float start = Mathf.Max(fromX, left);
-        float end = Mathf.Min(toX, right);
+        float start = Math.Max(fromX, left);
+        float end = Math.Min(toX, right);
         if (end <= start)
             return pieces;
 
@@ -102,7 +102,7 @@ public static class TimelineEaseBand
         // Scaled by the whole span's peak, so scrolling part of it off does not rescale what shows.
         float peak = 0f;
         for (int step = 0; step <= Steps; step++)
-            peak = Mathf.Max(peak, Mathf.Abs(Speed(progress, step / (float)Steps)));
+            peak = Math.Max(peak, Math.Abs(Speed(progress, step / (float)Steps)));
         if (peak <= 0f)
         {
             pieces.Add(new(Bar(start, end, middle, HairHalf), false));
@@ -129,7 +129,7 @@ public static class TimelineEaseBand
                 bottom.Add(new Vector2(x, middle + HairHalf));
             }
             reverse = backwards;
-            float half = Mathf.Max(HairHalf, maxHalf * Mathf.Abs(speed) / peak);
+            float half = Math.Max(HairHalf, maxHalf * Math.Abs(speed) / peak);
             top.Add(new Vector2(x, middle - half));
             bottom.Add(new Vector2(x, middle + half));
         }
@@ -142,8 +142,8 @@ public static class TimelineEaseBand
     public static float Speed(Func<float, float> progress, float t)
     {
         const float h = 0.5f / Steps;
-        float a = Mathf.Max(t - h, 0f);
-        float b = Mathf.Min(t + h, 1f);
+        float a = Math.Max(t - h, 0f);
+        float b = Math.Min(t + h, 1f);
         return (progress(b) - progress(a)) / (b - a);
     }
 

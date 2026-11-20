@@ -46,9 +46,9 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
         if (slider.Fill.IsNull || !slider.Fill.HasComponent<Rectangle>())
             return;
 
-        float t = Mathf.Clamp(
+        float t = Math.Clamp(
             (slider.Value - slider.Min) /
-            Mathf.Max(0.001f, slider.Max - slider.Min),
+            Math.Max(0.001f, slider.Max - slider.Min),
             0f,
             1f);
         float width = track.Bounds.Size.X * t;
@@ -69,12 +69,6 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
             buffer.AddTag<Moved>(slider.Fill.Id);
         }
 
-        if (slider.Fill.HasComponent<VisualRid>())
-        {
-            CanvasServer.Current.SetZIndex(
-                slider.Fill.GetComponent<VisualRid>().Value,
-                2);
-        }
         if (!slider.Fill.Tags.Has<UiSliderFill>())
             buffer.AddTag<UiSliderFill>(slider.Fill.Id);
         buffer.AddTag<Dirty>(slider.Fill.Id);
@@ -106,12 +100,12 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
 
             if (System._dragged == entity)
             {
-                float t = Mathf.Clamp(
+                float t = Math.Clamp(
                     (Pointer.X - bounds.Position.X) /
-                    Mathf.Max(1f, bounds.Size.X),
+                    Math.Max(1f, bounds.Size.X),
                     0f,
                     1f);
-                slider.Value = Mathf.Lerp(slider.Min, slider.Max, t);
+                slider.Value = float.Lerp(slider.Min, slider.Max, t);
             }
 
             UpdateVisuals(

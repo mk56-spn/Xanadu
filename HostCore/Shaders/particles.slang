@@ -65,7 +65,8 @@ void simulate(uint3 id : SV_DispatchThreadID)
 // --- vertex + fragment: one quad per particle ---------------------------------
 
 // The item's transform (x axis, y axis, origin) and its modulate, from the tree.
-struct Draw { float2 screen; float2 origin; float4 axes; float4 modulate; };
+/// `place.x` is the draw's depth: its place in the frame, which an opaque rect in front hides it by.
+struct Draw { float2 screen; float2 origin; float4 axes; float4 modulate; float4 place; };
 
 [[vk::binding(0, 0)]] StructuredBuffer<Particle> drawn;
 [[vk::binding(1, 0)]] StructuredBuffer<float4> drawEffects;
@@ -110,7 +111,7 @@ Varyings quad(uint vertex : SV_VertexID, uint instance : SV_InstanceID)
     float2 pixel = draw.axes.xy * local.x + draw.axes.zw * local.y + draw.origin;
 
     float2 ndc = pixel / draw.screen * 2.0 - 1.0;
-    o.position = float4(ndc.x, -ndc.y, 0.0, 1.0);
+    o.position = float4(ndc.x, -ndc.y, draw.place.x, 1.0);
     o.uv = corner * 0.5 + 0.5;
     o.colour = p.colour * ramp * draw.modulate;
     o.cell = p.look.zw;

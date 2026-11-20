@@ -129,7 +129,7 @@ public static class XifEditorView
     public static Transform2D ToScreen(Rect2 view, Rect2 box)
     {
         Vector2 room = (box.Size - new Vector2(Padding * 2, Padding * 2)).Max(Vector2.One);
-        float scale = Mathf.Min(room.X / Mathf.Max(1f, view.Size.X), room.Y / Mathf.Max(1f, view.Size.Y));
+        float scale = Math.Min(room.X / Math.Max(1f, view.Size.X), room.Y / Math.Max(1f, view.Size.Y));
         Vector2 offset = box.GetCenter() - view.GetCenter() * scale;
         return new Transform2D(0f, new Vector2(scale, scale), 0f, offset);
     }

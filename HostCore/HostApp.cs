@@ -135,7 +135,7 @@ internal abstract class HostApp : Game
         _splash.Show(0.3f);
         Text = new HostText(GraphicsDevice, texture =>
         {
-            ulong id = Canvas.MintRid().Id;
+            ulong id = Canvas.MintHandle().Id;
             Renderer.Textures[id] = texture;
             return id;
         });
@@ -145,7 +145,7 @@ internal abstract class HostApp : Game
         {
             Scale = new Vector2((float)Width / window.Width, (float)Height / window.Height),
         };
-        HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerRidFactory(loadsAssets: true), Fps);
+        HostPlatform.Use(Canvas, () => new HostRectCanvas(Text), Keyboard, new CanvasServerItemFactory(loadsAssets: true), Fps);
         HostPlatform.Particles = Renderer.Particles;
         HostPlatform.GpuMemory = _gpuMemory;
         HostPlatform.FramePhases = _phases;
@@ -153,7 +153,7 @@ internal abstract class HostApp : Game
         UiIcons.Loader = UiIcons.FromResources;
         HostPlatform.GlyphStrip = atlas =>
         {
-            Handle rid = Canvas.MintRid();
+            Handle rid = Canvas.MintHandle();
             Renderer.Textures[rid.Id] = GlyphStrips.Build(GraphicsDevice, Text, atlas);
             return rid;
         };
@@ -172,7 +172,7 @@ internal abstract class HostApp : Game
         {
             _ui = new UiRoot(
                 Entities,
-                Canvas.RootRid,
+                Canvas.RootHandle,
                 Pointer,
                 new Vector2(Width, Height),
                 Keyboard,
@@ -461,7 +461,8 @@ internal abstract class HostApp : Game
         {
             GpuTimes.Poll(now: true);
             Console.WriteLine($"Canvas: {Canvas.Count} items, {Renderer.LastBatchCount} draw calls, " +
-                $"{Renderer.LastOffscreenCount} offscreen passes, {Renderer.LastCopyCount} screen copies");
+                $"{Renderer.LastOffscreenCount} offscreen passes, {Renderer.LastCopyCount} screen copies, " +
+                $"{Renderer.LastPrimitiveCount} primitives placed, {Renderer.LastUploadCount} sent");
             Screenshot.Save(GraphicsDevice, commands, Target, Width, Height, path);
             Quit();
             return;

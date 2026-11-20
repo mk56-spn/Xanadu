@@ -281,7 +281,7 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
     [Test]
     public void SkewedVerticalStackFlowsChildrenAlongTheSlantedSide()
     {
-        float skew = Mathf.DegToRad(6);
+        float skew = float.DegreesToRadians(6);
         Entity container = Store.CreateEntity(
             new Rectangle(new Rect2(-100, -50, 200, 100)),
             new UiContainer(StackDirection.Vertical, spacing: 10, skew: skew),
@@ -294,7 +294,7 @@ public sealed class ContainerLayoutSystemTests : EcsSystemTest
         Vector2 up = upper.GetComponent<Position>().Value;
         Vector2 down = lower.GetComponent<Position>().Value;
         Assert.That(up.Y, Is.LessThan(down.Y));
-        Assert.That(up.X, Is.EqualTo(-Mathf.Tan(skew) * up.Y).Within(0.001f));
+        Assert.That(up.X, Is.EqualTo(-MathF.Tan(skew) * up.Y).Within(0.001f));
         Assert.That(up.X, Is.GreaterThan(down.X));
     }
 

@@ -24,7 +24,7 @@ public sealed class TextFieldDoubleClickSystem : QuerySystem<TextField>
     protected override void OnUpdate()
     {
         _clock += Tick.deltaTime;
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             bool pressed = entity.Tags.Has<Pressed>();
             if (!pressed)

@@ -81,12 +81,12 @@ public sealed partial class ContainerLayoutSystem
 
             int columnCount = container.Columns;
             int rowCount = (sizes.Count + columnCount - 1) / columnCount;
-            var columns = new float[Mathf.Min(columnCount, sizes.Count)];
+            var columns = new float[Math.Min(columnCount, sizes.Count)];
             var rows = new float[rowCount];
             for (int i = 0; i < sizes.Count; i++)
             {
-                columns[i % columnCount] = Mathf.Max(columns[i % columnCount], sizes[i].X);
-                rows[i / columnCount] = Mathf.Max(rows[i / columnCount], sizes[i].Y);
+                columns[i % columnCount] = Math.Max(columns[i % columnCount], sizes[i].X);
+                rows[i / columnCount] = Math.Max(rows[i / columnCount], sizes[i].Y);
             }
 
             float width = 0;

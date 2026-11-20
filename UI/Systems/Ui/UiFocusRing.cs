@@ -17,7 +17,7 @@ public sealed class UiFocusRing
     /// <summary>The four edges: top, bottom, left, right.</summary>
     public IReadOnlyList<Entity> Edges => _edges;
 
-    public UiFocusRing(EntityStore entities, IVisualRidFactory visuals)
+    public UiFocusRing(EntityStore entities, IVisualItemFactory visuals)
     {
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Focus);
         for (int i = 0; i < _edges.Length; i++)

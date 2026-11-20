@@ -54,9 +54,9 @@ public sealed partial class UiBuilder
             Hover = -1,
             Labels = labelCopy,
             Colors = colors is null ? null : ToArray(colors),
-            HubRadius = Mathf.Clamp(hubRadius, 0.08f, 0.6f),
+            HubRadius = Math.Clamp(hubRadius, 0.08f, 0.6f),
             StartAngle = startAngle,
-            Gap = Mathf.Max(0, gap),
+            Gap = Math.Max(0, gap),
         });
         wheel.AddTag<Dirty>();
         return new UiWheelControl(wheel);

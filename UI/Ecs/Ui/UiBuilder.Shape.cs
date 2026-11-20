@@ -33,7 +33,7 @@ public sealed partial class UiBuilder
         }
 
         Entity shape = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(min, max - min)),
             new Drawable(_layerZIndex),
             new Position(position ?? Vector2.Zero),

@@ -9,14 +9,15 @@ namespace Xanadu.Host.Text;
 
 /// <summary>
 /// The host's canvas: <see cref="ServerRectCanvas"/>'s shapes plus text,
-/// outlines and glows from <see cref="HostText"/>. Each string becomes one
-/// textured triangle array per atlas page on the canvas item, in command
-/// order, laid out as <c>GodotRectCanvas</c> lays it out (4 px side padding,
+/// outlines and glows from <see cref="HostText"/>. Each glyph becomes one
+/// textured primitive on the canvas item, in command order (4 px side padding,
 /// the line centred vertically in its box). Shape glows come from
 /// <see cref="HostShapeGlow"/>.
 /// </summary>
 internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCanvas
 {
+    private static CanvasTree Tree => (CanvasTree)Server;
+
     private const int FontSize = 16;
     private const float TextPadding = 4;
 
@@ -79,18 +80,18 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
 
         // A transform command turns what follows on this item, so the text keeps its place in the draw order.
         Vector2 center = bounds.GetCenter();
-        Server.AddSetTransform(canvas, new Transform2D(Mathf.DegToRad(degrees), center));
+        Server.AddSetTransform(canvas, new Transform2D(float.DegreesToRadians(degrees), center));
         DrawTextStyled(canvas, new Rect2(bounds.Position - center, bounds.Size), text, color, fontSize);
         Server.AddSetTransform(canvas, Transform2D.Identity);
     }
 
-    /// <summary>Reads bottom to top, as the Godot canvas drew it: turned a quarter anticlockwise from the bottom-left corner.</summary>
+    /// <summary>Reads bottom to top, as the game has always drawn it: turned a quarter anticlockwise from the bottom-left corner.</summary>
     public void DrawTextVertical(Handle canvas, Rect2 bounds, string text, Color color, int fontSize)
     {
         if (string.IsNullOrEmpty(text))
             return;
 
-        Server.AddSetTransform(canvas, new Transform2D(-Mathf.Pi / 2, new Vector2(bounds.Position.X + 2, bounds.End.Y - 2)));
+        Server.AddSetTransform(canvas, new Transform2D(-float.Pi / 2, new Vector2(bounds.Position.X + 2, bounds.End.Y - 2)));
         Emit(canvas, text, FontKind.Regular, fontSize, new Vector2(0, fontSize), color);
         Server.AddSetTransform(canvas, Transform2D.Identity);
     }
@@ -127,42 +128,15 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
         if (_placed.Count == 0)
             return;
 
-        for (int page = 0; page < text.Atlas.PageCount; page++)
+        Route(canvas);
+        // One textured primitive a glyph, straight from its atlas cell.
+        const float texel = 1f / TextAtlas.Size;
+        foreach (HostText.Placed placed in _placed)
         {
-            int count = 0;
-            foreach (HostText.Placed placed in _placed)
-                if (placed.Glyph.Page == page)
-                    count++;
-            if (count == 0)
-                continue;
-
-            var points = new Vector2[count * 4];
-            var uvs = new Vector2[count * 4];
-            var indices = new int[count * 6];
-            int n = 0;
-            const float texel = 1f / TextAtlas.Size;
-            foreach (HostText.Placed placed in _placed)
-            {
-                AtlasGlyph g = placed.Glyph;
-                if (g.Page != page)
-                    continue;
-
-                int v = n * 4;
-                points[v] = new Vector2(placed.X, placed.Y);
-                points[v + 1] = new Vector2(placed.X + g.Width, placed.Y);
-                points[v + 2] = new Vector2(placed.X + g.Width, placed.Y + g.Height);
-                points[v + 3] = new Vector2(placed.X, placed.Y + g.Height);
-                uvs[v] = new Vector2(g.X * texel, g.Y * texel);
-                uvs[v + 1] = new Vector2((g.X + g.Width) * texel, g.Y * texel);
-                uvs[v + 2] = new Vector2((g.X + g.Width) * texel, (g.Y + g.Height) * texel);
-                uvs[v + 3] = new Vector2(g.X * texel, (g.Y + g.Height) * texel);
-                int i = n * 6;
-                (indices[i], indices[i + 1], indices[i + 2]) = (v, v + 1, v + 2);
-                (indices[i + 3], indices[i + 4], indices[i + 5]) = (v, v + 2, v + 3);
-                n++;
-            }
-
-            Server.AddTriangleArray(canvas, indices, points, [color], uvs, CanvasTree.ToRid(text.Atlas.TextureId(page)));
+            AtlasGlyph g = placed.Glyph;
+            var rect = new Rect2(placed.X, placed.Y, g.Width, g.Height);
+            var uv = new Rect2(g.X * texel, g.Y * texel, g.Width * texel, g.Height * texel);
+            Tree.AddTextureRegion(canvas, rect, uv, color, CanvasTree.ToHandle(text.Atlas.TextureId(g.Page)));
         }
     }
 }

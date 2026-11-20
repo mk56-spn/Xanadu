@@ -10,7 +10,6 @@ public sealed class PresentationSystemGroup : SystemGroup
 {
     public PresentationSystemGroup(IRectCanvas canvas) : base("Presentation")
     {
-        Add(new CanvasVisibilitySystem(canvas));
         Add(new TransformSystem(canvas));
         Add(new RectDrawSystem(canvas));
         Add(new WheelDrawSystem(canvas));

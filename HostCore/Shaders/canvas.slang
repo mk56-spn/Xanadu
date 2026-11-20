@@ -2,7 +2,8 @@
 // Vertex uniforms in set 1; everything a fragment sees is xanadu.stage's.
 import xanadu.stage;
 
-struct View { float2 screen; float2 pad; };
+/// The target's size, and the depth of the draw: its place in the frame (Docs/host.md §5.3).
+struct View { float2 screen; float depth; float pad; };
 
 [[vk::binding(0, 1)]] ConstantBuffer<View> view;
 
@@ -19,7 +20,7 @@ ItemVaryings item(VertexIn v)
 {
     ItemVaryings o;
     float2 ndc = v.position / view.screen * 2.0 - 1.0;
-    o.position = float4(ndc.x, -ndc.y, 0.0, 1.0);
+    o.position = float4(ndc.x, -ndc.y, view.depth, 1.0);
     o.uv = v.uv;
     o.colour = v.colour;
     o.local = v.local;

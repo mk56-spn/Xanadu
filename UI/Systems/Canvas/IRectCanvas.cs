@@ -39,48 +39,12 @@ public interface IRectCanvas
     /// </summary>
     void NewRun() { }
 
-    /// <summary>
-    /// Routes the draws that follow into draw layer <paramref name="layer"/>'s
-    /// own container, which stacks over everything drawn before it. Layers are
-    /// begun back to front, each once per frame. Canvases with no layers ignore it.
-    /// <paramref name="target"/> is the canvas item to put the container under,
-    /// for a self-contained layer's own viewport; null is the canvas itself.
-    /// </summary>
-    void BeginLayer(int layer, Handle? target = null) { }
 
-    /// <summary>
-    /// Makes the next shaded run copy the whole screen to the back buffer just
-    /// before it draws, so a screen-reading pass sees everything drawn so far
-    /// (Docs/render-architecture.md D9/D10). Canvases with no shaders ignore it.
-    /// </summary>
-    void CopyScreen() { }
 
-    /// <summary>
-    /// Refreshes the back buffer for one rect now, where the draw order reaches
-    /// it: a screen-read region (Docs/render-architecture.md step 11, D10). The
-    /// rect is in the canvas's own coordinates; canvases with no shaders ignore it.
-    /// </summary>
-    void CopyScreen(Rect2 bounds) { }
 
-    /// <summary>
-    /// Starts a buffered group (D12): the draws that follow go into one image,
-    /// composited when it ends with the buffer's tint, alpha, shader and blend.
-    /// Canvases with no buffers ignore it.
-    /// </summary>
-    void BeginBuffer(int shader, BlendMode blend, Color tint, float alpha) { }
 
-    /// <summary>Ends the buffered group and composites it into its layer.</summary>
-    void EndBuffer() { }
 
-    /// <summary>Routes the draws that follow back to the canvas itself, over every layer.</summary>
-    void EndLayers() { }
 
-    /// <summary>
-    /// A rect on the target in the canvas's own coordinates, for something that
-    /// must cover the screen whatever the canvas is shifted by. Canvases that
-    /// don't move draw on the target as it is.
-    /// </summary>
-    Rect2 ToLocal(Rect2 screen) => screen;
 
     void SetVisible(Handle canvas, bool visible);
 
@@ -156,10 +120,10 @@ public interface IRectCanvas
         var points = new Vector2[segments + 1];
         for (int i = 0; i <= segments; i++)
         {
-            float angle = Mathf.Tau * i / segments;
+            float angle = float.Tau * i / segments;
             points[i] = center + new Vector2(
-                Mathf.Cos(angle) * radius,
-                Mathf.Sin(angle) * radius);
+                MathF.Cos(angle) * radius,
+                MathF.Sin(angle) * radius);
         }
 
         DrawPolyline(canvas, points, color, width);

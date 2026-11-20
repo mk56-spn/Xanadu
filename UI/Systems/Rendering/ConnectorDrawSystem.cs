@@ -11,7 +11,7 @@ namespace Xanadu.Ui.Systems.Rendering;
 /// boxes, since either can move or hide without the connector hearing of it.
 /// It runs after the rectangles, whose redraw would clear its canvas item.
 /// </summary>
-public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, VisualRid>
+public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, VisualItem>
 {
     private readonly IRectCanvas _canvas;
 
@@ -25,9 +25,9 @@ public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, Vis
     private static bool Shown(Entity end) =>
         !end.IsNull && end.Enabled && end.HasComponent<Rectangle>();
 
-    private readonly record struct DrawConnectors(IRectCanvas Canvas, EntityStore Store) : IEachEntity<UiConnector, Drawable, VisualRid>
+    private readonly record struct DrawConnectors(IRectCanvas Canvas, EntityStore Store) : IEachEntity<UiConnector, Drawable, VisualItem>
     {
-        public void Execute(ref UiConnector line, ref Drawable _, ref VisualRid visual, int id)
+        public void Execute(ref UiConnector line, ref Drawable _, ref VisualItem visual, int id)
         {
             Entity entity = Store.GetEntityById(id);
 

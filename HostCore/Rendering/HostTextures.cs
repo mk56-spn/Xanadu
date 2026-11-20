@@ -27,7 +27,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
         if (width <= 0 || height <= 0 || pixels.Length < width * height * 4)
             return default;
 
-        Handle rid = tree.MintRid();
+        Handle rid = tree.MintHandle();
         renderer.Textures[rid.Id] = Upload(width, height, pixels.AsSpan(0, width * height * 4), TextureFormat.R8G8B8A8Unorm, 4, mipmaps);
         return rid;
     }
@@ -37,7 +37,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
         if (width <= 0 || height <= 0 || values.Length < width * height * 4)
             return default;
 
-        Handle rid = tree.MintRid();
+        Handle rid = tree.MintHandle();
         renderer.Textures[rid.Id] = Upload(
             width, height, System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan(0, width * height * 4)),
             TextureFormat.R32G32B32A32Float, 16, mipmaps: false);

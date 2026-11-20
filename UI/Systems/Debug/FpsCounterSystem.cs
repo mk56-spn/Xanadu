@@ -14,7 +14,7 @@ public sealed class FpsCounterSystem(
     IOverlayToggleSource toggle,
     EntityStore store,
     IFpsSource fps,
-    IVisualRidFactory? visuals = null) : QuerySystem<Rectangle, Position>
+    IVisualItemFactory? visuals = null) : QuerySystem<Rectangle, Position>
 {
     /// <summary>Over the other debug panels, so it stays readable with them open.</summary>
     private const int FontSize = UiType.Section;

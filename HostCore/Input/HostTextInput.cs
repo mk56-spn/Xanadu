@@ -135,7 +135,7 @@ internal sealed class HostTextInput : ITextEntry
         foreach (Entity entity in _entities
                      .Query<TextField>()
                      .AllTags(Tags.Get<TextFieldFocused>())
-                     .ToEntityList())
+                     .Entities)
             return entity;
 
         return default;

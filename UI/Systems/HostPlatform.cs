@@ -27,7 +27,7 @@ public static class HostPlatform
     public static ITextEntry TextEntry { get; set; } = new NoTextEntry();
 
     /// <summary>Makes canvas items; only the host's loads textures and fonts into the UI.</summary>
-    public static IVisualRidFactory Visuals { get; private set; } = new CanvasServerRidFactory();
+    public static IVisualItemFactory Visuals { get; private set; } = new CanvasServerItemFactory();
 
     public static IFpsSource Fps { get; private set; } = new NoFps();
 
@@ -67,7 +67,7 @@ public static class HostPlatform
         ICanvasServer server,
         System.Func<IRectCanvas> newCanvas,
         IKeyboardState keyboard,
-        IVisualRidFactory visuals,
+        IVisualItemFactory visuals,
         IFpsSource fps)
     {
         CanvasServer.Use(server);

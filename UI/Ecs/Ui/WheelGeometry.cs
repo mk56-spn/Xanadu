@@ -8,7 +8,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 public static class UiWheelGeometry
 {
     /// <summary>Wedge zero is centred straight up, matching the dash picker.</summary>
-    public const float DefaultStartAngle = -Mathf.Pi / 2;
+    public const float DefaultStartAngle = -float.Pi / 2;
 
     /// <summary>
     /// Returns the wedge containing a pointer offset from the wheel centre, or
@@ -23,18 +23,18 @@ public static class UiWheelGeometry
         if (count <= 0)
             return -1;
 
-        float step = Mathf.Tau / count;
+        float step = float.Tau / count;
         float angle = Mathf.Atan2(offset.Y, offset.X);
         float halfStep = step / 2;
         float relative = Normalize(angle - (startAngle - halfStep));
-        return Wrap((int)Mathf.Floor(relative / step), count);
+        return Wrap((int)MathF.Floor(relative / step), count);
     }
 
     /// <summary>Normalises an angle into [0, tau).</summary>
     public static float Normalize(float angle)
     {
-        angle %= Mathf.Tau;
-        return angle < 0 ? angle + Mathf.Tau : angle;
+        angle %= float.Tau;
+        return angle < 0 ? angle + float.Tau : angle;
     }
 
     /// <summary>Wraps an option index into [0, count).</summary>
@@ -64,7 +64,7 @@ public static class UiWheelGeometry
             return 0;
 
         Vector2 size = wheel.GetComponent<Rectangle>().Bounds.Size;
-        return Mathf.Min(size.X, size.Y) / 2;
+        return Math.Min(size.X, size.Y) / 2;
     }
 
     /// <summary>True when a screen point falls inside the wheel's outer circle.</summary>
@@ -101,8 +101,8 @@ public static class UiWheelGeometry
         if (!allowOutside && distance > radius)
             return -1;
 
-        float hub = radius * Mathf.Clamp(data.HubRadius, 0f, 0.95f);
-        if (distance <= Mathf.Max(2f, hub * 0.9f))
+        float hub = radius * Math.Clamp(data.HubRadius, 0f, 0.95f);
+        if (distance <= Math.Max(2f, hub * 0.9f))
             return -1;
 
         if (data.Labels is not { Length: > 0 })

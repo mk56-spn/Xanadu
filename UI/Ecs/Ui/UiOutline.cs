@@ -19,7 +19,7 @@ public static class UiOutline
     /// </summary>
     public static Vector2[] Points(Rect2 bounds, float skew, float chamfer)
     {
-        float shear = Mathf.Tan(skew) * bounds.Size.Y / 2;
+        float shear = MathF.Tan(skew) * bounds.Size.Y / 2;
         Vector2 topLeft = new(bounds.Position.X + shear, bounds.Position.Y);
         Vector2 topRight = new(bounds.End.X + shear, bounds.Position.Y);
         Vector2 bottomRight = new(bounds.End.X - shear, bounds.End.Y);
@@ -28,7 +28,7 @@ public static class UiOutline
             return [topLeft, topRight, bottomRight, bottomLeft];
 
         // Cut along the top edge and down the right edge, which may lean.
-        float cut = Mathf.Min(chamfer, Mathf.Min(bounds.Size.X, bounds.Size.Y));
+        float cut = Math.Min(chamfer, Math.Min(bounds.Size.X, bounds.Size.Y));
         Vector2 down = (bottomRight - topRight).Normalized();
         return
         [

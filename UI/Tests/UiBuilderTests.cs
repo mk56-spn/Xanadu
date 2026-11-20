@@ -13,7 +13,7 @@ namespace Xanadu.Ui.Tests;
 public sealed class UiBuilderTests
 {
     private EntityStore _store = null!;
-    private IVisualRidFactory _visuals = null!;
+    private IVisualItemFactory _visuals = null!;
 
     [SetUp]
     public void SetUp()

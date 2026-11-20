@@ -30,7 +30,7 @@ public static class ViewportSnap
 
     /// <summary>Nearest grid line, rounding halves up so snapping is predictable.</summary>
     public static float Snap(float value, float cell) =>
-        cell <= 0 ? value : Mathf.Floor(value / cell + 0.5f) * cell;
+        cell <= 0 ? value : MathF.Floor(value / cell + 0.5f) * cell;
 
     public static Vector2 Snap(Vector2 value, Vector2 cell) => new(
         Snap(value.X, cell.X),

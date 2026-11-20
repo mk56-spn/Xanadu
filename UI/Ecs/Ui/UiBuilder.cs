@@ -16,21 +16,21 @@ public sealed partial class UiBuilder
     private static readonly Color DefaultContainerColor = Palette.SurfaceAlt;
 
     private readonly EntityStore _entities;
-    private readonly IVisualRidFactory _visuals;
+    private readonly IVisualItemFactory _visuals;
 
     /// <summary>
     /// The factory this builder creates canvas items with. Exposed so a tree can
     /// be continued through <see cref="UiNode.Wrap"/> without inventing a
     /// second one (which would need the engine in tests).
     /// </summary>
-    public IVisualRidFactory Visuals => _visuals;
+    public IVisualItemFactory Visuals => _visuals;
     private Entity _root;
 
     private Entity _current;
     private Entity _layer;
     private int _layerZIndex;
 
-    public UiBuilder(EntityStore entities, IVisualRidFactory visuals)
+    public UiBuilder(EntityStore entities, IVisualItemFactory visuals)
     {
         _entities = entities;
         _visuals = visuals;
@@ -40,9 +40,9 @@ public sealed partial class UiBuilder
     /// Used when a builder is begun without a factory. Unit tests set it to a
     /// fake, since the default one needs the engine's rendering server.
     /// </summary>
-    public static IVisualRidFactory? DefaultVisuals { get; set; }
+    public static IVisualItemFactory? DefaultVisuals { get; set; }
 
-    public static UiBuilder Begin(EntityStore entities, IVisualRidFactory? visuals = null)
+    public static UiBuilder Begin(EntityStore entities, IVisualItemFactory? visuals = null)
     {
         UiTreeEvents.Ensure(entities);
         return new UiBuilder(entities, visuals ?? DefaultVisuals ?? HostPlatform.Visuals);
@@ -54,7 +54,7 @@ public sealed partial class UiBuilder
     public UiBuilder Layer(int zIndex)
     {
         Entity layer = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new LayerComponent(zIndex),
             Tags.Get<Uninitialised>());
 
@@ -92,7 +92,7 @@ public sealed partial class UiBuilder
             : Tags.Get<Uninitialised, Dirty, LayoutDirty>();
 
         Entity container = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),
             new Position(position),
@@ -325,7 +325,7 @@ public sealed partial class UiBuilder
             : Tags.Get<Uninitialised, Dirty>();
 
         Entity rect = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),
             new Position(position),
@@ -348,7 +348,7 @@ public sealed partial class UiBuilder
         RequireLayer();
 
         Entity image = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),
             new Position(position),
@@ -372,7 +372,7 @@ public sealed partial class UiBuilder
             : Tags.Get<Uninitialised, Dirty>();
 
         Entity entity = _entities.CreateEntity(
-            new VisualRid(_visuals.CreateCanvasItem()),
+            new VisualItem(_visuals.CreateCanvasItem()),
             new Rectangle(new Rect2(-size / 2, size)),
             new Drawable(_layerZIndex),
             new Position(position),

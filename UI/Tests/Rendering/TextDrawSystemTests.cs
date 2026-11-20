@@ -111,7 +111,7 @@ public sealed class TextDrawSystemTests : EcsSystemTest
             new Text(text),
             new Rectangle(new Rect2(-20, -10, 40, 20)),
             new Drawable(0),
-            default(VisualRid),
+            default(VisualItem),
             Tags.Get<Dirty>());
 
     private sealed class RecordingCanvas : IRectCanvas

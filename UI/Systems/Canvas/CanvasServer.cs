@@ -1,14 +1,15 @@
+using System.Collections.Generic;
 using System;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
-/// The retained canvas-item tree the game draws into: items with a parent,
-/// transform, order, visibility, clip and colour, each holding a list of draw
-/// commands until it is cleared. The calls began as the subset of Godot's
-/// <c>RenderingServer</c> the game used; the MoonWorks host renders the tree
-/// (Docs/host.md §5.2).
+/// The canvas the game draws into: items (recordings) that keep their draws
+/// until cleared, with a transform, visibility, clip, colour and material,
+/// hung under one another at a z or listed each frame by a mount
+/// (<see cref="ICanvasMount"/>, how the UI draws). The host keeps their
+/// primitives on the GPU and places them there (Docs/host.md §5.3).
 /// </summary>
 public interface ICanvasServer
 {
@@ -21,8 +22,6 @@ public interface ICanvasServer
     /// <summary>Draw layer, relative to the parent's: higher draws over lower across the whole tree.</summary>
     void SetZIndex(Handle item, int z);
 
-    /// <summary>Order among siblings: higher draws later.</summary>
-    void SetDrawIndex(Handle item, int index);
 
     void SetVisible(Handle item, bool visible);
 
@@ -46,18 +45,8 @@ public interface ICanvasServer
     /// </summary>
     void SetMaterial(Handle item, CanvasMaterial? material);
 
-    /// <summary>One value for this item only, over its material's (Godot's instance uniforms).</summary>
-    void SetInstanceValue(Handle item, string name, Vector4 value);
 
-    /// <summary>
-    /// Refreshes the screen copy (what screen-reading shaders sample) just
-    /// before the item draws: Godot's copy-to-back-buffer. Hosts that copy
-    /// whenever a screen reader needs it may treat this as a hint.
-    /// </summary>
-    void SetCopyScreen(Handle item, bool copy);
 
-    /// <summary>Draws the item's children into one image composited as a whole (a CanvasGroup).</summary>
-    void SetCanvasGroup(Handle item, float clearMargin, bool fitEmpty, float fitMargin);
 
     void Clear(Handle item);
 
@@ -83,6 +72,50 @@ public interface ICanvasServer
 
     /// <summary>Transforms the item's later commands until the next one.</summary>
     void AddSetTransform(Handle item, Transform2D transform);
+
+    /// <summary>A region of a texture over a rect, tinted: one glyph or sprite.</summary>
+    void AddTextureRegion(Handle item, Rect2 rect, Rect2 uv, Color color, Handle texture)
+    {
+        Vector2 a = rect.Position, c = rect.End, ua = uv.Position, uc = uv.End;
+        AddTriangleArray(item, [0, 1, 2, 0, 2, 3], [a, new(c.X, a.Y), c, new(a.X, c.Y)], [color],
+            [ua, new(uc.X, ua.Y), uc, new(ua.X, uc.Y)], texture);
+    }
+
+    /// <summary>
+    /// Hangs <paramref name="mount"/> under <paramref name="item"/>: each frame,
+    /// after the item's children, the renderer asks it which items to draw
+    /// there and where (an ECS tree that keeps its own order, transforms and
+    /// visibility instead of mirroring them into parented items).
+    /// </summary>
+    void Mount(Handle item, ICanvasMount mount) { }
+
+    void Unmount(Handle item, ICanvasMount mount) { }
+
+    /// <summary>
+    /// Shades the item's draws that follow with <paramref name="material"/> and
+    /// <paramref name="values"/> (a run of their own: an effect over just
+    /// those, in their place among the item's other draws); null for plain.
+    /// The same material and values object keep the run going.
+    /// </summary>
+    void SelectRun(Handle item, CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values) { }
+}
+
+/// <summary>Something that lists, each frame, the items it wants drawn where it is mounted.</summary>
+public interface ICanvasMount
+{
+    void Collect(ICanvasCollector into);
+}
+
+/// <summary>What a mount lists its items into, in draw order.</summary>
+public interface ICanvasCollector
+{
+    /// <summary>
+    /// Draws <paramref name="item"/> (an item with no parent) and its own
+    /// children here: placed by <paramref name="transform"/>, faded by
+    /// <paramref name="modulate"/>, at layer <paramref name="z"/>, all relative to
+    /// the mount, and cut to <paramref name="clip"/> (in the mount's space) if given.
+    /// </summary>
+    void Item(Handle item, in Transform2D transform, Color modulate, int z, Rect2? clip);
 }
 
 /// <summary>
@@ -107,7 +140,6 @@ public sealed class HeadlessCanvasServer : ICanvasServer
     public void Free(Handle item) { }
     public void SetParent(Handle item, Handle parent) { }
     public void SetZIndex(Handle item, int z) { }
-    public void SetDrawIndex(Handle item, int index) { }
     public void SetVisible(Handle item, bool visible) { }
     public void SetTransform(Handle item, Transform2D transform) { }
     public void SetModulate(Handle item, Color color) { }
@@ -115,9 +147,6 @@ public sealed class HeadlessCanvasServer : ICanvasServer
     public void SetCustomRect(Handle item, bool use, Rect2 rect) { }
     public void SetClip(Handle item, bool clip) { }
     public void SetMaterial(Handle item, CanvasMaterial? material) { }
-    public void SetInstanceValue(Handle item, string name, Vector4 value) { }
-    public void SetCopyScreen(Handle item, bool copy) { }
-    public void SetCanvasGroup(Handle item, float clearMargin, bool fitEmpty, float fitMargin) { }
     public void Clear(Handle item) { }
     public void AddRect(Handle item, Rect2 rect, Color color) { }
     public void AddCircle(Handle item, Vector2 center, float radius, Color color) { }

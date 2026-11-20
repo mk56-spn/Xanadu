@@ -16,7 +16,7 @@ namespace Xanadu.Ui.Tests;
 public sealed class UiFocusSystemTests
 {
     private EntityStore _store = null!;
-    private IVisualRidFactory _visuals = null!;
+    private IVisualItemFactory _visuals = null!;
     private UiBuilder _ui = null!;
     private FakeKeyboard _keyboard = null!;
     private FakePointer _pointer = null!;

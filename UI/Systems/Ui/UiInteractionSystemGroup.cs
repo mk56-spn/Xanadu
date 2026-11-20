@@ -13,7 +13,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         IPointerInputSource pointer,
         ScrollSystem scroll,
         IKeyboardState? keyboard = null,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         Vector2 screen = default,
         bool focus = true,
         bool tooltips = true) : base("UiInteraction")

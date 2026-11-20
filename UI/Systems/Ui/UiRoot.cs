@@ -6,6 +6,7 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Groups;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Rendering;
 
 namespace Xanadu.Ui.Systems.Ui;
 
@@ -24,7 +25,9 @@ public sealed class UiRoot : SystemRoot, IDisposable
 {
     private readonly AppStep _app = new();
     private readonly DebugSystemGroup? _overlays;
-    private readonly VisualRidRelease _visuals;
+    private readonly VisualItemRelease _visuals;
+    private readonly UiCanvasMount _mount;
+    private readonly Handle _parentCanvas;
 
     public UiRoot(
         EntityStore entities,
@@ -33,12 +36,12 @@ public sealed class UiRoot : SystemRoot, IDisposable
         Vector2 screen,
         IKeyboardState? keyboard = null,
         IWheelSource? wheel = null,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         bool tooltips = true,
         bool overlays = true) : base(entities, "Ui")
     {
         // Deleted UI (F1 and F4 rebuild theirs each time they open) has to take its canvas items with it.
-        _visuals = new VisualRidRelease(entities);
+        _visuals = new VisualItemRelease(entities);
         Canvas = HostPlatform.NewCanvas();
 
         var input = new SystemGroup("UiInput");
@@ -55,7 +58,10 @@ public sealed class UiRoot : SystemRoot, IDisposable
         Add(input);
 
         Add(_app);
-        Add(new InitializationSystemGroup(parentCanvas));
+        Add(new InitializationSystemGroup());
+        _parentCanvas = parentCanvas;
+        _mount = new UiCanvasMount(entities);
+        CanvasServer.Current.Mount(parentCanvas, _mount);
 
         var draw = new SystemGroup("UiDraw");
         draw.Add(new PresentationSystemGroup(Canvas));
@@ -91,6 +97,7 @@ public sealed class UiRoot : SystemRoot, IDisposable
     public void Dispose()
     {
         _overlays?.Dispose();
+        CanvasServer.Current.Unmount(_parentCanvas, _mount);
         _visuals.Dispose();
     }
 }

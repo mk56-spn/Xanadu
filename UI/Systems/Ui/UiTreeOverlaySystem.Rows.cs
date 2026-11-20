@@ -18,7 +18,7 @@ public sealed partial class UiTreeOverlaySystem
     /// <summary>Components every drawn entity carries; they say nothing about what it is.</summary>
     private static readonly HashSet<Type> Plumbing = new()
     {
-        typeof(Position), typeof(Rectangle), typeof(VisualRid), typeof(Drawable),
+        typeof(Position), typeof(Rectangle), typeof(VisualItem), typeof(Drawable),
         typeof(FillColor), typeof(TreeNode), typeof(EntityName), typeof(Text),
         typeof(TextStyle), typeof(TextAlignment), typeof(UiFlex), typeof(UiCommand),
     };
@@ -118,7 +118,7 @@ public sealed partial class UiTreeOverlaySystem
     /// <summary>Things on screen: anything drawn or placed, and never the debug views.</summary>
     private static bool Listable(Entity entity) =>
         !entity.Tags.Has<DebugUi>() &&
-        (entity.HasComponent<Position>() || entity.HasComponent<VisualRid>() || entity.ChildCount > 0);
+        (entity.HasComponent<Position>() || entity.HasComponent<VisualItem>() || entity.ChildCount > 0);
 
     private void Walk(Entity entity, int depth)
     {

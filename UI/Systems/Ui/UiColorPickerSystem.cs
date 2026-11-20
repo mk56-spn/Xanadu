@@ -82,7 +82,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
             case Region.Hue:
                 Rect2 hue = Box(picker.HueBar);
                 // The bar runs red to red, so the very bottom is the same colour as the top.
-                picker.Hue = Mathf.Min(Fraction(point.Y, hue.Position.Y, hue.Size.Y), 0.9999f);
+                picker.Hue = Math.Min(Fraction(point.Y, hue.Position.Y, hue.Size.Y), 0.9999f);
                 break;
             case Region.Alpha:
                 Rect2 alpha = Box(picker.Alpha);
@@ -102,7 +102,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
     private static Vector2 Extent(Entity part) => part.GetComponent<Rectangle>().Bounds.Size;
 
     private static float Fraction(float value, float start, float length) =>
-        Mathf.Clamp((value - start) / Mathf.Max(1f, length), 0f, 1f);
+        Math.Clamp((value - start) / Math.Max(1f, length), 0f, 1f);
 
     /// <summary>Puts each cursor where the colour is on its bar; a bar's space is centred on it.</summary>
     private static void Refresh(ref UiColorPicker picker)

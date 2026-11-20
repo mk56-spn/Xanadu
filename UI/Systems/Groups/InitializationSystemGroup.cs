@@ -5,15 +5,12 @@ using Xanadu.Ui.Systems.Rendering;
 
 namespace Xanadu.Ui.Systems.Groups;
 
-/// <summary>Creates layer hierarchy, resolves container layout, and initialises drawables.</summary>
+/// <summary>Resolves container layout and anchors. Where things draw is worked out each frame by <see cref="UiCanvasMount"/>.</summary>
 public sealed class InitializationSystemGroup : SystemGroup
 {
-    public InitializationSystemGroup(Handle parentCanvas) : base("Initialization")
+    public InitializationSystemGroup() : base("Initialization")
     {
-        Add(new LayerParentSystem(parentCanvas));
-        Add(new LayerOpacitySystem());
         Add(new ContainerLayoutSystem());
         Add(new UiAnchorSystem());
-        Add(new DrawableInitialiseSystem());
     }
 }

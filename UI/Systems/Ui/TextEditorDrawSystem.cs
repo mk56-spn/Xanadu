@@ -44,7 +44,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
 
     protected override void OnUpdate()
     {
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             ref TextEditor editor = ref entity.GetComponent<TextEditor>();
             Draw(ref editor, entity.Tags.Has<TextEditorFocused>());

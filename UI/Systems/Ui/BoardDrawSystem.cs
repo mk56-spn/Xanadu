@@ -40,7 +40,7 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         if (!state.HasItem)
         {
             state.Item = CanvasServer.Current.CreateItem();
-            if (entity.TryGetComponent(out VisualRid visual))
+            if (entity.TryGetComponent(out VisualItem visual))
                 CanvasServer.Current.SetParent(state.Item, visual.Value);
             CanvasServer.Current.SetClip(state.Item, true);
             state.HasItem = true;

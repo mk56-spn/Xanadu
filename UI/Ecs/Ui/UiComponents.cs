@@ -223,13 +223,13 @@ public struct LayerOpacity(float value) : IComponent
 }
 
 /// <summary>Canvas item owned by an entity.</summary>
-public struct VisualRid : IComponent
+public struct VisualItem : IComponent
 {
     public Handle Value;
 
-    public VisualRid() => Value = CanvasServer.Current.CreateItem();
+    public VisualItem() => Value = CanvasServer.Current.CreateItem();
 
-    public VisualRid(Handle value) => Value = value;
+    public VisualItem(Handle value) => Value = value;
 }
 
 /// <summary>

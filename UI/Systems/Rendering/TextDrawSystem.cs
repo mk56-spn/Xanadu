@@ -8,7 +8,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty entity text into the entity canvas item, cut to its box when it has <see cref="TextFit"/>.</summary>
-public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualRid>
+public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, VisualItem>
 {
     private static readonly Color TextColor = Colors.White;
 
@@ -25,9 +25,9 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
         Query.EachEntity(new DrawTexts(_canvas, Query.Store, CommandBuffer));
     }
 
-    private readonly record struct DrawTexts(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Text, Rectangle, Drawable, VisualRid>
+    private readonly record struct DrawTexts(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Text, Rectangle, Drawable, VisualItem>
     {
-        public void Execute(ref Text text, ref Rectangle rect, ref Drawable _, ref VisualRid visual, int id)
+        public void Execute(ref Text text, ref Rectangle rect, ref Drawable _, ref VisualItem visual, int id)
         {
             Entity entity = Store.GetEntityById(id);
 

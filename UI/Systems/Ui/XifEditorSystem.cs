@@ -22,9 +22,9 @@ namespace Xanadu.Ui.Systems.Ui;
 public sealed class XifEditorSystem : QuerySystem<XifEditor>
 {
     private readonly IPointerInputSource _pointer;
-    private readonly IVisualRidFactory? _visuals;
+    private readonly IVisualItemFactory? _visuals;
 
-    public XifEditorSystem(IPointerInputSource pointer, IVisualRidFactory? visuals = null)
+    public XifEditorSystem(IPointerInputSource pointer, IVisualItemFactory? visuals = null)
     {
         _pointer = pointer;
         _visuals = visuals;

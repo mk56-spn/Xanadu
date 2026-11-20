@@ -146,6 +146,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         public float Width, Height, OriginX, OriginY;
         public float XX, XY, YX, YY;
         public float R, G, B, A;
+        public float Depth, Pad0, Pad1, Pad2;
     }
 
     private readonly GraphicsDevice _device;
@@ -185,7 +186,6 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumStorageBuffers = 2, NumUniformBuffers = 1 });
         _fragment = Shader.Create(device, SlangShaders.Compile(module, "shadeParticle", "fragment"), "main",
             new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Fragment, NumSamplers = 1 });
-        DrawPipeline(SampleCount.One);
 
         _effects = Buffer.Create<Vector4>(device, "particle effects",
             BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.GraphicsStorageRead, (uint)_rows.Length);
@@ -268,7 +268,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     /// Leaves the particle pipeline bound and vertex uniform slot 0 overwritten.
     /// </summary>
     public void Draw(CommandBuffer commands, RenderPass pass, ParticleField field, Transform2D transform, Color modulate,
-        float width, float height, Texture strip, Sampler sampler, SampleCount samples = SampleCount.One)
+        float width, float height, Texture strip, Sampler sampler, SampleCount samples = SampleCount.One, float depth = 0)
     {
         pass.BindGraphicsPipeline(DrawPipeline(samples));
         pass.BindVertexStorageBuffers(field.Buffer, _effects);
@@ -279,11 +279,15 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             OriginX = transform.Origin.X, OriginY = transform.Origin.Y,
             XX = transform.X.X, XY = transform.X.Y, YX = transform.Y.X, YY = transform.Y.Y,
             R = modulate.R, G = modulate.G, B = modulate.B, A = modulate.A,
+            Depth = depth,
         });
         pass.DrawPrimitives(6, ParticleField.Capacity, 0, 0);
     }
 
     /// <summary>The particle draw pipeline for a target with <paramref name="samples"/> samples a pixel.</summary>
+    /// <summary>The renderer's depth format: particles draw inside its passes, which always carry a depth buffer.</summary>
+    public TextureFormat DepthFormat { get; init; } = TextureFormat.D16Unorm;
+
     public GraphicsPipeline DrawPipeline(SampleCount samples)
     {
         if (_draws.TryGetValue(samples, out GraphicsPipeline? pipeline))
@@ -297,10 +301,13 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = RasterizerState.CCW_CullNone,
             MultisampleState = new MultisampleState { SampleCount = samples },
-            DepthStencilState = DepthStencilState.Disable,
+            // Tested, never written: an opaque rect in front hides them, and they don't hide anything.
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = false, CompareOp = CompareOp.Less },
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = CanvasPipelines.Blend(BlendMode.Mix) }],
+                HasDepthStencilTarget = true,
+                DepthStencilFormat = DepthFormat,
             },
         });
         _draws[samples] = pipeline;

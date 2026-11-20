@@ -24,9 +24,9 @@ public sealed partial class ScrollSystem(
         {
             Vector2 pointer = pointerSource.Read().Position;
             Entity target = default;
-            foreach (Entity entity in Query.ToEntityList())
+            foreach (Entity entity in Query.Entities)
                 Consider(entity, pointer, ref target);
-            foreach (Entity entity in Lists.ToEntityList())
+            foreach (Entity entity in Lists.Entities)
                 Consider(entity, pointer, ref target);
 
             if (!target.IsNull && target.HasComponent<UiList>())
@@ -82,10 +82,10 @@ public sealed partial class ScrollSystem(
 
         float viewportHeight = viewport.GetComponent<Rectangle>().Bounds.Size.Y;
         float contentHeight = body.GetComponent<Rectangle>().Bounds.Size.Y;
-        view.Offset = Mathf.Clamp(
+        view.Offset = Math.Clamp(
             view.Offset,
             0,
-            Mathf.Max(0, contentHeight - viewportHeight));
+            Math.Max(0, contentHeight - viewportHeight));
 
         ref Position content = ref body.GetComponent<Position>();
         float y = -viewportHeight / 2 + contentHeight / 2 - view.Offset;

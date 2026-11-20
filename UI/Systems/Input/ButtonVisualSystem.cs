@@ -35,10 +35,10 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
             float hoverTarget = hovered ? 1f : 0f;
             float hoverStep = Delta * HoverSpeed;
             visual.HoverAmount = hoverTarget > visual.HoverAmount
-                ? Mathf.Min(hoverTarget, visual.HoverAmount + hoverStep)
-                : Mathf.Max(hoverTarget, visual.HoverAmount - hoverStep);
+                ? Math.Min(hoverTarget, visual.HoverAmount + hoverStep)
+                : Math.Max(hoverTarget, visual.HoverAmount - hoverStep);
 
-            visual.FlashAmount = Mathf.Max(
+            visual.FlashAmount = Math.Max(
                 0f,
                 visual.FlashAmount - Delta / FlashSeconds);
 

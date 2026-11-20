@@ -168,7 +168,7 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
 
             Vector2 childSize = SlotSize(child, NaturalSize(child), container.Direction);
             main += horizontal ? childSize.X : childSize.Y;
-            cross = Mathf.Max(cross, horizontal ? childSize.Y : childSize.X);
+            cross = Math.Max(cross, horizontal ? childSize.Y : childSize.X);
             count++;
         }
 
@@ -236,7 +236,7 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
             // A skewed vertical stack flows along its slanted sides: the higher a
             // child sits, the further right.
             if (container.Skew != 0 && !horizontal)
-                target.X -= Mathf.Tan(container.Skew) * target.Y;
+                target.X -= MathF.Tan(container.Skew) * target.Y;
 
             if (position.Value == target)
                 continue;
@@ -311,7 +311,7 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
         if (direction == StackDirection.Vertical)
             size.Y += listSize.Y + 4;
         else
-            size.X = Mathf.Max(size.X, listSize.X);
+            size.X = Math.Max(size.X, listSize.X);
         return size;
     }
 

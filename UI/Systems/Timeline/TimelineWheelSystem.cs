@@ -22,7 +22,7 @@ public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSourc
             return;
 
         Vector2 position = pointer.Read().Position;
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             ITimelineHost host = entity.GetComponent<TimelineHost>().Host;
             if (host.Blocked || !host.TryGetArea(out Rect2 panel, out Rect2 ruler) ||

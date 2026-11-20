@@ -9,15 +9,14 @@ namespace Xanadu.Host.Rendering;
 
 /// <summary>
 /// The host's retained canvas: the item tree the game builds through
-/// <see cref="CanvasServer"/>. Each draw command is turned into triangles in the
-/// item's own space as it is added, so a frame only transforms, colours and
-/// batches what is already there (<see cref="CanvasRenderer"/>).
+/// <see cref="CanvasServer"/>. Each draw command becomes a primitive in the
+/// item's own space as it is added; the renderer keeps them on the GPU and only
+/// places them each frame (<see cref="CanvasRenderer"/>).
 /// </summary>
 /// <remarks>
-/// Ordering follows Godot's canvas, which the game was written against: an
-/// item draws before its children; siblings go by draw index, then by when
-/// they were parented; z-index is relative to the parent's and sorts the whole
-/// tree, lowest first, keeping tree order within one z.
+/// Order: an item draws before its children and its mounts' items; siblings go
+/// by when they were hung; z is relative to the parent's
+/// and sorts the whole frame, lowest first, keeping tree order within one z.
 /// </remarks>
 internal sealed class CanvasTree : ICanvasServer
 {
@@ -33,18 +32,18 @@ internal sealed class CanvasTree : ICanvasServer
         Root = Make();
     }
 
-    /// <summary>Hands out an id the game sees as a Godot <see cref="Handle"/>; textures share the same id space.</summary>
-    public Handle MintRid() => ToRid(_nextId++);
+    /// <summary>Hands out an item id as a <see cref="Handle"/>; textures share the same id space.</summary>
+    public Handle MintHandle() => ToHandle(_nextId++);
 
-    public static Handle ToRid(ulong id) => new(id);
+    public static Handle ToHandle(ulong id) => new(id);
 
-    public Handle RootRid => ToRid(Root.Id);
+    public Handle RootHandle => ToHandle(Root.Id);
 
     public int Count => _items.Count;
 
     private CanvasItem Make()
     {
-        Handle rid = MintRid();
+        Handle rid = MintHandle();
         var item = new CanvasItem(rid.Id);
         _items.Add(item.Id, item);
         return item;
@@ -55,7 +54,7 @@ internal sealed class CanvasTree : ICanvasServer
     /// <summary>The item behind an id, for the host's own use (offscreen roots).</summary>
     public CanvasItem? Item(Handle rid) => Find(rid);
 
-    public Handle CreateItem() => ToRid(Make().Id);
+    public Handle CreateItem() => ToHandle(Make().Id);
 
     public void Free(Handle rid)
     {
@@ -97,15 +96,6 @@ internal sealed class CanvasTree : ICanvasServer
             item.Z = Math.Clamp(z, -4096, 4096);
     }
 
-    public void SetDrawIndex(Handle rid, int index)
-    {
-        if (Find(rid) is not { } item || item.DrawIndex == index)
-            return;
-
-        item.DrawIndex = index;
-        if (item.Parent is { } parent)
-            parent.ChildrenSorted = false;
-    }
 
     public void SetVisible(Handle rid, bool visible)
     {
@@ -152,32 +142,8 @@ internal sealed class CanvasTree : ICanvasServer
             item.Material = material;
     }
 
-    /// <summary>One per-item value over the material's (Godot's instance uniforms).</summary>
-    public void SetInstanceValue(Handle rid, string name, Vector4 value)
-    {
-        if (Find(rid) is not { } item)
-            return;
 
-        item.InstanceValues ??= new System.Collections.Generic.Dictionary<string, Vector4>();
-        item.InstanceValues[name] = value;
-    }
 
-    /// <summary>
-    /// The item and its children draw into an image of their own, composited
-    /// as one quad with the item's material and modulate (step 6). The margins
-    /// are Godot's; the host always fits the image to what was drawn.
-    /// </summary>
-    public void SetCanvasGroup(Handle rid, float clearMargin, bool fitEmpty, float fitMargin)
-    {
-        if (Find(rid) is { } item)
-            item.Group = true;
-    }
-
-    public void SetCopyScreen(Handle rid, bool copy)
-    {
-        if (Find(rid) is { } item)
-            item.CopyScreen = copy;
-    }
 
     public void Clear(Handle rid)
     {
@@ -187,33 +153,20 @@ internal sealed class CanvasTree : ICanvasServer
 
     public void AddRect(Handle rid, Rect2 rect, Color color)
     {
-        if (Find(rid) is not { } item)
-            return;
-
-        Vector2 a = rect.Position, c = rect.End;
-        item.Quad(a, new Vector2(c.X, a.Y), c, new Vector2(a.X, c.Y), color, default);
+        if (Find(rid) is { } item)
+            item.Add(Primitive.Rect(rect, color));
     }
 
     public void AddCircle(Handle rid, Vector2 center, float radius, Color color)
     {
-        if (Find(rid) is not { } item || radius <= 0)
-            return;
-
-        int segments = Math.Clamp((int)(radius * 0.75f), 12, 96);
-        Vector2 previous = center + new Vector2(radius, 0);
-        for (int i = 1; i <= segments; i++)
-        {
-            float angle = Mathf.Tau * i / segments;
-            Vector2 next = center + new Vector2(MathF.Cos(angle) * radius, MathF.Sin(angle) * radius);
-            item.Triangle(center, previous, next, color, color, color, default);
-            previous = next;
-        }
+        if (Find(rid) is { } item && radius > 0)
+            item.Add(Primitive.Disc(center, radius, color));
     }
 
     public void AddLine(Handle rid, Vector2 from, Vector2 to, Color color, float width, bool antialiased)
     {
         if (Find(rid) is { } item)
-            item.Segment(from, to, color, color, width);
+            item.Add(Primitive.Line(from, to, color, color, width));
     }
 
     public void AddPolyline(Handle rid, Vector2[] points, Color[] colors, float width, bool antialiased)
@@ -232,7 +185,7 @@ internal sealed class CanvasTree : ICanvasServer
         for (int i = 0; i + 1 < points.Length; i += 2)
         {
             Color color = colors.Length == 1 ? colors[0] : colors[Math.Min(i / 2, colors.Length - 1)];
-            item.Segment(points[i], points[i + 1], color, color, width);
+            item.Add(Primitive.Line(points[i], points[i + 1], color, color, width));
         }
     }
 
@@ -246,12 +199,11 @@ internal sealed class CanvasTree : ICanvasServer
         for (int i = 0; i + 2 < indices.Length; i += 3)
         {
             int a = indices[i], b = indices[i + 1], c = indices[i + 2];
-            item.Triangle(
+            item.Add(Primitive.Triangle(
                 points[a], points[b], points[c],
                 ColorAt(colors, a), ColorAt(colors, b), ColorAt(colors, c),
-                default,
-                uvs is null ? default : (uvs[a], uvs[b], uvs[c]),
-                (first + a, first + b, first + c));
+                uvs is null ? default : uvs[a], uvs is null ? default : uvs[b], uvs is null ? default : uvs[c],
+                0, first + a, first + b, first + c));
         }
 
         item.Points = first + points.Length;
@@ -269,12 +221,11 @@ internal sealed class CanvasTree : ICanvasServer
             if (a >= points.Length || b >= points.Length || c >= points.Length)
                 break;
 
-            item.Triangle(
+            item.Add(Primitive.Triangle(
                 points[a], points[b], points[c],
                 ColorAt(colors, a), ColorAt(colors, b), ColorAt(colors, c),
-                texture.Id,
-                uvs is null ? default : (uvs[a], uvs[b], uvs[c]),
-                (first + a, first + b, first + c));
+                uvs is null ? default : uvs[a], uvs is null ? default : uvs[b], uvs is null ? default : uvs[c],
+                texture.Id, first + a, first + b, first + c));
         }
 
         item.Points = first + points.Length;
@@ -282,12 +233,43 @@ internal sealed class CanvasTree : ICanvasServer
 
     public void AddTextureRect(Handle rid, Rect2 rect, Handle texture)
     {
+        if (Find(rid) is { } item)
+            item.Add(Primitive.TextureRect(rect, new Rect2(0, 0, 1, 1), Colors.White, texture.Id));
+    }
+
+    /// <summary>A region of a texture over a rect, tinted: one glyph, one sprite. One primitive, not two triangles.</summary>
+    public void AddTextureRegion(Handle rid, Rect2 rect, Rect2 uv, Color color, Handle texture)
+    {
+        if (Find(rid) is { } item)
+            item.Add(Primitive.TextureRect(rect, uv, color, texture.Id));
+    }
+
+    public void SelectRun(Handle rid, CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values)
+    {
         if (Find(rid) is not { } item)
             return;
 
-        Vector2 a = rect.Position, c = rect.End;
-        item.Quad(a, new Vector2(c.X, a.Y), c, new Vector2(a.X, c.Y), Colors.White, texture.Id);
+        if (material is null && values is null)
+        {
+            item.CurrentRun = 0;
+            return;
+        }
+
+        if (item.CurrentRun > 0 && item.Runs[item.CurrentRun - 1] is var run &&
+            run.Material == material && ReferenceEquals(run.Values, values))
+            return;
+
+        item.Runs.Add((material, values));
+        item.CurrentRun = item.Runs.Count;
     }
+
+    public void Mount(Handle rid, ICanvasMount mount)
+    {
+        if (Find(rid) is { } item)
+            (item.Mounts ??= new List<ICanvasMount>()).Add(mount);
+    }
+
+    public void Unmount(Handle rid, ICanvasMount mount) => Find(rid)?.Mounts?.Remove(mount);
 
     public void AddSetTransform(Handle rid, Transform2D transform)
     {
@@ -299,7 +281,7 @@ internal sealed class CanvasTree : ICanvasServer
         colors.Length == 1 ? colors[0] : colors[Math.Min(index, colors.Length - 1)];
 }
 
-/// <summary>One canvas item: its place in the tree and its triangles, in its own space.</summary>
+/// <summary>One canvas item: its place in the tree and its primitives, in its own space.</summary>
 internal sealed class CanvasItem(ulong id)
 {
     public readonly ulong Id = id;
@@ -308,7 +290,6 @@ internal sealed class CanvasItem(ulong id)
     public bool ChildrenSorted = true;
     public long Order;
     public int Z;
-    public int DrawIndex;
     public bool Visible = true;
     public Transform2D Transform = Transform2D.Identity;
     public Color Modulate = Colors.White;
@@ -317,40 +298,50 @@ internal sealed class CanvasItem(ulong id)
     public Rect2 CustomRect;
     public bool Clip;
 
-    /// <summary>What the item's own draws shade and blend with; null is the plain canvas shader.</summary>
+    /// <summary>What the item's own draws shade and blend with; null is the plain primitive pipeline.</summary>
     public CanvasMaterial? Material;
 
-    /// <summary>Draws into an image of its own, composited as one (a CanvasGroup).</summary>
-    public bool Group;
+    /// <summary>Shaded runs among the item's draws: each primitive's <see cref="Primitive.Run"/> points into this.</summary>
+    public readonly List<(CanvasMaterial? Material, IReadOnlyDictionary<string, Vector4>? Values)> Runs = new();
 
-    /// <summary>Refreshes the screen copy just before the item draws.</summary>
-    public bool CopyScreen;
-
-    /// <summary>Values for this item only, over the material's; null when none were set.</summary>
-    public Dictionary<string, Vector4>? InstanceValues;
+    /// <summary>The run draws added now go into; 0 is plain.</summary>
+    public int CurrentRun;
 
     /// <summary>Set by <c>AddSetTransform</c>: applied to the commands that follow.</summary>
     public Transform2D CommandTransform = Transform2D.Identity;
 
-    public readonly List<CanvasVertex> Vertices = new();
+    public readonly List<Primitive> Primitives = new();
 
     /// <summary>
     /// Mesh points added so far: the next command's points are numbered from here, so a
-    /// vertex's <see cref="CanvasVertex.Index"/> is its point in the item, shared by every
-    /// triangle that uses it.
+    /// triangle's corner indices are its points in the item, shared by every triangle that uses it.
     /// </summary>
     public int Points;
 
     /// <summary>GPU particles drawn after the item's own draws; made by the first burst into it.</summary>
     public ParticleField? Particles;
 
-    /// <summary>Where each texture's vertices start; a new run begins whenever the texture changes.</summary>
-    public readonly List<(int Start, ulong Texture)> Runs = new();
+    /// <summary>Trees that list their own items here each frame, after this item's children.</summary>
+    public List<ICanvasMount>? Mounts;
+
+    /// <summary>Moves on whenever the primitives change, so the renderer knows to send them again.</summary>
+    public int Version;
+
+    /// <summary>Where the renderer keeps this item's primitives on the GPU, and for which version and pool.</summary>
+    public int PoolStart = -1, PoolCapacity, PoolVersion = -1, PoolEpoch = -1;
+
+    /// <summary>A hash of the primitives last sent, so a picture cleared and drawn again the same is not sent again.</summary>
+    public int PoolHash;
+
+    /// <summary>The textures the primitives read, in the order of their local slots on the GPU.</summary>
+    public readonly List<ulong> LocalTextures = new();
 
     public void ClearCommands()
     {
-        Vertices.Clear();
+        Version++;
+        Primitives.Clear();
         Runs.Clear();
+        CurrentRun = 0;
         Points = 0;
         CommandTransform = Transform2D.Identity;
     }
@@ -360,57 +351,19 @@ internal sealed class CanvasItem(ulong id)
         if (ChildrenSorted)
             return;
 
-        Children.Sort(static (a, b) => a.DrawIndex != b.DrawIndex
-            ? a.DrawIndex.CompareTo(b.DrawIndex)
-            : a.Order.CompareTo(b.Order));
+        Children.Sort(static (a, b) => a.Order.CompareTo(b.Order));
         ChildrenSorted = true;
     }
 
-    private void UseTexture(ulong texture)
+    public void Add(in Primitive primitive)
     {
-        if (Runs.Count == 0 || Runs[^1].Texture != texture)
-            Runs.Add((Vertices.Count, texture));
-    }
-
-    /// <param name="index">Each corner's point in the item's mesh; null makes three new points.</param>
-    public void Triangle(
-        Vector2 a, Vector2 b, Vector2 c,
-        Color ca, Color cb, Color cc,
-        ulong texture,
-        (Vector2 A, Vector2 B, Vector2 C) uv = default,
-        (int A, int B, int C)? index = null)
-    {
-        UseTexture(texture);
-        Transform2D t = CommandTransform;
-        Vector2 pa = t * a, pb = t * b, pc = t * c;
-        var rest = RestFrame.Of(pa, pb, pc, uv.A, uv.B, uv.C);
-        (int A, int B, int C) at = index ?? (Points, Points + 1, Points + 2);
-        if (index is null)
-            Points += 3;
-        Vertices.Add(new CanvasVertex(pa, uv.A, ca, pa, rest, (uint)at.A));
-        Vertices.Add(new CanvasVertex(pb, uv.B, cb, pb, rest, (uint)at.B));
-        Vertices.Add(new CanvasVertex(pc, uv.C, cc, pc, rest, (uint)at.C));
-    }
-
-    public void Quad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color color, ulong texture)
-    {
-        int first = Points;
-        Triangle(a, b, c, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1)), (first, first + 1, first + 2));
-        Triangle(a, c, d, color, color, color, texture, (new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 1)), (first, first + 2, first + 3));
-        Points = first + 4;
-    }
-
-    /// <summary>A straight line as a quad; widths under one pixel draw one pixel wide.</summary>
-    public void Segment(Vector2 from, Vector2 to, Color start, Color end, float width)
-    {
-        Vector2 along = to - from;
-        float length = along.Length();
-        if (length <= 0f)
+        if (primitive.IsEmpty)
             return;
 
-        Vector2 side = new Vector2(-along.Y, along.X) / length * (MathF.Max(width, 1f) / 2f);
-        Triangle(from + side, to + side, to - side, start, end, end, 0);
-        Triangle(from + side, to - side, from - side, start, end, start, 0);
+        Version++;
+        Primitive placed = CommandTransform == Transform2D.Identity ? primitive : primitive.Transformed(CommandTransform);
+        placed.Run = CurrentRun;
+        Primitives.Add(placed);
     }
 
     /// <summary>A connected line with mitred joints, so a translucent stroke doesn't double up at its corners.</summary>
@@ -446,8 +399,12 @@ internal sealed class CanvasItem(ulong id)
             Color a = colors.Length == 1 ? colors[0] : colors[Math.Min(i, colors.Length - 1)];
             Color b = colors.Length == 1 ? colors[0] : colors[Math.Min(i + 1, colors.Length - 1)];
             Vector2 p = points[i], q = points[i + 1];
-            Triangle(p + offsets[i], q + offsets[i + 1], q - offsets[i + 1], a, b, b, 0);
-            Triangle(p + offsets[i], q - offsets[i + 1], p - offsets[i], a, b, a, 0);
+            int first = Points;
+            Add(Primitive.Triangle(p + offsets[i], q + offsets[i + 1], q - offsets[i + 1], a, b, b,
+                default, default, default, 0, first, first + 1, first + 2));
+            Add(Primitive.Triangle(p + offsets[i], q - offsets[i + 1], p - offsets[i], a, b, a,
+                default, default, default, 0, first, first + 2, first + 3));
+            Points = first + 4;
         }
     }
 

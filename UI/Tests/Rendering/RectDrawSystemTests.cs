@@ -40,12 +40,12 @@ public sealed class RectDrawSystemTests : EcsSystemTest
     [Test]
     public void SkewedContainerDrawsAParallelogramInsteadOfARect()
     {
-        float skew = Mathf.DegToRad(6);
+        float skew = float.DegreesToRadians(6);
         var bounds = new Rect2(-50, -50, 100, 100);
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            new VisualRid(new Handle()),
+            new VisualItem(new Handle()),
             new FillColor(Colors.Red),
             new UiContainer(StackDirection.Vertical, skew: skew),
             Tags.Get<Dirty>());
@@ -67,7 +67,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            new VisualRid(new Handle()),
+            new VisualItem(new Handle()),
             new FillColor(Colors.Red),
             new UiChamfer(12),
             Tags.Get<Dirty>());
@@ -144,7 +144,7 @@ public sealed class RectDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new Rectangle(bounds),
             new Drawable(0),
-            default(VisualRid),
+            default(VisualItem),
             new FillColor(color),
             Tags.Get<Dirty>());
 

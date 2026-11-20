@@ -63,7 +63,7 @@ public sealed partial class DebugPressedOverlaySystem
             foreach ((Stat stat, string label) in tiles)
             {
                 // At least the tile width, so numbers line up; wider when the label needs it.
-                float width = Mathf.Max(TileWidth, UiNode.Measure(label, UiType.Caption).X + UiMetrics.Space.Sm);
+                float width = Math.Max(TileWidth, UiNode.Measure(label, UiType.Caption).X + UiMetrics.Space.Sm);
                 UiNode tile = row.Column().Cross(StackCrossAlignment.Start);
                 tile.Text(label, UiType.Caption, DebugPalette.TextDim, TextAlign.Left)
                     .Size(width, CaptionHeight);
@@ -94,9 +94,9 @@ public sealed partial class DebugPressedOverlaySystem
         _summaryClock = 0;
 
         Set(Stat.Fps, fps.ToString("0", CultureInfo.InvariantCulture));
-        Set(Stat.FrameMs, (1000f / Mathf.Max(1f, (float)fps)).ToString("0.00", CultureInfo.InvariantCulture));
+        Set(Stat.FrameMs, (1000f / Math.Max(1f, (float)fps)).ToString("0.00", CultureInfo.InvariantCulture));
         Set(Stat.SystemsMs, systemsMs.ToString("0.00", CultureInfo.InvariantCulture));
-        Set(Stat.AllocKb, (_allocSum / 1024f / Mathf.Max(1, _allocFrames)).ToString("0.0", CultureInfo.InvariantCulture));
+        Set(Stat.AllocKb, (_allocSum / 1024f / Math.Max(1, _allocFrames)).ToString("0.0", CultureInfo.InvariantCulture));
         _allocSum = 0;
         _allocFrames = 0;
 

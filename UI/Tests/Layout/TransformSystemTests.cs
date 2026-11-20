@@ -26,7 +26,7 @@ public sealed class TransformSystemTests : EcsSystemTest
     public void MovedEntityUpdatesTransformAndClearsTag()
     {
         Entity entity = Store.CreateEntity(
-            default(VisualRid),
+            default(VisualItem),
             new Position(new Vector2(10, 20)),
             Tags.Get<Moved>());
 
@@ -40,7 +40,7 @@ public sealed class TransformSystemTests : EcsSystemTest
     [Test]
     public void CleanEntityDoesNotUpdateTransform()
     {
-        Store.CreateEntity(default(VisualRid), new Position(new Vector2(10, 20)));
+        Store.CreateEntity(default(VisualItem), new Position(new Vector2(10, 20)));
 
         Frame();
 

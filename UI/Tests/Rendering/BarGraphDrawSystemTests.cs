@@ -87,7 +87,7 @@ public sealed class BarGraphDrawSystemTests : EcsSystemTest
         Store.CreateEntity(
             new UiBarGraph(anchor, count, barWidth, 50, Colors.White, Colors.Red),
             new Drawable(0),
-            new VisualRid(new Handle()));
+            new VisualItem(new Handle()));
 
     private sealed class RecordingCanvas : IRectCanvas
     {

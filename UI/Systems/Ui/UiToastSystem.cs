@@ -49,7 +49,7 @@ public sealed class ToastSystem : BaseSystem
     public ToastSystem(
         EntityStore entities,
         Vector2 screen,
-        IVisualRidFactory visuals)
+        IVisualItemFactory visuals)
     {
         _home = new Vector2(screen.X / 2, 100);
         _maxWidth = Math.Max(MinWidth, screen.X - ScreenMargin * 2);

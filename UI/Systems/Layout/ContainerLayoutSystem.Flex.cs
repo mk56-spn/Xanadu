@@ -100,8 +100,8 @@ public sealed partial class ContainerLayoutSystem
                 {
                     capped[i] = true;
                     cappedAny = true;
-                    free -= Mathf.Max(0, max - current);
-                    _sizes[i] = WithMain(_sizes[i], horizontal, Mathf.Max(current, max));
+                    free -= Math.Max(0, max - current);
+                    _sizes[i] = WithMain(_sizes[i], horizontal, Math.Max(current, max));
                 }
             }
 

@@ -7,7 +7,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty linear-gradient rectangles as one smooth ramp.</summary>
-public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, LinearGradient>
+public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, VisualItem, LinearGradient>
 {
     private readonly IRectCanvas _canvas;
 
@@ -22,9 +22,9 @@ public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, Visual
         Query.EachEntity(new DrawGradients(_canvas, CommandBuffer));
     }
 
-    private readonly record struct DrawGradients(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, LinearGradient>
+    private readonly record struct DrawGradients(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualItem, LinearGradient>
     {
-        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref LinearGradient gradient, int id)
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualItem visual, ref LinearGradient gradient, int id)
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;

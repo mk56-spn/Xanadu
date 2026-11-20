@@ -8,8 +8,8 @@ using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Layout;
 
-/// <summary>Applies local positions to moved canvas items.</summary>
-public sealed class TransformSystem : QuerySystem<VisualRid, Position>
+/// <summary>Clears <see cref="Moved"/> once a frame has seen it; where things draw is read live by <see cref="Rendering.UiCanvasMount"/>.</summary>
+public sealed class TransformSystem : QuerySystem<VisualItem, Position>
 {
     private readonly IRectCanvas _canvas;
 
@@ -24,13 +24,10 @@ public sealed class TransformSystem : QuerySystem<VisualRid, Position>
         Query.EachEntity(new ApplyTransforms(_canvas, Query.Store, CommandBuffer));
     }
 
-    private readonly record struct ApplyTransforms(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<VisualRid, Position>
+    private readonly record struct ApplyTransforms(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<VisualItem, Position>
     {
-        public void Execute(ref VisualRid visual, ref Position position, int id)
+        public void Execute(ref VisualItem visual, ref Position position, int id)
         {
-            Entity entity = Store.GetEntityById(id);
-
-            Canvas.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
             Buffer.RemoveTag<Moved>(id);
         }
     }

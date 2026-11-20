@@ -48,7 +48,7 @@ public static class UiMeters
 
         ref UiMeter reading = ref meter.GetComponent<UiMeter>();
         reading.Share = share;
-        float full = Mathf.Clamp(share, 0, 1);
+        float full = Math.Clamp(share, 0, 1);
 
         UiNode node = UiNode.Wrap(meter);
         UiThemeRoles roles = node.Roles;

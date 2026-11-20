@@ -31,7 +31,7 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
     public UiTooltipSystem(
         EntityStore entities,
         IPointerInputSource pointer,
-        IVisualRidFactory visuals,
+        IVisualItemFactory visuals,
         Vector2 screen)
     {
         _entities = entities;
@@ -102,8 +102,8 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
             if (topLeft.Y + size.Y > _screen.Y - 6f)
                 topLeft.Y = pointer.Y - size.Y - 10f;
 
-            topLeft.X = Mathf.Clamp(topLeft.X, 6f, Math.Max(6f, _screen.X - size.X - 6f));
-            topLeft.Y = Mathf.Clamp(topLeft.Y, 6f, Math.Max(6f, _screen.Y - size.Y - 6f));
+            topLeft.X = Math.Clamp(topLeft.X, 6f, Math.Max(6f, _screen.X - size.X - 6f));
+            topLeft.Y = Math.Clamp(topLeft.Y, 6f, Math.Max(6f, _screen.Y - size.Y - 6f));
         }
 
         UiTooltipPanel.SetContent(_tooltip, text, size);

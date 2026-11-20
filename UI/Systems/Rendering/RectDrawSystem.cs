@@ -10,7 +10,7 @@ namespace Xanadu.Ui.Systems.Rendering;
 /// Clears and redraws dirty rectangles into their entity canvas items.
 /// Clean rectangles keep their existing canvas commands.
 /// </summary>
-public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, FillColor>
+public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualItem, FillColor>
 {
     private readonly IRectCanvas _canvas;
 
@@ -25,9 +25,9 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
         Query.EachEntity(new DrawRects(_canvas, Query.Store, CommandBuffer));
     }
 
-    private readonly record struct DrawRects(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, FillColor>
+    private readonly record struct DrawRects(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualItem, FillColor>
     {
-        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref FillColor fillColor, int id)
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualItem visual, ref FillColor fillColor, int id)
         {
             Entity entity = Store.GetEntityById(id);
 

@@ -32,7 +32,7 @@ public sealed class UiColorDragSystem : BaseSystem
     private readonly Entity _ghost;
     private readonly Entity _rim;
 
-    public UiColorDragSystem(EntityStore entities, IPointerInputSource pointer, IVisualRidFactory visuals)
+    public UiColorDragSystem(EntityStore entities, IPointerInputSource pointer, IVisualItemFactory visuals)
     {
         this.entities = entities;
         this.pointer = pointer;

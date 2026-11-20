@@ -53,10 +53,13 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly CanvasEffect _plain;
     private readonly Dictionary<string, CanvasEffect?> _effects = new();
     /// <summary>By effect, blend and whether it draws only the triangles' edges (the triangles overlay).</summary>
-    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines, SampleCount Samples), GraphicsPipeline> _pipelines = new();
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines, SampleCount Samples, bool Depth), GraphicsPipeline> _pipelines = new();
 
     /// <summary>The main frame's MSAA sample count, set by the renderer; warming makes pipelines for it as well as for single-sampled targets.</summary>
     public SampleCount MainSamples { get; set; } = SampleCount.One;
+
+    /// <summary>The depth buffer's format, for pipelines drawing into the renderer's passes (which always carry one).</summary>
+    public TextureFormat DepthFormat { get; init; } = TextureFormat.D16Unorm;
 
     public CanvasPipelines(GraphicsDevice device, TextureFormat format)
     {
@@ -213,7 +216,7 @@ internal sealed class CanvasPipelines : IDisposable
         if (effect is null)
             return;
 
-        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom, bool Lines, SampleCount Samples) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
+        foreach (((CanvasEffect Effect, BlendMode Blend, CustomBlend? Custom, bool Lines, SampleCount Samples, bool Depth) key, GraphicsPipeline pipeline) in _pipelines.ToArray())
         {
             if (key.Effect != effect)
                 continue;
@@ -249,26 +252,27 @@ internal sealed class CanvasPipelines : IDisposable
         for (int i = 0; i < files.Length; i++)
         {
             string path = "Assets/Shaders/" + Path.GetRelativePath(root, files[i]).Replace('\\', '/');
-            Pipeline(Effect(path), BlendMode.Mix);
-            Pipeline(Effect(path), BlendMode.Mix, samples: MainSamples);
+            Pipeline(Effect(path), BlendMode.Mix, depth: true);
+            Pipeline(Effect(path), BlendMode.Mix, samples: MainSamples, depth: true);
             progress?.Invoke(i + 1, files.Length);
         }
     }
 
     /// <summary>The pipeline for an effect drawn with a material's blend: its custom one when it has it, else its mode.</summary>
     /// <remarks>The triangles overlay draws line-filled: each triangle's edges, wherever its corners landed.</remarks>
-    public GraphicsPipeline Pipeline(CanvasEffect effect, CanvasMaterial? material, SampleCount samples = SampleCount.One)
+    public GraphicsPipeline Pipeline(CanvasEffect effect, CanvasMaterial? material, SampleCount samples = SampleCount.One, bool depth = false)
     {
         bool lines = material?.Overlay == MaterialOverlay.Triangles;
         return material?.Custom is { } custom
-            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines, samples)
-            : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines, samples: samples);
+            ? Pipeline(effect, BlendMode.Mix, custom.PipelineKey, lines, samples, depth)
+            : Pipeline(effect, material?.Blend ?? BlendMode.Mix, lines: lines, samples: samples, depth: depth);
     }
 
     /// <summary>The pipeline for an effect and blend, drawing into a target with <paramref name="samples"/> samples a pixel.</summary>
-    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false, SampleCount samples = SampleCount.One)
+    /// <param name="depth">Whether the target pass carries the renderer's depth buffer; the effect never tests it.</param>
+    public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false, SampleCount samples = SampleCount.One, bool depth = false)
     {
-        if (_pipelines.TryGetValue((effect, blend, custom, lines, samples), out GraphicsPipeline? pipeline))
+        if (_pipelines.TryGetValue((effect, blend, custom, lines, samples, depth), out GraphicsPipeline? pipeline))
             return pipeline;
 
         pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
@@ -279,17 +283,22 @@ internal sealed class CanvasPipelines : IDisposable
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = lines ? RasterizerState.CCW_Wireframe : RasterizerState.CCW_CullNone,
             MultisampleState = new MultisampleState { SampleCount = samples },
-            DepthStencilState = DepthStencilState.Disable,
+            // In the renderer's passes an effect tests depth (never writes it), so an opaque rect in front hides it.
+            DepthStencilState = depth
+                ? new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = false, CompareOp = CompareOp.Less }
+                : DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = custom is { } state ? Blend(state) : Blend(blend) }],
+                HasDepthStencilTarget = depth,
+                DepthStencilFormat = depth ? DepthFormat : default,
             },
         });
-        _pipelines[(effect, blend, custom, lines, samples)] = pipeline;
+        _pipelines[(effect, blend, custom, lines, samples, depth)] = pipeline;
         return pipeline;
     }
 
-    /// <summary>Godot's canvas blend modes, as fixed-function state.</summary>
+    /// <summary>The canvas blend modes, as fixed-function state.</summary>
     internal static ColorTargetBlendState Blend(BlendMode blend) => blend switch
     {
         BlendMode.Add => State(BlendOp.Add, BlendFactor.SrcAlpha, BlendFactor.One, BlendFactor.SrcAlpha, BlendFactor.One),

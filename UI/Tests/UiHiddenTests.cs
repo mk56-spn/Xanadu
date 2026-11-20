@@ -137,7 +137,7 @@ public sealed class UiHiddenTests
     {
         Entity root = Node();
         Entity child = Node(root);
-        child.AddComponent(new VisualRid(default));
+        child.AddComponent(new VisualItem(default));
         var canvas = new VisibilityCanvas();
         var systems = new SystemRoot(_store) { new CanvasVisibilitySystem(canvas) };
 

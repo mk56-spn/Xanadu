@@ -33,7 +33,7 @@ public enum UiTreeCommand
 /// <remarks>The query is what picking hit-tests: everything with a box.</remarks>
 public sealed partial class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
 {
-    private readonly IVisualRidFactory? _visuals;
+    private readonly IVisualItemFactory? _visuals;
     private readonly IPointerInputSource? _pointer;
     private readonly OverlayLatch _latch;
     private readonly Queue<UiCommand> _commands = new();
@@ -48,7 +48,7 @@ public sealed partial class UiTreeOverlaySystem : QuerySystem<Rectangle, Positio
 
     public UiTreeOverlaySystem(
         IOverlayToggleSource toggle,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         IPointerInputSource? pointer = null)
     {
         _latch = new OverlayLatch(toggle);

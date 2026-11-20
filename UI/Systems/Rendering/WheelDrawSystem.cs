@@ -14,7 +14,7 @@ namespace Xanadu.Ui.Systems.Rendering;
 /// selected wedge is yellow unless the wheel sets its own colours; the selected
 /// wedge reaches the outer rim. Hovering only lightens a wedge.
 /// </summary>
-public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, VisualRid>
+public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, VisualItem>
 {
     private const int SegmentsPerWedge = 8;
     private const float SelectionInset = 2.5f;
@@ -42,12 +42,12 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
 
     private void DrawWheel(UiWheel wheel, Rectangle rect, Handle canvas)
     {
-        float radius = Mathf.Min(rect.Bounds.Size.X, rect.Bounds.Size.Y) / 2;
+        float radius = Math.Min(rect.Bounds.Size.X, rect.Bounds.Size.Y) / 2;
         if (radius <= 1 || wheel.Labels is not { Length: > 0 })
             return;
 
-        float step = Mathf.Tau / wheel.Labels.Length;
-        float hub = radius * Mathf.Clamp(wheel.HubRadius, 0.08f, 0.6f);
+        float step = float.Tau / wheel.Labels.Length;
+        float hub = radius * Math.Clamp(wheel.HubRadius, 0.08f, 0.6f);
         Color selectedColor = wheel.SelectedColor ?? Selected;
         Color rim = wheel.RimColor ?? Rim;
 
@@ -90,14 +90,14 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         Color color)
     {
         float center = startAngle + index * step;
-        Vector2 axis = new(Mathf.Cos(center), Mathf.Sin(center));
+        Vector2 axis = new(MathF.Cos(center), MathF.Sin(center));
         float edgeOffset = gapWidth / 2;
 
         // The sides run parallel to the wedge boundaries so the gap keeps its
         // width all the way in, which moves the tip out from the wheel centre.
-        float tip = edgeOffset > 0 ? edgeOffset / Mathf.Sin(step / 2) : 0;
-        float half = Mathf.Max(0.02f, step / 2 - Mathf.Asin(Mathf.Min(1, edgeOffset / radius)));
-        int segments = Mathf.Max(3, SegmentsPerWedge);
+        float tip = edgeOffset > 0 ? edgeOffset / MathF.Sin(step / 2) : 0;
+        float half = Math.Max(0.02f, step / 2 - MathF.Asin(Math.Min(1, edgeOffset / radius)));
+        int segments = Math.Max(3, SegmentsPerWedge);
 
         var points = new Vector2[segments + 2];
         points[0] = axis * tip;
@@ -105,8 +105,8 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         {
             float angle = center - half + (half * 2) * i / segments;
             points[i + 1] = new Vector2(
-                Mathf.Cos(angle),
-                Mathf.Sin(angle)) * radius;
+                MathF.Cos(angle),
+                MathF.Sin(angle)) * radius;
         }
 
         _canvas.DrawPolygon(canvas, points, color);
@@ -129,9 +129,9 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         float center = wheel.StartAngle + index * step;
         const float radial = 0.64f;
         Vector2 position = new Vector2(
-            Mathf.Cos(center),
-            Mathf.Sin(center)) * (radius * radial);
-        float width = Mathf.Clamp(radius * 0.72f, 20, 110);
+            MathF.Cos(center),
+            MathF.Sin(center)) * (radius * radial);
+        float width = Math.Clamp(radius * 0.72f, 20, 110);
         var bounds = new Rect2(
             position - new Vector2(width / 2, 12),
             new Vector2(width, 24));
@@ -156,7 +156,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         if (label.Length == 0)
             return;
 
-        int fontSize = Mathf.Clamp((int)(hub * 0.85f), 10, 22);
+        int fontSize = Math.Clamp((int)(hub * 0.85f), 10, 22);
         var bounds = new Rect2(
             new Vector2(-hub, -hub * 0.5f),
             new Vector2(hub * 2, hub));
@@ -175,9 +175,9 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
         return Unselected;
     }
 
-    private readonly record struct DrawWheels(WheelDrawSystem System, CommandBuffer Buffer) : IEachEntity<UiWheel, Rectangle, Drawable, VisualRid>
+    private readonly record struct DrawWheels(WheelDrawSystem System, CommandBuffer Buffer) : IEachEntity<UiWheel, Rectangle, Drawable, VisualItem>
     {
-        public void Execute(ref UiWheel wheel, ref Rectangle rect, ref Drawable _, ref VisualRid visual, int id)
+        public void Execute(ref UiWheel wheel, ref Rectangle rect, ref Drawable _, ref VisualItem visual, int id)
         {
             System._canvas.Clear(visual.Value);
             System.DrawWheel(wheel, rect, visual.Value);

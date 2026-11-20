@@ -7,7 +7,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty ECS image entities.</summary>
-public sealed class ImageDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid, UiImage>
+public sealed class ImageDrawSystem : QuerySystem<Rectangle, Drawable, VisualItem, UiImage>
 {
     private readonly IRectCanvas _canvas;
 
@@ -22,9 +22,9 @@ public sealed class ImageDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid
         Query.EachEntity(new DrawImages(_canvas, CommandBuffer));
     }
 
-    private readonly record struct DrawImages(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, UiImage>
+    private readonly record struct DrawImages(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualItem, UiImage>
     {
-        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref UiImage image, int id)
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualItem visual, ref UiImage image, int id)
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;

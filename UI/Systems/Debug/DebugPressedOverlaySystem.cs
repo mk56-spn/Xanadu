@@ -29,7 +29,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private readonly IOverlayPageSource? _paging;
     private readonly IGpuMemorySource? _gpuMemory;
     private readonly IFramePhaseSource? _phases;
-    private readonly IVisualRidFactory? _visuals;
+    private readonly IVisualItemFactory? _visuals;
     private readonly OverlayLatch _latch;
     private readonly Dictionary<BaseSystem, string> _names = new();
     private readonly ArchetypeQuery _debug;
@@ -65,7 +65,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         SystemRoot? systems = null,
         IFpsSource? fpsSource = null,
         IOverlayPageSource? paging = null,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         IGpuMemorySource? gpuMemory = null,
         IFramePhaseSource? phases = null)
     {
@@ -81,7 +81,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         Tags debug = Tags.Get<DebugUi>();
         _debug = store.Query().WithDisabled().AllTags(debug);
         _dirty = store.Query<Rectangle>().AllTags(Tags.Get<Dirty>()).WithoutAnyTags(debug);
-        _moved = store.Query<VisualRid>().AllTags(Tags.Get<Moved>()).WithoutAnyTags(debug);
+        _moved = store.Query<VisualItem>().AllTags(Tags.Get<Moved>()).WithoutAnyTags(debug);
         _input = store.Query<Rectangle>().AllTags(Tags.Get<TakesInput>()).WithoutAnyTags(debug);
         _pressed = store.Query<Rectangle>().AllTags(Tags.Get<Pressed>()).WithoutAnyTags(debug);
         _containers = store.Query<UiContainer>().WithoutAnyTags(debug);

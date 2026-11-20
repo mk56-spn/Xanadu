@@ -195,8 +195,8 @@ public static class EasePickerPanel
         var points = new Vector2[sides];
         for (int i = 0; i < sides; i++)
         {
-            float angle = Mathf.Tau * i / sides;
-            points[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            float angle = float.Tau * i / sides;
+            points[i] = new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
         }
 
         return points;

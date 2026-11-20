@@ -97,8 +97,8 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
             y = anchor.End.Y + AnchorGap;
         var corner = new Vector2(anchor.End.X - size.X, y);
         return new Vector2(
-            Mathf.Clamp(corner.X, bounds.Position.X, Mathf.Max(bounds.Position.X, bounds.End.X - size.X)),
-            Mathf.Clamp(corner.Y, bounds.Position.Y, Mathf.Max(bounds.Position.Y, bounds.End.Y - size.Y)));
+            Math.Clamp(corner.X, bounds.Position.X, Math.Max(bounds.Position.X, bounds.End.X - size.X)),
+            Math.Clamp(corner.Y, bounds.Position.Y, Math.Max(bounds.Position.Y, bounds.End.Y - size.Y)));
     }
 
     /// <summary>Lights the selection's curve; hidden cells too, so the picker opens already lit.</summary>
@@ -171,7 +171,7 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
             });
         }
 
-        float t = Mathf.Min(1f, picker.Clock / RunSeconds);
+        float t = Math.Min(1f, picker.Clock / RunSeconds);
         float value = EasePresets.Progress(preset, t);
         Vector2 dot = EasePickerPanel.Point(t, value, plot, low, high);
 

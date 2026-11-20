@@ -8,7 +8,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Draws dirty polygon and polyline shapes.</summary>
-public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
+public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualItem, UiShape>
 {
     private readonly IRectCanvas _canvas;
 
@@ -23,9 +23,9 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
         Query.EachEntity(new DrawShapes(_canvas, Query.Store, CommandBuffer));
     }
 
-    private readonly record struct DrawShapes(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Drawable, VisualRid, UiShape>
+    private readonly record struct DrawShapes(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Drawable, VisualItem, UiShape>
     {
-        public void Execute(ref Drawable _, ref VisualRid visual, ref UiShape shape, int id)
+        public void Execute(ref Drawable _, ref VisualItem visual, ref UiShape shape, int id)
         {
             Canvas.Clear(visual.Value);
 

@@ -23,7 +23,7 @@ public static class UiTooltipPanel
         foreach (Entity entity in store
                      .Query<UiTooltip>()
                      .AllTags(Tags.Get<Hovered>())
-                     .ToEntityList())
+                     .Entities)
         {
             return entity;
         }
@@ -33,7 +33,7 @@ public static class UiTooltipPanel
 
     /// <summary>The panel size that fits <paramref name="text"/>, within the width limits.</summary>
     public static Vector2 Size(string text, float height) =>
-        new(Mathf.Clamp(HorizontalPadding + text.Length * CharWidth, MinWidth, MaxWidth), height);
+        new(Math.Clamp(HorizontalPadding + text.Length * CharWidth, MinWidth, MaxWidth), height);
 
     /// <summary>Puts the text and size on the panel, marking it dirty only when either changed.</summary>
     public static void SetContent(Entity tooltip, string text, Vector2 size)

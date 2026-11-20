@@ -41,7 +41,7 @@ public sealed class UiFocusSystem : QuerySystem<Rectangle, Drawable, Position>
         EntityStore entities,
         IPointerInputSource pointer,
         IKeyboardState? keyboard,
-        IVisualRidFactory visuals,
+        IVisualItemFactory visuals,
         Vector2 screen = default)
     {
         _entities = entities;

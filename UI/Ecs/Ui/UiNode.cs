@@ -70,7 +70,7 @@ public readonly partial struct UiNode
         EntityStore entities,
         Entity parent,
         int zIndex,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         UiStage? stage = null)
     {
         UiBuilder builder = UiBuilder.Begin(entities, visuals).Layer(zIndex);
@@ -87,7 +87,7 @@ public readonly partial struct UiNode
     /// system created by hand. New children land under it; its own layer is
     /// found from its drawable.
     /// </summary>
-    public static UiNode Wrap(Entity entity, IVisualRidFactory? visuals = null)
+    public static UiNode Wrap(Entity entity, IVisualItemFactory? visuals = null)
     {
         if (entity.IsNull)
             throw new ArgumentException("Cannot wrap a null entity.", nameof(entity));

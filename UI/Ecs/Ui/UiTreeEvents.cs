@@ -34,7 +34,7 @@ public static class UiTreeEvents
         if (!changed.ChangedTags.Has<Disabled>())
             return;
 
-        if (entity.HasComponent<VisualRid>())
+        if (entity.HasComponent<VisualItem>())
             entity.AddTag<VisibilityDirty>();
         MarkLayoutDirty(entity.Parent);
     }
