@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Editor.History;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.History;
 
 namespace Xanadu.Tests.Editor;
 

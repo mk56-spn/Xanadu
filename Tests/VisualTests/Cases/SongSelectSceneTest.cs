@@ -5,7 +5,6 @@ using System.Linq;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Position = Xanadu.Core.Position;
-using Xanadu.Editor;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;

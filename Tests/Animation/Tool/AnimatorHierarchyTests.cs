@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Tools.Animator;

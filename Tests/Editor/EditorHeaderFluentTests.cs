@@ -3,12 +3,13 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Layout;
+using Xanadu.Screens.Editor;
+using Xanadu.Screens.Shared;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;

@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Systems.Shaders;
+using Xanadu.Logic.Shaders;
 
 namespace Xanadu.Tests.UI;
 

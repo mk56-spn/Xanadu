@@ -4,10 +4,10 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Editor.History;
 using Xanadu.Model.Levels;
 using Xanadu.Tests.Support;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.History;
 
 namespace Xanadu.Tests.Groups;
 

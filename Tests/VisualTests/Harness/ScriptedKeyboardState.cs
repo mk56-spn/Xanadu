@@ -1,6 +1,5 @@
 using Xanadu.Ui.Systems.Input;
 using System.Collections.Generic;
-using Xanadu.Systems.Input;
 
 namespace Xanadu.Tests.VisualTests;
 

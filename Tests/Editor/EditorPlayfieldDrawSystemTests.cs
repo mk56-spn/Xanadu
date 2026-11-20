@@ -8,7 +8,6 @@ using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Audio;
-using Xanadu.Systems.Editor;
 using Xanadu.Drawers.Editor;
 using Xanadu.Model.Editor;
 using Xanadu.Drawers.Playfields;

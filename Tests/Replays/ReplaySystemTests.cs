@@ -8,9 +8,9 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Replays;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
+using Xanadu.Logic.Replays;
 
 namespace Xanadu.Tests.Replays;
 

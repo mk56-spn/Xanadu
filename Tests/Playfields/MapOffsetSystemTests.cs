@@ -8,11 +8,10 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Playfields;
-using Xanadu.Systems.Replays;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Logic.Playfields;
+using Xanadu.Logic.Replays;
 
 namespace Xanadu.Tests.Playfields;
 

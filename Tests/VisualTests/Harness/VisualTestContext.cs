@@ -1,8 +1,8 @@
 using Friflo.Engine.ECS;
-using Xanadu.Systems;
 using System.Collections.Generic;
-using Xanadu.Editor;
-using Xanadu.Systems.Scenes;
+using Xanadu.Screens.Editor;
+using Xanadu.Wiring;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Tests.VisualTests;
 

@@ -3,8 +3,8 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Editor;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Screens.Editor;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
@@ -16,7 +16,7 @@ public sealed class EditorMetadataSystemTests
     public void BackgroundColourUpdatesTheSwatchAndHexLabel()
     {
         var store = new EntityStore();
-        var commands = new Xanadu.Editor.Commands.EditorCommandBus();
+        var commands = new Xanadu.Logic.Editor.Commands.EditorCommandBus();
         store.CreateEntity(
             new Position(Vector2.Zero),
             new Rectangle(new Rect2(-190, -110, 380, 220)),
@@ -41,7 +41,7 @@ public sealed class EditorMetadataSystemTests
     public void EditingAStartFieldUpdatesTheSelectedStartPoint()
     {
         var store = new EntityStore();
-        var commands = new Xanadu.Editor.Commands.EditorCommandBus();
+        var commands = new Xanadu.Logic.Editor.Commands.EditorCommandBus();
         store.CreateEntity(
             new Position(Vector2.Zero),
             new Rectangle(new Rect2(-190, -110, 380, 220)),

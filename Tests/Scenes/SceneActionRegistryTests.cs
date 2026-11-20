@@ -1,8 +1,9 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Scenes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Screens.Editor;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Tests.Scenes;
 

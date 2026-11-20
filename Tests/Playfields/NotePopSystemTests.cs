@@ -2,8 +2,8 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
+using Xanadu.Logic.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 

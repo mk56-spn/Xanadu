@@ -2,11 +2,10 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor.Commands;
-using Xanadu.Systems.Editor;
-using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Tests.Editor;
 

@@ -3,8 +3,8 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Particles;
 using Xanadu.Tests.Support;
+using Xanadu.Logic.Particles;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Particles;

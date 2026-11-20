@@ -3,12 +3,14 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
+using Position = Xanadu.Core.Position;
+using Rect2 = Xanadu.Core.Maths.Rect2;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
 using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Tests.UI;
@@ -31,17 +33,32 @@ public sealed class UiColorPickerSystemTests
         _store = new EntityStore();
         _pointer = new FakePointerInput();
         UiBuilder ui = UiBuilder.Begin(_store, new FakeVisualRidFactory()).Layer(0);
-        _a = ui.ColorPicker(First, new Color("#ff0000"))[0];
-        _b = ui.ColorPicker(Second, new Color("#00ff00"))[0];
+        UiNode layer = UiNode.Wrap(ui.Current, ui.Visuals);
+        _a = layer.ColorPicker(new Color("#ff0000")).At(First).Entity;
+        _b = layer.ColorPicker(new Color("#00ff00")).At(Second).Entity;
         _root = new SystemRoot(_store);
+        _root.Add(new ContainerLayoutSystem());
         _root.Add(new UiColorPickerSystem(_pointer));
+
+        // Lay the pickers out before any test points at their parts.
+        Frame(new Vector2(-1000, -1000), false);
+    }
+
+    private Rect2 SquareOf(Entity picker) => Box(picker.GetComponent<UiColorPicker>().Square);
+
+    /// <summary>Where a part sits on screen, as laid out.</summary>
+    private static Rect2 Box(Entity part)
+    {
+        Rect2 bounds = part.GetComponent<Rectangle>().Bounds;
+        Vector2 world = UiTransform.WorldPosition(part, part.GetComponent<Position>().Value);
+        return new Rect2(world + bounds.Position, bounds.Size);
     }
 
     [Test]
     public void SquareSetsSaturationAndValueFromThePointer()
     {
         // A quarter across and a quarter down: 25% saturation, 75% value.
-        Frame(First - ColorPickerLayout.Size / 4, true);
+        Frame(SquareOf(_a).GetCenter() - ColorPickerLayout.Size / 4, true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Saturation, Is.EqualTo(0.25f).Within(0.01f));
@@ -51,7 +68,7 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void HueBarSetsTheHueAndKeepsTheSquaresColour()
     {
-        Rect2 bar = ColorPickerLayout.HueBar(First);
+        Rect2 bar = Box(_a.GetComponent<UiColorPicker>().HueBar);
         Frame(bar.GetCenter(), true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
@@ -62,7 +79,7 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void AlphaBarSetsAlpha()
     {
-        Rect2 bar = ColorPickerLayout.AlphaBar(First);
+        Rect2 bar = Box(_a.GetComponent<UiColorPicker>().Alpha);
         Frame(bar.Position + new Vector2(bar.Size.X * 0.25f, bar.Size.Y / 2), true);
 
         Assert.That(_a.GetComponent<UiColorPicker>().AlphaValue, Is.EqualTo(0.25f).Within(0.01f));
@@ -71,8 +88,9 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void DragKeepsFollowingOutsideTheSquareButStaysOnItsPicker()
     {
-        Frame(First, true);
-        Frame(First + new Vector2(500, 500), true);
+        Vector2 square = SquareOf(_a).GetCenter();
+        Frame(square, true);
+        Frame(square + new Vector2(500, 500), true);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Saturation, Is.EqualTo(1f));
@@ -84,7 +102,7 @@ public sealed class UiColorPickerSystemTests
     public void PressingElsewhereAndSlidingOntoAPickerDoesNotGrabIt()
     {
         Frame(new Vector2(900, 900), true);
-        Frame(First, true);
+        Frame(SquareOf(_a).GetCenter(), true);
 
         Assert.That(_a.GetComponent<UiColorPicker>().Color, Is.EqualTo(new Color("#ff0000")));
     }
@@ -108,8 +126,10 @@ public sealed class UiColorPickerSystemTests
     [Test]
     public void SwatchAndHexFollowThePickedColour()
     {
-        Frame(First + new Vector2(60, -60), true);
-        Frame(First + new Vector2(60, -60), false);
+        // Past the top right corner of the square: full saturation and value, still red.
+        Vector2 corner = SquareOf(_a).GetCenter() + new Vector2(60, -60);
+        Frame(corner, true);
+        Frame(corner, false);
 
         UiColorPicker picker = _a.GetComponent<UiColorPicker>();
         Assert.That(picker.Swatch.GetComponent<FillColor>().Value, Is.EqualTo(picker.Color));

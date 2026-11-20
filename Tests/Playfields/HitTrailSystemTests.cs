@@ -4,7 +4,7 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
+using Xanadu.Logic.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 

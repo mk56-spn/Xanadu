@@ -4,8 +4,8 @@ using Xanadu.Core;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Editor;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Screens.Editor;
 
 namespace Xanadu.Tests.Editor;
 

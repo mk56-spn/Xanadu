@@ -5,13 +5,12 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Playfields;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Screens.Play;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Playfields;

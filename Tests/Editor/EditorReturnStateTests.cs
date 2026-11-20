@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
 using Xanadu.Model.Levels;
 using Xanadu.Tests.Support;
 using Xanadu.Model.Editor;
+using Xanadu.Logic.Editor;
 
 namespace Xanadu.Tests.Editor;
 

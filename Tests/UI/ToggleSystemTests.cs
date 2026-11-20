@@ -5,8 +5,6 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Ui;

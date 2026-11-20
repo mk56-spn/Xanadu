@@ -4,7 +4,6 @@ using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Xanadu.Drawers.Passes;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Systems.Canvas;
 

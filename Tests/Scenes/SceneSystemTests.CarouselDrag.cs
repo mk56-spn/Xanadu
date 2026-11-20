@@ -2,11 +2,10 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Screens.SongSelect;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Scenes;

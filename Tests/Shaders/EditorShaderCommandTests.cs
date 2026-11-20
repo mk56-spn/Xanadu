@@ -2,10 +2,9 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Editor.Commands;
-using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Tests.Shaders;
 

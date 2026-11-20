@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tests.Support.Fakes;

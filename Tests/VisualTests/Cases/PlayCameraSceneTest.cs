@@ -4,8 +4,8 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Position = Xanadu.Core.Position;
 using Xanadu.Model.Levels;
-using Xanadu.Systems.Playfields;
 using Xanadu.Model.Playfields;
+using Xanadu.Logic.Playfields;
 
 namespace Xanadu.Tests.VisualTests;
 

@@ -4,12 +4,11 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Editor.Commands;
-using Xanadu.Editor.Recovery;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Editor;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.Commands;
+using Xanadu.Logic.Editor.Recovery;
 
 namespace Xanadu.Tests.Editor;
 

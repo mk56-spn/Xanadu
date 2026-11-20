@@ -3,7 +3,6 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Input;
 using Xanadu.Drawers.Playfields;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;

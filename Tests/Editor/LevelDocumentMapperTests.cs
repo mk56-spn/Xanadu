@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
-using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;

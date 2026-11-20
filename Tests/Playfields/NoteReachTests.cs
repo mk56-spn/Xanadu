@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Playfields;
 using Xanadu.Model.Playfields;
 
 namespace Xanadu.Tests.Playfields;

@@ -3,7 +3,6 @@ using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Editor;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
 

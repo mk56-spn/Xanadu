@@ -3,12 +3,11 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Systems.Editor;
 using Position = Xanadu.Core.Position;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Screens.Editor;
 
 namespace Xanadu.Tests.Editor;
 

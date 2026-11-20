@@ -7,7 +7,6 @@ using Xanadu.Core.Rendering;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Drawers.Playfields;
-using Xanadu.Drawers.Passes;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Systems.Canvas;
 using Handle = Xanadu.Core.Maths.Handle;

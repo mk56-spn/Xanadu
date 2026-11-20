@@ -3,13 +3,12 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Layout;
 using Xanadu.Ui.Systems.Ui;
 using Position = Xanadu.Core.Position;
 
@@ -22,7 +21,7 @@ public sealed class UiColorFieldPickerTests
     private SystemRoot _root = null!;
     private FakePointerInput _pointer = null!;
     private Entity _field;
-    private Entity _square;
+    private Entity _picker;
 
     [SetUp]
     public void SetUp()
@@ -32,13 +31,25 @@ public sealed class UiColorFieldPickerTests
         UiBuilder ui = UiBuilder.Begin(_store, new FakeVisualRidFactory()).Layer(0);
         ui.Container(new Vector2(400, 400), new Vector2(300, 400), StackDirection.Vertical);
         _field = UiNode.Wrap(ui.Current, ui.Visuals).ColorField("COLOUR", 252, "tip").Entity;
-        _square = _field.GetComponent<UiColorField>().Picker;
+        _picker = _field.GetComponent<UiColorField>().Picker;
         _root = new SystemRoot(_store);
+        _root.Add(new ContainerLayoutSystem());
         _root.Add(new UiColorPickerSystem(_pointer));
         _root.Add(new UiColorFieldSystem());
+
+        // Lay the picker out before any test points at its square.
+        Frame(new Vector2(-1000, -1000), false);
     }
 
-    private Vector2 Square => UiTransform.WorldPosition(_square, _square.GetComponent<Position>().Value);
+    /// <summary>The centre of the picker's square, as laid out.</summary>
+    private Vector2 Square
+    {
+        get
+        {
+            Entity square = _picker.GetComponent<UiColorPicker>().Square;
+            return UiTransform.WorldPosition(square, square.GetComponent<Position>().Value);
+        }
+    }
 
     private void Frame(Vector2 at, bool pressed)
     {
@@ -49,10 +60,10 @@ public sealed class UiColorFieldPickerTests
     [Test]
     public void AFieldHasAPickerWithoutItsOwnSwatchOrHex()
     {
-        UiColorPicker picker = _square.GetComponent<UiColorPicker>();
-        Assert.That(picker.Swatch.Tags.Has<UiHidden>(), Is.True);
-        Assert.That(picker.Hex.Tags.Has<UiHidden>(), Is.True);
-        Assert.That(picker.Alpha.Tags.Has<UiHidden>(), Is.False);
+        UiColorPicker picker = _picker.GetComponent<UiColorPicker>();
+        Assert.That(picker.Swatch.IsNull, Is.True);
+        Assert.That(picker.Hex.IsNull, Is.True);
+        Assert.That(picker.Alpha.IsNull, Is.False);
     }
 
     [Test]
@@ -115,18 +126,18 @@ public sealed class UiColorFieldPickerTests
         UiColorField.Show(_field, new Color("#00ff00"));
         Frame(new Vector2(-1000, -1000), false);
 
-        Assert.That(_square.GetComponent<UiColorPicker>().Color.IsEqualApprox(new Color("#00ff00")), Is.True);
+        Assert.That(_picker.GetComponent<UiColorPicker>().Color.IsEqualApprox(new Color("#00ff00")), Is.True);
     }
 
     [Test]
     public void APickerClippedOutOfItsPanelTakesNoPress()
     {
-        Entity panel = _square.Parent.Parent;
+        Entity panel = _picker.Parent.Parent;
         panel.GetComponent<UiContainer>().Clip = true;
         panel.GetComponent<Rectangle>().Bounds = new Rect2(0, 5000, 10, 10);
 
         Frame(Square, true);
 
-        Assert.That(_square.GetComponent<UiColorPicker>().Dragging, Is.False);
+        Assert.That(_picker.GetComponent<UiColorPicker>().Dragging, Is.False);
     }
 }

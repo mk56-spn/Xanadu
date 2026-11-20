@@ -1,9 +1,9 @@
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
+using Xanadu.Logic.Editor;
 
 namespace Xanadu.Tests.Editor;
 

@@ -6,7 +6,6 @@ using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
-using Xanadu.Systems.Input;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;

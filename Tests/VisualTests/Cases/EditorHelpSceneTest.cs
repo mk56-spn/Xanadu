@@ -1,10 +1,9 @@
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Input;
 using Friflo.Engine.ECS;
-using Xanadu.Editor;
-using Xanadu.Systems.Editor;
-using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.Editor;
+using Xanadu.Screens.Editor;
 
 namespace Xanadu.Tests.VisualTests;
 

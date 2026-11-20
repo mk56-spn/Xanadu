@@ -5,8 +5,8 @@ using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
-using Xanadu.Systems.Playfields;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.Playfields;
 
 namespace Xanadu.Tests.Playfields;
 

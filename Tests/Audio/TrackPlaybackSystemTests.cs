@@ -3,9 +3,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Audio;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
+using Xanadu.Logic.Audio;
 
 namespace Xanadu.Tests.Audio;
 

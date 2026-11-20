@@ -1,8 +1,6 @@
 using NUnit.Framework;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Characters;
-using Xanadu.Drawers.Characters;
 
 namespace Xanadu.Tests.Characters;
 

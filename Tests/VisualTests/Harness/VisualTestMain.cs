@@ -5,18 +5,17 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using MoonWorks.Input;
 using Xanadu.Model.Ecs;
-using Xanadu.Systems;
 using Xanadu.Host;
 using Xanadu.Host.Rendering;
 using Xanadu.Model.Levels;
-using Xanadu.Editor;
 using Xanadu.Model.Settings;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Systems.Ui;
 using Xanadu.Core.Theme;
-using Xanadu.Ecs;
+using Xanadu.Screens.Editor;
+using Xanadu.Wiring;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -301,7 +300,7 @@ internal sealed class VisualTestMain : HostApp
     /// </summary>
     private static void ClearRecovery()
     {
-        string directory = Xanadu.Editor.Recovery.LevelRecoveryStore.Default.Directory;
+        string directory = Xanadu.Logic.Editor.Recovery.LevelRecoveryStore.Default.Directory;
         if (!System.IO.Directory.Exists(directory))
             return;
 

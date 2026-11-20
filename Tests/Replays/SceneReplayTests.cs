@@ -11,12 +11,11 @@ using Xanadu.Model.Levels;
 using Xanadu.Model.Profiles;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Wiring.Scenes;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
-using Xanadu.Ecs;
 
 namespace Xanadu.Tests.Replays;
 

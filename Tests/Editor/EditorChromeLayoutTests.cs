@@ -3,14 +3,13 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Editor;
 using Xanadu.Model.Editor;
-using Xanadu.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Layout;
+using Xanadu.Screens.Editor;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Tests.Editor;
@@ -153,7 +152,7 @@ public sealed class EditorChromeLayoutTests : EcsSystemTest
         foreach (Entity entity in EditorButton.All(Store, EditorButtonKind.Place))
         {
             var mode = (EditorPlacementMode)entity.GetComponent<UiCommand>().Arg;
-            string key = Xanadu.Editor.EditorPlacementKeybinds.LabelFor(mode);
+            string key = Xanadu.Logic.Editor.EditorPlacementKeybinds.LabelFor(mode);
             Assert.That(entity.GetComponent<UiTooltip>().Text, Does.EndWith(key.Length > 0 ? $"({key})" : ""));
             if (key.Length == 0)
                 continue;

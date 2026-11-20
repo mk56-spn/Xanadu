@@ -9,13 +9,11 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Profiles;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Ecs;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Tests.Scenes;
 

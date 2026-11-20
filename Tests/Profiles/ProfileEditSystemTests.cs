@@ -6,9 +6,9 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Profiles;
-using Xanadu.Scenes;
-using Xanadu.Systems.Scenes;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.Profiles;
+using Xanadu.Screens.Profiles;
 
 namespace Xanadu.Tests.Profiles;
 
@@ -35,7 +35,7 @@ public sealed class ProfileEditSystemTests
 
         // Stands in for the scene: the system only needs the controls' components.
         Entity name = _store.CreateEntity(new TextField("Alice"));
-        var picker = new UiColorPicker { Color = ProfileArt.Tint(_profile) };
+        var picker = new UiColorPicker { Color = ProfileTint.Of(_profile) };
         Entity square = _store.CreateEntity(picker);
         Entity art = _store.CreateEntity();
         _store.CreateEntity(new ProfileEditView(name, square, art) { Typed = "Alice" });
@@ -122,7 +122,7 @@ public sealed class ProfileEditSystemTests
     [Test]
     public void TheDefaultTintKeepsTheOriginalBlueGradient()
     {
-        (Color top, Color bottom) = ProfileArt.Gradient(ProfileArt.Tint(null));
+        (Color top, Color bottom) = ProfileTint.Gradient(ProfileTint.Of(null));
 
         Assert.That(top.B, Is.EqualTo(0.2f).Within(0.01f));
         Assert.That(top.R, Is.EqualTo(0.04f).Within(0.01f));

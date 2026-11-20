@@ -9,21 +9,20 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Input;
 using Xanadu.Model.Levels;
-using Xanadu.Scenes;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Profiles;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Scenes;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Layout;
 using Xanadu.Ui.Systems.Ui;
+using Xanadu.Screens.SongSelect;
+using Xanadu.Screens.SongTiming;
+using Xanadu.Wiring.Scenes;
 using Position = Xanadu.Core.Position;
-using Xanadu.Ecs;
 
 namespace Xanadu.Tests.Scenes;
 
@@ -523,7 +522,7 @@ public sealed partial class SceneSystemTests
         };
 
         var audio = new FakeTrackAudio();
-        _root.Add(new Xanadu.Systems.Audio.SongPreviewSystem(_store, audio));
+        _root.Add(new Xanadu.Logic.Audio.SongPreviewSystem(_store, audio));
 
         _scenes.Start(SceneKind.SongSelect);
         Frames(10);
@@ -1364,7 +1363,7 @@ public sealed partial class SceneSystemTests
             Frame();
     }
 
-    private sealed class FakeTrackAudio : Xanadu.Systems.Audio.ITrackAudio
+    private sealed class FakeTrackAudio : Xanadu.Logic.Audio.ITrackAudio
     {
         public List<string> Loaded { get; } = new();
 

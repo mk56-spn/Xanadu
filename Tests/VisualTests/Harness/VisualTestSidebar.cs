@@ -8,8 +8,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Tests.VisualTests;

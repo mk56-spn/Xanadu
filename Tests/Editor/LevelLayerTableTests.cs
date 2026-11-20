@@ -3,13 +3,11 @@ using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Timeline;
-using Xanadu.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Editor.History;
 using Xanadu.Model.Levels;
-using Xanadu.Systems.Editor;
 using Xanadu.Model.Editor;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Editor.History;
 
 namespace Xanadu.Tests.Editor;
 

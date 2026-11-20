@@ -4,9 +4,8 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Scenes;
-using Xanadu.Systems.Editor;
 using Xanadu.Model.Editor;
+using Xanadu.Screens.Play;
 
 namespace Xanadu.Tests.Groups;
 

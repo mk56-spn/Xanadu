@@ -5,13 +5,11 @@ using NUnit.Framework;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Editor;
-using Xanadu.Systems.Editor;
-using Xanadu.Systems.Input;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
+using Xanadu.Logic.Editor;
 
 namespace Xanadu.Tests.Editor;
 

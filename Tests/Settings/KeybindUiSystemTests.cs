@@ -3,8 +3,8 @@ using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Input;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Screens.Settings;
 
 namespace Xanadu.Tests.Settings;
 

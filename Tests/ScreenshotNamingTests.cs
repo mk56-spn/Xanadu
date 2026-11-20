@@ -1,6 +1,6 @@
 using System;
 using NUnit.Framework;
-using Xanadu.Misc;
+using Xanadu.Wiring;
 
 namespace Xanadu.Tests;
 

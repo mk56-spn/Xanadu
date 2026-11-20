@@ -6,12 +6,11 @@ using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
-using Xanadu.Systems.Editor;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Scenes;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
-using Xanadu.Ecs;
+using Xanadu.Logic.Editor;
+using Xanadu.Wiring;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Tests.Editor;
 
