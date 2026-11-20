@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
@@ -89,6 +90,9 @@ internal interface IToolTab
 /// </summary>
 internal abstract class TabbedToolApp : HostApp
 {
+    // The game's shader globals, for the shader editor tabs' stand-ins; declared before the shipped effects warm.
+    static TabbedToolApp() => RhythmGlobals.Declare();
+
     private const float Margin = UiMetrics.Space.Xl;
     private const float PanelWidth = 640;
     private const float MaxTabWidth = 200;

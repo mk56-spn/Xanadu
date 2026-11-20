@@ -53,8 +53,8 @@ Agreed with the user. Don't revisit them without asking.
 Built today: the fragment slot with one effect, a body's own `deform` as its
 vertex stage (Docs/shaders.md §15: it compiles beside the fragment as vertex
 set 0/1, its values are vertex uniform buffer 1 laid out as the fragment's, the
-frame is vertex buffer 2, the chart vertex storage buffer 0 when read; no
-textures), and the blend modes Godot had. No library modifiers yet.
+frame is vertex buffer 2, the depth vertex sampler 0 and the globals vertex
+storage buffers 1 on; no other textures), and the blend modes Godot had. No library modifiers yet.
 The rest is under "Later" (§6).
 
 - **The contract** is the Slang module `xanadu.stage`
@@ -64,16 +64,31 @@ The rest is under "Later" (§6).
   `canvas`: the quad being drawn as it lands on the target, in pixels: `size`,
   `position`, `corner`, `rotation`, `shear`, `xAxis`, `yAxis`, `centred`, `aspect`,
   `uvAt(pixel)`; worked out from uv derivatives, exact for any 0..1 quad), `input(v)`,
-  `sampleItem`, `sampleScreen(uv, lod)`, `[Default(...)]` and `[Instance]`.
+  `sampleItem`, `sampleScreen(uv, lod)`, `sampleDepth(uv)`, `[Default(...)]`,
+  `[Instance]` and `[Global]`. Nothing in it (or anywhere in `xanadu`) knows
+  the game: the game's data comes in as globals (Docs/shader-pipeline.md §0).
 - **Bindings:** the host owns sampler 0 (the item's texture), sampler 1 (the
-  screen copy) and uniform buffer 0 (the frame). An effect's own textures
-  start at sampler 2 (by name, from `CanvasMaterial.Textures`) and its values
-  are uniform buffer 1, a struct of any name. The run's chart (`chart`,
-  `ChartNote` per note; `notes.` in xanadu.play) is the first storage buffer,
-  right after the last sampler: `SlangShaders` works out the slot from the
-  effect's texture bindings and passes it as `XANADU_CHART_BINDING`.
-  `CanvasRenderer` uploads `ShaderChart` when its version moves and binds it
-  for every effect (one blank note when there is no chart).
+  screen copy), sampler 2 (the depth) and uniform buffer 0 (the frame: size,
+  time, beat). An effect's own textures start at sampler 3 (by name, from
+  `CanvasMaterial.Textures`) and its values are uniform buffer 1, a struct of
+  any name. Then come the **globals**: every `[Global] public
+  StructuredBuffer<T> name;` in the library, in path then declaration order
+  (`SlangShaders.Globals`), as storage buffers right after the last sampler.
+  `SlangModules` rewrites each marker to a `vk::binding` on
+  `XANADU_GLOBAL_<name>`, and `SlangShaders` sets those per stage (after the
+  samplers in a fragment, from 1 in a deform's vertex stage, from 0 in
+  `update`). The C# side is `ShaderGlobals` (Core/Rendering): whoever owns
+  the data declares it by name and writes it; `CanvasRenderer` runs the
+  per-frame writers, uploads what changed and binds every global to every
+  effect stage (zeros for one with no data). A compile that reads a global
+  nothing declared is an error. The game's globals (`playFrame`, `chart`:
+  `rhythm.play`) are declared by `RhythmGlobals` in the game, the shader tool,
+  the labs and the dev tools.
+- **Depth reads** (`sampleDepth`): before a job whose effects read the depth
+  (`CompiledShader.ReadsDepth`, from the SPIR-V), `CanvasRenderer` draws the
+  job's opaque pre-pass again, depth only, into a single-sampled sampleable
+  depth texture (MSAA depth can't be resolved), and binds that as fragment
+  sampler 2 and deform vertex sampler 0, point sampled.
 - **Vertex and fragment compile separately** and meet when the pipeline is
   built, so any vertex choice pairs with any fragment choice. Almost no player
   writes a vertex stage (the user's estimate: 99% never will); vertex needs are
@@ -300,7 +315,10 @@ compute expand stage and a depth buffer.
   `shader_cache_slang/modules/`. Each module is also kept in `modules/store/`
   by what it was built from (its text, its imports, and the defines only if
   its own text reads one), so an edit rebuilds the edited module and what
-  imports it, and another chart binding rebuilds only `xanadu.stage`.
+  imports it, and another set of global bindings rebuilds only the modules
+  that declare globals (and `xanadu.stage` for the frame and depth slots). The
+  folder holds the prepared sources too (globals bound), so a module Slang
+  refuses still compiles from there and reports its error.
 - **Shipped effects** are `.slang` files under `Assets/Shaders` (note
   background, flare, rainbow, frosted glass, text gradient, colour picker,
   editor waveform), written exactly as level shader slots are (below) and
@@ -444,8 +462,8 @@ compute expand stage and a depth buffer.
     float dt)` gets a 1 KB storage buffer per material. `CanvasRenderer`
     runs `update` once a frame as a one-thread compute pass
     (`SlangShaders.WrapUpdate`), and the fragment reads it as `state`, its
-    storage buffer placed after the chart. In `update` the chart is compute's
-    read-only buffer 0. `CanvasMaterial.KeepsState`
+    storage buffer placed after the globals. In `update` the globals are
+    compute's read-only buffers from 0. `CanvasMaterial.KeepsState`
     gates it; level materials leave it off, so `update` is a compile error
     there.
   - **Shader editor** (`ShaderCodeEditor`; the start of the in-game shader

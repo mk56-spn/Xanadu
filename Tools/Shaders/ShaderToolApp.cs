@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
@@ -31,6 +32,9 @@ namespace Xanadu.Tools.Shaders;
 /// </summary>
 internal sealed class ShaderToolApp : HostApp
 {
+    // The game's shader globals, filled by the editor's stand-ins; declared before the shipped effects warm.
+    static ShaderToolApp() => RhythmGlobals.Declare();
+
     private const float Margin = UiMetrics.Space.Lg;
     private const float Gap = UiMetrics.Space.Md;
     private const float ListWidth = 300;

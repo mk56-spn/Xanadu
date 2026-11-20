@@ -5,15 +5,15 @@
 // keep compiling.
 //
 // Bindings follow SDL_GPU's SPIR-V layout: fragment samplers in set 2, fragment
-// uniform buffers in set 3. The host owns samplers 0 (the item's texture) and 1
-// (the screen copy, see sampleScreen) and uniform buffer 0 (the frame); an
-// effect's own textures start at sampler 2 and its values live in uniform
-// buffer 1, a struct named however it likes. The run's chart (`chart`) is the
-// storage buffer after the last sampler:
+// uniform buffers in set 3. The host owns samplers 0 (the item's texture), 1
+// (the screen copy, see sampleScreen) and 2 (the depth, see sampleDepth) and
+// uniform buffer 0 (the frame); an effect's own textures start at sampler 3 and its values live in uniform
+// buffer 1, a struct named however it likes. The globals come after the last
+// sampler, as storage buffers the host places (see `Global` below):
 //
 //     struct Params { [Default(1)] float speed; float4 tint; };
 //     [[vk::binding(1, 3)]] ConstantBuffer<Params> params;
-//     [[vk::binding(2, 2)]] Sampler2D notes;
+//     [[vk::binding(3, 2)]] Sampler2D notes;
 //
 // Values a material doesn't set take the field's [Default(...)], else zero.
 //
@@ -30,7 +30,8 @@
 //
 // A body may also declare `ItemVertex deform(ItemVertex v)`: its own vertex
 // stage, run on every corner before it lands. It sees the same globals (time,
-// beat, the play state, the chart) and the same values; it can't read textures.
+// beat, and every [Global] buffer) and the same values; of the textures it can
+// read only the depth (sampleDepth).
 //
 //     ItemVertex deform(ItemVertex v) { v.position.y += sin(time * 4 + v.uv.x * 6) * 8; return v; }
 module stage;
@@ -46,6 +47,19 @@ public struct DefaultAttribute
     float y = 0;
     float z = 0;
     float w = 0;
+};
+
+/// Marks a read-only global every shader can read (Docs/shader-pipeline.md §0):
+///
+///     [Global] public StructuredBuffer<PlayFrame> playFrame;
+///
+/// in any library module. The API gives it its binding in every stage; whoever
+/// owns the data declares it on the C# side (ShaderGlobals.Declare) under the
+/// same name and writes it. The API itself knows nothing about what it holds.
+/// An effect that reads a global the running host doesn't declare doesn't compile.
+[__AttributeUsage(_AttributeTargets.Var)]
+public struct GlobalAttribute
+{
 };
 
 /// Marks a level shader's global uniform as keyable per item: a group's
@@ -90,50 +104,6 @@ public struct ItemVertex
     public uint index;
 };
 
-/// The play state, as the host hands it over each frame (xanadu.play reads it:
-/// `player.`, `score.`, `song.`, `contact.`, `events.`). Target pixels; seconds.
-/// Only ever add, at the end.
-public struct PlayFrame
-{
-    /// The player's centre (xy) and velocity a second (zw).
-    public float4 player;
-    /// The playfield: top-left corner (xy) and size (zw).
-    public float4 playfield;
-    /// 1 or 0: grounded, dashing, ground mode HOLD (0 is SKID), dead.
-    public float4 state;
-    /// The way the last dash or momentum note sent the player (xy).
-    public float4 moves;
-    /// Accuracy 0..1, combo, best combo, score 0..1,000,000.
-    public float4 score;
-    /// The last judgement (as the game numbers them), song progress 0..1.
-    public float4 judgement;
-    /// Contact's three bars, and the most each holds.
-    public float4 contact;
-    /// Song beat, seconds until the next note (1e6 when none), song seconds, BPM.
-    public float4 song;
-    /// Seconds since each event (Event.id), 1e6 when it never happened.
-    public float4 events[5];
-    /// The chart: how many notes `chart` holds (x), target pixels per playfield unit (y).
-    public float4 chart;
-};
-
-/// One note of the run's chart, as the host hands it over (xanadu.play reads it:
-/// `notes.`). Playfield units; song seconds. Only ever add, at the end.
-public struct ChartNote
-{
-    /// Where it is placed (xy), before any group moves it.
-    public float4 place;
-    /// Its colour.
-    public float4 colour;
-    /// When it is due (x), its kind (y), its action key (z), its index (w).
-    public float4 timing;
-    /// When it was judged (x, 1e6 while waiting), the judgement (y), how early
-    /// (-) or late (+) in milliseconds (z), its state (w: 0 waiting, 1 hit, 2 missed).
-    public float4 result;
-    /// Where it was when judged, groups' moves included (xy).
-    public float4 judged;
-};
-
 /// Per-frame values the host sets once.
 public struct Frame
 {
@@ -142,16 +112,21 @@ public struct Frame
     /// 1 when the item's texture holds premultiplied colour (a buffered group's
     /// image); input() and sampleItem() hand effects straight colour either way.
     public float itemPremultiplied;
-    /// Seconds since each play key was last pressed (1e6 when never):
-    /// left, right, up, down; then the three action keys and a spare.
-    public float4 directionKeys;
-    public float4 actionKeys;
-    /// The play state (xanadu.play).
-    public PlayFrame play;
+    /// Music beats since the music started, from whoever plays it (the game: its song's timing).
+    public float beat;
 };
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
 [[vk::binding(1, 2)]] public Sampler2D screenTexture;
+// The depth is fragment sampler 2; a deforming effect's vertex stage reads it as
+// vertex sampler 0 (the host says, when it compiles one).
+#ifndef XANADU_DEPTH_BINDING
+#define XANADU_DEPTH_BINDING 2
+#endif
+#ifndef XANADU_DEPTH_SET
+#define XANADU_DEPTH_SET 2
+#endif
+[[vk::binding(XANADU_DEPTH_BINDING, XANADU_DEPTH_SET)]] public Sampler2D depthTexture;
 // The frame is fragment uniform buffer 0; a deforming effect's vertex stage
 // reads it as vertex uniform buffer 2 (the host says, when it compiles one).
 #ifndef XANADU_FRAME_BINDING
@@ -161,17 +136,6 @@ public struct Frame
 #define XANADU_FRAME_SET 3
 #endif
 [[vk::binding(XANADU_FRAME_BINDING, XANADU_FRAME_SET)]] public ConstantBuffer<Frame> frame;
-
-// The chart sits right after an effect's samplers (SDL_GPU puts storage buffers
-// there), so where depends on how many textures the effect declares: the host
-// says, when it compiles the effect. Read it through `notes.` in xanadu.play.
-#ifndef XANADU_CHART_BINDING
-#define XANADU_CHART_BINDING 2
-#endif
-#ifndef XANADU_CHART_SET
-#define XANADU_CHART_SET 2
-#endif
-[[vk::binding(XANADU_CHART_BINDING, XANADU_CHART_SET)]] public StructuredBuffer<ChartNote> chart;
 
 /// The quad being drawn, as it lands on the target, in target pixels (y down).
 /// Worked out from how uv changes from pixel to pixel, so it is exact for any
@@ -315,44 +279,17 @@ public static ItemInput shading = {};
 /// `shade` runs, and before `update` for kept state.
 public static float time = 0.0;
 
-/// Song beats since the song started, for `clock.beats`: from the song's
+/// Music beats since the music started, for `clock.beats`: from the song's
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;
 
-/// Seconds since each play key was last pressed, from the frame: `keys.` in
-/// xanadu.anim reads them. Set before `shade` runs; 1e6 in `update`.
-public static float4 directionKeys = float4(1e6);
-public static float4 actionKeys = float4(1e6);
-
-/// The play state from the frame, for xanadu.play. Set before `shade` runs;
-/// at rest (every event never) in `update`.
-/// (Set from a function: Slang can't read a global made from a list of numbers back
-/// out of the precompiled library.)
-public static PlayFrame playState = restingPlay();
-
-/// @hidden
-PlayFrame restingPlay()
-{
-    PlayFrame p = {};
-    p.playfield = float4(0.0, 0.0, 1.0, 1.0);
-    p.score = float4(1.0, 0.0, 0.0, 0.0);
-    p.contact = float4(0.0, 0.0, 0.0, 5.0);
-    p.song = float4(0.0, 1e6, 0.0, 120.0);
-    p.events = { float4(1e6), float4(1e6), float4(1e6), float4(1e6), float4(1e6) };
-    p.chart = float4(0.0, 1.0, 0.0, 0.0);
-    return p;
-}
-
-/// Sets the globals (time, beat, keys, play state) from the frame for a vertex
-/// stage, as input() does for a pixel.
+/// Sets the globals (time, beat) from the frame for a vertex stage, as input()
+/// does for a pixel.
 /// @hidden
 public void vertexClock()
 {
     time = frame.time;
-    directionKeys = frame.directionKeys;
-    actionKeys = frame.actionKeys;
-    playState = frame.play;
-    beat = frame.play.song.x;
+    beat = frame.beat;
 }
 
 /// The shader editor's triangle overlay: drawn line-filled through the effect's own
@@ -406,10 +343,7 @@ public ItemInput input(ItemVaryings v)
     i.screenUv = v.position.xy / frame.screen;
     i.time = frame.time;
     time = frame.time;
-    directionKeys = frame.directionKeys;
-    actionKeys = frame.actionKeys;
-    playState = frame.play;
-    beat = frame.play.song.x;
+    beat = frame.beat;
     i.canvas = canvasOf(v);
     i.rest = restCanvasOf(v, i.canvas);
     // Painted on the bent mesh: centred runs with uv over every triangle, measured in the
@@ -436,4 +370,13 @@ public float4 sampleItem(float2 uv)
 public float4 sampleScreen(float2 uv, float lod = 0.0)
 {
     return screenTexture.SampleLevel(uv, lod);
+}
+
+/// The frame's depth at a screen UV (ItemInput.screenUv): where the nearest
+/// opaque thing drawn there sits in the draw order, 0 nearest to 1 (nothing).
+/// Things drawn later are nearer. Every `shade` and every `deform` can read it.
+/// The host fills it before any draw that reads it.
+public float sampleDepth(float2 uv)
+{
+    return depthTexture.SampleLevel(uv, 0.0).r;
 }

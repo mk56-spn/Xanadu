@@ -1,19 +1,131 @@
-// xanadu.play: the run being played, as values. Where the player is and what
-// it is doing (`player.`), how the run is going (`score.`), the song
-// (`song.`), Contact's bars (`contact.`), and when things last happened
-// (`events.`), to time clips from like the play keys:
+// rhythm.play: the run being played, as values. The game's, not the shader
+// API's: it declares its data as globals ([Global] below) the way anyone
+// using the API would, and the game writes them (Core/Rendering/Rhythm).
+// Where the player is and what it is doing (`player.`), how the run is going
+// (`score.`), the song (`song.`), Contact's bars (`contact.`), the play keys
+// (`keys.`), the whole chart (`notes.`), and when things last happened
+// (`events.`), to time clips from:
 //
 //     Clip flash = clock.since(events.hit).clip(0, 0.3).eased(eases.outQuad);
 //     float near = 1 - saturate(length(player.position) / 400);
 //     c.paint(Circle(40 + 20 * score.accuracy), colours.gold.withAlpha(near));
 //
 // In a level the game fills them; in the shader editor the lab's stand-ins
-// do (the pointer is the player, play keys fake hits and misses).
+// do (the pointer is the player, play keys fake hits and misses). Anywhere
+// else nothing declares them, and an effect reading them doesn't compile.
 module play;
 import xanadu.stage;
+import xanadu.anim;
+
+/// The play state, as the game hands it over each frame. Target pixels;
+/// seconds. Only ever add, at the end.
+public struct PlayFrame
+{
+    /// The player's centre (xy) and velocity a second (zw).
+    public float4 player;
+    /// The playfield: top-left corner (xy) and size (zw).
+    public float4 playfield;
+    /// 1 or 0: grounded, dashing, ground mode HOLD (0 is SKID), dead.
+    public float4 state;
+    /// The way the last dash or momentum note sent the player (xy).
+    public float4 moves;
+    /// Accuracy 0..1, combo, best combo, score 0..1,000,000.
+    public float4 score;
+    /// The last judgement (as the game numbers them), song progress 0..1.
+    public float4 judgement;
+    /// Contact's three bars, and the most each holds.
+    public float4 contact;
+    /// Song beat, seconds until the next note (1e6 when none), song seconds, BPM.
+    public float4 song;
+    /// Seconds since each event (Event.id), 1e6 when it never happened.
+    public float4 events[5];
+    /// The chart: how many notes `chart` holds (x), target pixels per playfield unit (y).
+    public float4 chart;
+    /// Seconds since each play key was last pressed (1e6 when never):
+    /// left, right, up, down; then the three action keys and a spare.
+    public float4 directionKeys;
+    public float4 actionKeys;
+};
+
+/// One note of the run's chart, as the game hands it over. Playfield units;
+/// song seconds. Only ever add, at the end.
+public struct ChartNote
+{
+    /// Where it is placed (xy), before any group moves it.
+    public float4 place;
+    /// Its colour.
+    public float4 colour;
+    /// When it is due (x), its kind (y), its action key (z), its index (w).
+    public float4 timing;
+    /// When it was judged (x, 1e6 while waiting), the judgement (y), how early
+    /// (-) or late (+) in milliseconds (z), its state (w: 0 waiting, 1 hit, 2 missed).
+    public float4 result;
+    /// Where it was when judged, groups' moves included (xy).
+    public float4 judged;
+};
+
+/// The play state: one element, written once a frame.
+[Global] public StructuredBuffer<PlayFrame> playFrame;
+
+/// The whole chart, every note from the start, results written in as notes are judged.
+[Global] public StructuredBuffer<ChartNote> chart;
+
+/// The play state this frame.
+public property PlayFrame playState { get { return playFrame[0]; } }
+
+/// A play key: a direction (S D K L by default) or an action key (F Space J).
+/// The presets are under `keys.`.
+public struct Key : ISince
+{
+    internal int id;
+
+    public __init(int id) { this.id = id; }
+
+    /// Seconds since it was last pressed; 1e6 when it never has been.
+    public property float since
+    {
+        get
+        {
+            float4 directions = playState.directionKeys, actions = playState.actionKeys;
+            if (id < 4)
+                return directions[id];
+            if (id < 7)
+                return actions[id - 4];
+            if (id == 7)
+                return min(min(directions.x, directions.y), min(directions.z, directions.w));
+            return min(actions.x, min(actions.y, actions.z));
+        }
+    }
+
+    /// Whether it was pressed within the last `seconds`.
+    public bool pressedWithin(float seconds) { return since < seconds; }
+};
+
+/// The play keys, as the game numbers them (rebindable; the defaults in brackets).
+public namespace keys
+{
+    /// S
+    public static const Key left = Key(0);
+    /// D
+    public static const Key right = Key(1);
+    /// K
+    public static const Key up = Key(2);
+    /// L
+    public static const Key down = Key(3);
+    /// F
+    public static const Key action1 = Key(4);
+    /// Space
+    public static const Key action2 = Key(5);
+    /// J
+    public static const Key action3 = Key(6);
+    /// Whichever direction key was pressed last.
+    public static const Key anyDirection = Key(7);
+    /// Whichever action key was pressed last.
+    public static const Key anyAction = Key(8);
+}
 
 /// Something that happens during play. The presets are under `events.`.
-public struct Event
+public struct Event : ISince
 {
     /// Its number, as the game numbers it (see `events.`).
     public int id;
@@ -216,7 +328,7 @@ public namespace noteKinds
 /// One note of the run's chart: where and when it is, and how it was played.
 /// Get one from `notes.` (`notes[i]`, `notes.dueAfter(song.seconds)`), or by
 /// the index a quad was drawn with.
-public struct Note
+public struct Note : ISince
 {
     /// Its place in the chart, by time.
     public int index;
@@ -226,7 +338,7 @@ public struct Note
     /// Whether the chart has it: false past the end, or with no chart.
     public property bool exists { get { return index >= 0 && index < notes.count; } }
 
-    /// The chart's record of it (`ChartNote` in xanadu.stage).
+    /// The chart's record of it (`ChartNote`).
     public property ChartNote data { get { return exists ? chart[index] : chart[0]; } }
 
     /// Song seconds it is due.
@@ -273,6 +385,9 @@ public struct Note
     /// Song seconds since it was judged; 1e6 while it waits. Time clips from it
     /// as from a clock: `Clip pop = clip(note.sinceJudged, 0, 0.3)`.
     public property float sinceJudged { get { return judged ? song.seconds - data.result.x : 1e6; } }
+
+    /// The same as `sinceJudged`, so a clock can count from it: `clock.since(notes[i])`.
+    public property float since { get { return sinceJudged; } }
 
     /// Where it was when judged, groups' moves included, on the target in pixels.
     public property float2 judgedScreen { get { return onTarget(data.judged.xy); } }

@@ -4,6 +4,7 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Ui.Ecs.Ui;

@@ -5,6 +5,7 @@
 // the bar starts, and hands it the note's place in the chart. Everything else
 // comes from the chart (`notes`): when it was hit, its colour.
 import xanadu;
+import rhythm;
 
 // The note this bar is for: its index in the chart.
 uniform float hit_note;

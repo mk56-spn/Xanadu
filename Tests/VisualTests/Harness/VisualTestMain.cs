@@ -9,6 +9,7 @@ using Xanadu.Host;
 using Xanadu.Host.Rendering;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
@@ -28,6 +29,9 @@ namespace Xanadu.Tests.VisualTests;
 /// </summary>
 internal sealed class VisualTestMain : HostApp
 {
+    // The game's shader globals, as the game declares them, before HostApp's constructor warms the shipped effects.
+    static VisualTestMain() => RhythmGlobals.Declare();
+
     private readonly List<SceneTest> _tests = new(SceneTestCatalog.All);
     private readonly List<VisualTestStatus> _statuses = new();
     private readonly SceneTestRunner _runner = new();

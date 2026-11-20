@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// The run a shader sees (<see cref="ShaderPlay"/>, <c>xanadu.play</c>) while
+/// The run a shader sees (<see cref="ShaderPlay"/>, <c>rhythm.play</c>) while
 /// it is edited, with no game behind it: the pointer on the preview is the
 /// player, the play keys fake what happens (S a hit, Space a FLAWLESS+, D a
 /// miss, F J K L a dash that way), the timeline is the song with a note on

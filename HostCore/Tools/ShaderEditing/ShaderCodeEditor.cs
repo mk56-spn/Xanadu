@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
@@ -162,7 +163,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         _chrome.Resize(boxes.Bar, boxes.Preview, side);
         _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea,
             _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
-        string library = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
+        // Every library folder: the API's (xanadu/) and the game's (rhythm/).
+        string library = SlangShaders.LibraryPath ?? "";
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
         _shapeCosts = hints.Costs;
@@ -181,9 +183,9 @@ internal sealed class ShaderCodeEditor : IDisposable
     private (SlangCompletions, SlangLibraryDeclarations) ReadLibrary()
     {
         List<(string Path, string Text)> modules = SlangShaders.LibraryModules();
-        string folder = Path.Combine(SlangShaders.LibraryPath ?? "", "xanadu");
-        // Completions read the modules under xanadu/, as imported; the umbrella module only re-exports them.
-        IEnumerable<string> sources = modules.Where(m => Path.GetDirectoryName(m.Path) == folder).Select(m => m.Text);
+        string root = Path.TrimEndingDirectorySeparator(SlangShaders.LibraryPath ?? "");
+        // Completions read the modules in the library's folders (xanadu/, rhythm/), as imported; the umbrella modules only re-export them.
+        IEnumerable<string> sources = modules.Where(m => Path.GetDirectoryName(m.Path) != root).Select(m => m.Text);
         var completions = SlangCompletions.FromSources(
             _view.Prelude.Length > 0 ? sources.Append(_view.Prelude) : sources,
             ShaderConstants.Library,

@@ -26,7 +26,7 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
 
     public ShaderParam[] Params { get; } = parameters;
 
-    /// <summary>Read-only storage buffers after the samplers: the chart (every effect body), then kept state when it keeps any.</summary>
+    /// <summary>Read-only storage buffers: every library global (after the samplers in a fragment stage), then kept state when it keeps any.</summary>
     public int StorageBuffers { get; } = storageBuffers;
 
     /// <summary>Bytes in one element of the structured buffer it binds (a kept <c>State</c>); 0 for none.</summary>
@@ -38,7 +38,7 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// <summary>
     /// An effect's own vertex stage, from its <c>deform</c>; null for the host's standard one.
     /// Its values block is the fragment's, as vertex uniform buffer 1; the frame is buffer 2,
-    /// and the chart, when it reads it, the one storage buffer.
+    /// and the globals, the storage buffers of set 0.
     /// </summary>
     public CompiledShader? Vertex { get; init; }
 
@@ -51,6 +51,12 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// SPIR-V keeps only what the entry point reaches.
     /// </summary>
     public bool ReadsScreen { get; } = SpirvScan.Binds(spirv, set: 2, binding: 1);
+
+    /// <summary>
+    /// Whether the compiled code really samples the depth: fragment sampler 2, or, for a
+    /// deforming effect's vertex stage, vertex sampler 0 (set when it is compiled).
+    /// </summary>
+    public bool ReadsDepth { get; init; }
 }
 
 /// <summary>Just enough SPIR-V reading to see which resources survived compilation.</summary>
@@ -149,6 +155,7 @@ public static class SlangShaders
             lock (ConversionsLock)
             {
                 _libraryText = null;
+                _globals = null;
                 KnownConversions.Clear();
             }
             error = null;
@@ -185,8 +192,10 @@ public static class SlangShaders
     /// </summary>
     private static string? ModuleFolder(string[] defines)
     {
-        if (CacheFolder is not { } cache || LibraryPath is not { } library || !Directory.Exists(library))
+        if (LibraryPath is not { } library || !Directory.Exists(library))
             return null;
+        // Without a cache the prepared library still has to exist: its globals are bound there.
+        string cache = CacheFolder ?? Path.Combine(ReflectionFolder, "cache");
         lock (ModuleLock)
         {
             _libraryHash ??= LibraryHash();
@@ -203,10 +212,68 @@ public static class SlangShaders
                 : SlangModules.Build(library, folder, defines, out problem, Path.Combine(cache, "modules", "store"), version);
             // Building is Slang's time too: the compile that waited for it is told so.
             _slangTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
-            ModuleProblem = built is null ? problem : null;
+            ModuleProblem = problem;
             ModuleFolders[folder] = built;
             return built;
         }
+    }
+
+    private static string[]? _globals;
+
+    /// <summary>
+    /// Every global the library declares (<c>[Global] public StructuredBuffer&lt;T&gt; name;</c>,
+    /// Docs/shader-pipeline.md §0), in binding order: modules by path, then as declared. Every
+    /// effect stage binds them all, in this order, at <see cref="GlobalDefines"/>' places.
+    /// </summary>
+    public static IReadOnlyList<string> Globals
+    {
+        get
+        {
+            lock (ConversionsLock)
+            {
+                if (_globals is not null)
+                    return _globals;
+                var names = new List<string>();
+                foreach ((string path, string text) in LibraryModules())
+                {
+                    string code = StripComments(text);
+                    // A marker on anything else would compile with whatever binding Slang picks: wrong data, no error.
+                    var declared = SlangModules.GlobalDeclaration().Matches(code);
+                    foreach (System.Text.RegularExpressions.Match marker in System.Text.RegularExpressions.Regex.Matches(code, @"\[Global\]"))
+                        if (!declared.Any(match => match.Index == marker.Index))
+                        {
+                            int line = code[..marker.Index].Count(c => c == '\n') + 1;
+                            throw new InvalidOperationException(
+                                $"{Path.GetFileName(path)}({line}): [Global] marks only `public StructuredBuffer<T> name;` (read-only, public, one per line).");
+                        }
+
+                    foreach (System.Text.RegularExpressions.Match match in declared)
+                    {
+                    string name = match.Groups[2].Value;
+                    if (names.Contains(name))
+                        throw new InvalidOperationException($"{Path.GetFileName(path)}: global {name} is declared twice in the library.");
+                    names.Add(name);
+                    }
+                }
+
+                return _globals = [.. names];
+            }
+        }
+    }
+
+    /// <summary>The defines placing every global from binding <paramref name="first"/> of descriptor set <paramref name="set"/>.</summary>
+    private static string[] GlobalDefines(int first, int set) =>
+        [.. Globals.Select((name, i) => $"{SlangModules.GlobalBindingDefine(name)}={first + i}"), $"{SlangModules.GlobalSetDefine}={set}"];
+
+    /// <summary>
+    /// Throws when the compiled stage reads a global nothing in this run declares
+    /// (<see cref="Xanadu.Core.Rendering.ShaderGlobals"/>): the host it runs in doesn't have that data.
+    /// </summary>
+    private static void CheckDeclared(string name, CompiledShader compiled, int set, int first)
+    {
+        for (int i = 0; i < Globals.Count; i++)
+            if (!Xanadu.Core.Rendering.ShaderGlobals.IsDeclared(Globals[i]) && SpirvScan.Binds(compiled.Spirv, set, first + i))
+                throw new InvalidOperationException($"{name}: reads the global `{Globals[i]}`, which nothing here declares.");
     }
 
     // One shared folder: every file in it has a fresh GUID name and is deleted after use,
@@ -304,36 +371,49 @@ public static class SlangShaders
         if (shadeWith is not null)
         {
             // Only the body's deform and values matter: the fragment is the library's, reading no state.
+            int first = StorageBinding(source);
             CompiledShader overlay = CompileWrapped(
-                Wrap(name, source, updates ? StateDeclaredOnly : -1, shadeWith), "xanaduFragment", "fragment", 2, 3, ChartDefines(StorageBinding(source), 2));
-            return new CompiledShader(overlay.Spirv, overlay.Samplers, overlay.UniformBuffers, overlay.Params, overlay.ParamsSize, storageBuffers: 0)
+                Wrap(name, source, updates ? StateDeclaredOnly : -1, shadeWith), "xanaduFragment", "fragment", 2, 3, GlobalDefines(first, 2));
+            CheckDeclared(name, overlay, 2, first);
+            return new CompiledShader(overlay.Spirv, overlay.Samplers, overlay.UniformBuffers, overlay.Params, overlay.ParamsSize, storageBuffers: Globals.Count)
             {
                 Vertex = Deforms(source) ? CompileVertex(name, source, updates) : null,
             };
         }
 
-        // Storage buffers follow the samplers: the chart, then any kept state.
-        int chartBinding = StorageBinding(source);
-        int stateBinding = updates ? chartBinding + 1 : -1;
+        // Storage buffers follow the samplers: every global, then any kept state.
+        int globalsAt = StorageBinding(source);
+        int stateBinding = updates ? globalsAt + Globals.Count : -1;
         CompiledShader fragment = CompileWrapped(
-            Wrap(name, source, stateBinding), "xanaduFragment", "fragment", 2, 3, ChartDefines(chartBinding, 2));
-        if (fragment.Samplers.Length != chartBinding)
+            Wrap(name, source, stateBinding), "xanaduFragment", "fragment", 2, 3, GlobalDefines(globalsAt, 2));
+        if (fragment.Samplers.Length != globalsAt)
             throw new InvalidOperationException(
-                $"{name}: expected {chartBinding} samplers before the chart buffer but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 2 up, with no gaps.");
+                $"{name}: expected {globalsAt} samplers before the globals but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 3 up, with no gaps.");
+        CheckDeclared(name, fragment, 2, globalsAt);
 
         CompiledShader? vertex = Deforms(source) ? CompileVertex(name, source, updates) : null;
         if (!updates)
-            return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 1)
+            return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: Globals.Count)
             {
+                ReadsDepth = SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth),
                 Vertex = vertex,
             };
 
-        // Compute: the chart is the read-only buffer of set 0, the state the read-write one of set 1.
-        CompiledShader update = CompileWrapped(WrapUpdate(name, source), "xanaduUpdate", "compute", 0, 2, ChartDefines(0, 0));
+        // Compute: the globals are the read-only buffers of set 0, the state the read-write one of set 1.
+        CompiledShader compute = CompileWrapped(WrapUpdate(name, source), "xanaduUpdate", "compute", 0, 2,
+            [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]);
+        CheckDeclared(name, compute, 0, 0);
+        if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
+            throw new InvalidOperationException($"{name}: update can't read the depth (sampleDepth); only shade and deform can.");
+        CompiledShader update = new(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize, storageBuffers: Globals.Count)
+        {
+            StateBytes = compute.StateBytes,
+        };
         if (update.StateBytes > MaxStateBytes)
             throw new InvalidOperationException($"{name}: State takes {update.StateBytes} bytes; it may take at most {MaxStateBytes}.");
-        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: 2)
+        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: Globals.Count + 1)
         {
+            ReadsDepth = SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth),
             Update = update,
             Vertex = vertex,
         };
@@ -345,6 +425,12 @@ public static class SlangShaders
     /// <summary>The shader editor's overlay marking where uv is 0 and 1 on both axes, for <c>shadeWith</c>.</summary>
     public const string UvOverlay = "overlayUvLines";
 
+    /// <summary>The fragment sampler the depth is (xanadu.stage's <c>depthTexture</c>).</summary>
+    public const int FragmentDepth = 2;
+
+    /// <summary>Where an <c>update</c> would find the depth: nowhere bound, so reading it is an error.</summary>
+    private const int ComputeDepth = 31;
+
     /// <summary>A <see cref="Wrap"/> state binding that declares <c>state</c> (zeros) without reading it.</summary>
     private const int StateDeclaredOnly = -2;
 
@@ -352,19 +438,24 @@ public static class SlangShaders
     public const int VertexFrameSlot = 2;
 
     /// <summary>
-    /// A body's <c>deform</c> as a vertex stage: the chart is storage buffer 0 of set 0, the
+    /// A body's <c>deform</c> as a vertex stage: the globals are the storage buffers of set 0, the
     /// values buffer 1 and the frame buffer <see cref="VertexFrameSlot"/> of set 1. Anything
     /// it binds in the fragment's sets (a texture) is an error: SDL_GPU wouldn't bind it.
     /// </summary>
     private static CompiledShader CompileVertex(string name, string source, bool keepsState)
     {
+        // Vertex set 0: the depth is sampler 0, so the globals' storage buffers start at 1.
         CompiledShader compiled = CompileWrapped(WrapVertex(name, source, keepsState), "xanaduVertex", "vertex", 0, 1,
-            [.. ChartDefines(0, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1"]);
+            [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]);
         if (SpirvScan.BindsSet(compiled.Spirv, 2) || SpirvScan.BindsSet(compiled.Spirv, 3))
             throw new InvalidOperationException(
-                $"{name}: deform can't read textures (sampleItem, sampleScreen or the effect's own); only shade can.");
+                $"{name}: deform can't read textures (sampleItem, sampleScreen or the effect's own); only shade can, and both can read sampleDepth.");
+        CheckDeclared(name, compiled, 0, 1);
         return new CompiledShader(compiled.Spirv, compiled.Samplers, compiled.UniformBuffers, compiled.Params, compiled.ParamsSize,
-            storageBuffers: SpirvScan.Binds(compiled.Spirv, set: 0, binding: 0) ? 1 : 0);
+            storageBuffers: Globals.Count)
+        {
+            ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
+        };
     }
 
     /// <summary>Whether an effect body declares <c>ItemVertex deform(…)</c>, and so its own vertex stage.</summary>
@@ -395,22 +486,19 @@ public static class SlangShaders
             @"//[^\n]*", "");
 
     /// <summary>
-    /// Where the first storage buffer (the chart) goes in the fragment's set 2:
-    /// SDL_GPU puts storage buffers after the samplers, which are the host's two
+    /// Where the first storage buffer (the first global) goes in the fragment's set 2:
+    /// SDL_GPU puts storage buffers after the samplers, which are the host's three
     /// plus the effect's own <c>[[vk::binding(n, 2)]]</c> textures.
     /// </summary>
     private static int StorageBinding(string source)
     {
-        int next = 2;
+        int next = 3;
         foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
                      StripComments(source), @"vk::binding\(\s*(\d+)\s*,\s*2\s*\)"))
             next = Math.Max(next, int.Parse(match.Groups[1].Value) + 1);
         return next;
     }
 
-    /// <summary>Where xanadu.stage declares the chart buffer, which moves with each effect's textures.</summary>
-    private static string[] ChartDefines(int binding, int set) =>
-        [$"XANADU_CHART_BINDING={binding}", $"XANADU_CHART_SET={set}"];
 
     private static CompiledShader CompileWrapped(
         string code, string entry, string stage, int samplerSpace, int uniformSpace, string[]? defines = null, bool bindGlobals = true)
@@ -764,11 +852,12 @@ public static class SlangShaders
         foreach (JsonElement parameter in root.GetProperty("parameters").EnumerateArray())
         {
             if (!parameter.TryGetProperty("binding", out JsonElement binding) ||
-                !binding.TryGetProperty("space", out JsonElement spaceElement) ||
                 !binding.TryGetProperty("index", out JsonElement indexElement))
                 continue;
 
-            int space = spaceElement.GetInt32(), index = indexElement.GetInt32();
+            // Slang leaves the space out when it is 0 (a vertex stage's depth sampler).
+            int space = binding.TryGetProperty("space", out JsonElement spaceElement) ? spaceElement.GetInt32() : 0;
+            int index = indexElement.GetInt32();
             string name = parameter.GetProperty("name").GetString() ?? "";
             JsonElement type = parameter.GetProperty("type");
             string kind = type.GetProperty("kind").GetString() ?? "";

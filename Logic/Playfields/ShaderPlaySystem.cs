@@ -2,6 +2,7 @@ using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;
 
@@ -9,7 +10,7 @@ namespace Xanadu.Logic.Playfields;
 
 /// <summary>
 /// Hands level shaders the run as plain values (<see cref="ShaderPlay"/>,
-/// <c>xanadu.play</c>): where the player is and how it moves, whether it
+/// <c>rhythm.play</c>): where the player is and how it moves, whether it
 /// stands, dashes or is dead, the score, the song's progress, beat and next
 /// note, and Contact's bars. Read off the play scene each frame; the events
 /// (hits, dashes, the countdown…) are marked where they happen instead.

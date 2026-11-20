@@ -1,6 +1,7 @@
 // Clips: a card slides in, turns and fades; a dot rides a keyed path; a ring hits on the beat;
 // F flashes the middle and any direction key nudges a pip (click the preview first).
 import xanadu;
+import rhythm;
 
 float4 shade(Canvas canvas)
 {

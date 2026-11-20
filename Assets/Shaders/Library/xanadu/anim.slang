@@ -8,13 +8,11 @@
 //     dot.scale(pop.progress);
 //     c.paint(dot, colours.gold.withAlpha(pop.mixed(0.4, 1)));
 //
-// A clock can also run from a play key's last press, so a clip plays each
-// time it goes down:
+// A clock can also run from anything that says how long ago it happened (an
+// `ISince`): the game's play keys, events and notes (rhythm.play) are, so a
+// clip plays each time a key goes down, a note is hit…:
 //
 //     Clip flash = clock.since(keys.action1).clip(0, 0.25).eased(eases.outQuad);
-//
-// or from a play event (xanadu.play), so it plays on every hit, miss, dash…:
-//
 //     Clip pulse = clock.since(events.hit).clip(0, 0.3).eased(eases.outBack);
 //
 // The shader editor reads the clips out of the code and lays them on a
@@ -23,7 +21,6 @@ module anim;
 import xanadu.stage;
 import xanadu.math;
 import xanadu.ease;
-import xanadu.play;
 
 /// An easing as a value, for `.eased(...)` and keys: one per `ease.` function,
 /// numbered as `ease.by` numbers them. The presets are under `eases.`.
@@ -75,68 +72,26 @@ public namespace eases
     public static const Ease smooth = Ease(31);
 }
 
-/// A play key: a direction (S D K L by default) or an action key (F Space J).
-/// The presets are under `keys.`.
-public struct Key
+/// Something that happened some time ago: a clock can count from it
+/// (`clock.since(…)`). Whoever declares a global can make its moments one.
+public interface ISince
 {
-    internal int id;
-
-    public __init(int id) { this.id = id; }
-
-    /// Seconds since it was last pressed; 1e6 when it never has been.
-    public property float since
-    {
-        get
-        {
-            if (id < 4)
-                return directionKeys[id];
-            if (id < 7)
-                return actionKeys[id - 4];
-            if (id == 7)
-                return min(min(directionKeys.x, directionKeys.y), min(directionKeys.z, directionKeys.w));
-            return min(actionKeys.x, min(actionKeys.y, actionKeys.z));
-        }
-    }
-
-    /// Whether it was pressed within the last `seconds`.
-    public bool pressedWithin(float seconds) { return since < seconds; }
-};
-
-/// The play keys, as the game numbers them (rebindable; the defaults in brackets).
-public namespace keys
-{
-    /// S
-    public static const Key left = Key(0);
-    /// D
-    public static const Key right = Key(1);
-    /// K
-    public static const Key up = Key(2);
-    /// L
-    public static const Key down = Key(3);
-    /// F
-    public static const Key action1 = Key(4);
-    /// Space
-    public static const Key action2 = Key(5);
-    /// J
-    public static const Key action3 = Key(6);
-    /// Whichever direction key was pressed last.
-    public static const Key anyDirection = Key(7);
-    /// Whichever action key was pressed last.
-    public static const Key anyAction = Key(8);
+    /// Seconds since it last happened; 1e6 when it never has.
+    property float since { get; }
 }
 
-/// Where time comes from: seconds (`clock`), song beats (`clock.beats`) or the
-/// seconds since a key was pressed (`clock.since(keys.left)`), an event
-/// happened (`clock.since(events.hit)`) or a note was judged
-/// (`clock.since(notes[i])`), running on or wrapping round a loop
-/// (`clock.looped(2)`).
+/// Where time comes from: seconds (`clock`), music beats (`clock.beats`) or the
+/// seconds since something happened (`clock.since(…)`, anything `ISince`),
+/// running on or wrapping round a loop (`clock.looped(2)`).
 public struct Clock
 {
     internal bool inBeats;
 
-    /// The key it counts from (Key.id), an event (1000 + Event.id), a note's
-    /// judgement (1000000 + Note.index), or -1 for the song's time.
-    internal int key;
+    /// Counting from something that happened, rather than from the start.
+    internal bool counting;
+
+    /// Seconds since it happened, when `counting`.
+    internal float sinceThen;
 
     /// How long one loop is, in the clock's own units; 0 never wraps.
     internal float loop;
@@ -145,21 +100,16 @@ public struct Clock
     {
         this.inBeats = inBeats;
         this.loop = loop;
-        this.key = -1;
+        this.counting = false;
+        this.sinceThen = 0.0;
     }
 
-    /// The same clock counting song beats instead of seconds.
-    public property Clock beats { get { Clock c = this; c.inBeats = true; c.key = -1; return c; } }
+    /// The same clock counting music beats instead of seconds.
+    public property Clock beats { get { Clock c = this; c.inBeats = true; c.counting = false; return c; } }
 
-    /// A clock counting seconds from a key's last press: 0 as it goes down.
-    public Clock since(Key pressed) { Clock c = Clock(false, loop); c.key = pressed.id; return c; }
-
-    /// A clock counting seconds from when an event last happened: 0 as it does.
-    public Clock since(Event happened) { Clock c = Clock(false, loop); c.key = 1000 + happened.id; return c; }
-
-    /// A clock counting song seconds from when a note was judged: 0 as it is
-    /// hit or missed, 1e6 while it waits (`clock.since(notes[i])`).
-    public Clock since(Note judged) { Clock c = Clock(false, loop); c.key = 1000000 + judged.index; return c; }
+    /// A clock counting seconds from when something last happened: 0 as it
+    /// does, 1e6 while it never has (`clock.since(keys.left)`, `clock.since(notes[i])`).
+    public Clock since<T : ISince>(T happened) { Clock c = Clock(false, loop); c.counting = true; c.sinceThen = happened.since; return c; }
 
     /// A copy that wraps every `length` seconds (or beats).
     public Clock looped(float length) { Clock c = this; c.loop = length; return c; }
@@ -169,10 +119,7 @@ public struct Clock
     {
         get
         {
-            return key >= 1000000 ? Note(key - 1000000).sinceJudged
-                : key >= 1000 ? Event(key - 1000).since
-                : key >= 0 ? Key(key).since
-                : inBeats ? beat : time;
+            return counting ? sinceThen : inBeats ? beat : time;
         }
     }
 
@@ -186,7 +133,7 @@ public struct Clock
     public Clip clip(float start, float length) { return Clip(this, start, length); }
 };
 
-/// Seconds since the game started, as a clock; `clock.beats` counts song beats.
+/// Seconds since the game started, as a clock; `clock.beats` counts music beats.
 public static const Clock clock = Clock(false, 0.0);
 
 /// A span of time on a clock. Its builders return changed copies

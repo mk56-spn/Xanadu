@@ -24,7 +24,7 @@ uniform float reactive;
 [Default(1, 0.72, 0.2, 1)] uniform float4 glow_color;
 uniform float glow;
 
-[[vk::binding(2, 2)]] Sampler2D notes;
+[[vk::binding(3, 2)]] Sampler2D notes;
 
 // How far the halo spreads past the ink, as a share of the note's size. The
 // strip leaves a tenth of a cell clear on each side, so this stays inside it.

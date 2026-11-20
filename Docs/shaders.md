@@ -40,12 +40,13 @@ overload.
 10. [Patterns, gradients, easing, curves](#10-patterns-gradients-easing-curves)
 11. [Animating: clocks, clips and keys](#11-animating-clocks-clips-and-keys)
 12. [Maths and random numbers](#12-maths-and-random-numbers)
-13. [Reading textures and the screen](#13-reading-textures-and-the-screen)
+13. [Reading textures, the screen and the depth](#13-reading-textures-the-screen-and-the-depth)
 14. [Keeping state between frames](#14-keeping-state-between-frames)
 15. [Moving the corners: `deform`](#15-moving-the-corners-deform)
 16. [Trying things out](#16-trying-things-out)
 17. [Pitfalls](#17-pitfalls)
 18. [From shadertoy](#18-from-shadertoy)
+19. [Globals: data anyone can read](#19-globals-data-anyone-can-read)
 
 ---
 
@@ -553,7 +554,8 @@ colours), `.started`, `.finished` and `.playing` (started, not yet finished:
 which scene is on). `.at(t)` is the way out: progress at a
 reading of the clock you give it.
 
-**Play keys.** `keys.` names the game's seven keys: `left`, `right`, `up`,
+**Play keys** (`rhythm.play`, so `import rhythm;` as well as `import xanadu;`).
+`keys.` names the game's seven keys: `left`, `right`, `up`,
 `down` (F J K L by default) and `action1`, `action2`, `action3` (S Space D),
 plus `anyDirection` and `anyAction` for whichever of those went down last.
 They follow the player's keybinds. `keys.left.since` is the seconds since that
@@ -570,7 +572,10 @@ playing. In the shader editor, click the preview so the code lets go of the keyb
 then F J K L and S Space D press them. Presses run on real time: scrubbing
 the timeline doesn't move them.
 
-**The run** (`xanadu.play`, part of `import xanadu`). Plain values:
+**The run** (`rhythm.play`: `import rhythm;`). The game's, not the shader
+API's: `rhythm` declares its data as globals (§19) the way anyone would, and
+only the game and the shader editor (its stand-ins) declare them, so an effect
+that imports it runs only there. Plain values:
 
 | Value | What it is |
 |---|---|
@@ -695,13 +700,19 @@ Slang's own functions are all there too: `sin`, `cos`, `atan2`, `lerp`,
 `smoothstep`, `step`, `saturate`, `clamp`, `frac`, `floor`, `length`, `dot`,
 `normalize`, `pow`, `exp`, `fwidth`, …
 
-## 13. Reading textures and the screen
+## 13. Reading textures, the screen and the depth
 
 - **`sampleItem(uv)`** reads the item's own texture (as straight colour).
 - **`sampleScreen(screenUv, lod = 0)`** reads what has already been drawn on
   the target, for distortion, blur and glass. Start from `i.screenUv`. To
   move by pixels, divide by the screen size: `i.screenUv + offset / frame.screen`.
   A higher `lod` reads a blurrier copy.
+- **`sampleDepth(screenUv)`** reads the frame's depth: where the nearest opaque
+  thing drawn there sits in the draw order, 0 nearest to 1 (nothing there).
+  Later draws are nearer, one step of 2^-22 each, so `(1 - d) * 4194304` counts
+  draws. Both `shade` and `deform` can read it (`v.position / frame.screen` in
+  `deform`). It holds the opaque rects, drawn first; an effect's own pixels
+  never write it. `update` can't read it.
 
 ```slang
 float2 push = normalize(canvas.centred) * sin(length(canvas.centred) / 20 - time * 6) * 8;
@@ -751,7 +762,9 @@ float4 shade(Canvas canvas)
 - State starts zeroed and may take up to 16 KB. Each material keeps its own.
   A recompile starts it again from zero.
 - If you also bind textures, give them `[[vk::binding(n, 2)]]` numbers from
-  2 up, with no gaps.
+  3 up, with no gaps (0, 1 and 2 are the item, the screen and the depth).
+- `update` reads the globals (§19) as `shade` does: `player.`, `notes.` … are
+  this frame's there too.
 - **Lab only for now.** State runs forward only: it pauses when the song
   pauses and carries on from where it is after a seek. A seek backwards does
   not roll it back, and never will. Levels get kept state once their runtime
@@ -812,10 +825,10 @@ float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
   the two sides, which blending keeps true on every bent triangle, so how it
   and uv change from pixel to pixel gives the rest quad exactly. Where a
   triangle is squashed too thin to tell, `i.rest` falls back to `canvas`.
-- `deform` sees what `shade` does except textures: `time`, `beat`, `keys.`,
-  the play state (`player.`, `song.`, `notes.` …) and the same uniforms and
-  sliders. `sampleItem`, `sampleScreen` and the effect's own textures are an
-  error there.
+- `deform` sees what `shade` does except textures: `time`, `beat`, every
+  global (`keys.`, `player.`, `notes.` … with `import rhythm;`), the depth
+  (`sampleDepth`) and the same uniforms and sliders. `sampleItem`,
+  `sampleScreen` and the effect's own textures are an error there.
 - **It moves corners, not pixels.** A plain rect has four, so it can only
   squash, tilt or move. A bend needs corners inside: the editors draw their
   preview as a 48-cell grid for that. Items in a level are drawn as they are.
@@ -959,3 +972,29 @@ bottom-left, y up.
 | `cos(float3(0, 2, 4) * PI / 3 + x) * s + m`, `a + b * cos(TAU * (c * t + d))` | `colours.rainbow(x / TAU, m, s)`, `colours.palette(t, a, b, c, d)` |
 | `pow(col, vec3(1.0 / 2.2))` | `c.gammaCorrect()` |
 | `out` and `inout` parameters, structs | the same in Slang |
+
+## 19. Globals: data anyone can read
+
+A global is read-only data every shader can read, declared by whoever owns
+it (Docs/shader-pipeline.md §0). The shader API (`xanadu`) has no rhythm in it:
+the game declares its own globals (`rhythm.play`: the play state and the
+chart) the same way anyone would.
+
+- **The shader side** is one marker in a library module:
+
+  ```slang
+  [Global] public StructuredBuffer<PlayFrame> playFrame;
+  ```
+
+  The API gives it its binding in every stage (`shade`, `deform`, `update`);
+  never write a `vk::binding` for it. Names are unique across the library.
+- **The C# side** declares the same name and writes it (one writer):
+  `ShaderGlobals.Declare("playFrame", bytesPerElement, everyFrame)`, then
+  `global.Write(...)`, or let `everyFrame` write it once a frame. See
+  `Core/Rendering/Rhythm/RhythmGlobals.cs`.
+- **Where it isn't declared, it doesn't compile.** An effect that reads a
+  global the running host doesn't declare fails with "reads the global `x`,
+  which nothing here declares". The game declares the rhythm globals at
+  start-up; the shader tool, the labs and the dev tools declare them too, and
+  the editor's stand-ins fill them.
+- Read-only everywhere. A global with nothing written yet reads as zeros.

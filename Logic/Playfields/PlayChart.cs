@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Playfields;
@@ -12,7 +13,7 @@ namespace Xanadu.Logic.Playfields;
 /// <summary>
 /// The run's chart for shaders (<see cref="ShaderChart"/>): loaded from the
 /// level's notes when it starts, and each note's result written where it is
-/// judged. Shaders read it as <c>notes.</c> in <c>xanadu.play</c>.
+/// judged. Shaders read it as <c>notes.</c> in <c>rhythm.play</c>.
 /// </summary>
 public static class PlayChart
 {

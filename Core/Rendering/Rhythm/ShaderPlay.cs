@@ -1,11 +1,11 @@
 using System;
 using System.Diagnostics;
 
-namespace Xanadu.Core.Rendering;
+namespace Xanadu.Core.Rendering.Rhythm;
 
 /// <summary>
 /// Something that happens during play that shaders can time from
-/// (<c>events.</c> in <c>xanadu.play</c>, <c>clock.since(events.hit)</c>).
+/// (<c>events.</c> in <c>rhythm.play</c>, <c>clock.since(events.hit)</c>).
 /// Numbered as the library's <c>Event</c>; only ever add, at the end.
 /// </summary>
 public enum ShaderEvent
@@ -33,13 +33,13 @@ public enum ShaderEvent
 }
 
 /// <summary>
-/// The play state as shaders see it (<c>xanadu.play</c>): the player, the
+/// The play state as shaders see it (<c>rhythm.play</c>): the player, the
 /// score, the song and Contact's bars as plain values, and when each
 /// <see cref="ShaderEvent"/> last happened. Each value has one writer: in the
 /// game, the system that owns it (the session, scoring, movement…) or
 /// <c>ShaderPlaySystem</c> for what is read off the ECS each frame; in the
-/// tools, the shader editor's stand-ins. The renderer hands every shader a
-/// copy once a frame, like <see cref="ShaderKeys"/>.
+/// tools, the shader editor's stand-ins. <see cref="RhythmGlobals"/> packs it into
+/// the <c>playFrame</c> global once a frame, keys included.
 /// </summary>
 public static class ShaderPlay
 {

@@ -1,11 +1,11 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Xanadu.Core.Rendering;
+namespace Xanadu.Core.Rendering.Rhythm;
 
 /// <summary>
-/// One note of the chart as shaders read it (<c>notes.</c> in <c>xanadu.play</c>,
-/// xanadu.stage's <c>ChartNote</c>): where and when it is, and how it was
+/// One note of the chart as shaders read it (<c>notes.</c> in <c>rhythm.play</c>,
+/// rhythm.play's <c>ChartNote</c>): where and when it is, and how it was
 /// played. Positions are playfield units; times are song seconds.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -36,8 +36,8 @@ public struct ChartNote
 
 /// <summary>
 /// The whole chart of the run being played, for shaders: every note, from the
-/// start, with each one's result written as it is judged. The renderer keeps a
-/// copy on the GPU and uploads it again whenever <see cref="Version"/> moves.
+/// start, with each one's result written as it is judged. <see cref="RhythmGlobals"/>
+/// writes it into the <c>chart</c> global whenever <see cref="Version"/> moves.
 /// The play scene loads it; the judgement points write results; the tools'
 /// stand-ins fake one.
 /// </summary>
@@ -52,7 +52,7 @@ public static class ShaderChart
 
     public static int Count => _notes.Length;
 
-    /// <summary>Moves on every change, so the renderer knows to upload.</summary>
+    /// <summary>Moves on every change, so the global is written again.</summary>
     public static int Version { get; private set; }
 
     /// <summary>A new chart: every note waiting.</summary>

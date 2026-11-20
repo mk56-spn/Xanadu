@@ -1,5 +1,6 @@
 using System;
 using Xanadu.Core.Rendering;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 
@@ -63,7 +64,7 @@ public static class PlayScoring
         score.JudgementTimeMs = timeMs;
     }
 
-    /// <summary>Level shaders' clocks for a judgement (<c>events.</c> in xanadu.play).</summary>
+    /// <summary>Level shaders' clocks for a judgement (<c>events.</c> in rhythm.play).</summary>
     internal static void Mark(Judgement judgement, bool comboBroken)
     {
         ShaderPlay.Mark(ShaderEvent.Judged);

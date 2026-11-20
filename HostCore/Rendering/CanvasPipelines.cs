@@ -165,7 +165,7 @@ internal sealed class CanvasPipelines : IDisposable
             ? ComputePipeline.Create(_device, step.Spirv, "main", new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = 1,
+                NumReadonlyStorageBuffers = (uint)step.StorageBuffers,
                 NumReadWriteStorageBuffers = 1,
                 NumUniformBuffers = step.UniformBuffers,
                 ThreadCountX = 1, ThreadCountY = 1, ThreadCountZ = 1,
@@ -176,6 +176,7 @@ internal sealed class CanvasPipelines : IDisposable
             {
                 Format = ShaderFormat.SPIRV,
                 Stage = ShaderStage.Vertex,
+                NumSamplers = (uint)stage.Samplers.Length,
                 NumStorageBuffers = (uint)stage.StorageBuffers,
                 NumUniformBuffers = stage.UniformBuffers,
             })

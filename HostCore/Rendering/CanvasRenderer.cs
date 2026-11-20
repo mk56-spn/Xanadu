@@ -43,43 +43,17 @@ internal sealed class CanvasRenderer : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Pad; }
 
-    /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0.</summary>
+    /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0. Only the engine's clocks; anything else is a global.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct FrameUniforms
     {
         public float Width, Height, Time, ItemPremultiplied;
-
-        /// <summary>Seconds since each play key's last press (<see cref="ShaderKeys"/>): the directions, then the actions and a spare.</summary>
-        public Vector4 DirectionKeys, ActionKeys;
-
-        /// <summary>xanadu.stage's <c>PlayFrame</c>: <see cref="ShaderPlay"/> as a shader reads it.</summary>
-        public Vector4 Player, Playfield, PlayerState, Moves, Score, Judgement, Contact, Song;
-        public Vector4 Events0, Events1, Events2, Events3, Events4;
-
-        /// <summary>The chart's note count and pixels per playfield unit (<see cref="ShaderChart"/>).</summary>
-        public Vector4 Chart;
+        public float Beat, Pad0, Pad1, Pad2;
 
         public static FrameUniforms Now(float width, float height, float time) => new()
         {
-            Width = width, Height = height, Time = time,
-            DirectionKeys = new Vector4(ShaderKeys.Since(0), ShaderKeys.Since(1), ShaderKeys.Since(2), ShaderKeys.Since(3)),
-            ActionKeys = new Vector4(ShaderKeys.Since(4), ShaderKeys.Since(5), ShaderKeys.Since(6), ShaderKeys.Never),
-            Player = new Vector4(ShaderPlay.Position.X, ShaderPlay.Position.Y, ShaderPlay.Velocity.X, ShaderPlay.Velocity.Y),
-            Playfield = new Vector4(ShaderPlay.PlayfieldCorner.X, ShaderPlay.PlayfieldCorner.Y, ShaderPlay.PlayfieldSize.X, ShaderPlay.PlayfieldSize.Y),
-            PlayerState = new Vector4(Flag(ShaderPlay.Grounded), Flag(ShaderPlay.Dashing), Flag(ShaderPlay.GroundHold), Flag(ShaderPlay.Dead)),
-            Moves = new Vector4(ShaderPlay.LastMove.X, ShaderPlay.LastMove.Y, 0, 0),
-            Score = new Vector4(ShaderPlay.Accuracy, ShaderPlay.Combo, ShaderPlay.MaxCombo, ShaderPlay.Score),
-            Judgement = new Vector4(ShaderPlay.LastJudgement, ShaderPlay.SongProgress, 0, 0),
-            Contact = new Vector4(ShaderPlay.ContactBars.X, ShaderPlay.ContactBars.Y, ShaderPlay.ContactBars.Z, ShaderPlay.ContactCap),
-            Song = new Vector4(ShaderPlay.Beat, ShaderPlay.UntilNote, ShaderPlay.SongSeconds, ShaderPlay.Bpm),
-            Events0 = Events(0), Events1 = Events(4), Events2 = Events(8), Events3 = Events(12), Events4 = Events(16),
-            Chart = new Vector4(ShaderChart.Count, ShaderPlay.PixelsPerUnit, 0, 0),
+            Width = width, Height = height, Time = time, Beat = ShaderClock.Beat,
         };
-
-        private static float Flag(bool on) => on ? 1 : 0;
-
-        private static Vector4 Events(int first) => new(
-            ShaderPlay.SinceSlot(first), ShaderPlay.SinceSlot(first + 1), ShaderPlay.SinceSlot(first + 2), ShaderPlay.SinceSlot(first + 3));
     }
 
     /// <summary>A kept-state effect's update's uniform buffer 0 (SlangShaders.WrapUpdate).</summary>
@@ -158,6 +132,14 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly TextureFormat _format;
     private readonly TextureFormat _depthFormat;
     private readonly Texture _depth;
+
+    /// <summary>
+    /// The depth effects read (xanadu.stage's <c>sampleDepth</c>): single-sampled, so it can be
+    /// sampled, filled from the opaque pre-pass before a job whose effects read it.
+    /// </summary>
+    private readonly Texture _depthRead;
+
+    private GraphicsPipeline? _depthOnly;
     private readonly Texture? _msaaDepth;
 
     /// <summary>The MSAA sample count asked for; drops to what the GPU can do.</summary>
@@ -215,10 +197,24 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly HashSet<CanvasMaterial> _updated = new(ReferenceEqualityComparer.Instance);
     private readonly TransferBuffer _zeros;
 
-    /// <summary>The run's chart (<see cref="ShaderChart"/>), bound to every effect after its samplers; one blank note when there is none.</summary>
-    private Buffer? _chart;
-    private TransferBuffer? _chartTransfer;
-    private int _chartCapacity, _chartVersion = -1;
+    /// <summary>
+    /// Each declared shader global's buffer (<see cref="ShaderGlobals"/>), uploaded when its version moves:
+    /// bound to every effect stage in <see cref="SlangShaders.Globals"/>' order.
+    /// </summary>
+    private readonly Dictionary<string, GlobalBuffer> _globalBuffers = new(StringComparer.Ordinal);
+
+    /// <summary>This frame's globals in binding order, and one slot after them for a kept state.</summary>
+    private Buffer[] _bound = [];
+
+    /// <summary>Zeros, bound for a global with no data (or nothing declaring it) and for a state not made yet.</summary>
+    private Buffer? _blank;
+
+    private sealed class GlobalBuffer
+    {
+        public Buffer Buffer = null!;
+        public TransferBuffer Transfer = null!;
+        public int Capacity, Version = -1;
+    }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
     public Dictionary<ulong, Texture> Textures { get; } = new();
@@ -272,6 +268,8 @@ internal sealed class CanvasRenderer : IDisposable
         }
 
         _depth = Texture.Create2D(device, "depth", width, height, _depthFormat, TextureUsageFlags.DepthStencilTarget);
+        _depthRead = Texture.Create2D(device, "depth read", width, height, _depthFormat,
+            TextureUsageFlags.DepthStencilTarget | TextureUsageFlags.Sampler);
         _pipelines.MainSamples = _samples;
 
         // Linear with linear mips (MaxLod unclamped), so mipmapped textures such as glyph strips filter smoothly.
@@ -358,8 +356,8 @@ internal sealed class CanvasRenderer : IDisposable
             Upload(commands);
         using (commands.Scope("expand primitives"))
             Expand(commands);
-        using (commands.Scope("upload chart"))
-            UploadChart(commands);
+        using (commands.Scope("upload globals"))
+            UploadGlobals(commands);
         phases?.Lap(HostFramePhases.Phase.Upload, ref lap);
 
         // The particles and kept state move by the frame's time, before any pass draws them.
@@ -850,32 +848,65 @@ internal sealed class CanvasRenderer : IDisposable
     }
 
 
-    /// <summary>Copies the chart to the GPU when it has changed since the last frame; grows the buffer to fit.</summary>
-    private void UploadChart(CommandBuffer commands)
+    /// <summary>
+    /// Runs the globals' per-frame writers, then copies each global that changed to the GPU
+    /// (growing its buffer to fit) and lines them up in binding order for the frame's draws.
+    /// </summary>
+    private void UploadGlobals(CommandBuffer commands)
     {
-        if (_chart is not null && _chartVersion == ShaderChart.Version)
-            return;
-
-        _chartVersion = ShaderChart.Version;
-        int count = Math.Max(1, ShaderChart.Count);
-        if (_chart is null || count > _chartCapacity)
+        ShaderGlobals.RunEveryFrame();
+        if (_blank is null)
         {
-            _chart?.Dispose();
-            _chartTransfer?.Dispose();
-            _chartCapacity = Math.Max(count, _chartCapacity * 2);
-            _chart = Buffer.Create<ChartNote>(_device, "chart",
-                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, (uint)_chartCapacity);
-            _chartTransfer = TransferBuffer.Create<ChartNote>(_device, "chart upload", TransferBufferUsage.Upload, (uint)_chartCapacity);
+            _blank = Buffer.Create<byte>(_device, "blank global",
+                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, SlangShaders.MaxStateBytes);
+            CopyPass zero = commands.BeginCopyPass();
+            zero.UploadToBuffer(_zeros, _blank, cycle: false);
+            commands.EndCopyPass(zero);
         }
 
-        Span<ChartNote> mapped = _chartTransfer!.Map<ChartNote>(cycle: true);
-        mapped[..count].Clear();
-        ShaderChart.Notes.CopyTo(mapped);
-        _chartTransfer.Unmap();
+        IReadOnlyList<string> names = SlangShaders.Globals;
+        if (_bound.Length != names.Count + 1)
+            _bound = new Buffer[names.Count + 1];
+        for (int i = 0; i < names.Count; i++)
+            _bound[i] = ShaderGlobals.Find(names[i]) is { Count: > 0 } global ? Uploaded(commands, global) : _blank;
+        _bound[names.Count] = _blank;
+    }
+
+    private Buffer Uploaded(CommandBuffer commands, ShaderGlobal global)
+    {
+        if (!_globalBuffers.TryGetValue(global.Name, out GlobalBuffer? held))
+            _globalBuffers[global.Name] = held = new GlobalBuffer();
+        if (held.Version == global.Version)
+            return held.Buffer;
+
+        held.Version = global.Version;
+        ReadOnlySpan<byte> bytes = global.Bytes;
+        if (held.Capacity < bytes.Length)
+        {
+            held.Buffer?.Dispose();
+            held.Transfer?.Dispose();
+            held.Capacity = Math.Max(bytes.Length, held.Capacity * 2);
+            held.Buffer = Buffer.Create<byte>(_device, global.Name,
+                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, (uint)held.Capacity);
+            held.Transfer = TransferBuffer.Create<byte>(_device, global.Name + " upload", TransferBufferUsage.Upload, (uint)held.Capacity);
+        }
+
+        Span<byte> mapped = held.Transfer.Map<byte>(cycle: true);
+        bytes.CopyTo(mapped);
+        held.Transfer.Unmap();
 
         CopyPass copy = commands.BeginCopyPass();
-        copy.UploadToBuffer<ChartNote>(_chartTransfer, _chart, 0, 0, (uint)count, cycle: true);
+        copy.UploadToBuffer<byte>(held.Transfer, held.Buffer, 0, 0, (uint)bytes.Length, cycle: true);
         commands.EndCopyPass(copy);
+        return held.Buffer;
+    }
+
+    /// <summary>The frame's globals, then <paramref name="state"/> (or zeros) when a stage binds one more: <paramref name="count"/> in all.</summary>
+    private Span<Buffer> Bound(int count, Buffer? state = null)
+    {
+        int globals = _bound.Length - 1;
+        _bound[globals] = state ?? _blank!;
+        return _bound.AsSpan(0, Math.Min(count, _bound.Length));
     }
 
     /// <summary>A pass on a job's target and the depth buffer; with <paramref name="msaa"/>, on the multisampled frame, resolved into the target when it ends.</summary>
@@ -966,9 +997,72 @@ internal sealed class CanvasRenderer : IDisposable
         LastBatchCount++;
     }
 
+    /// <summary>Whether any effect the job draws samples the depth, in its shade or its deform.</summary>
+    private bool ReadsDepth(Job job)
+    {
+        for (int s = job.FirstStep; s < job.FirstStep + job.StepCount; s++)
+        {
+            Step step = _steps[s];
+            if (step.Kind is StepKind.Primitives or StepKind.Particles)
+                continue;
+            CanvasEffect effect = _pipelines.Effect(step.Material);
+            if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The job's opaque pre-pass again, depth only, into <see cref="_depthRead"/>: the depth the
+    /// main pass tests against, in a texture effects can sample (MSAA depth can't be resolved).
+    /// </summary>
+    private void FillDepth(CommandBuffer commands, Job job)
+    {
+        using GpuScope scope = commands.Scope("depth for reads");
+        RenderPass pass = commands.BeginRenderPass(new DepthStencilTargetInfo
+        {
+            Texture = _depthRead.Handle,
+            ClearDepth = 1f,
+            LoadOp = LoadOp.Clear,
+            StoreOp = StoreOp.Store,
+            StencilLoadOp = LoadOp.DontCare,
+            StencilStoreOp = StoreOp.DontCare,
+        });
+        if (job.OpaqueReserved > 0)
+        {
+            pass.BindGraphicsPipeline(DepthOnlyPipeline());
+            pass.BindVertexStorageBuffers(_opaqueBuffer!);
+            pass.SetScissor(FullClip);
+            commands.PushVertexUniformData(new DrawUniforms { Width = _width, Height = _height, First = job.OpaqueStart });
+            pass.DrawPrimitivesIndirect(_args!, job.ArgsOffset * 4, 1);
+        }
+
+        commands.EndRenderPass(pass);
+    }
+
+    private GraphicsPipeline DepthOnlyPipeline() => _depthOnly ??= GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
+    {
+        VertexShader = _primitiveVertex,
+        FragmentShader = _primitiveOpaque,
+        VertexInputState = VertexInputState.Empty,
+        PrimitiveType = PrimitiveType.TriangleList,
+        RasterizerState = RasterizerState.CCW_CullNone,
+        MultisampleState = new MultisampleState { SampleCount = SampleCount.One },
+        DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.Less },
+        TargetInfo = new GraphicsPipelineTargetInfo
+        {
+            ColorTargetDescriptions = [],
+            HasDepthStencilTarget = true,
+            DepthStencilFormat = _depthFormat,
+        },
+    });
+
     private void Draw(CommandBuffer commands, Job job, float time, bool msaa)
     {
         SampleCount samples = msaa ? _samples : SampleCount.One;
+        if (job.StepCount > 0 && ReadsDepth(job))
+            FillDepth(commands, job);
         RenderPass pass = BeginPass(commands, job, msaa, load: false);
         if (job.StepCount == 0)
         {
@@ -1019,7 +1113,7 @@ internal sealed class CanvasRenderer : IDisposable
             commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height, Depth = step.Depth });
             if (!effectState)
             {
-                // A deforming effect's vertex stage reads the frame too; only its time and play state matter there.
+                // A deforming effect's vertex stage reads the frame too; only its clocks matter there.
                 commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
                 commands.PushFragmentUniformData(frame, 0);
                 pass.BindVertexBuffers(_buffer!);
@@ -1036,6 +1130,12 @@ internal sealed class CanvasRenderer : IDisposable
             samplers[0] = new TextureSamplerBinding(Textures.GetValueOrDefault(step.Texture) ?? _white, _sampler);
             for (int i = 1; i < count; i++)
             {
+                if (i == SlangShaders.FragmentDepth && names[i] == "depthTexture")
+                {
+                    samplers[i] = new TextureSamplerBinding(_depthRead, _device.PointSampler);
+                    continue;
+                }
+
                 Texture? texture = i == 1 && names[i] == "screenTexture"
                     ? _screen
                     : names[i] is { } name && step.Material?.Textures.TryGetValue(name, out Handle id) == true
@@ -1045,16 +1145,17 @@ internal sealed class CanvasRenderer : IDisposable
             }
 
             pass.BindFragmentSamplers(samplers[..count]);
-            if (effect.Compiled.StorageBuffers > 1 && step.Material is { } kept && _states.TryGetValue(kept, out Buffer? state))
-                pass.BindFragmentStorageBuffers(_chart!, state);
-            else if (effect.Compiled.StorageBuffers > 0)
-                pass.BindFragmentStorageBuffers(_chart!);
+            if (effect.Compiled.StorageBuffers > 0)
+                pass.BindFragmentStorageBuffers(Bound(effect.Compiled.StorageBuffers,
+                    step.Material is { } kept && _states.TryGetValue(kept, out Buffer? state) ? state : null));
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, step.Material, step.Values);
             if (effect.Compiled.Vertex is { } vertex)
             {
+                if (vertex.Samplers.Length > 0)
+                    pass.BindVertexSamplers(new TextureSamplerBinding(_depthRead, _device.PointSampler));
                 if (vertex.StorageBuffers > 0)
-                    pass.BindVertexStorageBuffers(_chart!);
+                    pass.BindVertexStorageBuffers(Bound(vertex.StorageBuffers));
                 if (vertex.ParamsSize > 0)
                     PushParams(commands, vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
             }
@@ -1101,7 +1202,8 @@ internal sealed class CanvasRenderer : IDisposable
                 PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
             ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
             pass.BindComputePipeline(update);
-            pass.BindStorageBuffers(_chart!);
+            if (compiled.StorageBuffers > 0)
+                pass.BindStorageBuffers(Bound(compiled.StorageBuffers));
             pass.Dispatch(1, 1, 1);
             commands.EndComputePass(pass);
         }
@@ -1198,6 +1300,8 @@ internal sealed class CanvasRenderer : IDisposable
         _msaa?.Dispose();
         _msaaDepth?.Dispose();
         _depth.Dispose();
+        _depthRead.Dispose();
+        _depthOnly?.Dispose();
         _mips.Dispose();
         _sampler.Dispose();
         _zeros.Dispose();
@@ -1216,7 +1320,12 @@ internal sealed class CanvasRenderer : IDisposable
         _instanceTransfer?.Dispose();
         _slotTransfer?.Dispose();
         _argsTransfer?.Dispose();
-        _chart?.Dispose();
-        _chartTransfer?.Dispose();
+        foreach (GlobalBuffer held in _globalBuffers.Values)
+        {
+            held.Buffer?.Dispose();
+            held.Transfer?.Dispose();
+        }
+
+        _blank?.Dispose();
     }
 }

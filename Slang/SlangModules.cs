@@ -47,8 +47,31 @@ public static partial class SlangModules
             $"public property {match.Groups[1].Value} {match.Groups[2].Value} {{ get {{ return {match.Groups[3].Value}; }} }}");
 
     /// <summary>
+    /// A global's declaration: <c>[Global] public StructuredBuffer&lt;T&gt; name;</c>
+    /// (Docs/shader-pipeline.md §0). Its binding is the API's to give.
+    /// </summary>
+    [GeneratedRegex(@"\[Global\](\s*public\s+StructuredBuffer\s*<[^>]+>\s+(\w+)\s*;)")]
+    public static partial Regex GlobalDeclaration();
+
+    /// <summary>The define holding where global <paramref name="name"/> binds, for the stage being compiled.</summary>
+    public static string GlobalBindingDefine(string name) => "XANADU_GLOBAL_" + name;
+
+    /// <summary>The define holding the descriptor set the globals bind in.</summary>
+    public const string GlobalSetDefine = "XANADU_GLOBAL_SET";
+
+    /// <summary>Each <c>[Global]</c> marker as the binding the compile's defines give it, on the same line.</summary>
+    public static string WithGlobalBindings(string source) =>
+        GlobalDeclaration().Replace(source, match =>
+            $"[[vk::binding({GlobalBindingDefine(match.Groups[2].Value)}, {GlobalSetDefine})]]{match.Groups[1].Value}");
+
+    /// <summary>A library module as it is compiled: vector constants as getters, globals bound.</summary>
+    public static string Prepared(string source) => WithGlobalBindings(AsGetters(source));
+
+    /// <summary>
     /// Builds every module under <paramref name="library"/> into <paramref name="folder"/>, each
-    /// after the ones it imports; null and the reason when Slang refuses one.
+    /// after the ones it imports, beside its prepared source (<see cref="Prepared"/>). When Slang
+    /// refuses one, the reason, and the folder holds the sources from there on; null only when
+    /// the disk refuses.
     /// </summary>
     /// <param name="store">Where built modules are kept and taken from between builds; null builds every one.</param>
     /// <param name="salt">What else a stored module depends on: the compiler's version.</param>
@@ -65,7 +88,7 @@ public static partial class SlangModules
             {
                 string relative = Path.GetRelativePath(library, file);
                 string name = Path.ChangeExtension(relative, null).Replace(Path.DirectorySeparatorChar, '.');
-                string text = AsGetters(File.ReadAllText(file));
+                string text = Prepared(File.ReadAllText(file));
                 string copy = Path.Combine(staging, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
                 File.WriteAllText(copy, text);
@@ -100,8 +123,9 @@ public static partial class SlangModules
 
                 if (SlangNative.BuildModule(args, out string diagnostics) is not { } module)
                 {
+                    // The prepared sources stay: a compile reads them (and reports the error) as it would the library's.
                     problem = $"{name}: {FirstError(diagnostics)}";
-                    return null;
+                    break;
                 }
 
                 File.WriteAllBytes(target, module);

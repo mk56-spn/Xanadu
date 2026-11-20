@@ -8,6 +8,7 @@ using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
@@ -29,6 +30,9 @@ namespace Xanadu.Host;
 /// </summary>
 internal sealed class HostGame : HostApp
 {
+    // The game's shader globals, declared before HostApp's constructor warms the shipped effects.
+    static HostGame() => RhythmGlobals.Declare();
+
     private readonly HostOptions _options;
     private readonly HostFileDialog _fileDialog;
     private readonly XanaduSystemRoot _systems;

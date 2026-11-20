@@ -1,13 +1,13 @@
 using System;
 using System.Diagnostics;
 
-namespace Xanadu.Core.Rendering;
+namespace Xanadu.Core.Rendering.Rhythm;
 
 /// <summary>
-/// The play keys as shaders see them (<c>keys.</c> in <c>xanadu.anim</c>): when
+/// The play keys as shaders see them (<c>keys.</c> in <c>rhythm.play</c>): when
 /// each was last pressed. Whoever reads the keys marks a press here (the game's
-/// play input, the lab's shader editor); the renderer hands every shader the
-/// seconds since each, once a frame. Keys are numbered as the game's
+/// play input, the lab's shader editor); <see cref="RhythmGlobals"/> hands every
+/// shader the seconds since each, once a frame. Keys are numbered as the game's
 /// <c>KeybindAction</c>: left, right, up, down, then the three action keys.
 /// </summary>
 public static class ShaderKeys

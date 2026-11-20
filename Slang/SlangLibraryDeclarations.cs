@@ -41,8 +41,8 @@ public sealed partial class SlangLibraryDeclarations
 
     private void Add(string path, string text)
     {
-        // Each module by its own name, at its top, so `xanadu.ease` goes to the file.
-        Note(Path.GetFileNameWithoutExtension(path), "xanadu", new LibraryPlace(path, 0, 0));
+        // Each module by its own name, at its top, so `xanadu.ease` (or `rhythm.play`) goes to the file.
+        Note(Path.GetFileNameWithoutExtension(path), Path.GetFileName(Path.GetDirectoryName(path)) ?? "xanadu", new LibraryPlace(path, 0, 0));
 
         string code = CommentsAndStrings().Replace(text, m => Regex.Replace(m.Value, @"[^\n]", " "));
         List<(int Open, int End, string? Name)> scopes = Scopes(code);

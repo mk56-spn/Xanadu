@@ -4,8 +4,8 @@
 // the shapes (Circle, Box, …; shape; Grid, Stripes, Checker, …; pattern), the
 // gradients (Linear, Radial, Conical, Diamond, Spiral, …; gradient), Bezier (curve), colour and its paint
 // (colour, paint), clock, Clip and Keys (anim). Everything else is under its own
-// name: colours., sdf., anchor., ease., eases., blend., gradient., pattern., sprite.,
-// and the run being played: player., score., song., contact., events. (play).
+// name: colours., sdf., anchor., ease., eases., blend., gradient., pattern., sprite.
+// Nothing here knows the game: its play state and chart are `import rhythm;`.
 module xanadu;
 
 __exported import xanadu.stage;
@@ -20,4 +20,3 @@ __exported import xanadu.curve;
 __exported import xanadu.paint;
 __exported import xanadu.sprite;
 __exported import xanadu.anim;
-__exported import xanadu.play;
