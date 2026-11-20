@@ -10,7 +10,6 @@ using MoonWorks.Input;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs;
-using Xanadu.Systems;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
@@ -18,7 +17,8 @@ using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Ecs;
+using Xanadu.Wiring;
+using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Host;
 
@@ -32,7 +32,7 @@ internal sealed class HostGame : HostApp
     private readonly HostOptions _options;
     private readonly HostFileDialog _fileDialog;
     private readonly XanaduSystemRoot _systems;
-    private Xanadu.Editor.EditorOverlay? _editorOverlay;
+    private Xanadu.Screens.Editor.EditorOverlay? _editorOverlay;
 
     public HostGame(HostOptions options) : base("Xanadu",
         new HostWindowOptions(options.WindowWidth, options.WindowHeight, options.ShotPath, options.ShotFrame))
@@ -71,7 +71,7 @@ internal sealed class HostGame : HostApp
         if (_editorOverlay is not null)
             return;
 
-        _editorOverlay = new Xanadu.Editor.EditorOverlay(
+        _editorOverlay = new Xanadu.Screens.Editor.EditorOverlay(
             Entities,
             _systems.Commands,
             Pointer,
@@ -88,7 +88,7 @@ internal sealed class HostGame : HostApp
         {
             FileDialogOpen = () => _fileDialog.IsOpen,
         };
-        _systems.Scenes.SaveEditor = () => Xanadu.Editor.EditorOverlay.SaveForLeaving(_editorOverlay);
+        _systems.Scenes.SaveEditor = () => Xanadu.Screens.Editor.EditorOverlay.SaveForLeaving(_editorOverlay);
     }
 
     private void AddSong(string path)
@@ -158,7 +158,7 @@ internal sealed class HostGame : HostApp
     protected override string ScreenshotName()
     {
         string folder = GamePaths.Full("user://screenshots");
-        return Xanadu.Misc.ScreenshotNaming.Create("Xanadu", DateTime.Now, candidate => File.Exists(Path.Combine(folder, candidate)));
+        return Xanadu.Wiring.ScreenshotNaming.Create("Xanadu", DateTime.Now, candidate => File.Exists(Path.Combine(folder, candidate)));
     }
 
     protected override void Notify(string message) => _systems.Toasts.Show(message);

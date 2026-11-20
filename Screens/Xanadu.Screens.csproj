@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- What the player sees and works: scenes, panels, HUD, dialogs and their strings. Uses Logic; never wires scenes together or draws. -->
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+    <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Model/Xanadu.Model.csproj" />
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <ProjectReference Include="../Logic/Xanadu.Logic.csproj" />
+    <InternalsVisibleTo Include="Xanadu.Tests" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>
