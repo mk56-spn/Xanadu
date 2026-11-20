@@ -1,0 +1,69 @@
+using System;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.Editor;
+
+namespace Xanadu.Screens.Editor;
+
+/// <summary>Which tools use which part of the left panel.</summary>
+public static class EditorToolSections
+{
+    /// <summary>The 1×/2×/3× speed buttons: the speed new curve points get.</summary>
+    public static readonly EditorPlacementMode[] MoveStrength =
+    {
+        EditorPlacementMode.Curve,
+    };
+
+    /// <summary>The hold length stepper: how many beats the selected holds last.</summary>
+    public static readonly EditorPlacementMode[] HoldLength =
+    {
+        EditorPlacementMode.Hold,
+    };
+}
+
+/// <summary>
+/// Shows only the left panel sections the current tool uses, and hides the panel
+/// itself when a tool uses none of them.
+/// </summary>
+public sealed class EditorToolSectionSystem : QuerySystem<EditorToolSection>
+{
+    private readonly EntityStore _entities;
+
+    public EditorToolSectionSystem(EntityStore entities)
+    {
+        _entities = entities;
+
+        // A hidden section still has to be found to be shown again.
+        Filter.WithDisabled();
+    }
+
+    protected override void OnUpdate()
+    {
+        Entity editor = EditorSceneQuery.First<EditorPlacement, EditorLeftMenu>(_entities);
+
+        if (editor.IsNull)
+            return;
+
+        EditorPlacementMode mode = editor.GetComponent<EditorPlacement>().Mode;
+        CommandBuffer buffer = CommandBuffer;
+        bool any = Query.EachEntity(new ShowSections(Query.Store, CommandBuffer, mode)).Any;
+
+        UiLayout.SetHidden(editor.GetComponent<EditorLeftMenu>().Panel, buffer, !any);
+    }
+
+    private struct ShowSections(EntityStore Store, CommandBuffer Buffer, EditorPlacementMode Mode) : IEachEntity<EditorToolSection>
+    {
+        public bool Any;
+
+        public void Execute(ref EditorToolSection section, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            bool shown = Array.IndexOf(section.Modes, Mode) >= 0;
+            Any |= shown;
+            UiLayout.SetHidden(entity, Buffer, !shown);
+        }
+    }
+}

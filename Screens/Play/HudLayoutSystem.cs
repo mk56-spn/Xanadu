@@ -1,0 +1,263 @@
+using System;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Interaction;
+using Position = Xanadu.Core.Position;
+
+namespace Xanadu.Screens.Play;
+
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
+/// <summary>Applies saved HUD positions/visibility and edits them in play mode.</summary>
+public sealed class HudLayoutSystem(
+    IRectCanvas canvas,
+    IPointerInputSource pointer,
+    IKeyboardState keyboard,
+    HudLayoutSettings settings,
+    Handle overlay = default) : QuerySystem<HudLayout, PlayfieldView>
+{
+    private readonly UiDragController _drag = new();
+    private bool _wasEditPressed;
+    private bool _wasSecondaryPressed;
+    private HudItemLayout? _dragging;
+    private Vector2 _dragStartOffset;
+
+    protected override void OnUpdate()
+    {
+        bool editPressed = keyboard.IsPressed(DebugKeys.HudLayout);
+        if (editPressed && !_wasEditPressed)
+        {
+            Query.Each(new ToggleEditing());
+        }
+
+        _wasEditPressed = editPressed;
+
+        CommandBuffer buffer = CommandBuffer;
+        canvas.Clear(overlay);
+
+        Query.EachEntity(new LayOut(this, Query.Store, CommandBuffer));
+    }
+
+    private void DrawEditOverlay(HudLayout layout)
+    {
+        if (!overlay.IsValid)
+            return;
+
+        foreach (HudItemLayout item in layout.Items)
+        {
+            var bounds = new Rect2(
+                item.Bounds.Position + item.Offset,
+                item.Bounds.Size);
+            bool selected = layout.Selection.Contains(item.Handle);
+            Color fill = selected
+                ? new Color(0.8f, 0.95f, 1f, 0.14f)
+                : new Color(0.15f, 0.85f, 1f, 0.08f);
+            Color border = selected
+                ? Colors.White
+                : new Color(0.35f, 0.95f, 1f, 0.9f);
+
+            canvas.DrawRect(overlay, bounds, fill);
+            canvas.DrawLine(overlay, bounds.Position,
+                new Vector2(bounds.End.X, bounds.Position.Y), border, 1);
+            canvas.DrawLine(overlay,
+                new Vector2(bounds.End.X, bounds.Position.Y),
+                bounds.End, border, 1);
+            canvas.DrawLine(overlay, bounds.End,
+                new Vector2(bounds.Position.X, bounds.End.Y), border, 1);
+            canvas.DrawLine(overlay,
+                new Vector2(bounds.Position.X, bounds.End.Y),
+                bounds.Position, border, 1);
+            canvas.DrawTextLeft(
+                overlay,
+                new Rect2(
+                    bounds.Position + new Vector2(4, -18),
+                    new Vector2(180, 18)),
+                item.Id,
+                border);
+        }
+
+        canvas.DrawRect(
+            overlay,
+            new Rect2(16, 16, 430, 28),
+            new Color(0.03f, 0.05f, 0.09f, 0.92f));
+        canvas.DrawTextLeft(
+            overlay,
+            new Rect2(24, 20, 414, 20),
+            "HUD EDIT - DRAG TO MOVE - RIGHT CLICK VISIBILITY - F7 DONE",
+            new Color(0.35f, 0.95f, 1f));
+    }
+
+    private void ApplyLayout(
+        ref HudLayout layout,
+        PlayfieldView view,
+        Entity playfield,
+        CommandBuffer buffer)
+    {
+        foreach (HudItemLayout item in layout.Items)
+        {
+            if (!item.Initialized)
+            {
+                item.Initialized = true;
+                if (settings.TryGet(item.Id, out HudLayoutSettings.HudLayoutEntry entry))
+                {
+                    item.Offset = new Vector2(
+                        entry.X * view.ScreenSize.X,
+                        entry.Y * view.ScreenSize.Y) - item.Anchor;
+                    item.Visible = entry.Visible;
+                }
+            }
+
+            ApplyMembers(item, ref layout, playfield, buffer);
+        }
+
+        HandleEditing(ref layout, view, playfield, buffer);
+    }
+
+    private void ApplyMembers(
+        HudItemLayout item,
+        ref HudLayout layout,
+        Entity playfield,
+        CommandBuffer buffer)
+    {
+        for (int i = 0; i < item.Members.Count; i++)
+        {
+            Entity member = item.Members[i];
+            if (member.IsNull)
+                continue;
+
+            if (member.HasComponent<Position>())
+            {
+                ref Position position = ref member.GetComponent<Position>();
+                position.Value = item.BasePositions[i] + item.Offset;
+                buffer.AddTag<Moved>(member.Id);
+            }
+
+            if (member.HasComponent<VisualRid>())
+            {
+                canvas.SetVisible(
+                    member.GetComponent<VisualRid>().Value,
+                    item.Visible || layout.Editing);
+            }
+        }
+
+        if (item.Id == "error_bar" && playfield.HasComponent<ErrorBar>())
+        {
+            ref ErrorBar bar = ref playfield.GetComponent<ErrorBar>();
+            bar.CenterX = bar.BaseCenterX + item.Offset.X;
+            bar.Y = bar.BaseY + item.Offset.Y;
+        }
+    }
+
+    private void HandleEditing(
+        ref HudLayout layout,
+        PlayfieldView view,
+        Entity playfield,
+        CommandBuffer buffer)
+    {
+        if (!layout.Editing)
+        {
+            if (_dragging is not null)
+                _drag.End();
+
+            _dragging = null;
+            layout.Selection.Clear();
+            return;
+        }
+
+        PointerInput input = pointer.Read();
+        if (!input.Pressed)
+        {
+            if (_dragging is not null)
+                Save(_dragging, view);
+
+            _drag.End();
+            _dragging = null;
+            _wasSecondaryPressed = input.SecondaryPressed;
+            return;
+        }
+
+        if (input.SecondaryPressed && !_wasSecondaryPressed)
+        {
+            HudItemLayout? hit = HitTest(layout, input.Position);
+            if (hit is not null)
+            {
+                hit.Visible = !hit.Visible;
+                Save(hit, view);
+            }
+        }
+
+        _wasSecondaryPressed = input.SecondaryPressed;
+
+        if (_drag.Target.IsNull)
+        {
+            HudItemLayout? hit = HitTest(layout, input.Position);
+            if (hit is not null && !hit.Handle.IsNull)
+            {
+                if (input.Shift)
+                    layout.Selection.Toggle(hit.Handle);
+                else
+                    layout.Selection.Set(hit.Handle);
+
+                _dragging = hit;
+                _dragStartOffset = hit.Offset;
+                _drag.Begin(hit.Handle, input.Position);
+            }
+        }
+        else if (_drag.Update(input.Position) && _dragging is not null)
+        {
+            _dragging.Offset = _dragStartOffset + _drag.Delta;
+            ApplyMembers(_dragging, ref layout, playfield, buffer);
+        }
+    }
+
+    private static HudItemLayout? HitTest(HudLayout layout, Vector2 position)
+    {
+        for (int i = layout.Items.Count - 1; i >= 0; i--)
+        {
+            HudItemLayout item = layout.Items[i];
+            var bounds = new Rect2(
+                item.Bounds.Position + item.Offset,
+                item.Bounds.Size);
+            if (bounds.HasPoint(position))
+                return item;
+        }
+
+        return null;
+    }
+
+    private void Save(HudItemLayout item, PlayfieldView view)
+    {
+        Vector2 anchor = item.Anchor + item.Offset;
+        settings.Set(
+            item.Id,
+            anchor.X / Math.Max(1f, view.ScreenSize.X),
+            anchor.Y / Math.Max(1f, view.ScreenSize.Y),
+            item.Visible);
+    }
+
+    private readonly record struct LayOut(HudLayoutSystem System, EntityStore Store, CommandBuffer Buffer) : IEachEntity<HudLayout, PlayfieldView>
+    {
+        public void Execute(ref HudLayout layout, ref PlayfieldView view, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            System.ApplyLayout(ref layout, view, entity, Buffer);
+            if (layout.Editing)
+                System.DrawEditOverlay(layout);
+        }
+    }
+
+    private readonly record struct ToggleEditing : IEach<HudLayout, PlayfieldView>
+    {
+        public void Execute(ref HudLayout layout, ref PlayfieldView _) => layout.Editing = !layout.Editing;
+    }
+}
