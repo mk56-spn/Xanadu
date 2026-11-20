@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Systems.Characters;
 using Xanadu.Tools.Animator.Ecs;
+using Xanadu.Logic.Characters;
 
 namespace Xanadu.Tools.Animator.Commands;
 

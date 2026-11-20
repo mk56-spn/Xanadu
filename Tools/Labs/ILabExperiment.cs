@@ -45,5 +45,7 @@ internal static class LabExperiments
         new Experiments.RtsLab(),
         new Experiments.EcsRender.EcsRenderLab(),
         new Experiments.CjkGridLab(),
+        new Experiments.GliderLab(),
+        new Experiments.BoosterLab(),
     ];
 }

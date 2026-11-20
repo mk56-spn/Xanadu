@@ -1,4 +1,3 @@
-using Xanadu.Systems.Input;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Tools.Animator.Systems;

@@ -5,8 +5,6 @@ using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 using Xanadu.Host;
 using Xanadu.Ui.Systems;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;

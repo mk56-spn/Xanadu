@@ -1,8 +1,6 @@
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
-using Xanadu.Systems.Input;
-using Xanadu.Systems.Ui;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Files;
 using Xanadu.Tools.Animator.Systems;

@@ -59,14 +59,7 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     {
         _canvas.Clear(_timeline);
 
-        bool hasTrack = false;
-
-        Query.ForEachEntity((ref progress, _) =>
-        {
-            hasTrack = true;
-            AddDriftSample(progress);
-            DrawTimeline(progress);
-        });
+        bool hasTrack = Query.Each(new DrawTrack(this)).HasTrack;
 
         if (hasTrack)
             return;
@@ -331,4 +324,16 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
             color);
 
     private readonly record struct DriftSample(long TimeMs, long DriftMs, double AverageMs);
+
+    private struct DrawTrack(TimelineDrawSystem System) : IEach<TrackProgress>
+    {
+        public bool HasTrack;
+
+        public void Execute(ref TrackProgress progress)
+        {
+            HasTrack = true;
+            System.AddDriftSample(progress);
+            System.DrawTimeline(progress);
+        }
+    }
 }
