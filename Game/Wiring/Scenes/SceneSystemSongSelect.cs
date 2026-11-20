@@ -10,7 +10,7 @@ namespace Xanadu.Wiring.Scenes;
 public sealed partial class SceneSystem : QuerySystem<SceneState>
 {
     public bool TryStepCarousel(int direction) =>
-        _controllers.Get(SceneKind.SongSelect) is SongSelectController songSelect &&
+        _controllers.Get(SceneKind.SongSelect) is SongSelectHost songSelect &&
         songSelect.TryStep(direction);
 
     private LevelEntry? LoadEntry(string path)
@@ -29,7 +29,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
         }
     }
     public bool StepSongSelect(int direction) =>
-        CurrentController is SongSelectController controller
+        CurrentController is SongSelectHost controller
             ? controller.TryStep(direction)
             : false;
 
@@ -42,7 +42,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
             return false;
 
         // A song that isn't downloaded can't be mapped yet.
-        if (CurrentController is SongSelectController { SelectedEntry.IsBlocked: true })
+        if (CurrentController is SongSelectHost { SelectedEntry.IsBlocked: true })
             return false;
 
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();

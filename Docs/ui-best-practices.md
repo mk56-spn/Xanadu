@@ -95,6 +95,29 @@ it directly.
   against the 1920×1080 `UiStage`; the host scales it, so a screen never reads
   the window size.
 
+## Player-facing screens: logic and layout
+
+Every screen a player sees (main menu, profiles, song select, results,
+settings, calibration; not the editor, animator or tools) is two classes, so it
+can be reskinned without touching what it does.
+
+- **The logic** (`Logic/<Area>/<X>Logic.cs`, `IScreenLogic<TEntrance>`) knows
+  nothing about drawing. It declares a `ScreenContract`: its entrances, each
+  **mandatory** or **optional**; a mandatory one may require every argument
+  (settings' `Rebind` needs a control per key). Layouts read its values and
+  write only through `Do(entrance, arg)`. It leaves through `IScreenNavigator`.
+- **The layout** (`Screens/<Area>/<X>Layout.cs`, `IScreenLayout<TLogic>`) builds
+  its tree into the layer it is handed, puts entrances on its controls as
+  `UiCommand`s (`cmd: Cmd(SettingsEntrance.VSync, SettingsLogic.Flip)`), and
+  redraws from the logic in `Refresh`. Anything else it draws is its own business.
+- **The host** (`ScreenHost<TLogic, TEntrance>`, one subclass each in
+  `Game/Wiring/Scenes/ScreenHosts.cs`) builds the layout and checks it: a
+  mandatory entrance left unbound, or a binding to one that doesn't exist,
+  throws `ScreenContractException` naming each. It turns presses into `Do`
+  calls and, when a screen has more than one layout, adds a LAYOUT switch.
+
+Settings has two layouts (CARD and SPLIT) as the proof; the rest have one.
+
 ## The example: a type browser tab
 
 A tool tab with a header of view buttons, a budget meter, a search field, a

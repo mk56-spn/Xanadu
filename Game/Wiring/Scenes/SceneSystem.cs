@@ -91,14 +91,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>, ISongSelectCa
         _transitionsEnabled = transitions;
         _controllers = SceneControllerRegistry.CreateDefault(this);
         EditorSceneActions.Register(_actionRegistry);
-        ResultsSceneActions.Register(_actionRegistry);
         PauseSceneActions.Register(_actionRegistry);
-        SongSelectSceneActions.Register(_actionRegistry);
         SongTimingSceneActions.Register(_actionRegistry);
-        _actionRegistry.Register(
-            SceneKind.OffsetWizard,
-            SceneActionId.Back,
-            context => context.Scenes.TryBack());
         _actionRegistry.Register(
             SceneKind.Bench,
             SceneActionId.Back,
@@ -107,8 +101,11 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>, ISongSelectCa
 
     public ProfileStore Profiles => _profiles;
 
+    /// <summary>Adds a screen whose dependencies the scene system doesn't hold (audio, the keyboard).</summary>
+    public void AddScreen(ISceneController screen) => _controllers.Register(screen);
+
     public LevelEntry? SelectedLevel =>
-        CurrentController is SongSelectController controller
+        CurrentController is SongSelectHost controller
             ? controller.SelectedEntry
             : null;
 

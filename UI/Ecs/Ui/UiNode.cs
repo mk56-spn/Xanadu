@@ -251,6 +251,9 @@ public readonly partial struct UiNode
     }
 
     /// <summary>Points the shared builder at this node's entity.</summary>
+    /// <summary>Whether this node's surface draws real assets (textures, shaders), not test stand-ins.</summary>
+    public bool LoadsAssets => !IsNull && _surface!.Builder.Visuals.LoadsAssets;
+
     internal UiBuilder BeginChildren()
     {
         if (IsNull)

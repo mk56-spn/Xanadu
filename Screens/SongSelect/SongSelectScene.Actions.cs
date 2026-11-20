@@ -4,6 +4,7 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.SongSelect;
 using Xanadu.Screens.Shared;
 
 namespace Xanadu.Screens.SongSelect;
@@ -38,13 +39,13 @@ public static partial class SongSelectScene
         Frost(bar.Entity, loadAssets);
 
         UiNode edit = ActionButton(
-            bar, LocalizedText.Get(SongSelectStrings.EditLevel), SceneActionId.Edit);
+            bar, LocalizedText.Get(SongSelectStrings.EditLevel), SongSelectEntrance.Edit);
         var editIcons = new List<Entity>();
         foreach (Vector2[] part in Hammer(ActionButtonSize * 0.5f))
             editIcons.Add(Icon(edit, part));
 
         UiNode delete = ActionButton(
-            bar, LocalizedText.Get(SongSelectStrings.DeleteLevel), SceneActionId.DeleteLevel);
+            bar, LocalizedText.Get(SongSelectStrings.DeleteLevel), SongSelectEntrance.Delete);
         var deleteIcons = new List<Entity>();
         foreach (Vector2[] part in Bin(ActionButtonSize * 0.44f))
             deleteIcons.Add(Icon(delete, part));
@@ -53,7 +54,7 @@ public static partial class SongSelectScene
     }
 
     /// <summary>A clickable square with a thin gold outline and its icon inside.</summary>
-    private static UiNode ActionButton(UiNode bar, string tooltip, SceneActionId action) =>
+    private static UiNode ActionButton(UiNode bar, string tooltip, SongSelectEntrance action) =>
         bar.Column()
             .Size(ActionButtonSize, ActionButtonSize)
             .Fill(Dim)
@@ -61,7 +62,7 @@ public static partial class SongSelectScene
             .Border(Gold, 2)
             .With(ButtonVisual.Create(Dim))
             .Tooltip(tooltip)
-            .On(action);
+            .With(UiCommand.Of(action));
 
     /// <summary>A filled shape inside the button, centred on it and left out of its stacking.</summary>
     private static Entity Icon(UiNode button, Vector2[] points) =>

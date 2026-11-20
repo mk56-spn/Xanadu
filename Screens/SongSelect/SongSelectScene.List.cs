@@ -9,6 +9,8 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
 using Position = Xanadu.Core.Position;
 
+using Xanadu.Logic.SongSelect;
+
 namespace Xanadu.Screens.SongSelect;
 
 /// <summary>The staggered level list: scrolling rows around the selected level.</summary>
@@ -157,7 +159,7 @@ public static partial class SongSelectScene
             16,
             Colors.White,
             clickable: true);
-        emptyHint.AddComponent(UiCommand.Of(SceneActionId.Edit));
+        emptyHint.AddComponent(UiCommand.Of(SongSelectEntrance.Edit));
         return new ListViews(
             tiles,
             thumb,

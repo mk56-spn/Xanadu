@@ -7,6 +7,7 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Profiles;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Logic.SongSelect;
 using Xanadu.Screens.Shared;
 
 namespace Xanadu.Screens.SongSelect;
@@ -19,17 +20,14 @@ public static partial class SongSelectScene
     private const float ActionY = 1035;
     private static readonly Vector2 EmptyHintSize = new(360, 30);
 
+    /// <summary>Builds the classic song select into <paramref name="ui"/>, the layer the screen host made.</summary>
     public static SongSelectState Build(
-        EntityStore entities,
-        Entity root,
+        UiNode ui,
         IReadOnlyList<LevelEntry> catalog,
         int selected,
-        ProfileStore profiles,
-        IVisualItemFactory? visuals = null)
+        ProfileStore profiles)
     {
-        UiNode ui = UiNode.Layer(
-            entities, root, UiLayers.Menu, visuals, UiStage.Full);
-        bool loadAssets = visuals.LoadsAssets;
+        bool loadAssets = ui.LoadsAssets;
 
         BuildChrome(ui, loadAssets);
 
@@ -39,7 +37,7 @@ public static partial class SongSelectScene
                 SceneUi.MutedButtonColor)
             .Size(150, 44)
             .At(new Vector2(100, ActionY))
-            .On(SceneKind.Main);
+            .With(UiCommand.Of(SongSelectEntrance.Back));
 
         (Entity level, Entity levelPanel) = BuildPlayerCard(ui, profiles, loadAssets);
         ScoreViews scores = BuildScores(ui, loadAssets);

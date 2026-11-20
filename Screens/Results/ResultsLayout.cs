@@ -1,47 +1,37 @@
-using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Scoring;
+using Xanadu.Logic.Results;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Screens.Shared;
 using static Xanadu.Core.Theme.UiMetrics;
+using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
 namespace Xanadu.Screens.Results;
 
-/// <summary>
-/// Post-play results, as a spec tree: the title and level, a card of labelled
-/// stats, then the actions along the bottom.
-/// </summary>
-public static class ResultsScene
+/// <summary>Post-play results: the title and level, a card of labelled stats, then the actions along the bottom.</summary>
+public sealed class ResultsLayout : IScreenLayout<ResultsLogic>
 {
     private const float CardWidth = 760;
     private const float ActionWidth = 220;
     private const float ActionHeight = 52;
 
-    public static void Build(
-        EntityStore entities,
-        Entity root,
-        PlayResults results,
-        IVisualItemFactory? visuals = null,
-        bool canWatchReplay = false)
+    public string Name => "CLASSIC";
+
+    public void Build(UiNode layer, ResultsLogic logic)
     {
-        UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full);
-        ui.Rect(SceneUi.BackgroundColor).Cover().Below();
+        layer.Rect(SceneUi.BackgroundColor).Cover().Below();
+        var results = logic.Results;
 
-        string level = string.IsNullOrWhiteSpace(results.LevelName) ? "Unknown level" : results.LevelName;
-        string rank = results.Failed ? "FAIL" : ScoreRules.RankFor(results.Accuracy);
-
-        ui.Page().Cross(Cross.Center).Pad(Space.Xxl).Gap(Space.Lg).Add(
+        layer.Page().Cross(Cross.Center).Pad(Space.Xxl).Gap(Space.Lg).Add(
             new Label(ResultsStrings.Title, UiType.Display, ink: Ink.Accent),
-            new Label(level, UiType.Section, ink: Ink.Dim),
+            new Label(logic.LevelName, UiType.Section, ink: Ink.Dim),
             new Spacer(),
             new Column(width: CardWidth, pad: Space.Xxl, gap: Space.Sm, cross: Cross.Center, tone: Tone.Solid)
             {
                 Stat(ResultsStrings.Accuracy, $"{results.Accuracy * 100:0.00}%", UiType.Display, Ink.Accent),
-                new Label(rank, UiType.Section)
+                new Label(logic.Rank, UiType.Section)
                 {
-                    Style = results.Failed ? n => n.TextColor(n.Roles.Danger.Fill) : null,
+                    Style = logic.Failed ? n => n.TextColor(n.Roles.Danger.Fill) : null,
                 },
                 Stat(ResultsStrings.NotesHit, $"{results.NotesHit} / {results.TotalNotes}"),
                 Stat(ResultsStrings.MaxCombo, results.MaxCombo.ToString()),
@@ -57,14 +47,14 @@ public static class ResultsScene
                     UiType.Small),
             },
             new Spacer(),
-            canWatchReplay
-                ? Action(ResultsStrings.WatchReplay, Tone.Quiet, SceneActionId.WatchReplay)
+            logic.CanWatchReplay
+                ? Action(ResultsStrings.WatchReplay, Tone.Quiet, ResultsEntrance.WatchReplay)
                 : null,
             new Row(gap: Space.Lg)
             {
-                Action(ResultsStrings.Retry, Tone.Primary, SceneActionId.Retry),
-                Action(ResultsStrings.SongSelect, Tone.Secondary, SceneActionId.SongSelect),
-                Action(ResultsStrings.MainMenu, Tone.Secondary, SceneActionId.MainMenu),
+                Action(ResultsStrings.Retry, Tone.Primary, ResultsEntrance.Retry),
+                Action(ResultsStrings.SongSelect, Tone.Secondary, ResultsEntrance.SongSelect),
+                Action(ResultsStrings.MainMenu, Tone.Secondary, ResultsEntrance.MainMenu),
             });
     }
 
@@ -76,6 +66,6 @@ public static class ResultsScene
             new Label(value, type, ink: ink),
         };
 
-    private static Button Action(LString label, Tone tone, SceneActionId action) =>
-        new(label, tone: tone, width: ActionWidth, height: ActionHeight) { Style = n => n.On(action) };
+    private static Button Action(LString label, Tone tone, ResultsEntrance entrance) =>
+        new(label, tone: tone, cmd: Cmd(entrance), width: ActionWidth, height: ActionHeight);
 }

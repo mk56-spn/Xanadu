@@ -55,6 +55,9 @@ public interface ISceneController
     bool PausesOnBack => false;
     bool ConfirmsOnBack => false;
     void HandleActions(SceneSystem system, ref SceneState state) { }
+
+    /// <summary>The scene is being switched away from (or rebuilt), by any route.</summary>
+    void Leave() { }
 }
 
 /// <summary>Scene builders keyed by scene kind.</summary>
@@ -83,15 +86,14 @@ public sealed class SceneControllerRegistry
     {
         var registry = new SceneControllerRegistry();
         registry.Register(new SongTimingController());
-        registry.Register(new MainMenuController());
-        registry.Register(new ProfilesController());
-        registry.Register(new ProfileEditController());
-        registry.Register(new SongSelectController(system));
+        registry.Register(new MainMenuHost());
+        registry.Register(new ProfilesHost());
+        registry.Register(new ProfileEditHost());
+        registry.Register(new SongSelectHost(system));
         registry.Register(new EditorController());
         registry.Register(new PlayController());
-        registry.Register(new ResultsController());
-        registry.Register(new SettingsController());
-        registry.Register(new OffsetWizardController());
+        registry.Register(new ResultsHost(system));
+        registry.Register(new SettingsHost());
         registry.Register(new BenchController());
         return registry;
     }
@@ -266,64 +268,6 @@ public sealed class SceneControllerRegistry
         }
     }
 
-    private sealed class MainMenuController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.Main;
-        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
-        public void Build(SceneBuildContext c) => MainMenuScene.Build(c.Entities, c.Root, c.Visuals);
-        public bool TryForward(SceneSystem system)
-        {
-            system.Request(SceneKind.SongSelect);
-            return true;
-        }
-    }
-
-    private sealed class ProfilesController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.Profiles;
-        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
-        public void Build(SceneBuildContext c) => ProfilesScene.Build(c.Entities, c.Root, c.Profiles, c.Visuals);
-        public void HandleActions(SceneSystem system, ref SceneState state)
-        {
-            foreach ((Entity entity, SceneActionKind kind, UiCommand action) in UiCommand.All<SceneActionKind>(system.Entities))
-            {
-                if (!entity.Tags.Has<Pressed>())
-                    continue;
-
-                switch (kind)
-                {
-                    case SceneActionKind.SelectProfile:
-                        if (system.Profiles.Select(action.Text))
-                            state.Pending = SceneKind.Main;
-                        return;
-                    case SceneActionKind.CreateProfile:
-                        system.Profiles.Create();
-                        state.Pending = SceneKind.ProfileEdit;
-                        return;
-                    case SceneActionKind.EditProfile:
-                        if (system.Profiles.Select(action.Text))
-                            state.Pending = SceneKind.ProfileEdit;
-                        return;
-                }
-            }
-        }
-    }
-
-    private sealed class ProfileEditController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.ProfileEdit;
-        public SceneBackgroundKind Background => SceneBackgroundKind.Menu;
-        public SceneKind BackTarget => SceneKind.Profiles;
-
-        public void Build(SceneBuildContext c)
-        {
-            if (c.Profiles.ActiveProfile is { } profile)
-                ProfileEditScene.Build(c.Entities, c.Root, profile, c.Visuals);
-            else
-                c.StateEntity.GetComponent<SceneState>().Pending = SceneKind.Profiles;
-        }
-    }
-
     private sealed class EditorController : ISceneController
     {
         public SceneKind Kind => SceneKind.Editor;
@@ -348,50 +292,6 @@ public sealed class SceneControllerRegistry
         public bool TryForward(SceneSystem system) => system.RequestPlaySkip();
         public SceneKind BackTarget => SceneKind.SongSelect;
         public bool PausesOnBack => true;
-    }
-
-    private sealed class ResultsController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.Results;
-        public void Build(SceneBuildContext c) => ResultsScene.Build(c.Entities, c.Root, c.Results ?? default, c.Visuals, c.CanWatchReplay);
-        public bool TryForward(SceneSystem system)
-        {
-            system.Request(SceneKind.SongSelect);
-            return true;
-        }
-        public SceneKind BackTarget => SceneKind.SongSelect;
-    }
-
-    private sealed class SettingsController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.Settings;
-        public void Build(SceneBuildContext c) => SettingsScene.Build(
-            c.Entities,
-            c.Root,
-            c.Keybinds,
-            c.Display,
-            c.Visuals);
-
-        public SceneKind BackTarget => SceneKind.Main;
-
-        public void HandleActions(SceneSystem system, ref SceneState state)
-        {
-            foreach ((Entity entity, KeybindAction action, _) in UiCommand.All<KeybindAction>(system.Entities))
-            {
-                if (!entity.Tags.Has<Pressed>())
-                    continue;
-
-                system.Keybinds.BeginCapture(action);
-                return;
-            }
-        }
-    }
-
-    private sealed class OffsetWizardController : ISceneController
-    {
-        public SceneKind Kind => SceneKind.OffsetWizard;
-        public void Build(SceneBuildContext c) => OffsetWizardScene.Build(c.Entities, c.Root, c.Visuals);
-        public SceneKind BackTarget => SceneKind.Main;
     }
 
     private sealed class BenchController : ISceneController

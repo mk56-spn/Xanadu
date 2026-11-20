@@ -120,6 +120,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             display: Display,
             replays: Xanadu.Model.Replays.ReplayStore.Default,
             pointer: pointerInput);
+        Scenes.AddScreen(new OffsetWizardHost(new MiniaudioTrackAudio(), Offsets, Keyboard));
         _sceneDirector = sceneDirector;
         sceneDirector.Changed += OnSceneChanged;
 
@@ -129,13 +130,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(new Xanadu.Screens.SongSelect.SongSelectScrollbarSystem(pointerInput, Scenes));
         Add(new Xanadu.Screens.SongSelect.SongSelectDragSystem(pointerInput, Scenes));
         Add(new Xanadu.Screens.SongSelect.SongSelectScrollSystem());
-        Add(new Xanadu.Logic.Profiles.ProfileEditSystem(Profiles));
-        Add(new OffsetWizardSystem(
-            entities,
-            new MiniaudioTrackAudio(),
-            Offsets,
-            Keyboard,
-            () => Scenes.TryBack()));
         Add(new BenchSystem(entities, new MiniaudioTrackAudio(), Keyboard));
         Add(new Xanadu.Logic.Audio.SongPreviewSystem(entities, _previewAudio));
         _audioSystems = new AudioSystemGroup(
@@ -171,7 +165,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             Toasts);
         _editorSystems.SetActive(false);
         Add(_editorSystems);
-        Add(new InputSystemGroup(Scenes, Keybinds, Display));
+        Add(new InputSystemGroup(Scenes));
         if (wheel is not null)
         {
             // The UI's input ran first, so this only sees what the UI did not scroll with.

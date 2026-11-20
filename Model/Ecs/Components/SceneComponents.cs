@@ -52,57 +52,10 @@ public struct SceneBackground(SceneBackgroundKind kind) : IComponent
     public SceneBackgroundKind Kind = kind;
 }
 
-/// <summary>A profile button's command; its <see cref="UiCommand.Text"/> is the profile id.</summary>
-public enum SceneActionKind
-{
-    /// <summary>Selects a local profile and continues to the main menu.</summary>
-    SelectProfile,
-    /// <summary>Creates a new local profile and opens the screen that edits it.</summary>
-    CreateProfile,
-    /// <summary>Makes a profile the active one and opens the screen that edits it.</summary>
-    EditProfile,
-}
-
-/// <summary>
-/// What a menu button does when it is pressed, as a <see cref="UiCommand"/>: a
-/// <see cref="SceneKind"/> command goes to that scene, a
-/// <see cref="SceneActionKind"/> one acts on a profile.
-/// </summary>
+/// <summary>A menu button that goes to a scene when pressed, as a <see cref="UiCommand"/>.</summary>
 public static class SceneAction
 {
     public static UiCommand Go(SceneKind target) => UiCommand.Of(target);
-
-    public static UiCommand SelectProfile(string profileId) =>
-        UiCommand.Of(SceneActionKind.SelectProfile, text: profileId);
-
-    public static UiCommand CreateProfile() => UiCommand.Of(SceneActionKind.CreateProfile);
-
-    public static UiCommand EditProfile(string profileId) =>
-        UiCommand.Of(SceneActionKind.EditProfile, text: profileId);
-
-    /// <summary>The menu buttons of one kind, hidden ones included.</summary>
-    public static System.Collections.Generic.List<Entity> All(EntityStore store, SceneActionKind kind)
-    {
-        var found = new System.Collections.Generic.List<Entity>();
-        foreach ((Entity entity, SceneActionKind each, _) in UiCommand.All<SceneActionKind>(store))
-        {
-            if (each == kind)
-                found.Add(entity);
-        }
-
-        return found;
-    }
-}
-
-/// <summary>The controls of the profile edit screen and the art they tint.</summary>
-public struct ProfileEditView(Entity name, Entity picker, Entity art) : IComponent
-{
-    public Entity Name = name;
-    public Entity Picker = picker;
-    public Entity Art = art;
-
-    /// <summary>The name text last handed to the profile, so only real edits rename it.</summary>
-    public string Typed = "";
 }
 
 /// <summary>Song-select UI state and the text entities it updates.</summary>

@@ -12,6 +12,8 @@ using Xanadu.Screens.Shared;
 
 using Xanadu.Logic.Profiles;
 
+using Xanadu.Logic.SongSelect;
+
 namespace Xanadu.Screens.SongSelect;
 
 /// <summary>The tilted preview frame and the difficulty chips beneath it.</summary>
@@ -81,7 +83,7 @@ public static partial class SongSelectScene
                 bottom: new Color(0.07f, 0.36f, 0.19f),
                 instance: "level art"),
             takesInput: true);
-        levelArt.On(SceneActionId.Play)
+        levelArt.With(UiCommand.Of(SongSelectEntrance.Play))
             .Tooltip(LocalizedText.Get(SongSelectStrings.Play));
 
         // The player's art: the notes shader in their own tint.

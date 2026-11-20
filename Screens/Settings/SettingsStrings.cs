@@ -19,5 +19,9 @@ public static class SettingsStrings
     public static readonly LString Action = new("settings.action", "ACTION");
     public static readonly LString Key = new("settings.key", "KEY");
     public static readonly LString Back = new("common.back", "BACK");
+    public static readonly LString PressKey = new("settings.press_key", "PRESS A KEY...");
+    public static readonly LString Display = new("settings.display", "DISPLAY");
+    public static readonly LString On = new("settings.on", "ON");
+    public static readonly LString Off = new("settings.off", "OFF");
     public static readonly LString Footer = new("settings.footer", "CLICK A KEY TO REBIND   ·   ESC CANCELS");
 }

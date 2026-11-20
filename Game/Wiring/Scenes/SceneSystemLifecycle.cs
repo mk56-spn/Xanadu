@@ -37,6 +37,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     private void Switch(ref SceneState state)
     {
         _restartRequested = false;
+        _controllers.Get(state.Current)?.Leave();
         _keybinds.CancelCapture();
         HidePauseVisual();
         HideConfirmation();
