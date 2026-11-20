@@ -22,7 +22,7 @@ public sealed class ShapeAndRotationTests
         var store = new EntityStore();
         var canvas = new RecordingCanvas();
         Entity entity = store.CreateEntity(
-            new VisualRid(new Handle()),
+            new VisualItem(new Handle()),
             new Position(new Vector2(10, 20)),
             new UiRotation(0.5f),
             Tags.Get<Moved>());
@@ -45,7 +45,7 @@ public sealed class ShapeAndRotationTests
         store.CreateEntity(
             new Rectangle(new Rect2(0, 0, 10, 10)),
             new Drawable(0),
-            new VisualRid(new Handle()),
+            new VisualItem(new Handle()),
             new UiShape(points, Colors.Black, Colors.White, 3),
             Tags.Get<Dirty>());
 

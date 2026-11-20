@@ -984,7 +984,7 @@ public sealed class EditorNoteInputSystemTests
         SelectionRotation.Apply(
             SelectionRotation.Capture(spike),
             new Vector2(450, 450),
-            Mathf.DegToRad(30f),
+            float.DegreesToRadians(30f),
             playfield,
             true);
         Assert.That(spike.GetComponent<Spike>().RotationDegrees, Is.EqualTo(30f).Within(0.01f));
@@ -994,7 +994,7 @@ public sealed class EditorNoteInputSystemTests
         SelectionRotation.Apply(
             SelectionRotation.Capture(block),
             block.GetComponent<Block>().Center,
-            Mathf.DegToRad(30f),
+            float.DegreesToRadians(30f),
             playfield,
             true);
         Assert.That(
@@ -1004,7 +1004,7 @@ public sealed class EditorNoteInputSystemTests
         SelectionRotation.Apply(
             SelectionRotation.Capture(block),
             block.GetComponent<Block>().Center,
-            Mathf.DegToRad(70f),
+            float.DegreesToRadians(70f),
             playfield,
             true);
         Assert.That(

@@ -85,9 +85,9 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         RestMode(true);
 
-        AnimatorTransformCommands.SetRotation(Session, Mathf.Pi / 2f);
+        AnimatorTransformCommands.SetRotation(Session, float.Pi / 2f);
 
-        Assert.That(Torso.Rest.Rotation, Is.EqualTo(Mathf.Pi / 2f).Within(0.0001f));
+        Assert.That(Torso.Rest.Rotation, Is.EqualTo(float.Pi / 2f).Within(0.0001f));
         Assert.That(HeadWorld().DistanceTo(new Vector2(0, -150)), Is.LessThan(0.001f));
     }
 
@@ -230,7 +230,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         DragBone(2, new Vector2(5, 0), true);
 
-        Assert.That(Mathf.Abs(Runtime.Pose.Bones[1].Rotation), Is.GreaterThan(0.01f));
+        Assert.That(Math.Abs(Runtime.Pose.Bones[1].Rotation), Is.GreaterThan(0.01f));
         Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.False);
     }
 

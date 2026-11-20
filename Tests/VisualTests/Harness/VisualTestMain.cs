@@ -191,13 +191,13 @@ internal sealed class VisualTestMain : HostApp
             VisualTestSidebar.DesignHeight);
 
         _testHost = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(_testHost, Canvas.RootRid);
+        CanvasServer.Current.SetParent(_testHost, Canvas.RootHandle);
         PlaceStage(VisualTestSidebar.SidebarWidth);
 
         for (int i = 0; i < _tests.Count; i++)
             _statuses.Add(VisualTestStatus.Pending);
 
-        _sidebar = new VisualTestSidebar(Canvas.RootRid, Pointer, Pointer, Keyboard, _tests);
+        _sidebar = new VisualTestSidebar(Canvas.RootHandle, Pointer, Pointer, Keyboard, _tests);
     }
 
     private void PlaceStage(float left) =>

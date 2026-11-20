@@ -437,7 +437,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
     {
         AddChainOnHead();
         // Turn the head a quarter turn in the rest pose, so its local X points down the screen.
-        Package.Skeleton.Bones[2].Rest = new Transform2D(Mathf.Pi / 2f, Package.Skeleton.Bones[2].Rest.Origin);
+        Package.Skeleton.Bones[2].Rest = new Transform2D(float.Pi / 2f, Package.Skeleton.Bones[2].Rest.Origin);
         Session.GetComponent<AnimatorModes>().Rest = true;
         Frame();
         Vector2 start = RootScreen();

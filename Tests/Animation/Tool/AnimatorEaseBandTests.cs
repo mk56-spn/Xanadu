@@ -28,7 +28,7 @@ public sealed class AnimatorEaseBandTests
             {
                 if (x >= top[i].X && x <= top[i + 1].X)
                 {
-                    float y = Mathf.Lerp(top[i].Y, top[i + 1].Y, (x - top[i].X) / (top[i + 1].X - top[i].X));
+                    float y = float.Lerp(top[i].Y, top[i + 1].Y, (x - top[i].X) / (top[i + 1].X - top[i].X));
                     return Middle - y;
                 }
             }

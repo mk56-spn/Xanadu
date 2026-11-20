@@ -107,14 +107,14 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Vector2 joint = world[Foot].Origin;
         Vector2 stem = AnimatorTipHandles.Tip(Package, Foot, world, placement);
         Assert.That(AnimatorTipHandles.TryBegin(Session, stem, placement, Runtime.Pose, world), Is.True);
-        AnimatorTipHandles.Drag(Session, joint + (stem - joint).Rotated(Mathf.Pi / 6f), placement, true);
+        AnimatorTipHandles.Drag(Session, joint + (stem - joint).Rotated(float.Pi / 6f), placement, true);
         // Ending the drag keys nothing: the pin owns the foot's keys.
         Assert.That(Session.GetComponent<AnimatorDrag>().Repinned, Is.True);
         AnimatorHistoryCommands.EndGesture(Session, null);
         Frame();
 
-        Assert.That(Idle.Targets[0].Facing, Is.EqualTo(facing + Mathf.Pi / 6f).Within(0.001f));
-        Assert.That(FootFacing, Is.EqualTo(facing + Mathf.Pi / 6f).Within(0.001f));
+        Assert.That(Idle.Targets[0].Facing, Is.EqualTo(facing + float.Pi / 6f).Within(0.001f));
+        Assert.That(FootFacing, Is.EqualTo(facing + float.Pi / 6f).Within(0.001f));
     }
 
     [Test]

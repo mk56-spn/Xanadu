@@ -65,7 +65,7 @@ public sealed class XafJointLockTests
             XafJointLocks.BendPositive(package, Shin)!.Value);
 
         float bend = (solved[1] - solved[0]).Cross(solved[2] - solved[1]);
-        Assert.That(Mathf.Sign(bend), Is.EqualTo(locked));
+        Assert.That(Math.Sign(bend), Is.EqualTo(locked));
     }
 
     [Test]

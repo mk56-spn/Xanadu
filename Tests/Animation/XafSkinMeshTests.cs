@@ -176,7 +176,7 @@ public sealed class XafSkinMeshTests
 
         // Bending the lower bone carries the far end with it; the near end stays.
         XafPose pose = XafClothLayout.RestPose(package);
-        pose.Bones[2].Rotation = Mathf.Pi / 2f;
+        pose.Bones[2].Rotation = float.Pi / 2f;
         Vector2[] posed = XafSkinAuthoring.Posed(package, 0, pose);
         Vector2[] rest = XafSkinAuthoring.Posed(package, 0, XafClothLayout.RestPose(package));
         int top = Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 0)))

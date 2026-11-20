@@ -160,7 +160,7 @@ public sealed class XafSkinTests
         XafPose rest = XafClothLayout.RestPose(package);
         Transform2D[] restBones = XafRig.WorldBones(package, rest);
         XafPose pose = rest.Clone();
-        pose.Bones[shin].Rotation = Mathf.Pi / 2f;
+        pose.Bones[shin].Rotation = float.Pi / 2f;
         Transform2D[] bones = XafRig.WorldBones(package, pose);
 
         // Five behind the knee, half thigh and half shin.

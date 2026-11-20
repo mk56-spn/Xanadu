@@ -33,7 +33,7 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
     [Test]
     public void DragMovesAndSavesTheWholeItem()
     {
-        Entity member = Store.CreateEntity(new VisualRid(default), new Position(new Vector2(100, 100)));
+        Entity member = Store.CreateEntity(new VisualItem(default), new Position(new Vector2(100, 100)));
         Entity playfield = Store.CreateEntity(
             new HudLayout(),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
@@ -52,7 +52,7 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
     [Test]
     public void RightClickTogglesItemVisibility()
     {
-        Entity member = Store.CreateEntity(new VisualRid(default), new Position(new Vector2(100, 100)));
+        Entity member = Store.CreateEntity(new VisualItem(default), new Position(new Vector2(100, 100)));
         Entity playfield = Store.CreateEntity(
             new HudLayout(),
             new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
@@ -73,7 +73,7 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
 
         Assert.That(layout.Editing, Is.False);
         Assert.That(item.Visible, Is.False);
-        Assert.That(_canvas.Hidden, Does.Contain(member.GetComponent<VisualRid>().Value));
+        Assert.That(_canvas.Hidden, Does.Contain(member.GetComponent<VisualItem>().Value));
     }
 
     private sealed class ScriptedPointer : IPointerInputSource

@@ -58,7 +58,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[1].Origin, Is.EqualTo(new Vector2(80, 0)).Using<Vector2>(Close));
-        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
+        Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
     }
 
@@ -160,7 +160,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
     {
         // Root rotated a quarter turn: screen-right is local -Y.
         Package.Skeleton.Bones[1].AllowTranslation = true;
-        Package.Skeleton.Bones[0].Rest = new Transform2D(Mathf.Pi / 2, Vector2.Zero);
+        Package.Skeleton.Bones[0].Rest = new Transform2D(float.Pi / 2, Vector2.Zero);
         Runtime.Seek(0f);
         Vector2 start = BoneScreenPosition(1);
         PressAt(start);
@@ -195,7 +195,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         XafChannel? rotation = Idle.Channels.Find(channel =>
             channel.TargetId == "root" && channel.Property == XafChannelProperty.Rotation);
         Assert.That(rotation, Is.Not.Null);
-        Assert.That(rotation!.Keyframes[0].Value, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
+        Assert.That(rotation!.Keyframes[0].Value, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(
             Idle.Channels.Exists(channel => channel.TargetId == "torso" && XafSampler.IsTranslation(channel.Property)),
             Is.False);

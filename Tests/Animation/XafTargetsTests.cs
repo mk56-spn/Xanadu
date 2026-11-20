@@ -62,10 +62,10 @@ public sealed class XafTargetsTests
     [Test]
     public void TiltSweepAndEaseShapeTheTrip()
     {
-        XafLimbTarget back = Orbit("foot", "", Vector2.Zero) with { Sweep = -Mathf.Tau };
+        XafLimbTarget back = Orbit("foot", "", Vector2.Zero) with { Sweep = -float.Tau };
         Assert.That(back.LocalAt(0.25f).Y, Is.EqualTo(-9f).Within(0.001f));
 
-        XafLimbTarget tilted = Orbit("foot", "", Vector2.Zero) with { Tilt = Mathf.Pi / 2 };
+        XafLimbTarget tilted = Orbit("foot", "", Vector2.Zero) with { Tilt = float.Pi / 2 };
         Assert.That(tilted.LocalAt(0f).DistanceTo(new Vector2(0, 16)), Is.LessThan(0.001f));
 
         XafLimbTarget slow = Orbit("foot", "", Vector2.Zero) with { Ease = EasePreset.EaseIn };

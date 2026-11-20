@@ -41,7 +41,7 @@ public sealed class AnimatorMotionPathTests : AnimatorToolTest
     [Test]
     public void TheJointFollowsItsParentsRotation()
     {
-        KeyTorso((0f, 0f), (2f, Mathf.Pi / 2));
+        KeyTorso((0f, 0f), (2f, float.Pi / 2));
 
         AnimatorMotionPath path = HeadPath();
 
@@ -67,10 +67,10 @@ public sealed class AnimatorMotionPathTests : AnimatorToolTest
         AnimatorMotionPath path = HeadPath();
         float arc = 0f;
         for (int i = 1; i < 25; i++)
-            arc = Mathf.Max(arc, path.Turn[i]);
+            arc = Math.Max(arc, path.Turn[i]);
         float snap = 0f;
         for (int i = 28; i < 34; i++)
-            snap = Mathf.Max(snap, path.Turn[i]);
+            snap = Math.Max(snap, path.Turn[i]);
 
         Assert.That(arc, Is.LessThan(AnimatorMotionPaths.SharpDegrees));
         Assert.That(snap, Is.GreaterThanOrEqualTo(AnimatorMotionPaths.SharpDegrees));

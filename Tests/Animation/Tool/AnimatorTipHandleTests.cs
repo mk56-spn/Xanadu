@@ -119,7 +119,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         Pointer.Shift = true;
         MoveTo(joint + new Vector2(100, 0));
 
-        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
+        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f).Within(0.001f));
         Assert.That(BoneScreenPosition(Head), Is.EqualTo(joint).Using<Vector2>(Close));
     }
@@ -144,13 +144,13 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         PressAt(Tip());
 
         // 20 degrees clockwise of straight up.
-        Vector2 off = Vector2.Up.Rotated(Mathf.DegToRad(20f)) * 100f;
+        Vector2 off = Vector2.Up.Rotated(float.DegreesToRadians(20f)) * 100f;
         MoveTo(joint + off);
         Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(AnimatorTipHandles.SnapStep).Within(0.001f));
 
         Pointer.Shift = true;
         MoveTo(joint + off + new Vector2(0.001f, 0));
-        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(Mathf.DegToRad(20f)).Within(0.001f));
+        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(float.DegreesToRadians(20f)).Within(0.001f));
     }
 
     [Test]
@@ -162,9 +162,9 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         Pointer.Shift = true;
 
         foreach (float degrees in new[] { 60f, 120f, 170f, 200f })
-            MoveTo(joint + Vector2.Up.Rotated(Mathf.DegToRad(degrees)) * 100f);
+            MoveTo(joint + Vector2.Up.Rotated(float.DegreesToRadians(degrees)) * 100f);
 
-        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(Mathf.DegToRad(200f)).Within(0.001f));
+        Assert.That(Runtime.Pose.Bones[Head].Rotation, Is.EqualTo(float.DegreesToRadians(200f)).Within(0.001f));
     }
 
     [Test]
@@ -196,7 +196,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.None));
         XafChannel channel = Idle.Channels.Find(c =>
             c.TargetId == "head" && c.Property == XafChannelProperty.Rotation)!;
-        Assert.That(channel.Keyframes.Find(key => key.Time == 0f)!.Value, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
+        Assert.That(channel.Keyframes.Find(key => key.Time == 0f)!.Value, Is.EqualTo(float.Pi / 2).Within(0.001f));
     }
 
     [Test]
@@ -229,7 +229,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         MoveTo(joint + new Vector2(100, 0));
 
         XafBone head = Package.Skeleton.Bones[Head];
-        Assert.That(head.Rest.Rotation, Is.EqualTo(Mathf.Pi / 2).Within(0.001f));
+        Assert.That(head.Rest.Rotation, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(head.Rest.Origin, Is.EqualTo(new Vector2(0, -70)).Using<Vector2>(Close));
     }
 

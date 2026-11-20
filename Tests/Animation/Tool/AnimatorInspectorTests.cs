@@ -148,7 +148,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
 
         Type(Ui.InspectRotation, "90");
 
-        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(Mathf.Pi / 2).Within(0.0001f));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(float.Pi / 2).Within(0.0001f));
         Assert.That(FieldValue(Ui.InspectRotation), Is.EqualTo("90"));
     }
 
@@ -182,7 +182,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     [Test]
     public void TheSlidersFollowTheSelection()
     {
-        Runtime.Pose.Bones[1].Rotation = Mathf.Pi / 4;
+        Runtime.Pose.Bones[1].Rotation = float.Pi / 4;
         Runtime.Pose.Bones[1].Scale = new Vector2(2f, 2f);
         SelectBone(1);
 
@@ -202,7 +202,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Ui.InspectRotationSlider.AddTag<Pressed>();
         Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 30f;
         Frame();
-        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(Mathf.DegToRad(30f)).Within(0.0001f));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(float.DegreesToRadians(30f)).Within(0.0001f));
         Assert.That(XafTracks.KeyTimes(Idle, track), Does.Not.Contain(1f), "keys only on release");
 
         Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 60f;
@@ -210,7 +210,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Ui.InspectRotationSlider.RemoveTag<Pressed>();
         Frame();
 
-        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(Mathf.DegToRad(60f)).Within(0.0001f));
+        Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(float.DegreesToRadians(60f)).Within(0.0001f));
         Assert.That(XafTracks.KeyTimes(Idle, track), Does.Contain(1f));
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
@@ -296,7 +296,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
 
         Type(Ui.InspectRotation, "30");
 
-        Assert.That(Package.Skeleton.Bones[1].Rest.Rotation, Is.EqualTo(Mathf.DegToRad(30f)).Within(0.0001f));
+        Assert.That(Package.Skeleton.Bones[1].Rest.Rotation, Is.EqualTo(float.DegreesToRadians(30f)).Within(0.0001f));
         Assert.That(Title, Does.Contain("REST"));
     }
 

@@ -46,12 +46,12 @@ public sealed class ParticleSpawnTests
     public void ParticlesFlyInsideTheSpreadConeTurnedWithTheEmitter()
     {
         var effect = new XpfParticle { Amount = 200, Direction = 0f, Spread = 10f, SpeedMin = 100f, SpeedMax = 200f };
-        int count = Burst(effect, angle: Mathf.Pi / 2f);
+        int count = Burst(effect, angle: float.Pi / 2f);
         for (int i = 0; i < count; i++)
         {
             Vector2 velocity = _seeds[i].Velocity;
             Assert.That(velocity.Length(), Is.InRange(100f - 1e-3f, 200f + 1e-3f));
-            Assert.That(Mathf.RadToDeg(Mathf.Abs(velocity.AngleTo(Vector2.Down))), Is.LessThanOrEqualTo(10f + 1e-3f));
+            Assert.That(float.RadiansToDegrees(Math.Abs(velocity.AngleTo(Vector2.Down))), Is.LessThanOrEqualTo(10f + 1e-3f));
         }
     }
 
@@ -62,7 +62,7 @@ public sealed class ParticleSpawnTests
         int count = Burst(effect, angle: 1f, heading: new Vector2(-3f, 0f));
         for (int i = 0; i < count; i++)
             Assert.That(
-                Mathf.RadToDeg(Mathf.Abs(_seeds[i].Velocity.AngleTo(Vector2.Left))),
+                float.RadiansToDegrees(Math.Abs(_seeds[i].Velocity.AngleTo(Vector2.Left))),
                 Is.LessThanOrEqualTo(5f + 1e-3f));
     }
 
@@ -78,8 +78,8 @@ public sealed class ParticleSpawnTests
         for (int i = 0; i < count; i++)
         {
             Vector2 offset = _seeds[i].Position - at;
-            Assert.That(Mathf.Abs(offset.X), Is.LessThanOrEqualTo(20f));
-            Assert.That(Mathf.Abs(offset.Y), Is.LessThanOrEqualTo(5f));
+            Assert.That(Math.Abs(offset.X), Is.LessThanOrEqualTo(20f));
+            Assert.That(Math.Abs(offset.Y), Is.LessThanOrEqualTo(5f));
         }
     }
 
@@ -87,10 +87,10 @@ public sealed class ParticleSpawnTests
     public void AnUprightEffectIgnoresTheEmittersTurn()
     {
         Burst(new XpfParticle { Amount = 1, Upright = true, AngleMin = 30f, AngleMax = 30f }, angle: 1f);
-        Assert.That(_seeds[0].Angle, Is.EqualTo(Mathf.DegToRad(30f)).Within(1e-5f));
+        Assert.That(_seeds[0].Angle, Is.EqualTo(float.DegreesToRadians(30f)).Within(1e-5f));
 
         Burst(new XpfParticle { Amount = 1, AngleMin = 30f, AngleMax = 30f }, angle: 1f);
-        Assert.That(_seeds[0].Angle, Is.EqualTo(1f + Mathf.DegToRad(30f)).Within(1e-5f));
+        Assert.That(_seeds[0].Angle, Is.EqualTo(1f + float.DegreesToRadians(30f)).Within(1e-5f));
     }
 
     [Test]

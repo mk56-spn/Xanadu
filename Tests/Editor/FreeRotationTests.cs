@@ -17,7 +17,7 @@ public sealed class FreeRotationTests
     private static readonly Playfield Field = new(1000, 1000);
 
     private static void Turn(Entity entity, Vector2 pivot, float degrees) =>
-        SelectionRotation.Apply(SelectionRotation.Capture(entity), pivot, Mathf.DegToRad(degrees), Field, false);
+        SelectionRotation.Apply(SelectionRotation.Capture(entity), pivot, float.DegreesToRadians(degrees), Field, false);
 
     [Test]
     public void TextTurnsOnTheSpotToAnyAngle()
