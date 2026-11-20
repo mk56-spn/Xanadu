@@ -2,7 +2,7 @@
 
 The house style for ECS UI: the model, then one small tool built with it.
 Atlas (`Tools/DevTools/Atlas/`) is the full-size reference for a tool, and the
-song timing screen (`Game/Scenes/SongTimingScene.cs`) for a game screen with a
+song timing screen (`Game/Screens/SongTiming/SongTimingScene.cs`) for a game screen with a
 controller: both are built exactly this way. The rules are also in `agents.md` (UI). The specs live in
 `UI/Ecs/Ui/Tree/`, the node calls in `UI/Ecs/Ui/UiNode*.cs`.
 

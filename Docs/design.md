@@ -1,220 +1,137 @@
-# Design
+# Design (v4)
 
-## Core
+## Chords
 
-### Pillar: throughput
+- Chords are a non-permanent set of diagonal lines down which notes fall.
+- For now, a chord comes in at 50° from the horizontal (40° off the vertical).
+- Chords are non-permanent because we often want long drops during downtime,
+  and don't want to tie ourselves to a confined region.
+- The camera for this is handled later.
+- In a chord, all notes have a single height at which they expect an impact.
 
-- Managing several input streams at once is the game's identity.
-- Don't simplify rules to lower the input ceiling.
-- Difficulty is a mapping decision; the rules stay the same across difficulties.
-- Skill expression is scheduling: reading ahead and choosing what to do when.
+### Playfield
 
-### Input
+- The playfield needs a way to work with this: how do we handle a player that
+  moves in the y direction, but a line onto which notes fall?
+- The vertical impact lines on notes (formerly aesthetic) now come from the
+  player.
+- They impact on the judgement line, above or below the player, where the two
+  intersect.
 
-- 7 keys: 4 directional keys and 3 action keys.
-- Default binds:
+### Entering the playfield
 
-| Role | Keys |
-| --- | --- |
-| Left / right | F / J |
-| Up / down | K / L |
-| Actions | S, Space, D |
+- No camera for now.
+- Black is the default background colour.
+- To help the level start, it fades in from black.
+- The player descends on a platform going down the first chord.
+- The platform smoothly moves out to the middle, leaving the player in the
+  centre for the first note.
 
-- Players can rebind keys as they please; the defaults don't matter much.
-- Why not WASD: it can't handle high-speed pressing.
+## Notes
 
-### Directional notes
+- Notes are rectangles, like in BMS.
 
-- Directional notes are agnostic: they don't say which key to press. The player decides.
-- They never show which exact direction to go.
-- A note's type may show the set of directions: a normal directional note means one of the 4 straight directions; a diagonal note (option A) means one of the 4 diagonals.
-- Why: it lets mappers decide how much assistance to offer.
-- Two flavours: **dash** and **momentum**. Dash works as the existing dash does, with the preset direction removed.
-- Each note still owns its strength: a dash owns its distance, a momentum note owns its impulse.
-- Dash destination is measured from the note.
-    - Exception: hit while on a surface (the floor or a block), the vertical placement is measured from the player's vertical centre instead.
-    - Why: so short vertical dashes near the floor don't do next to nothing.
-- A momentum note imposes a given vertical and horizontal speed. It does not stack.
-- Notes show their strength.
-- After exiting a dash, gravity is briefly neutralised or slowed so the player doesn't drop like a rock. The amount is small; what feels right will be tested later.
+### Hold notes
 
-### Movement
+- Hold notes take you along a path on a platform.
+- The platform is allowed to accelerate and decelerate.
 
-- Inputs own the direction of movement. Notes own its strength.
-- The direction the player presses decides the movement.
-- A wrong press is wrong because of where it sends the player. Example: pressing left on a dash that needs up sends the player into a wall of spikes, and they die.
-- A wrong-direction press still counts as a hit.
-- The player reads the right direction from the level.
+Reasoning:
 
-### Ground movement (two options, undecided)
+- We want smoothness, but not the disconnect the last ones suffered.
+- Fixed speed won't do; that's the core issue.
+- Geometry Dash has a permanently fixed x speed, but it shows well what y
+  acceleration matters for.
+- Voices are often like sine waves.
 
-- v2 builds both behind a toggle, to test and pick.
+#### Option: dissolve into the slider
 
-- Friction is ruled out as a default: the misalignment it causes builds up quickly.
-- **Option 1 — skid:** no friction by default. Landing on the floor, the character skids, keeping whatever lateral speed it landed with.
-    - If chosen, there must be a **friction field**: it enables friction and brings you to a stop.
-    - To consider: should a friction field stop you on the x axis at the same point regardless of entry speed?
-- **Option 2 — hold:** to keep moving on the ground, you must hold the direction key you hit the directional note with.
+The cheat: don't answer the question.
 
-### Stationary character
+- Unless there are drums or something else to keep it busy, the character
+  doesn't exist during holds.
+- It hits the start of the slider, then dissolves with particles.
+- A ball of light goes along the slider.
+- You get spat out at the end of the slider.
+- This lets sliders be shaped as awkwardly as you please, because a small ball
+  of light doesn't care.
+- Instead of answering the question: a very pretty entrance and exit flash.
 
-- The character standing still is a long-standing problem.
-- **Opening:** the character falls into the map.
-- **Slopes:** landing on a slope snaps you to a set speed.
-    - The speed is not decided by the mapper (slope speeds varying per map would be awful to play).
-- **Wall slide:** a new action surface lets you slide down walls.
-    - It's a flat note embedded onto a surface. Making it look good is the mapper's job.
-    - Its hitbox protrudes a little from the surface. Hit it and you stick to the wall, and wall particles trigger.
-- Slopes and wall slides keep you engaged during slow sections.
-- **Action notes** give a little impulse.
-    - Being reconsidered: should action notes move the character for real?
-    - Alternative: the shadow attack that already comes out of you actually launches itself in the note's direction.
-    - Trying the ghosts for now.
-- An impulse cancels a dash's hang.
-- Accepted: early-era mapping will look bad in retrospect.
+#### Both options, per slider
 
-#### Built for testing (defaults to confirm)
+- Both options are included.
+- Each slider sets whether the character is left alone and keeps existing, or
+  dissolves.
+- The mapper chooses based on what the song demands.
 
-- Opening: she starts at the top of the field and falls when the song starts. Start points still place her.
-- Slopes: a block can be a ramp (L in the editor). One speed for every slope, snapped to on the surface, downhill.
-- Wall slide: a wall note kind, touched within its beat's window. No press, not scored. Slide speed fixed, snapped to on contact. Ends on landing, when the wall ends, or on a directional note.
-- Action notes: the hit ghost launches toward the note and a little past it; the character stays.
+#### Doing nothing during a hold
 
-### Action notes
+- That's what every slow section on a VSRG does.
+- Here, at least, the slider can make a pretty shape, like in osu.
 
-- Coloured action notes come in 3 colours. Each action key hits one colour.
-- The colours only need to be impossible to confuse with each other.
-- **Neutral action notes** carry no colour. Any action key hits them; the player picks which.
-- Neutral notes are for every character, for now.
+## Player
 
-### Chords
+- For now, the player has a single speed.
 
-- An action note can be combined with a directional note to form a chord.
-- A chord is judged as however many notes it has.
-- A chord doesn't tell you a direction.
-- Later: a visual that shows notes are in a chord (visual assistance, not core).
+## Hazards
 
-### Diagonals
+- Spikes can stop the player landing somewhere.
+- Saws: spikes, but circular, for when that better suits the level or
+  aesthetic.
 
-- **Active — A. Diagonal offset note:** a rhombus (a square rotated 45°). Hit with a single direction input; the note offsets that input by 45°, so it sends you diagonally.
-    - The offset is clockwise: up → up-right, right → down-right, down → down-left, left → up-left.
-- **Not active — B. Two-input note:** takes the two direction keys that combine into the diagonal (e.g. up + right). Kept in case.
+## Dashes
 
-### Mapper assistance
+- Dashes are marked as a line across the chord.
+- You aren't told what to do with them; that's on you as the player.
+- Dashes have no set ending.
+- A dash ends on either:
+  - a wall
+  - a dash end marker (like Geometry Dash's S block)
 
-- The mapper guides the player with arrow icons or any other context they consider sufficient and viable.
-- Icons are regular placeable text / decoration, as in Geometry Dash. They are not part of a note.
+### Dash exit pads
 
-### Player character
-
-- The character is humanoid. On the way down from a jump she pulls her legs up, as a human does.
-- Spikes should not hit you far below your feet on the way down; this is the cost of a humanoid.
-- So a smaller hitbox is applied on the way down.
-- The player has two hitboxes, so to speak.
-- Landing is judged at her usual hitbox height: that decides when she switches to a standing pose and is set to landed.
-- Why: people don't land on their knees, and it avoids her suddenly popping up.
-- If you land in spikes, you get hit. Avoiding that is the mapper's job.
-- Lateral collisions use the small hitbox.
-
-### Removed
-
-- Pair notes.
-
-### Judgement and scoring
-
-- All notes are judged at the same accuracy weight.
-- Accuracy and combo work as before.
-
-### Failure and death
-
-- Same rules as before: mechanics never kill.
-- Only mapper-placed lethal geometry kills: spikes and death boxes.
-- No health model.
-- For now, death sends you to the start. To reconsider once a robust start position system is in place.
-
-### Characters
-
-- v2 has Contact only. Armed, Splitline and Form are removed and will be redone later.
-- More characters will be added. They will switch; how is TBD.
-
-### Mapper contract
-
-- Mostly TBD.
-- Landing in spikes hits the player; the mapper places spikes with that in mind.
-
-## Wants → answers (2026-11-15 board)
-
-### Wants
-
-| Want | Answer |
-|---|---|
-| Slow song downtime management | Ability to manoeuvre the char in a smooth way |
-| High bpm | Reuse direction keys for other actions |
-| Preserve momentum of char to represent vocals whilst preserving the ability to respond to impactful minor notes | Fire ephemeral projectiles / ghosts out to keep the main movement whilst having impactful visuals |
-| Avoid dead time character stillness, ergo we dont want the character grounded during such | Character is suspended in the air and has aerial movement by default |
-| Preserve decision in player movement direction | Directional notes of a sort that send you along curves as opposed to having a harsh line |
-| Lets the character still do sharp movements where it makes sense | Directional dash |
-| Situations where we have double layered long extended sounds and therefore character movement is taken by 1 | Hold notes |
-| Emphasize intent of play not just musicality | Action note that enables or disables hover |
-
-### Direction keys
-
-- Reuse direction keys for other actions
-- Directional dash
-- Directional notes of a sort that send you along curves as opposed to having a harsh line
-
-### Action keys
-
-- Building up contact by presenting the respective colour of action that builds up the contact you need → Contact
-- Action note that enables or disables hover
-
-## Contact
-
-- Contact keeps its current hitbox (the circular melee hitbox).
-
-### Action bars
-
-- The left/right split is replaced by one based on the action keys.
-- 3 contact bars, one per action key.
-- The action key you hit a neutral action note with decides which bar it loads.
-
-### Barriers
-
-- Barriers check your bars.
-- A barrier's cost is whatever the mapper sets, within limits:
-    - up to 4 of each bar type;
-    - at most 2 bar types per barrier.
-- A barrier spends the bars it checks.
-- If you're short, nothing is spent.
-- A fail costs accuracy.
-- What a pass does (score or otherwise) is TBD.
-
-### Bars
-
-- Only neutral action notes load bars. No other notes do.
-- Bars don't decay.
-- Each bar caps at 5.
-
-### What the player sees
-
-- Each barrier's cost.
-- How full each of their 3 bars is.
-
-### Design intent
-
-- Imposing choices.
-- Example: you know you need to load 3 on the middle key's bar. How and when you do that between this barrier and the next is up to you.
-
-## Conflicts
-
-None open.
+- Sometimes (usually) we don't want to just drop vertically when a dash ends.
+- Pads that the player doesn't trigger can impart momentum onto the exit of a
+  dash.
 
 ## Open questions
 
-- Smaller hitbox: when does it switch on and off (any fall, or only after a jump; until landing)?
-- Does a barrier fail also break combo?
-- Ground option 2: what happens when you let go — stop at once, or slow down? Is the hold judged?
-- Option B: judged as one note or two (chords count each note)?
-- Slopes: one speed for every slope, or does it follow the slope's angle?
-- Wall note: should it be judged (scored) like a note, or stay a touch like a Contact barrier?
-- Action notes: after the ghost trial, should they move the character for real?
+### Input
+
+1. What are the keys? Does F/J/K/L + S/Space/D stay, or is it new?
+2. What counts as hitting a note? Pressing a key as it reaches the judgement
+   line where your impact line crosses it?
+3. How do you move? Hold left/right at the single speed? Is there a jump, or
+   gravity only?
+
+### Chords
+
+4. How many lines are in a chord, and how far apart?
+5. Do chords only lean one way (50° from the horizontal, falling to the right),
+   or either way?
+6. Is the judgement line horizontal, and how does the mapper set its height?
+7. What happens between chords? How does one end and the next appear?
+
+### Dashes
+
+8. What starts a dash: a key, or crossing the dash line? Which direction does it
+   go, and how fast?
+9. What does a pad set: direction and strength, placed by the mapper?
+
+### Hold notes
+
+10. How do they start and end? Is the start a normal note hit, and what ends
+    one?
+11. Is anything judged during the ride, like holding a key?
+12. Do they replace the old tracked-hold vs sustain split, or is sustain still a
+    separate thing?
+
+### Hazards and scoring
+
+13. Does touching a spike or saw kill you, or cost something?
+14. Do judgement windows and scoring carry over from before, or start fresh?
+
+### Editor
+
+15. Which of these does the mapper place by hand (chords, dash lines, end
+    markers, pads, hold paths, hazards), and which come from the notes?
