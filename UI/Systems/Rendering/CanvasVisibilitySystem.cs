@@ -20,11 +20,15 @@ public sealed class CanvasVisibilitySystem : QuerySystem<VisualRid>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-        Query.ForEachEntity((ref VisualRid visual, Entity entity) =>
+        Query.EachEntity(new ApplyVisibility(_canvas, Query.Store, CommandBuffer));
+    }
+
+    private readonly record struct ApplyVisibility(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<VisualRid>
+    {
+        public void Execute(ref VisualRid visual, int id)
         {
-            _canvas.SetVisible(visual.Value, entity.Enabled);
-            buffer.RemoveTag<VisibilityDirty>(entity.Id);
-        });
+            Canvas.SetVisible(visual.Value, Store.GetEntityById(id).Enabled);
+            Buffer.RemoveTag<VisibilityDirty>(id);
+        }
     }
 }

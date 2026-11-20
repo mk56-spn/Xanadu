@@ -77,12 +77,12 @@ public abstract class UiSpec(
 
         switch (tone)
         {
-            case Tree.Tone.Primary: node.Primary(); break;
-            case Tree.Tone.Secondary: node.Secondary(); break;
-            case Tree.Tone.Quiet: node.Quiet(); break;
-            case Tree.Tone.Danger: node.Danger(); break;
-            case Tree.Tone.Solid: node.Solid(); break;
-            case Tree.Tone.Backing: node.Backing(); break;
+            case Tone.Primary: node.Primary(); break;
+            case Tone.Secondary: node.Secondary(); break;
+            case Tone.Quiet: node.Quiet(); break;
+            case Tone.Danger: node.Danger(); break;
+            case Tone.Solid: node.Solid(); break;
+            case Tone.Backing: node.Backing(); break;
         }
 
         if (size is { } fixedSize)

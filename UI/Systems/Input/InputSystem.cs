@@ -34,14 +34,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         PointerInput input = _source.Read();
         _candidates.Clear();
 
-        Query.ForEachEntity((ref rect, ref drawable, ref position, entity) =>
-        {
-            Rect2 local = rect.Bounds;
-            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-            Rect2 screen = new(world + local.Position, local.Size);
-            if (screen.HasPoint(input.Position) && !IsClippedOut(entity, input.Position))
-                _candidates.Add(new Candidate(entity, drawable.ZIndex));
-        });
+        Query.EachEntity(new UnderPointer(Query.Store, _candidates, input.Position));
 
         Entity? target = null;
         foreach (Candidate candidate in _candidates)
@@ -140,4 +133,18 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
     }
 
     private readonly record struct Candidate(Entity Entity, int Layer);
+
+    private readonly record struct UnderPointer(EntityStore Store, List<Candidate> Candidates, Vector2 Pointer) : IEachEntity<Rectangle, Drawable, Position>
+    {
+        public void Execute(ref Rectangle rect, ref Drawable drawable, ref Position position, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            Rect2 local = rect.Bounds;
+            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            Rect2 screen = new(world + local.Position, local.Size);
+            if (screen.HasPoint(Pointer) && !IsClippedOut(entity, Pointer))
+                Candidates.Add(new Candidate(entity, drawable.ZIndex));
+        }
+    }
 }

@@ -39,69 +39,75 @@ public readonly partial struct UiNode
     }
 
     /// <summary>
-    /// A picker in a slot of its own at the left of a stack. The row below already
-    /// shows the colour and its hex, so the picker's own swatch and hex stay hidden.
+    /// A picker at the left of a slot as wide as the field. The row below already
+    /// shows the colour and its hex, so the picker has no readout of its own.
     /// </summary>
-    private Entity FieldPicker(float width)
-    {
-        var slot = new Vector2(width, ColorPickerLayout.Height);
-        UiBuilder builder = BeginChildren();
-        builder.Container(Vector2.Zero, slot, StackDirection.Vertical, color: new Color(0, 0, 0, 0));
-        bool real = builder.Visuals.LoadsAssets;
-        List<Entity> parts = builder.ColorPicker(
-            (ColorPickerLayout.Size - slot) / 2,
-            Colors.White,
-            real ? ColorPickerMaterials.Square() : null,
-            real ? ColorPickerMaterials.Hue() : null);
-        foreach (Entity part in parts)
-            part.AddTag<LayoutIgnore>();
-        builder.End();
-
-        UiColorPicker picker = parts[0].GetComponent<UiColorPicker>();
-        UiLayout.SetHidden(picker.Swatch, true);
-        UiLayout.SetHidden(picker.Hex, true);
-        return parts[0];
-    }
+    private Entity FieldPicker(float width) =>
+        Column().Width(width).Cross(StackCrossAlignment.Start)
+            .ColorPicker(Colors.White, readout: false)
+            .Entity;
 
     /// <summary>
-    /// A full colour picker, alpha bar, swatch and hex included, its square centred
-    /// on <paramref name="center"/>; returns the square, which carries
-    /// <see cref="UiColorPicker"/>. It places its own parts, so it sits outside any stack.
+    /// A colour picker laid out as a stack: the saturation/value square with the
+    /// alpha bar under it, the hue bar beside them, then the swatch and hex
+    /// readout. Returns the stack, which carries <see cref="UiColorPicker"/>.
     /// </summary>
-    public UiNode ColorPicker(Vector2 center, Color initial)
+    public UiNode ColorPicker(Color initial, bool alpha = true, bool readout = true)
     {
-        UiBuilder builder = BeginChildren();
-        bool real = builder.Visuals.LoadsAssets;
-        List<Entity> parts = builder.ColorPicker(
-            center,
-            initial,
-            real ? ColorPickerMaterials.Square() : null,
-            real ? ColorPickerMaterials.Hue() : null);
-        foreach (Entity part in parts)
-            part.AddTag<LayoutIgnore>();
+        bool real = BeginChildren().Visuals.LoadsAssets;
+        UiNode picker = Row().Gap(ColorPickerLayout.Gap).Cross(StackCrossAlignment.Start);
+        UiNode left = picker.Column().Gap(ColorPickerLayout.Gap);
 
-        return Leaf(parts[0]);
+        UiNode square = left.Rect(Colors.White, size: ColorPickerLayout.Size);
+        if (real)
+            square.With(new UiMaterial(ColorPickerMaterials.Square()));
+        UiNode hueBar = picker.Rect(Colors.White, size: new Vector2(ColorPickerLayout.HueWidth, ColorPickerLayout.Side));
+        if (real)
+            hueBar.With(new UiMaterial(ColorPickerMaterials.Hue()));
+
+        var state = new UiColorPicker
+        {
+            Square = square.Entity,
+            HueBar = hueBar.Entity,
+            SvCursor = square.Cursor([new(-5, -5), new(5, -5), new(5, 5), new(-5, 5)], closed: true),
+            HueCursor = hueBar.Cursor(
+                [new(-ColorPickerLayout.HueWidth / 2 - 3, 0), new(ColorPickerLayout.HueWidth / 2 + 3, 0)],
+                closed: false),
+        };
+
+        if (alpha)
+        {
+            UiBuilder builder = left.BeginChildren();
+            Entity bar = builder.LinearGradientEntity(
+                Vector2.Zero,
+                new Vector2(ColorPickerLayout.Side, ColorPickerLayout.AlphaHeight),
+                new LinearGradient(new Color(initial, 0), new Color(initial, 1)));
+            state.Alpha = bar;
+            state.AlphaCursor = left.Leaf(bar).Cursor(
+                [new(0, -ColorPickerLayout.AlphaHeight / 2 - 3), new(0, ColorPickerLayout.AlphaHeight / 2 + 3)],
+                closed: false);
+        }
+
+        if (readout)
+        {
+            UiNode column = picker.Column().Gap(UiMetrics.Space.Xs);
+            state.Swatch = column.Rect(initial, size: ColorPickerLayout.SwatchSize).Entity;
+            state.Hex = column.Text("", 14, Colors.White, TextAlign.Center)
+                .Size(ColorPickerLayout.SwatchSize.X + 20, 24)
+                .Entity;
+        }
+
+        state.Color = initial;
+        picker.Entity.AddComponent(state);
+        return picker;
     }
 
-    /// <summary>
-    /// A colour picker with no alpha bar, its square centred on <paramref name="center"/>;
-    /// returns the square, which carries <see cref="UiColorPicker"/>. It places its own
-    /// parts, so it sits outside any stack.
-    /// </summary>
-    public UiNode OpaqueColorPicker(
-        Vector2 center,
-        Color initial,
-        CanvasMaterial? squareMaterial = null,
-        CanvasMaterial? hueMaterial = null)
+    /// <summary>A cursor drawn over this bar, in the bar's own space, outside layout.</summary>
+    private Entity Cursor(Vector2[] points, bool closed)
     {
-        UiBuilder builder = BeginChildren();
-        List<Entity> parts = builder.ColorPicker(center, initial, squareMaterial, hueMaterial);
-        foreach (Entity part in parts)
-            part.AddTag<LayoutIgnore>();
-
-        UiColorPicker picker = parts[0].GetComponent<UiColorPicker>();
-        UiLayout.SetHidden(picker.Alpha, true);
-        UiLayout.SetHidden(picker.AlphaCursor, true);
-        return Leaf(parts[0]);
+        Entity cursor = Shape(points, default, Colors.White, 2, closed).Entity;
+        cursor.AddTag<UiRaised>();
+        cursor.AddTag<LayoutIgnore>();
+        return cursor;
     }
 }

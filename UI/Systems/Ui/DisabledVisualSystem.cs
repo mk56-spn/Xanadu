@@ -12,15 +12,19 @@ public sealed class DisabledVisualSystem : QuerySystem<ButtonVisual, FillColor>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-        Query.ForEachEntity((ref ButtonVisual visual, ref FillColor fill, Entity entity) =>
+        Query.EachEntity(new DarkenDisabled(CommandBuffer));
+    }
+
+    private readonly record struct DarkenDisabled(CommandBuffer Buffer) : IEachEntity<ButtonVisual, FillColor>
+    {
+        public void Execute(ref ButtonVisual visual, ref FillColor fill, int id)
         {
             Color target = visual.Normal.Darkened(0.55f);
             if (fill.Value == target)
                 return;
 
             fill.Value = target;
-            buffer.AddTag<Dirty>(entity.Id);
-        });
+            Buffer.AddTag<Dirty>(id);
+        }
     }
 }

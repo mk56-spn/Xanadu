@@ -19,18 +19,21 @@ public sealed class GradientDrawSystem : QuerySystem<Rectangle, Drawable, Visual
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new DrawGradients(_canvas, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref rect, ref _, ref visual, ref gradient, entity) =>
+    private readonly record struct DrawGradients(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, LinearGradient>
+    {
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref LinearGradient gradient, int id)
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;
 
-            _canvas.Clear(visual.Value);
+            Canvas.Clear(visual.Value);
 
-            _canvas.DrawGradientRect(visual.Value, rect.Bounds, gradient.Start, gradient.End, gradient.Horizontal);
+            Canvas.DrawGradientRect(visual.Value, rect.Bounds, gradient.Start, gradient.End, gradient.Horizontal);
 
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

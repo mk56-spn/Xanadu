@@ -35,17 +35,7 @@ public sealed partial class UiTreeOverlaySystem
             return default;
 
         _hits.Clear();
-        Query.ForEachEntity((ref Rectangle rect, ref Position position, Entity entity) =>
-        {
-            if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
-                return;
-
-            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-            if (!new Rect2(world + rect.Bounds.Position, rect.Bounds.Size).HasPoint(point))
-                return;
-
-            _hits.Add((entity, entity.TryGetComponent(out Drawable drawable) ? drawable.ZIndex : 0));
-        });
+        Query.EachEntity(new HitsAt(Query.Store, _hits, point));
 
         Entity best = default;
         int bestZ = 0;
@@ -204,4 +194,21 @@ public sealed partial class UiTreeOverlaySystem
         IEnumerable => "sequence",
         _ => Shorten(value.ToString() ?? ""),
     };
+
+    private readonly record struct HitsAt(EntityStore Store, List<(Entity Entity, int Z)> Hits, Vector2 Point) : IEachEntity<Rectangle, Position>
+    {
+        public void Execute(ref Rectangle rect, ref Position position, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
+                return;
+
+            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            if (!new Rect2(world + rect.Bounds.Position, rect.Bounds.Size).HasPoint(Point))
+                return;
+
+            Hits.Add((entity, entity.TryGetComponent(out Drawable drawable) ? drawable.ZIndex : 0));
+        }
+    }
 }

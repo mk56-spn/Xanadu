@@ -23,13 +23,16 @@ public sealed class LayerParentSystem : QuerySystem<VisualRid, Layer>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new ParentLayers(_parentCanvas, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref VisualRid visual, ref Layer layer, Entity entity) =>
+    private readonly record struct ParentLayers(Handle ParentCanvas, CommandBuffer Buffer) : IEachEntity<VisualRid, Layer>
+    {
+        public void Execute(ref VisualRid visual, ref Layer layer, int id)
         {
-            CanvasServer.Current.SetParent(visual.Value, _parentCanvas);
+            CanvasServer.Current.SetParent(visual.Value, ParentCanvas);
             CanvasServer.Current.SetZIndex(visual.Value, layer.ZIndex);
-            buffer.RemoveTag<Uninitialised>(entity.Id);
-        });
+            Buffer.RemoveTag<Uninitialised>(id);
+        }
     }
 }

@@ -12,14 +12,18 @@ public sealed class DisabledTextFieldSystem : QuerySystem<TextField, FillColor>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-        Query.ForEachEntity((ref TextField _, ref FillColor fill, Entity entity) =>
+        Query.EachEntity(new GreyDisabled(CommandBuffer));
+    }
+
+    private readonly record struct GreyDisabled(CommandBuffer Buffer) : IEachEntity<TextField, FillColor>
+    {
+        public void Execute(ref TextField _, ref FillColor fill, int id)
         {
             if (fill.Value == UiTheme.Disabled)
                 return;
 
             fill.Value = UiTheme.Disabled;
-            buffer.AddTag<Dirty>(entity.Id);
-        });
+            Buffer.AddTag<Dirty>(id);
+        }
     }
 }

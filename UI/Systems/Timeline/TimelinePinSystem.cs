@@ -13,7 +13,12 @@ public sealed class TimelinePinSystem : QuerySystem<TimelineHost, TimelineView>
 {
     protected override void OnUpdate()
     {
-        Query.ForEachEntity((ref TimelineHost timeline, ref TimelineView view, Entity _) =>
+        Query.Each(new FollowPins());
+    }
+
+    private readonly record struct FollowPins : IEach<TimelineHost, TimelineView>
+    {
+        public void Execute(ref TimelineHost timeline, ref TimelineView view)
         {
             if (!view.Pinned)
                 return;
@@ -30,6 +35,6 @@ public sealed class TimelinePinSystem : QuerySystem<TimelineHost, TimelineView>
                 view.PinNowMs = now;
             else
                 view.Pinned = false;
-        });
+        }
     }
 }

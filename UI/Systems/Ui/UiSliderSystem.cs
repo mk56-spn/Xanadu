@@ -34,35 +34,7 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
         _wasSecondary = input.SecondaryPressed;
 
         CommandBuffer buffer = CommandBuffer;
-        Query.ForEachEntity((ref slider, ref rect, ref position, entity) =>
-        {
-            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
-            Rect2 bounds = new(
-                world + rect.Bounds.Position,
-                rect.Bounds.Size);
-
-            if (pressStarted && _dragged.IsNull && bounds.HasPoint(input.Position))
-                _dragged = entity;
-
-            if (resetStarted && bounds.HasPoint(input.Position))
-                slider.Value = slider.Default;
-
-            if (_dragged == entity)
-            {
-                float t = Mathf.Clamp(
-                    (input.Position.X - bounds.Position.X) /
-                    Mathf.Max(1f, bounds.Size.X),
-                    0f,
-                    1f);
-                slider.Value = Mathf.Lerp(slider.Min, slider.Max, t);
-            }
-
-            UpdateVisuals(
-                slider,
-                rect,
-                position,
-                buffer);
-        });
+        Query.EachEntity(new DragSliders(this, Query.Store, CommandBuffer, input.Position, pressStarted, resetStarted));
     }
 
     private static void UpdateVisuals(
@@ -112,6 +84,41 @@ public sealed class UiSliderSystem(IPointerInputSource pointer)
             slider.Label.GetComponent<Text>().Value =
                 $"{slider.Prefix}{slider.Value.ToString(slider.Format, CultureInfo.InvariantCulture)}";
             buffer.AddTag<Dirty>(slider.Label.Id);
+        }
+    }
+
+    private readonly record struct DragSliders(UiSliderSystem System, EntityStore Store, CommandBuffer Buffer, Vector2 Pointer, bool PressStarted, bool ResetStarted) : IEachEntity<UiSlider, Rectangle, Position>
+    {
+        public void Execute(ref UiSlider slider, ref Rectangle rect, ref Position position, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            Rect2 bounds = new(
+                world + rect.Bounds.Position,
+                rect.Bounds.Size);
+
+            if (PressStarted && System._dragged.IsNull && bounds.HasPoint(Pointer))
+                System._dragged = entity;
+
+            if (ResetStarted && bounds.HasPoint(Pointer))
+                slider.Value = slider.Default;
+
+            if (System._dragged == entity)
+            {
+                float t = Mathf.Clamp(
+                    (Pointer.X - bounds.Position.X) /
+                    Mathf.Max(1f, bounds.Size.X),
+                    0f,
+                    1f);
+                slider.Value = Mathf.Lerp(slider.Min, slider.Max, t);
+            }
+
+            UpdateVisuals(
+                slider,
+                rect,
+                position,
+                Buffer);
         }
     }
 }

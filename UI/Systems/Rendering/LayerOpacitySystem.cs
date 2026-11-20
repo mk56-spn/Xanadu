@@ -20,14 +20,17 @@ public sealed class LayerOpacitySystem : QuerySystem<VisualRid, LayerOpacity>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new ApplyOpacity(CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref VisualRid visual, ref LayerOpacity opacity, Entity entity) =>
+    private readonly record struct ApplyOpacity(CommandBuffer Buffer) : IEachEntity<VisualRid, LayerOpacity>
+    {
+        public void Execute(ref VisualRid visual, ref LayerOpacity opacity, int id)
         {
             CanvasServer.Current.SetModulate(
                 visual.Value,
                 new Color(1f, 1f, 1f, opacity.Value));
-            buffer.RemoveTag<LayerOpacityDirty>(entity.Id);
-        });
+            Buffer.RemoveTag<LayerOpacityDirty>(id);
+        }
     }
 }

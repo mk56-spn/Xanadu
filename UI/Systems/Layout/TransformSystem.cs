@@ -21,12 +21,17 @@ public sealed class TransformSystem : QuerySystem<VisualRid, Position>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new ApplyTransforms(_canvas, Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref visual, ref position, entity) =>
+    private readonly record struct ApplyTransforms(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<VisualRid, Position>
+    {
+        public void Execute(ref VisualRid visual, ref Position position, int id)
         {
-            _canvas.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
-            buffer.RemoveTag<Moved>(entity.Id);
-        });
+            Entity entity = Store.GetEntityById(id);
+
+            Canvas.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
+            Buffer.RemoveTag<Moved>(id);
+        }
     }
 }

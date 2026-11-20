@@ -20,15 +20,18 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new DrawShapes(_canvas, Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref _, ref visual, ref shape, entity) =>
+    private readonly record struct DrawShapes(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Drawable, VisualRid, UiShape>
+    {
+        public void Execute(ref Drawable _, ref VisualRid visual, ref UiShape shape, int id)
         {
-            _canvas.Clear(visual.Value);
+            Canvas.Clear(visual.Value);
 
-            if (entity.TryGetComponent(out ShapeGlow glow))
+            if (Store.GetEntityById(id).TryGetComponent(out ShapeGlow glow))
             {
-                _canvas.DrawShapeGlow(
+                Canvas.DrawShapeGlow(
                     visual.Value,
                     shape.Points,
                     shape.Closed,
@@ -38,7 +41,7 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
             }
 
             if (shape.Fill.A > 0)
-                _canvas.DrawPolygon(visual.Value, shape.Points, shape.Fill);
+                Canvas.DrawPolygon(visual.Value, shape.Points, shape.Fill);
 
             if (shape.Stroke.A > 0 && shape.StrokeWidth > 0)
             {
@@ -51,14 +54,14 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualRid, UiShape>
                     outline = closed;
                 }
 
-                _canvas.DrawPolyline(
+                Canvas.DrawPolyline(
                     visual.Value,
                     outline,
                     shape.Stroke,
                     shape.StrokeWidth);
             }
 
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

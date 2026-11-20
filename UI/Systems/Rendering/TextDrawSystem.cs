@@ -22,10 +22,15 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new DrawTexts(_canvas, Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref text, ref rect, ref _, ref visual, entity) =>
+    private readonly record struct DrawTexts(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Text, Rectangle, Drawable, VisualRid>
+    {
+        public void Execute(ref Text text, ref Rectangle rect, ref Drawable _, ref VisualRid visual, int id)
         {
+            Entity entity = Store.GetEntityById(id);
+
             if (string.IsNullOrEmpty(text.Value) ||
                 rect.Bounds.Size.X <= 0 ||
                 rect.Bounds.Size.Y <= 0)
@@ -45,7 +50,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
 
                 if (entity.Tags.Has<TextMono>())
                 {
-                    _canvas.DrawTextMono(
+                    Canvas.DrawTextMono(
                         visual.Value,
                         rect.Bounds,
                         shown,
@@ -55,7 +60,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                 }
                 else if (entity.HasComponent<TextGlow>())
                 {
-                    _canvas.DrawTextGlow(
+                    Canvas.DrawTextGlow(
                         visual.Value,
                         rect.Bounds,
                         shown,
@@ -72,7 +77,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                 {
                     if (entity.TryGetComponent(out TextOutline outline))
                     {
-                        _canvas.DrawTextOutline(
+                        Canvas.DrawTextOutline(
                             visual.Value,
                             rect.Bounds,
                             shown,
@@ -83,7 +88,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                             outline.Size);
                     }
 
-                    _canvas.DrawTextWeighted(
+                    Canvas.DrawTextWeighted(
                         visual.Value,
                         rect.Bounds,
                         shown,
@@ -95,10 +100,10 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
             }
             else
             {
-                _canvas.DrawText(visual.Value, rect.Bounds, text.Value, TextColor);
+                Canvas.DrawText(visual.Value, rect.Bounds, text.Value, TextColor);
             }
 
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

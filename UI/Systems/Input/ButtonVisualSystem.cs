@@ -15,11 +15,15 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-        float delta = Tick.deltaTime;
+        Query.EachEntity(new AnimateButtons(Query.Store, CommandBuffer, Tick.deltaTime));
+    }
 
-        Query.ForEachEntity((ref visual, ref fill, entity) =>
+    private readonly record struct AnimateButtons(EntityStore Store, CommandBuffer Buffer, float Delta) : IEachEntity<ButtonVisual, FillColor>
+    {
+        public void Execute(ref ButtonVisual visual, ref FillColor fill, int id)
         {
+            Entity entity = Store.GetEntityById(id);
+
             bool hovered = entity.Tags.Has<Hovered>();
             bool pressed = entity.Tags.Has<Pressed>();
 
@@ -29,14 +33,14 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
             visual.WasPressed = pressed;
 
             float hoverTarget = hovered ? 1f : 0f;
-            float hoverStep = delta * HoverSpeed;
+            float hoverStep = Delta * HoverSpeed;
             visual.HoverAmount = hoverTarget > visual.HoverAmount
                 ? Mathf.Min(hoverTarget, visual.HoverAmount + hoverStep)
                 : Mathf.Max(hoverTarget, visual.HoverAmount - hoverStep);
 
             visual.FlashAmount = Mathf.Max(
                 0f,
-                visual.FlashAmount - delta / FlashSeconds);
+                visual.FlashAmount - Delta / FlashSeconds);
 
             Color color = visual.Normal.Lerp(
                 visual.Hover,
@@ -49,7 +53,7 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
                 return;
 
             fill.Value = color;
-            buffer.AddTag<Dirty>(entity.Id);
-        });
+            Buffer.AddTag<Dirty>(id);
+        }
     }
 }

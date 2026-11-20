@@ -11,10 +11,15 @@ public sealed class UiAnchorSystem : QuerySystem<UiAnchor, Rectangle, Position>
 {
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new PlaceAnchored(Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref anchor, ref rect, ref position, entity) =>
+    private readonly record struct PlaceAnchored(EntityStore Store, CommandBuffer Buffer) : IEachEntity<UiAnchor, Rectangle, Position>
+    {
+        public void Execute(ref UiAnchor anchor, ref Rectangle rect, ref Position position, int id)
         {
+            Entity entity = Store.GetEntityById(id);
+
             Entity parent = entity.Parent;
             if (parent.IsNull || !parent.HasComponent<Rectangle>())
                 return;
@@ -32,7 +37,7 @@ public sealed class UiAnchorSystem : QuerySystem<UiAnchor, Rectangle, Position>
                 return;
 
             position.Value = target;
-            buffer.AddTag<Moved>(entity.Id);
-        });
+            Buffer.AddTag<Moved>(id);
+        }
     }
 }

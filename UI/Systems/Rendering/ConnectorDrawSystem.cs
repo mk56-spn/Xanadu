@@ -19,9 +19,19 @@ public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, Vis
 
     protected override void OnUpdate()
     {
-        Query.ForEachEntity((ref line, ref _, ref visual, entity) =>
+        Query.EachEntity(new DrawConnectors(_canvas, Query.Store));
+    }
+
+    private static bool Shown(Entity end) =>
+        !end.IsNull && end.Enabled && end.HasComponent<Rectangle>();
+
+    private readonly record struct DrawConnectors(IRectCanvas Canvas, EntityStore Store) : IEachEntity<UiConnector, Drawable, VisualRid>
+    {
+        public void Execute(ref UiConnector line, ref Drawable _, ref VisualRid visual, int id)
         {
-            _canvas.Clear(visual.Value);
+            Entity entity = Store.GetEntityById(id);
+
+            Canvas.Clear(visual.Value);
             if (!Shown(line.From) || !Shown(line.To))
                 return;
 
@@ -33,10 +43,7 @@ public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, Vis
             bool rightward = from.GetCenter().X <= to.GetCenter().X;
             var start = new Vector2(rightward ? from.End.X : from.Position.X, from.GetCenter().Y);
             var end = new Vector2(rightward ? to.Position.X : to.End.X, to.GetCenter().Y);
-            _canvas.DrawLine(visual.Value, start - origin, end - origin, line.Color, line.Width);
-        });
+            Canvas.DrawLine(visual.Value, start - origin, end - origin, line.Color, line.Width);
+        }
     }
-
-    private static bool Shown(Entity end) =>
-        !end.IsNull && end.Enabled && end.HasComponent<Rectangle>();
 }

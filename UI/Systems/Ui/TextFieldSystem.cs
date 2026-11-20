@@ -15,24 +15,29 @@ public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new SyncFields(Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref field, ref text, ref fill, entity) =>
+    private readonly record struct SyncFields(EntityStore Store, CommandBuffer Buffer) : IEachEntity<TextField, Text, FillColor>
+    {
+        public void Execute(ref TextField field, ref Text text, ref FillColor fill, int id)
         {
+            Entity entity = Store.GetEntityById(id);
+
             Color target = entity.Tags.Has<TextFieldFocused>()
                 ? FocusColor
                 : NormalColor;
             if (fill.Value != target)
             {
                 fill.Value = target;
-                buffer.AddTag<Dirty>(entity.Id);
+                Buffer.AddTag<Dirty>(id);
             }
 
             if (text.Value == field.Value)
                 return;
 
             text.Value = field.Value;
-            buffer.AddTag<Dirty>(entity.Id);
-        });
+            Buffer.AddTag<Dirty>(id);
+        }
     }
 }

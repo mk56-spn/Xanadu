@@ -30,48 +30,7 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-
-        Query.ForEachEntity((ref _, ref drawable, ref visual, ref position, entity) =>
-        {
-            int requested = drawable.ZIndex;
-            if (!TryGetOwnLayerCanvas(entity, out Handle layerCanvas) &&
-                !TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
-            {
-                GameLog.Error(
-                    $"Drawable entity {entity.Id} references missing layer {requested}; falling back to layer {DefaultLayer}.");
-
-                if (!TryGetLayerCanvas(entity.Store, DefaultLayer, out layerCanvas))
-                {
-                    GameLog.Error(
-                        $"Drawable entity {entity.Id} cannot fall back because layer {DefaultLayer} does not exist.");
-                    return;
-                }
-
-                drawable.ZIndex = DefaultLayer;
-            }
-
-            Entity parent = entity.Parent;
-            Handle parentCanvas = layerCanvas;
-
-            if (!parent.IsNull &&
-                parent.HasComponent<UiContainer>() &&
-                parent.TryGetComponent<VisualRid>(out VisualRid parentVisual))
-            {
-                parentCanvas = parentVisual.Value;
-            }
-
-            CanvasServer.Current.SetParent(visual.Value, parentCanvas);
-
-            CanvasServer.Current.SetZIndex(
-                visual.Value,
-                LocalZIndex(entity));
-            CanvasServer.Current.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
-            if (entity.TryGetComponent(out UiMaterial material))
-                CanvasServer.Current.SetMaterial(visual.Value, material.Material);
-
-            buffer.RemoveTag<Uninitialised>(entity.Id);
-        });
+        Query.EachEntity(new Initialise(this, Query.Store, CommandBuffer));
     }
 
     public static int LocalZIndex(Entity entity)
@@ -126,17 +85,9 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
 
     private bool TryGetLayerCanvas(EntityStore store, int zIndex, out Handle canvas)
     {
-        Handle result = default;
-        bool found = false;
-
-        LayerQuery(store, zIndex).ForEachEntity((ref visual, ref _, _) =>
-        {
-            result = visual.Value;
-            found = true;
-        });
-
-        canvas = result;
-        return found;
+        LayerCanvas layer = LayerQuery(store, zIndex).Each(new LayerCanvas());
+        canvas = layer.Canvas;
+        return layer.Found;
     }
 
     private ArchetypeQuery<VisualRid, Layer> LayerQuery(EntityStore store, int zIndex)
@@ -147,5 +98,62 @@ public sealed class DrawableInitialiseSystem : QuerySystem<Rectangle, Drawable, 
         query = store.Query<VisualRid, Layer>().HasValue<Layer, int>(zIndex);
         _layerQueries.Add(zIndex, query);
         return query;
+    }
+
+    private readonly record struct Initialise(DrawableInitialiseSystem System, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, Position>
+    {
+        public void Execute(ref Rectangle _, ref Drawable drawable, ref VisualRid visual, ref Position position, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+
+            int requested = drawable.ZIndex;
+            if (!TryGetOwnLayerCanvas(entity, out Handle layerCanvas) &&
+                !System.TryGetLayerCanvas(entity.Store, requested, out layerCanvas))
+            {
+                GameLog.Error(
+                    $"Drawable entity {id} references missing layer {requested}; falling back to layer {DefaultLayer}.");
+
+                if (!System.TryGetLayerCanvas(entity.Store, DefaultLayer, out layerCanvas))
+                {
+                    GameLog.Error(
+                        $"Drawable entity {id} cannot fall back because layer {DefaultLayer} does not exist.");
+                    return;
+                }
+
+                drawable.ZIndex = DefaultLayer;
+            }
+
+            Entity parent = entity.Parent;
+            Handle parentCanvas = layerCanvas;
+
+            // Any drawn parent holds its children's canvas items, so a child is placed,
+            // turned and faded in its parent's space, as input already reads it
+            // (UiTransform.WorldPosition). A layer's own item is the layer canvas.
+            if (!parent.IsNull && parent.TryGetComponent<VisualRid>(out VisualRid parentVisual))
+                parentCanvas = parentVisual.Value;
+
+            CanvasServer.Current.SetParent(visual.Value, parentCanvas);
+
+            CanvasServer.Current.SetZIndex(
+                visual.Value,
+                LocalZIndex(entity));
+            CanvasServer.Current.SetTransform(visual.Value, UiTransform.Local(entity, position.Value));
+            if (entity.TryGetComponent(out UiMaterial material))
+                CanvasServer.Current.SetMaterial(visual.Value, material.Material);
+
+            Buffer.RemoveTag<Uninitialised>(id);
+        }
+    }
+
+    private struct LayerCanvas : IEach<VisualRid, Layer>
+    {
+        public Handle Canvas;
+        public bool Found;
+
+        public void Execute(ref VisualRid visual, ref Layer _)
+        {
+            Canvas = visual.Value;
+            Found = true;
+        }
     }
 }

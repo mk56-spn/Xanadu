@@ -37,14 +37,7 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
-
-        Query.ForEachEntity((ref wheel, ref rect, ref _, ref visual, entity) =>
-        {
-            _canvas.Clear(visual.Value);
-            DrawWheel(wheel, rect, visual.Value);
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+        Query.EachEntity(new DrawWheels(this, CommandBuffer));
     }
 
     private void DrawWheel(UiWheel wheel, Rectangle rect, Handle canvas)
@@ -180,5 +173,15 @@ public sealed class WheelDrawSystem : QuerySystem<UiWheel, Rectangle, Drawable, 
             return colors[index % colors.Length];
 
         return Unselected;
+    }
+
+    private readonly record struct DrawWheels(WheelDrawSystem System, CommandBuffer Buffer) : IEachEntity<UiWheel, Rectangle, Drawable, VisualRid>
+    {
+        public void Execute(ref UiWheel wheel, ref Rectangle rect, ref Drawable _, ref VisualRid visual, int id)
+        {
+            System._canvas.Clear(visual.Value);
+            System.DrawWheel(wheel, rect, visual.Value);
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

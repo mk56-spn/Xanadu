@@ -22,14 +22,19 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new DrawRects(_canvas, Query.Store, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref rect, ref _, ref visual, ref fillColor, entity) =>
+    private readonly record struct DrawRects(IRectCanvas Canvas, EntityStore Store, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, FillColor>
+    {
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref FillColor fillColor, int id)
         {
+            Entity entity = Store.GetEntityById(id);
+
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;
 
-            _canvas.Clear(visual.Value);
+            Canvas.Clear(visual.Value);
             bool hasContainer = entity.TryGetComponent(out UiContainer container);
             float skew = hasContainer ? container.Skew : 0;
             float chamfer = entity.TryGetComponent(out UiChamfer cut) ? cut.Size : 0;
@@ -41,14 +46,14 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
             }
             else if (skew != 0 || chamfer > 0)
             {
-                _canvas.DrawPolygon(
+                Canvas.DrawPolygon(
                     visual.Value,
                     UiOutline.Points(rect.Bounds, skew, chamfer),
                     fillColor.Value);
             }
             else
             {
-                _canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
+                Canvas.DrawRect(visual.Value, rect.Bounds, fillColor.Value);
             }
 
             if (entity.TryGetComponent(out UiBorder border) &&
@@ -56,7 +61,7 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
                 border.Width > 0)
             {
                 Vector2[] outline = UiOutline.Points(rect.Bounds, skew, chamfer);
-                _canvas.DrawPolyline(
+                Canvas.DrawPolyline(
                     visual.Value,
                     [.. outline, outline[0]],
                     border.Color,
@@ -71,7 +76,7 @@ public sealed class RectDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid,
                 CanvasServer.Current.SetClip(visual.Value, true);
             }
 
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

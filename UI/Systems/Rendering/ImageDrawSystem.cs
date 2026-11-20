@@ -19,16 +19,19 @@ public sealed class ImageDrawSystem : QuerySystem<Rectangle, Drawable, VisualRid
 
     protected override void OnUpdate()
     {
-        CommandBuffer buffer = CommandBuffer;
+        Query.EachEntity(new DrawImages(_canvas, CommandBuffer));
+    }
 
-        Query.ForEachEntity((ref rect, ref _, ref visual, ref image, entity) =>
+    private readonly record struct DrawImages(IRectCanvas Canvas, CommandBuffer Buffer) : IEachEntity<Rectangle, Drawable, VisualRid, UiImage>
+    {
+        public void Execute(ref Rectangle rect, ref Drawable _, ref VisualRid visual, ref UiImage image, int id)
         {
             if (rect.Bounds.Size.X <= 0 || rect.Bounds.Size.Y <= 0)
                 return;
 
-            _canvas.Clear(visual.Value);
-            _canvas.DrawTexture(visual.Value, rect.Bounds, image.Texture);
-            buffer.RemoveTag<Dirty>(entity.Id);
-        });
+            Canvas.Clear(visual.Value);
+            Canvas.DrawTexture(visual.Value, rect.Bounds, image.Texture);
+            Buffer.RemoveTag<Dirty>(id);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 
 namespace Xanadu.Ui.Ecs.Ui.Tree;
@@ -130,4 +131,15 @@ public sealed class Custom(
     : UiSpec(width, height, null, grow, stretch, tip: tip)
 {
     protected override UiNode Create(UiNode parent) => build(parent);
+}
+
+/// <summary>
+/// A colour picker (<see cref="UiNode.ColorPicker"/>), its parts in a stack; its
+/// node carries <see cref="UiColorPicker"/>. Leave out the alpha bar or the
+/// swatch and hex readout where the colour shows elsewhere.
+/// </summary>
+public sealed class ColorPicker(Color initial, bool alpha = true, bool readout = true, string? tip = null)
+    : UiSpec(tip: tip)
+{
+    protected override UiNode Create(UiNode parent) => parent.ColorPicker(initial, alpha, readout);
 }
