@@ -26,10 +26,10 @@ public static class Vector2Godot
         /// <summary>
         /// Returns a new vector with all components in absolute values (i.e. positive).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Abs(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="Math.Abs(real_t)"/> called on each component.</returns>
         public Vector2 Abs()
         {
-            return new Vector2(Mathf.Abs(self.X), Mathf.Abs(self.Y));
+            return new Vector2(Math.Abs(self.X), Math.Abs(self.Y));
         }
 
         /// <summary>
@@ -55,25 +55,6 @@ public static class Vector2Godot
         }
 
         /// <summary>
-        /// Returns the angle between the line connecting the two points and the self.X axis, in radians.
-        /// </summary>
-        /// <param name="to">The other vector to compare self vector to.</param>
-        /// <returns>The angle between the two vectors, in radians.</returns>
-        public real_t AngleToPoint(Vector2 to)
-        {
-            return Mathf.Atan2(to.Y - self.Y, to.X - self.X);
-        }
-
-        /// <summary>
-        /// Returns the aspect ratio of self vector, the ratio of <see cref="self.X"/> to <see cref="self.Y"/>.
-        /// </summary>
-        /// <returns>The <see cref="self.X"/> component divided by the <see cref="self.Y"/> component.</returns>
-        public real_t Aspect()
-        {
-            return self.X / self.Y;
-        }
-
-        /// <summary>
         /// Returns the vector "bounced off" from a plane defined by the given normal.
         /// </summary>
         /// <param name="normal">The normal vector defining the plane to bounce off. Must be normalized.</param>
@@ -84,18 +65,9 @@ public static class Vector2Godot
         }
 
         /// <summary>
-        /// Returns a new vector with all components rounded up (towards positive infinity).
-        /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Ceil(real_t)"/> called on each component.</returns>
-        public Vector2 Ceil()
-        {
-            return new Vector2(Mathf.Ceil(self.X), Mathf.Ceil(self.Y));
-        }
-
-        /// <summary>
         /// Returns a new vector with all components clamped between the
         /// components of <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The vector with minimum allowed values.</param>
         /// <param name="max">The vector with maximum allowed values.</param>
@@ -104,15 +76,15 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Clamp(self.X, min.X, max.X),
-                Mathf.Clamp(self.Y, min.Y, max.Y)
+                Math.Clamp(self.X, min.X, max.X),
+                Math.Clamp(self.Y, min.Y, max.Y)
             );
         }
 
         /// <summary>
         /// Returns a new vector with all components clamped between the
         /// <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The minimum allowed value.</param>
         /// <param name="max">The maximum allowed value.</param>
@@ -121,8 +93,8 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Clamp(self.X, min, max),
-                Mathf.Clamp(self.Y, min, max)
+                Math.Clamp(self.X, min, max),
+                Math.Clamp(self.Y, min, max)
             );
         }
 
@@ -213,16 +185,6 @@ public static class Vector2Godot
         }
 
         /// <summary>
-        /// Returns the normalized vector pointing from self vector to <paramref name="to"/>.
-        /// </summary>
-        /// <param name="to">The other vector to point towards.</param>
-        /// <returns>The direction from self vector to <paramref name="to"/>.</returns>
-        public Vector2 DirectionTo(Vector2 to)
-        {
-            return new Vector2(to.X - self.X, to.Y - self.Y).Normalized();
-        }
-
-        /// <summary>
         /// Returns the squared distance between self vector and <paramref name="to"/>.
         /// This method runs faster than <see cref="DistanceTo"/>, so prefer it if
         /// you need to compare vectors or need the squared distance for some formula.
@@ -241,7 +203,7 @@ public static class Vector2Godot
         /// <returns>The distance between the two vectors.</returns>
         public real_t DistanceTo(Vector2 to)
         {
-            return Mathf.Sqrt((self.X - to.X) * (self.X - to.X) + (self.Y - to.Y) * (self.Y - to.Y));
+            return MathF.Sqrt((self.X - to.X) * (self.X - to.X) + (self.Y - to.Y) * (self.Y - to.Y));
         }
 
         /// <summary>
@@ -257,10 +219,10 @@ public static class Vector2Godot
         /// <summary>
         /// Returns a new vector with all components rounded down (towards negative infinity).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Floor(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="MathF.Floor(real_t)"/> called on each component.</returns>
         public Vector2 Floor()
         {
-            return new Vector2(Mathf.Floor(self.X), Mathf.Floor(self.Y));
+            return new Vector2(MathF.Floor(self.X), MathF.Floor(self.Y));
         }
 
         /// <summary>
@@ -274,12 +236,12 @@ public static class Vector2Godot
 
         /// <summary>
         /// Returns <see langword="true"/> if self vector is finite, by calling
-        /// <see cref="Mathf.IsFinite(real_t)"/> on each component.
+        /// <see cref="float.IsFinite(real_t)"/> on each component.
         /// </summary>
         /// <returns>Whether self vector is finite or not.</returns>
         public bool IsFinite()
         {
-            return Mathf.IsFinite(self.X) && Mathf.IsFinite(self.Y);
+            return float.IsFinite(self.X) && float.IsFinite(self.Y);
         }
 
         /// <summary>
@@ -288,7 +250,7 @@ public static class Vector2Godot
         /// <returns>A <see langword="bool"/> indicating whether or not the vector is normalized.</returns>
         public bool IsNormalized()
         {
-            return Mathf.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
+            return Math.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
         }
 
         /// <summary>
@@ -302,34 +264,15 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Lerp(self.X, to.X, weight),
-                Mathf.Lerp(self.Y, to.Y, weight)
+                float.Lerp(self.X, to.X, weight),
+                float.Lerp(self.Y, to.Y, weight)
             );
-        }
-
-        /// <summary>
-        /// Returns the vector with a maximum length by limiting its length to <paramref name="length"/>.
-        /// </summary>
-        /// <param name="length">The length to limit to.</param>
-        /// <returns>The vector with its length limited.</returns>
-        public Vector2 LimitLength(real_t length = 1.0f)
-        {
-            Vector2 v = self;
-            real_t l = self.Length();
-
-            if (l > 0 && length < l)
-            {
-                v /= l;
-                v *= length;
-            }
-
-            return v;
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector2(Mathf.Max(self.X, with.X), Mathf.Max(self.Y, with.Y))</c>.
+        /// Equivalent to <c>new Vector2(Math.Max(self.X, with.X), Math.Max(self.Y, with.Y))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -337,15 +280,15 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Max(self.X, with.X),
-                Mathf.Max(self.Y, with.Y)
+                Math.Max(self.X, with.X),
+                Math.Max(self.Y, with.Y)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector2(Mathf.Max(self.X, with), Mathf.Max(self.Y, with))</c>.
+        /// Equivalent to <c>new Vector2(Math.Max(self.X, with), Math.Max(self.Y, with))</c>.
         /// </summary>
         /// <param name="with">The other value to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -353,15 +296,15 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Max(self.X, with),
-                Mathf.Max(self.Y, with)
+                Math.Max(self.X, with),
+                Math.Max(self.Y, with)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise minimum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector2(Mathf.Min(self.X, with.X), Mathf.Min(self.Y, with.Y))</c>.
+        /// Equivalent to <c>new Vector2(Math.Min(self.X, with.X), Math.Min(self.Y, with.Y))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting minimum vector.</returns>
@@ -369,15 +312,15 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Min(self.X, with.X),
-                Mathf.Min(self.Y, with.Y)
+                Math.Min(self.X, with.X),
+                Math.Min(self.Y, with.Y)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise minimum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector2(Mathf.Min(self.X, with), Mathf.Min(self.Y, with))</c>.
+        /// Equivalent to <c>new Vector2(Math.Min(self.X, with), Math.Min(self.Y, with))</c>.
         /// </summary>
         /// <param name="with">The other value to use.</param>
         /// <returns>The resulting minimum vector.</returns>
@@ -385,26 +328,9 @@ public static class Vector2Godot
         {
             return new Vector2
             (
-                Mathf.Min(self.X, with),
-                Mathf.Min(self.Y, with)
+                Math.Min(self.X, with),
+                Math.Min(self.Y, with)
             );
-        }
-
-        /// <summary>
-        /// Moves self vector toward <paramref name="to"/> by the fixed <paramref name="delta"/> amount.
-        /// </summary>
-        /// <param name="to">The vector to move towards.</param>
-        /// <param name="delta">The amount to move towards by.</param>
-        /// <returns>The resulting vector.</returns>
-        public Vector2 MoveToward(Vector2 to, real_t delta)
-        {
-            Vector2 v = self;
-            Vector2 vd = to - v;
-            real_t len = vd.Length();
-            if (len <= delta || len < Mathf.Epsilon)
-                return to;
-
-            return v + (vd / len * delta);
         }
 
         /// <summary>
@@ -486,7 +412,7 @@ public static class Vector2Godot
         /// <returns>The rotated vector.</returns>
         public Vector2 Rotated(real_t angle)
         {
-            (real_t sin, real_t cos) = Mathf.SinCos(angle);
+            (real_t sin, real_t cos) = MathF.SinCos(angle);
             return new Vector2
             (
                 self.X * cos - self.Y * sin,
@@ -501,60 +427,21 @@ public static class Vector2Godot
         /// <returns>The rounded vector.</returns>
         public Vector2 Round()
         {
-            return new Vector2(Mathf.Round(self.X), Mathf.Round(self.Y));
+            return new Vector2(MathF.Round(self.X), MathF.Round(self.Y));
         }
 
         /// <summary>
         /// Returns a vector with each component set to one or negative one, depending
         /// on the signs of self vector's components, or zero if the component is zero,
-        /// by calling <see cref="Mathf.Sign(real_t)"/> on each component.
+        /// by calling <see cref="Math.Sign(real_t)"/> on each component.
         /// </summary>
         /// <returns>A vector with all components as either <c>1</c>, <c>-1</c>, or <c>0</c>.</returns>
         public Vector2 Sign()
         {
             Vector2 v;
-            v.X = Mathf.Sign(self.X);
-            v.Y = Mathf.Sign(self.Y);
+            v.X = Math.Sign(self.X);
+            v.Y = Math.Sign(self.Y);
             return v;
-        }
-
-        /// <summary>
-        /// Returns the result of the spherical linear interpolation between
-        /// self vector and <paramref name="to"/> by amount <paramref name="weight"/>.
-        ///
-        /// This method also handles interpolating the lengths if the input vectors
-        /// have different lengths. For the special case of one or both input vectors
-        /// having zero length, self method behaves like <see cref="self.Lerp(Vector2, real_t)"/>.
-        /// </summary>
-        /// <param name="to">The destination vector for interpolation.</param>
-        /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
-        /// <returns>The resulting vector of the interpolation.</returns>
-        public Vector2 Slerp(Vector2 to, real_t weight)
-        {
-            real_t startLengthSquared = self.LengthSquared();
-            real_t endLengthSquared = to.LengthSquared();
-            if (startLengthSquared == 0.0 || endLengthSquared == 0.0)
-            {
-                // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
-                return self.Lerp(to, weight);
-            }
-            real_t startLength = Mathf.Sqrt(startLengthSquared);
-            real_t resultLength = Mathf.Lerp(startLength, Mathf.Sqrt(endLengthSquared), weight);
-            real_t angle = self.AngleTo(to);
-            return self.Rotated(angle * weight) * (resultLength / startLength);
-        }
-
-        /// <summary>
-        /// Returns a new vector resulting from sliding self vector along a line with normal <paramref name="normal"/>.
-        /// The resulting new vector is perpendicular to <paramref name="normal"/>, and is equivalent to self vector minus its projection on <paramref name="normal"/>.
-        /// See also <see cref="self.Project(Vector2)"/>.
-        /// Note: The vector <paramref name="normal"/> must be normalized. See also <see cref="self.Normalized()"/>.
-        /// </summary>
-        /// <param name="normal">The normal vector of the plane to slide on.</param>
-        /// <returns>The slid vector.</returns>
-        public Vector2 Slide(Vector2 normal)
-        {
-            return self - (normal * self.Dot(normal));
         }
 
         /// <summary>
@@ -577,16 +464,6 @@ public static class Vector2Godot
         public Vector2 Snapped(real_t step)
         {
             return new Vector2(Mathf.Snapped(self.X, step), Mathf.Snapped(self.Y, step));
-        }
-
-        /// <summary>
-        /// Returns a perpendicular vector rotated 90 degrees counter-clockwise
-        /// compared to the original, with the same length.
-        /// </summary>
-        /// <returns>The perpendicular vector.</returns>
-        public Vector2 Orthogonal()
-        {
-            return new Vector2(self.Y, -self.X);
         }
 
         /// <summary>
@@ -626,7 +503,7 @@ public static class Vector2Godot
             }
             else
             {
-                real_t length = Mathf.Sqrt(lengthsq);
+                real_t length = MathF.Sqrt(lengthsq);
                 self.X /= length;
                 self.Y /= length;
             }
@@ -636,12 +513,6 @@ public static class Vector2Godot
 
     extension(Vector2)
     {
-        /// <summary>
-        /// Infinity vector, a vector with all components set to <see cref="Mathf.Inf"/>.
-        /// </summary>
-        /// <value>Equivalent to <c>new Vector2(Mathf.Inf, Mathf.Inf)</c>.</value>
-        public static Vector2 Inf => new Vector2(Mathf.Inf, Mathf.Inf);
-
         /// <summary>
         /// Vector2.Up unit vector. Y is down in 2D, so this vector points -Y.
         /// </summary>
@@ -668,13 +539,13 @@ public static class Vector2Godot
 
         /// <summary>
         /// Creates a unit Vector2 rotated to the given angle. This is equivalent to doing
-        /// <c>Vector2(Mathf.Cos(angle), Mathf.Sin(angle))</c> or <c>Vector2.Right.Rotated(angle)</c>.
+        /// <c>Vector2(MathF.Cos(angle), MathF.Sin(angle))</c> or <c>Vector2.Right.Rotated(angle)</c>.
         /// </summary>
         /// <param name="angle">Angle of the vector, in radians.</param>
         /// <returns>The resulting vector.</returns>
         public static Vector2 FromAngle(real_t angle)
         {
-            (real_t sin, real_t cos) = Mathf.SinCos(angle);
+            (real_t sin, real_t cos) = MathF.SinCos(angle);
             return new Vector2(cos, sin);
         }
 
@@ -834,10 +705,10 @@ public static class Vector3Godot
         /// <summary>
         /// Returns a new vector with all components in absolute values (i.e. positive).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Abs(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="Math.Abs(real_t)"/> called on each component.</returns>
         public Vector3 Abs()
         {
-            return new Vector3(Mathf.Abs(self.X), Mathf.Abs(self.Y), Mathf.Abs(self.Z));
+            return new Vector3(Math.Abs(self.X), Math.Abs(self.Y), Math.Abs(self.Z));
         }
 
         /// <summary>
@@ -861,18 +732,9 @@ public static class Vector3Godot
         }
 
         /// <summary>
-        /// Returns a new vector with all components rounded up (towards positive infinity).
-        /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Ceil(real_t)"/> called on each component.</returns>
-        public Vector3 Ceil()
-        {
-            return new Vector3(Mathf.Ceil(self.X), Mathf.Ceil(self.Y), Mathf.Ceil(self.Z));
-        }
-
-        /// <summary>
         /// Returns a new vector with all components clamped between the
         /// components of <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The vector with minimum allowed values.</param>
         /// <param name="max">The vector with maximum allowed values.</param>
@@ -881,16 +743,16 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Clamp(self.X, min.X, max.X),
-                Mathf.Clamp(self.Y, min.Y, max.Y),
-                Mathf.Clamp(self.Z, min.Z, max.Z)
+                Math.Clamp(self.X, min.X, max.X),
+                Math.Clamp(self.Y, min.Y, max.Y),
+                Math.Clamp(self.Z, min.Z, max.Z)
             );
         }
 
         /// <summary>
         /// Returns a new vector with all components clamped between the
         /// <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The minimum allowed value.</param>
         /// <param name="max">The maximum allowed value.</param>
@@ -899,9 +761,9 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Clamp(self.X, min, max),
-                Mathf.Clamp(self.Y, min, max),
-                Mathf.Clamp(self.Z, min, max)
+                Math.Clamp(self.X, min, max),
+                Math.Clamp(self.Y, min, max),
+                Math.Clamp(self.Z, min, max)
             );
         }
 
@@ -1001,16 +863,6 @@ public static class Vector3Godot
         }
 
         /// <summary>
-        /// Returns the normalized vector pointing from self vector to <paramref name="to"/>.
-        /// </summary>
-        /// <param name="to">The other vector to point towards.</param>
-        /// <returns>The direction from self vector to <paramref name="to"/>.</returns>
-        public Vector3 DirectionTo(Vector3 to)
-        {
-            return new Vector3(to.X - self.X, to.Y - self.Y, to.Z - self.Z).Normalized();
-        }
-
-        /// <summary>
         /// Returns the squared distance between self vector and <paramref name="to"/>.
         /// This method runs faster than <see cref="DistanceTo"/>, so prefer it if
         /// you need to compare vectors or need the squared distance for some formula.
@@ -1046,10 +898,10 @@ public static class Vector3Godot
         /// <summary>
         /// Returns a new vector with all components rounded down (towards negative infinity).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Floor(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="MathF.Floor(real_t)"/> called on each component.</returns>
         public Vector3 Floor()
         {
-            return new Vector3(Mathf.Floor(self.X), Mathf.Floor(self.Y), Mathf.Floor(self.Z));
+            return new Vector3(MathF.Floor(self.X), MathF.Floor(self.Y), MathF.Floor(self.Z));
         }
 
         /// <summary>
@@ -1063,12 +915,12 @@ public static class Vector3Godot
 
         /// <summary>
         /// Returns <see langword="true"/> if self vector is finite, by calling
-        /// <see cref="Mathf.IsFinite(real_t)"/> on each component.
+        /// <see cref="float.IsFinite(real_t)"/> on each component.
         /// </summary>
         /// <returns>Whether self vector is finite or not.</returns>
         public bool IsFinite()
         {
-            return Mathf.IsFinite(self.X) && Mathf.IsFinite(self.Y) && Mathf.IsFinite(self.Z);
+            return float.IsFinite(self.X) && float.IsFinite(self.Y) && float.IsFinite(self.Z);
         }
 
         /// <summary>
@@ -1077,7 +929,7 @@ public static class Vector3Godot
         /// <returns>A <see langword="bool"/> indicating whether or not the vector is normalized.</returns>
         public bool IsNormalized()
         {
-            return Mathf.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
+            return Math.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
         }
 
         /// <summary>
@@ -1091,35 +943,16 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Lerp(self.X, to.X, weight),
-                Mathf.Lerp(self.Y, to.Y, weight),
-                Mathf.Lerp(self.Z, to.Z, weight)
+                float.Lerp(self.X, to.X, weight),
+                float.Lerp(self.Y, to.Y, weight),
+                float.Lerp(self.Z, to.Z, weight)
             );
-        }
-
-        /// <summary>
-        /// Returns the vector with a maximum length by limiting its length to <paramref name="length"/>.
-        /// </summary>
-        /// <param name="length">The length to limit to.</param>
-        /// <returns>The vector with its length limited.</returns>
-        public Vector3 LimitLength(real_t length = 1.0f)
-        {
-            Vector3 v = self;
-            real_t l = self.Length();
-
-            if (l > 0 && length < l)
-            {
-                v /= l;
-                v *= length;
-            }
-
-            return v;
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector3(Mathf.Max(self.X, with.X), Mathf.Max(self.Y, with.Y), Mathf.Max(self.Z, with.Z))</c>.
+        /// Equivalent to <c>new Vector3(Math.Max(self.X, with.X), Math.Max(self.Y, with.Y), Math.Max(self.Z, with.Z))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -1127,16 +960,16 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Max(self.X, with.X),
-                Mathf.Max(self.Y, with.Y),
-                Mathf.Max(self.Z, with.Z)
+                Math.Max(self.X, with.X),
+                Math.Max(self.Y, with.Y),
+                Math.Max(self.Z, with.Z)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector3(Mathf.Max(self.X, with), Mathf.Max(self.Y, with), Mathf.Max(self.Z, with))</c>.
+        /// Equivalent to <c>new Vector3(Math.Max(self.X, with), Math.Max(self.Y, with), Math.Max(self.Z, with))</c>.
         /// </summary>
         /// <param name="with">The other value to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -1144,16 +977,16 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Max(self.X, with),
-                Mathf.Max(self.Y, with),
-                Mathf.Max(self.Z, with)
+                Math.Max(self.X, with),
+                Math.Max(self.Y, with),
+                Math.Max(self.Z, with)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise minimum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector3(Mathf.Min(self.X, with.X), Mathf.Min(self.Y, with.Y), Mathf.Min(self.Z, with.Z))</c>.
+        /// Equivalent to <c>new Vector3(Math.Min(self.X, with.X), Math.Min(self.Y, with.Y), Math.Min(self.Z, with.Z))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting minimum vector.</returns>
@@ -1161,27 +994,10 @@ public static class Vector3Godot
         {
             return new Vector3
             (
-                Mathf.Min(self.X, with.X),
-                Mathf.Min(self.Y, with.Y),
-                Mathf.Min(self.Z, with.Z)
+                Math.Min(self.X, with.X),
+                Math.Min(self.Y, with.Y),
+                Math.Min(self.Z, with.Z)
             );
-        }
-
-        /// <summary>
-        /// Moves self vector toward <paramref name="to"/> by the fixed <paramref name="delta"/> amount.
-        /// </summary>
-        /// <param name="to">The vector to move towards.</param>
-        /// <param name="delta">The amount to move towards by.</param>
-        /// <returns>The resulting vector.</returns>
-        public Vector3 MoveToward(Vector3 to, real_t delta)
-        {
-            Vector3 v = self;
-            Vector3 vd = to - v;
-            real_t len = vd.Length();
-            if (len <= delta || len < Mathf.Epsilon)
-                return to;
-
-            return v + (vd / len * delta);
         }
 
         /// <summary>
@@ -1265,86 +1081,22 @@ public static class Vector3Godot
         /// <returns>The rounded vector.</returns>
         public Vector3 Round()
         {
-            return new Vector3(Mathf.Round(self.X), Mathf.Round(self.Y), Mathf.Round(self.Z));
+            return new Vector3(MathF.Round(self.X), MathF.Round(self.Y), MathF.Round(self.Z));
         }
 
         /// <summary>
         /// Returns a vector with each component set to one or negative one, depending
         /// on the signs of self vector's components, or zero if the component is zero,
-        /// by calling <see cref="Mathf.Sign(real_t)"/> on each component.
+        /// by calling <see cref="Math.Sign(real_t)"/> on each component.
         /// </summary>
         /// <returns>A vector with all components as either <c>1</c>, <c>-1</c>, or <c>0</c>.</returns>
         public Vector3 Sign()
         {
             Vector3 v;
-            v.X = Mathf.Sign(self.X);
-            v.Y = Mathf.Sign(self.Y);
-            v.Z = Mathf.Sign(self.Z);
+            v.X = Math.Sign(self.X);
+            v.Y = Math.Sign(self.Y);
+            v.Z = Math.Sign(self.Z);
             return v;
-        }
-
-        /// <summary>
-        /// Returns the signed angle to the given vector, in radians.
-        /// The sign of the angle is positive in a counter-clockwise
-        /// direction and negative in a clockwise direction when viewed
-        /// from the side specified by the <paramref name="axis"/>.
-        /// </summary>
-        /// <param name="to">The other vector to compare self vector to.</param>
-        /// <param name="axis">The reference axis to use for the angle sign.</param>
-        /// <returns>The signed angle between the two vectors, in radians.</returns>
-        public real_t SignedAngleTo(Vector3 to, Vector3 axis)
-        {
-            Vector3 crossTo = self.Cross(to);
-            real_t unsignedAngle = Mathf.Atan2(crossTo.Length(), self.Dot(to));
-            real_t sign = crossTo.Dot(axis);
-            return (sign < 0) ? -unsignedAngle : unsignedAngle;
-        }
-
-        /// <summary>
-        /// Returns the result of the spherical linear interpolation between
-        /// self vector and <paramref name="to"/> by amount <paramref name="weight"/>.
-        ///
-        /// This method also handles interpolating the lengths if the input vectors
-        /// have different lengths. For the special case of one or both input vectors
-        /// having zero length, self method behaves like <see cref="self.Lerp(Vector3, real_t)"/>.
-        /// </summary>
-        /// <param name="to">The destination vector for interpolation.</param>
-        /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
-        /// <returns>The resulting vector of the interpolation.</returns>
-        public Vector3 Slerp(Vector3 to, real_t weight)
-        {
-            real_t startLengthSquared = self.LengthSquared();
-            real_t endLengthSquared = to.LengthSquared();
-            if (startLengthSquared == 0.0 || endLengthSquared == 0.0)
-            {
-                // Zero length vectors have no angle, so the best we can do is either lerp or throw an error.
-                return self.Lerp(to, weight);
-            }
-            Vector3 axis = self.Cross(to);
-            real_t axisLengthSquared = axis.LengthSquared();
-            if (axisLengthSquared == 0.0)
-            {
-                // Colinear vectors have no rotation axis or angle between them, so the best we can do is lerp.
-                return self.Lerp(to, weight);
-            }
-            axis /= Mathf.Sqrt(axisLengthSquared);
-            real_t startLength = Mathf.Sqrt(startLengthSquared);
-            real_t resultLength = Mathf.Lerp(startLength, Mathf.Sqrt(endLengthSquared), weight);
-            real_t angle = self.AngleTo(to);
-            return self.Rotated(axis, angle * weight) * (resultLength / startLength);
-        }
-
-        /// <summary>
-        /// Returns a new vector resulting from sliding self vector along a plane with normal <paramref name="normal"/>.
-        /// The resulting new vector is perpendicular to <paramref name="normal"/>, and is equivalent to self vector minus its projection on <paramref name="normal"/>.
-        /// See also <see cref="self.Project(Vector3)"/>.
-        /// Note: The vector <paramref name="normal"/> must be normalized. See also <see cref="self.Normalized()"/>.
-        /// </summary>
-        /// <param name="normal">The normal vector of the plane to slide on.</param>
-        /// <returns>The slid vector.</returns>
-        public Vector3 Slide(Vector3 normal)
-        {
-            return self - (normal * self.Dot(normal));
         }
 
         /// <summary>
@@ -1416,7 +1168,7 @@ public static class Vector3Godot
             }
             else
             {
-                real_t length = Mathf.Sqrt(lengthsq);
+                real_t length = MathF.Sqrt(lengthsq);
                 self.X /= length;
                 self.Y /= length;
                 self.Z /= length;
@@ -1427,12 +1179,6 @@ public static class Vector3Godot
 
     extension(Vector3)
     {
-        /// <summary>
-        /// Infinity vector, a vector with all components set to <see cref="Mathf.Inf"/>.
-        /// </summary>
-        /// <value>Equivalent to <c>new Vector3(Mathf.Inf, Mathf.Inf, Mathf.Inf)</c>.</value>
-        public static Vector3 Inf => new Vector3(Mathf.Inf, Mathf.Inf, Mathf.Inf);
-
         /// <summary>
         /// Vector3.Up unit vector.
         /// </summary>
@@ -1472,36 +1218,6 @@ public static class Vector3Godot
         /// </summary>
         /// <value>Equivalent to <c>new Vector3(0, 0, 1)</c>.</value>
         public static Vector3 Back => new Vector3(0, 0, 1);
-
-        /// <summary>
-        /// Unit vector pointing towards the left side of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelLeft => new Vector3(1, 0, 0);
-
-        /// <summary>
-        /// Unit vector pointing towards the right side of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelRight => new Vector3(-1, 0, 0);
-
-        /// <summary>
-        /// Unit vector pointing towards the top side (up) of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelTop => new Vector3(0, 1, 0);
-
-        /// <summary>
-        /// Unit vector pointing towards the bottom side (down) of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelBottom => new Vector3(0, -1, 0);
-
-        /// <summary>
-        /// Unit vector pointing towards the front side (facing forward) of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelFront => new Vector3(0, 0, 1);
-
-        /// <summary>
-        /// Unit vector pointing towards the rear side (back) of imported 3D assets.
-        /// </summary>
-        public static Vector3 ModelRear => new Vector3(0, 0, -1);
 
         /// <summary>
         /// Gets the remainder of each component of the <see cref="Vector3"/>
@@ -1669,25 +1385,16 @@ public static class Vector4Godot
         /// <summary>
         /// Returns a new vector with all components in absolute values (i.e. positive).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Abs(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="Math.Abs(real_t)"/> called on each component.</returns>
         public Vector4 Abs()
         {
-            return new Vector4(Mathf.Abs(self.X), Mathf.Abs(self.Y), Mathf.Abs(self.Z), Mathf.Abs(self.W));
-        }
-
-        /// <summary>
-        /// Returns a new vector with all components rounded up (towards positive infinity).
-        /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Ceil(real_t)"/> called on each component.</returns>
-        public Vector4 Ceil()
-        {
-            return new Vector4(Mathf.Ceil(self.X), Mathf.Ceil(self.Y), Mathf.Ceil(self.Z), Mathf.Ceil(self.W));
+            return new Vector4(Math.Abs(self.X), Math.Abs(self.Y), Math.Abs(self.Z), Math.Abs(self.W));
         }
 
         /// <summary>
         /// Returns a new vector with all components clamped between the
         /// components of <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The vector with minimum allowed values.</param>
         /// <param name="max">The vector with maximum allowed values.</param>
@@ -1696,17 +1403,17 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Clamp(self.X, min.X, max.X),
-                Mathf.Clamp(self.Y, min.Y, max.Y),
-                Mathf.Clamp(self.Z, min.Z, max.Z),
-                Mathf.Clamp(self.W, min.W, max.W)
+                Math.Clamp(self.X, min.X, max.X),
+                Math.Clamp(self.Y, min.Y, max.Y),
+                Math.Clamp(self.Z, min.Z, max.Z),
+                Math.Clamp(self.W, min.W, max.W)
             );
         }
 
         /// <summary>
         /// Returns a new vector with all components clamped between the
         /// <paramref name="min"/> and <paramref name="max"/> using
-        /// <see cref="Mathf.Clamp(real_t, real_t, real_t)"/>.
+        /// <see cref="Math.Clamp(real_t, real_t, real_t)"/>.
         /// </summary>
         /// <param name="min">The minimum allowed value.</param>
         /// <param name="max">The maximum allowed value.</param>
@@ -1715,10 +1422,10 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Clamp(self.X, min, max),
-                Mathf.Clamp(self.Y, min, max),
-                Mathf.Clamp(self.Z, min, max),
-                Mathf.Clamp(self.W, min, max)
+                Math.Clamp(self.X, min, max),
+                Math.Clamp(self.Y, min, max),
+                Math.Clamp(self.Z, min, max),
+                Math.Clamp(self.W, min, max)
             );
         }
 
@@ -1768,18 +1475,6 @@ public static class Vector4Godot
         }
 
         /// <summary>
-        /// Returns the normalized vector pointing from self vector to <paramref name="to"/>.
-        /// </summary>
-        /// <param name="to">The other vector to point towards.</param>
-        /// <returns>The direction from self vector to <paramref name="to"/>.</returns>
-        public Vector4 DirectionTo(Vector4 to)
-        {
-            Vector4 ret = new Vector4(to.X - self.X, to.Y - self.Y, to.Z - self.Z, to.W - self.W);
-            ret.Normalize();
-            return ret;
-        }
-
-        /// <summary>
         /// Returns the squared distance between self vector and <paramref name="to"/>.
         /// This method runs faster than <see cref="DistanceTo"/>, so prefer it if
         /// you need to compare vectors or need the squared distance for some formula.
@@ -1814,10 +1509,10 @@ public static class Vector4Godot
         /// <summary>
         /// Returns a new vector with all components rounded down (towards negative infinity).
         /// </summary>
-        /// <returns>A vector with <see cref="Mathf.Floor(real_t)"/> called on each component.</returns>
+        /// <returns>A vector with <see cref="MathF.Floor(real_t)"/> called on each component.</returns>
         public Vector4 Floor()
         {
-            return new Vector4(Mathf.Floor(self.X), Mathf.Floor(self.Y), Mathf.Floor(self.Z), Mathf.Floor(self.W));
+            return new Vector4(MathF.Floor(self.X), MathF.Floor(self.Y), MathF.Floor(self.Z), MathF.Floor(self.W));
         }
 
         /// <summary>
@@ -1831,12 +1526,12 @@ public static class Vector4Godot
 
         /// <summary>
         /// Returns <see langword="true"/> if self vector is finite, by calling
-        /// <see cref="Mathf.IsFinite(real_t)"/> on each component.
+        /// <see cref="float.IsFinite(real_t)"/> on each component.
         /// </summary>
         /// <returns>Whether self vector is finite or not.</returns>
         public bool IsFinite()
         {
-            return Mathf.IsFinite(self.X) && Mathf.IsFinite(self.Y) && Mathf.IsFinite(self.Z) && Mathf.IsFinite(self.W);
+            return float.IsFinite(self.X) && float.IsFinite(self.Y) && float.IsFinite(self.Z) && float.IsFinite(self.W);
         }
 
         /// <summary>
@@ -1845,7 +1540,7 @@ public static class Vector4Godot
         /// <returns>A <see langword="bool"/> indicating whether or not the vector is normalized.</returns>
         public bool IsNormalized()
         {
-            return Mathf.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
+            return Math.Abs(self.LengthSquared() - 1.0f) < Mathf.Epsilon;
         }
 
         /// <summary>
@@ -1859,17 +1554,17 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Lerp(self.X, to.X, weight),
-                Mathf.Lerp(self.Y, to.Y, weight),
-                Mathf.Lerp(self.Z, to.Z, weight),
-                Mathf.Lerp(self.W, to.W, weight)
+                float.Lerp(self.X, to.X, weight),
+                float.Lerp(self.Y, to.Y, weight),
+                float.Lerp(self.Z, to.Z, weight),
+                float.Lerp(self.W, to.W, weight)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector4(Mathf.Max(self.X, with.X), Mathf.Max(self.Y, with.Y), Mathf.Max(self.Z, with.Z), Mathf.Max(self.W, with.W))</c>.
+        /// Equivalent to <c>new Vector4(Math.Max(self.X, with.X), Math.Max(self.Y, with.Y), Math.Max(self.Z, with.Z), Math.Max(self.W, with.W))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -1877,17 +1572,17 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Max(self.X, with.X),
-                Mathf.Max(self.Y, with.Y),
-                Mathf.Max(self.Z, with.Z),
-                Mathf.Max(self.W, with.W)
+                Math.Max(self.X, with.X),
+                Math.Max(self.Y, with.Y),
+                Math.Max(self.Z, with.Z),
+                Math.Max(self.W, with.W)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise maximum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector4(Mathf.Max(self.X, with), Mathf.Max(self.Y, with), Mathf.Max(self.Z, with), Mathf.Max(self.W, with))</c>.
+        /// Equivalent to <c>new Vector4(Math.Max(self.X, with), Math.Max(self.Y, with), Math.Max(self.Z, with), Math.Max(self.W, with))</c>.
         /// </summary>
         /// <param name="with">The other value to use.</param>
         /// <returns>The resulting maximum vector.</returns>
@@ -1895,17 +1590,17 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Max(self.X, with),
-                Mathf.Max(self.Y, with),
-                Mathf.Max(self.Z, with),
-                Mathf.Max(self.W, with)
+                Math.Max(self.X, with),
+                Math.Max(self.Y, with),
+                Math.Max(self.Z, with),
+                Math.Max(self.W, with)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise minimum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector4(Mathf.Min(self.X, with.X), Mathf.Min(self.Y, with.Y), Mathf.Min(self.Z, with.Z), Mathf.Min(self.W, with.W))</c>.
+        /// Equivalent to <c>new Vector4(Math.Min(self.X, with.X), Math.Min(self.Y, with.Y), Math.Min(self.Z, with.Z), Math.Min(self.W, with.W))</c>.
         /// </summary>
         /// <param name="with">The other vector to use.</param>
         /// <returns>The resulting minimum vector.</returns>
@@ -1913,17 +1608,17 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Min(self.X, with.X),
-                Mathf.Min(self.Y, with.Y),
-                Mathf.Min(self.Z, with.Z),
-                Mathf.Min(self.W, with.W)
+                Math.Min(self.X, with.X),
+                Math.Min(self.Y, with.Y),
+                Math.Min(self.Z, with.Z),
+                Math.Min(self.W, with.W)
             );
         }
 
         /// <summary>
         /// Returns the result of the component-wise minimum between
         /// self vector and <paramref name="with"/>.
-        /// Equivalent to <c>new Vector4(Mathf.Min(self.X, with), Mathf.Min(self.Y, with), Mathf.Min(self.Z, with), Mathf.Min(self.W, with))</c>.
+        /// Equivalent to <c>new Vector4(Math.Min(self.X, with), Math.Min(self.Y, with), Math.Min(self.Z, with), Math.Min(self.W, with))</c>.
         /// </summary>
         /// <param name="with">The other value to use.</param>
         /// <returns>The resulting minimum vector.</returns>
@@ -1931,10 +1626,10 @@ public static class Vector4Godot
         {
             return new Vector4
             (
-                Mathf.Min(self.X, with),
-                Mathf.Min(self.Y, with),
-                Mathf.Min(self.Z, with),
-                Mathf.Min(self.W, with)
+                Math.Min(self.X, with),
+                Math.Min(self.Y, with),
+                Math.Min(self.Z, with),
+                Math.Min(self.W, with)
             );
         }
 
@@ -1992,22 +1687,22 @@ public static class Vector4Godot
         /// <returns>The rounded vector.</returns>
         public Vector4 Round()
         {
-            return new Vector4(Mathf.Round(self.X), Mathf.Round(self.Y), Mathf.Round(self.Z), Mathf.Round(self.W));
+            return new Vector4(MathF.Round(self.X), MathF.Round(self.Y), MathF.Round(self.Z), MathF.Round(self.W));
         }
 
         /// <summary>
         /// Returns a vector with each component set to one or negative one, depending
         /// on the signs of self vector's components, or zero if the component is zero,
-        /// by calling <see cref="Mathf.Sign(real_t)"/> on each component.
+        /// by calling <see cref="Math.Sign(real_t)"/> on each component.
         /// </summary>
         /// <returns>A vector with all components as either <c>1</c>, <c>-1</c>, or <c>0</c>.</returns>
         public Vector4 Sign()
         {
             Vector4 v;
-            v.X = Mathf.Sign(self.X);
-            v.Y = Mathf.Sign(self.Y);
-            v.Z = Mathf.Sign(self.Z);
-            v.W = Mathf.Sign(self.W);
+            v.X = Math.Sign(self.X);
+            v.Y = Math.Sign(self.Y);
+            v.Z = Math.Sign(self.Z);
+            v.W = Math.Sign(self.W);
             return v;
         }
 
@@ -2080,7 +1775,7 @@ public static class Vector4Godot
             }
             else
             {
-                real_t length = Mathf.Sqrt(lengthsq);
+                real_t length = MathF.Sqrt(lengthsq);
                 self.X /= length;
                 self.Y /= length;
                 self.Z /= length;
@@ -2092,12 +1787,6 @@ public static class Vector4Godot
 
     extension(Vector4)
     {
-        /// <summary>
-        /// Infinity vector, a vector with all components set to <see cref="Mathf.Inf"/>.
-        /// </summary>
-        /// <value>Equivalent to <c>new Vector4(Mathf.Inf, Mathf.Inf, Mathf.Inf, Mathf.Inf)</c>.</value>
-        public static Vector4 Inf => new Vector4(Mathf.Inf, Mathf.Inf, Mathf.Inf, Mathf.Inf);
-
         /// <summary>
         /// Gets the remainder of each component of the <see cref="Vector4"/>
         /// with the components of the given <see cref="real_t"/>.

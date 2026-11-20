@@ -44,70 +44,6 @@ namespace Xanadu.Core.Maths
         public float A;
 
         /// <summary>
-        /// Wrapper for <see cref="R"/> that uses the range 0 to 255 instead of 0 to 1.
-        /// </summary>
-        /// <value>Getting is equivalent to multiplying by 255 and rounding. Setting is equivalent to dividing by 255.</value>
-        public int R8
-        {
-            readonly get
-            {
-                return (int)Math.Round(R * 255.0f);
-            }
-            set
-            {
-                R = value / 255.0f;
-            }
-        }
-
-        /// <summary>
-        /// Wrapper for <see cref="G"/> that uses the range 0 to 255 instead of 0 to 1.
-        /// </summary>
-        /// <value>Getting is equivalent to multiplying by 255 and rounding. Setting is equivalent to dividing by 255.</value>
-        public int G8
-        {
-            readonly get
-            {
-                return (int)Math.Round(G * 255.0f);
-            }
-            set
-            {
-                G = value / 255.0f;
-            }
-        }
-
-        /// <summary>
-        /// Wrapper for <see cref="B"/> that uses the range 0 to 255 instead of 0 to 1.
-        /// </summary>
-        /// <value>Getting is equivalent to multiplying by 255 and rounding. Setting is equivalent to dividing by 255.</value>
-        public int B8
-        {
-            readonly get
-            {
-                return (int)Math.Round(B * 255.0f);
-            }
-            set
-            {
-                B = value / 255.0f;
-            }
-        }
-
-        /// <summary>
-        /// Wrapper for <see cref="A"/> that uses the range 0 to 255 instead of 0 to 1.
-        /// </summary>
-        /// <value>Getting is equivalent to multiplying by 255 and rounding. Setting is equivalent to dividing by 255.</value>
-        public int A8
-        {
-            readonly get
-            {
-                return (int)Math.Round(A * 255.0f);
-            }
-            set
-            {
-                A = value / 255.0f;
-            }
-        }
-
-        /// <summary>
         /// The HSV hue of this color, on the range 0 to 1.
         /// </summary>
         /// <value>Getting is a long process, refer to the source code for details. Setting uses <see cref="FromHsv"/>.</value>
@@ -196,19 +132,6 @@ namespace Xanadu.Core.Maths
 
 
         /// <summary>
-        /// Returns the light intensity of the color, as a value between 0.0 and 1.0 (inclusive).
-        /// This is useful when determining light or dark color. Colors with a luminance smaller
-        /// than 0.5 can be generally considered dark.
-        /// Note: <see cref="Luminance"/> relies on the color being in the linear color space to
-        /// return an accurate relative luminance value. If the color is in the sRGB color space
-        /// use <see cref="SrgbToLinear"/> to convert it to the linear color space first.
-        /// </summary>
-        public readonly float Luminance
-        {
-            get { return 0.2126f * R + 0.7152f * G + 0.0722f * B; }
-        }
-
-        /// <summary>
         /// Access color components using their index.
         /// </summary>
         /// <value>
@@ -286,7 +209,7 @@ namespace Xanadu.Core.Maths
         /// <summary>
         /// Returns a new color with all components clamped between the
         /// components of <paramref name="min"/> and <paramref name="max"/>
-        /// using <see cref="Mathf.Clamp(float, float, float)"/>.
+        /// using <see cref="Math.Clamp(float, float, float)"/>.
         /// </summary>
         /// <param name="min">The color with minimum allowed values.</param>
         /// <param name="max">The color with maximum allowed values.</param>
@@ -297,10 +220,10 @@ namespace Xanadu.Core.Maths
             Color maximum = max ?? new Color(1, 1, 1, 1);
             return new Color
             (
-                (float)Mathf.Clamp(R, minimum.R, maximum.R),
-                (float)Mathf.Clamp(G, minimum.G, maximum.G),
-                (float)Mathf.Clamp(B, minimum.B, maximum.B),
-                (float)Mathf.Clamp(A, minimum.A, maximum.A)
+                (float)Math.Clamp(R, minimum.R, maximum.R),
+                (float)Math.Clamp(G, minimum.G, maximum.G),
+                (float)Math.Clamp(B, minimum.B, maximum.B),
+                (float)Math.Clamp(A, minimum.A, maximum.A)
             );
         }
 
@@ -317,20 +240,6 @@ namespace Xanadu.Core.Maths
             res.G *= 1.0f - amount;
             res.B *= 1.0f - amount;
             return res;
-        }
-
-        /// <summary>
-        /// Returns the inverted color: <c>(1 - r, 1 - g, 1 - b, a)</c>.
-        /// </summary>
-        /// <returns>The inverted color.</returns>
-        public readonly Color Inverted()
-        {
-            return new Color(
-                1.0f - R,
-                1.0f - G,
-                1.0f - B,
-                A
-            );
         }
 
         /// <summary>
@@ -359,114 +268,11 @@ namespace Xanadu.Core.Maths
         {
             return new Color
             (
-                (float)Mathf.Lerp(R, to.R, weight),
-                (float)Mathf.Lerp(G, to.G, weight),
-                (float)Mathf.Lerp(B, to.B, weight),
-                (float)Mathf.Lerp(A, to.A, weight)
+                (float)float.Lerp(R, to.R, weight),
+                (float)float.Lerp(G, to.G, weight),
+                (float)float.Lerp(B, to.B, weight),
+                (float)float.Lerp(A, to.A, weight)
             );
-        }
-
-        /// <summary>
-        /// Returns the color converted to the sRGB color space.
-        /// This method assumes the original color is in the linear color space.
-        /// See also <see cref="SrgbToLinear"/> which performs the opposite operation.
-        /// </summary>
-        /// <returns>The sRGB color.</returns>
-        public readonly Color LinearToSrgb()
-        {
-            return new Color(
-                R < 0.0031308f ? 12.92f * R : (1.0f + 0.055f) * (float)Mathf.Pow(R, 1.0f / 2.4f) - 0.055f,
-                G < 0.0031308f ? 12.92f * G : (1.0f + 0.055f) * (float)Mathf.Pow(G, 1.0f / 2.4f) - 0.055f,
-                B < 0.0031308f ? 12.92f * B : (1.0f + 0.055f) * (float)Mathf.Pow(B, 1.0f / 2.4f) - 0.055f, A);
-        }
-
-        /// <summary>
-        /// Returns the color converted to linear color space.
-        /// This method assumes the original color already is in sRGB color space.
-        /// See also <see cref="LinearToSrgb"/> which performs the opposite operation.
-        /// </summary>
-        /// <returns>The color in linear color space.</returns>
-        public readonly Color SrgbToLinear()
-        {
-            return new Color(
-                R < 0.04045f ? R * (1.0f / 12.92f) : (float)Mathf.Pow((R + 0.055f) * (float)(1.0 / (1.0 + 0.055)), 2.4f),
-                G < 0.04045f ? G * (1.0f / 12.92f) : (float)Mathf.Pow((G + 0.055f) * (float)(1.0 / (1.0 + 0.055)), 2.4f),
-                B < 0.04045f ? B * (1.0f / 12.92f) : (float)Mathf.Pow((B + 0.055f) * (float)(1.0 / (1.0 + 0.055)), 2.4f),
-                A);
-        }
-
-        /// <summary>
-        /// Returns the color converted to an unsigned 32-bit integer in ABGR
-        /// format (each byte represents a color channel).
-        /// ABGR is the reversed version of the default format.
-        /// </summary>
-        /// <returns>A <see langword="uint"/> representing this color in ABGR32 format.</returns>
-        public readonly uint ToAbgr32()
-        {
-            uint c = (byte)Math.Round(A * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(B * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(G * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(R * 255);
-
-            return c;
-        }
-
-        /// <summary>
-        /// Returns the color converted to an unsigned 64-bit integer in ABGR
-        /// format (each word represents a color channel).
-        /// ABGR is the reversed version of the default format.
-        /// </summary>
-        /// <returns>A <see langword="ulong"/> representing this color in ABGR64 format.</returns>
-        public readonly ulong ToAbgr64()
-        {
-            ulong c = (ushort)Math.Round(A * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(B * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(G * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(R * 65535);
-
-            return c;
-        }
-
-        /// <summary>
-        /// Returns the color converted to an unsigned 32-bit integer in ARGB
-        /// format (each byte represents a color channel).
-        /// </summary>
-        /// <returns>A <see langword="uint"/> representing this color in ARGB32 format.</returns>
-        public readonly uint ToArgb32()
-        {
-            uint c = (byte)Math.Round(A * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(R * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(G * 255);
-            c <<= 8;
-            c |= (byte)Math.Round(B * 255);
-
-            return c;
-        }
-
-        /// <summary>
-        /// Returns the color converted to an unsigned 64-bit integer in ARGB
-        /// format (each word represents a color channel).
-        /// </summary>
-        /// <returns>A <see langword="ulong"/> representing this color in ARGB64 format.</returns>
-        public readonly ulong ToArgb64()
-        {
-            ulong c = (ushort)Math.Round(A * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(R * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(G * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(B * 65535);
-
-            return c;
         }
 
         /// <summary>
@@ -484,25 +290,6 @@ namespace Xanadu.Core.Maths
             c |= (byte)Math.Round(B * 255);
             c <<= 8;
             c |= (byte)Math.Round(A * 255);
-
-            return c;
-        }
-
-        /// <summary>
-        /// Returns the color converted to an unsigned 64-bit integer in RGBA
-        /// format (each word represents a color channel).
-        /// RGBA is Godot's default and recommended format.
-        /// </summary>
-        /// <returns>A <see langword="ulong"/> representing this color in RGBA64 format.</returns>
-        public readonly ulong ToRgba64()
-        {
-            ulong c = (ushort)Math.Round(R * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(G * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(B * 65535);
-            c <<= 16;
-            c |= (ushort)Math.Round(A * 65535);
 
             return c;
         }
@@ -596,41 +383,6 @@ namespace Xanadu.Core.Maths
             G = (rgba & 0xFFFF) / 65535.0f;
             rgba >>= 16;
             R = (rgba & 0xFFFF) / 65535.0f;
-        }
-
-        /// <summary>
-        /// Constructs a <see cref="Color"/> either from an HTML color code or from a
-        /// standardized color name. Supported color names are the same as the
-        /// <see cref="Colors"/> constants.
-        /// </summary>
-        /// <param name="code">The HTML color code or color name to construct from.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// A color cannot be inferred from the given <paramref name="code"/>.
-        /// It was invalid HTML and a color with that name was not found.
-        /// </exception>
-        public Color(string code)
-        {
-            if (HtmlIsValid(code))
-            {
-                this = FromHtml(code);
-            }
-            else
-            {
-                this = Named(code);
-            }
-        }
-
-        /// <summary>
-        /// Constructs a <see cref="Color"/> either from an HTML color code or from a
-        /// standardized color name, with <paramref name="alpha"/> on the range of 0 to 1. Supported
-        /// color names are the same as the <see cref="Colors"/> constants.
-        /// </summary>
-        /// <param name="code">The HTML color code or color name to construct from.</param>
-        /// <param name="alpha">The alpha (transparency) value, typically on the range of 0 to 1.</param>
-        public Color(string code, float alpha)
-        {
-            this = new Color(code);
-            A = alpha;
         }
 
         /// <summary>
@@ -729,75 +481,6 @@ namespace Xanadu.Core.Maths
         }
 
         /// <summary>
-        /// Returns a color constructed from integer red, green, blue, and alpha channels.
-        /// Each channel should have 8 bits of information ranging from 0 to 255.
-        /// </summary>
-        /// <param name="r8">The red component represented on the range of 0 to 255.</param>
-        /// <param name="g8">The green component represented on the range of 0 to 255.</param>
-        /// <param name="b8">The blue component represented on the range of 0 to 255.</param>
-        /// <param name="a8">The alpha (transparency) component represented on the range of 0 to 255.</param>
-        /// <returns>The constructed color.</returns>
-        public static Color Color8(byte r8, byte g8, byte b8, byte a8 = 255)
-        {
-            return new Color(r8 / 255f, g8 / 255f, b8 / 255f, a8 / 255f);
-        }
-
-        /// <summary>
-        /// Returns a color according to the standardized name, with the
-        /// specified alpha value. Supported color names are the same as
-        /// the constants defined in <see cref="Colors"/>.
-        /// </summary>
-        /// <param name="name">The name of the color.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// A color with the given name is not found.
-        /// </exception>
-        /// <returns>The constructed color.</returns>
-        private static Color Named(string name)
-        {
-            if (!FindNamedColor(name, out Color color))
-            {
-                throw new ArgumentOutOfRangeException($"Invalid Color Name: {name}");
-            }
-
-            return color;
-        }
-
-        /// <summary>
-        /// Returns a color according to the standardized name, with the
-        /// specified alpha value. Supported color names are the same as
-        /// the constants defined in <see cref="Colors"/>.
-        /// If a color with the given name is not found, it returns
-        /// <paramref name="default"/>.
-        /// </summary>
-        /// <param name="name">The name of the color.</param>
-        /// <param name="default">
-        /// The default color to return when a color with the given name
-        /// is not found.
-        /// </param>
-        /// <returns>The constructed color.</returns>
-        private static Color Named(string name, Color @default)
-        {
-            if (!FindNamedColor(name, out Color color))
-            {
-                return @default;
-            }
-
-            return color;
-        }
-
-        private static bool FindNamedColor(string name, out Color color)
-        {
-            name = name.Replace(" ", string.Empty, StringComparison.Ordinal);
-            name = name.Replace("-", string.Empty, StringComparison.Ordinal);
-            name = name.Replace("_", string.Empty, StringComparison.Ordinal);
-            name = name.Replace("'", string.Empty, StringComparison.Ordinal);
-            name = name.Replace(".", string.Empty, StringComparison.Ordinal);
-            name = name.ToUpperInvariant();
-
-            return Colors.NamedColors.TryGetValue(name, out color);
-        }
-
-        /// <summary>
         /// Constructs a color from an HSV profile. The <paramref name="hue"/>,
         /// <paramref name="saturation"/>, and <paramref name="value"/> are typically
         /// between 0.0 and 1.0.
@@ -844,53 +527,6 @@ namespace Xanadu.Core.Maths
             }
         }
 
-        /// <summary>
-        /// Converts a color to HSV values. This is equivalent to using each of
-        /// the <c>h</c>/<c>s</c>/<c>v</c> properties, but much more efficient.
-        /// </summary>
-        /// <param name="hue">Output parameter for the HSV hue.</param>
-        /// <param name="saturation">Output parameter for the HSV saturation.</param>
-        /// <param name="value">Output parameter for the HSV value.</param>
-        public readonly void ToHsv(out float hue, out float saturation, out float value)
-        {
-            float max = (float)Mathf.Max(R, Mathf.Max(G, B));
-            float min = (float)Mathf.Min(R, Mathf.Min(G, B));
-
-            float delta = max - min;
-
-            if (delta == 0)
-            {
-                hue = 0;
-            }
-            else
-            {
-                if (R == max)
-                {
-                    hue = (G - B) / delta; // Between yellow & magenta
-                }
-                else if (G == max)
-                {
-                    hue = 2 + ((B - R) / delta); // Between cyan & yellow
-                }
-                else
-                {
-                    hue = 4 + ((R - G) / delta); // Between magenta & cyan
-                }
-
-                hue /= 6.0f;
-
-                if (hue < 0)
-                    hue += 1.0f;
-            }
-
-            if (max == 0)
-                saturation = 0;
-            else
-                saturation = 1 - (min / max);
-
-            value = max;
-        }
-
         private static int ParseCol4(ReadOnlySpan<char> str, int index)
         {
             char character = str[index];
@@ -917,50 +553,17 @@ namespace Xanadu.Core.Maths
 
 
         /// <summary>
-        /// Encodes a <see cref="Color"/> from a RGBE9995 format integer.
-        /// See <see cref="Image.Format.Rgbe9995"/>.
+        /// Constructs a <see cref="Color"/> from an HTML hex code ("#rgb", "#rrggbb", "#rrggbbaa").
+        /// Throws on anything else; named colours are not looked up.
         /// </summary>
-        /// <param name="rgbe">The RGBE9995 encoded color.</param>
-        /// <returns>The constructed color.</returns>
-        public static Color FromRgbe9995(uint rgbe)
-        {
-            float r = rgbe & 0x1ff;
-            float g = (rgbe >> 9) & 0x1ff;
-            float b = (rgbe >> 18) & 0x1ff;
-            float e = rgbe >> 27;
-            float m = (float)Mathf.Pow(2.0f, e - 15.0f - 9.0f);
+        public Color(string code) => this = FromHtml(code);
 
-            float rd = r * m;
-            float gd = g * m;
-            float bd = b * m;
-
-            return new Color(rd, gd, bd, 1.0f);
-        }
-
-        /// <summary>
-        /// Constructs a color from the given string, which can be either an HTML color
-        /// code or a named color. Returns <paramref name="default"/> if the color cannot
-        /// be inferred from the string. Supported color names are the same as the
-        /// <see cref="Colors"/> constants.
-        /// </summary>
-        /// <param name="str">The HTML color code or color name.</param>
-        /// <param name="default">The fallback color to return if the color cannot be inferred.</param>
-        /// <returns>The constructed color.</returns>
-        public static Color FromString(string str, Color @default)
-        {
-            if (HtmlIsValid(str))
-            {
-                return FromHtml(str);
-            }
-            else
-            {
-                return Named(str, @default);
-            }
-        }
+        /// <summary>As <see cref="Color(string)"/>, with alpha replaced by <paramref name="alpha"/>.</summary>
+        public Color(string code, float alpha) : this(code) => A = alpha;
 
         private static string ToHex32(float val)
         {
-            byte b = (byte)Mathf.RoundToInt(Mathf.Clamp(val * 255, 0, 255));
+            byte b = (byte)Mathf.RoundToInt(Math.Clamp(val * 255, 0, 255));
             return b.ToString("x2");
         }
 

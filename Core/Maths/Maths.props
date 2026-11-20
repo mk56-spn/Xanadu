@@ -6,5 +6,6 @@
     <Using Include="System.Numerics.Vector3" Alias="Vector3"/>
     <Using Include="System.Numerics.Vector4" Alias="Vector4"/>
     <Using Include="Xanadu.Core.Maths"/>
+    <Using Include="System"/>
   </ItemGroup>
 </Project>

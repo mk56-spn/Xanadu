@@ -103,7 +103,7 @@ namespace Xanadu.Core.Maths
 
         /// <summary>
         /// Returns <see langword="true"/> if this <see cref="Rect2"/> is finite, by calling
-        /// <see cref="Mathf.IsFinite(real_t)"/> on each component.
+        /// <see cref="float.IsFinite(real_t)"/> on each component.
         /// </summary>
         /// <returns>Whether this vector is finite or not.</returns>
         public bool IsFinite()
@@ -172,26 +172,6 @@ namespace Xanadu.Core.Maths
         }
 
         /// <summary>
-        /// Returns the support point in a given direction.
-        /// This is useful for collision detection algorithms.
-        /// </summary>
-        /// <param name="direction">The direction to find support for.</param>
-        /// <returns>A vector representing the support.</returns>
-        public readonly Vector2 GetSupport(Vector2 direction)
-        {
-            Vector2 support = _position;
-            if (direction.X > 0.0f)
-            {
-                support.X += _size.X;
-            }
-            if (direction.Y > 0.0f)
-            {
-                support.Y += _size.Y;
-            }
-            return support;
-        }
-
-        /// <summary>
         /// Returns a copy of the <see cref="Rect2"/> grown by the specified amount
         /// on all sides.
         /// </summary>
@@ -232,41 +212,6 @@ namespace Xanadu.Core.Maths
             g._size.Y += top + bottom;
 
             return g;
-        }
-
-        /// <summary>
-        /// Returns a copy of the <see cref="Rect2"/> grown by the specified amount
-        /// on the specified <see cref="Side"/>.
-        /// </summary>
-        /// <seealso cref="Grow(real_t)"/>
-        /// <seealso cref="GrowIndividual(real_t, real_t, real_t, real_t)"/>
-        /// <param name="side">The side to grow.</param>
-        /// <param name="by">The amount to grow by.</param>
-        /// <returns>The grown <see cref="Rect2"/>.</returns>
-        public readonly Rect2 GrowSide(Side side, real_t by)
-        {
-            Rect2 g = this;
-
-            g = g.GrowIndividual(Side.Left == side ? by : 0,
-                    Side.Top == side ? by : 0,
-                    Side.Right == side ? by : 0,
-                    Side.Bottom == side ? by : 0);
-
-            return g;
-        }
-
-        /// <summary>
-        /// Returns <see langword="true"/> if the <see cref="Rect2"/> has
-        /// area, and <see langword="false"/> if the <see cref="Rect2"/>
-        /// is linear, empty, or has a negative <see cref="Size"/>.
-        /// See also <see cref="Area"/>.
-        /// </summary>
-        /// <returns>
-        /// A <see langword="bool"/> for whether or not the <see cref="Rect2"/> has area.
-        /// </returns>
-        public readonly bool HasArea()
-        {
-            return _size.X > 0.0f && _size.Y > 0.0f;
         }
 
         /// <summary>

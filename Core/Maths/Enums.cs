@@ -10,16 +10,6 @@ public enum Side : long
     Bottom = 3L,
 }
 
-public enum EulerOrder : long
-{
-    Xyz = 0L,
-    Xzy = 1L,
-    Yxz = 2L,
-    Yzx = 3L,
-    Zxy = 4L,
-    Zyx = 5L,
-}
-
 public enum Key : long
 {
     None = 0L,
@@ -215,18 +205,4 @@ public enum Key : long
     Asciitilde = 126L,
     Yen = 165L,
     Section = 167L,
-}
-
-[System.Flags]
-public enum KeyModifierMask : long
-{
-    CodeMask = 8388607L,
-    ModifierMask = 2130706432L,
-    MaskCmdOrCtrl = 16777216L,
-    MaskShift = 33554432L,
-    MaskAlt = 67108864L,
-    MaskMeta = 134217728L,
-    MaskCtrl = 268435456L,
-    MaskKpad = 536870912L,
-    MaskGroupSwitch = 1073741824L,
 }

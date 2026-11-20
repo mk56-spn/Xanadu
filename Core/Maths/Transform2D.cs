@@ -47,7 +47,7 @@ namespace Xanadu.Core.Maths
         {
             get
             {
-                real_t detSign = Mathf.Sign(Determinant());
+                real_t detSign = Math.Sign(Determinant());
                 return new Vector2(X.Length(), detSign * Y.Length());
             }
         }
@@ -59,8 +59,8 @@ namespace Xanadu.Core.Maths
         {
             get
             {
-                real_t detSign = Mathf.Sign(Determinant());
-                return Mathf.Acos(X.Normalized().Dot(detSign * Y.Normalized())) - Mathf.Pi * 0.5f;
+                real_t detSign = Math.Sign(Determinant());
+                return MathF.Acos(X.Normalized().Dot(detSign * Y.Normalized())) - float.Pi * 0.5f;
             }
         }
 
@@ -200,23 +200,6 @@ namespace Xanadu.Core.Maths
         }
 
         /// <summary>
-        /// Interpolates this transform to the other <paramref name="transform"/> by <paramref name="weight"/>.
-        /// </summary>
-        /// <param name="transform">The other transform.</param>
-        /// <param name="weight">A value on the range of 0.0 to 1.0, representing the amount of interpolation.</param>
-        /// <returns>The interpolated transform.</returns>
-        public readonly Transform2D InterpolateWith(Transform2D transform, real_t weight)
-        {
-            return new Transform2D
-            (
-                Mathf.LerpAngle(Rotation, transform.Rotation, weight),
-                Scale.Lerp(transform.Scale, weight),
-                Mathf.LerpAngle(Skew, transform.Skew, weight),
-                Origin.Lerp(transform.Origin, weight)
-            );
-        }
-
-        /// <summary>
         /// Returns the inverse of the transform, under the assumption that
         /// the transformation basis is orthonormal (i.e. rotation/reflection
         /// is fine, scaling/skew is not). Use <see cref="AffineInverse"/> for
@@ -238,34 +221,12 @@ namespace Xanadu.Core.Maths
 
         /// <summary>
         /// Returns <see langword="true"/> if this transform is finite, by calling
-        /// <see cref="Mathf.IsFinite(real_t)"/> on each component.
+        /// <see cref="float.IsFinite(real_t)"/> on each component.
         /// </summary>
         /// <returns>Whether this vector is finite or not.</returns>
         public readonly bool IsFinite()
         {
             return X.IsFinite() && Y.IsFinite() && Origin.IsFinite();
-        }
-
-        /// <summary>
-        /// Returns the transform with the basis orthogonal (90 degrees),
-        /// and normalized axis vectors (scale of 1 or -1).
-        /// </summary>
-        /// <returns>The orthonormalized transform.</returns>
-        public readonly Transform2D Orthonormalized()
-        {
-            Transform2D ortho = this;
-
-            Vector2 orthoX = ortho.X;
-            Vector2 orthoY = ortho.Y;
-
-            orthoX.Normalize();
-            orthoY = orthoY - orthoX * orthoX.Dot(orthoY);
-            orthoY.Normalize();
-
-            ortho.X = orthoX;
-            ortho.Y = orthoY;
-
-            return ortho;
         }
 
         /// <summary>
@@ -278,18 +239,6 @@ namespace Xanadu.Core.Maths
         public readonly Transform2D Rotated(real_t angle)
         {
             return new Transform2D(angle, new Vector2()) * this;
-        }
-
-        /// <summary>
-        /// Rotates the transform by <paramref name="angle"/> (in radians).
-        /// The operation is done in the local frame, equivalent to
-        /// multiplying the matrix from the right.
-        /// </summary>
-        /// <param name="angle">The angle to rotate, in radians.</param>
-        /// <returns>The rotated transformation matrix.</returns>
-        public readonly Transform2D RotatedLocal(real_t angle)
-        {
-            return this * new Transform2D(angle, new Vector2());
         }
 
         /// <summary>
@@ -308,21 +257,6 @@ namespace Xanadu.Core.Maths
             return copy;
         }
 
-        /// <summary>
-        /// Scales the transform by the given scaling factor.
-        /// The operation is done in the local frame, equivalent to
-        /// multiplying the matrix from the right.
-        /// </summary>
-        /// <param name="scale">The scale to introduce.</param>
-        /// <returns>The scaled transformation matrix.</returns>
-        public readonly Transform2D ScaledLocal(Vector2 scale)
-        {
-            Transform2D copy = this;
-            copy.X *= scale;
-            copy.Y *= scale;
-            return copy;
-        }
-
         // Straight field reads: Godot's this[column, row] form goes through two indexer
         // switches per term, and every canvas vertex comes through here.
         private readonly real_t Tdotx(Vector2 with)
@@ -333,34 +267,6 @@ namespace Xanadu.Core.Maths
         private readonly real_t Tdoty(Vector2 with)
         {
             return (X.Y * with.X) + (Y.Y * with.Y);
-        }
-
-        /// <summary>
-        /// Translates the transform by the given <paramref name="offset"/>.
-        /// The operation is done in the parent/global frame, equivalent to
-        /// multiplying the matrix from the left.
-        /// </summary>
-        /// <param name="offset">The offset to translate by.</param>
-        /// <returns>The translated matrix.</returns>
-        public readonly Transform2D Translated(Vector2 offset)
-        {
-            Transform2D copy = this;
-            copy.Origin += offset;
-            return copy;
-        }
-
-        /// <summary>
-        /// Translates the transform by the given <paramref name="offset"/>.
-        /// The operation is done in the local frame, equivalent to
-        /// multiplying the matrix from the right.
-        /// </summary>
-        /// <param name="offset">The offset to translate by.</param>
-        /// <returns>The translated matrix.</returns>
-        public readonly Transform2D TranslatedLocal(Vector2 offset)
-        {
-            Transform2D copy = this;
-            copy.Origin += copy.BasisXform(offset);
-            return copy;
         }
 
         // Constants
@@ -423,7 +329,7 @@ namespace Xanadu.Core.Maths
         /// <param name="origin">The origin vector, or column index 2.</param>
         public Transform2D(real_t rotation, Vector2 origin)
         {
-            (real_t sin, real_t cos) = Mathf.SinCos(rotation);
+            (real_t sin, real_t cos) = MathF.SinCos(rotation);
             X.X = Y.Y = cos;
             X.Y = Y.X = sin;
             Y.X *= -1;
@@ -441,8 +347,8 @@ namespace Xanadu.Core.Maths
         /// <param name="origin">The origin vector, or column index 2.</param>
         public Transform2D(real_t rotation, Vector2 scale, real_t skew, Vector2 origin)
         {
-            (real_t rotationSin, real_t rotationCos) = Mathf.SinCos(rotation);
-            (real_t rotationSkewSin, real_t rotationSkewCos) = Mathf.SinCos(rotation + skew);
+            (real_t rotationSin, real_t rotationCos) = MathF.SinCos(rotation);
+            (real_t rotationSkewSin, real_t rotationSkewCos) = MathF.SinCos(rotation + skew);
             X.X = rotationCos * scale.X;
             Y.Y = rotationSkewCos * scale.Y;
             Y.X = -rotationSkewSin * scale.Y;

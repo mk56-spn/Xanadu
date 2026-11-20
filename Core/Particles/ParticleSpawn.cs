@@ -113,7 +113,7 @@ public static class ParticleSpawn
         }
         else
         {
-            way = Vector2.FromAngle(Mathf.DegToRad(effect.Direction)).Rotated(angle);
+            way = Vector2.FromAngle(float.DegreesToRadians(effect.Direction)).Rotated(angle);
             spread = effect.Spread;
         }
 
@@ -130,14 +130,14 @@ public static class ParticleSpawn
                 (Next(random) - 0.5f) * box.Y);
             seed.Position = position + offset.Rotated(angle);
 
-            float turn = Mathf.DegToRad(spread) * (Next(random) * 2f - 1f);
-            seed.Velocity = way.Rotated(turn) * Mathf.Lerp(effect.SpeedMin, effect.SpeedMax, Next(random));
+            float turn = float.DegreesToRadians(spread) * (Next(random) * 2f - 1f);
+            seed.Velocity = way.Rotated(turn) * float.Lerp(effect.SpeedMin, effect.SpeedMax, Next(random));
 
             seed.Delay = amount > 1 ? stagger * i / amount : 0f;
             seed.Lifespan = effect.Lifetime * (1f - Math.Clamp(effect.Randomness, 0f, 1f) * Next(random));
-            seed.Damping = Mathf.Lerp(effect.DampingMin, effect.DampingMax, Next(random));
-            seed.Angle = facing + Mathf.DegToRad(Mathf.Lerp(effect.AngleMin, effect.AngleMax, Next(random)));
-            seed.Size = TextureSize * Mathf.Lerp(effect.ScaleMin, effect.ScaleMax, Next(random));
+            seed.Damping = float.Lerp(effect.DampingMin, effect.DampingMax, Next(random));
+            seed.Angle = facing + float.DegreesToRadians(float.Lerp(effect.AngleMin, effect.AngleMax, Next(random)));
+            seed.Size = TextureSize * float.Lerp(effect.ScaleMin, effect.ScaleMax, Next(random));
             seed.Color = color;
             seed.Cell = effect.Texture == XpfTexture.NoteGlyphs && cells > 0
                 ? Math.Min(cells - 1, (int)(Next(random) * cells))
@@ -168,7 +168,7 @@ public static class ParticleSpawn
 
             float span = b.Time - a.Time;
             float s = span <= 0f ? 1f : (t - a.Time) / span;
-            return Mathf.Lerp(a.Value, b.Value, s * s * (3f - 2f * s));
+            return float.Lerp(a.Value, b.Value, s * s * (3f - 2f * s));
         }
 
         return points[^1].Value;
