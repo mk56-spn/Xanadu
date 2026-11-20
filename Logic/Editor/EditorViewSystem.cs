@@ -47,7 +47,7 @@ public sealed class EditorViewSystem(IPointerInputSource pointer)
 
             if (navigation.ZoomSteps != 0)
             {
-                float factor = Mathf.Pow(EditorViewport.WheelStep, navigation.ZoomSteps);
+                float factor = MathF.Pow(EditorViewport.WheelStep, navigation.ZoomSteps);
                 view = EditorViewport.Zoom(view, playfield, factor, Input.Position);
                 navigation.ZoomSteps = 0;
             }

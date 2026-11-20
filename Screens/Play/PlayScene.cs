@@ -34,7 +34,7 @@ public static class PlayScene
         Entity root,
         LevelEntry entry,
         KeybindSettings keybinds,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         long? startMs = null,
         Replay? replay = null,
         bool record = false,
@@ -52,18 +52,18 @@ public static class PlayScene
             TopInset,
             screen.X - SideInset * 2,
             screen.Y - TopInset - BottomInset);
-        float logicalSize = Mathf.Max(1, Mathf.Min(ViewSize, Mathf.Max(
+        float logicalSize = Math.Max(1, Math.Min(ViewSize, Math.Max(
             document.PlayfieldWidth,
             document.PlayfieldHeight)));
-        float available = Mathf.Min(viewport.Size.X, viewport.Size.Y);
-        float renderedSize = Mathf.Min(logicalSize, Mathf.Max(1, available));
+        float available = Math.Min(viewport.Size.X, viewport.Size.Y);
+        float renderedSize = Math.Min(logicalSize, Math.Max(1, available));
         float scale = renderedSize / logicalSize * PlayZoom;
 
         float fieldWidth = document.PlayfieldWidth * scale;
         float fieldHeight = document.PlayfieldHeight * scale;
         var origin = new Vector2(
-            (screen.X - Mathf.Min(fieldWidth, viewport.Size.X)) / 2,
-            TopInset + (viewport.Size.Y - Mathf.Min(fieldHeight, viewport.Size.Y)) / 2);
+            (screen.X - Math.Min(fieldWidth, viewport.Size.X)) / 2,
+            TopInset + (viewport.Size.Y - Math.Min(fieldHeight, viewport.Size.Y)) / 2);
         Vector2 playerSize = Player.ScaledSize(scale);
 
         Entity playfieldEntity = entities.CreateEntity(

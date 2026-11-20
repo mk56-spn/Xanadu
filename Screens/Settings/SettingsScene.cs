@@ -33,7 +33,7 @@ public static class SettingsScene
         Entity root,
         KeybindSettings keybinds,
         DisplaySettings display,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         var ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full);
         ui.Rect(SceneUi.BackgroundColor).Cover().Below();

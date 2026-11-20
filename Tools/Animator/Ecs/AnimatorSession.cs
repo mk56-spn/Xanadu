@@ -69,7 +69,7 @@ public static class AnimatorSession
 
     public static Entity Find(EntityStore store)
     {
-        foreach (Entity entity in store.Query<AnimatorDocument>().ToEntityList())
+        foreach (Entity entity in store.Query<AnimatorDocument>().Entities)
             return entity;
         return default;
     }

@@ -71,10 +71,10 @@ public static class AnimatorPreviewCommands
         void Include(Vector2 point)
         {
             any = true;
-            left = Mathf.Min(left, point.X);
-            top = Mathf.Min(top, point.Y);
-            right = Mathf.Max(right, point.X);
-            bottom = Mathf.Max(bottom, point.Y);
+            left = Math.Min(left, point.X);
+            top = Math.Min(top, point.Y);
+            right = Math.Max(right, point.X);
+            bottom = Math.Max(bottom, point.Y);
         }
     }
 }

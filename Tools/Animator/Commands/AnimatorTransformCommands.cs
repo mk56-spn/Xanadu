@@ -20,8 +20,8 @@ public static class AnimatorTransformCommands
     public static void SetScale(Entity session, Vector2 scale)
     {
         Vector2 clamped = new(
-            Mathf.Clamp(scale.X, 0.01f, 20f),
-            Mathf.Clamp(scale.Y, 0.01f, 20f));
+            Math.Clamp(scale.X, 0.01f, 20f),
+            Math.Clamp(scale.Y, 0.01f, 20f));
         Set(session, "SCALE SET", transform => transform with { Scale = clamped });
     }
 
@@ -57,9 +57,9 @@ public static class AnimatorTransformCommands
 
     private static Vector2 Proportional(Vector2 current, float x)
     {
-        x = Mathf.Clamp(x, 0.01f, 20f);
-        float ratio = Mathf.Abs(current.X) < 0.0001f ? 1f : current.Y / current.X;
-        return new Vector2(x, Mathf.Clamp(x * ratio, 0.01f, 20f));
+        x = Math.Clamp(x, 0.01f, 20f);
+        float ratio = Math.Abs(current.X) < 0.0001f ? 1f : current.Y / current.X;
+        return new Vector2(x, Math.Clamp(x * ratio, 0.01f, 20f));
     }
 
     /// <summary>

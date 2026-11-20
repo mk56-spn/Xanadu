@@ -12,6 +12,8 @@ using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Interaction;
 using Position = Xanadu.Core.Position;
 
+using Xanadu.Ui.Systems.Rendering;
+
 namespace Xanadu.Screens.Play;
 
 // Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
@@ -141,11 +143,13 @@ public sealed class HudLayoutSystem(
                 buffer.AddTag<Moved>(member.Id);
             }
 
-            if (member.HasComponent<VisualRid>())
+            bool shown = item.Visible || layout.Editing;
+            if (shown == member.Tags.Has<CanvasHidden>())
             {
-                canvas.SetVisible(
-                    member.GetComponent<VisualRid>().Value,
-                    item.Visible || layout.Editing);
+                if (shown)
+                    buffer.RemoveTag<CanvasHidden>(member.Id);
+                else
+                    buffer.AddTag<CanvasHidden>(member.Id);
             }
         }
 

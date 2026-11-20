@@ -21,7 +21,7 @@ public static class AnimatorTipHandles
     public const float HitRadius = 8f;
 
     /// <summary>The step a drag snaps the bone's rotation to unless Shift is held.</summary>
-    public const float SnapStep = Mathf.Pi / 12f;
+    public const float SnapStep = float.Pi / 12f;
 
     /// <summary>Closer to the joint than this, in screen pixels, the pointer's angle is only noise.</summary>
     private const float DeadZone = 4f;
@@ -135,7 +135,7 @@ public static class AnimatorTipHandles
             return;
 
         float angle = PointerAngle(pointer, placement, joint);
-        drag.Turned += Mathf.Wrap(angle - drag.PointerAngle, -Mathf.Pi, Mathf.Pi);
+        drag.Turned += Mathf.Wrap(angle - drag.PointerAngle, -float.Pi, float.Pi);
         drag.PointerAngle = angle;
 
         // A mirrored parent turns local rotation the opposite way on screen.

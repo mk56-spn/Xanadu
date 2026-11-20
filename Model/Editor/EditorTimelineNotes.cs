@@ -39,7 +39,7 @@ public static class EditorTimelineNotes
         float zoom)
     {
         var byTime = new Dictionary<long, List<Entity>>();
-        foreach (Entity entity in entities.Query<Note>().ToEntityList())
+        foreach (Entity entity in entities.Query<Note>().Entities)
         {
             long time = entity.GetComponent<Note>().TimeMs;
             if (time < windowStart || time > windowEnd)

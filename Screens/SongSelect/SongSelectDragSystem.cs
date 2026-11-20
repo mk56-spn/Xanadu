@@ -87,7 +87,7 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
             // A quick flick lets go before the list catches up: settle where the hand went.
             _dragging = false;
             root.RemoveTag<SongSelectDragging>();
-            int wanted = Mathf.Clamp(Mathf.RoundToInt(_target), 0, Mathf.Max(state.Catalog.Count - 1, 0));
+            int wanted = Math.Clamp(Mathf.RoundToInt(_target), 0, Math.Max(state.Catalog.Count - 1, 0));
             if (wanted != state.Selected)
                 scenes.TryStepCarousel(wanted - state.Selected);
         }
@@ -100,7 +100,7 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
     /// <summary>Starts from where the threshold was crossed, so the list doesn't jump.</summary>
     private bool TryStartDrag(Entity root, in SongSelectState state, float y)
     {
-        if (state.Catalog.Count < 2 || Mathf.Abs(y - _anchorY) < DragThreshold)
+        if (state.Catalog.Count < 2 || Math.Abs(y - _anchorY) < DragThreshold)
             return false;
 
         _dragging = true;
@@ -115,8 +115,8 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
     {
         ref SongSelectState state = ref root.GetComponent<SongSelectState>();
         _target = _anchorScroll + SongSelectScene.LevelsDragged(_anchorY, y);
-        float eased = Mathf.Lerp(state.Scroll, _target, 1 - Mathf.Exp(-DragRate * Tick.deltaTime));
-        SongSelectScene.SetScroll(ref state, Mathf.Abs(_target - eased) < 0.002f ? _target : eased);
+        float eased = float.Lerp(state.Scroll, _target, 1 - MathF.Exp(-DragRate * Tick.deltaTime));
+        SongSelectScene.SetScroll(ref state, Math.Abs(_target - eased) < 0.002f ? _target : eased);
 
         int wanted = Mathf.RoundToInt(state.Scroll);
         if (wanted != state.Selected)

@@ -43,7 +43,9 @@ public sealed class ParticleStream : IParticleFlow
         _server = server;
         _effect = effect;
         Item = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(Item, parent);
+        // Hung under its parent, or left for its owner to list (a mount) when there is none.
+        if (parent.IsValid)
+            CanvasServer.Current.SetParent(Item, parent);
     }
 
     public Handle Item { get; }

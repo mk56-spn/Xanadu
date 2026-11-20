@@ -78,16 +78,16 @@ public static class XafEffects
     {
         int top = 0;
         foreach (XafAttachment attachment in package.Attachments)
-            top = Mathf.Max(top, attachment.ZOrder + 1);
+            top = Math.Max(top, attachment.ZOrder + 1);
         foreach (XafEffect other in package.Effects)
-            top = Mathf.Max(top, other.ZOrder + 1);
+            top = Math.Max(top, other.ZOrder + 1);
 
         package.Effects.Add(new XafEffect
         {
             Id = UniqueId(package, baseId),
             BoneId = boneId,
             Item = item,
-            ZOrder = Mathf.Min(top, DrawOrder.MaxLayer),
+            ZOrder = Math.Min(top, DrawOrder.MaxLayer),
         });
         return package.Effects.Count - 1;
     }

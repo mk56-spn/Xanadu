@@ -36,7 +36,7 @@ public static class OffsetWizardScene
     public static void Build(
         EntityStore entities,
         Entity root,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);

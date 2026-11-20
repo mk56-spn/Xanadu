@@ -37,7 +37,7 @@ public sealed partial class SvgAttachmentVisuals
                 HostPlatform.Particles is not { } server)
                 continue;
 
-            IParticleFlow instance = new ParticleStream(server, canvas, particle);
+            IParticleFlow instance = new ParticleStream(server, default, particle);
             SetLayer(instance.Item, effect.ZOrder, AnimatorDrawOrder.Effect(i, effect.Item.Primitives.Count));
             _particles.Add(new ParticleEffect(i, instance));
         }
@@ -61,7 +61,11 @@ public sealed partial class SvgAttachmentVisuals
     private void ReleaseParticles()
     {
         foreach (ParticleEffect effect in _particles)
+        {
+            _placed.RemoveAll(entry => entry.Item == effect.Instance.Item);
+            _sorted = [];
             effect.Instance.Dispose();
+        }
         _particles.Clear();
     }
 

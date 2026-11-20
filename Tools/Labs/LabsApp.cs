@@ -36,7 +36,7 @@ internal sealed class LabsApp : TabbedToolApp
 
     private Handle ShowTexture(Texture texture)
     {
-        Handle id = Canvas.MintRid();
+        Handle id = Canvas.MintHandle();
         Renderer.Textures[id.Id] = texture;
         return id;
     }

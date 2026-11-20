@@ -21,7 +21,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// highlights the selected entries.
 /// </summary>
 public sealed class AnimatorHierarchySystem(
-    IVisualRidFactory visuals,
+    IVisualItemFactory visuals,
     IPointerInputSource? pointer = null)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {

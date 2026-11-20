@@ -80,7 +80,7 @@ public sealed class WarningPopupSystem : QuerySystem<WarningPopup>
     {
         foreach (Entity entity in _entities
                      .Query<PlayfieldView, LevelInfo, Playfield, NoteSelection>()
-                     .ToEntityList())
+                     .Entities)
         {
             return entity;
         }

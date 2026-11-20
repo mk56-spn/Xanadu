@@ -47,7 +47,7 @@ public static class AnimatorGeometry
         new(
             label.Position + new Vector2(1, 1),
             new Vector2(
-                Mathf.Min(label.Size.X - 1, name.Length * LabelCharWidth + 10),
+                Math.Min(label.Size.X - 1, name.Length * LabelCharWidth + 10),
                 label.Size.Y - 2));
 
     /// <summary>The bone whose joint or label is under the pointer, or -1; joints win.</summary>

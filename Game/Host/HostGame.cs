@@ -44,7 +44,7 @@ internal sealed class HostGame : HostApp
         director.Changed += OnSceneChanged;
         _systems = new XanaduSystemRoot(
             Entities,
-            Canvas.RootRid,
+            Canvas.RootHandle,
             Pointer,
             director,
             UiStage.Design1080,
@@ -123,9 +123,12 @@ internal sealed class HostGame : HostApp
                     Path.GetFileName(entry.Path).Contains(name, StringComparison.OrdinalIgnoreCase));
             if (level is not null)
             {
-                Console.WriteLine($"Playing {level.Document.Name} ({level.Path})");
+                Console.WriteLine($"{(_options.Editor ? "Editing" : "Playing")} {level.Document.Name} ({level.Path})");
                 _systems.Scenes.Start(SceneKind.Profiles);
-                _systems.Scenes.StartPlay(level);
+                if (_options.Editor)
+                    _systems.Scenes.StartEditor(level);
+                else
+                    _systems.Scenes.StartPlay(level);
                 return;
             }
 

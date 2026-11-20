@@ -71,7 +71,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     /// <summary>The preview body's trace, before its scene goes (one play entity at most).</summary>
     private List<Vector2>? TakeTrace()
     {
-        foreach (Entity entity in _entities.Query<BodyTrace>().ToEntityList())
+        foreach (Entity entity in _entities.Query<BodyTrace>().Entities)
         {
             if (entity.TryGetComponent(out PlayfieldMode mode) && mode.Kind == PlayfieldKind.Play)
                 return entity.GetComponent<BodyTrace>().Points;

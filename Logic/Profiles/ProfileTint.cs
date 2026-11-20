@@ -22,7 +22,7 @@ public static class ProfileTint
     /// <summary>The two ends of the gradient behind notes of this tint: its own hue, richer and darker.</summary>
     public static (Color Top, Color Bottom) Gradient(Color tint)
     {
-        float saturation = Mathf.Min(tint.S * SaturationBoost, 1f);
+        float saturation = Math.Min(tint.S * SaturationBoost, 1f);
         return (
             Color.FromHsv(tint.H, saturation, tint.V * TopValue),
             Color.FromHsv(tint.H, saturation, tint.V * BottomValue));

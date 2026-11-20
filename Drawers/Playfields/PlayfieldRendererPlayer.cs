@@ -26,7 +26,7 @@ public static partial class PlayfieldRenderer
         PlayfieldView view)
     {
         // One player at most.
-        foreach (Entity entity in entities.Query<Player, Position>().ToEntityList())
+        foreach (Entity entity in entities.Query<Player, Position>().Entities)
         {
             Vector2 center = entity.GetComponent<Position>().Value;
             if (entity.TryGetComponent(out PlayCamera camera))

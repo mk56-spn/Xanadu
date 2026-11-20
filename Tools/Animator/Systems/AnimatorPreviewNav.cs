@@ -27,7 +27,7 @@ public sealed class AnimatorPreviewNav(IWheelSource? wheel = null)
         view.ZoomAt(
             input.Position,
             area,
-            Mathf.Pow(AnimatorPreviewView.WheelStep, notches));
+            MathF.Pow(AnimatorPreviewView.WheelStep, notches));
         AnimatorSession.SetStatus(session, $"ZOOM x{view.Zoom:0.##}");
     }
 

@@ -136,7 +136,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool IsPlayFinished()
     {
-        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlaySession>().Entities)
         {
             if (entity.GetComponent<PlaySession>().Finished)
                 return true;
@@ -147,7 +147,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool IsPlayDied()
     {
-        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlaySession>().Entities)
         {
             if (entity.GetComponent<PlaySession>().Died)
                 return true;
@@ -160,7 +160,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     {
         foreach (Entity entity in _entities
                      .Query<ScoreState, PlaySession, LevelInfo>()
-                     .ToEntityList())
+                     .Entities)
         {
             LevelInfo level = entity.GetComponent<LevelInfo>();
             ScoreState score = entity.GetComponent<ScoreState>();

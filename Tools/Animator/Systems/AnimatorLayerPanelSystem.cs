@@ -14,7 +14,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// Keeps the LAYERS tab showing the art in draw order. Row entities stay where they
 /// are and take on whichever art is at that place, so a press survives a reorder.
 /// </summary>
-public sealed class AnimatorLayerPanelSystem(IVisualRidFactory visuals)
+public sealed class AnimatorLayerPanelSystem(IVisualItemFactory visuals)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private const float ArrowWidth = 30f;

@@ -27,7 +27,7 @@ public static class EditorSceneActions
     {
         foreach (Entity editor in context.Entities
                      .Query<LevelInfo>()
-                     .ToEntityList())
+                     .Entities)
         {
             // The editor is built with the request component; adding it again
             // would be a structural change inside the scene's query loop.

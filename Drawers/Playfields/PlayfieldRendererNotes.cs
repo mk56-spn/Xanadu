@@ -81,8 +81,8 @@ public static partial class PlayfieldRenderer
         Vector2 size = WallNoteSize(radius);
         var slab = new Rect2(center - size / 2, size);
         canvas.DrawRect(rid, slab, color with { A = color.A * 0.55f });
-        canvas.DrawBorder(rid, slab, color, Mathf.Max(1.5f, radius * 0.08f));
-        canvas.DrawLine(rid, center - new Vector2(0, size.Y / 2 - radius * 0.2f), center + new Vector2(0, size.Y / 2 - radius * 0.2f), NoteEdgeColor with { A = color.A }, Mathf.Max(1f, radius * 0.1f));
+        canvas.DrawBorder(rid, slab, color, Math.Max(1.5f, radius * 0.08f));
+        canvas.DrawLine(rid, center - new Vector2(0, size.Y / 2 - radius * 0.2f), center + new Vector2(0, size.Y / 2 - radius * 0.2f), NoteEdgeColor with { A = color.A }, Math.Max(1f, radius * 0.1f));
     }
 
     /// <summary>Draws just a note's body at a position, shared by play and the editor's group preview.</summary>

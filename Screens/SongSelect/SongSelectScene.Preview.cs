@@ -18,7 +18,7 @@ namespace Xanadu.Screens.SongSelect;
 public static partial class SongSelectScene
 {
     private const int ChipCount = 3;
-    internal static readonly float PreviewTilt = Mathf.DegToRad(6);
+    internal static readonly float PreviewTilt = float.DegreesToRadians(6);
     private static readonly Color PanelBlack = new(0, 0, 0, 0.7f);
 
     // Pushed left, as far as the list panel's slanted edge allows, to leave a

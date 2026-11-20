@@ -25,7 +25,7 @@ public static class XafChainArt
     {
         int highest = 0;
         foreach (XafAttachment attachment in package.Attachments)
-            highest = Mathf.Max(highest, attachment.ZOrder);
+            highest = Math.Max(highest, attachment.ZOrder);
 
         return DrawOrder.ClampLayer(highest + 1);
     }
@@ -36,7 +36,7 @@ public static class XafChainArt
 
     /// <summary>The width of the piece on one segment, tapering from the root to the tip.</summary>
     public static float WidthAt(float width, int segment, int segments) =>
-        width * Mathf.Lerp(1f, TipWidth, (segment + 0.5f) / Mathf.Max(1, segments));
+        width * float.Lerp(1f, TipWidth, (segment + 0.5f) / Math.Max(1, segments));
 
     /// <summary>
     /// The transform that puts art centred on its own origin onto the segment
@@ -55,8 +55,8 @@ public static class XafChainArt
         Vector2 along = to - from;
         float length = along.Length();
         Vector2 direction = length > 0.0001f ? along / length : Vector2.Down;
-        float lengthScale = length * Overlap / Mathf.Max(1f, artSize.Y);
-        float widthScale = WidthAt(width, segment, segments) / Mathf.Max(1f, artSize.X);
+        float lengthScale = length * Overlap / Math.Max(1f, artSize.Y);
+        float widthScale = WidthAt(width, segment, segments) / Math.Max(1f, artSize.X);
 
         // X is the perpendicular that keeps the transform a proper rotation, not a mirror.
         var across = new Vector2(direction.Y, -direction.X);
@@ -96,7 +96,7 @@ public static class XafChainArt
         var along = new float[curve.Count];
         for (int i = 1; i < curve.Count; i++)
             along[i] = along[i - 1] + curve[i].DistanceTo(curve[i - 1]);
-        float total = Mathf.Max(along[^1], 0.0001f);
+        float total = Math.Max(along[^1], 0.0001f);
 
         var vertices = new Vector2[curve.Count * 2];
         var uvs = new Vector2[curve.Count * 2];

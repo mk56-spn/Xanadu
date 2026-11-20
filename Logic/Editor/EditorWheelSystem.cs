@@ -24,7 +24,7 @@ public sealed class EditorWheelSystem(EditorCommandBus commands, IWheelSource wh
         if (notches == 0 || IsWheelBlocked())
             return;
 
-        foreach (Entity editor in Query.ToEntityList())
+        foreach (Entity editor in Query.Entities)
         {
             if (wheel.Control && editor.HasComponent<EditorViewNavigation>())
             {

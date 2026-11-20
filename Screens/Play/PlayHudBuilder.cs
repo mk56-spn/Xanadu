@@ -28,7 +28,7 @@ internal static class PlayHudBuilder
         Vector2 origin,
         Rect2 viewport,
         float fieldHeight,
-        IVisualRidFactory? visuals,
+        IVisualItemFactory? visuals,
         long startMs)
     {
         UiNode ui = UiNode.Layer(

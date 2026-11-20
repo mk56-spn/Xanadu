@@ -40,7 +40,7 @@ public static class SongTimingScene
         EntityStore entities,
         Entity root,
         SongDocument song,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full);
         ui.Rect(SceneUi.BackgroundColor).Cover().Below();

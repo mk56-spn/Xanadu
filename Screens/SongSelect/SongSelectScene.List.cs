@@ -69,7 +69,7 @@ public static partial class SongSelectScene
     /// share on screen: any list of two or more levels can be dragged.
     /// </summary>
     public static VerticalSlider ListSlider(in SongSelectState state) =>
-        new(TrackTop, TrackBottom, 1f / Mathf.Max(state.Catalog.Count, 1), MinThumb);
+        new(TrackTop, TrackBottom, 1f / Math.Max(state.Catalog.Count, 1), MinThumb);
 
     /// <summary>How far down the list is scrolled, from 0 to 1.</summary>
     public static float ListValue(in SongSelectState state) =>
@@ -244,10 +244,10 @@ public static partial class SongSelectScene
         {
             for (int i = 0; i <= steps; i++)
             {
-                float angle = Mathf.DegToRad(start + 90f * i / steps);
+                float angle = float.DegreesToRadians(start + 90f * i / steps);
                 points.Add(corner + new Vector2(
-                    Mathf.Cos(angle) * radius,
-                    Mathf.Sin(angle) * radius));
+                    MathF.Cos(angle) * radius,
+                    MathF.Sin(angle) * radius));
             }
         }
 
@@ -264,9 +264,9 @@ public static partial class SongSelectScene
         if (distance == 0)
             return false;
 
-        state.Scroll = Mathf.Abs(distance) < 0.002f
+        state.Scroll = Math.Abs(distance) < 0.002f
             ? state.Selected
-            : state.Scroll + distance * (1 - Mathf.Exp(-ScrollRate * delta));
+            : state.Scroll + distance * (1 - MathF.Exp(-ScrollRate * delta));
         RefreshList(ref state);
         return true;
     }
@@ -277,7 +277,7 @@ public static partial class SongSelectScene
     /// <summary>Puts the list at a scroll directly, kept within the catalog, and re-lays the rows.</summary>
     public static void SetScroll(ref SongSelectState state, float scroll)
     {
-        state.Scroll = Mathf.Clamp(scroll, 0, Mathf.Max(state.Catalog.Count - 1, 0));
+        state.Scroll = Math.Clamp(scroll, 0, Math.Max(state.Catalog.Count - 1, 0));
         RefreshList(ref state);
     }
 
@@ -380,14 +380,14 @@ public static partial class SongSelectScene
     /// <summary>Linear lookup in a table whose first entry is slot -1.</summary>
     private static float Interpolate(float[] table, float slot)
     {
-        float position = Mathf.Clamp(slot + 1, 0, table.Length - 1);
-        int low = Mathf.Min((int)position, table.Length - 2);
-        return Mathf.Lerp(table[low], table[low + 1], position - low);
+        float position = Math.Clamp(slot + 1, 0, table.Length - 1);
+        int low = Math.Min((int)position, table.Length - 2);
+        return float.Lerp(table[low], table[low + 1], position - low);
     }
 
     /// <summary>Rows fade in over the slot above the list and out below it.</summary>
     private static float SlotAlpha(float slot) =>
-        slot < 0 ? Mathf.Clamp(slot + 1, 0, 1) : Mathf.Clamp(7 - slot, 0, 1);
+        slot < 0 ? Math.Clamp(slot + 1, 0, 1) : Math.Clamp(7 - slot, 0, 1);
 
     private static Color Fade(Color color, float alpha) =>
         new(color, color.A * alpha);

@@ -20,7 +20,7 @@ public sealed class AnimatorActionSystem : QuerySystem<UiCommand>
     protected override void OnUpdate()
     {
         _requests.Clear();
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             if (!ToolAction.From(entity.GetComponent<UiCommand>(), out ToolAction action))
                 continue;

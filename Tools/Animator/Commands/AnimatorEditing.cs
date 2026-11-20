@@ -247,7 +247,7 @@ public static class AnimatorEditing
             {
                 status = $"{bone.Id} HAS NO JOINT TO LOCK";
             }
-            else if (Mathf.Abs(bend) < XafJointLocks.Straight)
+            else if (Math.Abs(bend) < XafJointLocks.Straight)
             {
                 status = $"BEND {bone.Id} THE RIGHT WAY FIRST";
             }
@@ -348,7 +348,7 @@ public static class AnimatorEditing
         });
 
     private static string LimitStatus(XafBone bone) =>
-        $"{bone.Id} TURNS {Mathf.RadToDeg(bone.LimitMin):0}\u00b0 TO {Mathf.RadToDeg(bone.LimitMax):0}\u00b0";
+        $"{bone.Id} TURNS {float.RadiansToDegrees(bone.LimitMin):0}\u00b0 TO {float.RadiansToDegrees(bone.LimitMax):0}\u00b0";
 
     /// <summary>Lets the selected bone translate, or locks it back to its rest length.</summary>
     public static void ToggleMovable(Entity session) =>

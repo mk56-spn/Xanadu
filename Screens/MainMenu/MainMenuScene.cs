@@ -23,7 +23,7 @@ public static class MainMenuScene
     public static void Build(
         EntityStore entities,
         Entity root,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full)
             .Theme(UiThemes.Menu);

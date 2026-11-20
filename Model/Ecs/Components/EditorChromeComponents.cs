@@ -60,7 +60,7 @@ public struct EditorPanel(EditorPanelKind kind, Vector2 home) : IComponent
     /// <summary>The panel of a kind, or null when there is none.</summary>
     public static Entity Find(EntityStore store, EditorPanelKind kind)
     {
-        foreach (Entity entity in store.Query<EditorPanel>().WithDisabled().ToEntityList())
+        foreach (Entity entity in store.Query<EditorPanel>().WithDisabled().Entities)
         {
             if (entity.GetComponent<EditorPanel>().Kind == kind)
                 return entity;

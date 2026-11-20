@@ -85,7 +85,7 @@ public sealed class EditorPlayfieldDrawSystem : SystemGroup
             owner._frames.Clear();
 
             // One editor entity in practice.
-            foreach (Entity entity in Query.ToEntityList())
+            foreach (Entity entity in Query.Entities)
             {
                 owner._frames.Add(new EditorFrame(
                     entity,

@@ -10,7 +10,7 @@ namespace Xanadu.Host;
 /// <c>--play</c> starts the first playable level, <c>--play=&lt;name&gt;</c> the first whose name or file name contains it;
 /// null starts on the profiles screen like the Godot build.
 /// </param>
-/// <param name="Editor"><c>--editor</c> starts in the editor.</param>
+/// <param name="Editor"><c>--editor</c> starts in the editor; with <c>--play</c>, on that level.</param>
 /// <param name="Demo"><c>--demo</c> plays a level made in memory (<see cref="DemoLevel"/>).</param>
 /// <param name="Scene"><c>--scene=&lt;name&gt;</c> starts on that screen (a <c>SceneKind</c> name, any case), for checking one screen.</param>
 internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene)

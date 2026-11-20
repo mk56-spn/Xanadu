@@ -70,7 +70,7 @@ public static class AnimatorSnap
         Vector2 snapped = wanted;
         foreach (Vector2 joint in joints)
         {
-            float dx = Mathf.Abs(joint.X - wanted.X);
+            float dx = Math.Abs(joint.X - wanted.X);
             if (dx < bestX)
             {
                 bestX = dx;
@@ -79,7 +79,7 @@ public static class AnimatorSnap
                 guides.X = joint.X;
             }
 
-            float dy = Mathf.Abs(joint.Y - wanted.Y);
+            float dy = Math.Abs(joint.Y - wanted.Y);
             if (dy < bestY)
             {
                 bestY = dy;
@@ -117,22 +117,22 @@ public static class AnimatorSnap
         foreach (Vector2 joint in joints)
         {
             // Lining up in X: the end's X becomes the joint's, if the circle reaches it.
-            float dx = Mathf.Abs(joint.X - end.X);
+            float dx = Math.Abs(joint.X - end.X);
             float across = joint.X - pivot.X;
-            if (dx < best && Mathf.Abs(across) <= length)
+            if (dx < best && Math.Abs(across) <= length)
             {
                 best = dx;
-                float along = Mathf.Sqrt(length * length - across * across);
+                float along = MathF.Sqrt(length * length - across * across);
                 result = new Vector2(across, end.Y - pivot.Y < 0f ? -along : along) / length;
                 guides = new AnimatorSnapGuides { HasX = true, X = joint.X };
             }
 
-            float dy = Mathf.Abs(joint.Y - end.Y);
+            float dy = Math.Abs(joint.Y - end.Y);
             float down = joint.Y - pivot.Y;
-            if (dy < best && Mathf.Abs(down) <= length)
+            if (dy < best && Math.Abs(down) <= length)
             {
                 best = dy;
-                float along = Mathf.Sqrt(length * length - down * down);
+                float along = MathF.Sqrt(length * length - down * down);
                 result = new Vector2(end.X - pivot.X < 0f ? -along : along, down) / length;
                 guides = new AnimatorSnapGuides { HasY = true, Y = joint.Y };
             }

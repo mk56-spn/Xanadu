@@ -87,7 +87,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     {
         foreach (Entity entity in _entities
                      .Query<Playhead, PlayfieldView, PlayfieldMode, ScoreState>()
-                     .ToEntityList())
+                     .Entities)
         {
             if (entity.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Play &&
                 entity.HasComponent<Player>() &&

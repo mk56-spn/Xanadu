@@ -21,7 +21,7 @@ public sealed class PlayfieldDrawSystem(EntityStore entities, IRectCanvas canvas
         Vector2 shift = Vector2.Zero;
 
         // One play entity at most.
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             if (entity.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Play)
                 continue;

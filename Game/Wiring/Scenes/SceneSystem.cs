@@ -29,7 +29,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>, ISongSelectCa
     private readonly EntityStore _entities;
     private readonly SceneDirector _director;
     private readonly Vector2 _screen;
-    private readonly IVisualRidFactory _visuals;
+    private readonly IVisualItemFactory _visuals;
     private readonly Func<List<LevelEntry>> _loadLevels;
     private readonly KeybindSettings _keybinds;
     private readonly ProfileStore _profiles;
@@ -69,7 +69,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>, ISongSelectCa
         EntityStore entities,
         SceneDirector director,
         Vector2 screen,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         Func<List<LevelEntry>>? loadLevels = null,
         KeybindSettings? keybinds = null,
         bool transitions = true,
@@ -201,6 +201,15 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>, ISongSelectCa
         _pendingStartMs = startMs;
         ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
         state.Pending = SceneKind.Play;
+    }
+
+    /// <summary>Opens the editor on an already-loaded level entry, as song select's edit button does.</summary>
+    public void StartEditor(LevelEntry entry)
+    {
+        EnsureState();
+        _pendingEditorEntry = entry;
+        ref SceneState state = ref _stateEntity.GetComponent<SceneState>();
+        state.Pending = SceneKind.Editor;
     }
 
     /// <summary>Starts the results screen with an explicit result snapshot.</summary>

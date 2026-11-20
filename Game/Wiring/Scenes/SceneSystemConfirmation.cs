@@ -142,7 +142,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool EditorHasSavedLevel()
     {
-        foreach (Entity entity in _entities.Query<LevelFile>().ToEntityList())
+        foreach (Entity entity in _entities.Query<LevelFile>().Entities)
         {
             if (!string.IsNullOrWhiteSpace(entity.GetComponent<LevelFile>().Path))
                 return true;

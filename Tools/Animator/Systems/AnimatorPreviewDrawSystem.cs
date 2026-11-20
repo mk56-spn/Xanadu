@@ -271,7 +271,7 @@ public sealed class AnimatorPreviewDrawSystem(
             canvas.DrawLine(target, joint, previous, LimitColor, 2f);
             for (int s = 1; s <= LimitSegments; s++)
             {
-                Vector2 next = Edge(Mathf.Lerp(bone.LimitMin, bone.LimitMax, s / (float)LimitSegments));
+                Vector2 next = Edge(float.Lerp(bone.LimitMin, bone.LimitMax, s / (float)LimitSegments));
                 canvas.DrawLine(target, previous, next, LimitColor, 2f);
                 previous = next;
             }
@@ -368,7 +368,7 @@ public sealed class AnimatorPreviewDrawSystem(
         if (collider is { } center)
         {
             Vector2 screen = placement * center;
-            canvas.DrawCircleOutline(target, screen, chain.CollideRadius * Mathf.Abs(placement.Scale.X), ColliderColor, 1.5f);
+            canvas.DrawCircleOutline(target, screen, chain.CollideRadius * Math.Abs(placement.Scale.X), ColliderColor, 1.5f);
             canvas.DrawCircle(target, screen, 4f, ColliderColor);
         }
 
@@ -418,7 +418,7 @@ public sealed class AnimatorPreviewDrawSystem(
         bool kites,
         bool handles)
     {
-        time = Mathf.Clamp(time, 0f, Mathf.Max(0.001f, clip.Duration));
+        time = Math.Clamp(time, 0f, Math.Max(0.001f, clip.Duration));
         Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, time));
         for (int i = 0; i < world.Length; i++)
         {

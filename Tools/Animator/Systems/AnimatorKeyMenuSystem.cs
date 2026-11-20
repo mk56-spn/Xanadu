@@ -116,7 +116,7 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
             session.GetComponent<AnimatorSelection>().HasKey = false;
             menu.Track = trackRow.Track;
             menu.Property = trackRow.Property;
-            menu.Time = Mathf.Clamp(
+            menu.Time = Math.Clamp(
                 (float)model.Snap(model.SecondsAtX(input.Position.X), input.Shift),
                 0f,
                 model.Clip.Duration);

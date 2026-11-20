@@ -426,7 +426,7 @@ public sealed partial class BenchSystem : QuerySystem<BenchView>
     {
         _songs = SongStore.Shared.Playable();
         string selected = "";
-        foreach (Entity entity in _entities.Query<SceneState>().ToEntityList())
+        foreach (Entity entity in _entities.Query<SceneState>().Entities)
             selected = entity.GetComponent<SceneState>().SelectedSongId;
 
         _index = 0;

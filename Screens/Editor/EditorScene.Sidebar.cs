@@ -39,7 +39,7 @@ public static class EditorSceneSidebar
         // The buttons shrink when there are more of them than fit the strip at full size.
         int count = EditorToolGroups.All.Length;
         float fits = (shell.ToolStrip.Size.Y - pad * 2 + gap) / count - gap;
-        float side = Mathf.Min(EditorShellMetrics.ToolButton, Mathf.Floor(fits));
+        float side = Math.Min(EditorShellMetrics.ToolButton, MathF.Floor(fits));
         var size = new Vector2(side, side);
 
         for (int index = 0; index < count; index++)

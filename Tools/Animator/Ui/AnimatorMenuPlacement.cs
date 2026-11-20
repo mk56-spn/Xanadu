@@ -21,8 +21,8 @@ public static class AnimatorMenuPlacement
         float x = point.X + size.X > screen.X ? point.X - size.X : point.X;
         float y = point.Y + size.Y > screen.Y ? point.Y - size.Y : point.Y;
         return new Vector2(
-            Mathf.Clamp(x, 0f, Mathf.Max(0f, screen.X - size.X)),
-            Mathf.Clamp(y, 0f, Mathf.Max(0f, screen.Y - size.Y)));
+            Math.Clamp(x, 0f, Math.Max(0f, screen.X - size.X)),
+            Math.Clamp(y, 0f, Math.Max(0f, screen.Y - size.Y)));
     }
 
     /// <summary>Centres the menu on a top-left point, touching it only when it moves.</summary>

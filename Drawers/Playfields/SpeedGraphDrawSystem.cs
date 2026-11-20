@@ -43,7 +43,7 @@ public sealed class SpeedGraphDrawSystem(IRectCanvas canvas, Handle target) : Qu
         canvas.Clear(target);
 
         // One play entity at most.
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
             Draw(entity.GetComponent<SpeedGraph>().Samples, entity.GetComponent<PlayfieldView>().ScreenSize);
     }
 

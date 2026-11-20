@@ -39,7 +39,7 @@ public sealed class AppShortcutSystem(
 
     private IEditorShortcutTarget? FindEditor()
     {
-        foreach (Entity entity in Query.ToEntityList())
+        foreach (Entity entity in Query.Entities)
         {
             IEditorShortcutTarget target = entity.GetComponent<EditorShortcutHost>().Target;
             if (target.IsOpen)

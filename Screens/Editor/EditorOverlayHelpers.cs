@@ -58,7 +58,7 @@ public sealed partial class EditorOverlay
 
     private Entity FindFocusedTextField()
     {
-        foreach (Entity entity in _entities.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).ToEntityList())
+        foreach (Entity entity in _entities.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).Entities)
             return entity;
 
         return default;
@@ -66,7 +66,7 @@ public sealed partial class EditorOverlay
 
     private Entity FindEditor()
     {
-        foreach (Entity entity in _entities.Query<PlayfieldView>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlayfieldView>().Entities)
             return entity;
 
         return default;

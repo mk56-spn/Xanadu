@@ -78,7 +78,7 @@ public sealed class AnimatorValueSliderSystem : QuerySystem<AnimatorDocument, An
         }
 
         available = TryGet(session, kind, out float current);
-        slider.Value = available ? Mathf.Clamp(current, slider.Min, slider.Max) : slider.Default;
+        slider.Value = available ? Math.Clamp(current, slider.Min, slider.Max) : slider.Default;
         state.Shown = slider.Value;
         _states[track.Id] = state;
 
@@ -114,10 +114,10 @@ public sealed class AnimatorValueSliderSystem : QuerySystem<AnimatorDocument, An
                 AnimatorEditing.SetDepth(session, value);
                 break;
             case AnimatorSliderValue.LimitMin:
-                AnimatorEditing.SetLimit(session, max: false, Mathf.DegToRad(value));
+                AnimatorEditing.SetLimit(session, max: false, float.DegreesToRadians(value));
                 break;
             case AnimatorSliderValue.LimitMax:
-                AnimatorEditing.SetLimit(session, max: true, Mathf.DegToRad(value));
+                AnimatorEditing.SetLimit(session, max: true, float.DegreesToRadians(value));
                 break;
             case AnimatorSliderValue.BrushSize:
                 AnimatorWeightCommands.SetRadius(session, value);
@@ -138,13 +138,13 @@ public sealed class AnimatorValueSliderSystem : QuerySystem<AnimatorDocument, An
                 AnimatorTargetCommands.SetShape(session, "ry", value);
                 break;
             case AnimatorSliderValue.TargetTilt:
-                AnimatorTargetCommands.SetShape(session, "tilt", Mathf.DegToRad(value));
+                AnimatorTargetCommands.SetShape(session, "tilt", float.DegreesToRadians(value));
                 break;
             case AnimatorSliderValue.TargetStart:
-                AnimatorTargetCommands.SetShape(session, "start", Mathf.DegToRad(value));
+                AnimatorTargetCommands.SetShape(session, "start", float.DegreesToRadians(value));
                 break;
             case AnimatorSliderValue.TargetSweep:
-                AnimatorTargetCommands.SetShape(session, "sweep", Mathf.DegToRad(value));
+                AnimatorTargetCommands.SetShape(session, "sweep", float.DegreesToRadians(value));
                 break;
             case AnimatorSliderValue.TransitionFade:
                 AnimatorFlowCommands.SetFade(session, value);
@@ -172,7 +172,7 @@ public sealed class AnimatorValueSliderSystem : QuerySystem<AnimatorDocument, An
             case AnimatorSliderValue.LimitMin or AnimatorSliderValue.LimitMax:
                 if (!hasBone || !package.Skeleton.Bones[bone].Limited)
                     return false;
-                value = Mathf.RadToDeg(kind == AnimatorSliderValue.LimitMin
+                value = float.RadiansToDegrees(kind == AnimatorSliderValue.LimitMin
                     ? package.Skeleton.Bones[bone].LimitMin
                     : package.Skeleton.Bones[bone].LimitMax);
                 return true;
@@ -203,9 +203,9 @@ public sealed class AnimatorValueSliderSystem : QuerySystem<AnimatorDocument, An
         {
             AnimatorSliderValue.TargetRadiusX => target.RadiusX,
             AnimatorSliderValue.TargetRadiusY => target.RadiusY,
-            AnimatorSliderValue.TargetTilt => Mathf.RadToDeg(Mathf.AngleDifference(0f, target.Tilt)),
-            AnimatorSliderValue.TargetStart => Mathf.RadToDeg(Mathf.AngleDifference(0f, target.StartAngle)),
-            _ => Mathf.RadToDeg(target.Sweep),
+            AnimatorSliderValue.TargetTilt => float.RadiansToDegrees(Mathf.AngleDifference(0f, target.Tilt)),
+            AnimatorSliderValue.TargetStart => float.RadiansToDegrees(Mathf.AngleDifference(0f, target.StartAngle)),
+            _ => float.RadiansToDegrees(target.Sweep),
         };
         return true;
     }

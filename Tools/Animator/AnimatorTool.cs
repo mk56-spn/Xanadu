@@ -299,7 +299,7 @@ internal sealed class AnimatorTool : HostApp
         if (clips.Length != 2)
             return;
 
-        foreach (Entity strip in Entities.Query<UiTabs>().ToEntityList())
+        foreach (Entity strip in Entities.Query<UiTabs>().Entities)
             strip.GetComponent<UiTabs>().Selected = 2;
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
         AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
@@ -378,7 +378,7 @@ internal sealed class AnimatorTool : HostApp
     private Handle CreateCanvas(int zIndex, Handle parent = default)
     {
         Handle canvas = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(canvas, parent.IsValid ? parent : Canvas.RootRid);
+        CanvasServer.Current.SetParent(canvas, parent.IsValid ? parent : Canvas.RootHandle);
         CanvasServer.Current.SetZIndex(canvas, zIndex);
         return canvas;
     }

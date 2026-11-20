@@ -45,7 +45,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
         KeybindAction target = editor.GetComponent<EditorPlacement>().Note;
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().ToEntityList())
+        foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().Entities)
         {
             SetShown(panel, visible, buffer);
             Outline(panel, PlayfieldColors.ColorFor(target), buffer);

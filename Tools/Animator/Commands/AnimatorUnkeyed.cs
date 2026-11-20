@@ -64,6 +64,6 @@ public static class AnimatorUnkeyed
 
     private static bool Near(XafTransform a, XafTransform b) =>
         a.Translation.DistanceSquaredTo(b.Translation) < 0.0001f &&
-        Mathf.Abs(a.Rotation - b.Rotation) < 0.001f &&
+        Math.Abs(a.Rotation - b.Rotation) < 0.001f &&
         a.Scale.DistanceSquaredTo(b.Scale) < 0.0001f;
 }

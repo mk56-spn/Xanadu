@@ -49,7 +49,7 @@ public static class EditorSceneChrome
 
         // The song's name shows in LEVEL INFO, beside the button that changes it.
         Entity songLabel = default;
-        foreach (Entity label in entities.Query<EditorSongLabel>().ToEntityList())
+        foreach (Entity label in entities.Query<EditorSongLabel>().Entities)
             songLabel = label;
 
         editor.AddComponent(new EditorHud(

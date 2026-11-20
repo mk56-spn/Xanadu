@@ -39,7 +39,7 @@ public static partial class SongSelectScene
         name = Fit(name.ToUpperInvariant(), 20);
 
         // The banner fits eight characters at full size; longer names shrink to stay inside it.
-        int size = Mathf.Clamp(Mathf.FloorToInt(620f / name.Length), 28, 70);
+        int size = Math.Clamp(Mathf.FloorToInt(620f / name.Length), 28, 70);
         UiNode bannerText = banner.Text(name, size, Colors.White, TextAlign.Left)
             .Size(350, 84)
             .Bold();
@@ -102,8 +102,8 @@ public static partial class SongSelectScene
     /// <summary>Green for the easiest levels, through yellow to red by level 50.</summary>
     private static Color LevelColor(int level)
     {
-        float t = Mathf.Clamp((level - 1) / 49f, 0, 1);
-        return Color.FromHsv(Mathf.Lerp(0.38f, 0f, t), 0.85f, 1f);
+        float t = Math.Clamp((level - 1) / 49f, 0, 1);
+        return Color.FromHsv(float.Lerp(0.38f, 0f, t), 0.85f, 1f);
     }
 
     /// <summary>Shows the selected level, fits its panel to the text and tints the outline and glow by level.</summary>

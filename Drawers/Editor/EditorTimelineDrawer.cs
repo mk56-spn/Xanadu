@@ -222,7 +222,7 @@ public sealed class EditorTimelineDrawer
     {
         float width = label.Length * MarkerTagCharWidth + MarkerTagPadding * 2;
         float left = rightOfLine ? lineX + MarkerTagGap : lineX - MarkerTagGap - width;
-        left = Mathf.Clamp(left, ruler.Position.X + 2, ruler.End.X - width - 2);
+        left = Math.Clamp(left, ruler.Position.X + 2, ruler.End.X - width - 2);
 
         var tag = new Rect2(left, ruler.Position.Y + 3, width, MarkerTagHeight);
         _surface.Canvas.DrawRect(_surface.Target, tag, MarkerTagBackground);

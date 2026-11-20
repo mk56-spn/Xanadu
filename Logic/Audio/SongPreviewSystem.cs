@@ -181,7 +181,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
         else
             Array.Clear(_bands);
 
-        foreach (Entity entity in _entities.Query<UiBarGraph>().ToEntityList())
+        foreach (Entity entity in _entities.Query<UiBarGraph>().Entities)
         {
             ref UiBarGraph graph = ref entity.GetComponent<UiBarGraph>();
             float[] values = graph.Values;
@@ -202,7 +202,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
 
         _reactive = Math.Clamp(_reactive + (live ? 1 : -1) * ReactiveRate * delta, 0f, 1f);
         var energy = new Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
-        foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().ToEntityList())
+        foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().Entities)
         {
             CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
             material.Set("energy", energy);

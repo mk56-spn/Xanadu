@@ -41,7 +41,7 @@ public sealed partial class SceneSystem
     private void SaveReplay(LevelEntry entry, PlayResults results)
     {
         _lastReplay = null;
-        foreach (Entity entity in _entities.Query<ReplayRecorder>().ToEntityList())
+        foreach (Entity entity in _entities.Query<ReplayRecorder>().Entities)
         {
             var replay = new Replay(
                 entry.Document.Id,

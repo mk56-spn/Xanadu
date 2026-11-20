@@ -96,7 +96,7 @@ public struct EditorDialogs() : IComponent
     /// <summary>The dialog of a kind, or null when the editor has none.</summary>
     public static Entity Find(EntityStore store, EditorDialogKind kind)
     {
-        foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().ToEntityList())
+        foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().Entities)
         {
             if (entity.GetComponent<EditorDialog>().Kind == kind)
                 return entity;
@@ -126,7 +126,7 @@ public struct EditorDialogs() : IComponent
     /// <summary>Whether any dialog is open or about to be, which takes the keyboard and the pointer.</summary>
     public static bool AnyOpen(EntityStore store)
     {
-        foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().ToEntityList())
+        foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().Entities)
         {
             if (!UiLayout.IsHidden(entity) || entity.GetComponent<EditorDialog>().OpenRequested)
                 return true;
@@ -158,7 +158,7 @@ public struct EditorDialogs() : IComponent
     /// <summary>Whether the open level still needs a song before anything else can be done.</summary>
     public static bool IsSongRequired(EntityStore store)
     {
-        foreach (Entity entity in store.Query<EditorDialogs>().ToEntityList())
+        foreach (Entity entity in store.Query<EditorDialogs>().Entities)
             return entity.GetComponent<EditorDialogs>().SongRequired;
 
         return false;

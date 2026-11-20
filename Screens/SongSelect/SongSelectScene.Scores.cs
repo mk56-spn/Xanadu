@@ -175,7 +175,7 @@ public static partial class SongSelectScene
 
     /// <summary>How much the score rows overflow their viewport.</summary>
     private static float ScoreRange(in SongSelectState state) =>
-        Mathf.Max(0, state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y - ScoreViewHeight);
+        Math.Max(0, state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y - ScoreViewHeight);
 
     /// <summary>The scores' scrollbar; without overflow the thumb fills the track.</summary>
     public static VerticalSlider ScoreSlider(in SongSelectState state)

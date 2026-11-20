@@ -115,7 +115,7 @@ public static class AnimatorMotionPaths
         if (into.Length() < StillDistance || outOf.Length() < StillDistance)
             return 0f;
 
-        return Mathf.RadToDeg(Math.Abs(into.AngleTo(outOf)));
+        return float.RadiansToDegrees(Math.Abs(into.AngleTo(outOf)));
     }
 
     /// <summary>The points of a path inside the window around the playhead, or all of them.</summary>

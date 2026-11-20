@@ -12,7 +12,7 @@ public static class EditorWarningPopup
     private static readonly Vector2 PopupSize = new(440, 170);
 
     /// <summary>Creates the popup hierarchy hidden below the editor overlay.</summary>
-    public static Entity Build(EntityStore entities, IVisualRidFactory? visuals = null)
+    public static Entity Build(EntityStore entities, IVisualItemFactory? visuals = null)
     {
         var ui = UiNode.Layer(entities, default, UiLayers.EditorWarning, visuals, UiStage.Full);
 

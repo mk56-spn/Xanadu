@@ -31,7 +31,7 @@ public sealed record SceneBuildContext(
     Entity Root,
     Entity StateEntity,
     Vector2 Screen,
-    IVisualRidFactory Visuals,
+    IVisualItemFactory Visuals,
     KeybindSettings Keybinds,
     ProfileStore Profiles,
     DisplaySettings Display,

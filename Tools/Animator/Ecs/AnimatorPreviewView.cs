@@ -37,16 +37,16 @@ public struct AnimatorPreviewView : IComponent
     public void ZoomAt(Vector2 screen, Rect2 area, float factor)
     {
         Vector2 local = ToLocal(screen, area);
-        Zoom = Mathf.Clamp(Zoom * factor, MinZoom, MaxZoom);
+        Zoom = Math.Clamp(Zoom * factor, MinZoom, MaxZoom);
         Pan = screen - (area.Position + area.Size / 2f) - local * Zoom;
     }
 
     /// <summary>Frames a skeleton-space rectangle in the panel, centred.</summary>
     public void Fit(Rect2 bounds, Rect2 area)
     {
-        Vector2 size = new(Mathf.Max(1f, bounds.Size.X), Mathf.Max(1f, bounds.Size.Y));
-        Zoom = Mathf.Clamp(
-            Mathf.Min(area.Size.X / size.X, area.Size.Y / size.Y),
+        Vector2 size = new(Math.Max(1f, bounds.Size.X), Math.Max(1f, bounds.Size.Y));
+        Zoom = Math.Clamp(
+            Math.Min(area.Size.X / size.X, area.Size.Y / size.Y),
             MinZoom,
             MaxZoom);
         Pan = -bounds.GetCenter() * Zoom;

@@ -116,13 +116,13 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
                 }
 
                 if (rotation)
-                    AnimatorTransformCommands.DragRotation(session, Mathf.DegToRad(slider.Value));
+                    AnimatorTransformCommands.DragRotation(session, float.DegreesToRadians(slider.Value));
                 else
                     AnimatorTransformCommands.DragScale(session, slider.Value);
             }
             else if (rotation)
             {
-                AnimatorTransformCommands.SetRotation(session, Mathf.DegToRad(slider.Value));
+                AnimatorTransformCommands.SetRotation(session, float.DegreesToRadians(slider.Value));
             }
             else
             {
@@ -139,10 +139,10 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
 
         float shown = TryTransform(session, out XafTransform transform)
             ? rotation
-                ? Mathf.RadToDeg(Mathf.AngleDifference(0f, transform.Rotation))
+                ? float.RadiansToDegrees(Mathf.AngleDifference(0f, transform.Rotation))
                 : transform.Scale.X
             : rotation ? 0f : 1f;
-        slider.Value = Mathf.Clamp(shown, slider.Min, slider.Max);
+        slider.Value = Math.Clamp(shown, slider.Min, slider.Max);
         _sliderShown[slot] = slider.Value;
     }
 
@@ -176,7 +176,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
 
         if (kind == Field.Layer)
         {
-            AnimatorAttachmentCommands.SetLayer(session, (int)Mathf.Round(value));
+            AnimatorAttachmentCommands.SetLayer(session, (int)MathF.Round(value));
             return;
         }
 
@@ -193,7 +193,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
                     session, new Vector2(translation.X, value));
                 break;
             case Field.Rotation:
-                AnimatorTransformCommands.SetRotation(session, Mathf.DegToRad(value));
+                AnimatorTransformCommands.SetRotation(session, float.DegreesToRadians(value));
                 break;
             case Field.ScaleX:
                 AnimatorTransformCommands.SetScale(session, new Vector2(value, scale.Y));
@@ -214,7 +214,7 @@ public sealed class AnimatorInspectorSystem : QuerySystem<AnimatorDocument, Anim
 
         return kind switch
         {
-            Field.Rotation => Number(Mathf.RadToDeg(transform.Rotation)),
+            Field.Rotation => Number(float.RadiansToDegrees(transform.Rotation)),
             Field.ScaleX => Number(transform.Scale.X),
             Field.ScaleY => Number(transform.Scale.Y),
             Field.PosX => Number(transform.Translation.X),

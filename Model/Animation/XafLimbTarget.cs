@@ -43,7 +43,7 @@ public sealed record XafLimbTarget
     public float StartAngle;
 
     /// <summary>How far round it goes, in radians; negative goes the other way, a full turn loops.</summary>
-    public float Sweep = Mathf.Tau;
+    public float Sweep = float.Tau;
 
     public float From;
     public float To;

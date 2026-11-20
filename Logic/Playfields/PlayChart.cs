@@ -19,7 +19,7 @@ public static class PlayChart
     /// <summary>Every note of the level, by time, into the chart; each note entity learns its place.</summary>
     public static void Load(EntityStore entities)
     {
-        var notes = new List<Entity>(entities.Query<Note>().ToEntityList());
+        var notes = new List<Entity>(entities.Query<Note>().Entities);
         notes.Sort(static (a, b) =>
         {
             int time = a.GetComponent<Note>().TimeMs.CompareTo(b.GetComponent<Note>().TimeMs);

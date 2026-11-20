@@ -30,7 +30,7 @@ public static class ProfilesScene
         EntityStore entities,
         Entity root,
         ProfileStore profiles,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full)
             .Theme(UiThemes.Menu);

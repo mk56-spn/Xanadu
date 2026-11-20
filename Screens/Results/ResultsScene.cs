@@ -23,7 +23,7 @@ public static class ResultsScene
         EntityStore entities,
         Entity root,
         PlayResults results,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         bool canWatchReplay = false)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full);

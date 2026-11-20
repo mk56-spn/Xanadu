@@ -253,10 +253,10 @@ public static class XafSampler
                     next.TangentIn,
                     t,
                     span),
-                XafInterpolation.Linear => Mathf.Lerp(previous.Value, next.Value, t),
+                XafInterpolation.Linear => float.Lerp(previous.Value, next.Value, t),
                 _ => XafEasing.Shape(previous.Interpolation) is var (family, direction)
-                    ? Mathf.Lerp(previous.Value, next.Value, EaseCurves.Evaluate(family, direction, t))
-                    : Mathf.Lerp(previous.Value, next.Value, t),
+                    ? float.Lerp(previous.Value, next.Value, EaseCurves.Evaluate(family, direction, t))
+                    : float.Lerp(previous.Value, next.Value, t),
             };
         }
 
@@ -378,7 +378,7 @@ public static class XafBlend
 {
     public static XafPose Crossfade(XafPose from, XafPose to, float weight)
     {
-        weight = Mathf.Clamp(weight, 0f, 1f);
+        weight = Math.Clamp(weight, 0f, 1f);
         XafPose result = from.Clone();
         for (int i = 0; i < result.Bones.Length; i++)
             result.Bones[i] = Blend(from.Bones[i], to.Bones[i], weight);
@@ -404,7 +404,7 @@ public static class XafBlend
     /// </summary>
     public static XafEffectState Blend(XafEffectState from, XafEffectState to, float weight)
     {
-        float alpha = Mathf.Lerp(from.Alpha, to.Alpha, weight);
+        float alpha = float.Lerp(from.Alpha, to.Alpha, weight);
         XafTransform transform = from.Visible == to.Visible
             ? Blend(from.Transform, to.Transform, weight)
             : to.Visible ? to.Transform : from.Transform;
@@ -413,7 +413,7 @@ public static class XafBlend
 
     public static XafPose Add(XafPose basePose, XafPose additive, float weight)
     {
-        weight = Mathf.Clamp(weight, 0f, 1f);
+        weight = Math.Clamp(weight, 0f, 1f);
         XafPose result = basePose.Clone();
         for (int i = 0; i < result.Bones.Length; i++)
             result.Bones[i] = Add(result.Bones[i], additive.Bones[i], weight);
@@ -442,7 +442,7 @@ public static class XafBlend
         Translation = from.Translation.Lerp(to.Translation, weight),
         Rotation = Mathf.LerpAngle(from.Rotation, to.Rotation, weight),
         Scale = from.Scale.Lerp(to.Scale, weight),
-        Depth = Mathf.Lerp(from.Depth, to.Depth, weight),
+        Depth = float.Lerp(from.Depth, to.Depth, weight),
     };
 
     public static XafTransform Add(

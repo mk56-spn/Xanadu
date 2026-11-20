@@ -73,14 +73,14 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
         Vector2 size = AnimatorLayout.ClipLengthSize;
         Rect2 button = AnimatorGeometry.PanelArea(ui.ConfigButton);
         Vector2 topLeft = new(
-            Mathf.Clamp(
+            Math.Clamp(
                 button.End.X - size.X,
                 0f,
-                Mathf.Max(0f, ui.ScreenSize.X - size.X)),
-            Mathf.Clamp(
+                Math.Max(0f, ui.ScreenSize.X - size.X)),
+            Math.Clamp(
                 button.End.Y + AnimatorLayout.ClipLengthGap,
                 0f,
-                Mathf.Max(0f, ui.ScreenSize.Y - size.Y)));
+                Math.Max(0f, ui.ScreenSize.Y - size.Y)));
         AnimatorMenuPlacement.Place(ui.ClipLengthPanel, topLeft, size);
     }
 

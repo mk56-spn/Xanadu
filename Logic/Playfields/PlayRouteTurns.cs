@@ -33,7 +33,7 @@ public sealed class PlayRouteTurns(PlayNoteContext context)
         Entity best = default;
         int bestTurn = -1;
         long bestError = long.MaxValue;
-        foreach (Entity entity in _running.ToEntityList())
+        foreach (Entity entity in _running.Entities)
         {
             Note note = entity.GetComponent<Note>();
             RouteRun run = entity.GetComponent<RouteRun>();

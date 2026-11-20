@@ -90,7 +90,7 @@ public static class ShaderUniforms
 
     public static void Write(CanvasMaterial material, ShaderUniform uniform, float[] v) =>
         material.Set(uniform.Name, new Vector4(
-            v.Length > 0 ? (uniform.Kind == UniformKind.Int ? Mathf.Round(v[0]) : v[0]) : 0,
+            v.Length > 0 ? (uniform.Kind == UniformKind.Int ? MathF.Round(v[0]) : v[0]) : 0,
             v.Length > 1 ? v[1] : 0,
             v.Length > 2 ? v[2] : 0,
             v.Length > 3 ? v[3] : 0));

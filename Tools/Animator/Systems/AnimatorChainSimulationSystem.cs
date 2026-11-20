@@ -18,7 +18,7 @@ public sealed class AnimatorChainSimulationSystem : QuerySystem<AnimatorDocument
     protected override void OnUpdate()
     {
         float delta = Tick.deltaTime;
-        foreach (Entity session in Query.ToEntityList())
+        foreach (Entity session in Query.Entities)
         {
             AnimatorDocument document = session.GetComponent<AnimatorDocument>();
             ref AnimatorChains chains = ref session.GetComponent<AnimatorChains>();

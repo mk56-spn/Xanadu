@@ -21,7 +21,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Handle previewCanvas,
         Handle timelineCanvas,
         IAttachmentVisuals attachments,
-        IVisualRidFactory visuals,
+        IVisualItemFactory visuals,
         IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
         IWheelSource wheel,

@@ -21,7 +21,7 @@ public sealed class XafVerletChain : XafFixedBody
         float segmentLength)
     {
         Anchor = anchor;
-        _segmentLength = Mathf.Max(0.001f, segmentLength);
+        _segmentLength = Math.Max(0.001f, segmentLength);
         Points = new Vector2[segments + 1];
         _previous = new Vector2[segments + 1];
 
@@ -138,7 +138,7 @@ public sealed class XafPendulum : XafFixedBody
         Anchor = anchor;
         Position = position;
         _previous = position;
-        Length = Mathf.Max(0.001f, length);
+        Length = Math.Max(0.001f, length);
     }
 
     public Vector2 Anchor { get; set; }

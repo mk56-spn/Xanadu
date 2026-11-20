@@ -73,7 +73,7 @@ public sealed class EditorReturnState
 
         var keys = new HashSet<ItemKey>(_selection);
         var found = new List<Entity>();
-        foreach (Entity item in entities.Query().AllTags(Tags.Get<EditorItem>()).ToEntityList())
+        foreach (Entity item in entities.Query().AllTags(Tags.Get<EditorItem>()).Entities)
         {
             if (TryKey(item, out ItemKey key) && keys.Contains(key))
                 found.Add(item);
@@ -85,7 +85,7 @@ public sealed class EditorReturnState
 
     private static Entity FindEditor(EntityStore entities)
     {
-        foreach (Entity entity in entities.Query<PlayfieldMode, PlayfieldView>().ToEntityList())
+        foreach (Entity entity in entities.Query<PlayfieldMode, PlayfieldView>().Entities)
         {
             if (entity.GetComponent<PlayfieldMode>().Kind == PlayfieldKind.Editor)
                 return entity;

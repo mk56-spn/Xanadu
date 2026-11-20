@@ -19,8 +19,8 @@ public static class AnimatorTargetCommands
     public const float DefaultRadiusX = 20f;
     public const float DefaultRadiusY = 12f;
     private const float RadiusStep = 2f;
-    private const float AngleStep = Mathf.Pi / 12f;
-    private const float SweepStep = Mathf.Pi / 2f;
+    private const float AngleStep = float.Pi / 12f;
+    private const float SweepStep = float.Pi / 2f;
     public const float HandleRadius = 10f;
 
     public static bool IsDrag(AnimatorDragKind kind) =>

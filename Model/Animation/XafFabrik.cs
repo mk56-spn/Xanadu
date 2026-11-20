@@ -31,7 +31,7 @@ public static class XafFabrik
 
         if (result.Length == 3)
         {
-            float reach = Mathf.Min(distance, total);
+            float reach = Math.Min(distance, total);
             Vector2 direction = distance <= 0.0001f
                 ? new Vector2(1, 0)
                 : (target - root) / distance;
@@ -39,8 +39,8 @@ public static class XafFabrik
             float first = lengths[0];
             float second = lengths[1];
             float along = (first * first - second * second +
-                           reach * reach) / (2f * Mathf.Max(0.0001f, reach));
-            float height = Mathf.Sqrt(Mathf.Max(
+                           reach * reach) / (2f * Math.Max(0.0001f, reach));
+            float height = MathF.Sqrt(Math.Max(
                 0f,
                 first * first - along * along));
             Vector2 bend = new(-direction.Y, direction.X);
@@ -68,7 +68,7 @@ public static class XafFabrik
         float sign = bendPositive ? 1f : -1f;
         for (int i = 1; i < result.Length - 1; i++)
         {
-            if (Mathf.Abs(perpendicular.Dot(
+            if (Math.Abs(perpendicular.Dot(
                     (result[i] - root).Normalized())) < 0.0001f)
             {
                 result[i] += perpendicular * sign * 1f;

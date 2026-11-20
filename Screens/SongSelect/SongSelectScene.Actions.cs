@@ -70,7 +70,7 @@ public static partial class SongSelectScene
     /// <summary>A hammer leaning to the left: the head, then the handle, as two polygons.</summary>
     private static Vector2[][] Hammer(float size)
     {
-        float lean = Mathf.DegToRad(-40);
+        float lean = float.DegreesToRadians(-40);
         Vector2[] Turn(Vector2[] points)
         {
             var turned = new Vector2[points.Length];

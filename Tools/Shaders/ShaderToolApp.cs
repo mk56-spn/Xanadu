@@ -164,7 +164,7 @@ internal sealed class ShaderToolApp : HostApp
     private Handle Still(int index)
     {
         Texture target = Renderer.CreateTarget("still " + _files[index].Name);
-        Handle texture = Canvas.MintRid();
+        Handle texture = Canvas.MintHandle();
         Renderer.Textures[texture.Id] = target;
         _stills[index] = (target, default, 0);
         Redraw(index);
@@ -257,7 +257,7 @@ internal sealed class ShaderToolApp : HostApp
         string text = _unsaved.GetValueOrDefault(file, _disk);
 
         _codeItem = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(_codeItem, Canvas.RootRid);
+        CanvasServer.Current.SetParent(_codeItem, Canvas.RootHandle);
         CanvasServer.Current.SetZIndex(_codeItem, StageZ);
         _boxes = Boxes();
         string label = file.Name + ".slang";

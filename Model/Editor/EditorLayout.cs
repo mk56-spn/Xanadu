@@ -53,7 +53,7 @@ public static class EditorLayout
         return new Rect2(
             left,
             view.ScreenSize.Y - TimelineBottomPad - TimelineHeight,
-            Mathf.Max(1, right - left),
+            Math.Max(1, right - left),
             TimelineHeight);
     }
 

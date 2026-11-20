@@ -101,8 +101,8 @@ public static partial class SongSelectScene
         SceneUi.SetText(state.InfoTitle, title);
 
         // Long titles shrink to stay inside the card rather than being clipped.
-        int size = Mathf.Clamp(
-            Mathf.FloorToInt(InfoTextWidth / (Mathf.Max(title.Length, 1) * 0.56f)),
+        int size = Math.Clamp(
+            Mathf.FloorToInt(InfoTextWidth / (Math.Max(title.Length, 1) * 0.56f)),
             TitleSmallest,
             TitleLargest);
         ref TextStyle style = ref state.InfoTitle.GetComponent<TextStyle>();

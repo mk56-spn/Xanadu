@@ -20,7 +20,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
     /// <summary>The first entity carrying a component, or default when there is none.</summary>
     public static Entity First<T>(EntityStore store) where T : struct, IComponent
     {
-        foreach (Entity entity in store.Query<T>().ToEntityList())
+        foreach (Entity entity in store.Query<T>().Entities)
             return entity;
 
         return default;
@@ -31,7 +31,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
         where T1 : struct, IComponent
         where T2 : struct, IComponent
     {
-        foreach (Entity entity in store.Query<T1, T2>().ToEntityList())
+        foreach (Entity entity in store.Query<T1, T2>().Entities)
             return entity;
 
         return default;
@@ -43,7 +43,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
         where T2 : struct, IComponent
         where T3 : struct, IComponent
     {
-        foreach (Entity entity in store.Query<T1, T2, T3>().ToEntityList())
+        foreach (Entity entity in store.Query<T1, T2, T3>().Entities)
             return entity;
 
         return default;
@@ -54,7 +54,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
     {
         foreach (Entity entity in Store
                      .Query<PlayfieldView, Playfield, Playhead, NoteSelection>()
-                     .ToEntityList())
+                     .Entities)
         {
             return entity;
         }
@@ -72,7 +72,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
         foreach (Entity entity in Store
                      .Query<Rectangle>()
                      .AllTags(Tags.Get<TakesInput>())
-                     .ToEntityList())
+                     .Entities)
         {
             Vector2 local = entity.GetComponent<Position>().Value;
             Rect2 bounds = entity.GetComponent<Rectangle>().Bounds;
@@ -88,7 +88,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
     {
         foreach (Entity panel in Store
                      .Query<EditorNoteBarPanel, Position, Rectangle>()
-                     .ToEntityList())
+                     .Entities)
         {
             Vector2 center = panel.GetComponent<Position>().Value;
             Rect2 local = panel.GetComponent<Rectangle>().Bounds;

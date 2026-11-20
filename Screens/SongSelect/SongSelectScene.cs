@@ -25,7 +25,7 @@ public static partial class SongSelectScene
         IReadOnlyList<LevelEntry> catalog,
         int selected,
         ProfileStore profiles,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(
             entities, root, UiLayers.Menu, visuals, UiStage.Full);
@@ -75,7 +75,7 @@ public static partial class SongSelectScene
         state.ScoreThumb = scores.Thumb;
         state.ScoreTrack = scores.Track;
         state.ListTrack = list.Track;
-        state.Scroll = Mathf.Clamp(selected, 0, Mathf.Max(catalog.Count - 1, 0));
+        state.Scroll = Math.Clamp(selected, 0, Math.Max(catalog.Count - 1, 0));
         Refresh(ref state, catalog, selected, profiles);
         return state;
     }
@@ -89,7 +89,7 @@ public static partial class SongSelectScene
         state.Count = catalog.Count;
         state.Selected = catalog.Count == 0
             ? 0
-            : Mathf.Clamp(selected, 0, catalog.Count - 1);
+            : Math.Clamp(selected, 0, catalog.Count - 1);
 
         state.Catalog = catalog;
         RefreshList(ref state);

@@ -29,7 +29,7 @@ public static class ProfileEditScene
         EntityStore entities,
         Entity root,
         UserProfile profile,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         bool loadAssets = visuals.LoadsAssets;
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, UiStage.Full);

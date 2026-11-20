@@ -26,7 +26,7 @@ public sealed class AnimatorGridDrawSystem(IRectCanvas canvas, Handle target)
 
     protected override void OnUpdate()
     {
-        foreach (Entity session in Query.ToEntityList())
+        foreach (Entity session in Query.Entities)
         {
             Rect2 area = AnimatorGeometry.PanelArea(session.GetComponent<AnimatorUi>().Preview);
             AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();

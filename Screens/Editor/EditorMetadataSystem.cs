@@ -54,7 +54,7 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
         foreach (Entity entity in _entities
                      .Query<EditorField, TextField>()
                      .WithDisabled()
-                     .ToEntityList())
+                     .Entities)
         {
             EditorField binding = entity.GetComponent<EditorField>();
             ref TextField field = ref entity.GetComponent<TextField>();

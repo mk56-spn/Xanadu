@@ -23,7 +23,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 {
     private readonly EntityStore entities;
     private readonly EditorCommandBus commands;
-    private readonly IVisualRidFactory? _visuals;
+    private readonly IVisualItemFactory? _visuals;
     private readonly LevelRecoveryStore? _recovery;
     private readonly SongStore? _songs;
 
@@ -33,7 +33,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     public EditorDialogSystem(
         EntityStore entities,
         EditorCommandBus commands,
-        IVisualRidFactory? visuals = null,
+        IVisualItemFactory? visuals = null,
         LevelRecoveryStore? recovery = null,
         SongStore? songs = null)
     {
@@ -71,7 +71,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 
     private Entity FindEditor()
     {
-        foreach (Entity entity in entities.Query<EditorDialogs, LevelInfo>().ToEntityList())
+        foreach (Entity entity in entities.Query<EditorDialogs, LevelInfo>().Entities)
             return entity;
 
         return default;
@@ -220,7 +220,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 
     private bool ConfirmationShown()
     {
-        foreach (Entity panel in entities.Query<SceneConfirmation>().WithDisabled().ToEntityList())
+        foreach (Entity panel in entities.Query<SceneConfirmation>().WithDisabled().Entities)
         {
             if (!UiLayout.IsHidden(panel))
                 return true;

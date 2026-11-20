@@ -24,7 +24,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// </summary>
 public sealed class AnimatorSvgMenuSystem(
     IAnimatorSvgCatalog catalog,
-    IVisualRidFactory visuals,
+    IVisualItemFactory visuals,
     IPointerInputSource pointer) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private bool _primaryHeld;

@@ -589,7 +589,7 @@ internal sealed class DepthLab : ILabExperiment
             if (_dragging >= 0)
             {
                 Vector2 centre = (local - _grab) / _area.Size;
-                _lab._quads[_dragging].Centre = new Vector2(Mathf.Clamp(centre.X, 0, 1), Mathf.Clamp(centre.Y, 0, 1));
+                _lab._quads[_dragging].Centre = new Vector2(Math.Clamp(centre.X, 0, 1), Math.Clamp(centre.Y, 0, 1));
             }
         }
 

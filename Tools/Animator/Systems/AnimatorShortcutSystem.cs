@@ -40,7 +40,7 @@ public sealed class AnimatorShortcutSystem(IKeyPressSource keys)
         if (Query.Store.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).Count > 0)
             return true;
 
-        foreach (Entity session in Query.Store.Query<AnimatorNewClipDialog>().ToEntityList())
+        foreach (Entity session in Query.Store.Query<AnimatorNewClipDialog>().Entities)
         {
             if (session.GetComponent<AnimatorNewClipDialog>().Open)
                 return true;

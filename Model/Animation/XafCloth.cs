@@ -132,7 +132,7 @@ public static class XafClothLayout
         for (int row = 0; row < cloth.Rows; row++)
         {
             float down = row / (float)Math.Max(1, cloth.Rows - 1);
-            float width = Mathf.Lerp(cloth.TopWidth, cloth.HemWidth, down);
+            float width = float.Lerp(cloth.TopWidth, cloth.HemWidth, down);
             for (int column = 0; column < cloth.Columns; column++)
             {
                 float across = column / (float)Math.Max(1, cloth.Columns - 1) - 0.5f;

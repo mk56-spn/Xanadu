@@ -21,7 +21,7 @@ public static partial class SongSelectScene
     {
         // One straight edge, leaning the same 6 degrees as the preview frame.
         const float edgeBottom = 662.194f;
-        float edgeTop = edgeBottom + Mathf.Tan(PreviewTilt) * 1080;
+        float edgeTop = edgeBottom + MathF.Tan(PreviewTilt) * 1080;
         Entity wedge = ui.Shape(
             [
                 new(0, 0),

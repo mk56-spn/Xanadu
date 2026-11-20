@@ -15,7 +15,7 @@ public static class SceneBackgrounds
     public static Entity Build(
         EntityStore entities,
         SceneBackgroundKind kind,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(entities, default, UiLayers.MenuBackground, visuals);
         ui.Entity.AddComponent(new SceneBackground(kind));

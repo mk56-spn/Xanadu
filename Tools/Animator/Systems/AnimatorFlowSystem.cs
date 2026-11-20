@@ -18,7 +18,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// whether it may, its fade, and whether the game asks for it; then the
 /// selected transition's readouts and which of its buttons are lit.
 /// </summary>
-public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
+public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Color Allowed = new(Palette.Lime, 0.55f);
     private static readonly Color Missing = new(Palette.Warning, 0.6f);
@@ -232,7 +232,7 @@ public sealed class AnimatorFlowSystem(IVisualRidFactory visuals) : QuerySystem<
         if (distance < AnimatorFlowCommands.SmallGap)
             return ("SMOOTH", Palette.Lime);
 
-        float perFrame = distance * PeakSlope(curve) / Mathf.Max(1f, fade * 60f);
+        float perFrame = distance * PeakSlope(curve) / Math.Max(1f, fade * 60f);
         if (perFrame < AnimatorFlowCommands.SmallGap)
             return ("SMOOTH", Palette.Lime);
         return perFrame < AnimatorFlowCommands.LargeGap

@@ -42,7 +42,7 @@ public static class BenchScene
     private const float ActionWidth = 180;
     private const float ActionHeight = 46;
 
-    public static void Build(EntityStore entities, Entity root, IVisualRidFactory? visuals = null)
+    public static void Build(EntityStore entities, Entity root, IVisualItemFactory? visuals = null)
     {
         UiStage stage = UiStage.Full;
         UiNode ui = UiNode.Layer(entities, root, UiLayers.Menu, visuals, stage);

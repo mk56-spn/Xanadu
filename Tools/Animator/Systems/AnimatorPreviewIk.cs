@@ -35,7 +35,7 @@ internal static class AnimatorPreviewIk
         if (!free)
         {
             // The chain moves, so it only snaps to joints outside it; its root stays a target.
-            float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+            float radius = AnimatorSnap.Pixels / Math.Max(0.0001f, Math.Abs(placement.Scale.X));
             if (session.GetComponent<AnimatorModes>().Align)
             {
                 target = AnimatorSnap.AlignPoint(

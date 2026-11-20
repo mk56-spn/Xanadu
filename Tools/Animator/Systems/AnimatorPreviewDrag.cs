@@ -128,7 +128,7 @@ internal static class AnimatorPreviewDrag
         // with another joint. The parent itself is a target (a straight bone); what it carries is not.
         if (!free)
         {
-            float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+            float radius = AnimatorSnap.Pixels / Math.Max(0.0001f, Math.Abs(placement.Scale.X));
             Vector2 snapped = AnimatorSnap.Direction(
                 world[parent].Origin,
                 toJoint.Length(),
@@ -139,7 +139,7 @@ internal static class AnimatorPreviewDrag
             toPointer = snapped * toPointer.Length();
         }
 
-        float delta = Mathf.Wrap(toPointer.Angle() - toJoint.Angle(), -Mathf.Pi, Mathf.Pi);
+        float delta = Mathf.Wrap(toPointer.Angle() - toJoint.Angle(), -float.Pi, float.Pi);
         // A mirrored parent turns local rotation the opposite way on screen.
         if (world[parent].Determinant() < 0f)
             delta = -delta;
@@ -168,7 +168,7 @@ internal static class AnimatorPreviewDrag
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
         Transform2D[] world = XafRig.WorldBones(
             document.Package, AnimatorGeometry.PreviewPose(document, modes));
-        float radius = AnimatorSnap.Pixels / Mathf.Max(0.0001f, Mathf.Abs(placement.Scale.X));
+        float radius = AnimatorSnap.Pixels / Math.Max(0.0001f, Math.Abs(placement.Scale.X));
         Vector2 wanted = drag.ParentWorld * value;
         AnimatorSnapGuides found = default;
         Vector2 snapped = modes.Align

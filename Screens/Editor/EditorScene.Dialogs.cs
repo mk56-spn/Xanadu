@@ -26,7 +26,7 @@ public static class EditorSceneDialogs
         Entity root,
         Entity editor,
         Vector2 screen,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         UiNode ui = UiNode.Layer(entities, root, UiLayers.EditorDialogs, visuals, UiStage.Full);
         var dialogs = new EditorDialogs();

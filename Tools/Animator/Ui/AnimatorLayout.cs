@@ -73,7 +73,7 @@ public static partial class AnimatorLayout
     public static AnimatorUi Build(
         EntityStore store,
         Vector2 screen,
-        IVisualRidFactory? visuals = null)
+        IVisualItemFactory? visuals = null)
     {
         var refs = new Refs();
         EditorShellRects shell = EditorShell.Compute(

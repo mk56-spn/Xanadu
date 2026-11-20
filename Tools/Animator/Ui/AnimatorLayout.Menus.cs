@@ -296,7 +296,7 @@ public static partial class AnimatorLayout
     /// </summary>
     private static void BuildTooltip(
         EntityStore store,
-        IVisualRidFactory? visuals,
+        IVisualItemFactory? visuals,
         ref Refs refs)
     {
         UiBuilder tip = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorTooltip);
@@ -450,10 +450,10 @@ public static partial class AnimatorLayout
         refs.Ui.BoneBendButton = joint[1];
         refs.Ui.BoneLimitButton = joint[2];
         SliderRow(menu, "MIN \u00b0", AnimatorSliderValue.LimitMin, -180f, 180f,
-            -Mathf.RadToDeg(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
+            -float.RadiansToDegrees(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the negative way from rest; turn LIMIT on first", inner);
         SliderRow(menu, "MAX \u00b0", AnimatorSliderValue.LimitMax, -180f, 180f,
-            Mathf.RadToDeg(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
+            float.RadiansToDegrees(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the positive way from rest; turn LIMIT on first", inner);
 
         CardSubhead(menu, "BONE");

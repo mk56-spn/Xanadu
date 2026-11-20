@@ -79,7 +79,7 @@ public static class XafTargets
         if (toTarget.LengthSquared() < 0.0001f || toChild.LengthSquared() < 0.0001f)
             return;
 
-        float delta = Mathf.Wrap(toTarget.Angle() - toChild.Angle(), -Mathf.Pi, Mathf.Pi);
+        float delta = Mathf.Wrap(toTarget.Angle() - toChild.Angle(), -float.Pi, float.Pi);
         // A mirrored bone turns local rotation the opposite way on screen.
         if (world[bone].Determinant() < 0f)
             delta = -delta;
@@ -101,7 +101,7 @@ public static class XafTargets
         world = XafRig.WorldBones(package, pose);
         if (facing is { } wanted)
         {
-            float turn = Mathf.Wrap(wanted - world[bone].Rotation, -Mathf.Pi, Mathf.Pi);
+            float turn = Mathf.Wrap(wanted - world[bone].Rotation, -float.Pi, float.Pi);
             pose.Bones[bone].Rotation += world[parent].Determinant() < 0f ? -turn : turn;
         }
         return world[bone].Origin.DistanceTo(at);
@@ -235,7 +235,7 @@ public static class XafTargets
 
                 // The same turn may read a full circle away; keys between must not spin the long way.
                 if (step > 0 && channels[c].Property == XafChannelProperty.Rotation)
-                    value = values[step - 1][c] + Mathf.Wrap(value - values[step - 1][c], -Mathf.Pi, Mathf.Pi);
+                    value = values[step - 1][c] + Mathf.Wrap(value - values[step - 1][c], -float.Pi, float.Pi);
                 values[step][c] = value;
             }
         }
@@ -266,7 +266,7 @@ public static class XafTargets
             float amount = world[bone].Origin.DistanceTo(WorldAt(package, target, world, times[step])) - reached[step];
             if (target.HoldFacing)
             {
-                float turned = MathF.Abs(Mathf.Wrap(world[bone].Rotation - target.Facing, -Mathf.Pi, Mathf.Pi));
+                float turned = MathF.Abs(Mathf.Wrap(world[bone].Rotation - target.Facing, -float.Pi, float.Pi));
                 amount = Math.Max(amount, turned * FacingWeight);
             }
             if (amount > furthest)

@@ -13,7 +13,7 @@ public static class TurnedBox
     public static Vector2[] Corners(Rect2 box, float degrees)
     {
         Vector2 center = box.GetCenter();
-        float angle = Mathf.DegToRad(degrees);
+        float angle = float.DegreesToRadians(degrees);
         Vector2 half = box.Size / 2;
         return new[]
         {
@@ -28,7 +28,7 @@ public static class TurnedBox
     public static bool Contains(Rect2 box, float degrees, Vector2 point)
     {
         Vector2 center = box.GetCenter();
-        Vector2 local = center + (point - center).Rotated(-Mathf.DegToRad(degrees));
+        Vector2 local = center + (point - center).Rotated(-float.DegreesToRadians(degrees));
         return box.HasPoint(local);
     }
 

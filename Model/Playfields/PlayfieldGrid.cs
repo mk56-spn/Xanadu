@@ -46,8 +46,8 @@ public static class PlayfieldGrid
             return point;
 
         return new Vector2(
-            Math.Clamp(Mathf.Round(point.X / cell.X) * cell.X, 0, playfield.Width),
-            Math.Clamp(Mathf.Round(point.Y / cell.Y) * cell.Y, 0, playfield.Height));
+            Math.Clamp(MathF.Round(point.X / cell.X) * cell.X, 0, playfield.Width),
+            Math.Clamp(MathF.Round(point.Y / cell.Y) * cell.Y, 0, playfield.Height));
     }
 
     /// <summary>The top-left of the cell containing <paramref name="point"/>.</summary>
@@ -58,7 +58,7 @@ public static class PlayfieldGrid
             return point;
 
         return new Vector2(
-            Mathf.Floor(point.X / cell.X) * cell.X,
-            Mathf.Floor(point.Y / cell.Y) * cell.Y);
+            MathF.Floor(point.X / cell.X) * cell.X,
+            MathF.Floor(point.Y / cell.Y) * cell.Y);
     }
 }

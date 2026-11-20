@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using Xanadu.Core.Items;
@@ -20,8 +21,13 @@ namespace Xanadu.Model.Animation;
 /// no layer can reach past the canvas to whatever is drawn above it. Without this
 /// a layer is a z index relative to the canvas, as the game's characters use.
 /// </param>
-public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLayers = false) : IAttachmentVisuals
+public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLayers = false) : IAttachmentVisuals, ICanvasMount
 {
+    /// <summary>Every item drawn, with its layer and its order inside it; listed each frame under the canvas in that order.</summary>
+    private readonly List<(Handle Item, int Layer, int Order)> _placed = new();
+    private (Handle Item, int Layer, int Order)[] _sorted = [];
+    private bool _mounted;
+
     private readonly List<Visual> _visuals = new();
     private readonly List<ChainVisual> _chains = new();
     private readonly List<EffectVisual> _effects = new();
@@ -66,7 +72,6 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
         {
             XafCloth cloth = package.Cloths[i];
             Handle item = CanvasServer.Current.CreateItem();
-            CanvasServer.Current.SetParent(item, canvas);
             SetLayer(item, cloth.ZOrder, AnimatorDrawOrder.Cloth(i));
             _cloths.Add(new ClothVisual(i, item));
         }
@@ -77,7 +82,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     public void ReloadEffects(XafPackage package)
     {
         foreach (EffectVisual visual in _effects)
-            CanvasServer.Current.Free(visual.Item);
+            Free(visual.Item);
         _effects.Clear();
 
         for (int i = 0; i < package.Effects.Count; i++)
@@ -155,7 +160,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
             }
             while (visual.Items.Count > segments)
             {
-                CanvasServer.Current.Free(visual.Items[^1]);
+                Free(visual.Items[^1]);
                 visual.Items.RemoveAt(visual.Items.Count - 1);
             }
 
@@ -173,7 +178,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     {
         while (visual.Items.Count > 1)
         {
-            CanvasServer.Current.Free(visual.Items[^1]);
+            Free(visual.Items[^1]);
             visual.Items.RemoveAt(visual.Items.Count - 1);
         }
         if (visual.Items.Count == 0)
@@ -254,7 +259,7 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     {
         foreach (Visual visual in _visuals)
         {
-            CanvasServer.Current.Free(visual.Item);
+            Free(visual.Item);
             visual.Texture.Dispose();
         }
         _visuals.Clear();
@@ -262,17 +267,17 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
         foreach (ChainVisual chain in _chains)
         {
             foreach (Handle item in chain.Items)
-                CanvasServer.Current.Free(item);
+                Free(item);
             chain.Texture.Dispose();
         }
         _chains.Clear();
 
         foreach (EffectVisual effect in _effects)
-            CanvasServer.Current.Free(effect.Item);
+            Free(effect.Item);
         _effects.Clear();
 
         foreach (ClothVisual cloth in _cloths)
-            CanvasServer.Current.Free(cloth.Item);
+            Free(cloth.Item);
         _cloths.Clear();
 
         ReleaseParticles();
@@ -308,7 +313,6 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
         Array.Fill(colors, primitive.Fill);
 
         Handle canvasItem = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(canvasItem, canvas);
         SetLayer(canvasItem, layer, order);
         CanvasServer.Current.SetVisible(canvasItem, false);
         CanvasServer.Current.AddTriangleArray(canvasItem, triangles, points, colors, uvs,
@@ -359,24 +363,55 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
         return new ArtTexture(TextureServer.Current.Create(image.Width, image.Height, image.Pixels, mipmaps: true), image);
     }
 
-    private Handle CreateArtItem()
-    {
-        Handle item = CanvasServer.Current.CreateItem();
-        CanvasServer.Current.SetParent(item, canvas);
-        return item;
-    }
+    private static Handle CreateArtItem() => CanvasServer.Current.CreateItem();
 
+    /// <summary>
+    /// Higher layers draw in front; inside one, lower orders first
+    /// (<see cref="AnimatorDrawOrder"/>). Contained layers all sit at the
+    /// canvas's own z, banded by layer in the order instead.
+    /// </summary>
     private void SetLayer(Handle item, int layer, int order)
     {
-        layer = DrawOrder.ClampLayer(layer);
-        if (containLayers)
+        if (!_mounted)
         {
-            CanvasServer.Current.SetDrawIndex(item, DrawOrder.Banded(layer, order));
-            return;
+            CanvasServer.Current.Mount(canvas, this);
+            _mounted = true;
         }
 
-        CanvasServer.Current.SetZIndex(item, layer);
-        CanvasServer.Current.SetDrawIndex(item, order);
+        layer = DrawOrder.ClampLayer(layer);
+        (Handle, int, int) placed = containLayers ? (item, 0, DrawOrder.Banded(layer, order)) : (item, layer, order);
+        int at = _placed.FindIndex(entry => entry.Item == item);
+        if (at >= 0)
+            _placed[at] = placed;
+        else
+            _placed.Add(placed);
+        _sorted = [];
+    }
+
+    private void Free(Handle item)
+    {
+        int at = _placed.FindIndex(entry => entry.Item == item);
+        if (at >= 0)
+        {
+            _placed.RemoveAt(at);
+            _sorted = [];
+        }
+
+        CanvasServer.Current.Free(item);
+    }
+
+    public void Collect(ICanvasCollector into)
+    {
+        if (_sorted.Length != _placed.Count)
+        {
+            // Stable: equal layer and order keep the order they were made in.
+            _sorted = _placed.Select((entry, index) => (entry, index))
+                .OrderBy(pair => pair.entry.Layer).ThenBy(pair => pair.entry.Order).ThenBy(pair => pair.index)
+                .Select(pair => pair.entry).ToArray();
+        }
+
+        foreach ((Handle item, int layer, _) in _sorted)
+            into.Item(item, Transform2D.Identity, Colors.White, layer, null);
     }
 
     private Handle CreateItem(ArtTexture texture, Vector2 size, int layer, int order = 0)

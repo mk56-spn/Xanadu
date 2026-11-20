@@ -49,7 +49,7 @@ public sealed class MapOffsetSystem(
                     $"MAP OFFSET {offset.MapMs:+0;-0;0} ms   ·   TOTAL {global.OffsetMs + offset.MapMs:+0;-0;0} ms");
             }
 
-            offset.LabelSeconds = Mathf.Max(0f, offset.LabelSeconds - Tick.deltaTime);
+            offset.LabelSeconds = Math.Max(0f, offset.LabelSeconds - Tick.deltaTime);
             UiLayout.SetHidden(offset.Label, offset.LabelSeconds <= 0f);
         }
     }

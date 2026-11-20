@@ -165,7 +165,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 return false;
         }
 
-        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+        foreach (Entity entity in _entities.Query<PlaySession>().Entities)
             entity.GetComponent<PlaySession>().SkipRequested = true;
 
         return true;

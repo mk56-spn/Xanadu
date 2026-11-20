@@ -38,6 +38,6 @@ public sealed class AnimatorTargetPanelSystem : QuerySystem<AnimatorTargetCaptio
         string span = $"{target.From:0.00}-{target.To:0.00} S ({target.To - target.From:0.00} S)";
         return target.Shape == XafTargetShape.Spot
             ? $"PIN · {span}"
-            : $"ELLIPSE · {target.Sweep / Mathf.Tau:0.##} TURN · {span}";
+            : $"ELLIPSE · {target.Sweep / float.Tau:0.##} TURN · {span}";
     }
 }
