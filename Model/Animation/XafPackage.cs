@@ -8,8 +8,8 @@ namespace Xanadu.Model.Animation;
 /// <summary>Versioned, self-contained character animation package.</summary>
 public sealed class XafPackage
 {
-    public const ushort MajorVersion = 0;
-    public const ushort MinorVersion = 1;
+    public const ushort MajorVersion = 1;
+    public const ushort MinorVersion = 0;
 
     public ushort Major = MajorVersion;
     public ushort Minor = MinorVersion;

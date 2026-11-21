@@ -108,8 +108,8 @@ public sealed class XpfParticle
 /// <summary>Every particle effect the game, the animator and levels can use, by name.</summary>
 public sealed class XpfLibrary
 {
-    public const ushort MajorVersion = 0;
-    public const ushort MinorVersion = 1;
+    public const ushort MajorVersion = 1;
+    public const ushort MinorVersion = 0;
 
     public List<XpfParticle> Particles = new();
 

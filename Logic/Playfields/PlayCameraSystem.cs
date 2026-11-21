@@ -120,7 +120,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
             return false;
         }
 
-        focus = view.PlayfieldToScreen(note.Position);
+        focus = view.PlayfieldToScreen(Chords.Landing(camera.DropNote.Store, note));
         return true;
     }
 

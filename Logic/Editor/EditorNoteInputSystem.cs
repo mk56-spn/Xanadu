@@ -4,7 +4,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Interaction;
@@ -167,12 +169,105 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             point = PlayfieldGrid.NearestCrossing(point, playfield);
 
         Playhead playhead = editor.GetComponent<Playhead>();
-        Note note = EditorPlacementNote.Build(editor, EditorTiming.Snap(playhead.TimeMs, playhead), point);
+        long time = EditorTiming.Snap(playhead.TimeMs, playhead);
         EditorSnapshot before = _history.Capture();
-        Entity created = EditorItems.Place(_entities, note);
+        EditorPlacementMode mode = editor.GetComponent<EditorPlacement>().Mode;
+        if ((mode == EditorPlacementMode.Orb && ShapeOrb(editor, time, point)) ||
+            (mode == EditorPlacementMode.Entrance && ShapeExit(editor, time, point)) ||
+            (mode == EditorPlacementMode.Draft && ShapeDraft(editor, point)))
+        {
+            _history.Record(before, _history.Capture());
+            return;
+        }
+
+        Note placed = EditorPlacementNote.Build(editor, time, point);
+        if (placed.IsOrb)
+            placed.EndMs = time + (long)TempoMap.BeatMs(playhead.Tempo.At(time).Bpm) * 2;
+        Entity created = mode switch
+        {
+            EditorPlacementMode.Chord => EditorItems.Place(_entities, new Chord(time, point)),
+            EditorPlacementMode.Pad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed)),
+            EditorPlacementMode.TimedPad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed, time)),
+            EditorPlacementMode.Draft => EditorItems.Place(_entities, new Draft(point, Drafts.DefaultHeight)),
+            _ => EditorItems.Place(_entities, placed),
+        };
         _history.Record(before, _history.Capture());
         editor.GetComponent<NoteSelection>().Note = created;
         _placed = created;
+    }
+
+    /// <summary>
+    /// With an orb still selected from placing it, a click after its head sets a
+    /// height key there (at the click's height), stretching the tail out to it.
+    /// </summary>
+    private bool ShapeOrb(Entity editor, long time, Vector2 point)
+    {
+        Entity orb = editor.GetComponent<NoteSelection>().Note;
+        if (orb.IsNull || orb != _placed || !orb.TryGetComponent(out Note note) || !note.IsOrb || time <= note.TimeMs)
+            return false;
+
+        ref Note shaped = ref orb.GetComponent<Note>();
+        shaped.Path = Orbs.WithKey(shaped.Path, time - shaped.TimeMs, point.Y - shaped.Position.Y);
+        shaped.EndMs = Math.Max(shaped.EndMs, time);
+        return true;
+    }
+
+    /// <summary>
+    /// With an entrance still selected from placing it, a click sets its exit.
+    /// At its own time: on the rift is a fall, off to a side is a dash that way.
+    /// After its time: it comes out on an orb, and the click sets a height key
+    /// there, as the orb tool does.
+    /// </summary>
+    private bool ShapeExit(Entity editor, long time, Vector2 point)
+    {
+        Entity picked = editor.GetComponent<NoteSelection>().Note;
+        if (picked.IsNull || picked != _placed || !picked.TryGetComponent(out Note note) || !note.IsEntrance || time < note.TimeMs)
+            return false;
+
+        ref Note entrance = ref picked.GetComponent<Note>();
+        if (time == entrance.TimeMs)
+        {
+            Vector2 away = point - entrance.Position;
+            entrance.Path = null;
+            entrance.EndMs = entrance.TimeMs;
+            if (away.Length() < PlayRules.BodyHeight * 0.8f)
+            {
+                entrance.Exit = EntranceExit.Fall;
+                return true;
+            }
+
+            entrance.Exit = EntranceExit.Dash;
+            entrance.Target = MathF.Abs(away.X) >= MathF.Abs(away.Y)
+                ? away.X > 0 ? KeybindAction.Right : KeybindAction.Left
+                : away.Y > 0 ? KeybindAction.Down : KeybindAction.Up;
+            return true;
+        }
+
+        if (entrance.Exit != EntranceExit.Orb)
+        {
+            entrance.Exit = EntranceExit.Orb;
+            entrance.Path = null;
+            entrance.EndMs = time;
+        }
+
+        // The orb starts with the body's top at the rift.
+        float startY = entrance.Position.Y - Orbs.Hang.Y;
+        entrance.Path = Orbs.WithKey(entrance.Path, time - entrance.TimeMs, point.Y - startY);
+        entrance.EndMs = Math.Max(entrance.EndMs, time);
+        return true;
+    }
+
+    /// <summary>With an updraft still selected from placing it, a click above its emitter, in its column, sets its hover height there.</summary>
+    private bool ShapeDraft(Entity editor, Vector2 point)
+    {
+        Entity picked = editor.GetComponent<NoteSelection>().Note;
+        if (picked.IsNull || picked != _placed || !picked.TryGetComponent(out Draft draft))
+            return false;
+        if (point.Y >= draft.Position.Y - Drafts.EmitterHeight || MathF.Abs(point.X - draft.Position.X) > Drafts.Diameter / 2f)
+            return false;
+
+        picked.GetComponent<Draft>().Height = draft.Position.Y - point.Y;
+        return true;
     }
 
     private void OnHold(Vector2 screenPosition, bool shift)

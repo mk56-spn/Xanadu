@@ -15,7 +15,8 @@ namespace Xanadu.Logic.Playfields;
 
 /// <summary>
 /// Picks what an action key press should judge: the nearest matching note in
-/// reach and in the window.
+/// the window. Where the player is doesn't matter: their beam drops into the
+/// judgement line and hits it.
 /// </summary>
 public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
 {
@@ -81,10 +82,6 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
                 return;
 
             if (NoteFade.Alpha(note, judgedTime) <= 0)
-                return;
-
-            Vector2 noteScreen = view.PlayfieldToScreen(note.Position);
-            if (!NoteReach.Contains(playerScreen, view, noteScreen))
                 return;
 
             _bestError = error;

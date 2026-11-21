@@ -20,6 +20,12 @@ internal enum PrimitiveKind : uint
 
     /// <summary>A free triangle with a colour and uv per corner.</summary>
     Triangle = 3,
+
+    /// <summary>
+    /// The glow round a region of a texture, blurred where it is drawn: a box
+    /// grown past the region by its pad, its uv the region itself.
+    /// </summary>
+    Halo = 4,
 }
 
 /// <summary>
@@ -95,6 +101,22 @@ internal struct Primitive
         quad.Uv = new Vector4(uv.Position.X, uv.Position.Y, uv.End.X, uv.End.Y);
         quad.Texture = texture;
         return quad;
+    }
+
+    /// <summary>
+    /// A halo round a texture region (a glyph): a box <paramref name="pad"/> pixels past
+    /// <paramref name="rect"/>, whose shader blurs the region's alpha by <paramref name="sigma"/>
+    /// pixels, scales it by <paramref name="intensity"/> and clamps it. The pad and σ ride in
+    /// the radius and stroke slots, so they scale with the item; the intensity in the flags' top half.
+    /// </summary>
+    public static Primitive Halo(Rect2 rect, Rect2 uv, Color colour, ulong texture, float sigma, float pad, float intensity)
+    {
+        Primitive halo = Box(PrimitiveKind.Halo, rect.Position + rect.Size / 2,
+            new Vector2(rect.Size.X / 2 + pad, 0), new Vector2(0, rect.Size.Y / 2 + pad), colour, pad, sigma);
+        halo.Uv = new Vector4(uv.Position.X, uv.Position.Y, uv.End.X, uv.End.Y);
+        halo.Texture = texture;
+        halo.Flags = (uint)Math.Clamp(intensity * 1000f, 0f, 65535f) << 16;
+        return halo;
     }
 
     public static Primitive Triangle(

@@ -73,8 +73,8 @@ public sealed class FrameAutopsy
 /// </summary>
 public static class XfaBinary
 {
-    public const ushort MajorVersion = 0;
-    public const ushort MinorVersion = 2;
+    public const ushort MajorVersion = 1;
+    public const ushort MinorVersion = 0;
     public const string Extension = ".xfa";
 
     private const string Format = "XFA";
@@ -155,12 +155,9 @@ public static class XfaBinary
                 autopsy.Seconds = reader.ReadDouble();
                 autopsy.FrameCount = reader.ReadInt64();
                 autopsy.BudgetMs = reader.ReadSingle();
-                if (file.Minor >= 2)
-                {
-                    autopsy.MainThread = reader.ReadInt64();
-                    autopsy.TicksPerSecond = reader.ReadInt64();
-                    autopsy.HasTrace = reader.ReadBoolean();
-                }
+                autopsy.MainThread = reader.ReadInt64();
+                autopsy.TicksPerSecond = reader.ReadInt64();
+                autopsy.HasTrace = reader.ReadBoolean();
             }
 
             using (BinaryReader reader = file.Get((uint)Chunk.Tracks, Format).OpenReader())
@@ -183,7 +180,7 @@ public static class XfaBinary
                 for (uint i = 0; i < count; i++)
                 {
                     long number = reader.ReadInt64();
-                    long start = file.Minor >= 2 ? reader.ReadInt64() : 0;
+                    long start = reader.ReadInt64();
                     var keep = (AutopsyKeep)reader.ReadByte();
                     uint values = Count(reader, (uint)autopsy.Tracks.Count, "value");
                     var array = new float[values];

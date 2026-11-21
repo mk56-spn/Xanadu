@@ -1,3 +1,4 @@
+using Xanadu.Model.Playfields;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -38,9 +39,12 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.HasJudgement = true;
             score.LastJudgement = Judgement.Miss;
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
-            score.JudgementPosition = view.PlayfieldToScreen(note.Position);
+            score.JudgementPosition = view.PlayfieldToScreen(Chords.Landing(entity.Store, note));
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
+            // An orb missed at its head misses its tail with it.
+            if (note.IsOrb)
+                PlayScoring.Count(ref score, Judgement.Miss);
         }
     }
 

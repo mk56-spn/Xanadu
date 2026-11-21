@@ -9,7 +9,7 @@ namespace Xanadu.Model.Ecs.Components;
 /// curve the song is on wants it. Written by the curve player system every
 /// frame, so a watcher (a test, a debug view) can see how well it follows.
 /// </summary>
-public struct CurveBody : IComponent
+public struct CurveBody() : IComponent
 {
     public Vector2 Position;
     public Vector2 Velocity;
@@ -39,6 +39,51 @@ public struct CurveBody : IComponent
     public double ExitStartMs;
     public double ExitMs;
     public bool Exiting;
+
+    /// <summary>
+    /// The way the body is dashing, unit length, or zero when it isn't. A dash
+    /// runs at <c>PlayRules.DashSpeed</c>, free of gravity, until a wall stops it.
+    /// </summary>
+    public Vector2 Dash;
+
+    public readonly bool Dashing => Dash != Vector2.Zero;
+
+    /// <summary>
+    /// When the body leaves the entrance: the run's entrance note's time, read once
+    /// as the run starts (hit notes are taken away). NaN for a level without one,
+    /// where the body is out from the start.
+    /// </summary>
+    public double ReleaseMs = double.NaN;
+
+    /// <summary>Where the entrance is, playfield units: the body waits in it until <see cref="ReleaseMs"/>.</summary>
+    public Vector2 EntranceAt;
+
+    /// <summary>The entrance note, copied as the run starts, for its exit (how it launches the body).</summary>
+    public Note Entrance;
+
+    /// <summary>Hanging from an orb: placed on it by song time until its tail, or until let go too early.</summary>
+    public bool OnOrb;
+
+    /// <summary>An orb's tail is still to be judged: on the ride key's release, or when held past its window.</summary>
+    public bool HoldOpen;
+
+    /// <summary>The orb hold being ridden (or last ridden), copied off its note, which is gone once its head is hit.</summary>
+    public Note Ride;
+
+    /// <summary>The key that grabbed the orb; letting it go ends the hold.</summary>
+    public Settings.KeybindAction RideKey;
+
+    /// <summary>Where the dash went off, playfield units: the afterimages trail back to it, no further.</summary>
+    public Vector2 DashFrom;
+
+    /// <summary>When the last dash went off, on the body's song clock, ms.</summary>
+    public double DashStartMs = double.NegativeInfinity;
+
+    /// <summary>When the last dash hit its wall, on the body's song clock, ms; the body squashes against it.</summary>
+    public double ImpactMs = double.NegativeInfinity;
+
+    /// <summary>The way the last dash was going when it hit its wall, unit length.</summary>
+    public Vector2 ImpactWay;
 
     /// <summary>The smooth song clock this was written at, ms (frame-stepped, eased to the audio clock).</summary>
     public double SongMs;

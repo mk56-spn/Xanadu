@@ -20,6 +20,9 @@ public interface IParticleEmitter
         Vector2 area = default,
         float angle = 0f,
         Vector2 heading = default);
+
+    /// <summary>Loads what bursts need (the library, the glyph atlas) now, so the first burst doesn't stall its frame.</summary>
+    void Prepare() { }
 }
 
 /// <summary>Draws nothing: for tests and hosts without particles.</summary>

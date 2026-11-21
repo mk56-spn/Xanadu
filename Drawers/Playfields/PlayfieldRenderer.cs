@@ -41,7 +41,12 @@ public static partial class PlayfieldRenderer
             rid,
             entities,
             new PlayfieldItemFrame(view, playfield, playhead, seconds, Editor: false),
-            () => DrawPlayer(canvas, rid, entities, view));
+            () =>
+            {
+                DrawEntrance(canvas, rid, entities, view, playfield, playhead);
+                DrawRiddenOrb(canvas, rid, entities, view);
+                DrawPlayer(canvas, rid, entities, view);
+            });
         DrawTransport(canvas, rid, frame ?? field, playhead);
     }
 

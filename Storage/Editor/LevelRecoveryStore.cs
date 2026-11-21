@@ -20,8 +20,8 @@ public sealed class LevelRecoveryStore(string directory)
     public const string UserFolder = "user://recovery";
 
     private const string Format = "XMR";
-    private const ushort MajorVersion = 0;
-    private const ushort MinorVersion = 1;
+    private const ushort MajorVersion = 1;
+    private const ushort MinorVersion = 0;
 
     private static readonly byte[] Magic = "XMR1"u8.ToArray();
 

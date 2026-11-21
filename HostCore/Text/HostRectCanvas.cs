@@ -136,7 +136,11 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
             AtlasGlyph g = placed.Glyph;
             var rect = new Rect2(placed.X, placed.Y, g.Width, g.Height);
             var uv = new Rect2(g.X * texel, g.Y * texel, g.Width * texel, g.Height * texel);
-            Tree.AddTextureRegion(canvas, rect, uv, color, CanvasTree.ToHandle(text.Atlas.TextureId(g.Page)));
+            Handle atlas = CanvasTree.ToHandle(text.Atlas.TextureId(g.Page));
+            if (placed.Glow is { } glow)
+                Tree.AddHalo(canvas, rect, uv, color, atlas, glow.Sigma, glow.Pad, glow.Intensity);
+            else
+                Tree.AddTextureRegion(canvas, rect, uv, color, atlas);
         }
     }
 }

@@ -105,16 +105,22 @@ public struct JudgementCounter(
     public Entity Miss = miss;
 }
 
-/// <summary>A short-lived key trail left at a successful hit position.</summary>
+/// <summary>
+/// The player's beam: a short-lived line dropped from the player straight
+/// down (or up) into the judgement line on an action key press. Screen space.
+/// </summary>
 public struct HitTrail(
+    Vector2 from,
     Vector2 position,
     Color color,
-    string label,
-    float lifetime = 0.55f) : IComponent, IAgingTrail
+    float lifetime = 0.22f) : IComponent, IAgingTrail
 {
+    /// <summary>Where the beam leaves: the player.</summary>
+    public Vector2 From = from;
+
+    /// <summary>Where it strikes the judgement line.</summary>
     public Vector2 Position = position;
     public Color Color = color;
-    public string Label = label;
     public float Age;
     public float Lifetime = lifetime;
 

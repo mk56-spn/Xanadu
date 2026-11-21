@@ -23,17 +23,11 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         Vector2 playerScreen,
         long playheadTimeMs)
     {
-        Vector2 hitPosition = view.PlayfieldToScreen(note.Position);
+        Vector2 hitPosition = view.PlayfieldToScreen(Chords.Landing(context.Entities, note));
         Color hitColor = PlayfieldColors.ColorFor(note);
         float hitRadius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
         score.JudgementPosition = hitPosition;
         score.JudgementTimeMs = playheadTimeMs;
-
-        context.Entities.CreateEntity(
-            new HitTrail(
-                hitPosition,
-                PlayfieldColors.ColorFor(note),
-                KeybindActions.KeyLabel(context.Keybinds.Get(action))));
 
         // Read before the hit takes the note away.
         int chartIndex = ChartIndex.Of(noteEntity);
@@ -41,6 +35,65 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             return false;
 
         HitEffects.Spawn(context.Entities, playfield, noteEntity, note, hitPosition, hitColor, hitRadius, chartIndex);
+        if (note.IsDash)
+            StartDash(playfield, action, offsetMs);
+        else if (note.IsOrb)
+            Grab(playfield, note, action);
         return true;
+    }
+
+    /// <summary>
+    /// The head of an orb hold: the body is on the orb at once, wherever it was,
+    /// and rides it by song time from the head (so a late grab is already that far along).
+    /// </summary>
+    private static void Grab(Entity playfield, in Note orb, KeybindAction action)
+    {
+        if (!playfield.HasComponent<CurveBody>())
+            return;
+
+        ref CurveBody body = ref playfield.GetComponent<CurveBody>();
+        body.Dash = Vector2.Zero;
+        body.OnOrb = true;
+        body.HoldOpen = true;
+        body.Ride = orb;
+        body.RideKey = action;
+        double now = Math.Max(body.SongMs, orb.TimeMs);
+        body.Position = Orbs.At(orb, now) + Orbs.Hang;
+        body.Velocity = Orbs.Velocity(orb, now);
+        PlayCameraSystem.Kick(playfield, 1.2f);
+    }
+
+    /// <summary>
+    /// Sends the body off the way the key points. The dash runs from the note's
+    /// time, so a late press starts it that far along; an early one starts on the press.
+    /// </summary>
+    private static void StartDash(Entity playfield, KeybindAction action, long offsetMs)
+    {
+        Vector2 direction = PlayRules.DashDirection(action);
+        if (direction == Vector2.Zero || !playfield.HasComponent<CurveBody>())
+            return;
+
+        ref CurveBody body = ref playfield.GetComponent<CurveBody>();
+        // A dash throws the body off an orb; its tail is still judged on release.
+        body.OnOrb = false;
+        body.Dash = direction;
+        body.DashFrom = body.Position;
+        body.DashStartMs = body.SongMs;
+        body.Velocity = direction * PlayRules.DashSpeed;
+        if (offsetMs < 0)
+            body.Position += body.Velocity * (-offsetMs / 1000f);
+
+        // A spray thrown back the way the body came from, and a harder kick than a tap's.
+        if (playfield.TryGetComponent(out PlayfieldView view))
+        {
+            playfield.Store.CreateEntity(new ParticleBurst(
+                view.PlayfieldToScreen(body.DashFrom),
+                GameParticles.Dash,
+                PlayfieldColors.NeutralColor,
+                PlayRules.BodySize * view.Scale,
+                heading: -direction));
+        }
+
+        PlayCameraSystem.Kick(playfield, 1.6f);
     }
 }

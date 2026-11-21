@@ -60,7 +60,7 @@ public sealed class EditorItemPicker(EditorSceneQuery scene)
         {
             if (EditorItems.IsItem(entity) &&
                 entity.TryGetComponent(out Note note) &&
-                Within(position, note.Position, NoteHitRadius))
+                Within(position, Chords.Landing(entity.Store, note), NoteHitRadius))
             {
                 result = entity;
             }

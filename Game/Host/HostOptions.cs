@@ -12,15 +12,16 @@ namespace Xanadu.Host;
 /// </param>
 /// <param name="Editor"><c>--editor</c> starts in the editor; with <c>--play</c>, on that level.</param>
 /// <param name="Demo"><c>--demo</c> plays a level made in memory (<see cref="DemoLevel"/>).</param>
+/// <param name="Auto"><c>--auto</c> plays every note perfectly by itself (<c>AutoPlaySystem</c>).</param>
 /// <param name="Scene"><c>--scene=&lt;name&gt;</c> starts on that screen (a <c>SceneKind</c> name, any case), for checking one screen.</param>
-internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene)
+internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene, bool Auto = false)
 {
     public static HostOptions Parse(string[] args)
     {
         string? shot = null;
         string? play = null;
         string? scene = null;
-        bool editor = false, demo = false;
+        bool editor = false, demo = false, auto = false;
         int frame = 60;
         uint width = 1280, height = 720;
         foreach (string arg in args)
@@ -43,12 +44,14 @@ internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowW
                 editor = true;
             else if (arg == "--demo")
                 demo = true;
+            else if (arg == "--auto")
+                auto = true;
             else if (arg.StartsWith("--scene=", StringComparison.Ordinal))
                 scene = arg["--scene=".Length..];
             else
                 throw new ArgumentException($"Unknown argument: {arg}");
         }
 
-        return new HostOptions(shot, frame, width, height, play, editor, demo, scene);
+        return new HostOptions(shot, frame, width, height, play, editor, demo, scene, auto);
     }
 }

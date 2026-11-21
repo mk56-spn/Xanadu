@@ -8,8 +8,8 @@ using Xanadu.Core.Storage;
 namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
-/// The XAF cloth chunk, from minor revision 6: each cloth's settings, then its
-/// pins and colliders, and from revision 7 its tethers. Older files have no cloths.
+/// The XAF cloth chunk: each cloth's settings, then its pins, colliders and
+/// tethers. A package without cloths has no such chunk.
 /// </summary>
 public static class XafClothBinary
 {

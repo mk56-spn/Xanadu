@@ -459,7 +459,8 @@ internal abstract class HostApp : Game
             return;
         }
 
-        string? shot = _requestedShot ?? (_frames == _window.ShotFrame ? _window.ShotPath : null);
+        bool last = true;
+        string? shot = _requestedShot ?? SeriesShot(out last);
         if (shot is { } path)
         {
             GpuTimes.Poll(now: true);
@@ -467,11 +468,41 @@ internal abstract class HostApp : Game
                 $"{Renderer.LastOffscreenCount} offscreen passes, {Renderer.LastCopyCount} screen copies, " +
                 $"{Renderer.LastPrimitiveCount} primitives placed, {Renderer.LastUploadCount} sent");
             Screenshot.Save(GraphicsDevice, commands, Target, Width, Height, path);
-            Quit();
+            if (_requestedShot is not null || last)
+                Quit();
             return;
         }
 
         GraphicsDevice.Submit(commands);
+    }
+
+    /// <summary>
+    /// The <c>--shot</c> path due this frame, if any. <c>XANADU_SHOT_SERIES=count,step</c>
+    /// takes <c>count</c> shots <c>step</c> frames apart from the shot frame, numbered
+    /// <c>name_0.png</c> on, and quits after the last; without it, one shot, then quit.
+    /// </summary>
+    private string? SeriesShot(out bool last)
+    {
+        last = true;
+        if (_window.ShotPath is not { } path)
+            return null;
+
+        int count = 1, step = 1;
+        if (Environment.GetEnvironmentVariable("XANADU_SHOT_SERIES") is { } series &&
+            series.Split(',') is [var c, var st] && int.TryParse(c, out int parsedCount) && int.TryParse(st, out int parsedStep) &&
+            parsedCount > 0 && parsedStep > 0)
+        {
+            count = parsedCount;
+            step = parsedStep;
+        }
+
+        int since = _frames - _window.ShotFrame;
+        if (since < 0 || since % step != 0 || since / step >= count)
+            return null;
+
+        int index = since / step;
+        last = index == count - 1;
+        return count == 1 ? path : Path.Combine(Path.GetDirectoryName(path) ?? "", $"{Path.GetFileNameWithoutExtension(path)}_{index}{Path.GetExtension(path)}");
     }
 
     /// <summary>F12, as in the Godot build: a PNG in <c>user://screenshots</c>.</summary>

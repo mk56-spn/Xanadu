@@ -7,7 +7,7 @@ using Xanadu.Core.Storage;
 namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
-/// The chunk added in minor revision 15: each attachment's stored skin mesh, in
+/// The XAF chunk of each attachment's stored skin mesh, in
 /// attachment order. Per attachment, whether it has one; then its art size, its points, its
 /// triangles, the bones its weights are over, and each point's weights as the
 /// few bones it follows (bone slot, weight), as DragonBones and Rive keep them.

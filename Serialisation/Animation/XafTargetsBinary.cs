@@ -7,7 +7,7 @@ using Xanadu.Core.Timeline;
 
 namespace Xanadu.Serialisation.Animation;
 
-/// <summary>The chunk added in minor revision 11: each clip's limb targets, in clip order.</summary>
+/// <summary>The XAF chunk of each clip's limb targets, in clip order.</summary>
 public static class XafTargetsBinary
 {
     private const uint MaxTargets = 4096;

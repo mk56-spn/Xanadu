@@ -95,7 +95,14 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
-            EditorPlacementMode.Note => "Notes: click the field to place one at the playhead",
+            EditorPlacementMode.Note => "Notes: click to place one at the playhead, on its key's chord line",
+            EditorPlacementMode.Chord => "Chords: click where the first line meets the judgement line",
+            EditorPlacementMode.Dash => "Dashes: click to place one at the playhead, across its chord",
+            EditorPlacementMode.Entrance => "Entrance: click where the player comes in; click again to set its exit (fall, dash, orb)",
+            EditorPlacementMode.Orb => "Orbs: click to place; with it selected, move on and click to add height keys",
+            EditorPlacementMode.Pad => "Pads: click to place one; touching it launches the player up",
+            EditorPlacementMode.TimedPad => "Timed pads: click to place one firing at the playhead",
+            EditorPlacementMode.Draft => "Updrafts: click to place; still selected, click above it to set its hover",
             _ => "Placement mode",
         });
     }

@@ -14,12 +14,21 @@ public static class ItemKinds
 {
     public static readonly NoteItemKind Notes = new();
 
+    public static readonly ChordItemKind Chords = new();
+
+    public static readonly PadItemKind Pads = new();
+
+    public static readonly DraftItemKind Drafts = new();
+
     /// <summary>
     /// Every kind, in the order items are made when a level loads or an undo
     /// lands; later items draw over earlier ones on the same layer and z.
     /// </summary>
     public static readonly ItemKind[] All =
     {
+        Chords,
+        Drafts,
+        Pads,
         Notes,
     };
 
@@ -29,11 +38,17 @@ public static class ItemKinds
     public static readonly ItemKind[] PickOrder =
     {
         Notes,
+        Pads,
+        Drafts,
+        Chords,
     };
 
     private static readonly Dictionary<Type, ItemKind> ByComponent = new()
     {
         [typeof(Note)] = Notes,
+        [typeof(Chord)] = Chords,
+        [typeof(Pad)] = Pads,
+        [typeof(Draft)] = Drafts,
     };
 
     /// <summary>The kind an entity is, or null when it is not a placed item.</summary>

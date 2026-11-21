@@ -354,6 +354,122 @@ public extension<C : ICurve3> C
     }
 }
 
+/// A Möbius strip lying flat: a band `width` wide round a ring `radius` round that turns over
+/// `turns` times on its way (0.5, the classic, has one side and one edge; 1.5 knots it further).
+/// u goes round the ring, v across the band. One-sided, so don't hide its "back" with
+/// mesh.facing(): `lit` lights both sides, and depth sorts where it passes behind itself.
+public struct Mobius : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public float radius;
+    public float width;
+    public float turns;
+
+    public __init(float radius, float width, float turns = 0.5) { this.radius = radius; this.width = width; this.turns = turns; }
+
+    public float3 local(float2 uv)
+    {
+        float a = (uv.x - 0.5) * TAU;
+        float t = a * turns;
+        float s = (uv.y - 0.5) * width;
+        float3 outward = float3(sin(a), 0.0, -cos(a));
+        return outward * (radius + s * cos(t)) + float3(0.0, -s * sin(t), 0.0);
+    }
+}
+
+/// A Klein bottle in the figure-8 way (it passes through itself: a true one needs four
+/// dimensions): a figure-8 tube `thickness` across, swept round a ring `radius` round and
+/// half-turned on the way, so it meets itself inside out. u goes round the ring, v round the 8.
+/// One-sided like the Möbius strip: light both sides and let depth sort it.
+public struct Klein : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public float radius;
+    public float thickness;
+
+    public __init(float radius, float thickness) { this.radius = radius; this.thickness = thickness; }
+
+    public float3 local(float2 uv)
+    {
+        float a = (uv.x - 0.5) * TAU;
+        float b = uv.y * TAU;
+        float h = a * 0.5;
+        float across = cos(h) * sin(b) - sin(h) * sin(2.0 * b);
+        float up = sin(h) * sin(b) + cos(h) * sin(2.0 * b);
+        float3 outward = float3(sin(a), 0.0, -cos(a));
+        return outward * (radius + thickness * across) - float3(0.0, thickness * up, 0.0);
+    }
+}
+
+/// A seashell: a tube coiling `turns` times down a cone `height` tall, swelling from nothing at
+/// its tip to `radius` at its mouth, each whorl lying over the last (`overlap` 0 just touching,
+/// 1 tucked well in). u runs from the tip to the mouth, v round the tube. Its whorls hide each
+/// other, which depth sorts.
+public struct Shell : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public float radius;
+    public float height;
+    public float turns;
+    public float overlap;
+
+    public __init(float radius, float height, float turns = 4.0, float overlap = 0.4)
+    {
+        this.radius = radius; this.height = height; this.turns = turns; this.overlap = overlap;
+    }
+
+    public float3 local(float2 uv)
+    {
+        float a = uv.x * turns * TAU;
+        // Grows the same share each turn, as a shell does (a logarithmic spiral).
+        float grown = exp((uv.x - 1.0) * turns * 0.9);
+        float tube = radius * grown * (0.55 + 0.25 * overlap);
+        float out = radius * grown;
+        float down = (grown - 0.5) * height;
+        float b = uv.y * TAU;
+        float3 outward = float3(sin(a), 0.0, -cos(a));
+        return outward * (out + cos(b) * tube) + float3(0.0, down - sin(b) * tube, 0.0);
+    }
+}
+
+/// A pill standing up: a cylinder `radius` round and `length` long between two half balls. u goes
+/// round it, v from the top pole to the bottom, spaced evenly along its outline so the caps get
+/// their share of the grid.
+public struct Capsule : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public float radius;
+    public float length;
+
+    public __init(float radius, float length) { this.radius = radius; this.length = length; }
+
+    public float3 local(float2 uv)
+    {
+        float a = (uv.x - 0.5) * TAU;
+        float cap = PI * 0.5 * radius;
+        float s = uv.y * (2.0 * cap + length);
+        float ring, y;
+        if (s < cap)
+        {
+            float b = s / radius;
+            ring = sin(b) * radius;
+            y = -length * 0.5 - cos(b) * radius;
+        }
+        else if (s < cap + length)
+        {
+            ring = radius;
+            y = s - cap - length * 0.5;
+        }
+        else
+        {
+            float b = (s - cap - length) / radius;
+            ring = cos(b) * radius;
+            y = length * 0.5 + sin(b) * radius;
+        }
+        return float3(sin(a) * ring, y, -cos(a) * ring);
+    }
+}
+
 /// A ball squared off or pinched by two exponents (Barr's superquadric): `roundness` 1 is a
 /// sphere, towards 0 a cube with rounded edges, 2 an octahedron, above 2 a star. `around` does
 /// the same round the waist only (1 round, small square, 2 diamond).
@@ -528,6 +644,66 @@ public struct Waving<S : ISurface> : ISurface
     }
 }
 
+/// A surface wrung round its upright axis: turned by `angle` radians for every `span` px down
+/// (Barr's twist). A twisted column, a wrung cloth, a drill bit from a box.
+public struct Twisted<S : ISurface> : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public S surface;
+    public float angle;
+    public float span;
+
+    public float3 local(float2 uv)
+    {
+        float3 p = surface.at(uv);
+        float a = p.y / max(span, 1e-3) * angle;
+        return float3(p.x * cos(a) - p.z * sin(a), p.y, p.x * sin(a) + p.z * cos(a));
+    }
+}
+
+/// A surface bent round an axis into the screen: its left-to-right line rolled onto an arc
+/// that turns `angle` radians across `span` px (Barr's bend), curling up (positive) or down.
+/// A plank into a hoop, a bar into a horseshoe.
+public struct Bent<S : ISurface> : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public S surface;
+    public float angle;
+    public float span;
+
+    public float3 local(float2 uv)
+    {
+        float3 p = surface.at(uv);
+        float k = angle / max(span, 1e-3);                  // radians per px along x
+        if (abs(k) < 1e-6)
+            return p;
+        // The arc's centre sits r above (y up is negative), so positive bends lift the ends;
+        // a point lower down (larger y) is further from it.
+        float r = 1.0 / k;
+        float a = p.x * k;
+        float d = r + p.y;
+        return float3(sin(a) * d, cos(a) * d - r, p.z);
+    }
+}
+
+/// A surface thinned or swelled along its upright axis (Barr's taper): its width scaled from
+/// `top` at y = -span/2 to `bottom` at y = span/2. A tower, a vase from a cylinder, a spike.
+public struct Tapered<S : ISurface> : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public S surface;
+    public float top;
+    public float bottom;
+    public float span;
+
+    public float3 local(float2 uv)
+    {
+        float3 p = surface.at(uv);
+        float k = lerp(top, bottom, saturate(p.y / max(span, 1e-3) + 0.5));
+        return float3(p.x * k, p.y, p.z * k);
+    }
+}
+
 // ---- What every placed thing can do -------------------------------------------------
 
 public extension<P : IPlaced3> P
@@ -594,15 +770,7 @@ public extension<S : ISurface> S
     /// rim, seen through `camera`. Two-sided: the back of a sheet is lit as its front.
     public colour lit(float2 uv, Camera camera, colour base, float shininess = 40.0)
     {
-        SurfacePoint s = pointAt(uv);
-        float3 toEye = normalize(camera.eye - s.position);
-        float3 n = dot(s.normal, toEye) < 0.0 ? -s.normal : s.normal;
-        float3 key = normalize(float3(-0.5, -0.8, -0.6));
-        float light = 0.18 + 0.82 * lights.diffuse(n, key) + 0.15 * lights.diffuse(n, float3(0.6, 0.3, -0.5));
-        float3 rgb = base.rgb * light;
-        rgb += lights.specular(n, key, toEye, shininess) * 0.5;
-        rgb += lights.rim(n, toEye, 3.0) * 0.25 * base.rgb;
-        return colour(rgb, base.a);
+        return lights.studio(pointAt(uv), camera.eye, base, shininess);
     }
 
     /// Pushed out along its normal by up to `amount` px of noise `feature` px across, boiling with `phase`.
@@ -617,6 +785,25 @@ public extension<S : ISurface> S
         Morph<S, T> r; r.placement3 = Placement3(); r.a = this; r.b = other; r.amount = amount; return r;
     }
 
+    /// Wrung round its upright axis: turned `angle` radians for every `span` px down.
+    public Twisted<S> twisted(float angle, float span = 100.0)
+    {
+        Twisted<S> r; r.placement3 = Placement3(); r.surface = this; r.angle = angle; r.span = span; return r;
+    }
+
+    /// Bent round an axis into the screen: its left-to-right line rolled onto an arc turning
+    /// `angle` radians across `span` px (2π across its width rolls it into a hoop).
+    public Bent<S> bent(float angle, float span)
+    {
+        Bent<S> r; r.placement3 = Placement3(); r.surface = this; r.angle = angle; r.span = span; return r;
+    }
+
+    /// Thinned or swelled from `top` (its width's scale at y = -span/2) to `bottom` (at span/2).
+    public Tapered<S> tapered(float top, float bottom, float span)
+    {
+        Tapered<S> r; r.placement3 = Placement3(); r.surface = this; r.top = top; r.bottom = bottom; r.span = span; return r;
+    }
+
     /// Rippling: `waves` waves across u, `amount` px high, moving with `phase` (pass time).
     public Waving<S> waving(float amount, float waves = 3.0, float phase = 0.0)
     {
@@ -628,8 +815,8 @@ public extension<S : ISurface> S
 
 /// The usual corner moves for `deform`, in the plane: each changes a corner where it lands
 /// (the verb) or gives a moved copy (the participle), measured from the quad as it was at rest,
-/// so they stack in any order. They need corners inside the quad to bend it (the shader tool's
-/// grid); on four corners only squash, shake and tilt show.
+/// so they stack in any order. They need corners inside the quad to bend it (`[Grid]` on
+/// deform); on four corners only squash, shake and tilt show.
 ///
 ///     ItemVertex deform(ItemVertex v)
 ///     {
@@ -777,6 +964,21 @@ public extension ItemVertex
 /// surface (towards the light, towards the eye) and are normalised.
 public namespace lights
 {
+    /// `base` lit as a studio would at a point of any surface (its position and normal), seen
+    /// from `eye`: a key light from the upper left, a fill, a sheen and a rim. Two-sided. What
+    /// surface.lit() does, for a point you worked out yourself.
+    public colour studio(SurfacePoint s, float3 eye, colour base, float shininess = 40.0)
+    {
+        float3 toEye = normalize(eye - s.position);
+        float3 n = dot(s.normal, toEye) < 0.0 ? -s.normal : s.normal;
+        float3 key = normalize(float3(-0.5, -0.8, -0.6));
+        float light = 0.18 + 0.82 * diffuse(n, key) + 0.15 * diffuse(n, normalize(float3(0.6, 0.3, -0.5)));
+        float3 rgb = base.rgb * light;
+        rgb += specular(n, key, toEye, shininess) * 0.5;
+        rgb += rim(n, toEye, 3.0) * 0.25 * base.rgb;
+        return colour(rgb, base.a);
+    }
+
     /// Lambert's diffuse light: how squarely the surface faces the light.
     public float diffuse(float3 normal, float3 toLight) { return saturate(dot(normal, toLight)); }
 

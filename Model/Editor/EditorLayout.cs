@@ -14,7 +14,8 @@ public static class EditorLayout
     /// <summary>The shell's header. The footer is one panel: the transport row, then the timeline row.</summary>
     public const float HeaderHeight = EditorShellMetrics.HeaderHeight;
     public const float FooterHeight = EditorFooterHeight.Level;
-    public const float TransportHeight = 42;
+    /// <summary>The transport row: 38 px buttons with 6 px clear above and below.</summary>
+    public const float TransportHeight = 50;
 
     public const float TimelineHeight = 96;
 

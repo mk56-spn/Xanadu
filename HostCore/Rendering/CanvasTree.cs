@@ -244,6 +244,13 @@ internal sealed class CanvasTree : ICanvasServer
             item.Add(Primitive.TextureRect(rect, uv, color, texture.Id));
     }
 
+    /// <summary>A glow round a region of a texture: drawn <paramref name="pad"/> past its rect and blurred on the GPU (<see cref="Primitive.Halo"/>).</summary>
+    public void AddHalo(Handle rid, Rect2 rect, Rect2 uv, Color color, Handle texture, float sigma, float pad, float intensity)
+    {
+        if (Find(rid) is { } item)
+            item.Add(Primitive.Halo(rect, uv, color, texture.Id, sigma, pad, intensity));
+    }
+
     public void SelectRun(Handle rid, CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values)
     {
         if (Find(rid) is not { } item)

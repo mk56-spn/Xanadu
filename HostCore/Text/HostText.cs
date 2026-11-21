@@ -54,7 +54,7 @@ internal sealed unsafe class HostText : IDisposable
     /// <summary>One glyph image: its face, size, glyph, and what was made of it.</summary>
     private readonly record struct Key(int Face, int Size, uint Glyph, GlyphLook Look, float A, float B);
 
-    private enum GlyphLook : byte { Fill, Outline, Glow }
+    private enum GlyphLook : byte { Fill, Outline }
 
     private readonly FT_LibraryRec_* _library;
     private readonly FontFace[] _faces;
@@ -99,15 +99,33 @@ internal sealed unsafe class HostText : IDisposable
 
     public FontFace Face(FontKind kind) => _faces[(int)kind];
 
-    /// <summary>A glyph placed on the canvas: its atlas image and the top-left pixel it goes at.</summary>
-    public readonly record struct Placed(AtlasGlyph Glyph, float X, float Y);
+    /// <summary>
+    /// A glyph placed on the canvas: its atlas image and the top-left pixel it
+    /// goes at. A glow is the plain glyph with <see cref="Glow"/> set: the GPU
+    /// blurs it into its halo where it is drawn (<c>KindHalo</c> in primitives.slang).
+    /// </summary>
+    public readonly record struct Placed(AtlasGlyph Glyph, float X, float Y, GlyphGlow? Glow = null);
+
+    /// <summary>A halo's blur: its spread (σ) and how far past the glyph it is drawn, in pixels, and its intensity.</summary>
+    public readonly record struct GlyphGlow(float Sigma, float Pad, float Intensity)
+    {
+        /// <summary>
+        /// The glow of a radius, as Godot's <c>GodotBlur</c> spread it: taps
+        /// <c>max(1, radius / 8)</c> pixels apart, σ five taps.
+        /// </summary>
+        public static GlyphGlow Of(float radius, float intensity)
+        {
+            float sigma = 5f * MathF.Max(1f, radius / 8f);
+            return new GlyphGlow(sigma, MathF.Ceiling(3f * sigma) + 1f, intensity);
+        }
+    }
 
     /// <summary>
     /// Shapes <paramref name="text"/> and places each glyph with its pen
     /// starting at <paramref name="origin"/> on the baseline. With
     /// <paramref name="outline"/> above 0 the glyphs are outlines that many
-    /// pixels wide; with <paramref name="glowRadius"/> above 0 they are blurred
-    /// halos (<see cref="GlowBlur"/>).
+    /// pixels wide; with <paramref name="glowRadius"/> above 0 they are the plain
+    /// glyphs marked to be drawn as halos, which the GPU blurs.
     /// </summary>
     public void Place(
         string text, FontKind kind, int size, Vector2 origin, List<Placed> into,
@@ -122,9 +140,7 @@ internal sealed unsafe class HostText : IDisposable
             if (shaped.Index == 0)
                 continue;
 
-            AtlasGlyph glyph = glowRadius > 0
-                ? Glyph(shaped.Face, size, shaped.Index, GlyphLook.Glow, glowRadius, glowIntensity)
-                : outline > 0
+            AtlasGlyph glyph = outline > 0
                     ? Glyph(shaped.Face, size, shaped.Index, GlyphLook.Outline, outline, 0)
                     : Glyph(shaped.Face, size, shaped.Index, GlyphLook.Fill, 0, 0);
             if (glyph.IsEmpty)
@@ -133,7 +149,7 @@ internal sealed unsafe class HostText : IDisposable
             // Whole pixels, as Godot draws glyphs with subpixel positioning off.
             float x = MathF.Round(origin.X + shaped.X) + glyph.Left;
             float y = baseline + MathF.Round(shaped.Y) - glyph.Top;
-            into.Add(new Placed(glyph, x, y));
+            into.Add(new Placed(glyph, x, y, glowRadius > 0 ? GlyphGlow.Of(glowRadius, glowIntensity) : null));
         }
     }
 
@@ -194,7 +210,6 @@ internal sealed unsafe class HostText : IDisposable
         {
             // Godot's outline size is the stroke's full width; half of it shows outside the glyph.
             GlyphLook.Outline => face.Render(index, size, a / 2f),
-            GlyphLook.Glow => GlowBlur.Halo(face.Render(index, size, 0), a, b),
             _ => face.Render(index, size, 0),
         };
         AtlasGlyph placed = Atlas.Add(bitmap);

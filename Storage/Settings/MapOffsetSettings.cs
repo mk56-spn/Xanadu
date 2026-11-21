@@ -18,8 +18,8 @@ public sealed class MapOffsetSettings
     public const int MaxMs = 300;
 
     private const string DefaultPath = "user://map-offsets.xmo";
-    private const byte MajorVersion = 0;
-    private const byte MinorVersion = 1;
+    private const byte MajorVersion = 1;
+    private const byte MinorVersion = 0;
     private static readonly byte[] Magic = "XMO"u8.ToArray();
 
     private readonly string? _path;

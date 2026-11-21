@@ -9,6 +9,12 @@ namespace Xanadu.Logic.Playfields;
 /// <summary>Loads the active playfield song and drives its playhead from miniaudio.</summary>
 public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
 {
+    /// <summary>How quickly the smooth clock eases to the audio clock, per second.</summary>
+    private const double ClockPull = 4d;
+
+    /// <summary>The smooth clock is put straight on the audio clock when it is this far off, ms (a seek, a stall).</summary>
+    private const double ClockSnapMs = 80d;
+
     private readonly ITrackAudio _audio;
     private int _loadedRevision = -1;
     private int _loadedEntityId = -1;
@@ -66,6 +72,26 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             End(ref playhead);
+    }
+
+    /// <summary>
+    /// Steps the smooth clock: frame time while playing, pulled toward the
+    /// audio clock and put on it when too far off; held, it is the audio clock.
+    /// </summary>
+    private void Smooth(ref Playhead playhead)
+    {
+        if (!playhead.Playing)
+        {
+            playhead.SmoothMs = playhead.TimeMs;
+            return;
+        }
+
+        double delta = Tick.deltaTime;
+        double clock = playhead.SmoothMs + delta * 1000d;
+        double drift = playhead.TimeMs - clock;
+        playhead.SmoothMs = Math.Abs(drift) > ClockSnapMs
+            ? playhead.TimeMs
+            : clock + drift * (1d - Math.Exp(-ClockPull * delta));
     }
 
     private void End(ref Playhead playhead)
@@ -128,6 +154,9 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
                 System.UpdatePlaying(ref playhead);
             else if (System._audio.IsPlaying)
                 System._audio.Pause();
+
+            System.Smooth(ref playhead);
         }
     }
 }
+

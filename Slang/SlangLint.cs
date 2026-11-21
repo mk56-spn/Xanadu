@@ -25,6 +25,11 @@ namespace Xanadu.Slang;
 /// (<c>float length</c>, then <c>length(d)</c> in its scope). A value can't be called,
 /// so Slang says "no call operation found for type" at the call; the warning goes on
 /// the name, where the fix is.</item>
+/// <item>XS008: a <c>deform</c> that bends (a mesh surface, <c>place</c>, <c>wave</c>,
+/// <c>twist</c>, <c>bulge</c>, <c>sway</c>, <c>curl</c>, <c>jitter</c>, <c>mesh.split</c>)
+/// with no <c>[Grid(columns, rows)]</c> on it. The shader tool's preview draws its
+/// own grid, so it looks right there, but on a level item it has four corners and
+/// the bend comes out flat.</item>
 /// </list>
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
@@ -77,6 +82,7 @@ public static partial class SlangLint
         problems.AddRange(MouseAnchors(code));
         problems.AddRange(WholeDivisions(code));
         problems.AddRange(HiddenFunctions(code, typeNames));
+        problems.AddRange(GridlessBends(code));
         if (shapeCosts is { Count: > 0 })
             problems.AddRange(ShapeCosts(code, shapeCosts));
         problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
@@ -290,6 +296,30 @@ public static partial class SlangLint
         if (target.Success && (target.Groups[1].Success || ints.Contains(target.Groups[2].Value)))
             return true;
         return statement.StartsWith("return", StringComparison.Ordinal) && intBodies.Exists(b => b.Start <= at && at < b.End);
+    }
+
+    [GeneratedRegex(@"\bItemVertex\s+(deform)\s*\(")]
+    private static partial Regex DeformHeader();
+
+    [GeneratedRegex(@"\[\s*Grid\s*\(")]
+    private static partial Regex GridAttribute();
+
+    /// <summary>Calls that need corners inside the quad: surfaces placed on it, and the moves that bend rather than squash, tilt or shift.</summary>
+    [GeneratedRegex(@"\.\s*(?:deformed|place|placed|wave|waved|twist|twisted|bulge|bulged|sway|swayed|curl|curled|jitter|jittered)\s*\(|\bmesh\s*\.\s*split\s*\(")]
+    private static partial Regex Bend();
+
+    /// <summary>XS008: a deform that bends, with no [Grid] to give it corners to bend on a level item.</summary>
+    private static IEnumerable<SlangProblem> GridlessBends(string code)
+    {
+        Match header = DeformHeader().Match(code);
+        if (!header.Success || GridAttribute().IsMatch(code) || !Bend().IsMatch(code))
+            yield break;
+
+        (int line, int column) = Place(code, header.Groups[1].Index);
+        yield return new SlangProblem(
+            line, column,
+            "XS008 · this deform bends, but a level item has only four corners; put [Grid(96, 54)] on it (columns, rows) so it has corners inside",
+            Warning: true);
     }
 
     /// <summary>XS004: each <c>anchor(…)</c> or <c>anchored(…)</c> whose argument uses <c>mouse</c>.</summary>

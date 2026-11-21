@@ -59,7 +59,8 @@ internal sealed class HostGame : HostApp
             director,
             UiStage.Design1080,
             keyboard: Keyboard,
-            wheel: Pointer);
+            wheel: Pointer,
+            autoPlay: options.Auto);
         _fileDialog = new HostFileDialog(MainWindow);
         _systems.Scenes.AddSongRequested = () => _fileDialog.OpenAudio(AddSong);
         UseSystems(_systems);
@@ -120,7 +121,10 @@ internal sealed class HostGame : HostApp
         if (_options.Demo && DemoLevel.Create() is { } demo)
         {
             _systems.Scenes.Start(SceneKind.Profiles);
-            _systems.Scenes.StartPlay(demo);
+            if (_options.Editor)
+                _systems.Scenes.StartEditor(demo);
+            else
+                _systems.Scenes.StartPlay(demo);
             return;
         }
 

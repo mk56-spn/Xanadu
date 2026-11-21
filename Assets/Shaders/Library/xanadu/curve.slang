@@ -212,6 +212,38 @@ public struct Helix : ICurve3
     }
 }
 
+/// A torus knot lying flat: a closed path that winds `p` times round the upright axis while it
+/// loops `q` times through the ring's hole, weaving `swing` px either side of a ring `radius`
+/// round. (2, 3) is the trefoil, (3, 2) its cousin, (2, 5) a five-lobed star; p and q with no
+/// common factor give one unbroken knot. It crosses over itself, so a tube along it needs the
+/// depth `place` gives (any `deformed` does).
+///
+///     TorusKnot(120, 50, 2, 3).tube(18).deformed(v, camera())
+public struct TorusKnot : ICurve3
+{
+    public float radius;
+    public float swing;
+    public float p;
+    public float q;
+
+    public __init(float radius, float swing, float p = 2.0, float q = 3.0) { this.radius = radius; this.swing = swing; this.p = p; this.q = q; }
+
+    public float3 at(float t)
+    {
+        float a = t * TAU;
+        float r = radius + swing * cos(q * a);
+        return float3(sin(p * a) * r, -swing * sin(q * a), -cos(p * a) * r);
+    }
+
+    public float3 tangent(float t)
+    {
+        float a = t * TAU;
+        float r = radius + swing * cos(q * a);
+        float dr = -swing * q * sin(q * a);
+        return TAU * float3(dr * sin(p * a) + r * p * cos(p * a), -swing * q * cos(q * a), -dr * cos(p * a) + r * p * sin(p * a));
+    }
+}
+
 /// A smooth path in 2D through up to 16 points, in order (Catmull-Rom: it passes through each),
 /// drawn `width` thick with round ends: 0 for a bare path to stroke or halo. A shape.
 ///

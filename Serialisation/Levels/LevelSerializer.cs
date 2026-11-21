@@ -28,6 +28,12 @@ public static class LevelSerializer
 
         document.Notes ??= new();
         document.Notes.RemoveAll(note => note is null);
+        document.Chords ??= new();
+        document.Chords.RemoveAll(chord => chord is null);
+        document.Pads ??= new();
+        document.Pads.RemoveAll(pad => pad is null);
+        document.Drafts ??= new();
+        document.Drafts.RemoveAll(draft => draft is null);
         return document;
     }
 }

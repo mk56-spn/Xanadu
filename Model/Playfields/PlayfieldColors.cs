@@ -9,7 +9,7 @@ namespace Xanadu.Model.Playfields;
 public static class PlayfieldColors
 {
     public static readonly Color PlayBackground = Palette.DeepBlue;
-    public static readonly Color PlayfieldBackground = Palette.DeepBlue;
+    public static readonly Color PlayfieldBackground = new(0f, 0f, 0f);
     public static readonly Color BorderColor = Palette.BorderStrong;
     public static readonly Color GridColor = CanvasGrid.LineColor;
     public static readonly Color AxisColor = CanvasGrid.AxisColor;
@@ -45,7 +45,17 @@ public static class PlayfieldColors
     };
 
     /// <summary>A note's colour: its key's, or the neutral colour for a dash, which any direction key hits.</summary>
-    public static Color ColorFor(Note note) => ColorFor(note.Target);
+    public static Color ColorFor(Note note) =>
+        note.IsOrb ? OrbColor : note.IsDash || note.IsEntrance ? NeutralColor : ColorFor(note.Target);
+
+    /// <summary>An updraft: pale sky blue, air.</summary>
+    public static readonly Color DraftColor = new(0.55f, 0.88f, 1f);
+
+    /// <summary>A pad: hot magenta-pink, like a launch pad.</summary>
+    public static readonly Color PadColor = new(1f, 0.35f, 0.75f);
+
+    /// <summary>An orb hold: warm gold, apart from every key's colour.</summary>
+    public static readonly Color OrbColor = new(1f, 0.82f, 0.35f);
 
     /// <summary>The colour of an action key's notes; direction keys get the neutral colour.</summary>
     public static Color ColorFor(KeybindAction action) => action switch

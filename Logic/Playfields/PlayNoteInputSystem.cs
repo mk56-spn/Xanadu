@@ -1,3 +1,4 @@
+using Xanadu.Model.Playfields;
 using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -26,6 +27,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     private readonly KeyPress _presses = new();
     private readonly PlayNoteJudge _judge;
     private readonly PlayNoteMisses _misses;
+    private readonly PlayHoldTails _tails;
 
     public PlayNoteInputSystem(
         EntityStore entities,
@@ -43,6 +45,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             offsets ?? new OffsetSettings(persist: false));
         _judge = new PlayNoteJudge(context, new PlayNoteHits(context, new PlayNoteActions()));
         _misses = new PlayNoteMisses(context);
+        _tails = new PlayHoldTails(context, keyboard);
     }
 
     protected override void OnUpdate()
@@ -67,10 +70,34 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             // Level shaders read each key's last press (keys. in xanadu.anim).
             ShaderKeys.Press((int)action);
 
+            // Direction keys only hit dashes; action keys drop the beam too.
+            if (!KeybindActions.IsDirection(action))
+                DropBeam(action, playfield);
             _judge.Note(action, playfield);
         }
 
+        _tails.Update(playfield);
         _misses.Mark(playfield);
+    }
+
+    /// <summary>
+    /// The player's beam, straight down (or up) from the body into the
+    /// judgement line of the chord in charge, or the floor without one.
+    /// </summary>
+    private void DropBeam(KeybindAction action, Entity playfield)
+    {
+        if (!playfield.TryGetComponent(out CurveBody body))
+            return;
+
+        long now = playfield.GetComponent<Playhead>().TimeMs;
+        float judgement = Chords.At(_entities, now) is { } chord
+            ? chord.Anchor.Y
+            : PlayRules.FloorY(playfield.GetComponent<Playfield>());
+        PlayfieldView view = playfield.GetComponent<PlayfieldView>();
+        _entities.CreateEntity(new HitTrail(
+            view.PlayfieldToScreen(body.Position),
+            view.PlayfieldToScreen(new Vector2(body.Position.X, judgement)),
+            PlayfieldColors.ColorFor(action)));
     }
 
     private Entity FindPlayfield()

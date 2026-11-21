@@ -25,34 +25,11 @@ public static class PlayRules
     public static Vector2 BodySize => new(BodyWidth, BodyHeight);
 
     /// <summary>
-    /// Where the body spawns: up in the air, halfway between the field's top
-    /// and the floor, two body widths in from the left edge.
+    /// Where the body starts in a level without an entrance note: the middle of
+    /// the field, halfway between its top and the floor.
     /// </summary>
-    public static Vector2 SpawnPosition(Ecs.Components.Playfield playfield) =>
-        new(BodyWidth * 2f, FloorY(playfield) / 2f);
-
-    /// <summary>How much of the turn from straight up to its heading the body leans by.</summary>
-    public const float TiltShare = 0.18f;
-
-    /// <summary>The most the body leans either way, radians (20°).</summary>
-    public const float MaxTilt = 0.35f;
-
-    /// <summary>Below this speed the lean fades out, so a near-still body stands upright instead of twitching, units a second.</summary>
-    public const float TiltFullSpeed = 150f;
-
-    /// <summary>
-    /// How far the body leans toward where it is heading, radians, clockwise on
-    /// screen: upright going straight up, leaning right going right, left going left.
-    /// </summary>
-    public static float Tilt(Vector2 velocity)
-    {
-        float speed = velocity.Length();
-        if (speed <= 0f)
-            return 0f;
-        float fromUp = MathF.Atan2(velocity.X, -velocity.Y);
-        float lean = Math.Clamp(fromUp * TiltShare, -MaxTilt, MaxTilt);
-        return lean * MathF.Min(1f, speed / TiltFullSpeed);
-    }
+    public static Vector2 EntrancePosition(Ecs.Components.Playfield playfield) =>
+        new(playfield.Width / 2f, FloorY(playfield) / 2f);
 
     /// <summary>How far the body bobs up and down while hovering, playfield units: the slightest drift.</summary>
     public const float BobHeight = 7f;
@@ -67,20 +44,12 @@ public static class PlayRules
     /// <summary>How often the body puffs thrust out of its bottom, ms.</summary>
     public const double ThrustEveryMs = 33d;
 
-    /// <summary>How long the body takes to fade in, ending at the first note, ms.</summary>
-    public const double BodyFadeInMs = 1000d;
-
     /// <summary>
-    /// How visible the body is at a song time: unseen until a second before the
-    /// first note, then fading in to fully there at the note. A chart with no
-    /// notes shows it throughout.
+    /// How visible the body is: not there at all until the entrance releases it.
+    /// A level without an entrance shows it throughout.
     /// </summary>
-    public static float BodyAlpha(double songMs, long? firstNoteMs)
-    {
-        if (firstNoteMs is not long first)
-            return 1f;
-        return (float)Math.Clamp(1d - (first - songMs) / BodyFadeInMs, 0d, 1d);
-    }
+    public static float BodyAlpha(double songMs, double releaseMs) =>
+        !double.IsNaN(releaseMs) && songMs < releaseMs ? 0f : 1f;
 
     /// <summary>Roughly how long the body takes to settle on a curve's exit speed, ms; the real time is the nearest beat division to it.</summary>
     public const double ExitSettleTargetMs = 150d;
@@ -107,9 +76,25 @@ public static class PlayRules
         return best;
     }
 
+    /// <summary>The pull down on the body, playfield units a second squared.</summary>
+    public const float Gravity = 1800f;
+
     /// <summary>The body's cruise speed, playfield units a second.</summary>
     public const float CruiseSpeed = 900f;
 
-    /// <summary>The body's motion at spawn: heading right at <see cref="CruiseSpeed"/>.</summary>
+    /// <summary>How fast a dash goes, playfield units a second. A placeholder.</summary>
+    public const float DashSpeed = 2400f;
+
+    /// <summary>The way a direction key dashes, unit length (y points down); zero for an action key.</summary>
+    public static Vector2 DashDirection(Settings.KeybindAction key) => key switch
+    {
+        Settings.KeybindAction.Left => new Vector2(-1f, 0f),
+        Settings.KeybindAction.Right => new Vector2(1f, 0f),
+        Settings.KeybindAction.Up => new Vector2(0f, -1f),
+        Settings.KeybindAction.Down => new Vector2(0f, 1f),
+        _ => Vector2.Zero,
+    };
+
+    /// <summary>The body's motion as it pops out of the entrance: heading right at <see cref="CruiseSpeed"/>.</summary>
     public static Vector2 SpawnVelocity => new(CruiseSpeed, 0f);
 }

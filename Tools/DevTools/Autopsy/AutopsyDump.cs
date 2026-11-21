@@ -6,8 +6,9 @@ using Xanadu.Host.Autopsy;
 namespace Xanadu.Tools.DevTools.Autopsy;
 
 /// <summary>
-/// <c>--dump[=app]</c>: the capture as text, no window: the mean frame and the
-/// worst CPU frame as trees of milliseconds, slowest first, down to <see cref="Floor"/> ms.
+/// <c>--dump[=app]</c>: the capture as text, no window: every hitch among the
+/// kept frames with what took its time, then the mean frame and the worst CPU
+/// frame as trees of milliseconds, slowest first, down to <see cref="Floor"/> ms.
 /// </summary>
 internal static class AutopsyDump
 {
@@ -51,6 +52,8 @@ internal static class AutopsyDump
         foreach ((int track, AutopsyFrame? peak) in peaks)
             Console.WriteLine($"{Path(autopsy, track),-60}{(mean is null ? 0 : Ms(mean, track)),10:0.000}{Ms(peak!, track),10:0.000}  {peak!.Number}");
 
+        Hitches(autopsy, children, kept, mean);
+
         foreach ((string title, AutopsyFrame? frame) in new[] { ("MEAN FRAME", mean), ("WORST CPU FRAME", worst) })
         {
             if (frame is null)
@@ -60,6 +63,46 @@ internal static class AutopsyDump
             Tree(autopsy, children, frame, FrameAutopsy.CpuRoot, 0, "CPU");
             Tree(autopsy, children, frame, FrameAutopsy.GpuRoot, 0, "GPU");
         }
+    }
+
+    /// <summary>A frame is a hitch when its CPU time is this many times the mean frame's, and at least <see cref="HitchFloorMs"/>.</summary>
+    private const float HitchFactor = 3f;
+
+    private const float HitchFloorMs = 20f;
+
+    private const int HitchRows = 60;
+
+    /// <summary>
+    /// Every kept frame that hitched, in order: when it was (seconds from the
+    /// first kept frame), its CPU time, and the leaf tracks that took a real
+    /// share of it, so a run of repeated stalls shows, not just the worst one.
+    /// </summary>
+    private static void Hitches(FrameAutopsy autopsy, List<int>[] children, List<AutopsyFrame> kept, AutopsyFrame? mean)
+    {
+        float meanMs = mean is null ? 0f : Ms(mean, FrameAutopsy.CpuRoot);
+        float floor = MathF.Max(HitchFloorMs, meanMs * HitchFactor);
+        var hitches = kept.Where(f => f.Number > 0 && Ms(f, FrameAutopsy.CpuRoot) >= floor).OrderBy(f => f.Number).ToList();
+        Console.WriteLine();
+        Console.WriteLine($"HITCHES: {hitches.Count} kept frames over {floor:0.0} ms (frame 0, the launch, left out)");
+        if (hitches.Count == 0)
+            return;
+
+        long first = kept.Where(f => f.Number > 0).Min(f => f.Start);
+        int[] leaves = Enumerable.Range(2, Math.Max(0, autopsy.Tracks.Count - 2)).Where(t => children[t].Count == 0).ToArray();
+        foreach (AutopsyFrame frame in hitches.Take(HitchRows))
+        {
+            float total = Ms(frame, FrameAutopsy.CpuRoot);
+            double at = autopsy.TicksPerSecond > 0 ? (frame.Start - first) / (double)autopsy.TicksPerSecond : 0;
+            string causes = string.Join(", ", leaves
+                .Where(t => autopsy.Tracks[t].Side == AutopsySide.Cpu && Ms(frame, t) >= total * 0.1f)
+                .OrderByDescending(t => Ms(frame, t))
+                .Take(4)
+                .Select(t => $"{autopsy.Tracks[t].Name} {Ms(frame, t):0.0}"));
+            Console.WriteLine($"  frame {frame.Number,6}  {at,7:0.00} s  {total,7:0.0} ms   {causes}");
+        }
+
+        if (hitches.Count > HitchRows)
+            Console.WriteLine($"  … and {hitches.Count - HitchRows} more");
     }
 
     private static void Tree(FrameAutopsy autopsy, List<int>[] children, AutopsyFrame frame, int track, int depth, string? name = null)

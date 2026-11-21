@@ -31,12 +31,13 @@ public static class PlayChart
         for (int i = 0; i < notes.Count; i++)
         {
             Note note = notes[i].GetComponent<Note>();
+            Vector2 landing = Chords.Landing(notes[i].Store, note);
             Color colour = PlayfieldColors.ColorFor(note);
             chart[i] = new ChartNote
             {
-                Place = new Vector4(note.Position.X, note.Position.Y, 0, 0),
+                Place = new Vector4(landing.X, landing.Y, 0, 0),
                 Colour = new Vector4(colour.R, colour.G, colour.B, colour.A),
-                Timing = new Vector4(note.TimeMs / 1000f, 0f, (float)note.Target - (float)KeybindAction.Action1, i),
+                Timing = new Vector4(note.TimeMs / 1000f, 0f, note.IsDash ? -1f : (float)note.Target - (float)KeybindAction.Action1, i),
             };
             notes[i].AddComponent(new ChartIndex(i));
         }

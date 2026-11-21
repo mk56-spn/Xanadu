@@ -178,7 +178,7 @@ public static class EditorSceneChrome
 
         column.Row()
             .Size(shell.StatusLine.Size)
-            .Fill(SceneUi.PanelColor)
+            .Fill(Clear)
             .Pad(4)
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(0, 1));

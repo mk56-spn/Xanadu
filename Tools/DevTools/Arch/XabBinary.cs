@@ -13,7 +13,7 @@ namespace Xanadu.Tools.DevTools.Arch;
 /// </summary>
 internal static class XabBinary
 {
-    public const ushort MajorVersion = 0, MinorVersion = 1;
+    public const ushort MajorVersion = 1, MinorVersion = 0;
 
     private const string Format = "XAB";
 

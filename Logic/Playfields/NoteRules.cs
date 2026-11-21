@@ -8,5 +8,11 @@ public static class NoteRules
 {
     /// <summary>Whether this press can hit the note.</summary>
     public static bool Matches(Note note, KeybindAction action) =>
-        note.Target == action;
+        note.Kind switch
+        {
+            NoteKind.Dash => KeybindActions.IsDirection(action),
+            NoteKind.Entrance => true,
+            NoteKind.Orb => !KeybindActions.IsDirection(action),
+            _ => note.Target == action,
+        };
 }

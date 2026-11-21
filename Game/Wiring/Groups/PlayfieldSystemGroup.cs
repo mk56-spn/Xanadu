@@ -39,7 +39,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         IPointerInputSource? pointer = null,
         HudLayoutSettings? hudLayout = null,
         ReplayKeyboard? replayKeyboard = null,
-        MapOffsetSettings? mapOffsets = null) : base("Playfield")
+        MapOffsetSettings? mapOffsets = null,
+        bool autoPlay = false) : base("Playfield")
     {
         _playfield = new CanvasItemHandle(parentCanvas, 800);
 
@@ -63,6 +64,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
             // Before anything that reads the keys, so a replayed press is seen this frame.
             Add(new ReplayRecordSystem(keybinds, replayKeyboard.Real, offsets));
             Add(new ReplayPlaybackSystem(keybinds, replayKeyboard));
+            if (autoPlay)
+                Add(new AutoPlaySystem(keybinds, replayKeyboard));
         }
 
         // The square follows the curve notes whose heads were hit; heads are judged like any action note.

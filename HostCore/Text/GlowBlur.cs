@@ -3,16 +3,12 @@ using System;
 namespace Xanadu.Host.Text;
 
 /// <summary>
-/// The glow behind text, done once per glyph on the CPU and cached: the same
+/// The glow behind a shape (<c>HostShapeGlow</c>), done on the CPU and cached: the same
 /// separable gaussian as Godot's <c>GodotBlur</c> (33 taps, σ = 5 taps, taps
 /// <c>max(1, radius / 8)</c> pixels apart), then alpha scaled by the intensity
 /// and clamped. The tint comes from the vertex colour when it is drawn.
 /// </summary>
-/// <remarks>
-/// Godot blurred the whole string's mask and scaled the sum; here each glyph
-/// has its own halo and overlapping halos mix, so the glow between letters is
-/// a little fainter. Exact parity needs the group buffers of step 6.
-/// </remarks>
+/// <remarks>Text glows are blurred on the GPU instead (<c>KindHalo</c> in primitives.slang).</remarks>
 internal static class GlowBlur
 {
     private const int Taps = 16;
@@ -39,21 +35,6 @@ internal static class GlowBlur
 
     /// <summary>How far the halo reaches past the glyph, in pixels.</summary>
     public static int Padding(float radius) => (int)MathF.Ceiling(Taps * Step(radius)) + 2;
-
-    public static GlyphBitmap Halo(GlyphBitmap glyph, float radius, float intensity)
-    {
-        if (glyph.Width == 0 || glyph.Height == 0)
-            return glyph;
-
-        int pad = Padding(radius);
-        int w = glyph.Width + pad * 2, h = glyph.Height + pad * 2;
-        var mask = new float[w * h];
-        for (int y = 0; y < glyph.Height; y++)
-            for (int x = 0; x < glyph.Width; x++)
-                mask[(y + pad) * w + x + pad] = glyph.Coverage[y * glyph.Width + x] / 255f;
-
-        return new GlyphBitmap(w, h, glyph.Left - pad, glyph.Top + pad, Blur(mask, w, h, radius, intensity));
-    }
 
     /// <summary>
     /// Blurs a coverage <paramref name="mask"/> (0..1, rows top first, with

@@ -16,7 +16,14 @@ public static class EditorPlacementNote
         EditorPlacement placement = editor.TryGetComponent(out EditorPlacement found)
             ? found
             : new EditorPlacement();
-        return new Note(time, position, placement.Note);
+        NoteKind kind = placement.Mode switch
+        {
+            EditorPlacementMode.Dash => NoteKind.Dash,
+            EditorPlacementMode.Entrance => NoteKind.Entrance,
+            EditorPlacementMode.Orb => NoteKind.Orb,
+            _ => NoteKind.Tap,
+        };
+        return new Note(time, position, placement.Note, kind);
     }
 
     /// <summary>

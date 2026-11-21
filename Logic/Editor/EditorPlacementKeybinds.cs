@@ -12,6 +12,13 @@ public static class EditorPlacementKeybinds
     private static readonly (Key Main, Key Pad, EditorPlacementMode Mode)[] Bindings =
     {
         (Key.Key1, Key.Kp1, EditorPlacementMode.Note),
+        (Key.Key2, Key.Kp2, EditorPlacementMode.Chord),
+        (Key.Key3, Key.Kp3, EditorPlacementMode.Dash),
+        (Key.Key4, Key.Kp4, EditorPlacementMode.Entrance),
+        (Key.Key5, Key.Kp5, EditorPlacementMode.Orb),
+        (Key.Key6, Key.Kp6, EditorPlacementMode.Pad),
+        (Key.Key7, Key.Kp7, EditorPlacementMode.TimedPad),
+        (Key.Key8, Key.Kp8, EditorPlacementMode.Draft),
     };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)

@@ -30,5 +30,8 @@ public sealed class FeedbackSoundPlayer : System.IDisposable
 
     public void Play(FeedbackSound sound) => _bank.Play((int)sound);
 
+    /// <summary>Loads every sound up front (<see cref="SoundBank.Prepare"/>).</summary>
+    public void Prepare() => _bank.Prepare();
+
     public void Dispose() => _bank.Dispose();
 }

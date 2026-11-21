@@ -65,7 +65,18 @@ public struct Playhead(
     int snapDivision = 4,
     int audioRevision = 0) : IComponent
 {
+    /// <summary>The audio clock, ms: what judging goes by. It moves in uneven chunks, so nothing is drawn from it while playing.</summary>
     public long TimeMs = timeMs;
+
+    /// <summary>
+    /// The smooth song clock, ms: frame time while the song plays, eased toward
+    /// <see cref="TimeMs"/> and snapped to it on a jump (<c>PlayfieldPlaybackSystem</c>).
+    /// </summary>
+    public double SmoothMs = timeMs;
+
+    /// <summary>The time to draw and move things by: the smooth clock while playing, the audio clock while held.</summary>
+    public readonly double ShownMs => Playing ? SmoothMs : TimeMs;
+
     private TempoMap? _tempo = TempoMap.Single(bpm, offsetMs);
 
     /// <summary>The song's tempo map: beat 0, BPM changes and bar lengths.</summary>
@@ -147,17 +158,93 @@ public struct PlayCamera(Rect2 viewport) : IComponent
     public readonly Rect2 Visible => new(Viewport.Position + Offset, Viewport.Size);
 }
 
-/// <summary>A note: an action note, hit with its key on its time.</summary>
+/// <summary>What a note asks of the player.</summary>
+public enum NoteKind : byte
+{
+    /// <summary>Hit with its action key.</summary>
+    Tap,
+
+    /// <summary>
+    /// A line across the whole chord: any direction key hits it, and the
+    /// player dashes the way they pressed, until a wall.
+    /// </summary>
+    Dash,
+
+    /// <summary>
+    /// Where and when the player comes into the level: a rift at its own
+    /// position that releases the player on its time exactly, however it is
+    /// hit. Any key hits it, judged like any note, because the music is playing.
+    /// </summary>
+    Entrance,
+
+    /// <summary>
+    /// A hold you ride: an orb that crosses at one fixed sideways speed while its
+    /// height follows its path (<see cref="Note.Path"/>), from the note's time to
+    /// <see cref="Note.EndMs"/>. Any action key grabs it on its head, holding rides
+    /// it, and letting go leaves with its motion (<c>Orbs</c> has the shape).
+    /// </summary>
+    Orb,
+}
+
+/// <summary>
+/// How an entrance launches the player: its onset. Songs don't all want to
+/// start on a fall; some start on a dash, or riding an orb.
+/// </summary>
+public enum EntranceExit : byte
+{
+    /// <summary>Out running right at cruise speed, gravity taking over.</summary>
+    Fall,
+
+    /// <summary>Out on a dash the way <see cref="Note.Target"/> points (a direction key), until a wall.</summary>
+    Dash,
+
+    /// <summary>
+    /// Out riding an orb that starts at the rift: the entrance's own
+    /// <see cref="Note.EndMs"/> and <see cref="Note.Path"/>, ridden to its tail
+    /// with nothing more to judge, leaving with its motion.
+    /// </summary>
+    Orb,
+}
+
+/// <summary>
+/// One key of an orb's height path: <see cref="OffsetMs"/> after the head, the
+/// orb is <see cref="Rise"/> playfield units from its start height (y down).
+/// </summary>
+public readonly record struct OrbKey(long OffsetMs, float Rise);
+
+/// <summary>A note: hit on its time, with its action key or, for a dash, any direction key.</summary>
 public struct Note(
     long timeMs,
     Vector2 position,
-    KeybindAction target = KeybindAction.Action1) : IComponent
+    KeybindAction target = KeybindAction.Action1,
+    NoteKind kind = NoteKind.Tap) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
 
-    /// <summary>The action key the note asks for.</summary>
+    /// <summary>The action key the note asks for; unused by a dash.</summary>
     public KeybindAction Target = target;
+
+    public NoteKind Kind = kind;
+
+    /// <summary>A hold's end (an orb's tail), ms; the note's own time for anything else.</summary>
+    public long EndMs = timeMs;
+
+    /// <summary>
+    /// An orb's height path after its start, by time; null or empty is flat.
+    /// Never changed in place: an edit swaps in a new array, so copies (undo,
+    /// clipboard, a ride) stay as they were.
+    /// </summary>
+    public OrbKey[]? Path;
+
+    /// <summary>An entrance's onset: how it launches the player.</summary>
+    public EntranceExit Exit;
+
+    public readonly bool IsDash => Kind == NoteKind.Dash;
+
+    public readonly bool IsEntrance => Kind == NoteKind.Entrance;
+
+    public readonly bool IsOrb => Kind == NoteKind.Orb;
 }
 
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>

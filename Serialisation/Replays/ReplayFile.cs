@@ -18,8 +18,8 @@ namespace Xanadu.Serialisation.Replays;
 public static class ReplayFile
 {
     public const string Extension = ".xrs";
-    public const byte MajorVersion = 0;
-    public const byte MinorVersion = 1;
+    public const byte MajorVersion = 1;
+    public const byte MinorVersion = 0;
 
     private const byte DownFlag = 0x80;
     private static readonly byte[] Magic = "XRS"u8.ToArray();

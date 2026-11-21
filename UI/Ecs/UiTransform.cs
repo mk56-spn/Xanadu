@@ -56,6 +56,9 @@ public static class UiTransform
     public static Transform2D Local(Entity entity, Vector2 position)
     {
         var placed = new Transform2D(entity.TryGetComponent(out UiRotation rotation) ? rotation.Radians : 0, position);
+        // A group pose (UiPose) goes between the slide and the entity's own turn.
+        if (entity.TryGetComponent(out UiPose group))
+            placed = new Transform2D(0, position) * group.Around() * new Transform2D(rotation.Radians, Vector2.Zero);
         TweenPose pose = UiTween.Pose(entity);
         if (!pose.Moves)
             return placed;

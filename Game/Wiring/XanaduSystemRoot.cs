@@ -86,7 +86,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         bool transitions = true,
         IKeyboardState? keyboard = null,
         HudLayoutSettings? hudLayout = null,
-        IWheelSource? wheel = null) : base(entities, "Xanadu")
+        IWheelSource? wheel = null,
+        bool autoPlay = false) : base(entities, "Xanadu")
     {
         IRectCanvas canvas = HostPlatform.NewCanvas();
         _entities = entities;
@@ -152,7 +153,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             pointerInput,
             Hud,
             PlayKeyboard,
-            MapOffsets);
+            MapOffsets,
+            autoPlay);
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
@@ -177,6 +179,8 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _docs = new DocsOverlaySystem(entities);
         Add(new AppShortcutSystem(KeyPresses, Keybinds, Scenes, _feedbackSounds, _docs));
         Add(_docs);
+        // Loaded at boot, so the first sound (a run's first hit) doesn't stall its frame.
+        _feedbackSounds.Prepare();
         _feedbackSoundSystem = new FeedbackSoundSystem(entities, _feedbackSounds);
         Add(_feedbackSoundSystem);
         Add(Toasts);

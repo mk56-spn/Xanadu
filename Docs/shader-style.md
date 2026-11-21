@@ -4,7 +4,7 @@ The house style for Xanadu shaders (level shader slots, the shader tool, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** XS002 to XS007 are checked: the shader editor shows them as warnings
+**Status:** XS002 to XS008 are checked: the shader editor shows them as warnings
 (`Slang/SlangLint.cs`, the shape-cost rules in `Slang/SlangLint.Cost.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
@@ -196,3 +196,13 @@ float2 reach(float2 from, float2 to, float length) { return from + normalize(to 
 // fine
 float2 reach(float2 from, float2 to, float span) { return from + normalize(to - from) * span; }
 ```
+
+## XS008 · A bend without a `[Grid]` (warning) · checked
+
+A `deform` that bends the quad (a mesh surface's `deformed`, `place`, `wave`,
+`twist`, `bulge`, `sway`, `curl`, `jitter`, `mesh.split`) needs corners inside
+it. The shader tool's preview draws its own grid, so it looks right there, but
+a level item is four corners and the bend comes out flat.
+
+**Fix** Put `[Grid(columns, rows)]` on `deform`: `[Grid(96, 54)]` suits a 16:9
+quad. Moves that work on four corners (`squash`, `tilt`, `shake`) don't need one.

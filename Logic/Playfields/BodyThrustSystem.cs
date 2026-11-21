@@ -37,8 +37,7 @@ public sealed class BodyThrustSystem : QuerySystem<Player, Position, PlayfieldVi
                 return;
             System._owedMs %= PlayRules.ThrustEveryMs;
 
-            float tilt = PlayRules.Tilt(body.Velocity);
-            Vector2 down = new(-MathF.Sin(tilt), MathF.Cos(tilt));
+            Vector2 down = new(0f, 1f);
             Vector2 bottom = position.Value
                 + new Vector2(0f, PlayRules.Bob(body.SongMs) * view.Scale)
                 + down * (PlayRules.BodyHeight / 2f * view.Scale);
@@ -48,8 +47,7 @@ public sealed class BodyThrustSystem : QuerySystem<Player, Position, PlayfieldVi
                 bottom,
                 GameParticles.Thrust,
                 new Color(fill.R, fill.G, fill.B, fill.A * body.Alpha),
-                area: new Vector2(PlayRules.BodyWidth * 0.6f * view.Scale, 2f),
-                angle: tilt));
+                area: new Vector2(PlayRules.BodyWidth * 0.6f * view.Scale, 2f)));
         }
     }
 }

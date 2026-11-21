@@ -80,6 +80,4 @@ internal static class XmfRecords
         }
     }
 
-    /// <summary>Whether a record still has fields after the ones read so far.</summary>
-    internal static bool More(BinaryReader record) => record.BaseStream.Position < record.BaseStream.Length;
 }

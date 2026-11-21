@@ -14,8 +14,8 @@ public static class EditorShellMetrics
     public const float RightPanelWidth = 276f;
 
     /// <summary>Square tool buttons in the strip, and the gap between them.</summary>
-    public const float ToolButton = 56f;
-    public const float ToolGap = 3f;
+    public const float ToolButton = 52f;
+    public const float ToolGap = 6f;
 
     /// <summary>Height of the tab strip above the properties, under the tree.</summary>
     public const float TabHeight = 28f;
@@ -52,7 +52,7 @@ public static class EditorFooterHeight
     /// The level editor's transport row, density strip and timeline: the playfield
     /// above is the main work area, so the footer takes only what they need.
     /// </summary>
-    public const float Level = 168f;
+    public const float Level = 176f;
 }
 
 /// <summary>

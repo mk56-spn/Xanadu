@@ -10,7 +10,7 @@ namespace Xanadu.Audio;
 /// <summary>
 /// Plays a fixed set of short sounds on its own miniaudio engine, by their index
 /// in the file list it is made with (game paths). Each sound is decoded
-/// once, on first use, into a few voices taken in turn, so a quick run of the
+/// once, on first use or on <see cref="Prepare"/>, into a few voices taken in turn, so a quick run of the
 /// same sound overlaps instead of cutting itself off.
 /// </summary>
 public sealed unsafe class SoundBank : IDisposable
@@ -45,6 +45,18 @@ public sealed unsafe class SoundBank : IDisposable
         _next[index] = (_next[index] + 1) % Voices;
         ma.sound_seek_to_pcm_frame(voice, 0);
         ma.sound_start(voice);
+    }
+
+    /// <summary>
+    /// Starts the engine and decodes every sound now, so the first one played
+    /// (a run's first hit) doesn't stall the frame it lands on.
+    /// </summary>
+    public void Prepare()
+    {
+        if (!EnsureEngine())
+            return;
+        for (int i = 0; i < _files.Length; i++)
+            EnsureLoaded(i);
     }
 
     private bool EnsureLoaded(int index)

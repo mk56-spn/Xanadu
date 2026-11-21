@@ -15,6 +15,12 @@ public sealed class CanvasParticleEmitter(Handle canvas, IParticleServer server)
     private readonly Random _random = new();
     private readonly ParticleSeed[] _seeds = new ParticleSeed[XpfParticle.MaxAmount];
 
+    public void Prepare()
+    {
+        _ = ParticleLibrary.Shared;
+        _ = NoteAtlas.Particles.TextureId;
+    }
+
     public void Burst(
         string particle,
         Vector2 position,

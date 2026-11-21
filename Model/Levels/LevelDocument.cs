@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
@@ -5,7 +6,7 @@ using Xanadu.Model.Settings;
 namespace Xanadu.Model.Levels;
 
 /// <summary>
-/// A level as saved: which song it charts and its notes. Everything else the
+/// A level as saved: which song it charts, its notes and its chords. Everything else the
 /// classic game had (items, groups, layers, shaders) is gone; each comes back
 /// as its own field or list when it is rebuilt.
 /// </summary>
@@ -32,6 +33,73 @@ public sealed class LevelDocument
     public int PlayfieldHeight { get; set; } = DefaultFieldSize;
 
     public List<NoteDocument> Notes { get; set; } = new();
+
+    public List<ChordDocument> Chords { get; set; } = new();
+
+    public List<PadDocument> Pads { get; set; } = new();
+
+    public List<DraftDocument> Drafts { get; set; } = new();
+}
+
+/// <summary>A chord as saved: when it starts, and where its first line meets the judgement line.</summary>
+public sealed class ChordDocument
+{
+    public long TimeMs { get; set; }
+
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public Chord ToChord() => new(TimeMs, new Vector2(X, Y));
+
+    public static ChordDocument From(in Chord chord) => new()
+    {
+        TimeMs = chord.TimeMs,
+        X = chord.Anchor.X,
+        Y = chord.Anchor.Y,
+    };
+}
+
+/// <summary>A pad as saved: its centre and the upward speed it launches at.</summary>
+public sealed class PadDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Speed { get; set; }
+
+    /// <summary>A timed pad's time, ms; -1 fires on touch.</summary>
+    public long TimeMs { get; set; } = -1;
+
+    public Pad ToPad() => new(new Vector2(X, Y), Speed, TimeMs);
+
+    public static PadDocument From(in Pad pad) => new()
+    {
+        X = pad.Position.X,
+        Y = pad.Position.Y,
+        Speed = pad.Speed,
+        TimeMs = pad.TimeMs,
+    };
+}
+
+/// <summary>An updraft as saved: its emitter's centre and its hover height.</summary>
+public sealed class DraftDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public float Height { get; set; }
+
+    public Draft ToDraft() => new(new Vector2(X, Y), Height);
+
+    public static DraftDocument From(in Draft draft) => new()
+    {
+        X = draft.Position.X,
+        Y = draft.Position.Y,
+        Height = draft.Height,
+    };
 }
 
 /// <summary>A note as saved: an action note at its time and place.</summary>
@@ -46,8 +114,27 @@ public sealed class NoteDocument
     /// <summary>The action key the note asks for.</summary>
     public KeybindAction Target { get; set; } = KeybindAction.Action1;
 
+    public NoteKind Kind { get; set; } = NoteKind.Tap;
+
+    /// <summary>An orb's tail, ms.</summary>
+    public long EndMs { get; set; }
+
+    /// <summary>An orb's height path (<see cref="Note.Path"/>).</summary>
+    public OrbKey[]? Path { get; set; }
+
+    /// <summary>An entrance's onset.</summary>
+    public EntranceExit Exit { get; set; }
+
+    /// <summary>Whether this note carries an orb's tail and path: an orb, or an entrance that comes out on one.</summary>
+    public bool HasOrb => Kind == NoteKind.Orb || (Kind == NoteKind.Entrance && Exit == EntranceExit.Orb);
+
     /// <summary>The note component this document makes.</summary>
-    public Note ToNote() => new(TimeMs, new Vector2(X, Y), Target);
+    public Note ToNote() => new(TimeMs, new Vector2(X, Y), Target, Kind)
+    {
+        EndMs = HasOrb ? Math.Max(EndMs, TimeMs) : TimeMs,
+        Path = Path,
+        Exit = Exit,
+    };
 
     /// <summary>The document a note component saves as.</summary>
     public static NoteDocument From(in Note note) => new()
@@ -56,5 +143,9 @@ public sealed class NoteDocument
         X = note.Position.X,
         Y = note.Position.Y,
         Target = note.Target,
+        Kind = note.Kind,
+        EndMs = note.EndMs,
+        Path = note.Path,
+        Exit = note.Exit,
     };
 }

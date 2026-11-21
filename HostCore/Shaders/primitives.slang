@@ -24,7 +24,7 @@ struct Primitive
     float4 extra;   // depth, then the CPU's own
 };
 
-static const uint KindRect = 0, KindDisc = 1, KindTexture = 2, KindTriangle = 3;
+static const uint KindRect = 0, KindDisc = 1, KindTexture = 2, KindTriangle = 3, KindHalo = 4;
 /// Culled or moved to the pre-pass by the expand stage: folded away to nothing.
 static const uint KindSkip = 0xFF;
 static const uint FlagVertical = 1 << 8;
@@ -60,6 +60,7 @@ struct Varyings
     nointerpolation float4 shape : TEXCOORD3;   // half size x, y, corner radius, stroke
     nointerpolation uint2 kind : TEXCOORD4;     // kind and flags, texture slot
     nointerpolation float4 clip : TEXCOORD5;
+    nointerpolation float4 cell : TEXCOORD6;    // a halo's texture region: uv min, uv max
 };
 
 float4 unpackColour(uint rg, uint ba)
@@ -100,6 +101,7 @@ Varyings primitiveVertex(uint vertex : SV_VertexID)
             : unpackColour(p.more.x, p.more.y);
         o.local = 0;
         o.shape = 0;
+        o.cell = 0;
     }
     else
     {
@@ -107,13 +109,21 @@ Varyings primitiveVertex(uint vertex : SV_VertexID)
         float2 axisX = p.a.zw, axisY = p.b.xy;
         float2 half = float2(length(axisX), length(axisY));
         // Shaped kinds grow a pixel all round so their smoothed edge has room; a texture is exact.
-        float pad = kind == KindTexture || (p.more.z & FlagExact) != 0 ? 0.0 : 1.0;
+        float pad = kind == KindTexture || kind == KindHalo || (p.more.z & FlagExact) != 0 ? 0.0 : 1.0;
         float2 grown = half + pad;
         float2 dirX = axisX / max(half.x, 1e-6), dirY = axisY / max(half.y, 1e-6);
         pixel = p.a.xy + dirX * (c.x * grown.x) + dirY * (c.y * grown.y);
         o.local = c * grown;
         float2 t = saturate(c * grown / max(half, 1e-6) * 0.5 + 0.5);
         o.uv = lerp(p.uv.xy, p.uv.zw, t);
+        o.cell = 0;
+        if (kind == KindHalo)
+        {
+            // The uv runs past the region over the pad; the region is kept to clamp the blur's reads.
+            float2 inner = max(half - p.b.z, 1e-6);
+            o.uv = lerp(p.uv.xy, p.uv.zw, c * half / inner * 0.5 + 0.5);
+            o.cell = p.uv;
+        }
         // A two-colour box is a ramp along x, or along y when flagged.
         float along = (p.more.z & FlagVertical) != 0 ? t.y : t.x;
         o.colour = lerp(unpackColour(p.colours.x, p.colours.y), unpackColour(p.colours.z, p.colours.w), along);
@@ -143,6 +153,40 @@ float4 sampleSlot(uint slot, float2 uv)
     }
 }
 
+/// A halo: the region's alpha under a gaussian reaching three σ each way
+/// (reads outside the region are clear), times the intensity, clamped.
+float4 shadeHalo(Varyings v)
+{
+    float sigma = max(v.shape.w, 0.5);
+    float pad = v.shape.z;
+    float2 inner = max(v.shape.xy - pad, 1e-6);
+    float2 uvPerPixel = (v.cell.zw - v.cell.xy) / (inner * 2.0);
+    // Taps at most two pixels apart, so the bilinear reads between them leave
+    // no gaps (wider spacing shows as a grid on thin strokes), out to three σ.
+    float spacing = min(0.6 * sigma, 2.0);
+    int reach = min((int)ceil(3.0 * sigma / spacing), 12);
+    float sum = 0.0, weights = 0.0;
+    for (int y = -reach; y <= reach; y++)
+    {
+        for (int x = -reach; x <= reach; x++)
+        {
+            float2 offset = float2(x, y) * spacing;
+            float w = exp(-0.5 * dot(offset, offset) / (sigma * sigma));
+            float2 uv = v.uv + offset * uvPerPixel;
+            bool inside = all(uv >= v.cell.xy) && all(uv <= v.cell.zw);
+            sum += w * (inside ? sampleSlot(v.kind.y, uv).a : 0.0);
+            weights += w;
+        }
+    }
+
+    float intensity = float(v.kind.x >> 16) / 1000.0;
+    float4 colour = v.colour;
+    colour.a *= saturate(sum / weights * intensity);
+    if (colour.a <= 0.0)
+        discard;
+    return colour;
+}
+
 [shader("fragment")]
 float4 primitiveShade(Varyings v) : SV_Target
 {
@@ -166,6 +210,9 @@ float4 primitiveShade(Varyings v) : SV_Target
         float d = Circle(1.0).local(v.local / max(half, 1e-6)) * scale;
         cover = stroke > 0 ? sdf.filled(d) - sdf.filled(d + stroke) : sdf.filled(d);
     }
+
+    if (kind == KindHalo)
+        return shadeHalo(v);
 
     float4 colour = v.colour;
     if (v.kind.y != NoTexture)

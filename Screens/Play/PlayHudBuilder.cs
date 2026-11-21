@@ -265,9 +265,10 @@ internal static class PlayHudBuilder
                 comboText,
                 accuracyText,
                 judgementText,
-                document.Notes.Count));
+                // An orb is judged twice: its head and its tail.
+                document.Notes.Count + document.Notes.Count(note => note.Kind == NoteKind.Orb)));
         long lastNote = document.Notes.Count > 0
-            ? document.Notes.Max(note => note.TimeMs)
+            ? document.Notes.Max(note => note.Kind == NoteKind.Orb ? note.EndMs : note.TimeMs)
             : -1;
 
         playfield.AddComponent(new PlaySession(

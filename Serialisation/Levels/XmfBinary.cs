@@ -17,22 +17,24 @@ public enum XmfChunk : uint
     Strings = 1,
     Meta = 2,
     Notes = 10,
+    Chords = 11,
+    Pads = 12,
+    Drafts = 13,
 }
 
 /// <summary>
-/// Binary XMF map format, 1.4: the level's settings and its notes, each a time,
-/// a place and a key. Older files' notes carried more (curve paths before 1.2,
-/// routes from 1.2, dashes and holds from 1.3); records are length-framed, so
-/// those fields are read past and the notes kept as plain notes. It shares
+/// Binary XMF map format, 1.0: the level's settings, its notes (each a time,
+/// a place, a key and a kind; an orb adds its tail and height path) and its
+/// chords (a time and an anchor). It shares
 /// its container (magic, version, chunk directory, string table) with XAF
 /// packages, and every list is a count of length-framed records
 /// (<see cref="XmfRecords"/>), so a record grows by appending fields and a new
-/// kind of thing is a new chunk. 0.x files, from the classic game, are not read.
+/// kind of thing is a new chunk.
 /// </summary>
 public static class XmfBinary
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 4;
+    public const ushort MinorVersion = 0;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
@@ -52,6 +54,9 @@ public static class XmfBinary
         var strings = new StringTable(Format);
         byte[] meta = WriteMeta(document, strings);
         byte[]? notes = document.Notes.Count > 0 ? XmfRecords.WriteList(document.Notes, WriteNote) : null;
+        byte[]? chords = document.Chords.Count > 0 ? XmfRecords.WriteList(document.Chords, WriteChord) : null;
+        byte[]? pads = document.Pads.Count > 0 ? XmfRecords.WriteList(document.Pads, WritePad) : null;
+        byte[]? drafts = document.Drafts.Count > 0 ? XmfRecords.WriteList(document.Drafts, WriteDraft) : null;
 
         // The table is written first in the file but last here, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
@@ -59,6 +64,12 @@ public static class XmfBinary
         file.Add((uint)XmfChunk.Meta, meta);
         if (notes is not null)
             file.Add((uint)XmfChunk.Notes, notes);
+        if (chords is not null)
+            file.Add((uint)XmfChunk.Chords, chords);
+        if (pads is not null)
+            file.Add((uint)XmfChunk.Pads, pads);
+        if (drafts is not null)
+            file.Add((uint)XmfChunk.Drafts, drafts);
         return file.ToArray();
     }
 
@@ -72,6 +83,15 @@ public static class XmfBinary
             document.Notes = file.TryGet((uint)XmfChunk.Notes, out Chunk notes)
                 ? XmfRecords.ReadList(notes, MaxNotes, "note", ReadNote)
                 : new List<NoteDocument>();
+            document.Chords = file.TryGet((uint)XmfChunk.Chords, out Chunk chords)
+                ? XmfRecords.ReadList(chords, MaxNotes, "chord", ReadChord)
+                : new List<ChordDocument>();
+            document.Pads = file.TryGet((uint)XmfChunk.Pads, out Chunk pads)
+                ? XmfRecords.ReadList(pads, MaxNotes, "pad", ReadPad)
+                : new List<PadDocument>();
+            document.Drafts = file.TryGet((uint)XmfChunk.Drafts, out Chunk drafts)
+                ? XmfRecords.ReadList(drafts, MaxNotes, "draft", ReadDraft)
+                : new List<DraftDocument>();
             return document;
         }
         catch (Exception exception) when (exception is FormatException or IOException)
@@ -113,16 +133,30 @@ public static class XmfBinary
         });
     }
 
-    /// <summary>A note: time, place, key.</summary>
+    /// <summary>A note: time, place, key, kind; an entrance adds its exit; an orb, or an entrance out on one, adds its tail and height path.</summary>
     private static void WriteNote(BinaryWriter writer, NoteDocument note)
     {
         writer.Write(note.TimeMs);
         writer.Write(note.X);
         writer.Write(note.Y);
         writer.Write((byte)note.Target);
+        writer.Write((byte)note.Kind);
+        if (note.Kind == NoteKind.Entrance)
+            writer.Write((byte)note.Exit);
+        if (!note.HasOrb)
+            return;
+
+        writer.Write(note.EndMs);
+        OrbKey[] path = note.Path ?? [];
+        writer.Write((ushort)path.Length);
+        foreach (OrbKey key in path)
+        {
+            writer.Write(key.OffsetMs);
+            writer.Write(key.Rise);
+        }
     }
 
-    /// <summary>Reads a note's time, place and key; anything an older version wrote after them is left unread.</summary>
+    /// <summary>Reads a note: time, place, key, kind, an entrance's exit, and an orb's tail and path.</summary>
     private static NoteDocument ReadNote(BinaryReader reader)
     {
         var note = new NoteDocument
@@ -131,10 +165,80 @@ public static class XmfBinary
             X = reader.ReadSingle(),
             Y = reader.ReadSingle(),
             Target = ReadEnum<KeybindAction>(reader),
+            Kind = ReadEnum<NoteKind>(reader),
         };
+        if (note.Kind == NoteKind.Entrance)
+            note.Exit = ReadEnum<EntranceExit>(reader);
+        if (note.HasOrb)
+        {
+            note.EndMs = Math.Max(note.TimeMs, reader.ReadInt64());
+            var path = new OrbKey[reader.ReadUInt16()];
+            for (int i = 0; i < path.Length; i++)
+            {
+                path[i] = new OrbKey(reader.ReadInt64(), reader.ReadSingle());
+                if (!float.IsFinite(path[i].Rise))
+                    throw new FormatException("XMF orb path is not on the field.");
+            }
+
+            note.Path = path;
+        }
         if (!float.IsFinite(note.X) || !float.IsFinite(note.Y))
             throw new FormatException("XMF note is not on the field.");
         return note;
+    }
+
+    /// <summary>A chord: time, then where its first line meets the judgement line.</summary>
+    private static void WriteChord(BinaryWriter writer, ChordDocument chord)
+    {
+        writer.Write(chord.TimeMs);
+        writer.Write(chord.X);
+        writer.Write(chord.Y);
+    }
+
+    private static ChordDocument ReadChord(BinaryReader reader)
+    {
+        var chord = new ChordDocument
+        {
+            TimeMs = reader.ReadInt64(),
+            X = reader.ReadSingle(),
+            Y = reader.ReadSingle(),
+        };
+        if (!float.IsFinite(chord.X) || !float.IsFinite(chord.Y))
+            throw new FormatException("XMF chord is not on the field.");
+        return chord;
+    }
+
+    /// <summary>A pad: its centre, its launch speed, and its time (-1 fires on touch).</summary>
+    private static void WritePad(BinaryWriter writer, PadDocument pad)
+    {
+        writer.Write(pad.X);
+        writer.Write(pad.Y);
+        writer.Write(pad.Speed);
+        writer.Write(pad.TimeMs);
+    }
+
+    private static PadDocument ReadPad(BinaryReader reader)
+    {
+        var pad = new PadDocument { X = reader.ReadSingle(), Y = reader.ReadSingle(), Speed = reader.ReadSingle(), TimeMs = reader.ReadInt64() };
+        if (!float.IsFinite(pad.X) || !float.IsFinite(pad.Y) || !float.IsFinite(pad.Speed))
+            throw new FormatException("XMF pad is not on the field.");
+        return pad;
+    }
+
+    /// <summary>An updraft: its emitter's centre, then its hover height.</summary>
+    private static void WriteDraft(BinaryWriter writer, DraftDocument draft)
+    {
+        writer.Write(draft.X);
+        writer.Write(draft.Y);
+        writer.Write(draft.Height);
+    }
+
+    private static DraftDocument ReadDraft(BinaryReader reader)
+    {
+        var draft = new DraftDocument { X = reader.ReadSingle(), Y = reader.ReadSingle(), Height = reader.ReadSingle() };
+        if (!float.IsFinite(draft.X) || !float.IsFinite(draft.Y) || !float.IsFinite(draft.Height))
+            throw new FormatException("XMF draft is not on the field.");
+        return draft;
     }
 
     private static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum

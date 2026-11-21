@@ -32,6 +32,16 @@ public static partial class PlayfieldRenderer
     {
         NotePop pop = entity.GetComponent<NotePop>();
         float t = Math.Clamp(pop.Age / Math.Max(0.01f, pop.Lifetime), 0f, 1f);
+        // The rift draws an entrance's release; a grabbed orb carries on as the ridden orb.
+        if (pop.Note.IsEntrance || pop.Note.IsOrb)
+            return;
+
+        if (pop.Note.IsDash)
+        {
+            DrawDashPop(canvas, rid, pop, t);
+            return;
+        }
+
         float alpha = NotePopAlpha(t);
         var color = new Color(
             pop.Color.R,
@@ -62,6 +72,27 @@ public static partial class PlayfieldRenderer
                 pop.Radius * (0.9f + 0.4f * swell),
                 new Color(1f, 1f, 1f, 0.75f * flash * flash));
         }
+    }
+
+    /// <summary>
+    /// A hit dash: its bar flashes white, thickens and stretches out across the
+    /// field from the chord, thinning to nothing, with two sparks racing out
+    /// along it from the middle.
+    /// </summary>
+    private static void DrawDashPop(IRectCanvas canvas, Handle rid, NotePop pop, float t)
+    {
+        float scale = pop.Radius * 2f / NoteSize;
+        float swell = PopSwell(t);
+        float fade = 1f - t;
+        float width = Xanadu.Model.Playfields.Chords.DashSize.X * scale * (1f + 1.6f * swell);
+        float height = MathF.Max(1f, 26f * scale * (1f - swell) + 2f);
+        var bar = new Rect2(pop.Position - new Vector2(width, height) / 2f, new Vector2(width, height));
+        canvas.DrawRect(rid, bar, new Color(1f, 1f, 1f, 0.85f * fade * fade));
+
+        float reach = width / 2f + 60f * scale * swell;
+        float spark = MathF.Max(3f, 10f * scale) * fade;
+        canvas.DrawCircle(rid, pop.Position + new Vector2(reach, 0f), spark, new Color(1f, 1f, 1f, fade));
+        canvas.DrawCircle(rid, pop.Position - new Vector2(reach, 0f), spark, new Color(1f, 1f, 1f, fade));
     }
 
     /// <summary>

@@ -8,9 +8,8 @@ using Xanadu.Core.Storage;
 namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
-/// The chunks added in minor revision 9, kept apart so the older chunks keep
-/// their layout: each clip's events, and each attachment's alternate art and
-/// mesh. Older files have neither.
+/// Two XAF chunks: each clip's events, and each attachment's alternate art and
+/// mesh. A package with neither has no such chunks.
 /// </summary>
 public static class XafExtrasBinary
 {

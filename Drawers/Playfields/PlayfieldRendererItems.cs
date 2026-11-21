@@ -38,6 +38,9 @@ public static partial class PlayfieldRenderer
         Action? drawWedge)
     {
         DrawFloor(canvas, rid, frame.View, frame.Playfield);
+        DrawChords(canvas, rid, entities, frame.View, frame.Playfield, frame.Playhead.ShownMs);
+        DrawDrafts(canvas, rid, entities, frame);
+        DrawPads(canvas, rid, entities, frame);
 
         NoteOrder.Clear();
         entities.Query<Note>().EachEntity(new CollectNotes(NoteOrder));
@@ -54,6 +57,20 @@ public static partial class PlayfieldRenderer
 
     private static void DrawNoteItem(IRectCanvas canvas, Handle rid, Entity entity, in PlayfieldItemFrame frame)
     {
+        if (entity.GetComponent<Note>().IsOrb)
+        {
+            DrawOrbNote(canvas, rid, entity, frame);
+            return;
+        }
+
+        // An entrance is the rift: a marker in the editor, drawn by DrawEntrance in play.
+        if (entity.GetComponent<Note>() is { IsEntrance: true } entrance)
+        {
+            if (frame.Editor)
+                DrawEntranceMarker(canvas, rid, entrance, frame.View, frame.Playhead, !frame.SelectedNote.IsNull && frame.SelectedNote.Id == entity.Id);
+            return;
+        }
+
         DrawNote(canvas, rid, entity, frame.View, frame.Playhead, frame.SelectedNote);
     }
 

@@ -60,12 +60,14 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
                 ShaderPlay.LastJudgement = score.HasJudgement ? (float)score.LastJudgement : 0;
             }
 
+            // Shaders animate by the smooth clock, as the notes are drawn.
+            double now = playhead.ShownMs;
             ShaderPlay.SongProgress = playhead.DurationMs > 0
-                ? Math.Clamp(playhead.TimeMs / (float)playhead.DurationMs, 0f, 1f)
+                ? (float)Math.Clamp(now / playhead.DurationMs, 0d, 1d)
                 : 0f;
-            ShaderPlay.SongSeconds = playhead.TimeMs / 1000f;
-            ShaderPlay.Beat = (float)playhead.Tempo.BeatAt(playhead.TimeMs);
-            ShaderPlay.Bpm = (float)playhead.Tempo.At(playhead.TimeMs).Bpm;
+            ShaderPlay.SongSeconds = (float)(now / 1000d);
+            ShaderPlay.Beat = (float)playhead.Tempo.BeatAt(now);
+            ShaderPlay.Bpm = (float)playhead.Tempo.At(now).Bpm;
             ShaderPlay.UntilNote = UntilNote(entity.Store, playhead.TimeMs);
         }
     }

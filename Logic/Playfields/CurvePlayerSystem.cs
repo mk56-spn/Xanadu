@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Position = Xanadu.Core.Position;
@@ -10,23 +11,15 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Logic.Playfields;
 
 /// <summary>
-/// The rework's player (PlayRules): a blue body, 1 wide by 2.5 tall, that hovers, airborne by
-/// default. It spawns up in the air, unseen until it fades in over the second before the first note,
-/// and cruises right at <see cref="PlayRules.CruiseSpeed"/>; no note moves it yet (v4 is being built).
-/// The fixed floor and the field's edges stop it.
+/// The rework's player (PlayRules): a blue body, 1 wide by 2.5 tall. It doesn't exist until the
+/// level's entrance note: until then it waits, unseen, in the entrance where that note was placed, and on its
+/// time it pops out and runs right at <see cref="PlayRules.CruiseSpeed"/> under <see cref="PlayRules.Gravity"/>.
+/// The fixed floor holds it up, and the top and both sides are walls.
 /// </summary>
 public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldView, Playfield, Playhead>
 {
     /// <summary>A jump back this far in the song (a restart or a seek) puts the body at its start again, ms.</summary>
     private const long RestartJumpMs = 500;
-
-    /// <summary>How quickly the smooth song clock eases to the audio clock, per second.</summary>
-    private const double ClockPull = 4d;
-
-    /// <summary>The smooth clock is put straight on the audio clock when it is this far off, ms (a seek, a stall).</summary>
-    private const double ClockSnapMs = 80d;
-
-    private long? _firstNoteMs;
 
     protected override void OnUpdate()
     {
@@ -36,31 +29,65 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
             if (!entity.TryGetComponent(out PlayfieldMode mode) || mode.Kind != PlayfieldKind.Play)
                 continue;
 
-            Gather(entity.Store);
             Playfield playfield = entity.GetComponent<Playfield>();
             CurveBody body = entity.TryGetComponent(out CurveBody found) ? found : default;
             Playhead playhead = entity.GetComponent<Playhead>();
             long audioMs = playhead.TimeMs;
             bool restarted = !body.Placed || audioMs < body.SongMs - RestartJumpMs;
             if (restarted)
-                body = Start(playfield) with { SongMs = audioMs };
+            {
+                // Hit notes are taken away, so the entrance is read as the run starts, not every frame.
+                body = Start(entity.Store, playfield) with { SongMs = audioMs };
+            }
 
-            // The audio clock moves in uneven chunks, so the body runs on its own
-            // smooth song clock: frame time while the song plays, nothing while it
-            // holds, eased toward the audio clock and snapped to it on a jump.
-            float delta = playhead.Playing ? Tick.deltaTime : 0f;
-            double clock = body.SongMs + delta * 1000d;
-            double drift = audioMs - clock;
-            clock = Math.Abs(drift) > ClockSnapMs ? audioMs : clock + drift * (1d - Math.Exp(-ClockPull * delta));
-            delta = (float)Math.Max(0d, clock - body.SongMs) / 1000f;
+            // The body runs on the playhead's smooth clock, as the notes are drawn.
+            double clock = playhead.ShownMs;
+            double was = body.SongMs;
+            float delta = (float)Math.Max(0d, clock - body.SongMs) / 1000f;
 
-            body.Position += body.Velocity * delta;
-            Contain(ref body, playfield);
+            if (body.ReleaseMs is var release && !double.IsNaN(release) && body.SongMs < release && clock >= release)
+            {
+                // Launched on the release itself, not on this frame's start.
+                Release(entity, body);
+                Launch(ref body, release);
+                delta = (float)(clock - release) / 1000f;
+            }
+
+            if (!double.IsNaN(body.ReleaseMs) && clock < body.ReleaseMs)
+                body = Waiting(body);
+            else if (body.OnOrb)
+                Ride(ref body, playfield, clock);
+            else if (body.Dashing)
+            {
+                body.Velocity = body.Dash * PlayRules.DashSpeed;
+                body.Position += body.Velocity * delta;
+                if (Contain(ref body, playfield))
+                    EndDash(ref body, entity, clock);
+            }
+            else
+            {
+                // In an updraft's column the draft holds the body up; elsewhere gravity has it.
+                if (DraftHolding(entity.Store, body.Position) is { } draft)
+                    body.Velocity.Y = Drafts.Lift(draft, body.Position.Y, body.Velocity.Y, playhead.Tempo.BeatAt(clock), delta);
+                else
+                    body.Velocity.Y += PlayRules.Gravity * delta;
+                body.Position += body.Velocity * delta;
+                Contain(ref body, playfield);
+            }
+            if (restarted)
+                _touching.Clear();
+            bool released = double.IsNaN(body.ReleaseMs) || clock >= body.ReleaseMs;
+            if (released && !body.OnOrb)
+            {
+                FireTimedPads(entity, ref body, playfield, was, clock);
+                TouchPads(entity, ref body, clock);
+            }
+
             List<Vector2>? trace = entity.HasComponent<BodyTrace>() ? entity.GetComponent<BodyTrace>().Points : null;
             if (restarted)
                 trace?.Clear();
             body.SongMs = clock;
-            body.Alpha = PlayRules.BodyAlpha(clock, _firstNoteMs);
+            body.Alpha = PlayRules.BodyAlpha(clock, body.ReleaseMs);
             if (trace is not null)
                 Trace(trace, body.Position);
             entity.AddComponent(body);
@@ -68,27 +95,208 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
         }
     }
 
-    /// <summary>The first note's time.</summary>
-    private void Gather(EntityStore store)
+    /// <summary>
+    /// Hanging from an orb: placed on it by song time. At its tail the body
+    /// leaves with the orb's motion there and flies on for the rest of the frame.
+    /// </summary>
+    private static void Ride(ref CurveBody body, Playfield playfield, double clock)
     {
-        _firstNoteMs = null;
-        foreach (var (notes, _) in store.Query<Note>().Chunks)
+        Note orb = body.Ride;
+        if (clock < orb.EndMs)
         {
-            Span<Note> span = notes.Span;
-            for (int i = 0; i < span.Length; i++)
-            {
-                if (_firstNoteMs is not long first || span[i].TimeMs < first)
-                    _firstNoteMs = span[i].TimeMs;
-            }
+            body.Position = Orbs.At(orb, clock) + Orbs.Hang;
+            body.Velocity = Orbs.Velocity(orb, clock);
+            return;
+        }
+
+        body.OnOrb = false;
+        body.Position = Orbs.At(orb, orb.EndMs) + Orbs.Hang;
+        body.Velocity = Orbs.Velocity(orb, orb.EndMs);
+        float after = (float)(clock - orb.EndMs) / 1000f;
+        body.Velocity.Y += PlayRules.Gravity * after;
+        body.Position += body.Velocity * after;
+        Contain(ref body, playfield);
+    }
+
+    /// <summary>
+    /// The entrance's onset, at its release: a fall runs right under gravity; a
+    /// dash goes its way until a wall; an orb exit puts the body on the orb
+    /// starting at the rift, ridden to its tail with nothing left to judge.
+    /// </summary>
+    private static void Launch(ref CurveBody body, double release)
+    {
+        Note entrance = body.Entrance;
+        body.Position = body.EntranceAt;
+        body.SongMs = release;
+        switch (entrance.Exit)
+        {
+            case EntranceExit.Dash when PlayRules.DashDirection(entrance.Target) is var way && way != Vector2.Zero:
+                body.Dash = way;
+                body.DashFrom = body.Position;
+                body.DashStartMs = release;
+                body.Velocity = way * PlayRules.DashSpeed;
+                break;
+            case EntranceExit.Orb when entrance.EndMs > entrance.TimeMs:
+                body.OnOrb = true;
+                body.HoldOpen = false;
+                body.Ride = Orbs.OfEntrance(entrance);
+                body.Velocity = Orbs.Velocity(body.Ride, release);
+                break;
+            default:
+                body.Velocity = PlayRules.SpawnVelocity;
+                break;
         }
     }
 
-    /// <summary>Up in the air, heading right at momentum speed 1 (<see cref="PlayRules.SpawnPosition"/>).</summary>
-    private static CurveBody Start(Playfield playfield)
+    /// <summary>The updraft whose column the body is in, the nearest emitter's when columns overlap; null in none.</summary>
+    private static Draft? DraftHolding(EntityStore store, Vector2 body)
     {
-        Vector2 at = PlayRules.SpawnPosition(playfield);
-        return new CurveBody { Position = at, Velocity = PlayRules.SpawnVelocity, Target = at, Placed = true };
+        Draft? holding = null;
+        float best = float.MaxValue;
+        foreach (var (drafts, _) in store.Query<Draft>().Chunks)
+        {
+            foreach (Draft draft in drafts.Span)
+            {
+                float gap = MathF.Abs(body.X - draft.Position.X);
+                if (Drafts.Holds(draft, body) && gap < best)
+                {
+                    best = gap;
+                    holding = draft;
+                }
+            }
+        }
+
+        return holding;
     }
+
+    /// <summary>The pads the body touched last frame: a pad fires as the body comes onto it, not again until it has left.</summary>
+    private readonly HashSet<int> _touching = new();
+    private readonly HashSet<int> _touchingNow = new();
+
+    /// <summary>
+    /// Fires every pad the body has just come onto: its upward speed is set
+    /// (never added), and a dash that reached it ends there, carrying on
+    /// sideways at cruise speed the way it went. A ride on an orb passes pads by.
+    /// </summary>
+    private void TouchPads(Entity entity, ref CurveBody body, double clock)
+    {
+        _touchingNow.Clear();
+        foreach (Entity padEntity in entity.Store.Query<Pad>().Entities)
+        {
+            ref Pad pad = ref padEntity.GetComponent<Pad>();
+            if (pad.IsTimed || !Pads.Touches(pad, body.Position))
+                continue;
+
+            _touchingNow.Add(padEntity.Id);
+            if (_touching.Contains(padEntity.Id))
+                continue;
+
+            if (body.Dashing)
+            {
+                float side = MathF.Abs(body.Dash.X) > 0.5f ? MathF.Sign(body.Dash.X) : MathF.Sign(body.Velocity.X);
+                body.Dash = Vector2.Zero;
+                body.Velocity.X = side * PlayRules.CruiseSpeed;
+            }
+
+            body.Velocity.Y = -pad.Speed;
+            pad.FiredMs = clock;
+            Burst(entity, pad);
+        }
+
+        _touching.Clear();
+        _touching.UnionWith(_touchingNow);
+    }
+
+    /// <summary>
+    /// Fires every timed pad whose time came this frame and that reaches the
+    /// body: the body stands on it at that moment exactly, launches at its
+    /// speed (a dash ends there), and flies on for the rest of the frame.
+    /// </summary>
+    private void FireTimedPads(Entity entity, ref CurveBody body, Playfield playfield, double was, double clock)
+    {
+        foreach (Entity padEntity in entity.Store.Query<Pad>().Entities)
+        {
+            ref Pad pad = ref padEntity.GetComponent<Pad>();
+            if (!pad.IsTimed || pad.TimeMs <= was || pad.TimeMs > clock || !Pads.Reaches(pad, body.Position))
+                continue;
+
+            if (body.Dashing)
+            {
+                float side = MathF.Abs(body.Dash.X) > 0.5f ? MathF.Sign(body.Dash.X) : MathF.Sign(body.Velocity.X);
+                body.Dash = Vector2.Zero;
+                body.Velocity.X = side * PlayRules.CruiseSpeed;
+            }
+
+            body.Position = Pads.StandingOn(pad);
+            body.Velocity.Y = -pad.Speed;
+            float after = (float)(clock - pad.TimeMs) / 1000f;
+            body.Velocity.Y += PlayRules.Gravity * after;
+            body.Position += body.Velocity * after;
+            Contain(ref body, playfield);
+            pad.FiredMs = pad.TimeMs;
+            Burst(entity, pad);
+        }
+    }
+
+    /// <summary>A pad's sparks thrown up off it, and a kick.</summary>
+    private void Burst(Entity entity, in Pad pad)
+    {
+        PlayfieldView view = entity.GetComponent<PlayfieldView>();
+        int burst = CommandBuffer.CreateEntity();
+        CommandBuffer.AddComponent(burst, new ParticleBurst(
+            view.PlayfieldToScreen(pad.Position),
+            GameParticles.Hit,
+            PlayfieldColors.PadColor,
+            Pads.Size * view.Scale * new Vector2(0.8f, 0.2f),
+            heading: new Vector2(0f, -1f)));
+        PlayCameraSystem.Kick(entity, 1.2f);
+    }
+
+    /// <summary>The body bursts out of the entrance: a hard kick (the flare and sparks are drawn by the entrance).</summary>
+    private static void Release(Entity entity, in CurveBody body) => PlayCameraSystem.Kick(entity, 2f);
+
+    /// <summary>
+    /// The body at the start of a run: in the level's entrance (its earliest
+    /// entrance note), waiting to be released on its time; without one, out
+    /// from the start in the middle of the field. Set to head right either way.
+    /// </summary>
+    private static CurveBody Start(EntityStore store, Playfield playfield)
+    {
+        Note? entrance = null;
+        foreach (var (notes, _) in store.Query<Note>().Chunks)
+        {
+            foreach (Note note in notes.Span)
+            {
+                if (note.IsEntrance && (entrance is not { } earliest || note.TimeMs < earliest.TimeMs))
+                    entrance = note;
+            }
+        }
+
+        Vector2 at = entrance?.Position ?? PlayRules.EntrancePosition(playfield);
+        return new CurveBody
+        {
+            Position = at,
+            Velocity = PlayRules.SpawnVelocity,
+            Target = at,
+            Placed = true,
+            EntranceAt = at,
+            Entrance = entrance ?? default,
+            ReleaseMs = entrance?.TimeMs ?? double.NaN,
+        };
+    }
+
+    /// <summary>Still in the entrance: put back there, keeping what the run started with.</summary>
+    private static CurveBody Waiting(in CurveBody body) => new()
+    {
+        Position = body.EntranceAt,
+        Velocity = PlayRules.SpawnVelocity,
+        Target = body.EntranceAt,
+        Placed = true,
+        EntranceAt = body.EntranceAt,
+        Entrance = body.Entrance,
+        ReleaseMs = body.ReleaseMs,
+        SongMs = body.SongMs,
+    };
 
     /// <summary>Lays the body's centre on the preview trace when it has moved far enough.</summary>
     private static void Trace(List<Vector2> points, Vector2 at)
@@ -97,34 +305,68 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
             points.Add(at);
     }
 
-    /// <summary>The floor and the field's edges stop the body, killing its speed into them.</summary>
-    private static void Contain(ref CurveBody body, Playfield playfield)
+    /// <summary>
+    /// A dash is over: the body runs right again at cruise speed, and gravity
+    /// takes it from wherever the wall stopped it.
+    /// </summary>
+    private void EndDash(ref CurveBody body, Entity entity, double clock)
     {
+        body.ImpactWay = body.Dash;
+        body.ImpactMs = clock;
+        body.Dash = Vector2.Zero;
+        body.Velocity = PlayRules.SpawnVelocity;
+
+        // The wall takes the hit: sparks thrown back off it, and a kick.
+        PlayfieldView view = entity.GetComponent<PlayfieldView>();
+        Vector2 contact = body.Position + body.ImpactWay * (PlayRules.BodySize / 2f);
+        int burst = CommandBuffer.CreateEntity();
+        CommandBuffer.AddComponent(burst, new ParticleBurst(
+            view.PlayfieldToScreen(contact),
+            GameParticles.Hit,
+            PlayfieldColors.NeutralColor,
+            PlayRules.BodySize * view.Scale * 0.4f,
+            heading: -body.ImpactWay));
+        PlayCameraSystem.Kick(entity, 1.2f);
+    }
+
+    /// <summary>
+    /// The floor and the field's edges are walls: they stop the body, killing
+    /// its speed into them; true when the body was moving into one.
+    /// </summary>
+    private static bool Contain(ref CurveBody body, Playfield playfield)
+    {
+        bool stopped = false;
         float half = PlayRules.BodyWidth / 2;
         float halfHeight = PlayRules.BodyHeight / 2;
         float floor = PlayRules.FloorY(playfield) - halfHeight;
         if (body.Position.Y > floor)
         {
+            stopped |= body.Velocity.Y > 0f;
             body.Position.Y = floor;
             body.Velocity.Y = MathF.Min(body.Velocity.Y, 0f);
         }
 
         if (body.Position.Y < halfHeight)
         {
+            stopped |= body.Velocity.Y < 0f;
             body.Position.Y = halfHeight;
             body.Velocity.Y = MathF.Max(body.Velocity.Y, 0f);
         }
 
         if (body.Position.X < half)
         {
+            stopped |= body.Velocity.X < 0f;
             body.Position.X = half;
             body.Velocity.X = MathF.Max(body.Velocity.X, 0f);
         }
 
         if (body.Position.X > playfield.Width - half)
         {
+            stopped |= body.Velocity.X > 0f;
             body.Position.X = playfield.Width - half;
             body.Velocity.X = MathF.Min(body.Velocity.X, 0f);
         }
+
+        return stopped;
     }
 }
