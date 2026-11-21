@@ -48,5 +48,7 @@ internal static class LabExperiments
         new Experiments.CjkGridLab(),
         new Experiments.GliderLab(),
         new Experiments.BoosterLab(),
+        new Experiments.BeamLab(),
+        new Experiments.OrbLab(),
     ];
 }
