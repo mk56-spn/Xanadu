@@ -246,7 +246,7 @@ public static class XafSampler
             {
                 // At the next key's own time the value is that key's.
                 XafInterpolation.Step => t >= 1f ? next.Value : previous.Value,
-                XafInterpolation.CubicBezier => Hermite(
+                XafInterpolation.CubicBezier => EaseCurves.Hermite(
                     previous.Value,
                     next.Value,
                     previous.TangentOut,
@@ -261,26 +261,6 @@ public static class XafSampler
         }
 
         return keys[^1].Value;
-    }
-
-    private static float Hermite(
-        float previous,
-        float next,
-        float tangentOut,
-        float tangentIn,
-        float t,
-        float span)
-    {
-        float t2 = t * t;
-        float t3 = t2 * t;
-        float h00 = 2f * t3 - 3f * t2 + 1f;
-        float h10 = t3 - 2f * t2 + t;
-        float h01 = -2f * t3 + 3f * t2;
-        float h11 = t3 - t2;
-        return h00 * previous +
-               h10 * tangentOut * span +
-               h01 * next +
-               h11 * tangentIn * span;
     }
 
     /// <summary>
