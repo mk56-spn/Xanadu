@@ -3,6 +3,8 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Core.Tweens;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
@@ -24,8 +26,17 @@ public static partial class SongSelectScene
     /// <summary>The visible slot, out of seven, that the selection rests in.</summary>
     private const int SelectedSlot = 3;
 
-    /// <summary>Exponential catch-up rate of the scroll, per second.</summary>
-    public const float ScrollRate = 16f;
+    /// <summary>How long the list takes to settle on a new selection, however far.</summary>
+    public const float SettleSeconds = 0.4f;
+
+    /// <summary>How long the list takes to catch the pointer while dragged: a little behind the hand, so a drag glides.</summary>
+    public const float DragSeconds = 0.12f;
+
+    /// <summary>The list's scroll, in levels: a number tween on the list's root.</summary>
+    private const ushort ScrollLayer = UiTweenKeys.FirstFree;
+
+    /// <summary>A row's slide from its rest slot towards the next, held from the scroll.</summary>
+    private const ushort SlideLayer = UiTweenKeys.FirstFree + 1;
     private static readonly Vector2 RowSize = new(500, 48);
     private static readonly Color Transparent = new(0, 0, 0, 0);
     private static readonly Color RowColor = Colors.Black;
@@ -111,6 +122,7 @@ public static partial class SongSelectScene
                 .Chamfer(RowChamfer)
                 .Border(Fade(RowBorderColor, RowOpacity), RowBorder);
             tiles.Add(tile.Entity);
+            UiTween.Target(tile.Entity);
 
             // A tile's children are its name, then its song.
             RowText(tile, NameSize, Colors.White);
@@ -257,18 +269,40 @@ public static partial class SongSelectScene
     }
 
     /// <summary>
-    /// Advances the animated scroll toward the selection and re-lays the rows.
-    /// Returns false once the list is at rest.
+    /// Sends the list's scroll to <paramref name="to"/> levels over <paramref name="seconds"/>,
+    /// from wherever it is now, so turning round never jumps. Already heading there: nothing changes.
     /// </summary>
-    public static bool AdvanceScroll(ref SongSelectState state, float delta)
+    public static void ScrollTo(Entity list, in SongSelectState state, float to, float seconds)
     {
-        float distance = state.Selected - state.Scroll;
-        if (distance == 0)
+        to = Math.Clamp(to, 0, Math.Max(state.Catalog.Count - 1, 0));
+        TweenTarget target = UiTween.Target(list);
+        float? heading = UiTween.Pool.Heading(target, ScrollLayer);
+        if (heading == to || (heading is null && state.Scroll == to))
+            return;
+
+        UiTween.Pool.Play(target, Tween.Number(state.Scroll, to, Clip.FromNow(seconds).Eased(EasePreset.ExpoOut))
+            .Named(ScrollLayer));
+    }
+
+    /// <summary>Where the list's scroll is heading, or null when it is at rest where it was put.</summary>
+    public static float? ScrollHeading(Entity list) =>
+        UiTween.Pool.Heading(UiTween.Of(list), ScrollLayer);
+
+    /// <summary>
+    /// Reads the scroll's tween into <see cref="SongSelectState.Scroll"/> and re-lays
+    /// the rows when it moved. Returns false once the list is at rest.
+    /// </summary>
+    public static bool FollowScroll(Entity list, ref SongSelectState state)
+    {
+        TweenTarget target = UiTween.Of(list);
+        if (UiTween.Pool.Heading(target, ScrollLayer) is null)
             return false;
 
-        state.Scroll = Math.Abs(distance) < 0.002f
-            ? state.Selected
-            : state.Scroll + distance * (1 - MathF.Exp(-ScrollRate * delta));
+        float scroll = Math.Clamp(UiTween.Pool.Weight(target, ScrollLayer), 0, Math.Max(state.Catalog.Count - 1, 0));
+        if (scroll == state.Scroll)
+            return false;
+
+        state.Scroll = scroll;
         RefreshList(ref state);
         return true;
     }
@@ -276,16 +310,11 @@ public static partial class SongSelectScene
     /// <summary>How many levels a drag between two heights moves the list; pulling up moves it forward.</summary>
     public static float LevelsDragged(float fromY, float toY) => (fromY - toY) / RowPitch;
 
-    /// <summary>Puts the list at a scroll directly, kept within the catalog, and re-lays the rows.</summary>
-    public static void SetScroll(ref SongSelectState state, float scroll)
-    {
-        state.Scroll = Math.Clamp(scroll, 0, Math.Max(state.Catalog.Count - 1, 0));
-        RefreshList(ref state);
-    }
-
     /// <summary>
     /// Lays out every row for the current scroll. Row r shows the level
-    /// r - 4 places from floor(scroll) and sits at a fractional slot, so a
+    /// r - 4 places from floor(scroll). It rests in slot r - 1 (its laid-out
+    /// place never changes) and the scroll's fraction slides it from there
+    /// towards slot r - 2, as a held tween offset over its place; a
     /// whole-number scroll puts the selection in the highlighted slot.
     /// </summary>
     private static void RefreshList(ref SongSelectState state)
@@ -308,10 +337,10 @@ public static partial class SongSelectScene
                 BindRow(ref state, row, valid ? catalog[index] : null);
             }
 
-            Vector2 corner = new(
-                Interpolate(RowLeft, slot),
-                Interpolate(RowTop, slot));
-            Place(state.Tiles[row], corner + RowSize / 2);
+            Vector2 rest = SlotCorner(row - 1);
+            Place(state.Tiles[row], rest + RowSize / 2);
+            Vector2 slide = SlotCorner(slot) - rest;
+            UiTween.Pool.Hold(UiTween.Of(state.Tiles[row]), SlideLayer, TweenChannel.Offset, new Vector4(slide.X, slide.Y, 0, 0));
 
             // A song that isn't downloaded is greyed out: there, but not playable.
             bool missing = valid && catalog[index].IsBlocked;
@@ -378,6 +407,10 @@ public static partial class SongSelectScene
         rect.Bounds = new Rect2(-size / 2, size);
         label.Parent.AddTag<LayoutDirty>();
     }
+
+    /// <summary>A row's top-left at a (fractional) slot along the staggered path.</summary>
+    private static Vector2 SlotCorner(float slot) =>
+        new(Interpolate(RowLeft, slot), Interpolate(RowTop, slot));
 
     /// <summary>Linear lookup in a table whose first entry is slot -1.</summary>
     private static float Interpolate(float[] table, float slot)

@@ -23,19 +23,13 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
     /// <summary>How far the pointer travels before a click becomes a drag.</summary>
     private const float DragThreshold = 8;
 
-    /// <summary>
-    /// Exponential catch-up rate of the list toward the pointer, per second: a
-    /// little behind the hand so a drag glides, quicker than the settle on release.
-    /// </summary>
-    public const float DragRate = 20f;
-
     private bool _holding;
     private bool _dragging;
     private int _pressedLevel;
     private float _anchorY;
     private float _anchorScroll;
 
-    /// <summary>Where the pointer has pulled the list to; the list eases after it.</summary>
+    /// <summary>Where the pointer has pulled the list to; the list's scroll tweens after it.</summary>
     private float _target;
 
     protected override void OnUpdate()
@@ -115,8 +109,7 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
     {
         ref SongSelectState state = ref root.GetComponent<SongSelectState>();
         _target = _anchorScroll + SongSelectScene.LevelsDragged(_anchorY, y);
-        float eased = float.Lerp(state.Scroll, _target, 1 - MathF.Exp(-DragRate * Tick.deltaTime));
-        SongSelectScene.SetScroll(ref state, Math.Abs(_target - eased) < 0.002f ? _target : eased);
+        SongSelectScene.ScrollTo(root, state, _target, SongSelectScene.DragSeconds);
 
         int wanted = Mathf.RoundToInt(state.Scroll);
         if (wanted != state.Selected)

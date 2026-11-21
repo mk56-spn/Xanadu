@@ -137,11 +137,7 @@ public static partial class SongSelectScene
             button.GetComponent<Text>().Value = visible ? label : "";
         button.AddTag<Dirty>();
         if (visible && button.HasComponent<ButtonVisual>())
-        {
-            ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
-            visual.HoverAmount = 0f;
-            visual.FlashAmount = 0f;
-        }
+            UiTween.Clear(button);
     }
 
     private static void SetTileColor(Entity tile, Color color)
