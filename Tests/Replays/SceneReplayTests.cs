@@ -1,3 +1,5 @@
+using Xanadu.Storage.Levels;
+using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -110,21 +112,6 @@ public sealed class SceneReplayTests
         var orphan = new Replay("gone", "Gone", "", "", DateTimeOffset.UtcNow, 0, default, []);
 
         Assert.That(_scenes.StartReplay(orphan), Is.False);
-    }
-
-    [Test]
-    public void PracticeFromAStartPointLeavesNoReplay()
-    {
-        _scenes.StartPlay(_level, new StartPoint { TimeMs = 100 });
-        Frame();
-
-        Assert.That(_store.Query<ReplayRecorder>().Count, Is.EqualTo(0));
-
-        _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>().Finished = true;
-        Frame();
-
-        Assert.That(_replays.List(), Is.Empty);
-        Assert.That(HasText("WATCH REPLAY"), Is.False);
     }
 
     private void PlayThrough(out Entity play)

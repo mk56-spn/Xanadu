@@ -33,41 +33,17 @@
 
 ### Hold notes
 
-- Hold notes take you along a path on a platform.
-- The platform is allowed to accelerate and decelerate.
+Holds work like the ORBS lab.
 
-Reasoning:
-
-- We want smoothness, but not the disconnect the last ones suffered.
-- Fixed speed won't do; that's the core issue.
-- Geometry Dash has a permanently fixed x speed, but it shows well what y
-  acceleration matters for.
-- Voices are often like sine waves.
-
-#### Option: dissolve into the slider
-
-The cheat: don't answer the question.
-
-- Unless there are drums or something else to keep it busy, the character
-  doesn't exist during holds.
-- It hits the start of the slider, then dissolves with particles.
-- A ball of light goes along the slider.
-- You get spat out at the end of the slider.
-- This lets sliders be shaped as awkwardly as you please, because a small ball
-  of light doesn't care.
-- Instead of answering the question: a very pretty entrance and exit flash.
-
-#### Both options, per slider
-
-- Both options are included.
-- Each slider sets whether the character is left alone and keeps existing, or
-  dissolves.
-- The mapper chooses based on what the song demands.
-
-#### Doing nothing during a hold
-
-- That's what every slow section on a VSRG does.
-- Here, at least, the slider can make a pretty shape, like in osu.
+- A hold is an orb.
+- Every orb moves sideways at one fixed speed; its height is free, and follows
+  the shape of the hold.
+- Hitting the hold takes the player instantly to the orb.
+- Holding the key rides it: the player hangs from the orb.
+- Letting go leaves with the orb's sideways speed and its vertical speed at
+  that instant, and keeps both.
+- After that, gravity takes over.
+- Holds need proper starts and ends, like a hold note has.
 
 ## Player
 

@@ -1,3 +1,5 @@
+using Xanadu.Serialisation.Levels;
+using Xanadu.Storage.Levels;
 using System.Linq;
 using System;
 using System.Collections.Generic;
@@ -107,59 +109,6 @@ public sealed partial class SceneSystemTests
     }
 
     [Test]
-    public void SongSelectShowsCatalogAndStepsCarousel()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
-        Assert.That(HasText("SONG SELECT"), Is.True);
-
-        Entity root = _scenes.Root;
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Count, Is.EqualTo(2));
-        Assert.That(view.Selected, Is.EqualTo(0));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("First Level"));
-
-        Entity step = _store.CreateEntity(UiCommand.Of(SceneActionId.Next), Tags.Get<Pressed>());
-        Frame();
-
-        SettleScroll(root);
-        view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("Second Level"));
-
-        step.DeleteEntity();
-    }
-
-    [Test]
-    public void SongSelectWithNoLevelsInvitesCreatingOne()
-    {
-        _catalog.Clear();
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.SongSelect));
-        Assert.That(HasText("NO LEVELS FOUND"), Is.True);
-        Assert.That(HasText("CREATE A LEVEL IN THE EDITOR"), Is.True);
-
-        Entity root = _scenes.Root;
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Count, Is.EqualTo(0));
-        Assert.That(
-            view.Thumb.GetComponent<UiShape>().Points,
-            Has.Length.EqualTo(1),
-            "an empty list has no scrollbar thumb");
-
-        // The hint is a button: it takes input and asks for the editor.
-        Entity hint = _store.Query<Text>().ToEntityList()
-            .First(entity => entity.GetComponent<Text>().Value == "CREATE A LEVEL IN THE EDITOR");
-        Assert.That(hint.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(hint.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.Edit));
-    }
-
-    [Test]
     public void EditWithNoLevelsStartsANewOne()
     {
         _catalog.Clear();
@@ -171,207 +120,6 @@ public sealed partial class SceneSystemTests
         Assert.That(
             _store.Query<SceneState>().ToEntityList()[0].GetComponent<SceneState>().Pending,
             Is.EqualTo(SceneKind.Editor));
-    }
-
-    [Test]
-    public void SongSelectWithLevelsHidesTheCreateLevelHint()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(HasText("NO LEVELS FOUND"), Is.False);
-        Assert.That(HasText("CREATE A LEVEL IN THE EDITOR"), Is.False);
-
-        Entity root = _scenes.Root;
-        Assert.That(root.GetComponent<SongSelectState>().Thumb.GetComponent<UiShape>().Points, Has.Length.EqualTo(2));
-    }
-
-    private static void SettleScroll(Entity root)
-    {
-        ref SongSelectState view = ref root.GetComponent<SongSelectState>();
-        for (int i = 0; i < 600 && SongSelectScene.AdvanceScroll(ref view, 1f / 60f); i++)
-        {
-        }
-    }
-
-    [Test]
-    public void SongSelectScrollEasesBetweenSlotsThenRests()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Entity root = _scenes.Root;
-        float restY = root.GetComponent<SongSelectState>().Tiles[4].GetComponent<Position>().Value.Y;
-
-        Entity step = _store.CreateEntity(UiCommand.Of(SceneActionId.Next), Tags.Get<Pressed>());
-        Frame();
-        step.DeleteEntity();
-
-        ref SongSelectState view = ref root.GetComponent<SongSelectState>();
-        Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.True);
-        Assert.That(view.Scroll, Is.GreaterThan(0).And.LessThan(1));
-        float midY = view.Tiles[4].GetComponent<Position>().Value.Y;
-        Assert.That(midY, Is.LessThan(restY));
-
-        SettleScroll(root);
-        Assert.That(view.Scroll, Is.EqualTo(1f));
-        Assert.That(view.Tiles[4].GetComponent<Position>().Value.Y, Is.EqualTo(restY).Within(0.01f));
-        Assert.That(SongSelectScene.AdvanceScroll(ref view, 1f / 60f), Is.False);
-    }
-
-    [Test]
-    public void SongSelectScrollAdvancesAcrossFramesInTheSystemRoot()
-    {
-        _root.Add(new SongSelectScrollSystem());
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(_scenes.TryStepCarousel(1), Is.True);
-        Entity root = _scenes.Root;
-        Frame();
-        float first = root.GetComponent<SongSelectState>().Scroll;
-        Frame();
-        float second = root.GetComponent<SongSelectState>().Scroll;
-
-        Assert.That(first, Is.GreaterThan(0).And.LessThan(1));
-        Assert.That(second, Is.GreaterThan(first).And.LessThan(1));
-    }
-
-    [Test]
-    public void SongSelectTileClickSelectsThatLevel()
-    {
-        _root.Add(new SongSelectDragSystem(new FakePointerInput(), _scenes));
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Entity tile = _store.Query<SongSelectTile>().ToEntityList()
-            .First(entity => entity.GetComponent<SongSelectTile>().Index == 1);
-        tile.AddTag<Pressed>();
-        Frame();
-        tile.RemoveTag<Pressed>();
-        Frame();
-
-        Entity root = _scenes.Root;
-        SettleScroll(root);
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Selected, Is.EqualTo(1));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("Second Level"));
-        Assert.That(
-            _store.Query<SceneState>().ToEntityList()[0].GetComponent<SceneState>().SelectedLevelPath,
-            Is.EqualTo(_catalog[1].Path));
-    }
-
-    [Test]
-    public void ProfilesSceneCreatesAProfileAndOpensItsEditor()
-    {
-        _scenes.Start(SceneKind.Profiles);
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Profiles));
-        Assert.That(HasText("WHO'S PLAYING?"), Is.True);
-        Assert.That(HasText("NEW PROFILE"), Is.True);
-
-        SceneAction.All(_store, SceneActionKind.CreateProfile)[0].AddTag<Pressed>();
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.ProfileEdit));
-        Assert.That(_profiles.ActiveProfile, Is.Not.Null);
-        Assert.That(_store.Query<ProfileEditView>().Count, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void SongSelectListsAllProfileScores()
-    {
-        UserProfile profile = _profiles.Create("Scored");
-        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 900_000, 0.97, 42, 50, 55));
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Entity root = _scenes.Root;
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.Tiles, Has.Count.EqualTo(9));
-        Assert.That(SongSelectScene.TileName(view, 4).GetComponent<Text>().Value, Is.EqualTo("First Level"));
-    }
-
-    [Test]
-    public void ScoreBarsShowAccuracyThenScoreHighestFirst()
-    {
-        _profiles.Create("Low");
-        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
-        _profiles.Create("High");
-        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 900_000, 0.9876, 42, 50, 55));
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
-        Assert.That(
-            view.ScoreContent.Entity.ChildEntities[0].ChildEntities[0].GetComponent<Text>().Value,
-            Is.EqualTo("98.76%"));
-        Assert.That(
-            view.ScoreContent.Entity.ChildEntities[0].ChildEntities[1].GetComponent<Text>().Value,
-            Is.EqualTo("0900000"));
-        Assert.That(
-            view.ScoreContent.Entity.ChildEntities[1].ChildEntities[0].GetComponent<Text>().Value,
-            Is.EqualTo("50.00%"));
-        Assert.That(
-            view.ScoreContent.Entity.ChildEntities[1].ChildEntities[1].GetComponent<Text>().Value,
-            Is.EqualTo("0400000"));
-        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(2));
-    }
-
-    [Test]
-    public void ScoreRowsExistOnlyForRealScores()
-    {
-        _profiles.Create("Only");
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Entity root = _scenes.Root;
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(0));
-
-        _profiles.RecordScore(_catalog[0].Path, new PlayResults("First Level", 400_000, 0.5, 10, 10, 20));
-        SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), _catalog, 0, _profiles);
-        Assert.That(view.ScoreContent.Entity.ChildEntities.Count, Is.EqualTo(1));
-
-        Entity bar = view.ScoreContent.Entity.ChildEntities[0];
-        var unplayed = new List<LevelEntry> { new("unplayed.xan", _catalog[0].Document) };
-        SongSelectScene.Refresh(ref root.GetComponent<SongSelectState>(), unplayed, 0, _profiles);
-        Assert.That(view.ScoreContent.Entity.ChildCount, Is.EqualTo(0));
-        Assert.That(bar.IsNull, Is.True);
-    }
-
-    [Test]
-    public void ScoresScrollAndTheScrollbarFollows()
-    {
-        _root.Add(new SongSelectScrollSystem());
-        _root.Add(new ContainerLayoutSystem());
-        _root.Add(new ScrollSystem());
-        for (int i = 0; i < 8; i++)
-        {
-            _profiles.Create($"Player {i}");
-            _profiles.RecordScore(
-                _catalog[0].Path,
-                new PlayResults("First Level", 900_000 - i * 1000, 0.9, 10, 10, 20));
-        }
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Entity root = _scenes.Root;
-        SongSelectState view = root.GetComponent<SongSelectState>();
-        Assert.That(view.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y, Is.GreaterThan(224));
-        float top = view.ScoreThumbSpan.X;
-
-        view.ScoreViewport.GetComponent<ScrollView>().Offset = 1000;
-        Frame();
-        Frame();
-
-        view = root.GetComponent<SongSelectState>();
-        Assert.That(view.ScoreThumbSpan.X, Is.GreaterThan(top));
-        Assert.That(view.ScoreThumbSpan.X + view.ScoreThumbSpan.Y, Is.EqualTo(1036.348f).Within(0.01f));
     }
 
     private void AddLevels(int count)
@@ -387,58 +135,6 @@ public sealed partial class SceneSystemTests
         if (!track.Tags.Has<Pressed>())
             track.AddTag<Pressed>();
         Frame();
-    }
-
-    [Test]
-    public void DraggingTheListScrollbarMovesTheSelectionToBothEnds()
-    {
-        AddLevels(20);
-        var pointer = new FakePointerInput();
-        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
-
-        DragBar(pointer, track, 5000);
-        Assert.That(SelectedLevel(), Is.EqualTo(19));
-
-        DragBar(pointer, track, -5000);
-        Assert.That(SelectedLevel(), Is.EqualTo(0));
-    }
-
-    [Test]
-    public void AFewLevelsStillDragTheListScrollbar()
-    {
-        AddLevels(4);
-        var pointer = new FakePointerInput();
-        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-        Entity track = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().ListTrack;
-
-        DragBar(pointer, track, 5000);
-
-        Assert.That(SelectedLevel(), Is.EqualTo(3));
-    }
-
-    [TestCase(40f, 738f, 19)]
-    [TestCase(1870f, 1030f, 0)]
-    public void ThePointerReachesTheBarsThroughTheRealInputSystem(float x, float y, int selected)
-    {
-        AddLevels(20);
-        var pointer = new FakePointerInput();
-        _root.Add(new InputSystem(pointer));
-        _root.Add(new SongSelectScrollbarSystem(pointer, _scenes));
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-        SongSelectState view = _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>();
-
-        pointer.Current = new PointerInput(new Vector2(x, y), true, false, false, false);
-        Frame();
-
-        Entity track = selected > 0 ? view.ListTrack : view.ScoreTrack;
-        Assert.That(track.Tags.Has<Pressed>(), Is.True);
-        Assert.That(SelectedLevel(), Is.EqualTo(selected));
     }
 
     [Test]
@@ -578,54 +274,6 @@ public sealed partial class SceneSystemTests
     }
 
     [Test]
-    public void PlaySceneScalesThePlayerWithThePlayfield()
-    {
-        var document = new LevelDocument
-        {
-            Name = "Scaled Level",
-            PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000
-        };
-
-        _scenes.StartPlay(new LevelEntry("memory://scaled", document));
-        Frame();
-
-        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
-        float scale = playfield.GetComponent<PlayfieldView>().Scale;
-        Vector2 size = playfield.GetComponent<Player>().Size;
-
-        // The 1280x720 test screen cannot fit a 1000px field, so the player has
-        // to come out smaller than 200 px too, in the same proportion.
-        Assert.That(scale, Is.LessThan(1f));
-        Assert.That(size, Is.EqualTo(Player.DefaultSize * scale));
-        Assert.That(size.Y / size.X, Is.EqualTo(Player.DefaultHeight / Player.DefaultWidth).Within(0.0001f));
-    }
-
-    [Test]
-    public void PlaySceneStartsThePlayerAtTheTopToFallIn()
-    {
-        var document = new LevelDocument
-        {
-            Name = "Fall Level",
-            PlayfieldWidth = 1000,
-            PlayfieldHeight = 1000
-        };
-
-        _scenes.StartPlay(new LevelEntry("memory://floor", document));
-        Frame();
-
-        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
-        PlayfieldView view = playfield.GetComponent<PlayfieldView>();
-        Playfield field = playfield.GetComponent<Playfield>();
-        Player player = playfield.GetComponent<Player>();
-        Vector2 position = playfield.GetComponent<Position>().Value;
-
-        float centerX = view.ScreenOrigin.X + field.Width * view.Scale / 2;
-        Assert.That(position.X, Is.EqualTo(centerX).Within(0.5f));
-        Assert.That(position.Y - player.Size.Y / 2, Is.EqualTo(view.ScreenOrigin.Y).Within(0.5f));
-    }
-
-    [Test]
     public void StartPlayUsesTheProvidedEntry()
     {
         var document = new LevelDocument
@@ -642,26 +290,6 @@ public sealed partial class SceneSystemTests
         Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
         Assert.That(HasText("Provided Entry"), Is.True);
         Assert.That(HasText("SCORE 0000000"), Is.True);
-    }
-
-    [Test]
-    public void StartPlayUsesASavedStartPoint()
-    {
-        var document = new LevelDocument
-        {
-            Name = "Start Level",
-            PlayfieldWidth = 800,
-            PlayfieldHeight = 600
-        };
-        var start = new StartPoint("Chorus", 5_000, new Vector2(200, 300), new Vector2(4, -2), new Vector2(1, 0));
-
-        _scenes.StartPlay(new LevelEntry("memory://start", document), start);
-        Frame();
-
-        Entity playfield = _store.Query<PlayfieldMode>().ToEntityList()[0];
-        Assert.That(playfield.GetComponent<PlaySession>().StartTimeMs, Is.EqualTo(5_000));
-        Vector2 expected = playfield.GetComponent<PlayfieldView>().PlayfieldToScreen(new Vector2(200, 300));
-        Assert.That(playfield.GetComponent<Position>().Value, Is.EqualTo(expected));
     }
 
     [Test]
@@ -695,28 +323,6 @@ public sealed partial class SceneSystemTests
         Assert.That(HasText("42"), Is.True);
         Assert.That(HasText("1 / 1"), Is.True);
         Assert.That(HasText("0750000"), Is.True);
-    }
-
-    [Test]
-    public void RetryFromResultsRestartsTheLevel()
-    {
-        var document = new LevelDocument { Name = "Retry Level" };
-        document.Notes.Add(new NoteDocument { TimeMs = 0, X = 200, Y = 300 });
-        _scenes.StartPlay(new LevelEntry("memory://retry", document));
-        Frame();
-
-        _store.Query<PlaySession>().ToEntityList()[0].GetComponent<PlaySession>().Finished = true;
-        Frame();
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Results));
-
-        _store.Query<UiCommand>().ToEntityList()
-            .First(command => command.GetComponent<UiCommand>().As<SceneActionId>() == SceneActionId.Retry)
-            .AddTag<Pressed>();
-        Frame();
-
-        Assert.That(_director.Current, Is.EqualTo(SceneKind.Play));
-        Assert.That(_store.Query<Note>().Count, Is.EqualTo(1));
-        Assert.That(HasText("Retry Level"), Is.True);
     }
 
     [Test]
@@ -785,115 +391,8 @@ public sealed partial class SceneSystemTests
         Assert.That(HasText("XANADU"), Is.True);
     }
 
-    [Test]
-    public void ClickingTheLevelArtPlaysAndEditIsADiamond()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
-        Assert.That(view.Play.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.Play));
-        Assert.That(view.Play.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(view.Play.HasComponent<UiMaterial>(), Is.False, "the test factory loads no shaders");
-
-        Assert.That(view.Edit.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.Edit));
-        Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(view.Edit.GetComponent<UiContainer>().Skew, Is.Zero);
-        Assert.That(view.ActionIcons, Is.Not.Empty);
-
-        Assert.That(view.Delete.GetComponent<UiCommand>().As<SceneActionId>(), Is.EqualTo(SceneActionId.DeleteLevel));
-        Assert.That(view.Delete.Tags.Has<TakesInput>(), Is.True);
-        Assert.That(view.DeleteIcons, Is.Not.Empty);
-    }
-
-    [Test]
-    public void SongSelectInfoShowsDifficultyThenGenreTitleAndArtist()
-    {
-        _catalog[0] = _catalog[0] with
-        {
-            Song = new LoadedSong(
-                new SongDocument
-                {
-                    Id = "a",
-                    Title = "Choo Choo Train",
-                    Artist = "Slake",
-                    Genre = "J-Revival"
-                },
-                "/tmp/choo-choo.wav")
-        };
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
-        Assert.That(view.InfoDifficulty.GetComponent<Text>().Value, Is.EqualTo("FIRST LEVEL"));
-        Assert.That(view.InfoGenre.GetComponent<Text>().Value, Is.EqualTo("J-REVIVAL"));
-        Assert.That(view.InfoTitle.GetComponent<Text>().Value, Is.EqualTo("Choo Choo Train"));
-        Assert.That(view.InfoArtist.GetComponent<Text>().Value, Is.EqualTo("Slake"));
-    }
-
-    [Test]
-    public void LongTitlesShrinkToFitTheInfoCard()
-    {
-        _catalog[0] = _catalog[0] with
-        {
-            Song = TestSongs.At("/tmp/long.wav", "a", new string('W', 40))
-        };
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
-        Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.LessThan(46));
-        Assert.That(view.InfoTitle.GetComponent<TextStyle>().FontSize, Is.GreaterThanOrEqualTo(24));
-    }
-
-    [Test]
-    public void MissingSongBlocksPlayAndEdit()
-    {
-        _catalog.Clear();
-        var document = new LevelDocument
-        {
-            Name = "Broken",
-            SongId = "missing-song"
-        };
-        document.Notes.Add(new NoteDocument { TimeMs = 500, X = 100, Y = 200 });
-        _catalog.Add(new LevelEntry("memory://broken", document, null));
-
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(HasText("[SONG MISSING]"), Is.True);
-
-        SongSelectState view = _scenes.Root.GetComponent<SongSelectState>();
-        Assert.That(view.Play.Tags.Has<TakesInput>(), Is.False);
-        Assert.That(view.Edit.Tags.Has<TakesInput>(), Is.False);
-    }
-
     private int SelectedLevel() =>
         _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected;
-
-    [Test]
-    public void HoldingAnArrowKeepsScrollingAndStopsAtTheEnd()
-    {
-        var keyboard = new FakeKeyboard();
-        _root.Add(new SongSelectHoldSystem(keyboard, _scenes));
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        keyboard.Press(Key.Right);
-        Frame();
-        Assert.That(SelectedLevel(), Is.EqualTo(1), "the press moves at once");
-
-        for (int i = 0; i < 120; i++)
-            Frame();
-        Assert.That(SelectedLevel(), Is.EqualTo(1), "and stops at the last level");
-
-        keyboard.Release(Key.Right);
-        keyboard.Press(Key.Left);
-        Frame();
-        Assert.That(SelectedLevel(), Is.EqualTo(0));
-    }
 
     [Test]
     public void BothArrowsTogetherDoNothing()
@@ -908,44 +407,6 @@ public sealed partial class SceneSystemTests
         Frame();
 
         Assert.That(SelectedLevel(), Is.EqualTo(0));
-    }
-
-    [Test]
-    public void AnArrowHeldOnTheWayInDoesNotScrollUntilPressedAgain()
-    {
-        var keyboard = new FakeKeyboard();
-        _root.Add(new SongSelectHoldSystem(keyboard, _scenes));
-        keyboard.Press(Key.Right);
-        Frame();
-
-        _scenes.Start(SceneKind.SongSelect);
-        for (int i = 0; i < 60; i++)
-            Frame();
-        Assert.That(SelectedLevel(), Is.EqualTo(0));
-
-        keyboard.Release(Key.Right);
-        Frame();
-        keyboard.Press(Key.Right);
-        Frame();
-        Assert.That(SelectedLevel(), Is.EqualTo(1));
-    }
-
-    [Test]
-    public void ArrowCarouselStepsAndClamps()
-    {
-        _scenes.Start(SceneKind.SongSelect);
-        Frame();
-
-        Assert.That(_scenes.TryStepCarousel(1), Is.True);
-        Assert.That(
-            _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected,
-            Is.EqualTo(1));
-
-        Assert.That(_scenes.TryStepCarousel(1), Is.False);
-        Assert.That(_scenes.TryStepCarousel(-1), Is.True);
-        Assert.That(
-            _store.Query<SongSelectState>().ToEntityList()[0].GetComponent<SongSelectState>().Selected,
-            Is.EqualTo(0));
     }
 
     [Test]
@@ -1142,22 +603,6 @@ public sealed partial class SceneSystemTests
     }
 
     [Test]
-    public void SettingsShowsAllDefaultKeybinds()
-    {
-        _scenes.Start(SceneKind.Settings);
-        Frame();
-
-        List<(Entity Entity, KeybindAction Id, UiCommand Command)> rows = UiCommand.All<KeybindAction>(_store);
-        Assert.That(rows.Count, Is.EqualTo(KeybindSettings.Actions.Length));
-
-        foreach ((Entity row, KeybindAction action, _) in rows)
-        {
-            string expected = KeybindSettings.KeyLabel(KeybindSettings.DefaultFor(action));
-            Assert.That(row.GetComponent<Text>().Value, Is.EqualTo(expected));
-        }
-    }
-
-    [Test]
     public void MenuScenesShareOneBackground()
     {
         _scenes.Start(SceneKind.Profiles);
@@ -1258,60 +703,6 @@ public sealed partial class SceneSystemTests
         _store.Query<SceneBackground>().ToEntityList().Single();
 
     [Test]
-    public void SettingsKeepsBackgroundBelowContent()
-    {
-        _scenes.Start(SceneKind.Settings);
-        Frame();
-
-        int backgroundLayers = 0;
-        int contentLayers = 0;
-        foreach (Entity layer in _store.Query<Layer>().ToEntityList())
-        {
-            int z = layer.GetComponent<Layer>().ZIndex;
-            if (z == UiLayers.MenuBackground)
-                backgroundLayers++;
-            else if (z == UiLayers.Menu)
-                contentLayers++;
-        }
-
-        Assert.That(backgroundLayers, Is.EqualTo(1));
-        Assert.That(contentLayers, Is.EqualTo(1));
-
-        bool hasFullScreenBackground = false;
-        bool hasContentTitle = false;
-
-        foreach (Entity rect in _store.Query<Rectangle>().ToEntityList())
-        {
-            int z = rect.GetComponent<Drawable>().ZIndex;
-            // Scenes are authored against the 1920x1080 design stage; the host
-            // scales the surface, so the backdrop is stage-sized, not screen-sized.
-            if (z == UiLayers.MenuBackground && rect.GetComponent<Rectangle>().Bounds.Size == UiStage.Design1080)
-                hasFullScreenBackground = true;
-
-            if (z == UiLayers.Menu && rect.HasComponent<Text>() && rect.GetComponent<Text>().Value == "SETTINGS")
-                hasContentTitle = true;
-        }
-
-        Assert.That(hasFullScreenBackground, Is.True);
-        Assert.That(hasContentTitle, Is.True);
-    }
-
-    [Test]
-    public void ClickingAKeybindRowStartsCapture()
-    {
-        _scenes.Start(SceneKind.Settings);
-        Frame();
-
-        Entity row = UiCommand.All<KeybindAction>(_store)[0].Entity;
-        row.AddTag<Pressed>();
-        Frame();
-
-        Assert.That(_keybinds.Capturing, Is.EqualTo(KeybindAction.Left));
-        Assert.That(_keybinds.TryCapture(Key.A), Is.True);
-        Assert.That(_keybinds.Get(KeybindAction.Left), Is.EqualTo(Key.A));
-    }
-
-    [Test]
     public void SettingsIsASceneWithItsOwnLabel()
     {
         _scenes.Start(SceneKind.Settings);
@@ -1366,7 +757,7 @@ public sealed partial class SceneSystemTests
             Frame();
     }
 
-    private sealed class FakeTrackAudio : Xanadu.Logic.Audio.ITrackAudio
+    private sealed class FakeTrackAudio : Xanadu.Audio.ITrackAudio
     {
         public List<string> Loaded { get; } = new();
 

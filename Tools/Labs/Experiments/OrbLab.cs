@@ -25,7 +25,7 @@ internal sealed class OrbLab : ILabExperiment
         "their height does as it pleases.",
         "F / J: dash instantly to the first",
         "orb that way (or the wall).",
-        "Hold the key: ride the orb.",
+        "Hold the key: hang from the orb.",
         "Let go: you leave at the orb's x",
         "speed and its vertical motion at",
         "that instant, and keep both.",
@@ -46,7 +46,7 @@ internal sealed class OrbLab : ILabExperiment
 
         private const int OrbCount = 4;
         private const float OrbRadius = 16f;
-        private const float OrbSpeedX = 260f;     // px / s, every orb, every time
+        private const float OrbSpeedX = 600f;     // px / s, every orb, every time
         private const float Reach = BodyHeight * 0.5f + OrbRadius; // vertical slack a dash forgives
         private const float PreviewTime = 1.2f;   // s of path drawn ahead of each orb
         private const int PreviewSteps = 40;
@@ -56,7 +56,6 @@ internal sealed class OrbLab : ILabExperiment
 
         private readonly Handle _back;
         private readonly Handle _fx;
-        private readonly Handle _body;
         private readonly Rect2 _area;
         private readonly Random _random = new(3);
         private readonly List<Orb> _orbs = [];
@@ -68,6 +67,17 @@ internal sealed class OrbLab : ILabExperiment
         private int _riding = -1;                 // orb index, or -1
         private KeyCode _rideKey;
         private float _time;
+
+        // Look only: the figure swings round its hand like a pendulum on the orb, and settles upright off it.
+        private const float SwingLength = 60f;    // px from hand to the figure's weight
+        private const float SwingDamping = 2.5f;  // 1 / s while hanging
+        private const float SwingSettle = 60f;    // spring back upright off an orb, 1 / s²
+        private const float SwingSettleDamping = 9f;
+        private const float SwingMax = 1.2f;      // rad either way
+        private float _swing, _swingSpeed, _face = 1f;
+        private Vector2 _hangVelocity;
+
+        private static readonly Vector2 Hang = new(0f, BodyHeight * 0.5f); // hand at the top of the body
 
         private float _dashFrom = float.NaN, _dashTo, _dashY, _dashAge = 1f;
         private const float DashLife = 0.15f;
@@ -112,9 +122,6 @@ internal sealed class OrbLab : ILabExperiment
 
             _fx = canvas.CreateItem();
             canvas.SetParent(_fx, _back);
-            _body = canvas.CreateItem();
-            canvas.SetParent(_body, _back);
-            canvas.AddRect(_body, new Rect2(-BodyWidth * 0.5f, -BodyHeight * 0.5f, BodyWidth, BodyHeight), Palette.TextDim);
 
             // Start mid-air already moving: there is no standing still here.
             _centre = new(area.Position.X + area.Size.X * 0.5f, area.Position.Y + area.Size.Y * 0.5f);
@@ -133,7 +140,7 @@ internal sealed class OrbLab : ILabExperiment
         // A fresh path; heights kept inside the stage with room for the body.
         private Orb NewOrb(float x)
         {
-            float lo = Top + BodyHeight * 0.5f + 10f, hi = Floor - BodyHeight * 0.5f - 10f;
+            float lo = Top + OrbRadius + 10f, hi = Floor - BodyHeight - 10f; // the body hangs below
             float span = (hi - lo) * 0.5f;
             float a1 = Rand(0.25f, 0.6f) * span, a2 = Rand(0f, 0.3f) * span;
             return new Orb
@@ -162,7 +169,7 @@ internal sealed class OrbLab : ILabExperiment
                 Orb orb = _orbs[_riding];
                 if (keys?.IsDown(_rideKey) ?? false)
                 {
-                    _centre = orb.At;
+                    _centre = orb.At + Hang;
                     _velocity = new(orb.Direction * OrbSpeedX, orb.YSpeed(orb.Clock));
                 }
                 else
@@ -170,6 +177,8 @@ internal sealed class OrbLab : ILabExperiment
             }
             else
                 Coast(step);
+
+            Swing(step);
 
             _trail.Add((_centre, 0f));
             for (int i = _trail.Count - 1; i >= 0; i--)
@@ -195,7 +204,6 @@ internal sealed class OrbLab : ILabExperiment
             }
             _dashAge += step;
 
-            CanvasServer.Current.SetTransform(_body, new Transform2D(0f, _centre));
             Draw();
         }
 
@@ -292,8 +300,8 @@ internal sealed class OrbLab : ILabExperiment
             {
                 _riding = hit;
                 _rideKey = key;
-                _centre = _orbs[hit].At;
-                Burst(_centre, Palette.GoldLight, 24);
+                _centre = _orbs[hit].At + Hang;
+                Burst(_orbs[hit].At, Palette.GoldLight, 24);
             }
             else
             {
@@ -315,6 +323,47 @@ internal sealed class OrbLab : ILabExperiment
             _riding = -1;
             Burst(was.At, Palette.Cyan, 16);
             _orbs[_orbs.IndexOf(was)] = NewOrb(Rand(Left + 60f, Right - 60f));
+        }
+
+        // Hanging: a pendulum driven by the hand's acceleration (the orb's wander, the catch, the wall turn).
+        // Off an orb: a spring back upright. Look only; the body box never turns.
+        private void Swing(float step)
+        {
+            if (MathF.Abs(_velocity.X) > 1f)
+                _face = MathF.Sign(_velocity.X);
+            if (_riding >= 0)
+            {
+                Vector2 a = (_velocity - _hangVelocity) / step;
+                float pull = a.X * MathF.Cos(_swing) - (Gravity - a.Y) * MathF.Sin(_swing);
+                _swingSpeed += (pull / SwingLength - SwingDamping * _swingSpeed) * step;
+            }
+            else
+                _swingSpeed += (-SwingSettle * _swing - SwingSettleDamping * _swingSpeed) * step;
+            _hangVelocity = _velocity;
+            _swing += _swingSpeed * step;
+            if (MathF.Abs(_swing) > SwingMax)
+            {
+                _swing = MathF.Sign(_swing) * SwingMax;
+                _swingSpeed = 0f;
+            }
+        }
+
+        private void DrawFigure()
+        {
+            var canvas = CanvasServer.Current;
+            Vector2 hand = _centre - Hang;
+            float c = MathF.Cos(_swing), s = MathF.Sin(_swing), f = _face;
+            Vector2 P(float x, float y) => hand + new Vector2(x * f * c - y * s, x * f * s + y * c);
+            void Limb(Vector2 a, Vector2 b) => canvas.AddLine(_fx, a, b, Palette.TextBright, 6f, true);
+
+            Vector2 shoulder = P(0f, 36f), hip = P(-2f, 70f);
+            Limb(P(0f, 0f), shoulder);                                    // gripping arm
+            Limb(shoulder, hip);                                          // torso
+            Limb(shoulder, P(8f, 50f)); Limb(P(8f, 50f), P(5f, 64f));     // free arm
+            Limb(hip, P(-6f, 86f)); Limb(P(-6f, 86f), P(-12f, 100f));     // trailing leg
+            Limb(hip, P(2f, 85f)); Limb(P(2f, 85f), P(-2f, 100f));        // other leg
+            canvas.AddCircle(_fx, P(9f, 26f), 10f, Palette.TextBright);   // head, beside the arm
+            canvas.AddCircle(_fx, hand, 5f, Palette.TextBright);
         }
 
         private void Burst(Vector2 at, Color tint, int count)
@@ -403,6 +452,8 @@ internal sealed class OrbLab : ILabExperiment
                 canvas.AddCircle(_fx, at, r * 1.8f, new Color(riding ? Palette.Gold : Palette.Cyan, 0.2f));
                 canvas.AddCircle(_fx, at, r, riding ? Palette.GoldLight : Palette.Cyan);
             }
+
+            DrawFigure();
 
             foreach (Particle p in _live)
             {

@@ -98,7 +98,7 @@ public sealed class MapOffsetSystemTests
         _maps.Set("level", -5);
         Frame();
 
-        Assert.That(PlayOffset.TotalMs(_play, _global), Is.EqualTo(15));
+        Assert.That(PlayOffset.TotalMs(_play, _global.OffsetMs), Is.EqualTo(15));
     }
 
     [Test]
@@ -142,16 +142,16 @@ public sealed class MapOffsetSystemTests
             new ReplayPlayer(Recorded(new ReplayOffset(0, 12), new ReplayOffset(500, 15))));
 
         root.Update(new UpdateTick(Delta, 0));
-        Assert.That(PlayOffset.TotalMs(play, _global), Is.EqualTo(12));
+        Assert.That(PlayOffset.TotalMs(play, _global.OffsetMs), Is.EqualTo(12));
 
         play.GetComponent<Playhead>().TimeMs = 600;
         root.Update(new UpdateTick(Delta, 0));
-        Assert.That(PlayOffset.TotalMs(play, _global), Is.EqualTo(15));
+        Assert.That(PlayOffset.TotalMs(play, _global.OffsetMs), Is.EqualTo(15));
 
         // A retry goes back to the start's offset.
         play.GetComponent<Playhead>().TimeMs = 0;
         root.Update(new UpdateTick(Delta, 0));
-        Assert.That(PlayOffset.TotalMs(play, _global), Is.EqualTo(12));
+        Assert.That(PlayOffset.TotalMs(play, _global.OffsetMs), Is.EqualTo(12));
     }
 
     [Test]

@@ -5,15 +5,13 @@ namespace Xanadu.Logic.Editor;
 
 /// <summary>
 ///     Keyboard shortcuts that choose the editor placement mode: the number keys,
-///     on the main row or the keypad, in tool order. The curve tool is 1.
+///     on the main row or the keypad, in tool order. The note tool is 1.
 /// </summary>
 public static class EditorPlacementKeybinds
 {
     private static readonly (Key Main, Key Pad, EditorPlacementMode Mode)[] Bindings =
     {
-        (Key.Key1, Key.Kp1, EditorPlacementMode.Curve),
-        (Key.Key2, Key.Kp2, EditorPlacementMode.Dash),
-        (Key.Key3, Key.Kp3, EditorPlacementMode.Hold),
+        (Key.Key1, Key.Kp1, EditorPlacementMode.Note),
     };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
@@ -27,7 +25,7 @@ public static class EditorPlacementKeybinds
             }
         }
 
-        mode = EditorPlacementMode.Curve;
+        mode = EditorPlacementMode.Note;
         return false;
     }
 

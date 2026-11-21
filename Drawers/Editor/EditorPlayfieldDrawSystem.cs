@@ -39,7 +39,6 @@ public sealed class EditorPlayfieldDrawSystem : SystemGroup
         var field = new EditorFieldDrawer(surface);
         var items = new EditorItemsDrawer(surface);
         var ghost = new EditorGhostDrawer(surface);
-        var diamonds = new EditorSnapDiamondsDrawer(surface);
         var selection = new EditorSelectionDrawer(surface);
         var chrome = new EditorChromeDrawer(surface);
         var timeline = new EditorTimelineDrawer(surface);
@@ -52,10 +51,6 @@ public sealed class EditorPlayfieldDrawSystem : SystemGroup
             if (frame.Entity.TryGetComponent(out BodyTrace trace))
                 PlayfieldRenderer.DrawBodyTrace(canvas, editor, trace.Points, frame.View);
         }));
-        // Under the notes, only while a click would place or a route or hold is being laid.
-        Add(new DrawStep("SnapDiamonds", _frames, frame => diamonds.Draw(frame,
-            (frame.Entity.TryGetComponent(out EditorPlacementGhost ghostAt) && ghostAt.Visible) ||
-            (frame.Entity.TryGetComponent(out EditorSpanDraft draft) && draft.Active))));
         Add(new DrawStep("Items", _frames, frame => items.Draw(frame, null)));
         Add(new DrawStep("Ghost", _frames, ghost.Draw));
         Add(new DrawStep("SelectionOutlines", _frames, frame => selection.DrawOutlines(frame.View, frame.Selection)));

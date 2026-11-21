@@ -7,22 +7,6 @@ using Xanadu.Logic.Editor;
 
 namespace Xanadu.Screens.Editor;
 
-/// <summary>Which tools use which part of the left panel.</summary>
-public static class EditorToolSections
-{
-    /// <summary>The 1×/2×/3× speed buttons: the speed new curve points get.</summary>
-    public static readonly EditorPlacementMode[] MoveStrength =
-    {
-        EditorPlacementMode.Curve,
-    };
-
-    /// <summary>The hold length stepper: how many beats the selected holds last.</summary>
-    public static readonly EditorPlacementMode[] HoldLength =
-    {
-        EditorPlacementMode.Hold,
-    };
-}
-
 /// <summary>
 /// Shows only the left panel sections the current tool uses, and hides the panel
 /// itself when a tool uses none of them.

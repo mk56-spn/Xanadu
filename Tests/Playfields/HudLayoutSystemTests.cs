@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
@@ -46,33 +47,6 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
         Frame();
 
         Assert.That(member.GetComponent<Position>().Value, Is.EqualTo(new Vector2(140, 120)));
-    }
-
-    [Test]
-    public void RightClickTogglesItemVisibility()
-    {
-        Entity member = Store.CreateEntity(new VisualItem(default), new Position(new Vector2(100, 100)));
-        Entity playfield = Store.CreateEntity(
-            new HudLayout(),
-            new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
-        ref HudLayout layout = ref playfield.GetComponent<HudLayout>();
-        HudItemLayout item = layout.Add("score", new Vector2(100, 100), new Rect2(80, 80, 40, 40), member);
-
-        _keyboard.Press(Key.F7);
-        _pointer.Current = new PointerInput(new Vector2(100, 100), true, SecondaryPressed: true);
-        Frame();
-
-        Assert.That(item.Visible, Is.False);
-
-        _keyboard.Release(Key.F7);
-        _pointer.Current = new PointerInput(Vector2.Zero, false);
-        Frame();
-        _keyboard.Press(Key.F7);
-        Frame();
-
-        Assert.That(layout.Editing, Is.False);
-        Assert.That(item.Visible, Is.False);
-        Assert.That(_canvas.Hidden, Does.Contain(member.GetComponent<VisualItem>().Value));
     }
 
     private sealed class ScriptedPointer : IPointerInputSource

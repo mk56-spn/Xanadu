@@ -24,8 +24,6 @@ public static class PlayfieldColors
     /// <summary>The dark rim of the editor's handles, which are not part of any block.</summary>
     public static readonly Color HandleEdge = Palette.BorderStrong;
 
-    /// <summary>The colour of curve notes: white, so their self modulate shows as picked.</summary>
-    public static readonly Color CurveColor = Colors.White;
 
     /// <summary>The curve rework's fixed floor and its top edge.</summary>
     public static readonly Color FloorColor = Palette.SurfaceAlt;
@@ -47,7 +45,7 @@ public static class PlayfieldColors
     };
 
     /// <summary>A note's colour: its key's, or the neutral colour for a dash, which any direction key hits.</summary>
-    public static Color ColorFor(Note note) => note.IsDash ? NeutralColor : ColorFor(note.Target);
+    public static Color ColorFor(Note note) => ColorFor(note.Target);
 
     /// <summary>The colour of an action key's notes; direction keys get the neutral colour.</summary>
     public static Color ColorFor(KeybindAction action) => action switch

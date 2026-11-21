@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -201,7 +202,7 @@ public sealed class XafSkinMeshTests
         string file = Path.Combine(
             TestContext.CurrentContext.TestDirectory,
             "../../../../Tools/Animator/Animations/Characters/contact.xaf");
-        XafPackage package = XafBinary.Load(Path.GetFullPath(file));
+        XafPackage package = XafBinary.Read(File.ReadAllBytes(Path.GetFullPath(file)));
         XafSkinMesh skin = package.Attachments.Single(attachment => attachment.Group == "leg_r").Mesh!.Skin!;
 
         Assert.That(skin.Points.Length, Is.GreaterThan(100));

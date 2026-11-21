@@ -71,7 +71,6 @@ public sealed class EditorTimelineDrawer
         TimelineAxis axis = Axis(ruler, windowStart, windowEnd);
         painter.RulerTicks(axis, ruler, TempoTimelineTicks.For(axis, playhead.Tempo), RulerLook);
 
-        DrawCurveSpans(ruler, frame.Selection, windowStart, windowEnd);
         foreach ((Entity entity, Rect2 bounds) in EditorTimelineNotes.Slots(
                      _surface.Entities, ruler, windowStart, windowEnd, timeline.Zoom))
         {
@@ -93,68 +92,6 @@ public sealed class EditorTimelineDrawer
         }
 
         painter.Playhead(axis, Math.Clamp(playhead.TimeMs, windowStart, windowEnd), ruler.Position.Y, ruler.End.Y, Colors.White);
-    }
-
-    /// <summary>
-    /// Each route note as a band from its head to its end, along the ruler's
-    /// foot, with a tick at each of its turns.
-    /// </summary>
-    /// <summary>A hold's band at the ruler's foot, from its head to its tail, in its key's colour.</summary>
-    private void DrawHoldSpan(Rect2 ruler, TimeWindow window, float top, float height, Note note, bool selected)
-    {
-        if (note.EndMs < window.Start || note.TimeMs > window.End)
-            return;
-
-        float from = window.XForTime(ruler, Math.Max(note.TimeMs, window.Start));
-        float to = window.XForTime(ruler, Math.Min(note.EndMs, window.End));
-        var band = new Rect2(from, top, Math.Max(2f, to - from), height);
-        Color fill = PlayfieldColors.ColorFor(note);
-        _surface.Canvas.DrawRect(_surface.Target, band, new Color(fill.R, fill.G, fill.B, 0.55f));
-        if (selected)
-            _surface.Canvas.DrawBorder(_surface.Target, band.Grow(1.5f), PlayfieldColors.SelectedNoteColor, 1.5f);
-    }
-
-    private void DrawCurveSpans(Rect2 ruler, NoteSelection selection, long windowStart, long windowEnd)
-    {
-        var window = new TimeWindow(windowStart, windowEnd);
-        const float height = 8f;
-        float top = ruler.End.Y - height - 4f;
-        foreach (var (notes, chunk) in _surface.Entities.Cached<Note>().Chunks)
-        {
-            for (int index = 0; index < notes.Length; index++)
-            {
-                Note curve = notes.Span[index];
-                if (curve.IsHold)
-                {
-                    DrawHoldSpan(ruler, window, top, height, curve, selection.Contains(chunk.EntityAt(index)));
-                    continue;
-                }
-
-                if (curve.Route is not { } route)
-                    continue;
-                Entity entity = chunk.EntityAt(index);
-                RoutePath path = RoutePath.Of(curve);
-                if (path.EndMs < windowStart || path.StartMs > windowEnd)
-                    continue;
-
-                float from = window.XForTime(ruler, Math.Max(path.StartMs, windowStart));
-                float to = window.XForTime(ruler, Math.Min(path.EndMs, windowEnd));
-                var band = new Rect2(from, top, Math.Max(2f, to - from), height);
-                Color fill = PlayfieldColors.CurveColor;
-                _surface.Canvas.DrawRect(_surface.Target, band, new Color(fill.R, fill.G, fill.B, 0.55f));
-                for (int i = 1; i <= route.Turns; i++)
-                {
-                    long at = path.TimeAt(i);
-                    if (at < windowStart || at > windowEnd)
-                        continue;
-                    float x = window.XForTime(ruler, at);
-                    _surface.Canvas.DrawLine(_surface.Target, new Vector2(x, top - 3f), new Vector2(x, top + height + 3f), fill, 2f);
-                }
-
-                if (selection.Contains(entity))
-                    _surface.Canvas.DrawBorder(_surface.Target, band.Grow(1.5f), PlayfieldColors.SelectedNoteColor, 1.5f);
-            }
-        }
     }
 
     /// <summary>The ruler's snap ticks: beats tallest, then halves, quarters and the finer lines.</summary>

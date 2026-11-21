@@ -37,26 +37,5 @@ public static partial class PlayfieldRenderer
         canvas.DrawCircleOutline(rid, center, radius, Tinted(NoteEdgeColor, color.A), 4f * k);
     }
 
-    /// <summary>
-    /// A dash note, a placeholder until its design is drawn: a white-edged
-    /// diamond around a dark core, with no key colour of its own.
-    /// </summary>
-    private static void DrawDashShape(IRectCanvas canvas, Handle rid, Vector2 center, float radius, Color color)
-    {
-        float k = radius / DesignRadius;
-        float r = radius * 1.15f;
-        Span<Vector2> corners =
-        [
-            center + new Vector2(0, -r),
-            center + new Vector2(r, 0),
-            center + new Vector2(0, r),
-            center + new Vector2(-r, 0),
-            center + new Vector2(0, -r),
-        ];
-        canvas.DrawPolygon(rid, corners[..4], Tinted(NoteCoreColor, color.A));
-        canvas.DrawPolyline(rid, corners, color, 5f * k);
-        canvas.DrawCircle(rid, center, 6f * k, color);
-    }
-
     private static Color Tinted(Color color, float alpha) => new(color.R, color.G, color.B, color.A * alpha);
 }

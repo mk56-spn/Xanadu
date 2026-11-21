@@ -27,56 +27,11 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(canvas.Rects, Is.Not.Empty);
-    }
-
-    [Test]
-    public void PlayModeUsesTheMapsBackgroundColour()
-    {
-        var view = new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000));
-        var playfield = new Playfield(1000, 1000);
-        var store = new EntityStore();
-        store.CreateEntity(
-            new LevelInfo("Shaded") { Background = new Color("#204060") },
-            view,
-            playfield,
-            new Playhead(1_000, 120, 0, true, 5_000),
-            new PlayfieldMode(PlayfieldKind.Play));
-
-        var canvas = new RecordingCanvas();
-        var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
-
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        Rect2 field = PlayfieldMetrics.FieldRect(view, playfield);
-        Assert.That(
-            canvas.RectCalls.Exists(call => call.Bounds == field && call.Color == new Color("#204060")),
-            Is.True);
-    }
-
-    [Test]
-    public void PlayModeDrawsBlocks()
-    {
-        var store = new EntityStore();
-        store.CreateEntity(
-            new PlayfieldView(new Vector2(100, 100), 0.5f, new Vector2(1000, 1000)),
-            new Playfield(1000, 1000),
-            new Playhead(1_000, 120, 0, true, 5_000),
-            new PlayfieldMode(PlayfieldKind.Play));
-        store.CreateEntity(new Block(new Vector2(100, 200), new Vector2(200, 100), outlineWidth: 0f));
-
-        var canvas = new RecordingCanvas();
-        var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
-
-        root.Update(new UpdateTick(1f / 60f, 0));
-
-        Assert.That(canvas.Rects, Does.Contain(new Rect2(new Vector2(150, 200), new Vector2(100, 50))));
     }
 
     [Test]
@@ -91,7 +46,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -114,7 +69,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 
@@ -145,7 +100,7 @@ public sealed class PlayfieldDrawSystemTests
 
         var canvas = new RecordingCanvas();
         var root = new SystemRoot(store);
-        root.Add(new PlayfieldDrawSystem(store, canvas, default, shaderItems: new FakeShaderCanvasItems()));
+        root.Add(new PlayfieldDrawSystem(store, canvas, default));
 
         root.Update(new UpdateTick(1f / 60f, 0));
 

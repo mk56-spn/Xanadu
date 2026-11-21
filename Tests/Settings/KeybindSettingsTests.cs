@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using System;
 using System.IO;
 using NUnit.Framework;
@@ -101,8 +102,8 @@ public sealed class KeybindSettingsTests
     [Test]
     public void KeyLabelsUseReadableNames()
     {
-        Assert.That(KeybindSettings.KeyLabel(Key.S), Is.EqualTo("S"));
-        Assert.That(KeybindSettings.KeyLabel(Key.Space), Is.EqualTo("SPACE"));
-        Assert.That(KeybindSettings.LabelFor(KeybindAction.Action3), Is.EqualTo("ACTION 3"));
+        Assert.That(KeybindActions.KeyLabel(Key.S), Is.EqualTo("S"));
+        Assert.That(KeybindActions.KeyLabel(Key.Space), Is.EqualTo("SPACE"));
+        Assert.That(KeybindActions.LabelFor(KeybindAction.Action3), Is.EqualTo("ACTION 3"));
     }
 }

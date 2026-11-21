@@ -208,7 +208,8 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
 
         string[] texts = Props();
         Assert.That(texts, Does.Contain("▪ ButtonVisual"));
-        Assert.That(texts, Does.Contain("\"PLAY\""));
+        Assert.That(texts, Does.Contain("    Hover"));
+        Assert.That(texts, Does.Contain("▪ Text"));
     }
 
     [Test]

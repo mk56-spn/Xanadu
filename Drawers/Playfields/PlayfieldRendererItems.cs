@@ -4,6 +4,7 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
@@ -23,7 +24,7 @@ public readonly record struct PlayfieldItemFrame(
 /// <summary>
 /// Draws the floor, every note and the effects hits leave, then the player:
 /// one order for the editor and play. Notes draw latest first, so the next one
-/// due is on top; a route note's route goes under its own head.
+/// due is on top.
 /// </summary>
 public static partial class PlayfieldRenderer
 {
@@ -53,26 +54,6 @@ public static partial class PlayfieldRenderer
 
     private static void DrawNoteItem(IRectCanvas canvas, Handle rid, Entity entity, in PlayfieldItemFrame frame)
     {
-        bool selected = frame.IsSelected?.Invoke(entity) == true;
-        Note note = entity.GetComponent<Note>();
-
-        // A hit dash has done its job: it is gone from the field.
-        if (note.IsDash && entity.Tags.Has<NoteSteering>())
-            return;
-        if (note.IsDash && frame.Editor)
-            DrawDashReach(canvas, rid, note, frame.View, frame.Playhead, selected);
-        if (note.IsHold)
-            DrawHoldBar(canvas, rid, entity, frame.View, frame.Playhead, selected);
-
-        if (note.IsRoute)
-        {
-            DrawRoute(canvas, rid, entity, frame.View, frame.Playhead, selected, frame.Editor);
-
-            // Once the head is hit, only the route it steers along is left.
-            if (entity.Tags.Has<NoteSteering>())
-                return;
-        }
-
         DrawNote(canvas, rid, entity, frame.View, frame.Playhead, frame.SelectedNote);
     }
 
@@ -90,5 +71,14 @@ public static partial class PlayfieldRenderer
     private readonly struct CollectNotes(List<(long TimeMs, int Id)> into) : IEachEntity<Note>
     {
         public void Execute(ref Note note, int id) => into.Add((note.TimeMs, id));
+    }
+
+    /// <summary>The rework's one fixed floor: a band across the field from <see cref="PlayRules.FloorY"/> to its bottom edge.</summary>
+    public static void DrawFloor(IRectCanvas canvas, Handle rid, PlayfieldView view, Playfield playfield)
+    {
+        Vector2 top = view.PlayfieldToScreen(new Vector2(0, PlayRules.FloorY(playfield)));
+        Vector2 bottom = view.PlayfieldToScreen(new Vector2(playfield.Width, playfield.Height));
+        canvas.DrawRect(rid, new Rect2(top, bottom - top), PlayfieldColors.FloorColor);
+        canvas.DrawLine(rid, top, new Vector2(bottom.X, top.Y), PlayfieldColors.FloorEdgeColor, 2f);
     }
 }

@@ -208,7 +208,7 @@ public sealed class ReplaySystemTests
         for (long time = 900; time <= 1800; time += 4)
         {
             Frame(replayed, time);
-            foreach (KeybindAction action in KeybindSettings.Actions)
+            foreach (KeybindAction action in KeybindActions.All)
             {
                 bool expected = false;
                 foreach ((long Time, KeybindAction Action, bool Down) step in pattern.Where(step =>

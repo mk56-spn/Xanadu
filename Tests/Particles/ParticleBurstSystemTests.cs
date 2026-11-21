@@ -45,7 +45,7 @@ public sealed class ParticleBurstSystemTests : EcsSystemTest
             new Player(new Vector2(40, 200)),
             new Position(new Vector2(300, 400)));
 
-        Systems.Playfields.HitEffects.Spawn(
+        Xanadu.Logic.Playfields.HitEffects.Spawn(
             Store,
             playfield,
             default,

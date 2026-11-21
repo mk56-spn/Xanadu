@@ -52,10 +52,6 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
                 ZoomTimeline(command.IntValue, editor);
                 return true;
 
-            case EditorCommandType.StepHoldLength:
-                EditorHolds.Step(editor, command.IntValue, context.History);
-                return true;
-
             default:
                 return false;
         }

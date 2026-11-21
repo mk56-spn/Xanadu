@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;

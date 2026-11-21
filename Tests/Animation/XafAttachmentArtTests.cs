@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Animation;
 using NUnit.Framework;
 using Xanadu.Model.Animation;
 

@@ -42,8 +42,6 @@ public static class EditorScene
         editor.AddComponent(new UiMarqueeBox());
         editor.AddComponent(new WaveformPreview(""));
         editor.AddComponent(new EditorPlacement());
-        editor.AddComponent(new EditorSpanDraft());
-        editor.AddComponent(new EditorDragDraft());
         editor.AddComponent(new EditorPlacementGhost());
         editor.AddComponent(new EditorUiRequest());
 

@@ -22,11 +22,6 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         "Tools/Labs/Playground/spawner.slang", "Tools/Labs/Playground/spawner.template.slang",
         (context, item) => new SpawnerPreview(context, item));
 
-    /// <summary>The spawner again, opened on a big particle show to play with (eight scenes, knobs at the top).</summary>
-    public static ShaderEditor Particles() => new("PARTICLES",
-        "Tools/Labs/Playground/particles.slang", "Tools/Labs/Playground/particles.template.slang",
-        (context, item) => new SpawnerPreview(context, item));
-
     public string Name => name;
 
     /// <summary>The editor lays out the whole body itself; its help sits under the problem list.</summary>

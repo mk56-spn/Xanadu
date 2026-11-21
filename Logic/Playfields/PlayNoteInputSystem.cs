@@ -12,8 +12,7 @@ namespace Xanadu.Logic.Playfields;
 
 /// <summary>
 /// Routes an action key press to the note it should judge: one in reach and in
-/// the window. A direction key takes a hit route's turn first (<see cref="PlayRouteTurns"/>),
-/// else a route note's head or a dash. Held hold notes are judged at their tails (<see cref="PlayHolds"/>).
+/// the window.
 /// The judging itself lives in <see cref="PlayNoteJudge"/>, with the hit
 /// effects in <see cref="PlayNoteHits"/> and the run changes in
 /// <see cref="PlayNoteActions"/>; missed notes are left to
@@ -27,8 +26,6 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
     private readonly KeyPress _presses = new();
     private readonly PlayNoteJudge _judge;
     private readonly PlayNoteMisses _misses;
-    private readonly PlayRouteTurns _turns;
-    private readonly PlayHolds _holds;
 
     public PlayNoteInputSystem(
         EntityStore entities,
@@ -46,8 +43,6 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             offsets ?? new OffsetSettings(persist: false));
         _judge = new PlayNoteJudge(context, new PlayNoteHits(context, new PlayNoteActions()));
         _misses = new PlayNoteMisses(context);
-        _turns = new PlayRouteTurns(context);
-        _holds = new PlayHolds(context, keyboard);
     }
 
     protected override void OnUpdate()
@@ -72,13 +67,9 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             // Level shaders read each key's last press (keys. in xanadu.anim).
             ShaderKeys.Press((int)action);
 
-            if (KeybindActions.IsDirection(action) && _turns.Press(action, playfield))
-                continue;
-
             _judge.Note(action, playfield);
         }
 
-        _holds.Update(playfield);
         _misses.Mark(playfield);
     }
 

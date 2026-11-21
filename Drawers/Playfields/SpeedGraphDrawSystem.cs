@@ -5,6 +5,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 
@@ -13,7 +14,7 @@ namespace Xanadu.Drawers.Playfields;
 /// <summary>
 /// The F6 speed graph: the play body's x and y speed over the last
 /// <see cref="SpeedGraph.WindowMs"/> of song time, in a panel at the bottom left
-/// of the screen, with guides at zero and at the three fixed speeds either way.
+/// of the screen, with guides at zero and at 1×, 1.5× and 2× the cruise speed either way.
 /// Playfield y points down, so a positive y speed is falling.
 /// </summary>
 public sealed class SpeedGraphDrawSystem(IRectCanvas canvas, Handle target) : QuerySystem<SpeedGraph, PlayfieldView>
@@ -30,9 +31,9 @@ public sealed class SpeedGraphDrawSystem(IRectCanvas canvas, Handle target) : Qu
 
     private static readonly float[] FixedSpeeds =
     {
-        NoteRoute.SpeedOf(DashStrength.Single),
-        NoteRoute.SpeedOf(DashStrength.Double),
-        NoteRoute.SpeedOf(DashStrength.Triple),
+        PlayRules.CruiseSpeed,
+        PlayRules.CruiseSpeed * 1.5f,
+        PlayRules.CruiseSpeed * 2f,
     };
 
     private readonly List<Vector2> _xLine = new();

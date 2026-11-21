@@ -3,13 +3,10 @@ using Xanadu.Model.Settings;
 
 namespace Xanadu.Logic.Playfields;
 
-/// <summary>
-/// How a press matches a note: an action note (a hold's head among them) takes its own key;
-/// a route note's head and a dash take any direction key, which sets the way it goes.
-/// </summary>
+/// <summary>How a press matches a note: an action note takes its own key.</summary>
 public static class NoteRules
 {
     /// <summary>Whether this press can hit the note.</summary>
     public static bool Matches(Note note, KeybindAction action) =>
-        note.IsRoute || note.IsDash ? KeybindActions.IsDirection(action) : note.Target == action;
+        note.Target == action;
 }

@@ -30,7 +30,6 @@ public enum EditorCommandType
     ApplyLevel,
     RecoverLevel,
     SetLevelFile,
-    StepHoldLength,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -43,10 +42,6 @@ public readonly record struct EditorCommand(
     string? Text2 = null,
     Color? ColorValue = null)
 {
-    /// <summary>Steps the selected holds by <paramref name="direction"/> snap steps.</summary>
-    public static EditorCommand StepHoldLength(int direction) =>
-        new(EditorCommandType.StepHoldLength, IntValue: direction);
-
     public static EditorCommand SetName(string value) =>
         new(EditorCommandType.SetName, value);
 

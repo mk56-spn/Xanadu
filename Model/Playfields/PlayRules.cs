@@ -107,6 +107,9 @@ public static class PlayRules
         return best;
     }
 
-    /// <summary>The body's motion at spawn: heading right at momentum speed 1 (the 1× speed).</summary>
-    public static Vector2 SpawnVelocity => new(Ecs.Components.NoteRoute.DefaultSpeed, 0f);
+    /// <summary>The body's cruise speed, playfield units a second.</summary>
+    public const float CruiseSpeed = 900f;
+
+    /// <summary>The body's motion at spawn: heading right at <see cref="CruiseSpeed"/>.</summary>
+    public static Vector2 SpawnVelocity => new(CruiseSpeed, 0f);
 }

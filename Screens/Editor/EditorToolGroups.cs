@@ -20,20 +20,12 @@ public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tool
 /// <summary>The tool strip's buttons, top to bottom, and the tools each one holds.</summary>
 public static class EditorToolGroups
 {
-    /// <summary>The strip the editor shows: route notes, dashes and holds.</summary>
+    /// <summary>The strip the editor shows: plain notes, until v4's note kinds come.</summary>
     public static readonly EditorToolGroupInfo[] All =
     {
-        new("Curves", new EditorTool[]
+        new("Notes", new EditorTool[]
         {
-            new(EditorPlacementMode.Curve, "~", "Route notes: click the head, move the playhead on and click for each turn; right click or Enter ends it at the playhead, Esc drops it. Runs at the 1×/2×/3× speed picked"),
-        }),
-        new("Dash", new EditorTool[]
-        {
-            new(EditorPlacementMode.Dash, "»", "Dash notes: press where it goes and drag out how far it teleports; the player's direction key picks the way"),
-        }),
-        new("Hold", new EditorTool[]
-        {
-            new(EditorPlacementMode.Hold, "H", "Hold notes: click the head, move the playhead on, then click (left or right) where the tail sits; Esc drops it"),
+            new(EditorPlacementMode.Note, "N", "Notes: click the field to place one at the snapped playhead, in the key picked"),
         }),
     };
 

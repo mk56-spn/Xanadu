@@ -41,19 +41,3 @@ public static class NoteFade
         return delta / ApproachWindowMs;
     }
 }
-
-/// <summary>
-/// The fade of a note that lasts (a hold): in like any note before its head,
-/// fully there until its end, then out like any note after it.
-/// </summary>
-public static class NoteSpanFade
-{
-    public static float Alpha(Note note, long playheadMs)
-    {
-        if (playheadMs < note.TimeMs)
-            return NoteFade.Alpha(note.TimeMs, playheadMs);
-        if (playheadMs > note.EndMs)
-            return NoteFade.Alpha(note.EndMs, playheadMs);
-        return 1f;
-    }
-}

@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Animation;
 using System;
 using System.Collections.Generic;
 using System.Linq;

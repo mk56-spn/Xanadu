@@ -140,3 +140,43 @@ public sealed class Spacer(float grow = 1) : UiSpec(grow: grow)
 {
     protected override UiNode Create(UiNode parent) => parent.Column();
 }
+
+/// <summary>
+/// A clipped viewport the wheel scrolls: the one child in its braces (a stack,
+/// as tall as its content) hangs from the top edge and slides up under it.
+/// Its own height never follows the child: give it one, or let it grow.
+/// </summary>
+public sealed class Scroll(
+    float? width = null,
+    float? height = null,
+    float grow = 0,
+    bool stretch = false,
+    string? tip = null)
+    : UiSpec(width, height ?? 0, null, grow, stretch, null, null, tip), IEnumerable
+{
+    private UiSpec? _content;
+
+    public void Add(UiSpec? child)
+    {
+        if (child is null)
+            return;
+        if (_content is not null)
+            throw new InvalidOperationException("A Scroll holds one child; put the rest in a stack inside it.");
+        _content = child;
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        if (_content is not null)
+            yield return _content;
+    }
+
+    protected override UiNode Create(UiNode parent) => parent.Column();
+
+    protected override void Built(UiNode node)
+    {
+        node.Clip().Cross(StackCrossAlignment.Stretch).Main(StackMainAlignment.Start).With(new ScrollView());
+        if (_content is not null)
+            node.Add(_content);
+    }
+}

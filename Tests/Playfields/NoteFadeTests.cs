@@ -19,16 +19,4 @@ public sealed class NoteFadeTests
         Assert.That(NoteFade.Alpha(note, 1_300), Is.EqualTo(0f));
     }
 
-    [Test]
-    public void HitAndMovementNotesShareFadeAndApproach()
-    {
-        var hit = new Note(1_000, Vector2.Zero);
-        var movement = new Note(1_000, Vector2.Zero, kind: NoteKind.Dash);
-
-        foreach (long time in new long[] { 700, 850, 1_000, 1_150, 1_300 })
-        {
-            Assert.That(NoteFade.Alpha(movement, time), Is.EqualTo(NoteFade.Alpha(hit, time)));
-            Assert.That(NoteFade.Approach(movement.TimeMs, time), Is.EqualTo(NoteFade.Approach(hit.TimeMs, time)));
-        }
-    }
 }

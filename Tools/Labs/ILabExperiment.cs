@@ -42,7 +42,7 @@ internal static class LabExperiments
         new Experiments.PointerHistoryLab(),
         new Experiments.IndirectDrawLab(),
         Experiments.ShaderEditor.Spawner(),
-        Experiments.ShaderEditor.Particles(),
+        new Experiments.Particles.ParticleLab(),
         new Experiments.RtsLab(),
         new Experiments.EcsRender.EcsRenderLab(),
         new Experiments.CjkGridLab(),

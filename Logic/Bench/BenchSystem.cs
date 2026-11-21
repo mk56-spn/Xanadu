@@ -20,12 +20,11 @@ namespace Xanadu.Logic.Bench;
 /// Drives the gameplay bench: plays a library song from the top (the one picked
 /// on song select, else the first), loops it, steps through the playable songs
 /// on the bench's buttons, and pulses the background on the song's own beats,
-/// tempo changes included. A song with an editor map that has curve notes
-/// plays that map (BenchSystem.Map.cs). Otherwise, on every other beat a vocal
+/// tempo changes included. On every other beat a vocal
 /// note scrolls past the running box; Space (pink) or J (orange) on its beat
 /// sets its height.
 /// </summary>
-public sealed partial class BenchSystem : QuerySystem<BenchView>
+public sealed class BenchSystem : QuerySystem<BenchView>
 {
     /// <summary>How far the background lifts toward <see cref="Palette.SurfaceAlt"/> on the beat.</summary>
     private const float PulseLift = 0.35f;
@@ -139,9 +138,6 @@ public sealed partial class BenchSystem : QuerySystem<BenchView>
                 _audio.Stop();
             _playing = false;
             _songs = null;
-            _levels = null;
-            _map = null;
-            _surfaceAt = null;
             _x = float.NaN;
             return;
         }
@@ -151,17 +147,8 @@ public sealed partial class BenchSystem : QuerySystem<BenchView>
             Open(view);
 
         double timeMs = _playing ? _audio.PositionSeconds * 1000d : double.NaN;
-        if (_map is { } map)
-        {
-            RunMap(view, map, timeMs, Tick.deltaTime);
-        }
-        else
-        {
-            PutSurface(view, away: false);
-            HideCurves(view);
-            Run(view, timeMs, Tick.deltaTime);
-            ShowNotes(view, timeMs);
-        }
+        Run(view, timeMs, Tick.deltaTime);
+        ShowNotes(view, timeMs);
 
         foreach ((Entity entity, BenchAction action, _) in UiCommand.All<BenchAction>(_entities))
         {
@@ -465,12 +452,9 @@ public sealed partial class BenchSystem : QuerySystem<BenchView>
 
         LoadedSong song = songs[_index];
         _tempo = song.Tempo();
-        _map = MapFor(song.Id);
         _x = float.NaN;
-        ResetMapRun();
-        UiText.Set(view.Title, _map is null
-            ? $"{song.Title}  ·  {song.Artist}"
-            : $"{song.Title}  ·  {song.Artist}  ·  map: {_map.Name}");
+        _tilt = 0;
+        UiText.Set(view.Title, $"{song.Title}  ·  {song.Artist}");
         _playing = _audio.Play(song.AudioFile, Volume);
         if (!_playing)
             UiText.Set(view.Info, "Couldn't play this song's audio.");
@@ -496,23 +480,6 @@ public sealed partial class BenchSystem : QuerySystem<BenchView>
         long inBar = shown - bar * beatsPerBar;
         UiText.Set(
             view.Info,
-            _map is { } map
-                ? $"BPM {TempoText.Bpm(section.Bpm)}   ·   bar {bar + 1}  beat {inBar + 1}/{beatsPerBar}   ·   {_index + 1} of {_songs!.Count}   ·   {map.Curves.Count} curves: the body follows them"
-                : $"BPM {TempoText.Bpm(section.Bpm)}   ·   bar {bar + 1}  beat {inBar + 1}/{beatsPerBar}   ·   {_index + 1} of {_songs!.Count}   ·   SPACE pink · J orange: {(_hold ? "HOLD" : "TAP")} (Tab)");
-    }
-
-    /// <summary>Puts every curve line away, for the beat run.</summary>
-    private void HideCurves(BenchView view)
-    {
-        if (view.Curves is not { Length: > 0 } pool)
-            return;
-        if (_curveShown.Length != pool.Length)
-        {
-            _curveShown = new int[pool.Length];
-            Array.Fill(_curveShown, -2);
-        }
-
-        for (int i = 0; i < pool.Length; i++)
-            HideCurve(pool[i], i);
+            $"BPM {TempoText.Bpm(section.Bpm)}   ·   bar {bar + 1}  beat {inBar + 1}/{beatsPerBar}   ·   {_index + 1} of {_songs!.Count}   ·   SPACE pink · J orange: {(_hold ? "HOLD" : "TAP")} (Tab)");
     }
 }

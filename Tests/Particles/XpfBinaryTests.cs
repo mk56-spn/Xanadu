@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Particles;
 using System;
 using System.IO;
 using System.Reflection;
@@ -94,7 +95,7 @@ public sealed class XpfBinaryTests
     [Test]
     public void TheShippedLibraryHoldsEveryEffectGameplaySetsOff()
     {
-        XpfLibrary library = XpfBinary.Load(RepoFile(LibraryFile));
+        XpfLibrary library = XpfBinary.Read(File.ReadAllBytes(RepoFile(LibraryFile)));
 
         foreach (string name in GameParticles.All)
             Assert.That(library.Find(name), Is.Not.Null, name);

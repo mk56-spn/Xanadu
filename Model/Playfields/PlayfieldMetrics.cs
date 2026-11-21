@@ -43,22 +43,4 @@ public static class PlayfieldMetrics
 
     /// <summary>Remaining opacity of a pop at <paramref name="t"/> of its life, 0..1.</summary>
     public static float NotePopAlpha(float t) => 1f - Math.Clamp(t, 0f, 1f);
-
-    /// <summary>One, two or three dash lengths.</summary>
-    public static int DashStrengthLevel(DashStrength strength) =>
-        strength switch
-        {
-            DashStrength.Double => 2,
-            DashStrength.Triple => 3,
-            _ => 1,
-        };
-
-    /// <summary>The small badge that marks a double or triple dash; empty for a single.</summary>
-    public static string DashStrengthLabel(DashStrength strength) =>
-        strength switch
-        {
-            DashStrength.Double => "×2",
-            DashStrength.Triple => "×3",
-            _ => "",
-        };
 }

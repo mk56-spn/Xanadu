@@ -14,8 +14,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         AnyDialogVisible(),
         IsBindingsHelpVisible(),
         IsWarningOpen(),
-        !FindFocusedTextField().IsNull,
-        IsDrafting());
+        !FindFocusedTextField().IsNull);
 
     public void Run(EditorShortcuts.Binding binding)
     {
@@ -62,12 +61,6 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             case EditorShortcut.Place:
                 SetPlacementMode(binding.Placement);
                 break;
-            case EditorShortcut.FinishDraft:
-                _editor.GetComponent<EditorSpanDraft>().FinishRequested = true;
-                break;
-            case EditorShortcut.CancelDraft:
-                _editor.GetComponent<EditorSpanDraft>().CancelRequested = true;
-                break;
             case EditorShortcut.Back:
                 _onBack?.Invoke();
                 break;
@@ -86,9 +79,6 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         }
     }
 
-    private bool IsDrafting() =>
-        !_editor.IsNull && _editor.TryGetComponent(out EditorSpanDraft draft) && draft.Active;
-
     private void DeleteSelectedNote()
     {
         if (_editor.IsNull)
@@ -105,9 +95,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
         _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
-            EditorPlacementMode.Curve => "Route notes: click the head, move the playhead, click each turn, right click ends",
-            EditorPlacementMode.Hold => "Hold notes: click the head, move the playhead, click the tail",
-            EditorPlacementMode.Dash => "Dash notes: press and drag out how far it teleports",
+            EditorPlacementMode.Note => "Notes: click the field to place one at the playhead",
             _ => "Placement mode",
         });
     }

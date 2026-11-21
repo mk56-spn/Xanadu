@@ -147,71 +147,17 @@ public struct PlayCamera(Rect2 viewport) : IComponent
     public readonly Rect2 Visible => new(Viewport.Position + Offset, Viewport.Size);
 }
 
-/// <summary>The three speed buttons: which fixed speed a route runs at (<see cref="NoteRoute.SpeedOf"/>).</summary>
-public enum DashStrength
-{
-    Single,
-    Double,
-    Triple,
-}
-
-/// <summary>
-/// A hold note's tail: when it ends, ms after the head, and where the tail sits
-/// from the head. The bar between them is only for looks; the hold only checks the key stays down.
-/// </summary>
-public readonly record struct NoteHold(long TailMs, Vector2 Tail)
-{
-    /// <summary>The shortest hold, ms.</summary>
-    public const long MinTailMs = 1;
-}
-
-/// <summary>
-/// A note: an action note, hit with its key on its time. A route note also
-/// carries a <see cref="NoteRoute"/>: hitting its head with a direction key sends the body down it.
-/// A dash note (<see cref="DashLength"/> above 0) is hit with any direction key and teleports the
-/// body that far that way from the note. A hold note (<see cref="Hold"/>) is held with its key to its tail.
-/// </summary>
+/// <summary>A note: an action note, hit with its key on its time.</summary>
 public struct Note(
     long timeMs,
     Vector2 position,
-    KeybindAction target = KeybindAction.Action1,
-    NoteRoute? route = null,
-    float dashLength = 0f,
-    NoteHold? hold = null) : IComponent
+    KeybindAction target = KeybindAction.Action1) : IComponent
 {
     public long TimeMs = timeMs;
     public Vector2 Position = position;
 
-    /// <summary>The action key the note asks for (a hold's key too); a dash takes any direction key instead.</summary>
+    /// <summary>The action key the note asks for.</summary>
     public KeybindAction Target = target;
-
-    /// <summary>
-    /// A route note's turns: hitting the head (this note) with a direction key
-    /// sends the body down the route that way from <see cref="TimeMs"/>; a miss
-    /// leaves the body alone. Null on a plain note.
-    /// </summary>
-    public NoteRoute? Route = route;
-
-    /// <summary>A dash note's teleport distance, playfield units; 0 on every other note.</summary>
-    public float DashLength = dashLength;
-
-    /// <summary>A hold note's tail; null on every other note.</summary>
-    public NoteHold? Hold = hold;
-
-    public readonly bool IsRoute => Route is not null;
-
-    public readonly bool IsDash => DashLength > 0f;
-
-    public readonly bool IsHold => Hold is not null;
-
-    /// <summary>When the note is over: a route's end, a hold's tail, else the note's own time.</summary>
-    public readonly long EndMs =>
-        Route is { } route ? TimeMs + route.DurationMs :
-        Hold is { } hold ? TimeMs + hold.TailMs :
-        TimeMs;
-
-    /// <summary>Where a hold's tail sits on the field; the note itself for any other note.</summary>
-    public readonly Vector2 TailPosition => Hold is { } hold ? Position + hold.Tail : Position;
 }
 
 /// <summary>Whether a shared playfield is drawn for editing or playing.</summary>

@@ -74,6 +74,13 @@ uint3 pcg3(uint3 v)
 
 float3 unit(uint3 v) { return float3(v >> 8u) * (1.0 / 16777216.0); }
 
+/// A random number in 0..1 from whole numbers (an index, a frame, a salt), for code that counts
+/// rather than measures: a GPU particle's slot and the frame it was born on.
+public float random(uint3 seed) { return unit(pcg3(seed ^ uint3(0x1b873593u, 0xcc9e2d51u, 0xe6546b64u))).x; }
+
+/// Random bits from whole numbers: a fresh seed to hand on (a particle's children, the next frame).
+public uint randomBits(uint3 seed) { return pcg3(seed).x; }
+
 /// A random number in 0..1 for a seed.
 public float random(float seed) { return unit(pcg3(uint3(asuint(seed), 0x9e3779b9u, 0x85ebca6bu))).x; }
 

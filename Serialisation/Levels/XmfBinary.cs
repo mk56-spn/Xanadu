@@ -20,9 +20,10 @@ public enum XmfChunk : uint
 }
 
 /// <summary>
-/// Binary XMF map format, 1.2: the level's settings and its notes. 1.2 notes
-/// carry a route (turn times and one speed choice); 1.0 and 1.1 files carried
-/// free-form curve paths, which are read past and their notes kept as plain notes. It shares
+/// Binary XMF map format, 1.4: the level's settings and its notes, each a time,
+/// a place and a key. Older files' notes carried more (curve paths before 1.2,
+/// routes from 1.2, dashes and holds from 1.3); records are length-framed, so
+/// those fields are read past and the notes kept as plain notes. It shares
 /// its container (magic, version, chunk directory, string table) with XAF
 /// packages, and every list is a count of length-framed records
 /// (<see cref="XmfRecords"/>), so a record grows by appending fields and a new
@@ -31,7 +32,7 @@ public enum XmfChunk : uint
 public static class XmfBinary
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 3;
+    public const ushort MinorVersion = 4;
 
     /// <summary>The extension level files are saved with, including the dot.</summary>
     public const string Extension = ".xmf";
@@ -69,7 +70,7 @@ public static class XmfBinary
             StringTable strings = StringTable.Read(file.Get((uint)XmfChunk.Strings, Format), Format);
             LevelDocument document = ReadMeta(file.Get((uint)XmfChunk.Meta, Format), strings);
             document.Notes = file.TryGet((uint)XmfChunk.Notes, out Chunk notes)
-                ? XmfRecords.ReadList(notes, MaxNotes, "note", reader => ReadNote(reader, file.Minor))
+                ? XmfRecords.ReadList(notes, MaxNotes, "note", ReadNote)
                 : new List<NoteDocument>();
             return document;
         }
@@ -112,25 +113,17 @@ public static class XmfBinary
         });
     }
 
-    /// <summary>A note: time, place, key, then a route note's turn times (a count, then ms after the head each) and its speed choice, then (1.3) a dash's length and a hold's tail time and offset.</summary>
+    /// <summary>A note: time, place, key.</summary>
     private static void WriteNote(BinaryWriter writer, NoteDocument note)
     {
         writer.Write(note.TimeMs);
         writer.Write(note.X);
         writer.Write(note.Y);
         writer.Write((byte)note.Target);
-        List<long> route = note.Route ?? [];
-        writer.Write((ushort)route.Count);
-        foreach (long time in route)
-            writer.Write(time);
-        writer.Write((byte)note.RouteStrength);
-        writer.Write(note.DashLength);
-        writer.Write(note.HoldTailMs);
-        writer.Write(note.HoldX);
-        writer.Write(note.HoldY);
     }
 
-    private static NoteDocument ReadNote(BinaryReader reader, ushort minor)
+    /// <summary>Reads a note's time, place and key; anything an older version wrote after them is left unread.</summary>
+    private static NoteDocument ReadNote(BinaryReader reader)
     {
         var note = new NoteDocument
         {
@@ -141,33 +134,6 @@ public static class XmfBinary
         };
         if (!float.IsFinite(note.X) || !float.IsFinite(note.Y))
             throw new FormatException("XMF note is not on the field.");
-
-        // Before 1.2 the rest was a curve path, which routes replaced: the note stays, plain.
-        if (minor < 2)
-            return note;
-
-        int count = reader.ReadUInt16();
-        if (count > NoteRoute.MaxTimes)
-            throw new FormatException("XMF route note has too many turns.");
-        if (count > 0)
-        {
-            note.Route = new List<long>(count);
-            for (int i = 0; i < count; i++)
-                note.Route.Add(reader.ReadInt64());
-        }
-
-        note.RouteStrength = ReadEnum<DashStrength>(reader);
-
-        // 1.3 added dash lengths and hold tails.
-        if (minor < 3)
-            return note;
-
-        note.DashLength = reader.ReadSingle();
-        note.HoldTailMs = reader.ReadInt64();
-        note.HoldX = reader.ReadSingle();
-        note.HoldY = reader.ReadSingle();
-        if (!float.IsFinite(note.DashLength) || !float.IsFinite(note.HoldX) || !float.IsFinite(note.HoldY))
-            throw new FormatException("XMF note has a broken dash or hold.");
         return note;
     }
 

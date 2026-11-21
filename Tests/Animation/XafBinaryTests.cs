@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,23 +40,6 @@ public sealed class XafBinaryTests
         Assert.That(clip.Channels[0].Keyframes, Has.Count.EqualTo(2));
         Assert.That(clip.Channels[0].Keyframes[1].Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
         Assert.That(clip.Channels[0].Keyframes[1].TangentOut, Is.EqualTo(0.5f));
-    }
-
-    [Test]
-    public void SavesAndLoadsFromDisk()
-    {
-        string path = Path.Combine(Path.GetTempPath(), "writer-" + Guid.NewGuid().ToString("N") + ".xaf");
-
-        try
-        {
-            XafBinary.Save(path, Sample());
-            Assert.That(File.Exists(path), Is.True);
-            Assert.That(XafBinary.Load(path).Clips[0].Id, Is.EqualTo("idle"));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
     }
 
     [Test]

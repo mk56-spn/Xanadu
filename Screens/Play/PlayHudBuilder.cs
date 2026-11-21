@@ -265,14 +265,10 @@ internal static class PlayHudBuilder
                 comboText,
                 accuracyText,
                 judgementText,
-                // A hold is judged twice: head and tail.
-                document.Notes.Count + document.Notes.Count(note => note.HoldTailMs > 0)));
+                document.Notes.Count));
         long lastNote = document.Notes.Count > 0
             ? document.Notes.Max(note => note.TimeMs)
             : -1;
-        // A route note lasts until its end, a hold until its tail.
-        foreach (NoteDocument note in document.Notes)
-            lastNote = Math.Max(lastNote, note.ToNote().EndMs);
 
         playfield.AddComponent(new PlaySession(
             status,

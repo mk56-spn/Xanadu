@@ -12,7 +12,7 @@ namespace Xanadu.Logic.Playfields;
 public sealed class PlayNoteMisses(PlayNoteContext context)
 {
     private readonly ArchetypeQuery<Note> _open =
-        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed, NoteSteering, NoteHolding>());
+        context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
     private readonly List<int> _late = [];
 
     public void Mark(Entity playfield)
@@ -41,10 +41,6 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.JudgementPosition = view.PlayfieldToScreen(note.Position);
             score.JudgementTimeMs = playhead.TimeMs;
             PlayScoring.Count(ref score, Judgement.Miss);
-
-            // A missed hold head takes its tail with it.
-            if (note.IsHold)
-                PlayScoring.Count(ref score, Judgement.Miss);
         }
     }
 

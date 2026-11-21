@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
@@ -20,26 +21,13 @@ public sealed class NoteLaneColorTests
     }
 
     [Test]
-    public void NoteKindsCanBeToldApart()
-    {
-        var colors = new System.Collections.Generic.HashSet<Color>();
-        foreach (KeybindAction action in KeybindSettings.ActionKeys)
-            colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, action)));
-        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Neutral)));
-        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Dash)));
-        colors.Add(PlayfieldColors.ColorFor(new Note(0, Vector2.Zero, kind: NoteKind.Momentum)));
-
-        Assert.That(colors.Count, Is.EqualTo(6));
-    }
-
-    [Test]
     public void EachActionKeyHasItsOwnColor()
     {
         var colors = new System.Collections.Generic.HashSet<Color>();
 
-        foreach (KeybindAction action in KeybindSettings.ActionKeys)
+        foreach (KeybindAction action in KeybindActions.ActionKeys)
             colors.Add(PlayfieldColors.ColorFor(action));
 
-        Assert.That(colors.Count, Is.EqualTo(KeybindSettings.ActionKeys.Length));
+        Assert.That(colors.Count, Is.EqualTo(KeybindActions.ActionKeys.Length));
     }
 }

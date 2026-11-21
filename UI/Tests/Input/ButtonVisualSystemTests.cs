@@ -1,3 +1,4 @@
+using Xanadu.Core.Tweens;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core;
@@ -59,8 +60,12 @@ public sealed class ButtonVisualSystemTests : EcsSystemTest
 
     private void Frames(int count)
     {
+        // Button colours play on the tween clock, so it moves on with each frame.
         for (int i = 0; i < count; i++)
+        {
+            ClipClocks.SetSeconds(ClipClocks.Seconds + 1f / 60f);
             Frame();
+        }
     }
 
     private static void AssertColor(Entity entity, Color expected)

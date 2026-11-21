@@ -134,7 +134,7 @@ public static class EditorSceneSidebar
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
     }
 
-    /// <summary>The current tool's settings, docked to the viewport's top-left corner.</summary>
+    /// <summary>The current tool's settings, docked to the viewport's top-left corner; hidden while no tool has any.</summary>
     internal static void BuildLeftPanel(UiNode ui, Entity editor)
     {
         float inner = LeftPanelWidth - PanelPadding * 2;
@@ -147,40 +147,6 @@ public static class EditorSceneSidebar
             .Input()
             .Main(StackMainAlignment.Start)
             .Anchor(Vector2.Zero);
-
-        UiNode speedSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.MoveStrength);
-        EditorSceneUi.SidebarLabel(speedSection, "SPEED", inner, 12);
-        const float speedGap = 6;
-        float speedWidth = (inner - speedGap * 2) / 3;
-        UiNode speeds = speedSection.Row().Size(inner, 28).Gap(speedGap);
-        for (int i = 0; i < 3; i++)
-        {
-            var strength = (DashStrength)i;
-            speeds.Button(
-                    i == 0 ? "1×" : i == 1 ? "2×" : "3×",
-                    12,
-                    SceneUi.MutedButtonColor)
-                .Size(speedWidth, 28)
-                .With(EditorButton.Strength(strength))
-                .Tooltip($"The next route runs at {NoteRoute.SpeedOf(strength):0} units a second");
-        }
-
-        // Label, then - and +: the length steps by the snap, so it is discrete.
-        UiNode holdSection = EditorSceneUi.ToolSection(panel, inner, EditorToolSections.HoldLength);
-        EditorSceneUi.SidebarLabel(holdSection, "HOLD LENGTH", inner, 12);
-        const float stepWidth = 32;
-        UiNode holdRow = holdSection.Row().Size(inner, 28).Gap(speedGap);
-        holdRow.Text("1 BEAT", 12, UiTheme.Text, TextAlign.Left)
-            .Size(inner - (stepWidth + speedGap) * 2, 28)
-            .With(new EditorHoldLengthReadout());
-        holdRow.Button("-", 12, SceneUi.MutedButtonColor)
-            .Size(stepWidth, 28)
-            .With(EditorButton.Of(EditorButtonKind.HoldLength, -1))
-            .Tooltip("Shorter by one snap step (the selected holds, else new ones)");
-        holdRow.Button("+", 12, SceneUi.MutedButtonColor)
-            .Size(stepWidth, 28)
-            .With(EditorButton.Of(EditorButtonKind.HoldLength, 1))
-            .Tooltip("Longer by one snap step (the selected holds, else new ones)");
 
         editor.AddComponent(new EditorLeftMenu(panel.Entity));
     }

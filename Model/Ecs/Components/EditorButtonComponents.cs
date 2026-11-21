@@ -46,8 +46,6 @@ public enum EditorButtonKind
     ToolGroup,
     /// <summary>A note-type bar swatch; the argument is the <see cref="KeybindAction"/> new notes get.</summary>
     NoteType,
-    /// <summary>Picks the strength new movement notes get; the argument is a <see cref="DashStrength"/>.</summary>
-    DashStrength,
     /// <summary>
     /// Steps one bar of the contact cost; the argument is the bar plus one,
     /// negative for less.
@@ -77,8 +75,6 @@ public enum EditorButtonKind
     FlareStep,
     /// <summary>Lines the selection up; the argument is an <see cref="Xanadu.Editor.AlignEdge"/>.</summary>
     Align,
-    /// <summary>Steps the hold length by one snap step; the argument is the step, negative for shorter.</summary>
-    HoldLength,
 }
 
 /// <summary>
@@ -93,8 +89,6 @@ public static class EditorButton
     public static UiCommand Place(EditorPlacementMode mode) => Of(EditorButtonKind.Place, (int)mode);
 
     public static UiCommand NoteType(KeybindAction action) => Of(EditorButtonKind.NoteType, (int)action);
-
-    public static UiCommand Strength(DashStrength strength) => Of(EditorButtonKind.DashStrength, (int)strength);
 
     /// <summary>Steps <paramref name="bar"/>'s contact cost by <paramref name="step"/> (+1 or -1).</summary>
     public static UiCommand ContactCost(int bar, int step) => Of(EditorButtonKind.ContactCost, (bar + 1) * step);
