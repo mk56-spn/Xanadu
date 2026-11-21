@@ -11,6 +11,7 @@ using Xanadu.Model.Settings;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Logic.Replays;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Tests.Replays;
 

@@ -5,7 +5,6 @@ using System.Linq;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
-using Xanadu.Model.Settings;
 
 namespace Xanadu.Host;
 

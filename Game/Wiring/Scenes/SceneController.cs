@@ -6,13 +6,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
-using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Scoring;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Bench;
 using Xanadu.Screens.Editor;
@@ -24,6 +22,7 @@ using Xanadu.Screens.Results;
 using Xanadu.Screens.Settings;
 using Xanadu.Screens.Shared;
 using Xanadu.Screens.SongTiming;
+using Xanadu.Logic.SongTiming;
 
 namespace Xanadu.Wiring.Scenes;
 

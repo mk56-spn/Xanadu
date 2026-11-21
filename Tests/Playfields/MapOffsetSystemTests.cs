@@ -7,11 +7,11 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Logic.Playfields;
 using Xanadu.Logic.Replays;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Tests.Playfields;
 

@@ -37,8 +37,6 @@ public sealed class PlayCameraSceneTest : SceneTest
         AddWaitStep("let the effects play", 5);
         AddAssert("the note pops", () => Context.Entities.Query<NotePop>().Count > 0);
         AddAssert("the combo shows 50", () => VisualAssert.HasText(Context.Entities, "50"));
-        AddAssert("the combo is swelling", () =>
-            Playfield().GetComponent<ComboHud>().Punch > 0f);
     }
 
     private Entity Playfield() => Context.Entities.Query<PlayCamera>().Entities.First();

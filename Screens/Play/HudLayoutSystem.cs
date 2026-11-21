@@ -1,3 +1,4 @@
+using Xanadu.Model.Settings;
 using Xanadu.Storage.Settings;
 using System;
 using Friflo.Engine.ECS;
@@ -6,7 +7,6 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Input;
@@ -36,7 +36,7 @@ public sealed class HudLayoutSystem(
 
     protected override void OnUpdate()
     {
-        bool editPressed = keyboard.IsPressed(DebugKeys.HudLayout);
+        bool editPressed = keyboard.IsPressed(GameDebugKeys.HudLayout);
         if (editPressed && !_wasEditPressed)
         {
             Query.Each(new ToggleEditing());

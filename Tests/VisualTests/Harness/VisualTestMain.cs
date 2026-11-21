@@ -7,8 +7,6 @@ using MoonWorks.Input;
 using Xanadu.Model.Ecs;
 using Xanadu.Host;
 using Xanadu.Host.Rendering;
-using Xanadu.Model.Levels;
-using Xanadu.Model.Settings;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems;
@@ -17,6 +15,8 @@ using Xanadu.Core.Theme;
 using Xanadu.Screens.Editor;
 using Xanadu.Wiring;
 using Xanadu.Wiring.Scenes;
+using Xanadu.Storage.Settings;
+using Xanadu.Storage.Levels;
 
 namespace Xanadu.Tests.VisualTests;
 
@@ -304,7 +304,7 @@ internal sealed class VisualTestMain : HostApp
     /// </summary>
     private static void ClearRecovery()
     {
-        string directory = Xanadu.Logic.Editor.Recovery.LevelRecoveryStore.Default.Directory;
+        string directory = Xanadu.Storage.Editor.LevelRecoveryStore.Default.Directory;
         if (!System.IO.Directory.Exists(directory))
             return;
 

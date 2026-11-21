@@ -1,3 +1,6 @@
+using System.Linq;
+using Xanadu.Logic.Profiles;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Ecs.Components;
 using System;
 using System.Linq;
@@ -24,6 +27,6 @@ public sealed class ProfilesSceneTest : SceneTest
             () => VisualAssert.HasText(Context.Entities, "NEW PROFILE"));
         AddAssert(
             "profile selector exists",
-            () => SceneAction.All(Context.Entities, SceneActionKind.CreateProfile).Count == 1);
+            () => UiCommand.All<ProfilesEntrance>(Context.Entities).Count(c => c.Id == ProfilesEntrance.Create) == 1);
     }
 }

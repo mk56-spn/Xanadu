@@ -11,7 +11,6 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Scoring;
-using Xanadu.Model.Settings;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 using Position = Xanadu.Core.Position;
 using Xanadu.Ui.Systems;

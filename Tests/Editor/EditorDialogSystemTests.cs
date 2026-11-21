@@ -10,7 +10,7 @@ using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Logic.Editor.Commands;
-using Xanadu.Logic.Editor.Recovery;
+using Xanadu.Storage.Editor;
 using Xanadu.Screens.Editor;
 
 namespace Xanadu.Tests.Editor;

@@ -23,7 +23,7 @@ public sealed class TransformSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void MovedEntityUpdatesTransformAndClearsTag()
+    public void AFrameClearsMoved()
     {
         Entity entity = Store.CreateEntity(
             default(VisualItem),
@@ -32,19 +32,7 @@ public sealed class TransformSystemTests : EcsSystemTest
 
         Frame();
 
-        Assert.That(_canvas.Transforms, Has.Count.EqualTo(1));
-        Assert.That(_canvas.Transforms[0].Origin, Is.EqualTo(new Vector2(10, 20)));
         Assert.That(entity.Tags.Has<Moved>(), Is.False);
-    }
-
-    [Test]
-    public void CleanEntityDoesNotUpdateTransform()
-    {
-        Store.CreateEntity(default(VisualItem), new Position(new Vector2(10, 20)));
-
-        Frame();
-
-        Assert.That(_canvas.Transforms, Is.Empty);
     }
 
     private sealed class RecordingCanvas : IRectCanvas

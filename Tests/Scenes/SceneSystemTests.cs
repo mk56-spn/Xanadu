@@ -11,7 +11,7 @@ using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Scoring;
-using Xanadu.Model.Profiles;
+using Xanadu.Storage.Profiles;
 using Xanadu.Model.Settings;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
@@ -23,6 +23,8 @@ using Xanadu.Screens.SongSelect;
 using Xanadu.Screens.SongTiming;
 using Xanadu.Wiring.Scenes;
 using Position = Xanadu.Core.Position;
+using Xanadu.Storage.Profiles;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Tests.Scenes;
 

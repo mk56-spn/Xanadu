@@ -4,7 +4,6 @@ using Friflo.Engine.ECS.Systems;
 using System;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Settings;
 using Xanadu.Drawers.Playfields;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;

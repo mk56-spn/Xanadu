@@ -6,9 +6,9 @@ namespace Xanadu.Ui.Systems.Input;
 /// <summary>
 /// The function keys, banded by what they affect so the debug views never
 /// interlace: engine views (F1–F4) work anywhere, F5 previews whatever tool is
-/// open, gameplay views follow (F6–F8), editor views after (F9–F11), and F12 is
-/// the app's screenshot. A new view takes its band's spare slot; it never fills
-/// a hole in another band.
+/// open, F6–F11 belong to the app that hosts the UI (the game's bands are
+/// <c>GameDebugKeys</c> in Model), and F12 is the app's screenshot. A new view
+/// takes its band's spare slot; it never fills a hole in another band.
 /// </summary>
 public static class DebugKeys
 {
@@ -26,21 +26,6 @@ public static class DebugKeys
 
     /// <summary>F5: preview what the open tool is editing; Shift is its variant.</summary>
     public const Key Preview = Key.F5;
-
-    /// <summary>F6: a graph of the play body's x and y speed over song time.</summary>
-    public const Key SpeedGraph = Key.F6;
-
-    /// <summary>F7: gameplay HUD layout editing.</summary>
-    public const Key HudLayout = Key.F7;
-
-    /// <summary>F8: ground movement in play: skid (friction fields stop you) or hold the direction key.</summary>
-    public const Key GroundMode = Key.F8;
-
-    /// <summary>F9: the editor's binding list. F11 is the editor's spare slot.</summary>
-    public const Key EditorHelp = Key.F9;
-
-    /// <summary>F10: the editor's level shaders on or off.</summary>
-    public const Key EditorShaders = Key.F10;
 
     /// <summary>F12: save a screenshot.</summary>
     public const Key Screenshot = Key.F12;

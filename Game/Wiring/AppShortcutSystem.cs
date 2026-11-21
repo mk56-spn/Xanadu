@@ -2,7 +2,6 @@ using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Logic.Audio;
 using Xanadu.Logic.Docs;

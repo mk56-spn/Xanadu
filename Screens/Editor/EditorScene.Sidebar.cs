@@ -6,7 +6,6 @@ using Position = Xanadu.Core.Position;
 using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Playfields;
-using Xanadu.Model.Editor;
 using Xanadu.Logic.Editor;
 using Xanadu.Screens.Shared;
 

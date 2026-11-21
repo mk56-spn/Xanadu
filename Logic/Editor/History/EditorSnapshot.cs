@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Kinds;
+using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Logic.Editor.History;
 

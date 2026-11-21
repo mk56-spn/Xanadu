@@ -11,6 +11,7 @@ using Xanadu.Ui.Systems.Timeline;
 using Xanadu.Logic.Editor;
 using Xanadu.Wiring;
 using Xanadu.Wiring.Scenes;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Tests.Editor;
 
@@ -37,7 +38,7 @@ public sealed class EditorShortcutsTests
         Assert.That(Action(new KeyChord(DebugKeys.Preview), dialog), Is.Null);
         Assert.That(Action(new KeyChord(Key.Delete), dialog), Is.Null);
         Assert.That(Action(new KeyChord(Key.Escape), dialog), Is.EqualTo(EditorShortcut.CloseDialog));
-        Assert.That(Action(new KeyChord(DebugKeys.EditorShaders), dialog), Is.EqualTo(EditorShortcut.ToggleShaders));
+        Assert.That(Action(new KeyChord(GameDebugKeys.EditorShaders), dialog), Is.EqualTo(EditorShortcut.ToggleShaders));
     }
 
     [Test]

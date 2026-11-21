@@ -1,6 +1,6 @@
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Model.Ecs.Storage;
+using Xanadu.Storage.Levels;
 
 namespace Xanadu.Tests.Editor;
 

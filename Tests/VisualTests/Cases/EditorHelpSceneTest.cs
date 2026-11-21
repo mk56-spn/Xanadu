@@ -1,3 +1,4 @@
+using Xanadu.Model.Settings;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Input;
 using Friflo.Engine.ECS;
@@ -41,7 +42,7 @@ public sealed class EditorHelpSceneTest : SceneTest
         AddStep("open the key list", () =>
         {
             EditorShortcuts.Binding? binding = EditorShortcuts.Find(
-                new KeyChord(DebugKeys.EditorHelp),
+                new KeyChord(GameDebugKeys.EditorHelp),
                 _overlay!.ActiveScopes);
             if (binding is null)
                 throw new SceneTestAssertionException("no binding opens the key list");

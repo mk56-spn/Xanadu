@@ -32,4 +32,20 @@ public sealed class UiToggleTests
         Assert.That(heard, Is.EqualTo(new[] { true, false }));
         Assert.That(toggle.GetComponent<Toggle>().Value, Is.False);
     }
+
+    [Test]
+    public void HoldingDoesNotFlipRepeatedly()
+    {
+        var store = new EntityStore();
+        Entity toggle = store.CreateEntity(new Toggle("ON", "OFF", false), new Text("OFF"), Tags.Get<Pressed>());
+
+        var root = new SystemRoot(store);
+        root.Add(new ToggleSystem());
+
+        root.Update(new UpdateTick(1f / 60f, 0));
+        root.Update(new UpdateTick(1f / 60f, 1));
+        root.Update(new UpdateTick(1f / 60f, 2));
+
+        Assert.That(toggle.GetComponent<Toggle>().Value, Is.True);
+    }
 }

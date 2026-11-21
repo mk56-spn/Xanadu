@@ -27,4 +27,8 @@
     <ProjectReference Include="../Tools/Animator/Xanadu.AnimatorTool.csproj"/>
   </ItemGroup>
   <Import Project="../Core/Maths/Maths.props"/>
+  <ItemGroup>
+    <!-- Test helpers for the reusable layers live with the UI tests; the game's tests borrow them. -->
+    <Compile Include="../UI/Tests/Support/*.cs" Link="Support/Ui/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

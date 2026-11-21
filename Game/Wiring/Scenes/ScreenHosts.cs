@@ -7,7 +7,6 @@ using Xanadu.Logic.Results;
 using Xanadu.Logic.Screens;
 using Xanadu.Logic.Settings;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Settings;
 using Xanadu.Screens.Calibration;
 using Xanadu.Screens.MainMenu;
 using Xanadu.Screens.Profiles;

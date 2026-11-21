@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Position = Xanadu.Core.Position;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Logic.Playfields;
 

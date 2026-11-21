@@ -6,7 +6,6 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Scoring;
-using Xanadu.Model.Settings;
 using Xanadu.Logic.Calibration;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Play;

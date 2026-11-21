@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Kinds;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Editor;
+using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Logic.Editor;
 

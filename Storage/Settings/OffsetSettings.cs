@@ -1,4 +1,3 @@
-using Xanadu.Model.Settings;
 using System;
 
 namespace Xanadu.Storage.Settings;

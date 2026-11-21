@@ -5,13 +5,13 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Kinds;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Scoring;
 using Xanadu.Ui.Ecs.Ui;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 using Position = Xanadu.Core.Position;
+using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Wiring.Scenes;
 

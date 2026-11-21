@@ -4,10 +4,10 @@ using NUnit.Framework;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
-using Xanadu.Model.Kinds;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
+using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Tests.Playfields;
 

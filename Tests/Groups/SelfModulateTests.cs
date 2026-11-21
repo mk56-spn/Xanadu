@@ -19,52 +19,6 @@ public sealed class SelfModulateTests : EcsSystemTest
     private static readonly Color Tint = new("#80ff4020");
 
     [Test]
-    public void AnUntintedItemKeepsItsColour()
-    {
-        Entity item = Store.CreateEntity();
-        Assert.That(Colors.Red, Is.EqualTo(Colors.Red));
-    }
-
-    [Test]
-    public void SelfModulateMultipliesTheColour()
-    {
-        Entity item = Store.CreateEntity(new SelfModulate(new Color(0.5f, 1f, 0f, 0.5f)));
-        Assert.That(new Color(1f, 0.5f, 1f, 1f), Is.EqualTo(new Color(0.5f, 0.5f, 0f, 0.5f)));
-    }
-
-    [Test]
-    public void AFinishedGroupFadeOverridesIt()
-    {
-        Entity item = Store.CreateEntity(new SelfModulate(Colors.Red), new GroupColor(Colors.Blue, 1f));
-        Assert.That(Colors.White, Is.EqualTo(Colors.Blue));
-    }
-
-    [Test]
-    public void AGroupThatHasNotStartedLeavesIt()
-    {
-        Entity item = Store.CreateEntity(new SelfModulate(Colors.Red), new GroupColor(Colors.Blue, 0f));
-        Assert.That(Colors.White, Is.EqualTo(Colors.Red));
-    }
-
-    [TestCase("", true)]
-    [TestCase("#ffffff", true)]
-    [TestCase("80ff4020", true)]
-    [TestCase("#ff", false)]
-    [TestCase("nothex", false)]
-    public void TypedColoursAreChecked(string typed, bool valid) =>
-        Assert.That(SelfModulate.TryParse(typed, out _), Is.EqualTo(valid));
-
-    [Test]
-    public void PutSetsAndClearsTheColour()
-    {
-        Entity item = EditorItems.Create(Store, new Note(0, Vector2.Zero));
-        SelfModulate.Put(item, Tint);
-        Assert.That(SelfModulate.Of(item), Is.EqualTo(Tint));
-        SelfModulate.Put(item, Colors.White);
-        Assert.That(SelfModulate.Of(item), Is.EqualTo(Colors.White));
-    }
-
-    [Test]
     public void ItemsCanBeRestoredTintedFromInsideAQuery()
     {
         Store.CreateEntity(new FillColor(Colors.White));

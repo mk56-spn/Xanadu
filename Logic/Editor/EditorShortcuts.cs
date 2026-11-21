@@ -1,3 +1,4 @@
+using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
@@ -117,7 +118,7 @@ public static class EditorShortcuts
             new(new KeyChord(DebugKeys.Preview), EditorShortcut.Preview, always),
             new(new KeyChord(DebugKeys.Preview, Shift: true), EditorShortcut.PreviewHere, always),
             new(new KeyChord(Key.Escape), EditorShortcut.CloseDialog, EditorShortcutScope.Dialog),
-            new(new KeyChord(DebugKeys.EditorHelp), EditorShortcut.ToggleHelp, always),
+            new(new KeyChord(GameDebugKeys.EditorHelp), EditorShortcut.ToggleHelp, always),
             new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
             new(new KeyChord(Key.Escape), EditorShortcut.ToggleHelp, EditorShortcutScope.Help),
             new(new KeyChord(Key.S, Ctrl: true), EditorShortcut.Save, always),

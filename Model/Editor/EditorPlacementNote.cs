@@ -1,8 +1,8 @@
 using System;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Model.Editor;
 

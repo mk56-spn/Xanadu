@@ -1,4 +1,3 @@
-using Xanadu.Model.Settings;
 using System;
 using Xanadu.Ui.Systems;
 

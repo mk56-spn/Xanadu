@@ -4,7 +4,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Kinds;
 using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Logic.Audio;
 using Xanadu.Logic.Screens;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Calibration;

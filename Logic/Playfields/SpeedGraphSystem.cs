@@ -1,3 +1,4 @@
+using Xanadu.Model.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
@@ -17,7 +18,7 @@ public sealed class SpeedGraphSystem(IKeyboardState keyboard) : QuerySystem<Curv
 
     protected override void OnUpdate()
     {
-        bool pressed = keyboard.IsPressed(DebugKeys.SpeedGraph);
+        bool pressed = keyboard.IsPressed(GameDebugKeys.SpeedGraph);
         if (pressed && !_wasPressed)
             _on = !_on;
         _wasPressed = pressed;

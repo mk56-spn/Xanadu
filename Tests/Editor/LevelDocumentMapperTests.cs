@@ -6,6 +6,7 @@ using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
 using Xanadu.Tests.Support;
 using Xanadu.Model.Editor;
+using Xanadu.Logic.Editor;
 
 namespace Xanadu.Tests.Editor;
 

@@ -1,7 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Core.Timeline;
-using Xanadu.Model.Settings;
+using Xanadu.Model.Levels;
+using Xanadu.Logic.Calibration;
 
 namespace Xanadu.Tests.Scenes;
 

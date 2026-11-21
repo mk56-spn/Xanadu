@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Xanadu.Core.Items;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
+using Xanadu.Logic.Editor;
 
 namespace Xanadu.Tests.Shaders;
 

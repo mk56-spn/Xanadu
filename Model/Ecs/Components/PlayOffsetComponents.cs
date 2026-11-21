@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Model.Settings;
 
 namespace Xanadu.Model.Ecs.Components;
 

@@ -1,5 +1,5 @@
 using System;
-using Xanadu.Core.Timeline;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Model.Playfields;
 

@@ -32,7 +32,7 @@ public sealed class SettingsSceneTest : SceneTest
                   VisualAssert.CountUninitialised(
                       Context.Entities,
                       UiLayers.Menu) == 0 &&
-                  VisualAssert.HasText(Context.Entities, KeybindSettings.LabelFor(KeybindAction.Left)));
+                  VisualAssert.HasText(Context.Entities, KeybindActions.LabelFor(KeybindAction.Left)));
         AddAssert(
             "SETTINGS title exists",
             () => VisualAssert.HasText(Context.Entities, "SETTINGS"));
@@ -49,7 +49,7 @@ public sealed class SettingsSceneTest : SceneTest
         AddAssert(
             "seven keybind rows exist",
             () => UiCommand.All<KeybindAction>(Context.Entities).Count ==
-                  KeybindSettings.Actions.Length);
+                  KeybindActions.All.Length);
         AddAssert(
             "content layer is above background",
             ContentLayerIsAboveBackground);

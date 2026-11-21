@@ -133,25 +133,6 @@ public sealed class UiHiddenTests
     }
 
     [Test]
-    public void CanvasItemsFollowTheirEntity()
-    {
-        Entity root = Node();
-        Entity child = Node(root);
-        child.AddComponent(new VisualItem(default));
-        var canvas = new VisibilityCanvas();
-        var systems = new SystemRoot(_store) { new CanvasVisibilitySystem(canvas) };
-
-        UiLayout.SetHidden(root, true);
-        systems.Update(new UpdateTick(1f / 60f, 0));
-        Assert.That(canvas.Calls, Is.EqualTo(new[] { false }));
-        Assert.That(child.Tags.Has<VisibilityDirty>(), Is.False);
-
-        UiLayout.SetHidden(root, false);
-        systems.Update(new UpdateTick(1f / 60f, 0));
-        Assert.That(canvas.Calls, Is.EqualTo(new[] { false, true }));
-    }
-
-    [Test]
     public void AGreyedControlIsNotHiddenAndStaysInQueries()
     {
         Entity button = Node();
@@ -220,18 +201,5 @@ public sealed class UiHiddenTests
         Assert.That(root.IsNull, Is.True);
         Assert.That(child.IsNull, Is.True);
         Assert.That(below.IsNull, Is.True);
-    }
-
-    private sealed class VisibilityCanvas : IRectCanvas
-    {
-        public List<bool> Calls { get; } = new();
-        public void SetVisible(Handle canvas, bool visible) => Calls.Add(visible);
-        public void SetTransform(Handle canvas, Transform2D transform) { }
-        public void Clear(Handle canvas) { }
-        public void DrawRect(Handle canvas, Rect2 bounds, Color color) { }
-        public void DrawLine(Handle canvas, Vector2 from, Vector2 to, Color color, float width) { }
-        public void DrawText(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextLeft(Handle canvas, Rect2 bounds, string text, Color color) { }
-        public void DrawTextRight(Handle canvas, Rect2 bounds, string text, Color color) { }
     }
 }

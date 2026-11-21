@@ -8,7 +8,8 @@ using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
 using Xanadu.Logic.Editor;
 using Xanadu.Logic.Editor.Commands;
-using Xanadu.Logic.Editor.Recovery;
+using Xanadu.Storage.Editor;
+using Xanadu.Storage.Editor;
 
 namespace Xanadu.Tests.Editor;
 
