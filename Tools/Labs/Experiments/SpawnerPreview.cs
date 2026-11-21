@@ -48,6 +48,8 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
             public bool hidden;
             /// Which one it is: the i spawn was given.
             public uint index;
+            /// Anything spawn wants shade to know (a kind, an age, a heat…). Starts at 0.
+            public float4 data;
 
             // Defaults here, not on the fields: Slang leaves a plain `Thing t;` undefined otherwise.
             __init()
@@ -58,6 +60,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 colour = float4(1, 1, 1, 1);
                 hidden = false;
                 index = 0;
+                data = float4(0, 0, 0, 0);
             }
         };
         """;
@@ -158,7 +161,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
             #line 1 "{{label}} (wrapper)"
             {{shade}}
 
-            struct XanaduStored { float4 placed; float4 colour; float rotation; uint index; float2 pad; };
+            struct XanaduStored { float4 placed; float4 colour; float4 data; float rotation; uint index; float2 pad; };
 
             [[vk::binding(0, 1)]] RWStructuredBuffer<uint> xanaduArgs;
             [[vk::binding(1, 1)]] RWStructuredBuffer<XanaduStored> xanaduOut;
@@ -199,6 +202,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 XanaduStored s;
                 s.placed = float4(t.position, t.size);
                 s.colour = t.colour;
+                s.data = t.data;
                 s.rotation = t.rotation;
                 s.index = i;
                 s.pad = float2(0, 0);
@@ -214,6 +218,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 nointerpolation float4 placed : TEXCOORD2;
                 nointerpolation float rotation : TEXCOORD3;
                 nointerpolation uint index : TEXCOORD4;
+                nointerpolation float4 data : TEXCOORD5;
             };
 
             static const float2 XanaduCorners[6] = { float2(-1, -1), float2(1, -1), float2(1, 1), float2(-1, -1), float2(1, 1), float2(-1, 1) };
@@ -237,6 +242,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 o.placed = s.placed;
                 o.rotation = s.rotation;
                 o.index = s.index;
+                o.data = s.data;
                 return o;
             }
 
@@ -269,6 +275,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 t.rotation = v.rotation;
                 t.colour = v.colour;
                 t.index = v.index;
+                t.data = v.data;
                 float4 c = shade(t, i.canvas);
                 return float4(c.rgb * c.a, c.a);
             }
@@ -318,7 +325,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
     [StructLayout(LayoutKind.Sequential)]
     private struct Stored
     {
-        public Vector4 Placed, Colour;
+        public Vector4 Placed, Colour, Data;
         public float Rotation;
         public uint Index;
         public Vector2 Pad;

@@ -1,6 +1,6 @@
 // The spawner: `count` things, each one made by spawn(i) on the GPU every frame.
 // Off-stage and hidden ones are thrown away; the rest go in one indirect draw.
-// Thing: position (px from the centre), size, rotation, colour, hidden, index.
+// Thing: position (px from the centre), size, rotation, colour, hidden, index, data (yours, for shade).
 // shade(Thing t, Canvas canvas) is optional: leave it out for discs.
 // static const bool additive = true; blends by adding (overlaps never shimmer).
 import xanadu;
