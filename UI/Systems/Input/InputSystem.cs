@@ -101,7 +101,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
                 continue;
             }
 
-            Vector2 world = UiTransform.WorldPosition(parent, position.Value);
+            Vector2 world = UiTransform.ShownPosition(parent, position.Value);
             if (!new Rect2(world + rect.Bounds.Position, rect.Bounds.Size).HasPoint(point))
                 return true;
         }
@@ -141,7 +141,7 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
             Entity entity = Store.GetEntityById(id);
 
             Rect2 local = rect.Bounds;
-            Vector2 world = UiTransform.WorldPosition(entity, position.Value);
+            Vector2 world = UiTransform.ShownPosition(entity, position.Value);
             Rect2 screen = new(world + local.Position, local.Size);
             if (screen.HasPoint(Pointer) && !IsClippedOut(entity, Pointer))
                 Candidates.Add(new Candidate(entity, drawable.ZIndex));

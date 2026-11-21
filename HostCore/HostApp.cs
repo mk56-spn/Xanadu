@@ -355,6 +355,7 @@ internal abstract class HostApp : Game
         FollowWindowSize();
         Pointer.Poll();
         float time = (float)(now - _started).TotalSeconds;
+        Xanadu.Core.Tweens.ClipClocks.SetSeconds(time);
         BeforeSystems(delta);
         _phases.Lap(HostFramePhases.Phase.Input, ref lap);
         _ui?.Update(new UpdateTick(delta, time));

@@ -3,14 +3,17 @@ using Xanadu.Core.Maths;
 
 namespace Xanadu.Ui.Ecs.Ui;
 
-/// <summary>Base colours and animated state for a hoverable/clickable button.</summary>
+/// <summary>
+/// A hoverable, clickable button's colours. Hover and the click flash are tween
+/// layers over <see cref="Normal"/> (<see cref="UiTweenKeys.Hover"/>,
+/// <see cref="UiTweenKeys.Flash"/>); read how far hover is with
+/// <see cref="UiTween.Weight"/>.
+/// </summary>
 public struct ButtonVisual(Color normal, Color hover, Color flash) : IComponent
 {
     public Color Normal = normal;
     public Color Hover = hover;
     public Color Flash = flash;
-    public float HoverAmount;
-    public float FlashAmount;
     public bool WasPressed;
 
     public static ButtonVisual Create(Color normal) => new(

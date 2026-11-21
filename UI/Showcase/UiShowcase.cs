@@ -3,6 +3,8 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
+using Xanadu.Core.Timeline;
+using Xanadu.Core.Tweens;
 using Xanadu.Host;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
@@ -73,6 +75,12 @@ internal sealed class UiShowcase : HostApp
             Style(button, 18, Palette.Text);
             button.AddComponent(ButtonVisual.Create(Palette.Primary));
             button.AddComponent(new UiTooltip($"Button {i + 1} explains itself"));
+            if (i == 1)
+            {
+                // Tweens stack: a bob that never ends, plus a nudge right on top of it.
+                UiTween.Play(button, Tween.MoveBy(new Vector2(0, -14), Clip.Seconds(0f, 0.4f).Eased(EasePreset.SineInOut).Bounced()).Looped());
+                UiTween.MoveBy(button, new Vector2(24, 0), Clip.FromNow(1.2f).Eased(EasePreset.CubicOut));
+            }
         }
         ui.End();
 
@@ -89,6 +97,8 @@ internal sealed class UiShowcase : HostApp
                 Vector2.Zero, new Vector2(460, 26), Palette.Muted,
                 $"NESTED ROW {i + 1}");
             Style(row, 15, Palette.TextMuted);
+            // After layout: the container keeps the rows' places, they slide in to them.
+            UiTween.MoveIn(row, new Vector2(-260, 0), Clip.FromNow(2.4f).Eased(EasePreset.CubicOut).Staggered(i, 0.25f));
         }
         ui.End();
 

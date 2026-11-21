@@ -124,7 +124,7 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
         float best = 0.5f;
         foreach ((Entity cell, EasePreset preset, _) in cells)
         {
-            float amount = cell.GetComponent<ButtonVisual>().HoverAmount;
+            float amount = UiTween.Weight(cell, UiTweenKeys.Hover);
             if (amount > best)
             {
                 best = amount;
