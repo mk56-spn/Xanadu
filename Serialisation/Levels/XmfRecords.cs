@@ -1,3 +1,4 @@
+using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +7,7 @@ using Xanadu.Core.Rendering;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs.Components;
 
-namespace Xanadu.Model.Levels;
+namespace Xanadu.Serialisation.Levels;
 
 /// <summary>
 /// How every XMF list is laid out: a count, then each entry as a record, a

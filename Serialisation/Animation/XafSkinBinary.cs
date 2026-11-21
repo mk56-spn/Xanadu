@@ -1,9 +1,10 @@
+using Xanadu.Model.Animation;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
 /// The chunk added in minor revision 15: each attachment's stored skin mesh, in

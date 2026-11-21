@@ -1,3 +1,4 @@
+using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,7 +6,7 @@ using Xanadu.Core.Storage;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
 
-namespace Xanadu.Model.Levels;
+namespace Xanadu.Serialisation.Levels;
 
 /// <summary>An XMF map file that could not be read.</summary>
 public sealed class XmfFormatException(string message) : Exception(message);

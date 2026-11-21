@@ -1,10 +1,11 @@
+using Xanadu.Model.Animation;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Timeline;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>The chunk added in minor revision 11: each clip's limb targets, in clip order.</summary>
 public static class XafTargetsBinary

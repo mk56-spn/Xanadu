@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The game's file formats: bytes in, bytes out. No paths and no disk; Storage does that. -->
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Model/Xanadu.Model.csproj" />
+    <InternalsVisibleTo Include="Xanadu.Tests" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>

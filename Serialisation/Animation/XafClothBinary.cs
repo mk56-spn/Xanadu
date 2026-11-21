@@ -1,10 +1,11 @@
+using Xanadu.Model.Animation;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
 /// The XAF cloth chunk, from minor revision 6: each cloth's settings, then its

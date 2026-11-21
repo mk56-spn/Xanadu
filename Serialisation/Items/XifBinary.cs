@@ -1,10 +1,11 @@
+using Xanadu.Core.Items;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Core.Items;
+namespace Xanadu.Serialisation.Items;
 
 /// <summary>
 /// The binary form of a <see cref="Xif"/> inside a chunked file, shared by

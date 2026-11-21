@@ -1,10 +1,11 @@
+using Xanadu.Model.Animation;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>
 /// The chunks added in minor revision 9, kept apart so the older chunks keep

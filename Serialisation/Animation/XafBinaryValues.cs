@@ -1,10 +1,11 @@
+using Xanadu.Model.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Maths;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>The one transform layout every XAF chunk writes, so they all read it back the same.</summary>
 internal static class XafBinaryValues

@@ -1,8 +1,9 @@
+using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using Xanadu.Model.Ecs.Components;
 
-namespace Xanadu.Model.Levels;
+namespace Xanadu.Serialisation.Levels;
 
 /// <summary>
 /// XMF map serialization for level documents, plus the normalization every

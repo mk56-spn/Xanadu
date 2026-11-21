@@ -1,10 +1,11 @@
+using Xanadu.Model.Replays;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Model.Settings;
 
-namespace Xanadu.Model.Replays;
+namespace Xanadu.Serialisation.Replays;
 
 /// <summary>
 /// The .xrs replay format. Little-endian binary:
@@ -106,7 +107,7 @@ public static class ReplayFile
                 time += ReadVarint(reader);
                 byte packed = reader.ReadByte();
                 int action = packed & ~DownFlag;
-                if (action >= KeybindSettings.Actions.Length)
+                if (action >= KeybindActions.All.Length)
                     throw new InvalidDataException($"Unknown action {action}.");
 
                 events[i] = new ReplayEvent(time, (KeybindAction)action, (packed & DownFlag) != 0);

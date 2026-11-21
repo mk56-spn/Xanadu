@@ -1,10 +1,11 @@
+using Xanadu.Model.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>The skeleton and attachment chunks of an XAF file.</summary>
 internal static class XafSkeletonBinary

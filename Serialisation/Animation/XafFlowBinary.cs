@@ -1,3 +1,5 @@
+using Xanadu.Serialisation.Items;
+using Xanadu.Model.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,7 +7,7 @@ using System.Text;
 using Xanadu.Core.Items;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>The chain, effect and transition chunks of an XAF file.</summary>
 internal static class XafFlowBinary

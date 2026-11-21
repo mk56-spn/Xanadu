@@ -1,3 +1,4 @@
+using Xanadu.Core.Particles;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,7 +6,7 @@ using System.Text;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Core.Particles;
+namespace Xanadu.Serialisation.Particles;
 
 /// <summary>A particle library file that cannot be read.</summary>
 public sealed class XpfFormatException(string message) : Exception(message);
@@ -22,10 +23,6 @@ public static class XpfBinary
         Strings = 1,
         Particles = 2,
     }
-
-    public static void Save(string path, XpfLibrary library) => BinaryFile.Save(path, Write(library));
-
-    public static XpfLibrary Load(string path) => Read(File.ReadAllBytes(path));
 
     public static byte[] Write(XpfLibrary library)
     {

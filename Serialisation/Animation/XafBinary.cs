@@ -1,3 +1,5 @@
+using Xanadu.Serialisation.Items;
+using Xanadu.Model.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,7 +7,7 @@ using System.Text;
 using Xanadu.Core.Items;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Serialisation.Animation;
 
 /// <summary>Binary XAF1 reader/writer with a chunk directory.</summary>
 public static class XafBinary
@@ -31,14 +33,6 @@ public static class XafBinary
 		Skins = 13,
 		EffectParticles = 14,
 	}
-
-	public static void Save(string path, XafPackage package)
-	{
-		BinaryFile.Save(path, Write(package));
-	}
-
-	public static XafPackage Load(string path) =>
-		Read(File.ReadAllBytes(path));
 
 	public static byte[] Write(XafPackage package)
 	{
