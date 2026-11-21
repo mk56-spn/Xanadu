@@ -21,13 +21,13 @@ namespace Xanadu.Screens.Play;
 public sealed class ComboHudSystem : QuerySystem<ComboHud, ScoreState>
 {
     /// <summary>The number's font size.</summary>
-    public const int Size = UiType.Display;
+    private const int Size = UiType.Display;
 
     /// <summary>How much bigger a hit makes the number at its peak.</summary>
-    public const float Swell = 0.4f;
+    private const float Swell = 0.4f;
 
     /// <summary>Every this many hits the counter swells harder.</summary>
-    public const int Milestone = 50;
+    private const int Milestone = 50;
 
     private const float MilestonePunch = 1.8f;
 

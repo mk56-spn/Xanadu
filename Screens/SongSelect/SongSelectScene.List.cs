@@ -27,10 +27,10 @@ public static partial class SongSelectScene
     private const int SelectedSlot = 3;
 
     /// <summary>How long the list takes to settle on a new selection, however far.</summary>
-    public const float SettleSeconds = 0.4f;
+    internal const float SettleSeconds = 0.4f;
 
     /// <summary>How long the list takes to catch the pointer while dragged: a little behind the hand, so a drag glides.</summary>
-    public const float DragSeconds = 0.12f;
+    internal const float DragSeconds = 0.12f;
 
     /// <summary>The list's scroll, in levels: a number tween on the list's root.</summary>
     private const ushort ScrollLayer = UiTweenKeys.FirstFree;
@@ -272,7 +272,7 @@ public static partial class SongSelectScene
     /// Sends the list's scroll to <paramref name="to"/> levels over <paramref name="seconds"/>,
     /// from wherever it is now, so turning round never jumps. Already heading there: nothing changes.
     /// </summary>
-    public static void ScrollTo(Entity list, in SongSelectState state, float to, float seconds)
+    internal static void ScrollTo(Entity list, in SongSelectState state, float to, float seconds)
     {
         to = Math.Clamp(to, 0, Math.Max(state.Catalog.Count - 1, 0));
         TweenTarget target = UiTween.Target(list);
@@ -284,15 +284,11 @@ public static partial class SongSelectScene
             .Named(ScrollLayer));
     }
 
-    /// <summary>Where the list's scroll is heading, or null when it is at rest where it was put.</summary>
-    public static float? ScrollHeading(Entity list) =>
-        UiTween.Pool.Heading(UiTween.Of(list), ScrollLayer);
-
     /// <summary>
     /// Reads the scroll's tween into <see cref="SongSelectState.Scroll"/> and re-lays
     /// the rows when it moved. Returns false once the list is at rest.
     /// </summary>
-    public static bool FollowScroll(Entity list, ref SongSelectState state)
+    internal static bool FollowScroll(Entity list, ref SongSelectState state)
     {
         TweenTarget target = UiTween.Of(list);
         if (UiTween.Pool.Heading(target, ScrollLayer) is null)
