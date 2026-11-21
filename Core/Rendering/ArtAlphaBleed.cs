@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Model.Animation;
+namespace Xanadu.Core.Rendering;
 
 /// <summary>
 /// Gives every fully transparent pixel of straight-alpha art the colour of the

@@ -25,6 +25,7 @@ using Xanadu.Wiring.Scenes;
 using Position = Xanadu.Core.Position;
 using Xanadu.Storage.Profiles;
 using Xanadu.Storage.Settings;
+using Xanadu.Audio;
 
 namespace Xanadu.Tests.Scenes;
 

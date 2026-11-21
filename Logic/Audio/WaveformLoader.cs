@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Xanadu.Model.Audio;
 using Xanadu.Storage.Audio;
+using Xanadu.Audio;
 
 namespace Xanadu.Logic.Audio;
 

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace Xanadu.Storage.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>
 /// How much sound the bundled miniaudio 0.11.22 plays before an MP3's real start.

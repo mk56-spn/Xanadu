@@ -10,9 +10,9 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Logic.Audio;
 using Position = Xanadu.Core.Position;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
+using Xanadu.Audio;
 
 namespace Xanadu.Logic.Bench;
 

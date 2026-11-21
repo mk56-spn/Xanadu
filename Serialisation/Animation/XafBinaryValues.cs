@@ -1,4 +1,3 @@
-using Xanadu.Model.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;

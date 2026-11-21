@@ -1,9 +1,8 @@
-using Xanadu.Storage.Audio;
 using System;
 using System.Runtime.InteropServices;
 using Miniaudio;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>Decodes a whole audio file to mono floats at a chosen sample rate.</summary>
 public static class AudioDecoder

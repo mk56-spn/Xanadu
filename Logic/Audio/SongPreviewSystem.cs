@@ -7,6 +7,7 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Audio;
 
 namespace Xanadu.Logic.Audio;
 

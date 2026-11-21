@@ -11,6 +11,7 @@
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Audio/Xanadu.Audio.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />

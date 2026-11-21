@@ -7,7 +7,6 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Audio;
 using Xanadu.Drawers.Editor;
 using Xanadu.Model.Editor;
 using Xanadu.Drawers.Playfields;
@@ -15,6 +14,7 @@ using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Model.Playfields;
+using Xanadu.Audio;
 
 namespace Xanadu.Tests.Editor;
 

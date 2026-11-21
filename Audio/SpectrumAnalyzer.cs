@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>Band levels, 0 to 1, for every analysis frame of a track.</summary>
 public sealed class SpectrumData(float[] levels, int bands, float framesPerSecond)

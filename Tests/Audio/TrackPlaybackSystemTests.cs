@@ -6,6 +6,7 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
 namespace Xanadu.Tests.Audio;
 

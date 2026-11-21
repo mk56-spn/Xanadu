@@ -2,17 +2,16 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <!-- What the game does: systems that change components. Never builds screens, never draws, never wires the game together. -->
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
-    <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Serialisation/Xanadu.Serialisation.csproj" />
     <ProjectReference Include="../Storage/Xanadu.Storage.csproj" />
+    <ProjectReference Include="../Audio/Xanadu.Audio.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../Model/Xanadu.Model.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />

@@ -1,4 +1,3 @@
-using Xanadu.Storage.Audio;
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -6,7 +5,7 @@ using Miniaudio;
 using Xanadu.Core.Diagnostics;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>Miniaudio-backed track player with lazy device initialization.</summary>
 public sealed unsafe class MiniaudioTrackAudio : ITrackAudio

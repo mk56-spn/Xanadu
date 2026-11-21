@@ -2,9 +2,9 @@ using System;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Audio;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Model.Levels;
+using Xanadu.Audio;
 
 namespace Xanadu.Drawers.Editor;
 

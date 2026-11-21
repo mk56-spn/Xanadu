@@ -4,6 +4,7 @@ using Xanadu.Core.Maths;
 using Xanadu.Drawers.Timeline;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
 namespace Xanadu.Wiring.Groups;
 

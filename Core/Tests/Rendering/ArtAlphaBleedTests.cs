@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Xanadu.Model.Animation;
+using Xanadu.Core.Rendering;
 
-namespace Xanadu.Tests.Animation;
+namespace Xanadu.Core.Tests.Rendering;
 
 [TestFixture]
 public sealed class ArtAlphaBleedTests

@@ -6,7 +6,7 @@ using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
 namespace Xanadu.Logic.Playfields;
 

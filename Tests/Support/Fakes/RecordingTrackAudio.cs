@@ -1,5 +1,5 @@
 
-using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
 namespace Xanadu.Tests.Support.Fakes;
 

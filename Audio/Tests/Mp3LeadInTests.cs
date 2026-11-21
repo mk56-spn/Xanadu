@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Text;
 using NUnit.Framework;
-using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
-namespace Xanadu.Tests.Audio;
+namespace Xanadu.Audio.Tests;
 
 [TestFixture]
 public sealed class Mp3LeadInTests

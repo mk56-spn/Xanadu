@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Logic.Audio;
+using Xanadu.Audio;
 
-namespace Xanadu.Tests.Audio;
+namespace Xanadu.Audio.Tests;
 
 [TestFixture]
 public sealed class SpectrumAnalyzerTests

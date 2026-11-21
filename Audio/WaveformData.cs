@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Model.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>A frequency band of a <see cref="WaveformData"/>.</summary>
 public enum WaveformBand

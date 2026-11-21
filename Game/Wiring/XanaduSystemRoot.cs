@@ -22,6 +22,7 @@ using Xanadu.Logic.Replays;
 using Xanadu.Screens.SongSelect;
 using Xanadu.Wiring.Groups;
 using Xanadu.Wiring.Scenes;
+using Xanadu.Audio;
 
 namespace Xanadu.Wiring;
 

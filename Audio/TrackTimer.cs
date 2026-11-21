@@ -1,4 +1,4 @@
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>
 /// Port of Beatoraja's TIMER_PLAY math: the play origin is rewound by

@@ -1,6 +1,6 @@
 using System;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>Collapses band levels into a few broad groups, lowest frequencies first.</summary>
 public static class SpectrumGroups

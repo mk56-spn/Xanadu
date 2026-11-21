@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The audio core: playback, the track clock, decoding and analysis on miniaudio.
+         Knows nothing of the game (it may ship on its own), so it references Core only. -->
+    <PackageReference Include="Miniaudio-CS" Version="1.0.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <InternalsVisibleTo Include="Xanadu.Audio.Tests" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>

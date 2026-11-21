@@ -9,10 +9,10 @@ using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Groups;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Ui;
-using Xanadu.Logic.Audio;
 using Xanadu.Logic.Editor;
 using Xanadu.Logic.Editor.Commands;
 using Xanadu.Screens.Editor;
+using Xanadu.Audio;
 
 namespace Xanadu.Wiring.Groups;
 
@@ -48,7 +48,7 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorPlacementSystem(entities));
         Add(new EditorToolGroupSystem(entities));
         Add(new EditorDashStrengthSystem(entities));
-        Add(new EditorHoldLengthSystem(entities, history));
+        Add(new EditorHoldLengthSystem(entities, commands));
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorToolSectionSystem(entities));
         Add(new EditorButtonSystem(entities, commands));

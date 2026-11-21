@@ -1,7 +1,6 @@
 using System;
-using Xanadu.Model.Audio;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>
 /// Turns decoded audio into <see cref="WaveformData"/>. Peak amplitude is useless

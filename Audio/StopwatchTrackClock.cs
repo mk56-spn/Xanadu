@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Xanadu.Logic.Audio;
+namespace Xanadu.Audio;
 
 /// <summary>The monotonic high-resolution timer, in microseconds; the same under any host.</summary>
 public sealed class StopwatchTrackClock : ITrackClock
