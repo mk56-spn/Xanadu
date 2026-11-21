@@ -238,11 +238,11 @@ public sealed class TweenPool
         Version++;
     }
 
-    /// <summary>The target's movement now: offsets and turns summed, scales multiplied.</summary>
+    /// <summary>The target's movement now: offsets and turns summed, scales and opacities multiplied.</summary>
     public TweenPose Pose(TweenTarget target)
     {
         Vector2 offset = Vector2.Zero, scale = Vector2.One;
-        float rotation = 0f;
+        float rotation = 0f, opacity = 1f;
         foreach (Tween tween in Of(target))
         {
             if (tween.Channel is TweenChannel.Colour or TweenChannel.Number)
@@ -259,9 +259,12 @@ public sealed class TweenPool
                 case TweenChannel.Scale:
                     scale *= Vector2.One + (new Vector2(tween.Value.X, tween.Value.Y) - Vector2.One) * w;
                     break;
+                case TweenChannel.Opacity:
+                    opacity *= 1f + (tween.Value.X - 1f) * w;
+                    break;
             }
         }
-        return new TweenPose(offset, rotation, scale);
+        return new TweenPose(offset, rotation, scale, opacity);
     }
 
     /// <summary>

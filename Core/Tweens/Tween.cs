@@ -28,6 +28,13 @@ public enum TweenChannel : byte
     /// (<see cref="TweenPool.Weight"/>), such as how far a list is scrolled.
     /// </summary>
     Number,
+
+    /// <summary>
+    /// Fades the target and everything under it to <see cref="Tween.Value"/>.x
+    /// of its opacity (1 is unchanged, 0 gone). Opacities stack: every live one
+    /// multiplies. Unlike <see cref="Colour"/> it is a tint over what is drawn, not its colour.
+    /// </summary>
+    Opacity,
 }
 
 /// <summary>Whether a tween's clip plays again.</summary>
@@ -152,6 +159,14 @@ public struct Tween
     /// <summary>A fade to <paramref name="colour"/> over what is beneath: weight 0 → 1 over the clip.</summary>
     public static Tween FadeTo(Color colour, Clip clip, short priority = 0) =>
         Of(TweenChannel.Colour, new Vector4(colour.R, colour.G, colour.B, colour.A), clip, 0f, 1f) with { Priority = priority };
+
+    /// <summary>A fade to <paramref name="opacity"/> of the target's opacity: weight 0 → 1 over the clip.</summary>
+    public static Tween FadeOpacity(float opacity, Clip clip) =>
+        Of(TweenChannel.Opacity, new Vector4(opacity, 0f, 0f, 0f), clip, 0f, 1f);
+
+    /// <summary>A fade in from <paramref name="opacity"/> to the target's own: weight 1 → 0 over the clip.</summary>
+    public static Tween FadeOpacityIn(float opacity, Clip clip) =>
+        Of(TweenChannel.Opacity, new Vector4(opacity, 0f, 0f, 0f), clip, 1f, 0f);
 
     /// <summary>A number going from <paramref name="from"/> to <paramref name="to"/> over the clip.</summary>
     public static Tween Number(float from, float to, Clip clip) =>
