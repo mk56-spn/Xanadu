@@ -215,6 +215,30 @@ public sealed class SlangShadersTests
     }
 
     [Test]
+    public void MatricesAndVectorsAreReflectedWithTheirShape()
+    {
+        CompiledShader compiled = SlangShaders.CompileEffectBody("test", """
+            import xanadu;
+            uniform float2x3 wide;
+            uniform float3x3 turn;
+            uniform uint2 cells;
+            uniform bool3 masks;
+            float4 shade() { return float4(wide[1].z + turn[2].x + cells.y + (masks.z ? 1 : 0)); }
+            """);
+
+        ShaderParam wide = compiled.Params.Single(p => p.Name == "wide");
+        ShaderParam turn = compiled.Params.Single(p => p.Name == "turn");
+        ShaderParam cells = compiled.Params.Single(p => p.Name == "cells");
+        ShaderParam masks = compiled.Params.Single(p => p.Name == "masks");
+        Assert.That((wide.Rows, wide.Columns, wide.IsMatrix), Is.EqualTo((2, 3, true)));
+        // Row by row, 16 bytes apart: two rows of a float2x3 take 32 bytes.
+        Assert.That(wide.Size, Is.EqualTo(32));
+        Assert.That((turn.Rows, turn.Columns), Is.EqualTo((3, 3)));
+        Assert.That((cells.Columns, cells.IsInt, cells.IsUnsigned, cells.IsMatrix), Is.EqualTo((2, true, true, false)));
+        Assert.That((masks.Columns, masks.IsBool), Is.EqualTo((3, true)));
+    }
+
+    [Test]
     public void UniformsAreReflectedWithTheirDefaults()
     {
         CompiledShader compiled = SlangShaders.CompileEffectBody("test", """

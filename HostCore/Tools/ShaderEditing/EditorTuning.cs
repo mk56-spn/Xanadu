@@ -59,7 +59,8 @@ internal sealed class EditorTuning
         _values.Clear();
         foreach (ShaderParam param in declared)
         {
-            if (_filledByLab.Contains(param.Name))
+            // A matrix has no sliders here; the UI's value fields edit it (UiNode.UniformField).
+            if (_filledByLab.Contains(param.Name) || param.IsMatrix)
                 continue;
 
             int channels = Math.Clamp(param.Size / 4, 1, 4);

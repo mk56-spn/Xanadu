@@ -1,13 +1,20 @@
 using System.Collections.Generic;
 using Xanadu.Core.Rendering;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace Xanadu.Ui.Systems.Canvas;
 
 /// <summary>
 /// One value a material's shader reads, as the host's compiler reports it:
-/// its name, how many channels, whether it is an integer, and its default.
+/// its name, how many channels (a matrix's columns), whether it is an integer,
+/// and its default. A matrix has more than one of <paramref name="Rows"/> and
+/// is kept with <see cref="CanvasMaterial.Set(string, Matrix4x4)"/>.
 /// </summary>
-public readonly record struct MaterialParam(string Name, int Channels, bool IsInt, Vector4 Default);
+public readonly record struct MaterialParam(
+    string Name, int Channels, bool IsInt, Vector4 Default, bool IsBool = false, bool IsUnsigned = false, int Rows = 1)
+{
+    public bool IsMatrix => Rows > 1;
+}
 
 /// <summary>What a material draws in place of its effect's shade (<see cref="CanvasMaterial.Overlay"/>).</summary>
 public enum MaterialOverlay
@@ -31,12 +38,16 @@ public enum MaterialOverlay
 /// </summary>
 /// <remarks>
 /// Values are kept as <see cref="Vector4"/>; a float uses X, a colour XYZW as
-/// RGBA. A value the material doesn't set keeps the shader's own default.
+/// RGBA. Matrices are kept apart, as <see cref="Matrix4x4"/> read by row and
+/// column (<c>m[row, column]</c>), the unused corner ignored. A value the
+/// material doesn't set keeps the shader's own default; an unset matrix is
+/// the identity.
 /// </remarks>
 public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mix, string? instance = null)
 {
     private readonly Dictionary<string, Vector4> _values = new();
     private readonly Dictionary<string, Handle> _textures = new();
+    private readonly Dictionary<string, Matrix4x4> _matrices = new();
 
     /// <summary>
     /// The effect's path, such as <c>Assets/Shaders/note_background.slang</c>;
@@ -87,6 +98,18 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     public int Version { get; private set; }
 
     public IReadOnlyDictionary<string, Vector4> Values => _values;
+
+    /// <summary>The matrix values by name, read <c>m[row, column]</c>.</summary>
+    public IReadOnlyDictionary<string, Matrix4x4> Matrices => _matrices;
+
+    public void Set(string name, Matrix4x4 value)
+    {
+        if (_matrices.TryGetValue(name, out Matrix4x4 old) && old == value)
+            return;
+
+        _matrices[name] = value;
+        Version++;
+    }
 
     /// <summary>Textures by the name of the sampler that reads them; ids from the canvas server.</summary>
     public IReadOnlyDictionary<string, Handle> Textures => _textures;

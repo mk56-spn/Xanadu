@@ -328,7 +328,9 @@ internal abstract class HostApp : Game
             return null;
 
         return effect.Compiled.Params
-            .Select(param => new MaterialParam(param.Name, Math.Clamp(param.Size / 4, 1, 4), param.IsInt, param.Default))
+            .Select(param => new MaterialParam(
+                param.Name, param.IsMatrix ? param.Columns : Math.Clamp(param.Size / 4, 1, 4), param.IsInt, param.Default,
+                param.IsBool, param.IsUnsigned, param.Rows))
             .ToList();
     }
 

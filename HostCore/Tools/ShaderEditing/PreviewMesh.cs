@@ -12,7 +12,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 internal static class PreviewMesh
 {
     /// <summary>Cells across; down follows the area's shape, so cells stay near square.</summary>
-    public const int Columns = 48;
+    public const int Columns = 96;
 
     public static void Add(Handle item, Rect2 area, Color colour)
     {

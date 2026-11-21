@@ -8,7 +8,15 @@ namespace Xanadu.Slang;
 
 /// <summary>One value an effect reads from its <c>Params</c> block: where it sits, how big, and its default.</summary>
 /// <param name="IsBool">A <c>uniform bool</c>: an on/off switch, held as 0 or 1 (and written as an int, like <paramref name="IsInt"/>).</param>
-public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default, bool IsBool = false);
+/// <param name="Rows">A matrix's rows (1 for a scalar or vector); each row takes 16 bytes of the block, as Slang lays them out.</param>
+/// <param name="Columns">A vector's channels or a matrix's columns (1 for a scalar).</param>
+/// <param name="IsUnsigned">A <c>uint</c> (or uint vector): never below zero.</param>
+public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default, bool IsBool = false,
+    int Rows = 1, int Columns = 1, bool IsUnsigned = false)
+{
+    /// <summary>A <c>floatRxC</c>: rows of <see cref="Columns"/>, 16 bytes apart.</summary>
+    public bool IsMatrix => Rows > 1;
+}
 
 /// <summary>
 /// A compiled entry point and what reflection says it binds: how many
@@ -949,8 +957,18 @@ public static class SlangShaders
                     fallback = new Vector4(At(values, 0), At(values, 1), At(values, 2), At(values, 3));
                 }
 
+        string kind = type.TryGetProperty("kind", out JsonElement k) ? k.GetString() ?? "" : "";
+        int rows = kind == "matrix" && type.TryGetProperty("rowCount", out JsonElement r) ? r.GetInt32() : 1;
+        int columns = kind switch
+        {
+            "matrix" when type.TryGetProperty("columnCount", out JsonElement c) => c.GetInt32(),
+            "vector" when type.TryGetProperty("elementCount", out JsonElement c) => c.GetInt32(),
+            _ => Math.Clamp(size / 4, 1, 4),
+        };
+
         return new ShaderParam(field.GetProperty("name").GetString() ?? "", offset, size,
-            scalar is "int32" or "uint32" or "bool", fallback, scalar == "bool");
+            scalar is "int32" or "uint32" or "bool", fallback, scalar == "bool",
+            rows, columns, scalar == "uint32");
     }
 
     private static float At(float[] values, int index) => index < values.Length ? values[index] : 0f;

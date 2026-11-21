@@ -1231,6 +1231,12 @@ internal sealed class CanvasRenderer : IDisposable
         bytes.Clear();
         foreach (ShaderParam param in compiled.Params)
         {
+            if (param.IsMatrix)
+            {
+                PackMatrix(bytes, param, material);
+                continue;
+            }
+
             Vector4 value = param.Default;
             if (material?.Values.TryGetValue(param.Name, out Vector4 set) == true)
                 value = set;
@@ -1261,6 +1267,29 @@ internal sealed class CanvasRenderer : IDisposable
                 default:
                     commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
                     break;
+            }
+        }
+    }
+
+    /// <summary>A matrix value, row by row, each row 16 bytes on from the last as Slang lays it out; the identity when the material sets none.</summary>
+    private static void PackMatrix(Span<byte> bytes, ShaderParam param, CanvasMaterial? material)
+    {
+        System.Numerics.Matrix4x4 value = material?.Matrices.TryGetValue(param.Name, out var set) == true
+            ? set
+            : System.Numerics.Matrix4x4.Identity;
+        int rows = Math.Min(param.Rows, 4), columns = Math.Min(param.Columns, 4);
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                int at = param.Offset + row * 16 + column * 4;
+                if (at + 4 > bytes.Length)
+                    continue;
+                Span<byte> slot = bytes.Slice(at, 4);
+                if (param.IsInt)
+                    BitConverter.TryWriteBytes(slot, (int)MathF.Round(value[row, column]));
+                else
+                    BitConverter.TryWriteBytes(slot, value[row, column]);
             }
         }
     }
