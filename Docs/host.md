@@ -531,7 +531,7 @@ compute expand stage and a depth buffer.
     compute pass that spawns, culls and packs, plus one indirect draw.
   - **Pointer history:** the pointer's path as a ring of keys on the GPU.
   - **RTS:** an RTS that lives on the GPU.
-  - **Radiance cascades:** 2D GI, GPU-bound at ~22 ms with the bilinear fix.
+  - **Radiance cascades:** 2D GI with wall bounce: pre-averaged, direction-first cascades, the bilinear fix on cascades 0–1 (MERGE picks plain, low or all) and a jump flood capped at 64 px; ~2 ms GPU on its 1208×990 stage (was 12.6 ms with the fix everywhere).
   - `dotnet run --project Tools/Labs -- --tab=<n>` opens a tab.
 
 ### 5.10 Perf tooling

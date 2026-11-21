@@ -46,6 +46,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
     private readonly MiniaudioTrackAudio _previewAudio = new();
     private readonly FeedbackSoundPlayer _feedbackSounds = new();
     private readonly FeedbackSoundSystem _feedbackSoundSystem;
+    private readonly DocsOverlaySystem _docs;
 
 
     public EditorHistory EditorHistory { get; }
@@ -174,7 +175,9 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             _editorWheel = new Xanadu.Logic.Editor.EditorWheelSystem(Commands, wheel) { Enabled = false };
             Add(_editorWheel);
         }
-        Add(new AppShortcutSystem(KeyPresses, Keybinds, Scenes, _feedbackSounds));
+        _docs = new DocsOverlaySystem(entities);
+        Add(new AppShortcutSystem(KeyPresses, Keybinds, Scenes, _feedbackSounds, _docs));
+        Add(_docs);
         _feedbackSoundSystem = new FeedbackSoundSystem(entities, _feedbackSounds);
         Add(_feedbackSoundSystem);
         Add(Toasts);
@@ -199,6 +202,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         _metronomeAudio.Dispose();
         _previewAudio.Dispose();
         _feedbackSoundSystem.Dispose();
+        _docs.Dispose();
         _feedbackSounds.Dispose();
         _editorSystems.Dispose();
         _playfieldSystems.Dispose();
