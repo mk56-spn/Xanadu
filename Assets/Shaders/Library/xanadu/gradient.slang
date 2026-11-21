@@ -14,6 +14,7 @@ module gradient;
 import xanadu.math;
 import xanadu.stage;
 import xanadu.shape;
+import xanadu.colour;
 
 /// A gradient: how far along it a point is, in its own space. Placed like a
 /// shape (IPlaced), so move, rotate, scale and anchor work on it.
@@ -189,6 +190,13 @@ public extension<G : IGradient> G
 
     /// Four stops evenly spaced, at the pixel being shaded.
     public float4 coloured(float4 a, float4 b, float4 c, float4 d) { return coloured(shading.canvas.centred, a, b, c, d); }
+
+    /// `from` at its start into `to` at its end through Oklab, as the eye sees halfway: no muddy
+    /// middle between complementary colours (coloured blends rgb straight).
+    public float4 mixed(float2 position, float4 from, float4 to) { return from.mixed(to, amount(position)); }
+
+    /// `from` into `to` through Oklab, at the pixel being shaded.
+    public float4 mixed(float4 from, float4 to) { return mixed(shading.canvas.centred, from, to); }
 
     /// The gradient run `times` over its length, starting again each time (CSS's repeating-…).
     public Spread<G> repeated(float times = 1.0)

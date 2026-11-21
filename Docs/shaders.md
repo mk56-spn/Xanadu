@@ -170,6 +170,42 @@ colour mixed = top.over(bottom);         // straight-alpha "over"
   | `shiftHue(turns)` | `hueShifted(turns)` | hue turned round; 1 is all the way |
 
   Anything else: `c.rgb` is a plain `float3`, so `c.rgb = pow(c.rgb, 2.0)`.
+- **Colour spaces.** Colours are stored as the screen shows them (sRGB).
+  Light adds up in linear values and the eye judges "halfway" in Oklab, so:
+
+  | Call | Does |
+  |---|---|
+  | `c.linearised()` / `c.encoded()` (and `linearise()`, `encode()`) | sRGB to linear light and back, the exact curve |
+  | `c.mixed(to, t)` / `c.mix(to, t)` | moves towards `to` through Oklab: no muddy grey between complementary colours, as `lerp` gives |
+  | `c.oklab()`, `c.oklch()`, `c.hsv()`, `c.hsl()` | the colour's coordinates in each space (hues in turns, 0..1) |
+  | `colours.oklab(L, a, b)`, `colours.oklch(L, C, h)`, `colours.hsl(h, s, l)` | colours from them; `colours.oklch(0.7, 0.15, t)` is a rainbow whose every colour looks as bright |
+  | `c.posterized(levels)` | each channel cut to `levels` steps |
+  | `c.exposed(stops)` | brighter by `stops` (each doubles the light, in linear light) |
+  | `c.warmed(amount)` | warmer (towards orange) or, negative, cooler, as white balance does |
+  | `c.dithered(pixel, levels = 2)`, `c.debanded(pixel)` | Bayer-dithered steps; the faintest dither to hide gradient banding (`xanadu.filter`) |
+| `c.levelled(black, white, gamma = 1)` | Photoshop's Levels: `black`..`white` stretched to the full range |
+| `c.graded(lift, gamma, gain)` | a colourist's three wheels, each a float3 (0, 1, 1 leave it alone) |
+| `c.duotoned(shadows, highlights)`, `c.sepiaToned(amount = 1)` | brightness mapped onto two colours; an old photo's brown |
+| `c.thresholded(level = 0.5, soft = 0)` | black or white |
+| `c.enlivened(amount)` | vibrance: dull colours more colourful, vivid ones left nearly alone |
+
+- **Colour maps** for showing a number 0..1: `colours.viridis(t)` (the
+  colour-blind-safe default), `colours.inferno(t)`, `colours.magma(t)`,
+  `colours.plasma(t)` (Matt Zucker's fits of matplotlib's) and
+  `colours.turbo(t)` (Google's rainbow). `colours.blackbody(kelvin)` is the
+  colour of a glowing body: 1900 a candle, 2700 a bulb, 6500 daylight.
+- **Tonemapping (`tonemap.`):** light brighter than white brought back into
+  0..1 the way film does, instead of clipped flat. Each takes linear light and
+  gives a screen colour: `tonemap.aces(hdr)` (the usual pick),
+  `tonemap.acesFitted`, `tonemap.agx` (the most natural: bright colours go
+  white instead of skewing), `tonemap.filmic` (Hable's), `tonemap.reinhard(hdr)`
+  and `tonemap.reinhard(hdr, white)`.
+
+  ```slang
+  colour hdr = colours.navy.linearised();
+  hdr.rgb += colours.orange.linearised().rgb * glow * 6;   // far past white
+  return tonemap.aces(hdr);
+  ```
 - **`top.over(bottom)`:** lays one colour on another by `top`'s alpha.
 - **Building a picture:** for that, `paint` (§9) is usually what you want.
 
@@ -191,6 +227,24 @@ heights in pixels (by default); round shapes take a radius.
 | `Parallelogram` | `Parallelogram(width, height, skew)` | Top shifted right by `skew`. |
 | `Star6` | `Star6(radius)` | Six points. |
 | `Moon` | `Moon(radius, bite, offset)` | A circle with a bite of radius `bite` taken `offset` to its right. |
+| `Ellipse` | `Ellipse(radius)` | `radius.x` to the sides, `radius.y` to the top and bottom; exact distance. |
+| `Polygon` | `Polygon(sides, radius)` | Regular: 3 a triangle, 6 a hexagon, …; corners `radius` out. Odd counts point up, even ones sit on a side. |
+| `Star` | `Star(points, radius, sharpness = 0.6)` | Any number of tips `radius` out; `sharpness` 0 is the plain polygon, 1 needle spikes. |
+| `Rhombus` | `Rhombus(size)` | A diamond filling a `size` box. |
+| `Trapezoid` | `Trapezoid(bottom, top, height)` | Widths of its bottom and top. |
+| `Spike` | `Spike(width, height)` | An isosceles triangle pointing up. |
+| `Pie` | `Pie(radius, angle)` | A slice opening upwards `angle` either side of up (PI the whole disc). |
+| `Heart` | `Heart(size)` | Point down. |
+| `Vesica` | `Vesica(radius, offset)` | A pointed oval (eye, leaf): two circles overlapping. |
+| `Saltire` | `Saltire(size, thickness)` | An X with round ends. |
+| `TaperedLine` | `TaperedLine(a, b, widthA, widthB)` | A line thickening or thinning from `a` to `b`: a tadpole, a comet. |
+| `Arch` | `Arch(a, control, b, width = 0)` | A quadratic Bézier curve from `a` to `b` pulled towards `control`; exact distance. |
+| `Outline` | `Outline o; o.add(p); …` | Any closed outline through up to 32 corners, straight between them. |
+| `Polyline` | `Polyline(width).added(p).added(q)…` | An open path through up to 32 points. |
+| `Arrow` | `Arrow(span, width, head)` | Pointing right, `span` tail to tip; rotate it. |
+| `Squircle` | `Squircle(size, power = 4)` | Between a box and an ellipse: the app-icon square. |
+| `Egg` | `Egg(radius, tip = 0)` | Round bottom, pointed top; the bottom circle's middle is its centre. |
+| `Digits` | `Digits(value, height, thickness = 0, places = 0)` | A number in seven-segment digits: combo counters, BPM, countdowns. `places` pads with zeros. |
 
 Most distances are Inigo Quilez's (iquilezles.org/articles/distfunctions2d).
 
@@ -199,7 +253,7 @@ Most distances are Inigo Quilez's (iquilezles.org/articles/distfunctions2d).
 Everything below then works on it.
 
 ```slang
-struct Ellipse : IShape
+struct Lens : IShape
 {
     Placement placement = Placement();
     float2 size;
@@ -268,6 +322,12 @@ like any other.
 | `a.meltedMinus(b, blend)` | `a` with `b` cut out, the cut rounded (smooth cut) |
 | `s.repeated(count, radius)` | `count` copies in a ring, `radius` out, each facing outwards |
 | `s.hollowed(thickness)` | just a shell `thickness` wide round the edge |
+| `a.xor(b)` | where only one of them is |
+| `s.grown(amount)` / `s.shrunk(amount)` | the edge moved out or in: growing rounds sharp corners |
+| `s.tiled(spacing)` / `s.tiled(spacing, count)` | copies over a grid, forever or `count` either side of the middle |
+| `s.mirrored(x = true, y = false)` | folded about its centre: one half copied over the other |
+| `s.elongated(amount)` | pulled apart from its middle, the gap filled straight: a circle into a capsule |
+| `s.swirled(turns)` | twisted round its centre, more the further out (no longer an exact distance) |
 
 ```slang
 let badge = Circle(70).meltedMinus(Star6(34).rotated(-time), 4);
@@ -295,6 +355,8 @@ pointer.
 | `box.outlined(sides, width, soft = 1)` / `box.outlined(position, sides, width, soft)` | `Box` only: `outlined` on just the chosen sides, joined with `\|`: `side.top \| side.left`, or `side.all`. A chosen side ends at the corner's diagonal where it meets one that isn't |
 | `s.shadowed(reach)`, `s.contoured(spacing, depth = 0.4)`, `s.shown(reach = 80)` | the `sdf.` looks of the distance at the pixel (§8): a shadow hugging the edge, contour lines, the whole field drawn to see it |
 | `s.distance()` / `s.distance(position)` | the signed distance itself: negative inside, in pixels |
+| `s.antialiased()` | `filled` with an edge exactly one screen pixel wide, whatever units the shape is drawn in (uv, tiles, warped space) |
+| `s.glowed(width, falloff = 1)` | a neon glow, `width / \|d\|`: 1 `width` from the edge, brighter nearer, **not** held to 1; paint it with `blend.add` |
 
 ### Measured: working a shape out once
 
@@ -354,6 +416,12 @@ When you build a distance yourself (in a loop, from a formula, from
 | `sdf.melted(a, b, blend)` | smooth union (a smooth min) |
 | `sdf.meltedAnd(a, b, blend)` | smooth intersection (a smooth max) |
 | `sdf.meltedMinus(a, b, blend)` | `a` with `b` cut out, smoothly |
+| `sdf.antialiased(d)`, `sdf.glowed(d, width, falloff = 1)` | as on shapes (§7) |
+| `sdf.xor(a, b)` | where only one is |
+| `sdf.bevelled(a, b, size)` | union joined by a 45° bevel instead of a round |
+| `sdf.stairs(a, b, size, steps)` | union whose join is filled with `steps` stair steps (Mercury's hg_sdf) |
+| `sdf.grooved(a, b, width, depth)` | a groove cut into `a` along `b`'s edge |
+| `sdf.banded(d, width)` | 0 and 1 by turns every `width`: rings round any shape |
 | `min(a, b)`, `max(a, b)`, `max(a, -b)` | the hard union, intersection and cut |
 
 ```slang
@@ -439,6 +507,63 @@ quad's centre like `Circle` does, in pixels, so `moved`, `rotated`, `scaled`,
 | `Columns(width, spacing)` / `Rows(width, spacing)` | upright or level lines only, one through the centre. |
 | `Stripes(size, fill = 0.5)` | diagonal bands repeating every `size` px across them, each band `fill` of that, one through the centre. `rotated` turns them further. `c.paint(Stripes(24), colours.gold)` draws even gold stripes. |
 | `Checker(size, levels = 0)` | squares `size` across, corners meeting at the centre; filled on every other one. `levels` (0 to 3) splits each square into a smaller checker again. |
+| `Hexagons(size, width)` | honeycomb walls, hexagons `size` across flat to flat, pointing up |
+| `Bricks(size, width, offset = 0.5)` | a brick wall's mortar, every other row shifted `offset` of a brick |
+| `Truchet(size, width, seed = 0)` | quarter circles in every tile, turned at random, linking into endless winding paths |
+| `Dots(spacing, radius, staggered = false)` | a grid of dots; staggered rows make a halftone screen |
+| `Waves(wavelength, amplitude, width, spacing = 0)` | sine lines across, of even width; `spacing` 0 for one |
+| `Zigzag(wavelength, amplitude, width, spacing = 0)` | zigzag lines across |
+| `Cells(size, width, jitter = 1, phase = 0)` | the walls between Voronoi cells, of even width; `phase` (pass `time`) makes them wobble |
+
+More ways to cut space, each giving a `Tile` (`.local`, `.id`, `.centre`) like
+`pattern.tile`: `pattern.hex(size)` (hexagons; `pattern.hexDistance(local)`
+measures as hexagons do), `pattern.bricks(size, offset = 0.5)` and
+`pattern.triangles(size)` (`.id.x` even pointing down, odd pointing up).
+
+**Voronoi cells:** `pattern.cells(size, jitter = 1, phase = 0)` splits space
+among points scattered one per tile, each owning what's nearest it, and gives a
+`Cell`: `.id` (seed colours with it), `.centre`, `.local` (from the cell's
+point), `.nearest` and `.second` (Worley's F1 and F2) and `.edge`, the exact
+distance to the cell's wall, so `sdf.stroked(cell.edge, 2)` draws even walls.
+
+### Noise
+
+Every kind of noise is a value, centred then placed: it *is* a gradient
+(0..1 everywhere), so `amount`, `coloured`, `c.paint(n, from, to)`, `moved`,
+`rotated` and `scaled` all work on it.
+
+| Noise | Is |
+|---|---|
+| `ValueNoise(size, seed = 0)` | a random level per lattice point, blended: soft and blocky, cheapest |
+| `Perlin(size, seed = 0)` | gradient noise: smooth hills and hollows about `size` across |
+| `Simplex(size, seed = 0)` | the same on triangles: no grid marks, cheaper per octave |
+| `Worley(size, jitter = 1)` | how far the nearest scattered point is: cells; `1 - amount` is bubbles |
+
+Building on one:
+
+- `n.evolved(t)` (or `evolve`) moves it along its third axis, so it changes in
+  place where `moved` slides it: `Simplex(200).evolved(time * 0.3)` boils.
+- `n.fractal(octaves = 5, gain = 0.5, lacunarity = 2)` stacks layers, each
+  finer and fainter (fbm: clouds, terrain); `n.ridged(…)` folds them into sharp
+  crests (mountains, veins, lightning); `n.billowed(…)` into puffy billows
+  (smoke, fire).
+- `n.warped(by, amount)` reads it at points pushed up to `amount` pixels by
+  another noise: domain warping, the marble and oil look.
+- `n.signed()` gives -1..1 instead of 0..1.
+
+```slang
+let clouds = Simplex(220).fractal(5).evolved(time * 0.1).moved(float2(time * 20, 0));
+c.paint(clouds, colours.navy, colours.white);
+float marble = Perlin(120).warped(Simplex(300).fractal(4), 80).amount();
+```
+
+Plain functions under `noise.` take a point in features (no size) and give
+0..1, for loops, formulas and ports: `noise.value`, `noise.perlin`,
+`noise.simplex` (each on a `float2`, or a `float3` such as `float3(p, time)`),
+`noise.fbm(p, octaves, gain)`, `noise.ridged(p, …)`, `noise.warped(p, amount,
+octaves)` (Quilez's double warp), `noise.worley(p)`, `noise.curl(p, phase)` (a
+swirling flow with no sources or sinks, for particles and smoke) and
+`noise.wobble(p)` (two noises -1..1, to shiver a position).
 
 `pattern.slice(count)` folds space into `count` slices round the centre, like
 a kaleidoscope: draw one thing at `slice.local` and it repeats in every slice.
@@ -478,6 +603,8 @@ Using one:
   with an optional blend: `c.paint(Radial(200), colours.gold, colours.transparent, blend.screen)`.
 - `g.coloured(from, to)` gives that colour at the pixel; `g.coloured(a, b, c)`
   and `g.coloured(a, b, c, d)` spread three or four stops evenly.
+- `g.mixed(from, to)` is `coloured` through Oklab, as the eye sees halfway:
+  no muddy middle between complementary colours.
 - `g.amount()` gives how far along it the pixel is, 0..1, for `lerp`,
   `ease.` or anything else.
 - All of them take a point first (`g.amount(position)`) for a position the
@@ -712,6 +839,18 @@ too, and the other way round.
 | `v.contrast(f)` / `v.contrasted(f)` | a number's distance from 0.5 scaled, as a colour's contrast: `lerp(v, 0.5, 0.3)` is `v.contrasted(0.7)` |
 | `random(seed)` | a repeatable number in 0..1. `seed` is a `float` or `float2`. |
 | `random2(seed)`, `random3(seed)` | two or three independent numbers in 0..1 for a `float2` seed |
+| `random(float3)`, `random3(float3)` | the same for a 3D seed (a cell and a time) |
+| `randomDirection(seed)` | a point on the unit circle (`float2` seed) or sphere (`float3` seed), every direction as likely |
+| `randomIn(seed, range)`, `randomBits(seed)` | a number in `float2(low, high)`; all 32 random bits, for picking with `%` |
+| `unlerp(a, b, x)` | lerp's inverse: how far `x` is from `a` to `b` |
+| `linearstep(edge0, edge1, x)` | a straight ramp, held at both ends: smoothstep without the curve |
+| `aastep(edge, x)` | `step` smoothed over one screen pixel of `x`: no jaggies in any units |
+| `snapped(x, step)`, `wrap(x, low, high)` | the nearest multiple; `x` going round inside a range |
+| `damped(current, target, rate, dt)` | exponential smoothing that frame rate doesn't change, for kept state |
+| `rotationMatrix(angle)` | the matrix for `rotate`: `mul(m, p)` |
+| `polar(p)`, `fromPolar(radius, angle)` | a point as (distance, angle) and back |
+| `shaping.` | Quilez's and Schlick's curves: `impulse(x, k)` (a thump), `pulse(x, centre, width)`, `parabola(x, k)`, `pcurve(x, a, b)`, `expStep(x, k)`, `bias(x, b)`, `gain(x, g)`, `almostIdentity`, `sinc(x, k)` (a ringing fade), `smoothFloor(x, k)` (stairs that ease), `spring(t, frequency, damping)` (overshoots and settles) |
+| `complex.` | complex numbers as `float2`: `mul`, `div`, `square`, `inverse`, `conjugate`, `exp`, `log`, `pow`; Mandelbrot and Julia sets, log-polar tunnels |
 
 The random numbers hash the seed's exact bits (PCG). Big, negative or
 fractional seeds are as random as small ones, and `random(id)`, `random2(id)`
@@ -753,6 +892,46 @@ return sampleScreen(i.screenUv + push / frame.screen);
   c.paint(note.haloed(cell.local, 0.09 * size), colours.gold, blend.add);
   c.paint(note.filled(cell.local), colours.white);
   ```
+
+### Filters (`xanadu.filter`)
+
+A picture is something to read colours from: `pictures.screen()` (read it at
+`i.screenUv`), `pictures.item()` (at `i.uv`) or `pictures.of(texture)`. Filters
+read it several times for one colour; points are its uv, sizes its pixels.
+
+| Call | Gives |
+|---|---|
+| `p.sampled(uv)` | its colour |
+| `p.blurred(uv, radius)` | a blur over about `radius` pixels: a blurrier mip smoothed by a ring of reads, cheap at any radius |
+| `p.smeared(uv, direction)` | motion blur along `direction` pixels |
+| `p.zoomBlurred(uv, centre, strength)`, `p.spinBlurred(uv, centre, angle)` | light rushing out from `centre`; turning round it |
+| `p.sharpened(uv, amount = 1)` | an unsharp mask |
+| `p.edges(uv, width = 1)` | how strongly brightness changes here (Sobel): an outline of everything |
+| `p.embossed(uv, strength)` | pressed into metal |
+| `p.pixelated(uv, block)` | blocks `block` pixels across |
+| `p.aberrated(uv, amount)`, `p.split(uv, offset)` | red and blue pulled apart (lens fringes), outwards or along a direction |
+| `p.painterly(uv, radius)` | flat painted patches with crisp edges (Kuwahara) |
+| `p.bloomed(uv, threshold, radius)` | only what's brighter than `threshold`, blurred: add it back for bloom |
+
+Under `filter.`, on a uv or a pixel (combine with any picture): `vignette(uv,
+strength, softness)` and `scanlines(pixel)` to multiply by, `grain(pixel,
+amount)` to add, `curved(uv, amount)` (an old curved screen) and `lens(uv,
+amount)` (fisheye or pinch) to read at, `inside(uv)` (1 on the picture),
+`shockwave(pixel, centre, radius, width, strength)` and `heatHaze(pixel)` (a
+push in pixels), `ripple(uv, centre)` and `glitch(uv, amount)` (moved uvs:
+torn digital bands), and the dither thresholds
+`bayer(pixel)` and `ign(pixel)`.
+Print looks: `filter.halftone(pixel, ink, size = 8, angle)` (a dot screen's
+coverage for an ink of 0..1) and `filter.hatched(pixel, ink, spacing, width)`
+(pen strokes, crossing as it darkens): paint ink by them,
+`c.paint(filter.halftone(i.pixel, 1 - c.luminance()), colours.black)`.
+
+```slang
+let behind = pictures.screen();
+float2 push = filter.shockwave(i.pixel, canvas.position, 400 * pop.progress, 50, 24);
+colour c = behind.aberrated(i.screenUv + push / frame.screen, 4);
+c.brighten(filter.vignette(i.screenUv, 0.5));
+```
 
 ## 14. Keeping state between frames
 
@@ -852,9 +1031,117 @@ float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
   `sampleScreen` and the effect's own textures are an error there.
 - **It moves corners, not pixels.** A plain rect has four, so it can only
   squash, tilt or move. A bend needs corners inside: the editors draw their
-  preview as a 48-cell grid for that. Items in a level are drawn as they are.
+  preview as a grid 96 cells across (96 × 54 in its 16:9) for that. Items in a level are drawn as they are.
 - Kept state isn't there: `state` reads as zeros in `deform`.
 - Without a `deform` the host's standard vertex stage draws the effect.
+
+**Ready-made moves** (`xanadu.mesh`), on the corner itself: each a verb that
+moves it (`v.wave(…)`) or a copy (`v.waved(…)`), measured from the quad at
+rest so they stack in any order:
+
+| Call | Does |
+|---|---|
+| `v.wave(amplitude, wavelength, phase)` | up and down across it: a flag |
+| `v.twist(angle)` | the rim turned round the middle, the middle still: a whirlpool |
+| `v.bulge(centre, radius, strength)` | swelled out round a point (negative pinches) |
+| `v.squash(amount)` | squash and stretch from the bottom, keeping its area |
+| `v.sway(amount)` | the top leaned over on a curve: grass in wind |
+| `v.shake(amount, rate)`, `v.jitter(amount, rate)` | all corners jumping together; each on its own (a hand-drawn boil) |
+| `v.tilt(angle, distance)` | turned in 3D round its upright middle line, on four corners alone |
+| `v.curl(progress, radius)` | curled up from the bottom right like a page turning |
+
+```slang
+ItemVertex deform(ItemVertex v)
+{
+    v.wave(12, 200, time);
+    v.squash(0.15 * beats.pulse());   // a thump on every beat
+    return v;
+}
+```
+
+### 3D from the grid: `xanadu.mesh`
+
+The grid's uv says where each corner is on the quad; a **surface** says where
+that uv sits in 3D, a **camera** where that lands on screen, and `deform` moves
+the corner there. One small sum per corner: 3D at the cost of a
+2D effect.
+
+```slang
+Sphere ball() { return Sphere(160).turned(float3(0.3, time, 0)); }
+Camera camera() { return Camera(900).orbited(0, 0.3); }
+
+ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
+
+float4 shade(ItemInput i)
+{
+    if (!mesh.facing()) return colours.transparent;      // its far side
+    colour c = colours.navy;
+    c.paint(Checker(0.08).filled(i.uv), colours.gold);     // painted on in uv
+    return ball().lit(i.uv, camera(), c);
+}
+```
+
+Space is pixels: x right, y down, z into the screen. `Camera(distance, focal)`
+looks along +z from `distance` in front of the origin; by default depth 0 shows
+1:1, so `Sphere(160)` is 320 px across. `camera.orbited(yaw, pitch)` swings it
+round; `projected(p)`, `depth(p)` and `eye` are there for your own maths. Build
+the surface in one function and call it from both stages: `deform` places the
+corners, and `shade` asks it again at `i.uv` for the normal.
+
+| Surface | Is (u, v) |
+|---|---|
+| `Sheet(size)` | a flat card facing the camera |
+| `Disc(radius, hole = 0)` | flat and facing up, u round it, v rim to middle: caps, records, floors, washers |
+| `Sphere(radius)` | u round it, v pole to pole |
+| `Torus(radius, thickness)` | a ring doughnut lying flat |
+| `Cylinder(radius, height, top = 1, bottom = 1)` | an open tube; `top` 0 is a cone |
+| `profile.lathed()` | any 2D curve (`Bezier`, `Spline`; x out from the axis, y down) spun round: vases, bells, tops |
+| `path.extruded(depth)` | a 2D curve stood up as a wall `depth` deep |
+| `shape.relief(size, height, bevel)` | any 2D shape raised out of a sheet: a badge, a logo, a button made solid |
+| `spine.ribbon(width, twist = 0)` | a strip along any curve, `twist` turns round it |
+| `spine.tube(radius, taper = 1)` | a round tube along any curve: pipes, worms, cables, springs |
+| `Superquadric(radius, roundness, around)` | a ball squared off or pinched: 1 a sphere, towards 0 a rounded cube, 2 an octahedron, above 2 a star |
+| `Patch(size).raised(column, row, offset)` | a bicubic Bézier patch: a sheet bent by a 4 × 4 grid of control points |
+| `a.morphed(b, amount)` | one surface turning into another, each uv sliding between them: a sheet folding into a ball |
+| `Terrain(size, height, feature, travel)` | rolling fbm hills lying flat; `travel` scrolls them towards you |
+| `Ocean(size, height, wavelength, choppiness, wind)` | open water: six Gerstner waves, crests sharp and troughs flat, moving with time; `crestAt(uv)` for foam |
+| `s.lumpy(amount, feature, phase)` | any surface pushed along its normal by 3D noise: rocks, blobs |
+| `s.waving(amount, waves, phase)` | any surface rippling across u: flags, cloth |
+
+**Curves** (`ICurve3`: `at(t)`, `tangent(t)`) give tubes and ribbons: `Bezier3(a, b,
+c, d)`, `Spline3` (a Catmull-Rom path through up to 16 points you `add`, passing
+through each) and `Helix(radius, height, turns)`. In 2D, `Spline(width)` is the
+same path through points as a shape, and `BezierLine(bezier, width)` draws a cubic
+`Bezier`. `Spline`, `BezierLine` and `Polyline` take `tracedTo(progress)`: only
+the first part drawn, for a path writing itself on (`s.at(progress)` is the pen
+tip; `Learn/write_on.slang`).
+
+Every surface: `moved(float3)`, `turned(float3 angles)` (radians round x, y,
+z), `scaled(f)` and their verbs; `at(uv)`, `normalAt(uv)`, `pointAt(uv)`;
+`deformed(v, camera)` (or `deformed(v, camera, uv)` for a piece's own uv);
+`lit(uv, camera, base, shininess)`, a studio light (key, fill, sheen, rim).
+Your own: implement `ISurface` (`placement3` and `local(uv)`, u left to right
+and v top to bottom as seen from outside).
+
+- **Light:** `lights.diffuse`, `lights.wrapped`, `lights.specular` (Blinn),
+  `lights.rim` and `lights.toon` (cel bands), each 0..1; `lights.matcap(normal,
+  toEye, shadow, base, light)` for a stylised ceramic or clay look.
+  `camera.fog(p, near, far)` fades with distance.
+- **No depth buffer:** triangles land in the grid's order. A convex surface
+  hides its far side with `mesh.facing()`, which reads the uv's winding on
+  screen and needs no normal; something that overlaps itself from the front (a
+  torus edge-on) can show its back through.
+- **Many from one grid:** `mesh.split(uv, count)` cuts the grid into pieces,
+  each its own surface (`Piece`: `.index`, `.uv`, `.seam`). Call it with `v.uv` in
+  `deform` and `i.uv` in `shade`, and hide `seam` pixels: one row of cells
+  stretched between two pieces. Give each piece whole cells (the preview is 96
+  × 54).
+- **Seeing the triangles:** `mesh.wireframe(uv, cells)` draws each cell's edges
+  and diagonal.
+- **Grid density is the silhouette:** lighting is worked out per pixel, so
+  surfaces shade smoothly, but their outline is as fine as the grid.
+- `Learn/planet.slang` goes from the flat grid to a lit planet in nine steps;
+  `Learn/tour_mesh.slang` shows every surface.
 
 ## 16. Trying things out
 
@@ -924,6 +1211,67 @@ float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
   - selection, copy and paste, undo and redo.
 - **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
   metaballs, a shape badge, a screen ripple, a flashlight and clips, each a slot shader.
+- **Walkthroughs and tours** (`Assets/Shaders/Learn/`, open in the shader tool
+  as `Learn/…`): effects built in numbered steps, each panel showing the picture
+  as it was after that step (glow badge, clouds, stained glass, fire, a beat hit,
+  a synthwave stage), and one tour per library area drawing everything in it
+  (`tour_shapes`, `tour_noise`, `tour_pattern`, `tour_colour`, `tour_filter`,
+  `tour_looks`). `Learn/README.md` lists them.
+
+### Showing your steps: `xanadu.steps`
+
+`steps.split(count)` cuts the quad into panels and points everything that draws
+at the pixel being shaded (shapes, gradients, noise, `pattern.tile`) at this
+pixel's place in its own panel, so the shader runs unchanged in each. Return
+early at each step and every panel shows the picture as it was there:
+
+```slang
+Step panel = steps.split(4);
+if (panel.gap) return panel.backdrop;
+let blob = Circle(60).melted(Box(float2(80)).moved(float2(50, 0)), 20);
+if (panel.stopsAt(0)) return panel.marked(blob.shown());   // 1: the distance
+colour c = colours.midnightBlue;
+c.paint(blob, colours.gold);
+if (panel.stopsAt(1)) return panel.marked(c);              // 2: filled
+c.paint(blob.haloed(40), colours.gold, blend.add);
+return panel.marked(c);                                    // 3: glowing
+```
+
+`panel.marked(c)` numbers the panel with dots in its corner (a bar for every
+fifth); `panel.from(k)` is true from step `k` on; `panel.canvas` and `panel.uv`
+are the panel's own. `steps.slideshow(count, seconds)` shows the same steps one after
+another, full size: a slideshow. Name the variable `panel`, not `step`: a
+local called `step` hides Slang's `step()`.
+
+### Ready-made looks: `xanadu.looks`
+
+Pieces for level backgrounds and hits, each built from the rest of the library
+and small enough to read and change:
+
+| Call | Gives |
+|---|---|
+| `Lightning(a, b, width, seed, jag = 0.12)` | a jagged bolt (a shape): a new `seed` re-strikes it, `floor(time * 12)` twelve times a second; `haloed` for its glow |
+| `Sunburst(rays, fill = 0.5)` | rays out from the centre (a shape) |
+| `looks.starfield(position, density, layers, drift)` | twinkling stars in depths, drifting |
+| `looks.synthwaveFloor(position, horizon, travel)` | the glowing perspective grid, rolling as `travel` grows |
+| `looks.retroSun(position, radius, bands)` | the banded synthwave sun |
+| `looks.aurora(position, y)` | swaying aurora curtains |
+| `looks.caustics(position, size)` | light rippling on a pool floor |
+| `looks.rain(position, density, angle, speed, length)`, `looks.snow(position, density, speed)` | weather |
+| `looks.burst(position, age, seed, sparks, reach)` | a firework `age` seconds after it went off: pass `clock.since(events.hit).seconds` |
+| `looks.plasma(position, scale)` | the classic plasma |
+| `looks.hitRing(position, age, radius, length, width)` | a hit's ring bursting out and fading |
+| `looks.confetti(position, age, out tint, seed, count, reach)` | paper slips thrown up, tumbling down; `tint` gives the hue of the piece there |
+| `looks.speedLines(position, centre, clear, count, rate)` | anime speed lines rushing in towards `centre` |
+
+`Learn/synthwave_stage.slang` layers them into a level background step by step.
+
+**In time with the music: `beats.`** reads the global `beat` (`every` in beats:
+1 each beat, 4 each bar of 4/4): `beats.phase(every)` (0..1 through it),
+`beats.index(every)`, `beats.pulse(every, decay)` (a thump on each),
+`beats.flash(every, length)`, `beats.alternate(every)` (+1, -1 by turns),
+`beats.sway(every)` and `beats.bounce(every, frequency)` (a spring on each).
+`dot.scale(1 + 0.2 * beats.pulse())` thumps a shape on every beat.
 
 ## 17. Pitfalls
 
@@ -959,6 +1307,22 @@ float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
   handled here!". Set such a global from a function instead (`playState` in
   `stage.slang` does). `static const` vectors (`colours.gold`) are fine: the
   precompiler turns them into getters on its own (`SlangModules`).
+
+- **A name the library already uses.** `import xanadu;` brings every library
+  shape, noise and namespace into scope, so your own `struct Star`, a global
+  `float noise(…)` or a `static const float2 Corners[6]` beside a library
+  `Corners` is "ambiguous". Pick another name, or the library's version.
+- **In the library: no `let N : int` generics.** Slang compiles a struct
+  generic over a whole number (`Points<let N : int>`) but reads `N` as 0 inside
+  its methods: loops over it never run. Give it a fixed capacity and a count
+  instead (`Outline`, `Polyline`).
+- **In the library: a colour parameter's name is global to the float3 fix-up.**
+  The fix-up that turns a float3 into a colour (§3) decides by name, from every
+  `colour <name>` the library declares, unscoped. Don't name a library
+  `colour` parameter something users name plain float4s (`c`, `col`): `hdr`,
+  `top`, `bottom` are safe. The same goes for calls: a library function with the
+  name and argument count of one taking a colour (`steps.over(count)` against
+  `c.over(bottom)`) makes the fix-up give up on both.
 
 ## 18. From shadertoy
 

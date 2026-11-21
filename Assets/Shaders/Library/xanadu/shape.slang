@@ -110,6 +110,35 @@ public namespace sdf
         return float4(rgb, 1.0);
     }
 
+    /// filled with an edge exactly one screen pixel wide, whatever the units: for shapes drawn in
+    /// uv, tiles or any space that isn't pixels (the soft width comes from how fast d changes).
+    public float antialiased(float d) { return filled(d, max(fwidth(d), 1e-6)); }
+
+    /// A neon glow: `width` / |d|, so it is 1 `width` units from the edge, brighter nearer and
+    /// falling slowly away; `falloff` above 1 tightens it. Not held to 1: meant for blend.add or
+    /// brighten, where the blown-out middle is the look (shadertoy's 0.02 / abs(d)).
+    public float glowed(float d, float width, float falloff = 1.0) { return min(pow(width / max(abs(d), 1e-4), falloff), 1e3); }
+
+    /// Where only one of the two is (exclusive or).
+    public float xor(float a, float b) { return max(min(a, b), -max(a, b)); }
+
+    /// Both together, joined with a 45° bevel `size` across instead of a round (a chamfered union).
+    public float bevelled(float a, float b, float size) { return min(min(a, b), (a - size + b) * 0.70710678); }
+
+    /// Both together, `steps` stair steps filling the join over `size` units (Mercury's hg_sdf opUnionStairs).
+    public float stairs(float a, float b, float size, float steps)
+    {
+        float s = size / max(steps, 1.0);
+        float u = b - size;
+        return min(min(a, b), 0.5 * (u + a + abs(mod(u - a + s, 2.0 * s) - s)));
+    }
+
+    /// A groove `depth` deep and `width` wide cut along where `b`'s edge crosses `a`.
+    public float grooved(float a, float b, float width, float depth) { return max(a, min(a + depth, width - abs(b))); }
+
+    /// A distance cut into bands `width` units wide, 0 and 1 by turns: rings round any shape.
+    public float banded(float d, float width) { return step(0.5, frac(d / max(width, 1e-5))); }
+
     /// Both together, melted over `blend` units: a smooth min (Quilez's polynomial smin).
     public float melted(float a, float b, float blend)
     {
@@ -424,6 +453,642 @@ public struct Moon : IShape
     }
 }
 
+/// An ellipse `radius.x` across from its centre to the sides and `radius.y` to the top and bottom
+/// (Quilez's exact distance, solving the quartic).
+/// @cost 5
+public struct Ellipse : IShape
+{
+    public Placement placement = Placement();
+    public float2 radius;
+
+    public __init(float2 radius) { this.radius = radius; }
+
+    public float local(float2 p)
+    {
+        float2 ab = max(radius, float2(1e-4));
+        if (abs(ab.x - ab.y) < 1e-3 * max(ab.x, ab.y))
+            return length(p) - ab.x;
+        p = abs(p);
+        if (p.x > p.y) { p = p.yx; ab = ab.yx; }
+        float l = ab.y * ab.y - ab.x * ab.x;
+        float m = ab.x * p.x / l, m2 = m * m;
+        float n = ab.y * p.y / l, n2 = n * n;
+        float c = (m2 + n2 - 1.0) / 3.0, c3 = c * c * c;
+        float q = c3 + m2 * n2 * 2.0;
+        float d = c3 + m2 * n2;
+        float g = m + m * n2;
+        float co;
+        if (d < 0.0)
+        {
+            float h = acos(clamp(q / c3, -1.0, 1.0)) / 3.0;
+            float s = cos(h), t = sin(h) * sqrt(3.0);
+            float rx = sqrt(max(-c * (s + t + 2.0) + m2, 0.0));
+            float ry = sqrt(max(-c * (s - t + 2.0) + m2, 0.0));
+            co = (ry + sign(l) * rx + abs(g) / max(rx * ry, 1e-9) - m) / 2.0;
+        }
+        else
+        {
+            float h = 2.0 * m * n * sqrt(d);
+            float s = sign(q + h) * pow(abs(q + h), 1.0 / 3.0);
+            float u = sign(q - h) * pow(abs(q - h), 1.0 / 3.0);
+            float rx = -s - u - c * 4.0 + 2.0 * m2;
+            float ry = (s - u) * sqrt(3.0);
+            float rm = sqrt(rx * rx + ry * ry);
+            co = (ry / sqrt(max(rm - rx, 1e-9)) + 2.0 * g / rm - m) / 2.0;
+        }
+        co = clamp(co, 0.0, 1.0);
+        float2 r = ab * float2(co, sqrt(1.0 - co * co));
+        return length(r - p) * sign(p.y - r.y);
+    }
+}
+
+/// A regular polygon with `sides` equal sides (3 a triangle, 5 a pentagon, 6 a hexagon, …), its
+/// corners `radius` from the centre. One corner points up when `sides` is odd; an even count sits
+/// on a flat side.
+/// @cost 3
+public struct Polygon : IShape
+{
+    public Placement placement = Placement();
+    public float sides;
+    public float radius;
+
+    public __init(float sides, float radius) { this.sides = sides; this.radius = radius; }
+
+    public float local(float2 p)
+    {
+        // Folded into half of one side's slice, measured to that side.
+        float half = PI / max(sides, 2.0);
+        float angle = mod(atan2(p.x, p.y), 2.0 * half) - half;
+        p = length(p) * float2(cos(angle), abs(sin(angle)));
+        p -= radius * float2(cos(half), sin(half));
+        p.y += clamp(-p.y, 0.0, radius * sin(half));
+        return length(p) * sign(p.x);
+    }
+}
+
+/// A star with `points` tips `radius` from the centre, one pointing up when `points` is odd.
+/// `sharpness` 0 is the plain polygon, 1 the thinnest spikes (Quilez's star).
+/// @cost 3
+public struct Star : IShape
+{
+    public Placement placement = Placement();
+    public float points;
+    public float radius;
+    public float sharpness;
+
+    public __init(float points, float radius, float sharpness = 0.6) { this.points = points; this.radius = radius; this.sharpness = sharpness; }
+
+    public float local(float2 p)
+    {
+        float n = max(points, 2.0);
+        float m = lerp(n, 2.0, saturate(sharpness));
+        float an = PI / n, en = PI / m;
+        float2 acs = float2(cos(an), sin(an)), ecs = float2(cos(en), sin(en));
+        float angle = mod(atan2(p.x, p.y), 2.0 * an) - an;
+        p = length(p) * float2(cos(angle), abs(sin(angle)));
+        p -= radius * acs;
+        p += ecs * clamp(-dot(p, ecs), 0.0, radius * acs.y / ecs.y);
+        return length(p) * sign(p.x);
+    }
+}
+
+/// A diamond `size` wide and high, its corners on the middles of that box's sides.
+/// @cost 2
+public struct Rhombus : IShape
+{
+    public Placement placement = Placement();
+    public float2 size;
+
+    public __init(float2 size) { this.size = size; }
+
+    public float local(float2 p)
+    {
+        float2 b = size * 0.5;
+        p = abs(p);
+        float2 e = b - 2.0 * p;
+        float h = clamp((e.x * b.x - e.y * b.y) / dot(b, b), -1.0, 1.0);
+        float d = length(p - 0.5 * b * float2(1.0 - h, 1.0 + h));
+        return d * sign(p.x * b.y + p.y * b.x - b.x * b.y);
+    }
+}
+
+/// A trapezoid `height` high, `bottom` wide along its bottom and `top` wide along its top.
+/// @cost 3
+public struct Trapezoid : IShape
+{
+    public Placement placement = Placement();
+    public float bottom;
+    public float top;
+    public float height;
+
+    public __init(float bottom, float top, float height) { this.bottom = bottom; this.top = top; this.height = height; }
+
+    public float local(float2 p)
+    {
+        float r1 = bottom * 0.5, r2 = top * 0.5, he = height * 0.5;
+        p.y = -p.y;
+        float2 k1 = float2(r2, he);
+        float2 k2 = float2(r2 - r1, 2.0 * he);
+        p.x = abs(p.x);
+        float2 ca = float2(p.x - min(p.x, p.y < 0.0 ? r1 : r2), abs(p.y) - he);
+        float2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot(k2, k2), 0.0, 1.0);
+        float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+        return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+    }
+}
+
+/// A triangle `width` across its base and `height` from the base to its tip, pointing up.
+/// @cost 3
+public struct Spike : IShape
+{
+    public Placement placement = Placement();
+    public float width;
+    public float height;
+
+    public __init(float width, float height) { this.width = width; this.height = height; }
+
+    public float local(float2 p)
+    {
+        // Quilez's isosceles triangle: tip on the origin, base `height` below it.
+        float2 q = float2(width * 0.5, height);
+        p.y += height * 0.5;
+        p.x = abs(p.x);
+        float2 a = p - q * clamp(dot(p, q) / dot(q, q), 0.0, 1.0);
+        float2 b = p - q * float2(clamp(p.x / q.x, 0.0, 1.0), 1.0);
+        float s = -sign(q.y);
+        float2 d = min(float2(dot(a, a), s * (p.x * q.y - p.y * q.x)), float2(dot(b, b), s * (p.y - q.y)));
+        return -sqrt(d.x) * sign(d.y);
+    }
+}
+
+/// A slice of a disc `radius` round, opening upwards `angle` radians either side of straight up
+/// (PI is the whole disc).
+/// @cost 3
+public struct Pie : IShape
+{
+    public Placement placement = Placement();
+    public float radius;
+    public float angle;
+
+    public __init(float radius, float angle) { this.radius = radius; this.angle = angle; }
+
+    public float local(float2 p)
+    {
+        float2 c = float2(sin(angle), cos(angle));
+        p.y = -p.y;
+        p.x = abs(p.x);
+        float l = length(p) - radius;
+        float m = length(p - c * clamp(dot(p, c), 0.0, radius));
+        return max(l, m * sign(c.y * p.x - c.x * p.y));
+    }
+}
+
+/// A heart about `size` across and high, point down (Quilez's exact heart).
+/// @cost 3
+public struct Heart : IShape
+{
+    public Placement placement = Placement();
+    public float size;
+
+    public __init(float size) { this.size = size; }
+
+    public float local(float2 p)
+    {
+        // His heart runs from its point at 0 up to about 1.05: centred, y up, in units of size.
+        float2 q = float2(abs(p.x), -p.y + 0.525 * size) / size;
+        float d;
+        if (q.y + q.x > 1.0)
+            d = length(q - float2(0.25, 0.75)) - sqrt(2.0) / 4.0;
+        else
+        {
+            float2 a = q - float2(0.0, 1.0);
+            float2 b = q - 0.5 * max(q.x + q.y, 0.0);
+            d = sqrt(min(dot(a, a), dot(b, b))) * sign(q.x - q.y);
+        }
+        return d * size;
+    }
+}
+
+/// A pointed oval standing upright: where two circles of `radius`, their centres `offset` either
+/// side of the middle, overlap (a vesica, an eye, a leaf). `offset` below `radius`.
+/// @cost 2
+public struct Vesica : IShape
+{
+    public Placement placement = Placement();
+    public float radius;
+    public float offset;
+
+    public __init(float radius, float offset) { this.radius = radius; this.offset = offset; }
+
+    public float local(float2 p)
+    {
+        float r = radius, d = min(offset, radius * 0.999);
+        p = abs(p);
+        float b = sqrt(r * r - d * d);
+        return ((p.y - b) * d > p.x * b) ? length(p - float2(0.0, b)) : length(p - float2(-d, 0.0)) - r;
+    }
+}
+
+/// An X `size` wide and high, its arms `thickness` thick with round ends.
+/// @cost 2
+public struct Saltire : IShape
+{
+    public Placement placement = Placement();
+    public float size;
+    public float thickness;
+
+    public __init(float size, float thickness) { this.size = size; this.thickness = thickness; }
+
+    public float local(float2 p)
+    {
+        p = abs(p);
+        return length(p - min(p.x + p.y, size) * 0.5) - thickness * 0.5;
+    }
+}
+
+/// A line from `a` to `b` that thickens or thins along the way: `widthA` wide at `a`, `widthB` at
+/// `b`, round at both ends (Quilez's uneven capsule). A tadpole, a tapered stroke, a comet.
+/// @cost 3
+public struct TaperedLine : IShape
+{
+    public Placement placement = Placement();
+    public float2 a;
+    public float2 b;
+    public float widthA;
+    public float widthB;
+
+    public __init(float2 a, float2 b, float widthA, float widthB) { this.a = a; this.b = b; this.widthA = widthA; this.widthB = widthB; }
+
+    public float local(float2 p)
+    {
+        float2 along = b - a;
+        float h = max(length(along), 1e-5);
+        float2 up = along / h;
+        // Into the line's frame: a at the origin, b straight along +y.
+        p -= a;
+        p = float2(abs(up.y * p.x - up.x * p.y), dot(p, up));
+        float r1 = widthA * 0.5, r2 = widthB * 0.5;
+        float s = clamp((r1 - r2) / h, -0.9999, 0.9999);
+        float c = sqrt(1.0 - s * s);
+        float k = dot(p, float2(-s, c));
+        if (k < 0.0)
+            return length(p) - r1;
+        if (k > c * h)
+            return length(p - float2(0.0, h)) - r2;
+        return dot(p, float2(c, s)) - r1;
+    }
+}
+
+/// A curve from `a` to `b` pulled towards `control` (a quadratic Bézier), `width` thick with
+/// round ends; 0 for a bare curve to draw with stroked or haloed (Quilez's exact distance).
+/// @cost 5
+public struct Arch : IShape
+{
+    public Placement placement = Placement();
+    public float2 a;
+    public float2 control;
+    public float2 b;
+    public float width;
+
+    public __init(float2 a, float2 control, float2 b, float width = 0.0) { this.a = a; this.control = control; this.b = b; this.width = width; }
+
+    public float local(float2 pos)
+    {
+        float2 A = a, B = control, C = b;
+        // A straight one has no curve to solve: nudge its control off the line.
+        float2 bend = A - 2.0 * B + C;
+        if (dot(bend, bend) < 1e-6)
+            B += float2(1e-3, -1e-3);
+        float2 ea = B - A;
+        float2 eb = A - 2.0 * B + C;
+        float2 ec = ea * 2.0;
+        float2 ed = A - pos;
+        float kk = 1.0 / dot(eb, eb);
+        float kx = kk * dot(ea, eb);
+        float ky = kk * (2.0 * dot(ea, ea) + dot(ed, eb)) / 3.0;
+        float kz = kk * dot(ed, ea);
+        float pp = ky - kx * kx;
+        float p3 = pp * pp * pp;
+        float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
+        float h = q * q + 4.0 * p3;
+        float res;
+        if (h >= 0.0)
+        {
+            h = sqrt(h);
+            float2 x = (float2(h, -h) - q) / 2.0;
+            float2 uv = sign(x) * pow(abs(x), float2(1.0 / 3.0));
+            float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
+            float2 w = ed + (ec + eb * t) * t;
+            res = dot(w, w);
+        }
+        else
+        {
+            float z = sqrt(-pp);
+            float v = acos(clamp(q / (pp * z * 2.0), -1.0, 1.0)) / 3.0;
+            float m = cos(v), n = sin(v) * 1.732050808;
+            float3 t = clamp(float3(m + m, -n - m, n - m) * z - kx, 0.0, 1.0);
+            float2 w1 = ed + (ec + eb * t.x) * t.x;
+            float2 w2 = ed + (ec + eb * t.y) * t.y;
+            res = min(dot(w1, w1), dot(w2, w2));
+        }
+        return sqrt(res) - width * 0.5;
+    }
+}
+
+/// Any closed outline through up to 32 corners in order (either way round), straight between
+/// them: Quilez's polygon. Add the corners, then draw it like any shape.
+///
+///     Outline house;
+///     house.add(float2(-40, 40)); house.add(float2(40, 40)); house.add(float2(40, -10));
+///     house.add(float2(0, -50)); house.add(float2(-40, -10));
+///     c.paint(house, colours.white);
+/// @cost 6
+public struct Outline : IShape
+{
+    public Placement placement = Placement();
+    public float2 corners[32];
+    public int count = 0;
+
+    public __init() { count = 0; }
+
+    /// Adds a corner after the last; past 32 they're dropped.
+    [mutating] public void add(float2 corner)
+    {
+        if (count < 32)
+        {
+            corners[count] = corner;
+            count++;
+        }
+    }
+
+    /// A copy with a corner added after the last.
+    public Outline added(float2 corner) { Outline r = this; r.add(corner); return r; }
+
+    public float local(float2 p)
+    {
+        if (count < 1)
+            return 1e10;
+        float2 first = p - corners[0];
+        float d = dot(first, first);
+        float s = 1.0;
+        for (int i = 0; i < count; i++)
+        {
+            int j = i == 0 ? count - 1 : i - 1;
+            float2 e = corners[j] - corners[i];
+            float2 w = p - corners[i];
+            float2 b = w - e * clamp(dot(w, e) / max(dot(e, e), 1e-9), 0.0, 1.0);
+            d = min(d, dot(b, b));
+            bool3 c = bool3(p.y >= corners[i].y, p.y < corners[j].y, e.x * w.y > e.y * w.x);
+            if (all(c) || !any(c))
+                s = -s;
+        }
+        return s * sqrt(d);
+    }
+}
+
+/// An open path through up to 32 points in order, `width` thick with round joins and ends; 0 for
+/// a bare path to draw with stroked or haloed. Add the points as for an Outline.
+/// @cost 5
+public struct Polyline : IShape
+{
+    public Placement placement = Placement();
+    public float2 points[32];
+    public int count = 0;
+    public float width = 0.0;
+    /// How much of it is drawn, 0..1 of its length from its start: tracedTo animates it drawing itself on.
+    public float until = 1.0;
+
+    public __init(float width = 0.0) { count = 0; this.width = width; }
+
+    /// A copy drawn only from its start to `progress` (0..1) of its length: a path drawing itself on.
+    public Polyline tracedTo(float progress) { Polyline r = this; r.until = saturate(progress); return r; }
+
+    /// Adds a point after the last; past 32 they're dropped.
+    [mutating] public void add(float2 point)
+    {
+        if (count < 32)
+        {
+            points[count] = point;
+            count++;
+        }
+    }
+
+    /// A copy with a point added after the last.
+    public Polyline added(float2 point) { Polyline r = this; r.add(point); return r; }
+
+    public float local(float2 p)
+    {
+        if (count < 1)
+            return 1e10;
+        float2 first = p - points[0];
+        float d = dot(first, first);
+        // The length to draw: `until` of the whole.
+        float total = 0.0;
+        for (int i = 0; i + 1 < count; i++)
+            total += length(points[i + 1] - points[i]);
+        float left = until * total;
+        for (int i = 0; i + 1 < count && left > 0.0; i++)
+        {
+            float2 ba = points[i + 1] - points[i];
+            float segment = length(ba);
+            // The last piece drawn stops part way along.
+            float shown = min(left, segment) / max(segment, 1e-9);
+            float2 pa = p - points[i];
+            float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-9), 0.0, shown);
+            float2 off = pa - ba * h;
+            d = min(d, dot(off, off));
+            left -= segment;
+        }
+        return sqrt(d) - width * 0.5;
+    }
+}
+
+/// An arrow pointing right, `span` from tail to tip: a shaft `width` thick and a head `head`
+/// long and twice `width` + `head` across at its back. Rotate it to point elsewhere.
+/// @cost 4
+public struct Arrow : IShape
+{
+    public Placement placement = Placement();
+    public float span;
+    public float width;
+    public float head;
+
+    public __init(float span, float width, float head) { this.span = span; this.width = width; this.head = head; }
+
+    public float local(float2 p)
+    {
+        float shaftLength = max(span - head, 0.0);
+        // The shaft from the tail to the head's back; the head a triangle pointing right.
+        float2 q = p - float2(-span * 0.5 + shaftLength * 0.5, 0.0);
+        float2 b = abs(q) - float2(shaftLength * 0.5, width * 0.5);
+        float shaft = length(max(b, 0.0)) + min(max(b.x, b.y), 0.0);
+        float2 tip = float2(span * 0.5, 0.0);
+        float2 h = float2(p.y, tip.x - p.x);            // the head's own space: tip up at (0, 0)
+        float2 sz = float2(width + head, head);
+        float2 hq = float2(sz.x * 0.5, sz.y);
+        h.x = abs(h.x);
+        float2 ha = h - hq * clamp(dot(h, hq) / dot(hq, hq), 0.0, 1.0);
+        float2 hb = h - hq * float2(clamp(h.x / hq.x, 0.0, 1.0), 1.0);
+        float s = -sign(hq.y);
+        float2 hd = min(float2(dot(ha, ha), s * (h.x * hq.y - h.y * hq.x)), float2(dot(hb, hb), s * (h.y - hq.y)));
+        float headDistance = -sqrt(hd.x) * sign(hd.y);
+        return min(shaft, headDistance);
+    }
+}
+
+/// A squircle: between a box and an ellipse, `size` wide and high, `power` 2 an ellipse, 4 the
+/// soft square of app icons, higher ever squarer. Its distance is close, not exact.
+/// @cost 3
+public struct Squircle : IShape
+{
+    public Placement placement = Placement();
+    public float2 size;
+    public float power;
+
+    public __init(float2 size, float power = 4.0) { this.size = size; this.power = power; }
+
+    public float local(float2 p)
+    {
+        float2 half = max(size * 0.5, float2(1e-4));
+        float2 q = abs(p) / half;
+        float n = max(power, 1.0);
+        float r = pow(pow(q.x, n) + pow(q.y, n), 1.0 / n);
+        // The radial distance in units of the shape, scaled back by the shorter half: close enough near the edge.
+        return (r - 1.0) * min(half.x, half.y);
+    }
+}
+
+/// An egg standing upright: a round bottom `radius` across and a pointed top, `tip` rounding its
+/// point (Quilez's egg). The bottom circle's middle is the shape's centre.
+/// @cost 3
+public struct Egg : IShape
+{
+    public Placement placement = Placement();
+    public float radius;
+    public float tip;
+
+    public __init(float radius, float tip = 0.0) { this.radius = radius; this.tip = tip; }
+
+    public float local(float2 p)
+    {
+        const float k = sqrt(3.0);
+        p.y = -p.y;
+        p.x = abs(p.x);
+        float r = radius - tip;
+        float d = p.y < 0.0 ? length(p) - r
+                : k * (p.x + r) < p.y ? length(float2(p.x, p.y - k * r))
+                : length(float2(p.x + r, p.y)) - 2.0 * r;
+        return d - tip;
+    }
+}
+
+/// A number in seven-segment digits, like a clock or a scoreboard: `value` (its whole part, as a
+/// positive number) in digits `height` tall, strokes `thickness` thick. `places` above 0 always
+/// shows that many digits, zeros in front; 0 shows as many as it needs (up to 8). Centred on the
+/// whole number. A shape: combo counters, BPM, a countdown.
+///
+///     c.paint(Digits(combo, 40, 5), colours.white);
+/// @cost 9
+public struct Digits : IShape
+{
+    public Placement placement = Placement();
+    public float value;
+    public float height;
+    public float thickness;
+    public int places = 0;
+
+    public __init(float value, float height, float thickness = 0.0, int places = 0)
+    {
+        this.value = value; this.height = height; this.thickness = thickness > 0.0 ? thickness : height * 0.12; this.places = places;
+    }
+
+    /// How many digits it draws.
+    public property int count
+    {
+        get
+        {
+            if (places > 0)
+                return min(places, 8);
+            float v = floor(abs(value));
+            int n = 1;
+            for (int k = 1; k < 8; k++)
+                if (v >= pow(10.0, float(k)))
+                    n = k + 1;
+            return n;
+        }
+    }
+
+    /// The segments lit for digit `d` (bits a to g: top, top right, bottom right, bottom, bottom left, top left, middle).
+    /// @hidden
+    public uint segmentsOf(int d)
+    {
+        switch (d)
+        {
+            case 0: return 0x3Fu;
+            case 1: return 0x06u;
+            case 2: return 0x5Bu;
+            case 3: return 0x4Fu;
+            case 4: return 0x66u;
+            case 5: return 0x6Du;
+            case 6: return 0x7Du;
+            case 7: return 0x07u;
+            case 8: return 0x7Fu;
+            default: return 0x6Fu;
+        }
+    }
+
+    /// The distance to digit `d` drawn with its middle at the origin.
+    /// @hidden
+    public float digitDistance(float2 p, int d)
+    {
+        float w = height * 0.55, h = height;
+        float hx = w * 0.5 - thickness * 0.5, hy = h * 0.5 - thickness * 0.5;
+        float gap = thickness * 0.6;   // the segments stop short of the corners, as on a real display
+        uint lit = segmentsOf(d);
+        float best = 1e10;
+        // a, d, g: across; b, c, e, f: up and down.
+        float4 seg[7] = {
+            float4(-hx + gap, -hy, hx - gap, -hy),   // a
+            float4(hx, -hy + gap, hx, -gap),         // b
+            float4(hx, gap, hx, hy - gap),           // c
+            float4(-hx + gap, hy, hx - gap, hy),     // d
+            float4(-hx, gap, -hx, hy - gap),         // e
+            float4(-hx, -hy + gap, -hx, -gap),       // f
+            float4(-hx + gap, 0.0, hx - gap, 0.0)    // g
+        };
+        for (int k = 0; k < 7; k++)
+        {
+            if ((lit & (1u << uint(k))) == 0u)
+                continue;
+            float2 a = seg[k].xy, b = seg[k].zw;
+            float2 pa = p - a, ba = b - a;
+            float t = saturate(dot(pa, ba) / max(dot(ba, ba), 1e-9));
+            best = min(best, length(pa - ba * t) - thickness * 0.5);
+        }
+        return best;
+    }
+
+    public float local(float2 p)
+    {
+        int n = count;
+        float advance = height * 0.55 + thickness * 1.5;
+        float total = advance * float(n);
+        // Which slot the point is over, counted from the left, and its neighbours.
+        float fromLeft = p.x + total * 0.5;
+        int slot = clamp(int(floor(fromLeft / advance)), 0, n - 1);
+        float v = floor(abs(value));
+        float d = 1e10;
+        for (int k = max(slot - 1, 0); k <= min(slot + 1, n - 1); k++)
+        {
+            int fromRight = n - 1 - k;
+            int digit = int(mod(floor(v / pow(10.0, float(fromRight))), 10.0));
+            float2 middle = float2(-total * 0.5 + advance * (float(k) + 0.5), 0.0);
+            d = min(d, digitDistance(p - middle, digit));
+        }
+        return d;
+    }
+}
+
 // ---- Changes: each wraps a shape and is a shape itself ----------------------
 
 /// `count` copies round the centre, each `radius` out and facing outwards.
@@ -516,6 +1181,87 @@ public struct SmoothDifference<A : IShape, B : IShape> : IShape
     public float local(float2 p) { return sdf.meltedMinus(a.distance(p), b.distance(p), blend); }
 }
 
+/// Where only one of the two shapes is, not both (exclusive or).
+public struct Exclusive<A : IShape, B : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public A a;
+    public B b;
+
+    public float local(float2 p) { return sdf.xor(a.distance(p), b.distance(p)); }
+}
+
+/// A shape with its edge moved `amount` out (in if negative): sharp corners grow round.
+public struct Grown<S : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public S shape;
+    public float amount;
+
+    public float local(float2 p) { return shape.distance(p) - amount; }
+}
+
+/// A shape copied over a grid, a copy every `spacing`; `count` (when above 0) keeps that many
+/// either side of the middle on each axis (Quilez's limited repetition), else forever.
+public struct Tiled<S : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public S shape;
+    public float2 spacing;
+    public float2 count;
+
+    public float local(float2 p)
+    {
+        float2 id = round(p / spacing);
+        if (count.x > 0.0) id.x = clamp(id.x, -count.x, count.x);
+        if (count.y > 0.0) id.y = clamp(id.y, -count.y, count.y);
+        return shape.distance(p - spacing * id);
+    }
+}
+
+/// A shape folded about its centre: the right half copied over the left (`x`), the bottom over the top (`y`).
+public struct Mirrored<S : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public S shape;
+    public bool x;
+    public bool y;
+
+    public float local(float2 p)
+    {
+        if (x) p.x = abs(p.x);
+        if (y) p.y = abs(p.y);
+        return shape.distance(p);
+    }
+}
+
+/// A shape pulled apart from its middle by `amount` on each axis, the gap filled straight
+/// (Quilez's elongation): a circle stretched into a capsule, a cross into a longer cross.
+public struct Elongated<S : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public S shape;
+    public float2 amount;
+
+    public float local(float2 p)
+    {
+        float2 half = amount * 0.5;
+        float2 q = abs(p) - half;
+        return shape.distance(sign(p) * max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+    }
+}
+
+/// A shape twisted round its centre, turning `turns` radians more for every unit out: a swirl.
+/// Not an exact distance any more, so keep soft edges modest.
+public struct Swirled<S : IShape> : IShape
+{
+    public Placement placement = Placement();
+    public S shape;
+    public float turns;
+
+    public float local(float2 p) { return shape.distance(rotate(p, -length(p) * turns)); }
+}
+
 // ---- What everything placed can do -------------------------------------------
 
 public extension<P : IPlaced> P
@@ -589,6 +1335,34 @@ public extension<S : IShape> S
     /// This shape with `other` cut out of it, the cut rounded over `blend` units.
     /// @cost 1
     public SmoothDifference<S, T> meltedMinus<T : IShape>(T other, float blend) { SmoothDifference<S, T> r; r.placement = Placement(); r.a = this; r.b = other; r.blend = blend; return r; }
+
+    /// Only where one of this shape and `other` is, not both (exclusive or).
+    public Exclusive<S, T> xor<T : IShape>(T other) { Exclusive<S, T> r; r.placement = Placement(); r.a = this; r.b = other; return r; }
+
+    /// Its edge moved `amount` units out (in if negative): sharp corners come out rounded.
+    public Grown<S> grown(float amount) { Grown<S> r; r.placement = Placement(); r.shape = this; r.amount = amount; return r; }
+
+    /// Its edge moved `amount` units in: corners stay sharp, parts thinner than twice `amount` vanish.
+    public Grown<S> shrunk(float amount) { return grown(-amount); }
+
+    /// Copies over a grid, one every `spacing`, forever.
+    /// @cost 1
+    public Tiled<S> tiled(float2 spacing) { Tiled<S> r; r.placement = Placement(); r.shape = this; r.spacing = spacing; r.count = float2(0.0); return r; }
+
+    /// Copies over a grid, one every `spacing`, forever.
+    public Tiled<S> tiled(float spacing) { return tiled(float2(spacing)); }
+
+    /// Copies over a grid, one every `spacing`, `count` of them either side of the middle on each axis.
+    public Tiled<S> tiled(float2 spacing, float2 count) { Tiled<S> r = tiled(spacing); r.count = max(count, float2(1e-3)); return r; }
+
+    /// Folded about its centre: the right half copied over the left (`x`), the bottom over the top (`y`).
+    public Mirrored<S> mirrored(bool x = true, bool y = false) { Mirrored<S> r; r.placement = Placement(); r.shape = this; r.x = x; r.y = y; return r; }
+
+    /// Pulled apart from its middle by `amount` on each axis, the gap filled straight.
+    public Elongated<S> elongated(float2 amount) { Elongated<S> r; r.placement = Placement(); r.shape = this; r.amount = amount; return r; }
+
+    /// Twisted round its centre, `turns` radians more for every unit out.
+    public Swirled<S> swirled(float turns) { Swirled<S> r; r.placement = Placement(); r.shape = this; r.turns = turns; return r; }
 
     /// This and a measured shape together, this measured at its point.
     public Measured or(Measured other) { return measured(other.at).or(other); }
@@ -712,6 +1486,12 @@ public extension<M : IMeasurable> M
 
     /// Contour lines `spacing` units apart: 1 on a line, 1 - `depth` between; multiply a colour by it.
     public float contoured(float spacing, float depth = 0.4) { return sdf.contoured(measured().d, spacing, depth); }
+
+    /// filled with an edge exactly one screen pixel wide, whatever the units.
+    public float antialiased() { return sdf.antialiased(measured().d); }
+
+    /// A neon glow, 1 `width` units from the edge and brighter nearer; not held to 1 (for blend.add).
+    public float glowed(float width, float falloff = 1.0) { return sdf.glowed(measured().d, width, falloff); }
 
     /// The field drawn the way Inigo Quilez draws one, scaled from `reach`: for seeing a distance.
     public float4 shown(float reach = 80.0) { return sdf.shown(measured().d, reach); }

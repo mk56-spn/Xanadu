@@ -16,8 +16,10 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | Gap | Kind | Seen in | Proposal |
 |---|---|---|---|
 | Mouse button state (`iMouse.z`) | engine | iq disk | `mouse.z` / a `mouseDown` the lab fills, then the game's pointer |
-| Nearest point and distance to the cell edge over a fixed set of points (`map`, `normalmap`: 70 lines of loops) | missing | Ashanoha | maybe `pattern.voronoi(position, points)` over an array: nearest point and edge distance; wait for a second shader that wants it |
 | No 3D: distances (`length(p - c) - r`), a camera ray from the pixel (`normalize(float3(uv, focal))`), a field's normal (4 tetrahedron samples), a march loop | missing | raymarch tiled + single | a `xanadu.space` module: 3D shapes as IShape3 values, `Camera(focal).ray()`, `normalOf(field, p)`; wait to see whether levels want 3D at all |
+
+| A `deform` on a level item has 4 corners: `xanadu.mesh` surfaces, waves and bends only shape where something draws a grid (the shader tool's 48 × 27 preview) | engine | xanadu.mesh (2026-11-21) | let an effect ask for its grid (an attribute such as `[Grid(64, 36)]` read by the host when it draws the item) |
+| Particles from the grid: a grid's corners are shared by the four cells round them (`v.index` says so), so no cell can fly off on its own | engine | xanadu.mesh (2026-11-21) | a grid of unshared quads (4 corners each, with a quad index) for an effect that asks for one: the triangle-array counterpart of a particle system |
 
 ## Fixed
 
@@ -45,3 +47,4 @@ A gap seen in more than one shader gets its count bumped; fixed ones say how.
 | XS003 flagged a local filled through an `out` parameter | Ashanoha | the lint reads an `out` argument of the code's own function as an assignment |
 | The timeline showed 6 rows; later clips scrolled out of sight | Ashanoha (clips) | it grows a row per clip up to 12, then scrolls; the key guide gives way so the values keep room |
 | A switch uniform was a 0..1 slider | every port | `uniform bool` gets an ON/OFF switch |
+| Nearest point and distance to the cell edge (`map`, `normalmap`: 70 lines of loops) | Ashanoha | `pattern.cells(size, jitter, phase)`: a `Cell` with id, F1, F2 and Quilez's exact edge distance; `Cells` draws the walls (2026-11-21 library pass: scattered points one per tile, not a fixed array) |
