@@ -24,10 +24,7 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
 
     public ButtonVisualSystem() => Filter.WithoutAnyTags(Tags.Get<UiDisabled>());
 
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new AnimateButtons(Query.Store, CommandBuffer));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new AnimateButtons(Query.Store, CommandBuffer));
 
     private readonly record struct AnimateButtons(EntityStore Store, CommandBuffer Buffer) : IEachEntity<ButtonVisual, FillColor>
     {
