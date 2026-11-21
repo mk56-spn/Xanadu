@@ -28,7 +28,7 @@ float3 shaped(float2 uv, float s)
 ItemVertex deform(ItemVertex v)
 {
     float s = v.rest.size.y / 810;
-    v.position = v.rest.position + camera(s).projected(shaped(v.uv, s));
+    v.place(shaped(v.uv, s), camera(s));
     return v;
 }
 
@@ -39,14 +39,10 @@ float4 shade(ItemInput i)
     colour c = tint.mixed(colours.indigo, i.uv.y);
     c.paint(Stripes(0.06).filled(i.uv * float2(1.75, 1), 0.004) * 0.35, colours.white);
     c.paint(Circle(0.18).hollowed(0.02).filled((i.uv - 0.5) * float2(1.75, 1), 0.004), colours.white);
+    // place() gives each corner its depth, so the ball's near side covers its far side by
+    // itself; the card's back just shows paler.
     if (!mesh.facing())
-    {
-        // Nothing sorts the triangles, so once it closes into a ball its far side would paint
-        // over its near side: hide the back then. While it's mostly flat, show the card's back.
-        if (folded() > 0.3)
-            return colours.transparent;
         c = c.greyed().brightened(0.5);
-    }
 
     const float e = 1e-3;
     float3 p = shaped(i.uv, s);

@@ -246,8 +246,11 @@ compute expand stage and a depth buffer.
   atomic add: drawn first with depth writes, they hide what they cover from
   everything after. Everything else draws in order with the depth test on.
   Effects (on the standard vertex stage) and particles test the depth of their
-  place, never writing it; only an effect with its own `deform` sets its own
-  depth, so once one has drawn, no later rect in that pass may join the pre-pass.
+  place, never writing it. An effect with its own `deform` takes a slice of
+  2^14 steps below its place and writes depth within it (`ItemVertex.depth`
+  squashed into the slice, LessOrEqual so flat ties keep their order), so its
+  nearest triangle wins per pixel and it still layers among the rest; rects
+  after it may join the pre-pass.
 - **Drawing.** One pipeline (`primitives.slang`) pulls records by vertex id
   (six a record) and shapes them by signed distance (`xanadu.shape`), so edges
   are smooth at any turn or scale; up to eight textures a draw (glyph pages,

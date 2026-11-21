@@ -21,10 +21,10 @@
 // Build the surface in one function and call it from both stages: deform places
 // the corners, shade asks it again for the normal at the pixel's uv.
 //
-// There is no depth buffer: triangles land in the grid's order. A convex surface
-// (sphere, cylinder, cone, sheet) hides its far side with mesh.facing(); a
-// surface that overlaps itself from the front (a torus seen edge-on, a tight
-// tube) can show its back through.
+// deformed() sets each corner's depth, so where a surface overlaps itself (a
+// torus seen edge-on, a tight tube, hills in front of hills) the nearest part
+// wins per pixel. Translucent surfaces still blend in grid order: hide a closed
+// surface's far side with mesh.facing() if it should not show through.
 //
 // Shapes in shade still draw on the surface: canvas.centred runs with uv over
 // the mesh, so Circle(100).filled() is a circle painted on the sphere.
@@ -586,7 +586,7 @@ public extension<S : ISurface> S
     /// piece of a split grid (mesh.split), whose uv is the piece's.
     public ItemVertex deformed(ItemVertex v, Camera camera, float2 uv)
     {
-        v.position = v.rest.position + camera.projected(at(uv));
+        v.place(at(uv), camera);
         return v;
     }
 
@@ -639,6 +639,18 @@ public extension<S : ISurface> S
 ///     }
 public extension ItemVertex
 {
+    /// Moves the corner to where world point `p` lands through `camera`, and gives it p's depth
+    /// so the nearest part of a surface wins where it overlaps itself: a hand-built deform's
+    /// last step (`v.place(shaped(v.uv), camera()); return v;`).
+    [mutating] public void place(float3 p, Camera camera)
+    {
+        position = rest.position + camera.projected(p);
+        depth = camera.depth(p) - camera.distance;
+    }
+
+    /// A copy moved to where `p` lands through `camera`, with its depth.
+    public ItemVertex placed(float3 p, Camera camera) { ItemVertex r = this; r.place(p, camera); return r; }
+
     /// This corner's place on the quad at rest, from its middle, in pixels.
     public property float2 fromMiddle { get { return position - rest.position; } }
 
@@ -726,6 +738,7 @@ public extension ItemVertex
         float2 d = fromMiddle;
         float3 p = rotate3(float3(d, 0.0), float3(0.0, angle, 0.0));
         position = rest.position + Camera(distance).projected(p);
+        depth = p.z;
     }
 
     /// A copy tilted round its upright middle line.
@@ -751,6 +764,7 @@ public extension ItemVertex
         float2 along = float2(-across.y, across.x);
         float2 flat = (fold + bent.x) * across + dot(d, along) * along;
         position = rest.position + Camera(900.0).projected(float3(flat, bent.z));
+        depth = bent.z;
     }
 
     /// A copy curled like a page.

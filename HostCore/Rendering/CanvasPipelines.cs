@@ -270,7 +270,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     /// <summary>The pipeline for an effect and blend, drawing into a target with <paramref name="samples"/> samples a pixel.</summary>
-    /// <param name="depth">Whether the target pass carries the renderer's depth buffer; the effect never tests it.</param>
+    /// <param name="depth">Whether the target pass carries the renderer's depth buffer; without it the effect never tests it.</param>
     public GraphicsPipeline Pipeline(CanvasEffect effect, BlendMode blend, CustomBlend? custom = null, bool lines = false, SampleCount samples = SampleCount.One, bool depth = false)
     {
         if (_pipelines.TryGetValue((effect, blend, custom, lines, samples, depth), out GraphicsPipeline? pipeline))
@@ -284,9 +284,16 @@ internal sealed class CanvasPipelines : IDisposable
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = lines ? RasterizerState.CCW_Wireframe : RasterizerState.CCW_CullNone,
             MultisampleState = new MultisampleState { SampleCount = samples },
-            // In the renderer's passes an effect tests depth (never writes it), so an opaque rect in front hides it.
+            // In the renderer's passes an effect tests depth, so an opaque rect in front hides it. A deforming
+            // effect also writes it, within its own slice, so its nearest triangle wins per pixel; ties (depth
+            // left at 0) still draw in order.
             DepthStencilState = depth
-                ? new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = false, CompareOp = CompareOp.Less }
+                ? new DepthStencilState
+                {
+                    EnableDepthTest = true,
+                    EnableDepthWrite = effect.Vertex is not null,
+                    CompareOp = effect.Vertex is not null ? CompareOp.LessOrEqual : CompareOp.Less,
+                }
                 : DepthStencilState.Disable,
             TargetInfo = new GraphicsPipelineTargetInfo
             {

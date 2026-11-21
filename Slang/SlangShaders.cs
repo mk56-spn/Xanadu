@@ -564,6 +564,9 @@ public static class SlangShaders
             ? $"{shadeWith}(i)"
             : "effect0::shade(" + (ShadeSignature.Arguments(source, out string problem)
                                    ?? throw new InvalidOperationException($"{name}: {problem}")) + ")";
+        // A deforming effect writes depth: a pixel it leaves clear (a split's seam, a hidden back face)
+        // must not, or it would hide the surface behind it.
+        string keepOut = Deforms(source) ? "if (i.colour.a <= 0.0) discard;" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -581,6 +584,7 @@ public static class SlangShaders
                 ItemInput i = input(v);
                 {{clock}}
                 i.colour = {{shade}};
+                {{keepOut}}
                 return i.colour;
             }
             """;
@@ -617,14 +621,23 @@ public static class SlangShaders
                 float2 restY : TEXCOORD6;
                 uint index : TEXCOORD7;
             };
+            // The host's view (vertex uniform 0): the draw's place in the frame's depth and the
+            // slice of it below that the effect's own depths spread over.
+            struct XanaduView { float2 screen; float depth; float span; };
+            [[vk::binding(0, 1)]] ConstantBuffer<XanaduView> xanaduView;
             [shader("vertex")]
             ItemVaryings xanaduVertex(XanaduCorner c)
             {
                 vertexClock();
                 {{clock}}
-                ItemVertex v = { c.position, c.uv, c.colour, c.local, canvasFrom(c.restX, c.restY, c.restCorner, c.uv), c.index };
+                ItemVertex v = { c.position, c.uv, c.colour, c.local, canvasFrom(c.restX, c.restY, c.restCorner, c.uv), c.index, 0.0 };
+                ItemVertex d = effect0::deform(v);
+                ItemVaryings o = varyings(d);
+                // Depth squashed into 0..1 (0 depth in the middle, nearer is more), then into the slice:
+                // nearer corners sit nearer, all of them behind the next draw.
+                float near = 0.5 - 0.5 * d.depth / (abs(d.depth) + 1024.0);
+                o.position.z = xanaduView.depth - near * xanaduView.span;
                 // Where the corner was before deform: shade's rest canvas.
-                ItemVaryings o = varyings(effect0::deform(v));
                 o.rest = c.position;
                 return o;
             }

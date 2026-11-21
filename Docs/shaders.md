@@ -1127,10 +1127,13 @@ and v top to bottom as seen from outside).
   `lights.rim` and `lights.toon` (cel bands), each 0..1; `lights.matcap(normal,
   toEye, shadow, base, light)` for a stylised ceramic or clay look.
   `camera.fog(p, near, far)` fades with distance.
-- **No depth buffer:** triangles land in the grid's order. A convex surface
-  hides its far side with `mesh.facing()`, which reads the uv's winding on
-  screen and needs no normal; something that overlaps itself from the front (a
-  torus edge-on) can show its back through.
+- **Depth:** `deformed()` and `v.place(p, camera)` set the corner's `v.depth`
+  (pixels into the screen), so where a surface overlaps itself (a torus edge-on,
+  hills in front of hills) the nearest part wins per pixel. The effect keeps its
+  place in the frame's draw order: depth sorts only its own triangles. Left at 0,
+  triangles draw in order. Translucent pixels still blend in grid order, so a
+  see-through closed surface hides its far side with `mesh.facing()` (the uv's
+  winding on screen, no normal needed); it is also a cheap cull for convex ones.
 - **Many from one grid:** `mesh.split(uv, count)` cuts the grid into pieces,
   each its own surface (`Piece`: `.index`, `.uv`, `.seam`). Call it with `v.uv` in
   `deform` and `i.uv` in `shade`, and hide `seam` pixels: one row of cells

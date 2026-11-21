@@ -41,7 +41,7 @@ namespace Xanadu.Host.Rendering;
 internal sealed class CanvasRenderer : IDisposable
 {
     [StructLayout(LayoutKind.Sequential)]
-    private struct ViewUniforms { public float Width, Height, Depth, Pad; }
+    private struct ViewUniforms { public float Width, Height, Depth, Span; }
 
     /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0. Only the engine's clocks; anything else is a global.</summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -94,7 +94,7 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly record struct Step(
         StepKind Kind, uint Start, uint Count, int FirstTexture = 0,
         Rect Clip = default, CanvasMaterial? Material = null, IReadOnlyDictionary<string, Vector4>? Values = null, ulong Texture = 0,
-        ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0);
+        ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0, float Span = 0);
 
     /// <summary>One root drawn into one target.</summary>
     private sealed class Job(CanvasItem root, Texture target, MwColor clear)
@@ -114,6 +114,12 @@ internal sealed class CanvasRenderer : IDisposable
 
     /// <summary>Depth steps per primitive: room for four million in a frame before they share a depth.</summary>
     private const float DepthStep = 1f / (1 << 22);
+
+    /// <summary>
+    /// Depth steps a deforming effect takes, so the depths its <c>deform</c> sets spread over its own
+    /// slice (about 65 thousand levels in a 24-bit buffer) and never reach the next draw.
+    /// </summary>
+    private const uint DeformSlice = 1 << 14;
 
     private readonly GraphicsDevice _device;
     private readonly CanvasTree _tree;
@@ -479,8 +485,6 @@ internal sealed class CanvasRenderer : IDisposable
         job.OpaqueStart = (uint)_opaqueReserved;
         int jobFirst = _placedCount;
         uint sequence = 0;
-        // A deforming effect sets its own depth, so a rect after one must draw in order, not in the pre-pass.
-        bool unordered = false;
         int runStart = -1, runTextures = 0;
 
         void CloseRun()
@@ -557,7 +561,7 @@ internal sealed class CanvasRenderer : IDisposable
                 Count = (uint)count,
                 OutStart = (uint)_placedCount,
                 SlotBase = (uint)slotBase,
-                Flags = unordered ? 0u : AllowOpaque,
+                Flags = AllowOpaque,
                 OpaqueBase = job.OpaqueStart,
                 ArgsOffset = job.ArgsOffset,
                 DepthBase = sequence,
@@ -572,9 +576,7 @@ internal sealed class CanvasRenderer : IDisposable
             if (item.Material is not null)
             {
                 CloseRun();
-                AddEffect(item, entry, 0, total, item.Material, null, 1f - (sequence + 1) * DepthStep);
-                unordered |= Deforms(item.Material);
-                sequence += (uint)total;
+                sequence += AddEffect(item, entry, 0, total, item.Material, null, sequence);
             }
             else if (total > 0)
             {
@@ -591,13 +593,14 @@ internal sealed class CanvasRenderer : IDisposable
                     {
                         CloseRun();
                         (CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values) = item.Runs[run - 1];
-                        AddEffect(item, entry, from, to, material, values, 1f - (sequence + 1) * DepthStep);
-                        unordered |= Deforms(material);
+                        sequence += AddEffect(item, entry, from, to, material, values, sequence);
                     }
                     else
+                    {
                         AddPlain(item, entry, from, to);
+                        sequence += (uint)(to - from);
+                    }
 
-                    sequence += (uint)(to - from);
                     from = to;
                 }
             }
@@ -684,9 +687,19 @@ internal sealed class CanvasRenderer : IDisposable
     /// </summary>
     private bool Deforms(CanvasMaterial? material) => _pipelines.Effect(material).Vertex is not null;
 
-    private void AddEffect(CanvasItem item, in Entry entry, int from, int to, CanvasMaterial? material,
-        IReadOnlyDictionary<string, Vector4>? values, float depth)
+    /// <summary>The effect's steps at the draw-order depth after <paramref name="sequence"/>; returns the depth steps it takes.</summary>
+    private uint AddEffect(CanvasItem item, in Entry entry, int from, int to, CanvasMaterial? material,
+        IReadOnlyDictionary<string, Vector4>? values, uint sequence)
     {
+        float depth = 1f - (sequence + 1) * DepthStep;
+        uint taken = (uint)(to - from);
+        float span = 0;
+        if (Deforms(material))
+        {
+            taken = Math.Max(taken, DeformSlice);
+            span = (taken - 1) * DepthStep;
+        }
+
         int points = 0;
         int start = _vertices.Count;
         ulong texture = from < to ? item.Primitives[from].Texture : 0;
@@ -696,7 +709,7 @@ internal sealed class CanvasRenderer : IDisposable
             if (p.Texture != texture && _vertices.Count > start)
             {
                 _steps.Add(new Step(StepKind.Effect, (uint)start, (uint)(_vertices.Count - start),
-                    Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth));
+                    Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span));
                 start = _vertices.Count;
             }
 
@@ -707,8 +720,10 @@ internal sealed class CanvasRenderer : IDisposable
         if (_vertices.Count > start)
         {
             _steps.Add(new Step(StepKind.Effect, (uint)start, (uint)(_vertices.Count - start),
-                Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth));
+                Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span));
         }
+
+        return taken;
     }
 
     private static void Reserve<T>(ref T[] array, int count)
@@ -1110,7 +1125,7 @@ internal sealed class CanvasRenderer : IDisposable
                 drawnSinceCopy = false;
             }
 
-            commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height, Depth = step.Depth });
+            commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height, Depth = step.Depth, Span = step.Span });
             if (!effectState)
             {
                 // A deforming effect's vertex stage reads the frame too; only its clocks matter there.

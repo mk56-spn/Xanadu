@@ -24,7 +24,7 @@ float3 shaped(float2 uv, float scale)
 ItemVertex deform(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    v.position = v.rest.position + camera(scale).projected(shaped(v.uv, scale));
+    v.place(shaped(v.uv, scale), camera(scale));
     return v;
 }
 

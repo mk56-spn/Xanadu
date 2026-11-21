@@ -54,7 +54,7 @@ ItemVertex deform(ItemVertex v)
 {
     Piece piece = mesh.split(v.uv, COUNT);
     float scale = v.rest.size.y / 810;
-    v.position = v.rest.position + camera(scale).projected(positionOf(piece.index, piece.uv, scale));
+    v.place(positionOf(piece.index, piece.uv, scale), camera(scale));
     return v;
 }
 

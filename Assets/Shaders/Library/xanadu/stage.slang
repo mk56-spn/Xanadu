@@ -102,6 +102,11 @@ public struct ItemVertex
     /// Its point in the item's mesh: triangles that share a corner share it, so it can
     /// seed per-point randomness that keeps the mesh joined.
     public uint index;
+    /// How far into the screen it is, in pixels: 0 on the item's plane, more is farther.
+    /// Where the effect's own triangles overlap, the nearest wins per pixel; left at 0
+    /// they draw in order, later over earlier. It never moves the item past others:
+    /// the effect keeps its place in the frame's draw order whatever its depth.
+    public float depth;
 };
 
 /// Per-frame values the host sets once.
