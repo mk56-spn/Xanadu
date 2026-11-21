@@ -48,6 +48,23 @@ public static class EaseCurves
         };
     }
 
+    /// <summary>
+    /// A cubic Hermite segment from <paramref name="from"/> to <paramref name="to"/>
+    /// at share <paramref name="t"/> of a <paramref name="span"/> long stretch,
+    /// leaving and arriving with the given slopes (value per unit of time). The
+    /// animator's keys draw their ease, ease in and ease out with it.
+    /// </summary>
+    public static float Hermite(float from, float to, float slopeOut, float slopeIn, float t, float span)
+    {
+        float t2 = t * t;
+        float t3 = t2 * t;
+        float h00 = 2f * t3 - 3f * t2 + 1f;
+        float h10 = t3 - 2f * t2 + t;
+        float h01 = -2f * t3 + 3f * t2;
+        float h11 = t3 - t2;
+        return h00 * from + h10 * slopeOut * span + h01 * to + h11 * slopeIn * span;
+    }
+
     /// <summary>The ease-in form of each family; out and in-out are built from it.</summary>
     private static float In(CurveFamily family, float t) => family switch
     {
