@@ -1,10 +1,10 @@
+using Xanadu.Storage.Profiles;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Model.Profiles;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Screens.Profiles;

@@ -1,10 +1,12 @@
+using Xanadu.Storage.Profiles;
+using Xanadu.Storage.Replays;
+using Xanadu.Storage.Settings;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Profiles;
 using Xanadu.Model.Settings;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems;
@@ -118,7 +120,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
             transitions: transitions,
             profiles: Profiles,
             display: Display,
-            replays: Xanadu.Model.Replays.ReplayStore.Default,
+            replays: ReplayStore.Default,
             pointer: pointerInput);
         Scenes.AddScreen(new OffsetWizardHost(new MiniaudioTrackAudio(), Offsets, Keyboard));
         _sceneDirector = sceneDirector;

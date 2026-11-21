@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Logic.Screens;
@@ -36,7 +37,7 @@ public sealed class SettingsLogic(KeybindSettings keybinds, DisplaySettings disp
         .Mandatory(SettingsEntrance.Leave)
         .Mandatory(SettingsEntrance.VSync)
         .Mandatory(SettingsEntrance.WindowMode)
-        .Mandatory(SettingsEntrance.Rebind, KeybindSettings.Actions.Select(a => (int)a).ToArray(),
+        .Mandatory(SettingsEntrance.Rebind, KeybindActions.All.Select(a => (int)a).ToArray(),
             a => ((KeybindAction)a).ToString())
         // Only mappers care; a player-facing skin may leave it out.
         .Optional(SettingsEntrance.Autosave);
@@ -48,7 +49,7 @@ public sealed class SettingsLogic(KeybindSettings keybinds, DisplaySettings disp
     public bool Autosave => display.EditorAutosave;
 
     /// <summary>The rebindable playfield keys, in screen order.</summary>
-    public IReadOnlyList<KeybindAction> Actions => KeybindSettings.Actions;
+    public IReadOnlyList<KeybindAction> Actions => KeybindActions.All;
 
     public Key KeyFor(KeybindAction action) => keybinds.Get(action);
 

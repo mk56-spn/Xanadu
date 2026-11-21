@@ -159,7 +159,7 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
     /// </summary>
     public bool RequestPlaySkip()
     {
-        foreach (KeybindAction action in KeybindSettings.Actions)
+        foreach (KeybindAction action in KeybindActions.All)
         {
             if (Keybinds.Get(action) is Key.Enter or Key.KpEnter)
                 return false;

@@ -33,7 +33,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             new HitTrail(
                 hitPosition,
                 PlayfieldColors.ColorFor(note),
-                KeybindSettings.KeyLabel(context.Keybinds.Get(action))));
+                KeybindActions.KeyLabel(context.Keybinds.Get(action))));
 
         // Read before the hit takes the note away.
         int chartIndex = ChartIndex.Of(noteEntity);

@@ -14,6 +14,8 @@
     <RootNamespace>Xanadu.Labs</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Serialisation/Xanadu.Serialisation.csproj" />
+    <ProjectReference Include="../../Storage/Xanadu.Storage.csproj" />
     <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>

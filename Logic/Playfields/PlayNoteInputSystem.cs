@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
@@ -62,7 +63,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
                 return;
         }
 
-        foreach (KeybindAction action in KeybindSettings.Actions)
+        foreach (KeybindAction action in KeybindActions.All)
         {
             Key key = _keybinds.Get(action);
             if (!_presses.Started(key, _keyboard.IsPressed(key)))
@@ -71,7 +72,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             // Level shaders read each key's last press (keys. in xanadu.anim).
             ShaderKeys.Press((int)action);
 
-            if (KeybindSettings.IsDirection(action) && _turns.Press(action, playfield))
+            if (KeybindActions.IsDirection(action) && _turns.Press(action, playfield))
                 continue;
 
             _judge.Note(action, playfield);

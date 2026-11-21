@@ -43,7 +43,7 @@ public sealed class CardSettingsLayout : IScreenLayout<SettingsLogic>
                 new Column(gap: Space.Xs)
                 {
                     new Row(gap: ColumnGap) { Header(SettingsStrings.Action, LabelColumn), Header(SettingsStrings.Key, ControlWidth) },
-                    logic.Actions.Select(action => Setting(KeybindSettings.LabelFor(action),
+                    logic.Actions.Select(action => Setting(KeybindActions.LabelFor(action),
                         _keys[action] = Choice(Cmd(SettingsEntrance.Rebind, (int)action)))),
                 },
                 new Label(SettingsStrings.Footer, UiType.Small, ink: Ink.Dim),

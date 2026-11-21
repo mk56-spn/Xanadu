@@ -1,3 +1,4 @@
+using Xanadu.Storage.Levels;
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -30,8 +31,13 @@ namespace Xanadu.Host;
 /// </summary>
 internal sealed class HostGame : HostApp
 {
-    // The game's shader globals, declared before HostApp's constructor warms the shipped effects.
-    static HostGame() => RhythmGlobals.Declare();
+    // The game's shader globals, declared before HostApp's constructor warms the shipped
+    // effects; its files hooked in before anything loads particles or rig art.
+    static HostGame()
+    {
+        RhythmGlobals.Declare();
+        Xanadu.Storage.GameFiles.Install();
+    }
 
     private readonly HostOptions _options;
     private readonly HostFileDialog _fileDialog;

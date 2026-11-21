@@ -105,8 +105,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
                     ParticleLibrary.Save();
                     editor.Status = "LIBRARY SAVED";
                 }
-                catch (Exception exception) when (exception is System.IO.IOException or XpfFormatException
-                                                      or UnauthorizedAccessException)
+                catch (Exception exception) when (exception is System.IO.IOException or UnauthorizedAccessException)
                 {
                     editor.Status = "SAVE FAILED: " + exception.Message;
                 }

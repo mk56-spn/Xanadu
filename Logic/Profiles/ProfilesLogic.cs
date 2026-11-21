@@ -1,8 +1,8 @@
+using Xanadu.Storage.Profiles;
 using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Logic.Screens;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Profiles;
 
 namespace Xanadu.Logic.Profiles;
 

@@ -27,7 +27,7 @@ public sealed class PlayRouteTurns(PlayNoteContext context)
             return false;
 
         Playhead playhead = playfield.GetComponent<Playhead>();
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets);
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
         Entity best = default;

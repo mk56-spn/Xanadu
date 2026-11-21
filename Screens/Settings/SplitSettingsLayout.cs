@@ -60,8 +60,8 @@ public sealed class SplitSettingsLayout : IScreenLayout<SettingsLogic>
                 new Column(Fill, pad: Space.Xl, gap: Space.Lg, tone: Tone.Solid)
                 {
                     new Label(SettingsStrings.Keybinds, UiType.Section, ink: Ink.Accent),
-                    new Row(gap: Space.Md) { logic.Actions.Where(KeybindSettings.IsDirection).Select(Cap) },
-                    new Row(gap: Space.Md) { logic.Actions.Where(a => !KeybindSettings.IsDirection(a)).Select(Cap) },
+                    new Row(gap: Space.Md) { logic.Actions.Where(KeybindActions.IsDirection).Select(Cap) },
+                    new Row(gap: Space.Md) { logic.Actions.Where(a => !KeybindActions.IsDirection(a)).Select(Cap) },
                     new Spacer(),
                     new Label(SettingsStrings.Footer, UiType.Small, ink: Ink.Dim),
                 },
@@ -105,6 +105,6 @@ public sealed class SplitSettingsLayout : IScreenLayout<SettingsLogic>
     {
         (_keys[action] = new Button("", UiType.Heading, tone: Tone.Secondary, cmd: Cmd(SettingsEntrance.Rebind, (int)action),
             width: CapSize, height: CapSize)),
-        new Label(KeybindSettings.LabelFor(action), UiType.Caption, ink: Ink.Dim),
+        new Label(KeybindActions.LabelFor(action), UiType.Caption, ink: Ink.Dim),
     };
 }

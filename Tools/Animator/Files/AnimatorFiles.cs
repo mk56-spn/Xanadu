@@ -1,3 +1,4 @@
+using Xanadu.Storage.Animation;
 using System;
 using SDL3;
 using Xanadu.Model.Animation;
@@ -10,13 +11,9 @@ public sealed class AnimatorFiles : IAnimatorFiles
 {
     public XafPackage? Load(string path)
     {
-        string full = GamePaths.Full(path);
-        if (!System.IO.File.Exists(full))
-            return null;
-
         try
         {
-            return XafBinary.Load(full);
+            return XafFiles.Load(path);
         }
         catch (Exception exception) when (exception is XafFormatException or
                                               System.IO.IOException or
@@ -26,8 +23,7 @@ public sealed class AnimatorFiles : IAnimatorFiles
         }
     }
 
-    public void Save(string path, XafPackage package) =>
-        XafBinary.Save(GamePaths.Full(path), package);
+    public void Save(string path, XafPackage package) => XafFiles.Save(path, package);
 
     /// <summary>Opens the file with the desktop's default app (an SVG in the art editor).</summary>
     public bool OpenInSystem(string path) =>

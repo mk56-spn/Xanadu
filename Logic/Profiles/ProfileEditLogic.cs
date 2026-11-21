@@ -1,7 +1,7 @@
+using Xanadu.Storage.Profiles;
 using Xanadu.Core.Maths;
 using Xanadu.Logic.Screens;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Profiles;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Logic.Profiles;

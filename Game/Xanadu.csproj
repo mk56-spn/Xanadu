@@ -13,6 +13,8 @@
     <PackageReference Include="Box2DSharp" Version="0.6.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Serialisation/Xanadu.Serialisation.csproj" />
+    <ProjectReference Include="../Storage/Xanadu.Storage.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../Model/Xanadu.Model.csproj" />
     <ProjectReference Include="../Logic/Xanadu.Logic.csproj" />

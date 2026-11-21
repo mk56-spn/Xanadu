@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -75,7 +76,7 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
             for (int i = 0; i < player.Down.Length; i++)
             {
                 if (player.Down[i])
-                    Held.Add(Keybinds.Get(KeybindSettings.Actions[i]));
+                    Held.Add(Keybinds.Get(KeybindActions.All[i]));
             }
         }
     }

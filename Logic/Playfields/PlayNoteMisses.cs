@@ -19,7 +19,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets);
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;

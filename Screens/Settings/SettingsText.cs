@@ -19,7 +19,7 @@ public static class SettingsText
     public static string Key(SettingsLogic logic, KeybindAction action) =>
         logic.Capturing == action
             ? LocalizedText.Get(SettingsStrings.PressKey)
-            : KeybindSettings.KeyLabel(logic.KeyFor(action));
+            : KeybindActions.KeyLabel(logic.KeyFor(action));
 
     public static string OnOff(bool on, LString onText, LString offText) =>
         LocalizedText.Get(on ? onText : offText);

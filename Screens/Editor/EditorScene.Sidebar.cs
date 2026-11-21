@@ -195,7 +195,7 @@ public static class EditorSceneSidebar
     {
         const float swatchSize = 36;
         const float swatchGap = 8;
-        float inner = KeybindSettings.ActionKeys.Length * (swatchSize + swatchGap) - swatchGap;
+        float inner = KeybindActions.ActionKeys.Length * (swatchSize + swatchGap) - swatchGap;
 
         UiNode box = ui.Column()
             .Width(inner + PanelPadding * 2)
@@ -207,12 +207,12 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             // Held off the viewport's corner, outlined in the picked key's colour.
             .Anchor(new Vector2(1, 0), margin: NoteElementsMargin)
-            .Border(PlayfieldColors.ColorFor(KeybindSettings.ActionKeys[0]), NoteElementsBorder)
+            .Border(PlayfieldColors.ColorFor(KeybindActions.ActionKeys[0]), NoteElementsBorder)
             .With(new EditorNoteBarPanel());
 
         EditorSceneUi.SidebarLabel(box, "ACTION KEY", inner, 12);
         UiNode swatches = box.Row().Size(inner, swatchSize).Gap(swatchGap);
-        foreach (KeybindAction action in KeybindSettings.ActionKeys)
+        foreach (KeybindAction action in KeybindActions.ActionKeys)
         {
             Color color = PlayfieldColors.ColorFor(action);
             swatches.Rect(color, size: new Vector2(swatchSize, swatchSize))

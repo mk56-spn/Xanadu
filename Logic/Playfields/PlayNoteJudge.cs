@@ -32,7 +32,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets);
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
         NearestNote nearest = _open.EachEntity(

@@ -125,8 +125,8 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
 
     private static void SetTarget(int value, Entity editor)
     {
-        int index = Math.Clamp(value, 0, KeybindSettings.Actions.Length - 1);
-        KeybindAction target = KeybindSettings.Actions[index];
+        int index = Math.Clamp(value, 0, KeybindActions.All.Length - 1);
+        KeybindAction target = KeybindActions.All[index];
 
         if (editor.HasComponent<EditorPlacement>())
             editor.GetComponent<EditorPlacement>().Note = target;

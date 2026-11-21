@@ -1,7 +1,7 @@
+using Xanadu.Storage.Profiles;
 using System.Linq;
 using Xanadu.Core.Theme;
 using Xanadu.Logic.Profiles;
-using Xanadu.Model.Profiles;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Screens.Shared;

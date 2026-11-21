@@ -1,3 +1,4 @@
+using Xanadu.Storage.Levels;
 using System;
 using System.IO;
 using Friflo.Engine.ECS;
@@ -161,7 +162,7 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
 
         editor.GetComponent<EditorMetronome>().Enabled = false;
         context.History.Clear();
-        LevelDocumentMapper.Apply(context.Entities, editor, document);
+        LevelDocumentMapper.Apply(context.Entities, editor, document, SongStore.Shared.Open(document.SongId));
 
         if (editor.HasComponent<TimelineView>())
             editor.GetComponent<TimelineView>().AutoZoomed = false;

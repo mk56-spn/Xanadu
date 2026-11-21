@@ -26,7 +26,7 @@ public sealed class PlayHolds(PlayNoteContext context, IKeyboardState keyboard)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets);
+        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
         foreach (Entity entity in _held.ToEntityList())

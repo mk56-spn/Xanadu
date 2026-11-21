@@ -1,3 +1,4 @@
+using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
@@ -32,13 +33,13 @@ public sealed class ReplayRecordSystem(
             if (!session.Started || session.Finished || entity.Tags.Has<PlayPaused>())
                 return;
 
-            int total = (int)PlayOffset.TotalMs(entity, Offsets);
+            int total = (int)PlayOffset.TotalMs(entity, Offsets.OffsetMs);
             if (recorder.Offsets.Count == 0 || recorder.Offsets[^1].TotalMs != total)
                 recorder.Offsets.Add(new ReplayOffset((int)playhead.TimeMs, total));
 
-            for (int i = 0; i < KeybindSettings.Actions.Length; i++)
+            for (int i = 0; i < KeybindActions.All.Length; i++)
             {
-                KeybindAction action = KeybindSettings.Actions[i];
+                KeybindAction action = KeybindActions.All[i];
                 bool down = Keyboard.IsPressed(Keybinds.Get(action));
                 if (down == recorder.Down[i])
                     continue;

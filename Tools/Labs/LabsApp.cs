@@ -12,6 +12,9 @@ namespace Xanadu.Labs;
 /// </summary>
 internal sealed class LabsApp : TabbedToolApp
 {
+    // The particle library's file, for the particle experiments.
+    static LabsApp() => Xanadu.Storage.GameFiles.Install();
+
     private readonly ILabExperiment[] _experiments;
 
     public LabsApp(LabsOptions options) : this(options, LabExperiments.All())

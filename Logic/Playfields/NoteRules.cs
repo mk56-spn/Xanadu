@@ -11,5 +11,5 @@ public static class NoteRules
 {
     /// <summary>Whether this press can hit the note.</summary>
     public static bool Matches(Note note, KeybindAction action) =>
-        note.IsRoute || note.IsDash ? KeybindSettings.IsDirection(action) : note.Target == action;
+        note.IsRoute || note.IsDash ? KeybindActions.IsDirection(action) : note.Target == action;
 }

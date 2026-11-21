@@ -23,6 +23,9 @@ namespace Xanadu.Tools.Animator;
 /// </summary>
 internal sealed class AnimatorTool : HostApp
 {
+    // The game's files, hooked in before anything loads particles or rig art.
+    static AnimatorTool() => Xanadu.Storage.GameFiles.Install();
+
     private const string DefaultPath = AnimatorPaths.DefaultPackage;
 
     private readonly KeyPressQueue _keys = new();

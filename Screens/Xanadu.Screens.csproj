@@ -10,6 +10,8 @@
     <PackageReference Include="Friflo.Engine.ECS.Boost" Version="4.0.0-preview.2" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Serialisation/Xanadu.Serialisation.csproj" />
+    <ProjectReference Include="../Storage/Xanadu.Storage.csproj" />
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../Model/Xanadu.Model.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
