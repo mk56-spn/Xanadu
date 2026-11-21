@@ -50,6 +50,12 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// </summary>
     public CompiledShader? Vertex { get; init; }
 
+    /// <summary>
+    /// A deforming effect's <c>[Grid(columns, rows)]</c>: the cells each rect it draws is cut into;
+    /// null for four corners. Set on <see cref="Vertex"/>.
+    /// </summary>
+    public (int Columns, int Rows)? Grid { get; init; }
+
     /// <summary>Bytes in the values block, padded to 16; 0 when the effect has none.</summary>
     public int ParamsSize { get; } = paramsSize;
 
@@ -463,7 +469,23 @@ public static class SlangShaders
             storageBuffers: Globals.Count)
         {
             ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
+            Grid = GridOf(source),
         };
+    }
+
+    /// <summary>The most cells a <c>[Grid]</c> may ask for on a side.</summary>
+    public const int MaxGrid = 256;
+
+    /// <summary>The <c>[Grid(columns, rows)]</c> a body puts on its deform, each side clamped to 1..<see cref="MaxGrid"/>; null without one.</summary>
+    public static (int Columns, int Rows)? GridOf(string source)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(StripComments(source),
+            @"\[\s*Grid\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*\]");
+        if (!match.Success)
+            return null;
+        int columns = Math.Clamp(int.Parse(match.Groups[1].Value), 1, MaxGrid);
+        int rows = Math.Clamp(int.Parse(match.Groups[2].Value), 1, MaxGrid);
+        return (columns, rows);
     }
 
     /// <summary>Whether an effect body declares <c>ItemVertex deform(…)</c>, and so its own vertex stage.</summary>

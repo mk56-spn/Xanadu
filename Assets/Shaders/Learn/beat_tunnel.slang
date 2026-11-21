@@ -21,6 +21,7 @@ float3 shaped(float2 uv, float scale)
     return float3(p.xy, z) * scale;
 }
 
+[Grid(96, 54)]
 ItemVertex deform(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;

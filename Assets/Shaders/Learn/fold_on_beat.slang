@@ -25,6 +25,7 @@ float3 shaped(float2 uv, float s)
     return card.morphed(ball, folded()).turned(float3(0.2, sin(time * 0.5) * 0.5, 0)).at(uv) * s;
 }
 
+[Grid(96, 54)]
 ItemVertex deform(ItemVertex v)
 {
     float s = v.rest.size.y / 810;

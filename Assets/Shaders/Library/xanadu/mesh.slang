@@ -6,7 +6,7 @@
 //     Sphere ball() { return Sphere(160).turned(float3(0.3, time, 0)); }
 //     Camera camera() { return Camera(900).orbited(0, 0.3); }
 //
-//     ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
+//     [Grid(64, 64)] ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
 //
 //     float4 shade(ItemInput i)
 //     {
@@ -831,8 +831,8 @@ public struct Piece
 public namespace mesh
 {
     /// The quad's grid split into `count` pieces across and down, each its own surface: draw a
-    /// different thing on each from one item. `cells` is the grid's size in cells (the shader
-    /// tool's preview is 96 across, 54 down); each piece should get whole cells. Call it with
+    /// different thing on each from one item. `cells` is the grid's size in cells (the
+    /// deform's [Grid]); each piece should get whole cells. Call it with
     /// the same uv in deform (v.uv) and shade (i.uv), and hide `seam` pixels in shade.
     ///
     ///     Piece piece = mesh.split(v.uv, int2(3, 2));
@@ -859,8 +859,8 @@ public namespace mesh
     /// return colours.transparent when it isn't, to hide a closed surface's far side.
     public bool facing()
     {
-        float2 dx = ddx(shading.uv), dy = ddy(shading.uv);
-        return dx.x * dy.y - dx.y * dy.x > 0.0;
+        // Measured in input(), before the effect's own branches could spoil the derivatives.
+        return uvWinding > 0.0;
     }
 
     /// The triangles' edges at `uv` on a grid `cells` across and down, `width` screen pixels wide:

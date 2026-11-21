@@ -34,6 +34,8 @@ internal sealed class EffectPreview : IEditorPreview
 
     /// <summary>The code last shown, which the overlays draw through.</summary>
     private string? _source;
+    private Rect2 _area;
+    private (int Columns, int Rows)? _grid;
 
     /// <summary>One overlay: its item and, while on, its material (the code with the overlay for shade).</summary>
     private sealed class Overlay(MaterialOverlay kind, Handle item)
@@ -123,19 +125,34 @@ internal sealed class EffectPreview : IEditorPreview
         if (previous is not null)
             _pipelines.Forget(previous);
         _source = (string)build.Result;
+        (int, int)? grid = SlangShaders.GridOf(_source);
+        if (grid != _grid)
+        {
+            _grid = grid;
+            Place(_area);
+        }
+
         Refresh(_triangles);
         Refresh(_uv);
         return "";
     }
 
+    /// <remarks>
+    /// An effect with a <c>[Grid]</c> gets one plain rect, cut by the renderer as a level item's
+    /// would be; without one, the preview's own fine grid, so any deform has corners to bend.
+    /// </remarks>
     public void Place(Rect2 area)
     {
+        _area = area;
         CanvasServer.Current.Clear(_backdrop);
         CanvasServer.Current.AddRect(_backdrop, area, Colors.White);
         foreach (Handle item in (ReadOnlySpan<Handle>)[_item, _triangles.Item, _uv.Item])
         {
             CanvasServer.Current.Clear(item);
-            PreviewMesh.Add(item, area, Colors.White);
+            if (_grid is not null)
+                CanvasServer.Current.AddRect(item, area, Colors.White);
+            else
+                PreviewMesh.Add(item, area, Colors.White);
         }
     }
 

@@ -1030,8 +1030,12 @@ float4 shade(Canvas canvas) { return colours.gold * Circle(120).filled(); }
   (`sampleDepth`) and the same uniforms and sliders. `sampleItem`,
   `sampleScreen` and the effect's own textures are an error there.
 - **It moves corners, not pixels.** A plain rect has four, so it can only
-  squash, tilt or move. A bend needs corners inside: the editors draw their
-  preview as a grid 96 cells across (96 × 54 in its 16:9) for that. Items in a level are drawn as they are.
+  squash, tilt or move. A bend needs corners inside: put `[Grid(columns,
+  rows)]` on `deform` and every rect the effect draws, in a level or the
+  editors, is cut into that many cells (up to 256 a side; corners shared).
+  Without one, the shader tool's preview still draws a grid 96 cells across
+  (96 × 54 in its 16:9) so you can try a bend, but a level item stays four
+  corners.
 - Kept state isn't there: `state` reads as zeros in `deform`.
 - Without a `deform` the host's standard vertex stage draws the effect.
 
@@ -1137,8 +1141,7 @@ and v top to bottom as seen from outside).
 - **Many from one grid:** `mesh.split(uv, count)` cuts the grid into pieces,
   each its own surface (`Piece`: `.index`, `.uv`, `.seam`). Call it with `v.uv` in
   `deform` and `i.uv` in `shade`, and hide `seam` pixels: one row of cells
-  stretched between two pieces. Give each piece whole cells (the preview is 96
-  × 54).
+  stretched between two pieces. Give each piece whole cells of the `[Grid]`.
 - **Seeing the triangles:** `mesh.wireframe(uv, cells)` draws each cell's edges
   and diagonal.
 - **Grid density is the silhouette:** lighting is worked out per pixel, so

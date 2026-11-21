@@ -19,6 +19,7 @@ float3 shaped(int k, float2 uv)
     return sea.moved(slot(k)).at(uv);
 }
 
+[Grid(96, 54)]
 ItemVertex deform(ItemVertex v)
 {
     Piece piece = mesh.split(v.uv, COUNT);

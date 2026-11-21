@@ -694,6 +694,8 @@ internal sealed class CanvasRenderer : IDisposable
         float depth = 1f - (sequence + 1) * DepthStep;
         uint taken = (uint)(to - from);
         float span = 0;
+        // A deform's [Grid]: each rect it draws is cut into cells.
+        (int columns, int rows) = _pipelines.Effect(material).Compiled.Vertex?.Grid ?? (1, 1);
         if (Deforms(material))
         {
             taken = Math.Max(taken, DeformSlice);
@@ -714,7 +716,7 @@ internal sealed class CanvasRenderer : IDisposable
             }
 
             texture = p.Texture;
-            p.Tessellate(_vertices, entry.Transform, entry.Color, ref points);
+            p.Tessellate(_vertices, entry.Transform, entry.Color, ref points, columns, rows);
         }
 
         if (_vertices.Count > start)

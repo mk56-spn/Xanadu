@@ -43,6 +43,7 @@ float3 normalOf(int k, float2 uv)
     return normalize(cross(dv, du));
 }
 
+[Grid(96, 54)]
 ItemVertex deform(ItemVertex v)
 {
     Piece piece = mesh.split(v.uv, COUNT);

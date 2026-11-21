@@ -188,7 +188,7 @@ internal struct Primitive
     /// with, under <paramref name="t"/> and <paramref name="tint"/>; its points
     /// are numbered from <paramref name="points"/>, which moves past them.
     /// </summary>
-    public readonly void Tessellate(List<CanvasVertex> into, in Transform2D t, Color tint, ref int points)
+    public readonly void Tessellate(List<CanvasVertex> into, in Transform2D t, Color tint, ref int points, int columns = 1, int rows = 1)
     {
         if (Kind == PrimitiveKind.Triangle)
         {
@@ -225,11 +225,54 @@ internal struct Primitive
         Vector2 u1 = new(u2.X, u0.Y), u3 = new(u0.X, u2.Y);
         bool vertical = (Flags & FlagVertical) != 0;
         Color c0 = C0, c1 = vertical ? C0 : C1, c2 = C1, c3 = vertical ? C1 : C0;
+        if (columns > 1 || rows > 1)
+        {
+            TessellateGrid(into, t, tint, ref points, columns, rows, [p0, p1, p2, p3], [u0, u1, u2, u3], [c0, c1, c2, c3]);
+            return;
+        }
+
         uint first = (uint)points;
         Add(into, t, tint, p0, p1, p2, c0, c1, c2, u0, u1, u2, first, first + 1, first + 2);
         Add(into, t, tint, p0, p2, p3, c0, c2, c3, u0, u2, u3, first, first + 2, first + 3);
         points += 4;
     }
+
+    /// <summary>
+    /// The rect cut into <paramref name="columns"/> × <paramref name="rows"/> cells (an effect's
+    /// <c>[Grid]</c>), position, uv and colour blended from its four corners (top left, top right,
+    /// bottom right, bottom left); neighbouring cells share their corners' indices.
+    /// </summary>
+    private static void TessellateGrid(List<CanvasVertex> into, in Transform2D t, Color tint, ref int points, int columns, int rows,
+        Vector2[] p, Vector2[] u, Color[] c)
+    {
+        uint first = (uint)points;
+        int stride = columns + 1;
+        Vector2 P(int x, int y) => Blend(p[0], p[1], p[2], p[3], (float)x / columns, (float)y / rows);
+        Vector2 U(int x, int y) => Blend(u[0], u[1], u[2], u[3], (float)x / columns, (float)y / rows);
+        Color C(int x, int y)
+        {
+            float fx = (float)x / columns, fy = (float)y / rows;
+            Color top = c[0].Lerp(c[1], fx), bottom = c[3].Lerp(c[2], fx);
+            return top.Lerp(bottom, fy);
+        }
+
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < columns; x++)
+            {
+                uint a = first + (uint)(y * stride + x), b = a + 1, d = a + (uint)stride, e = d + 1;
+                Add(into, t, tint, P(x, y), P(x + 1, y), P(x + 1, y + 1), C(x, y), C(x + 1, y), C(x + 1, y + 1),
+                    U(x, y), U(x + 1, y), U(x + 1, y + 1), a, b, e);
+                Add(into, t, tint, P(x, y), P(x + 1, y + 1), P(x, y + 1), C(x, y), C(x + 1, y + 1), C(x, y + 1),
+                    U(x, y), U(x + 1, y + 1), U(x, y + 1), a, e, d);
+            }
+        }
+
+        points += stride * (rows + 1);
+    }
+
+    private static Vector2 Blend(Vector2 topLeft, Vector2 topRight, Vector2 bottomRight, Vector2 bottomLeft, float x, float y) =>
+        Vector2.Lerp(Vector2.Lerp(topLeft, topRight, x), Vector2.Lerp(bottomLeft, bottomRight, x), y);
 
     private static void Add(
         List<CanvasVertex> into, in Transform2D t, Color tint,

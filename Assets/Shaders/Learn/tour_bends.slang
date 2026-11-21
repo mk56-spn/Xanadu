@@ -5,6 +5,7 @@ import xanadu;
 
 static const int2 COUNT = int2(3, 3);
 
+[Grid(96, 54)]
 ItemVertex deform(ItemVertex v)
 {
     Piece piece = mesh.split(v.uv, COUNT);

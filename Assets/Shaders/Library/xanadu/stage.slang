@@ -34,6 +34,8 @@
 // read only the depth (sampleDepth).
 //
 //     ItemVertex deform(ItemVertex v) { v.position.y += sin(time * 4 + v.uv.x * 6) * 8; return v; }
+//
+// A rect has four corners; [Grid(columns, rows)] on deform cuts it into cells.
 module stage;
 
 /// @hidden
@@ -60,6 +62,18 @@ public struct DefaultAttribute
 [__AttributeUsage(_AttributeTargets.Var)]
 public struct GlobalAttribute
 {
+};
+
+/// Put on `deform`: every rect the effect draws is cut into `columns` × `rows` cells
+/// (uv 0..1 across, corners shared), so a deform has corners inside to bend, not just
+/// four at its edges. xanadu.mesh surfaces need one; the host caps each side at 256.
+///
+///     [Grid(64, 36)] ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
+[__AttributeUsage(_AttributeTargets.Function)]
+public struct GridAttribute
+{
+    int columns;
+    int rows;
 };
 
 /// Marks a level shader's global uniform as keyable per item: a group's
@@ -279,6 +293,13 @@ public Canvas restCanvasOf(ItemVaryings v, Canvas bent)
 /// @hidden
 public static ItemInput shading = {};
 
+/// How uv winds on screen at the pixel: more than 0 when it reads left to right, top to
+/// bottom (the front of a surface built from it), less when mirrored. Worked out in input(),
+/// before any code of the effect's branches, since a derivative taken after a branch reads
+/// garbage where neighbouring pixels went the other way.
+/// @hidden
+public static float uvWinding = 0.0;
+
 /// Seconds since the game started, the same clock as frame.time, for any
 /// shader and any function it calls: no need to pass it down. Set before
 /// `shade` runs, and before `update` for kept state.
@@ -346,6 +367,8 @@ public ItemInput input(ItemVaryings v)
     i.local = v.local;
     i.pixel = v.position.xy;
     i.screenUv = v.position.xy / frame.screen;
+    float2 uvDx = ddx(v.uv), uvDy = ddy(v.uv);
+    uvWinding = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
     i.time = frame.time;
     time = frame.time;
     beat = frame.beat;
