@@ -7,10 +7,7 @@ namespace Xanadu.Logic.Playfields;
 /// <summary>Ages one kind of short-lived trail and deletes it once its life is spent.</summary>
 public sealed class TrailAgeSystem<T> : QuerySystem<T> where T : struct, IComponent, IAgingTrail
 {
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new AgeTrails(CommandBuffer, Tick.deltaTime));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new AgeTrails(CommandBuffer, Tick.deltaTime));
 
     private readonly record struct AgeTrails(CommandBuffer Buffer, float Delta) : IEachEntity<T>
     {

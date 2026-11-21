@@ -21,10 +21,7 @@ public sealed class ReplayRecordSystem(
 {
     private readonly OffsetSettings _offsets = offsets ?? new OffsetSettings(persist: false);
 
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new Record(Query.Store, keybinds, keyboard, _offsets));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new Record(Query.Store, keybinds, keyboard, _offsets));
 
     private readonly record struct Record(EntityStore Store, KeybindSettings Keybinds, IKeyboardState Keyboard, OffsetSettings Offsets) : IEachEntity<ReplayRecorder, Playhead, PlaySession>
     {

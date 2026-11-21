@@ -8,10 +8,7 @@ namespace Xanadu.Logic.Editor;
 /// <summary>Loads a cached waveform once when the editor song changes.</summary>
 public sealed class WaveformPreviewSystem : QuerySystem<LevelInfo, Playhead, WaveformPreview>
 {
-    protected override void OnUpdate()
-    {
-        Query.Each(new LoadWaveform());
-    }
+    protected override void OnUpdate() => Query.Each(new LoadWaveform());
 
     private readonly record struct LoadWaveform : IEach<LevelInfo, Playhead, WaveformPreview>
     {

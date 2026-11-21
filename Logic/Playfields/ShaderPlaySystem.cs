@@ -17,10 +17,7 @@ namespace Xanadu.Logic.Playfields;
 /// </summary>
 public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Position, PlayfieldView, Playhead>
 {
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new Publish(Query.Store));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new Publish(Query.Store));
 
     /// <summary>Seconds until the next note still waiting to be played, or never.</summary>
     private static float UntilNote(EntityStore store, long nowMs)

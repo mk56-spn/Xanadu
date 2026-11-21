@@ -14,7 +14,7 @@ namespace Xanadu.Logic.Playfields;
 /// Runs the 3-2-1-GO countdown, starts play-mode audio, fades it out after the
 /// final note, and marks the session finished so the scene can move to results.
 /// </summary>
-public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
+public sealed class PlaySessionSystem(ITrackAudio audio) : QuerySystem<PlaySession, Playhead>
 {
     private const float BaseVolume = 0.8f;
     private const float CountdownSeconds = 3f;
@@ -23,19 +23,9 @@ public sealed class PlaySessionSystem : QuerySystem<PlaySession, Playhead>
     /// <summary>How long a death holds before the level restarts from its start.</summary>
     private const float DeathSeconds = 0.8f;
 
-    private readonly ITrackAudio _audio;
+    private readonly ITrackAudio _audio = audio;
 
-    public PlaySessionSystem(ITrackAudio audio)
-    {
-        _audio = audio;
-    }
-
-    protected override void OnUpdate()
-    {
-        CommandBuffer buffer = CommandBuffer;
-
-        Query.EachEntity(new Run(this, Query.Store, CommandBuffer, Tick.deltaTime));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new Run(this, Query.Store, CommandBuffer, Tick.deltaTime));
 
     private void UpdateCountdown(
         ref PlaySession session,

@@ -15,7 +15,7 @@ public sealed class ReplayStore(string directory)
     public static ReplayStore Default =>
         _default ??= new ReplayStore(GamePaths.Full(UserFolder));
 
-    public string Directory { get; } = directory;
+    private string Directory { get; } = directory;
 
     /// <summary>Writes the replay under a unique name and returns its path.</summary>
     public string Save(Replay replay)

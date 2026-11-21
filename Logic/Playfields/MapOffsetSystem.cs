@@ -20,7 +20,7 @@ public sealed class MapOffsetSystem(
     : QuerySystem<PlayOffset>
 {
     /// <summary>How long the readout stays after a change.</summary>
-    public const float LabelSeconds = 1.5f;
+    private const float LabelSeconds = 1.5f;
 
     private readonly KeyRepeat _repeat = new();
 

@@ -7,10 +7,7 @@ namespace Xanadu.Logic.Particles;
 /// <summary>Plays each requested <see cref="ParticleBurst"/> once, then removes the request.</summary>
 public sealed class ParticleBurstSystem(IParticleEmitter emitter) : QuerySystem<ParticleBurst>
 {
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new FireBursts(emitter, CommandBuffer));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new FireBursts(emitter, CommandBuffer));
 
     private readonly record struct FireBursts(IParticleEmitter Emitter, CommandBuffer Buffer) : IEachEntity<ParticleBurst>
     {

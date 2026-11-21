@@ -36,8 +36,5 @@ public sealed class TrackTimer
         _nowMicros = nowMicros;
     }
 
-    public void Stop()
-    {
-        _running = false;
-    }
+    public void Stop() => _running = false;
 }

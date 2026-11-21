@@ -20,10 +20,7 @@ public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronom
         _audio = audio;
     }
 
-    protected override void OnUpdate()
-    {
-        Query.Each(new Click(this));
-    }
+    protected override void OnUpdate() => Query.Each(new Click(this));
 
     private readonly record struct Click(EditorMetronomeSystem System) : IEach<Playhead, EditorMetronome>
     {

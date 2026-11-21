@@ -87,10 +87,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
         return Math.Clamp(centred, fieldStart - viewStart, fieldStart + fieldSize - viewStart - viewSize);
     }
 
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new Follow(Query.Store, _random, Tick.deltaTime));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new Follow(Query.Store, _random, Tick.deltaTime));
 
     /// <summary>
     /// Where the view looks while the player drops in: the run's first note, so

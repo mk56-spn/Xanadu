@@ -39,13 +39,7 @@ public sealed class EditorTimelineHost(
 
     public double StepOriginMs => EditorTiming.StepOriginMs(Playhead);
 
-    public bool Blocked
-    {
-        get
-        {
-            return editor.Store.Query<WarningPopup>().Count > 0;
-        }
-    }
+    public bool Blocked => editor.Store.Query<WarningPopup>().Count > 0;
 
     public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
     {

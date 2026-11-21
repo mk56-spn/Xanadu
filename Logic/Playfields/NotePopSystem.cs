@@ -7,10 +7,7 @@ namespace Xanadu.Logic.Playfields;
 /// <summary>Advances and removes short-lived hit pops.</summary>
 public sealed class NotePopSystem : QuerySystem<NotePop>
 {
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new AgePops(CommandBuffer, Tick.deltaTime));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new AgePops(CommandBuffer, Tick.deltaTime));
 
     private readonly record struct AgePops(CommandBuffer Buffer, float Delta) : IEachEntity<NotePop>
     {

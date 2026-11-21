@@ -18,10 +18,7 @@ public sealed class BodyThrustSystem : QuerySystem<Player, Position, PlayfieldVi
     private double _lastMs = double.NaN;
     private double _owedMs;
 
-    protected override void OnUpdate()
-    {
-        Query.Each(new Thrust(this, CommandBuffer));
-    }
+    protected override void OnUpdate() => Query.Each(new Thrust(this, CommandBuffer));
 
     private readonly record struct Thrust(BodyThrustSystem System, CommandBuffer Buffer) : IEach<Player, Position, PlayfieldView, CurveBody>
     {

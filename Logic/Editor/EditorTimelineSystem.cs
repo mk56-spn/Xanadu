@@ -8,10 +8,7 @@ namespace Xanadu.Logic.Editor;
 /// <summary>Chooses the default timeline zoom once the song length is known.</summary>
 public sealed class EditorTimelineSystem : QuerySystem<Playhead, TimelineView>
 {
-    protected override void OnUpdate()
-    {
-        Query.Each(new AutoZoom());
-    }
+    protected override void OnUpdate() => Query.Each(new AutoZoom());
 
     private readonly record struct AutoZoom : IEach<Playhead, TimelineView>
     {

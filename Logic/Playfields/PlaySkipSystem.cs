@@ -18,10 +18,7 @@ public sealed class PlaySkipSystem : QuerySystem<PlaySession, Playhead>
     /// <summary>The wait a skip leaves before the first note, and the shortest one worth skipping.</summary>
     public const long LeadMs = 2_000;
 
-    protected override void OnUpdate()
-    {
-        Query.EachEntity(new Skip(Query.Store, CommandBuffer));
-    }
+    protected override void OnUpdate() => Query.EachEntity(new Skip(Query.Store, CommandBuffer));
 
     /// <summary>
     /// Where a skip lands for a run starting at <paramref name="startMs"/>, or -1
