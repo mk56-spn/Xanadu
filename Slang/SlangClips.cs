@@ -84,6 +84,7 @@ public static partial class SlangClips
         "inBack", "outBack", "inOutBack",
         "inBounce", "outBounce", "inOutBounce",
         "smooth",
+        "step",
     ];
 
     /// <summary>The <c>keys.</c> names, numbered as the library's <c>Key</c> (and the game's keybinds).</summary>
@@ -137,6 +138,8 @@ public static partial class SlangClips
         // smoothstep's curve, after the Penner families.
         if (id == 31)
             return t * t * (3f - 2f * t);
+        if (id == 32)
+            return t >= 1f ? 1f : 0f;
 
         int family = (id - 1) / 3;
         var direction = (CurveDirection)((id - 1) % 3);

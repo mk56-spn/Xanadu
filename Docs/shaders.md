@@ -540,7 +540,7 @@ card.rotate(spin.mixed(0, PI / 2));
 
 | Call | What it does |
 |---|---|
-| `.eased(eases.outBack)` | An easing. `eases.` holds one value per `ease.` function, and `eases.smooth` is smoothstep's curve. |
+| `.eased(eases.outBack)` | An easing. `eases.` holds one value per `ease.` function, `eases.smooth` is smoothstep's curve and `eases.step` holds until the very end, then jumps. |
 | `.delayed(by)` | Starts later. |
 | `.staggered(index, step)` | Starts `index × step` later: per tile, per ring, per copy. |
 | `.bounced()` | Plays forward then back, taking twice as long. |
@@ -675,6 +675,27 @@ clip whose start or length comes from a uniform or the pixel is listed with a
 `?` but not drawn. A press on a clip's name puts the caret on it. In the
 shader tool, whose effects keep the host's time, the timeline follows that
 time.
+
+**The engine's own clips (`import xanadu.tween;`).** The game and the UI move
+things with the same idea on the CPU: Core's `Clip` (Core/Tweens/Clip.cs) is
+this `Clip` in C#, with the same builders (`Eased`, `Delayed`, `Staggered`,
+`Bounced`, `Reversed`, `Then`, `Part`), the same readings and the same maths,
+on the same clocks (`ClipClock.Seconds` is `clock`, `ClipClock.Beats` is
+`clock.beats`); its easings are the same curves as `eases.`. A **tween** is
+such a clip playing on a target (an offset, turn, scale or colour, mixed from
+one weight to another by the clip's progress, maybe looping). The CPU plays
+them for the UI and publishes them as the globals `tweens` and
+`tweenTargets`; a shader reads the same ones:
+
+| Read | What |
+|---|---|
+| `tweenClip(tweens[i])` | Any tween as a plain `Clip`: `.progress`, `.mixed(a, b)`, `.playing` as above. |
+| `tweenWeight(t)` | Its weight now: the clip's progress, mixed between its two weights. |
+| `tweenPose(target)` | Where a target's moves put it: offsets and turns added, scales multiplied (`.placed(p, pivot)`). |
+| `tweenColour(target, own)` | Its colour over `own`: colours by priority, each fading over what's beneath. |
+
+Keep the two sides one idea: a change to `Clip` here goes into Core's `Clip`
+too, and the other way round.
 
 ## 12. Maths and random numbers
 

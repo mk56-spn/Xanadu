@@ -70,6 +70,8 @@ public namespace eases
     public static const Ease inOutBounce = Ease(30);
     /// smoothstep's curve (3t² - 2t³): smoothstep(0, 1, t) as an easing.
     public static const Ease smooth = Ease(31);
+    /// No change until the very end, then all of it.
+    public static const Ease step = Ease(32);
 }
 
 /// Something that happened some time ago: a clock can count from it

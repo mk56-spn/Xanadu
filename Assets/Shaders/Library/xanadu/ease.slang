@@ -72,7 +72,7 @@ public namespace ease
     }
 
     public float inExpo(float t) {
-        return pow(2.0, 10.0 * (t - 1.0));
+        return t <= 0.0 ? 0.0 : pow(2.0, 10.0 * (t - 1.0));
     }
 
     public float outExpo(float t) {
@@ -96,6 +96,10 @@ public namespace ease
     }
 
     public float outElastic(float t) {
+        if (t <= 0.0)
+            return 0.0;
+        if (t >= 1.0)
+            return 1.0;
         return pow(2.0, -10.0 * t) * sin((t - 0.3 / 4.0) * (2.0 * PI) / 0.3) + 1.0;
     }
 
@@ -148,7 +152,12 @@ public namespace ease
         return t * t * (3.0 - 2.0 * t);
     }
 
-    /// An easing by number (0 linear … 30 inOutBounce, 31 smooth), as the editor stores them.
+    /// No change until the very end, then all of it: a hold that jumps.
+    public float step(float t) {
+        return t >= 1.0 ? 1.0 : 0.0;
+    }
+
+    /// An easing by number (0 linear … 30 inOutBounce, 31 smooth, 32 step), as the editor stores them.
     public float by(int easing, float progress) {
         switch (easing) {
             case 0: return linear(progress);
@@ -183,6 +192,7 @@ public namespace ease
             case 29: return outBounce(progress);
             case 30: return inOutBounce(progress);
             case 31: return smooth(progress);
+            case 32: return step(progress);
         }
         return progress; // Default to linear
     }
