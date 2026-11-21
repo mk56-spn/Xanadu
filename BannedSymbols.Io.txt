@@ -1,0 +1,12 @@
+# Only Storage touches disk (agents.md, "Files"): formats are Serialisation's
+# (bytes in, bytes out), and everything else asks a store for loaded values.
+# Applied by Directory.Build.props to Core, Model, Serialisation, Drawers,
+# Logic, Screens and the game's wiring. The host, its tools, Slang and UI keep
+# their own files (fonts, textures, shader caches, icons).
+T:System.IO.File;Disk access is Storage's: ask its store for the value (Storage/)
+T:System.IO.Directory;Disk access is Storage's: ask its store for the value (Storage/)
+T:System.IO.FileStream;Disk access is Storage's: ask its store for the value (Storage/)
+T:System.IO.FileInfo;Disk access is Storage's: ask its store for the value (Storage/)
+T:System.IO.DirectoryInfo;Disk access is Storage's: ask its store for the value (Storage/)
+M:System.IO.StreamReader.#ctor(System.String);Disk access is Storage's: ask its store for the value (Storage/)
+M:System.IO.StreamWriter.#ctor(System.String);Disk access is Storage's: ask its store for the value (Storage/)

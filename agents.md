@@ -93,6 +93,21 @@ for a relationship to another entity.
 
 Working examples of the slice this project uses: `Docs/ecs/README.md`.
 
+## Files
+
+- **Serialisation** holds the game's file formats: bytes in, bytes out, no paths
+  and no disk. **Storage** is the only project that touches disk: its stores own
+  their files and hand out loaded values (a level, a song, settings), so no
+  caller resolves a path or checks a file itself.
+- `BannedSymbols.Io.txt` enforces it: `File`, `Directory` and friends fail to
+  build in Core, Model, Serialisation, Drawers, Logic, Screens and the game's
+  wiring. The host, its tools, Slang and UI keep their own files (fonts,
+  textures, shader caches, icons); Core's `GamePaths` and `BinaryFile` are the
+  two marked exceptions below Storage.
+- A lower layer that needs something from disk declares what it needs (an
+  interface such as `IParticleLibraryFile` or `ISvgArtSource`) and Storage
+  provides it; apps hook those in at start-up with `GameFiles.Install()`.
+
 ## UI
 
 UI is ECS entities — `Rectangle`, `Text`, `TextStyle`, `ButtonVisual`,
