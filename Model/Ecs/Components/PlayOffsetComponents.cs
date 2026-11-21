@@ -20,12 +20,7 @@ public struct PlayOffset(string levelId, Entity label) : IComponent
     public float LabelSeconds;
     public bool Loaded;
 
-    /// <summary>The whole offset a playfield is judged with right now.</summary>
-    public static long TotalMs(Entity playfield, OffsetSettings global)
-    {
-        if (!playfield.TryGetComponent(out PlayOffset offset))
-            return global.OffsetMs;
-
-        return offset.ReplayTotalMs ?? global.OffsetMs + offset.MapMs;
-    }
+    /// <summary>The whole offset a playfield is judged with right now, over the player's global offset.</summary>
+    public static long TotalMs(Entity playfield, long globalMs) =>
+        playfield.TryGetComponent(out PlayOffset offset) ? offset.ReplayTotalMs ?? globalMs + offset.MapMs : globalMs;
 }

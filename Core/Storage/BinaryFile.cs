@@ -1,3 +1,5 @@
+// Allowed disk access in Core (BannedSymbols.Io.txt): the engine's own byte-file primitive, below Storage, for the host's files (autopsy, arch board); the game's files go through Storage.
+#pragma warning disable RS0030
 using System.IO;
 
 namespace Xanadu.Core.Storage;

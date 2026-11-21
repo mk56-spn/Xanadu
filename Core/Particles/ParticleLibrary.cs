@@ -1,27 +1,35 @@
 using System;
 using System.IO;
 using Xanadu.Core.Diagnostics;
-using Xanadu.Core.Storage;
 
 namespace Xanadu.Core.Particles;
 
+/// <summary>Where the particle library is kept: the one file behind <see cref="ParticleLibrary"/>, which Storage provides.</summary>
+public interface IParticleLibraryFile
+{
+    /// <summary>The library as the file holds it; empty when there is no file or it can't be read.</summary>
+    XpfLibrary Load();
+
+    /// <summary>Writes the library to the file. Throws <see cref="IOException"/> when it can't.</summary>
+    void Save(XpfLibrary library);
+}
+
 /// <summary>
-/// The one owner of the particle library file. The game, the particle editor,
+/// The one particle library everyone shares. The game, the particle editor,
 /// the animator and the level editor all ask it for effects by name; none of
-/// them resolve the path or touch the file. The file sits in the repository's
-/// <c>Assets/Particles</c>, found from whichever Godot project is running, so
-/// the tools' own projects read the same file as the game.
+/// them touch the file, which is the <see cref="IParticleLibraryFile"/> an app
+/// installs at start-up (<see cref="Use"/>). Without one, the library starts
+/// empty and can't be saved.
 /// </summary>
 public static class ParticleLibrary
 {
-    private const string RelativePath = "Assets/Particles/particles.xpf";
-
     private static XpfLibrary? _shared;
+    private static IParticleLibraryFile? _file;
 
-    /// <summary>Raised after <see cref="Save"/> or <see cref="Reload"/> replaces the shared library.</summary>
+    /// <summary>Raised after <see cref="Save()"/> or <see cref="Reload"/> replaces the shared library.</summary>
     public static event Action? Changed;
 
-    /// <summary>The library, loaded on first use; empty when the file is missing or unreadable.</summary>
+    /// <summary>The library, loaded on first use; empty when there is no file or it is unreadable.</summary>
     public static XpfLibrary Shared => _shared ??= Load();
 
     /// <summary>The effect called <paramref name="name"/>, or null.</summary>
@@ -32,6 +40,15 @@ public static class ParticleLibrary
 
     /// <summary>Goes up with every change, so whatever draws an effect can tell it must rebuild.</summary>
     public static int Version { get; private set; }
+
+    /// <summary>Installs the file the library loads from and saves to; the next read loads it.</summary>
+    public static void Use(IParticleLibraryFile file)
+    {
+        _file = file;
+        _shared = null;
+        Unsaved = false;
+        Version++;
+    }
 
     /// <summary>The shared library was changed in place, as by the particle editor; redraws everything that plays it.</summary>
     public static void MarkEdited()
@@ -47,11 +64,10 @@ public static class ParticleLibrary
     /// <summary>Writes <paramref name="library"/> to the file and makes it the shared one.</summary>
     public static void Save(XpfLibrary library)
     {
-        string? path = FilePath();
-        if (path is null)
-            throw new IOException("The particle library has no home: no repository root above the project.");
+        if (_file is null)
+            throw new IOException("The particle library has no file: the app didn't install one.");
 
-        XpfBinary.Save(path, library);
+        _file.Save(library);
         _shared = library;
         Unsaved = false;
         Version++;
@@ -77,34 +93,10 @@ public static class ParticleLibrary
 
     private static XpfLibrary Load()
     {
-        string? path = FilePath();
-        if (path is null || !File.Exists(path))
-        {
-            GameLog.Warning($"No particle library at {path ?? RelativePath}; particles are off.");
-            return new XpfLibrary();
-        }
+        if (_file is not null)
+            return _file.Load();
 
-        try
-        {
-            return XpfBinary.Load(path);
-        }
-        catch (Exception exception) when (exception is XpfFormatException or IOException or UnauthorizedAccessException)
-        {
-            GameLog.Error($"Particle library {path} could not be read: {exception.Message}");
-            return new XpfLibrary();
-        }
-    }
-
-    private static string? FilePath()
-    {
-        for (string? directory = GamePaths.GameFolder;
-             !string.IsNullOrEmpty(directory);
-             directory = Path.GetDirectoryName(directory.TrimEnd('/', '\\')))
-        {
-            if (GamePaths.IsGameFolder(directory))
-                return Path.Combine(directory, RelativePath);
-        }
-
-        return null;
+        GameLog.Warning("No particle library file is installed; particles are off.");
+        return new XpfLibrary();
     }
 }

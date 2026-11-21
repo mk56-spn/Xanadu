@@ -15,6 +15,8 @@
     <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
     <InternalsVisibleTo Include="Xanadu.Tests" />
+    <!-- Raw on-disk details (a song's audio file name) are for the store that owns the file. -->
+    <InternalsVisibleTo Include="Xanadu.Storage" />
   </ItemGroup>
   <Import Project="../Core/Maths/Maths.props" />
 </Project>

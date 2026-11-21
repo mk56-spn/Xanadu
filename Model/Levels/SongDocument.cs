@@ -25,7 +25,7 @@ public sealed class SongDocument
 
     /// <summary>
     /// The audio's file name inside the song's library folder. Only
-    /// <see cref="SongStore"/> turns it into a file: a <see cref="LoadedSong"/> carries the path.
+    /// <c>SongStore</c> (Storage) turns it into a file: a <see cref="LoadedSong"/> carries the path.
     /// </summary>
     [JsonInclude]
     [JsonPropertyName("AudioPath")]

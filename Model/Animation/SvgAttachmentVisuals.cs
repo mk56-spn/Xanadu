@@ -333,13 +333,12 @@ public sealed partial class SvgAttachmentVisuals(Handle canvas, bool containLaye
     {
         texture = null;
         size = Vector2.Zero;
-        string path = GamePaths.Full(svgPath);
-        if (!System.IO.File.Exists(path))
+        if (SvgArt.Read(svgPath) is not { } text)
             return false;
 
         try
         {
-            string svg = XafSvgDocument.IsolateGroup(System.IO.File.ReadAllText(path), group);
+            string svg = XafSvgDocument.IsolateGroup(text, group);
             texture = Raster(svg, out size);
             return true;
         }

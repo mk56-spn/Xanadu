@@ -4,7 +4,7 @@ namespace Xanadu.Model.Levels;
 
 /// <summary>
 /// A song ready to play: its catalog entry and the audio file it plays. The
-/// library hands these out from <see cref="SongStore.Open"/>, having found the
+/// library hands these out from <c>SongStore.Open</c> (Storage), having found the
 /// file; nothing else works out where a song's audio lives.
 /// </summary>
 public sealed record LoadedSong(SongDocument Info, string AudioFile)

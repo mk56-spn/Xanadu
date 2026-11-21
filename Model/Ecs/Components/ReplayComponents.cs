@@ -19,7 +19,7 @@ public struct ReplayRecorder : IComponent
     public static ReplayRecorder Create() => new()
     {
         Events = new List<ReplayEvent>(),
-        Down = new bool[KeybindSettings.Actions.Length],
+        Down = new bool[KeybindActions.All.Length],
         SkipFromMs = -1,
         Offsets = new List<ReplayOffset>(),
     };
@@ -32,5 +32,5 @@ public struct ReplayPlayer(Replay replay) : IComponent
     public int Cursor;
     public int OffsetCursor;
     public long LastTimeMs = long.MinValue;
-    public bool[] Down = new bool[KeybindSettings.Actions.Length];
+    public bool[] Down = new bool[KeybindActions.All.Length];
 }

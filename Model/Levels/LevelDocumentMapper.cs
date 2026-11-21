@@ -35,10 +35,6 @@ public static class LevelDocumentMapper
         return document;
     }
 
-    /// <summary>Applies a level document, opening its song from the library.</summary>
-    public static void Apply(EntityStore entities, Entity editor, LevelDocument document) =>
-        Apply(entities, editor, document, SongStore.Shared.Open(document.SongId));
-
     /// <summary>Applies a level document with its song already opened, as a <see cref="LevelEntry"/> carries it.</summary>
     public static void Apply(EntityStore entities, Entity editor, LevelDocument document, LoadedSong? song)
     {
