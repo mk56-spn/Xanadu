@@ -1,5 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -66,6 +67,38 @@ public sealed partial class ContainerLayoutSystem
 
         if (weights > 0 && availableMain > used)
             Grow(horizontal, availableMain - used);
+
+        WrapTexts(entity, buffer);
+    }
+
+    /// <summary>
+    /// Makes each wrapped label as tall as its lines at the width it was given.
+    /// The new height is also what it asks for from now on; when that changed,
+    /// the stack measures again next frame so auto-sized parents fit it.
+    /// </summary>
+    private void WrapTexts(Entity entity, CommandBuffer buffer)
+    {
+        for (int i = 0; i < _children.Count; i++)
+        {
+            Entity child = _children[i];
+            if (!child.Tags.Has<TextWrap>() ||
+                !child.TryGetComponent(out Text text) ||
+                !child.TryGetComponent(out TextStyle style) ||
+                !child.HasComponent<UiFlex>())
+            {
+                continue;
+            }
+
+            float height = _sizes[i].X > 0 ? UiTextFit.WrappedHeight(text.Value, style.FontSize, _sizes[i].X) : 0;
+            _sizes[i] = new Vector2(_sizes[i].X, height);
+
+            ref UiFlex flex = ref child.GetComponent<UiFlex>();
+            if (flex.Natural.Y == height)
+                continue;
+
+            flex.Natural.Y = height;
+            buffer.AddTag<LayoutDirty>(entity.Id);
+        }
     }
 
     /// <summary>Shares <paramref name="free"/> main-axis room between the growing children, by weight.</summary>

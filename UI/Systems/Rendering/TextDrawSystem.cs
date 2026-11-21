@@ -41,6 +41,13 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
             if (entity.HasComponent<TextStyle>())
             {
                 TextStyle style = entity.GetComponent<TextStyle>();
+                if (entity.Tags.Has<TextWrap>())
+                {
+                    DrawWrapped(entity, text.Value, rect.Bounds, style, ref visual);
+                    Buffer.RemoveTag<Dirty>(id);
+                    return;
+                }
+
                 string shown = entity.Tags.Has<TextFit>()
                     ? UiTextFit.Cut(text.Value, style.FontSize, rect.Bounds.Size.X)
                     : text.Value;
@@ -104,6 +111,23 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
             }
 
             Buffer.RemoveTag<Dirty>(id);
+        }
+
+        /// <summary>One line under another from the top of the box, each aligned within the box's width.</summary>
+        private void DrawWrapped(Entity entity, string value, Rect2 bounds, TextStyle style, ref VisualItem visual)
+        {
+            TextAlign align = entity.TryGetComponent(out TextAlignment alignment) ? alignment.Align : TextAlign.Left;
+            float lineHeight = UiTextFit.LineHeight(style.FontSize);
+            float y = bounds.Position.Y;
+            foreach (string line in UiTextFit.WrapWords(value, style.FontSize, bounds.Size.X))
+            {
+                var box = new Rect2(bounds.Position.X, y, bounds.Size.X, lineHeight);
+                if (entity.Tags.Has<TextMono>())
+                    Canvas.DrawTextMono(visual.Value, box, line, style.Color, style.FontSize, align);
+                else
+                    Canvas.DrawTextWeighted(visual.Value, box, line, style.Color, style.FontSize, align, style.Bold);
+                y += lineHeight;
+            }
         }
     }
 }

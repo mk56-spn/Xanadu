@@ -64,7 +64,7 @@ it directly.
 | | Specs (`Xanadu.Ui.Tree`) |
 | --- | --- |
 | Stacks | `Column(flex, gap:, pad:, main:, cross:, clip:, …) { children }`, `Row(…) { … }`, `Panel(…) { … }`, `Spacer(grow)` |
-| Content | `Label(text, type, ink:, align:, fit:, bold:, mono:)`, `Button(label, type, tone:, cmd:, tip:)`, `Box(width:, size:, category:, tone:)`, `Meter(share, size:)`, `Field(value, type, numeric:, size:, width:, height:)`, `Connector(from, to, category)`, `PooledList(rowHeight, gap, changed:, width:, height:, grow:) { Row = slot => … }`, `Custom(build)` |
+| Content | `Label(text, type, ink:, align:, fit:, wrap:, bold:, mono:)`, `Button(label, type, tone:, cmd:, tip:)`, `Box(width:, size:, category:, tone:)`, `Meter(share, size:)`, `Field(value, type, numeric:, size:, width:, height:)`, `Connector(from, to, category)`, `PooledList(rowHeight, gap, changed:, width:, height:, grow:) { Row = slot => … }`, `Custom(build)` |
 | On most specs | `width:` `height:` `size:` `grow:` `stretch:` `tip:` (and `tone:` `cmd:` where they make sense) |
 | Rare | `{ Free, Hidden, MinWidth, MaxWidth, Style }` on leaves; `free:` `hidden:` `style:` on stacks |
 | Roles | `Tone.Primary/Secondary/Quiet/Danger/Solid/Backing`, `Ink.Normal/Dim/Accent` |
@@ -75,7 +75,7 @@ it directly.
 | --- | --- |
 | Roots | `UiNode.Layer(store, parent, UiLayers.X)`, `.Page()`, `.Cover()`, `UiNode.Wrap(entity)` |
 | Look (roles) | `.Primary()` `.Secondary()` `.Quiet()` `.Danger()` `.Chosen(on)` `.Solid()` `.Backing()` `.AccentText()` `.DimText()` `.CategoryTone(i)` `.CategoryFill(i)` `.CategoryText(i)` `.Theme(roles)` |
-| Text | `.SetText(s)` `.Fit()` `.Align(...)` `.Bold()` `.Mono()` |
+| Text | `.SetText(s)` `.Fit()` `.WrapText()` `.Align(...)` `.Bold()` `.Mono()` |
 | Geometry and flex | `.Size(w, h)` `.Width(w)` `.Height(h)` `.Grow(w)` `.Stretch()` `.IgnoreLayout()` `.Anchor(UiEdge)` |
 | Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` |
 | Lists, lines, meters | `UiLists.SetCount / Reveal / Row / Pool / OnChanged`, the `UiList` component (`First`, `Shown`, `Count`), `UiConnectors.Join`, `UiMeters.Set` |

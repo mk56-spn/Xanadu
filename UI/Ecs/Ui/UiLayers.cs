@@ -75,6 +75,10 @@ public static class UiLayers
     public const int SongMenu = 980;
 
     public const int Toast = 990;
+
+    /// <summary>The built-in docs, dropped down over any screen and its toasts.</summary>
+    public const int Docs = 992;
+
     public const int Focus = 995;
     public const int Tooltip = 996;
 

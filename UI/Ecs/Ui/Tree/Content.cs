@@ -8,7 +8,9 @@ namespace Xanadu.Ui.Ecs.Ui.Tree;
 /// <summary>
 /// Text in <paramref name="type"/>'s size, measured to fit unless sized. With
 /// <paramref name="fit"/> it asks for no width and is cut, with an ellipsis, to
-/// whatever room layout gives it (<see cref="UiNode.Fit"/>).
+/// whatever room layout gives it (<see cref="UiNode.Fit"/>); with
+/// <paramref name="wrap"/> it asks for no width either and breaks into lines
+/// at words instead, as tall as they need (<see cref="UiNode.WrapText"/>).
 /// </summary>
 public sealed class Label(
     string text = "",
@@ -18,6 +20,7 @@ public sealed class Label(
     bool fit = false,
     bool bold = false,
     bool mono = false,
+    bool wrap = false,
     float? width = null,
     float? height = null,
     float grow = 0,
@@ -36,6 +39,8 @@ public sealed class Label(
             node.Align(where);
         if (fit)
             node.Fit();
+        if (wrap)
+            node.WrapText();
         if (bold)
             node.Bold();
         if (mono)

@@ -140,6 +140,23 @@ public readonly partial struct UiNode
     }
 
     /// <summary>
+    /// Wraps the node's text at word boundaries to the width layout gives it
+    /// (<see cref="TextWrap"/>), the box growing as tall as its lines. Like
+    /// <see cref="Fit"/> it asks for no width of its own: stretch it, grow it or
+    /// give it a width.
+    /// </summary>
+    public UiNode WrapText()
+    {
+        if (IsNull)
+            return this;
+
+        _entity.AddTag<TextWrap>();
+        ref UiFlex flex = ref Flex;
+        flex.Natural = new Vector2(0, flex.Natural.Y);
+        return Touch(layout: true);
+    }
+
+    /// <summary>
     /// Draws the node's text in the monospaced face and refits its width to
     /// it, since the proportional estimate is wrong for code and punctuation.
     /// </summary>

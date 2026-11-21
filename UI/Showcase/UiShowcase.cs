@@ -17,7 +17,51 @@ internal sealed class UiShowcase : HostApp
 
     public UiShowcase(string[] args) : base("Xanadu UI Showcase", WindowOptions(args))
     {
-        Build();
+        if (Array.Exists(args, arg => arg == "--page=values"))
+            BuildValues();
+        else
+            Build();
+    }
+
+    /// <summary><c>--page=values</c>: a value field of every shape a shader uniform can take.</summary>
+    private void BuildValues()
+    {
+        var screen = new Vector2(Width, Height);
+        UiNode page = UiNode.Layer(Entities, default, UiLayers.Base).Page(screen).Pad(32).Gap(16).Backing();
+        page.Text("VALUE FIELDS", UiType.Heading).AccentText();
+        UiNode echo = page.Text("drag a slot sideways, click to type, right-click to reset", UiType.Body).DimText().Size(900, 24);
+
+        UiNode columns = page.Row().Gap(32).Cross(StackCrossAlignment.Start);
+        UiNode left = columns.Column().Gap(14).Cross(StackCrossAlignment.Start);
+        UiNode middle = columns.Column().Gap(14).Cross(StackCrossAlignment.Start);
+        UiNode right = columns.Column().Gap(14).Cross(StackCrossAlignment.Start);
+
+        void Field(UiNode column, string label, string type, float[] values)
+        {
+            UiValueShape shape = UiValueShape.Parse(type) ?? UiValueShape.Float;
+            Entity field = column.ValueField($"{label}  ({type})", shape, values, 300).Entity;
+            field.OnValueChanged((now, live) =>
+                UiText.Set(echo, $"{label} = {string.Join(", ", Array.ConvertAll(now, v => v.ToString("0.###")))}{(live ? "  (dragging)" : "")}"));
+        }
+
+        Field(left, "strength", "float", [0.5f]);
+        Field(left, "steps", "int", [4]);
+        Field(left, "count", "uint", [3]);
+        Field(left, "enabled", "bool", [1]);
+        Field(left, "mask", "bool3", [1, 0, 1]);
+
+        Field(middle, "offset", "float2", [0.25f, -0.5f]);
+        Field(middle, "direction", "float3", [0, 1, 0]);
+        Field(middle, "plane", "float4", [1, 0, 0, 2]);
+        Field(middle, "cell", "int2", [3, -2]);
+        Field(middle, "size", "uint3", [16, 16, 1]);
+
+        Field(right, "turn", "float2x2", [0.7f, -0.7f, 0.7f, 0.7f]);
+        Field(right, "basis", "float3x3", [1, 0, 0, 0, 1, 0, 0, 0, 1]);
+        Field(right, "shear", "float2x3", [1, 0.5f, 0, 0, 1, 0]);
+        Field(right, "world", "float4x4", [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+
+        Field(columns.Column().Gap(14).Cross(StackCrossAlignment.Start), "tint", "colour", [0.98f, 0.8f, 0.08f, 1]);
     }
 
     /// <summary><c>--resolution=WxH</c> (default 1600x900), <c>--shot=png</c> and <c>--shot-frame=n</c>.</summary>

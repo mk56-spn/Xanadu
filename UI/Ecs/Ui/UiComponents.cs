@@ -280,6 +280,14 @@ public struct TextMono : ITag;
 /// </summary>
 public struct TextFit : ITag;
 
+/// <summary>
+/// Text broken into lines at word boundaries to the width layout gives its box,
+/// the box as tall as those lines (<see cref="UiTextFit.WrapWords"/>). A newline
+/// in the text starts a new line. Layout sets the height; the width has to come
+/// from the stack: stretch it, grow it or give it one.
+/// </summary>
+public struct TextWrap : ITag;
+
 /// <summary>Marks a slider fill so it draws above its track.</summary>
 public struct UiSliderFill : ITag;
 

@@ -23,6 +23,16 @@ public static class UiText
 
         text.Value = value;
         Dirty(entity, buffer);
+
+        // A wrapped label's height follows its text, so its stack lays out again.
+        Entity parent = entity.Parent;
+        if (entity.Tags.Has<TextWrap>() && !parent.IsNull)
+        {
+            if (buffer is null)
+                parent.AddTag<LayoutDirty>();
+            else
+                buffer.AddTag<LayoutDirty>(parent.Id);
+        }
     }
 
     /// <summary>Sets <paramref name="entity"/>'s text colour when it has a style and the colour differs.</summary>

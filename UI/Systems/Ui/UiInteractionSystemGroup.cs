@@ -41,6 +41,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new UiColorPickerSystem(pointer));
         Add(new UiColorDragSystem(entities, pointer, visuals));
         Add(new UiColorFieldSystem());
+        Add(new UiValueFieldSystem(pointer));
         if (tooltips)
             Add(new UiTooltipSystem(entities, pointer, visuals, screen));
     }
