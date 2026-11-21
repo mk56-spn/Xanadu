@@ -167,6 +167,11 @@ A system that paints its own canvas from a panel's rectangle must check
 - Prefer splitting things into files within reason; `main` should not become too
   large.
 - Try and keep files under 400 lines.
+- Lean towards arrow syntax (`=>`) when it reads well: one-expression methods,
+  properties and getters. Keep a block body when the logic needs statements or
+  an arrow would turn into one long hard-to-read line.
+- Private by default. Anything that isn't part of an API is `private`, constants
+  included; widen only when another type actually needs it.
 
 ## Verification
 
