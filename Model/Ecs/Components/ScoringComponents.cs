@@ -85,12 +85,6 @@ public struct ComboHud(Entity number, Entity caption) : IComponent
     public Entity Number = number;
     public Entity Caption = caption;
 
-    /// <summary>The combo the counter last showed.</summary>
+    /// <summary>The combo the counter last showed; its swell and flashes are tweens on the two labels.</summary>
     public int Shown;
-
-    /// <summary>The swell from the last hit, its peak at 1 (more on a milestone), easing to 0.</summary>
-    public float Punch;
-
-    /// <summary>The red flash from the last break, 1 at its peak, easing to 0.</summary>
-    public float Break;
 }

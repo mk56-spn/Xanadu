@@ -111,6 +111,8 @@ internal static class PlayHudBuilder
             UiType.Small,
             SceneUi.DimTextColor,
             new Color(0, 0, 0, 0));
+        UiTween.Target(comboText);
+        UiTween.Target(comboCaption);
         playfield.AddComponent(new ComboHud(comboText, comboCaption));
 
         Entity accuracyText = ui.HudText(new Vector2(screen.X - 150, 68),
