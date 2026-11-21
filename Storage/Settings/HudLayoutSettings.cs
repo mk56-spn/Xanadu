@@ -1,8 +1,8 @@
+using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
-using Xanadu.Model.Ecs.Storage;
 
-namespace Xanadu.Model.Settings;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>Persisted visibility and normalized position for play HUD items.</summary>
 public sealed class HudLayoutSettings

@@ -1,12 +1,12 @@
+using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
-using Xanadu.Model.Ecs.Storage;
 using Xanadu.Model.Scoring;
 
-namespace Xanadu.Model.Profiles;
+namespace Xanadu.Storage.Profiles;
 
 /// <summary>A saved local player profile and their level scores.</summary>
 public sealed class UserProfile

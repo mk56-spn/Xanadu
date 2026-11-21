@@ -1,52 +1,14 @@
+using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
-using Xanadu.Model.Ecs.Storage;
 using Xanadu.Ui.Systems.Input;
 
-namespace Xanadu.Model.Settings;
-
-/// <summary>
-/// The seven playfield keys: four directions that steer directional notes and
-/// three action keys that hit action notes.
-/// </summary>
-public enum KeybindAction
-{
-    Left,
-    Right,
-    Up,
-    Down,
-    Action1,
-    Action2,
-    Action3,
-}
+namespace Xanadu.Storage.Settings;
 
 /// <summary>Persisted key bindings with capture, conflict swapping, and defaults.</summary>
 public sealed class KeybindSettings
 {
-    public static readonly KeybindAction[] Actions =
-    {
-        KeybindAction.Left,
-        KeybindAction.Right,
-        KeybindAction.Up,
-        KeybindAction.Down,
-        KeybindAction.Action1,
-        KeybindAction.Action2,
-        KeybindAction.Action3,
-    };
-
-    /// <summary>The three action keys, in bar order.</summary>
-    public static readonly KeybindAction[] ActionKeys =
-    {
-        KeybindAction.Action1,
-        KeybindAction.Action2,
-        KeybindAction.Action3,
-    };
-
-    /// <summary>Whether the key steers rather than hits.</summary>
-    public static bool IsDirection(KeybindAction action) => action is
-        KeybindAction.Left or KeybindAction.Right or KeybindAction.Up or KeybindAction.Down;
-
     private const string DefaultPath = "user://keybinds.json";
 
     private readonly Dictionary<KeybindAction, Key> _keys = new();
@@ -56,8 +18,8 @@ public sealed class KeybindSettings
     {
         _file = new PersistedFile<Dictionary<string, int>>(path, DefaultPath, persist);
 
-        foreach (KeybindAction action in Actions)
-            _keys[action] = DefaultFor(action);
+        foreach (KeybindAction action in KeybindActions.All)
+            _keys[action] = KeybindActions.DefaultFor(action);
 
         if (persist)
             Load();
@@ -66,7 +28,7 @@ public sealed class KeybindSettings
     public KeybindAction? Capturing { get; private set; }
 
     public Key Get(KeybindAction action) =>
-        _keys.TryGetValue(action, out Key key) ? key : DefaultFor(action);
+        _keys.TryGetValue(action, out Key key) ? key : KeybindActions.DefaultFor(action);
 
     public void BeginCapture(KeybindAction action) => Capturing = action;
 
@@ -111,37 +73,6 @@ public sealed class KeybindSettings
         return true;
     }
 
-    public static Key DefaultFor(KeybindAction action) => action switch
-    {
-        KeybindAction.Left => Key.F,
-        KeybindAction.Right => Key.J,
-        KeybindAction.Up => Key.K,
-        KeybindAction.Down => Key.L,
-        KeybindAction.Action1 => Key.S,
-        KeybindAction.Action2 => Key.Space,
-        KeybindAction.Action3 => Key.D,
-        _ => Key.None,
-    };
-
-    public static string LabelFor(KeybindAction action) => action switch
-    {
-        KeybindAction.Left => "LEFT",
-        KeybindAction.Right => "RIGHT",
-        KeybindAction.Up => "UP",
-        KeybindAction.Down => "DOWN",
-        KeybindAction.Action1 => "ACTION 1",
-        KeybindAction.Action2 => "ACTION 2",
-        KeybindAction.Action3 => "ACTION 3",
-        _ => "",
-    };
-
-    public static string KeyLabel(Key key) => key switch
-    {
-        Key.None => "—",
-        Key.Space => "SPACE",
-        _ => key.ToString().ToUpperInvariant(),
-    };
-
     private static bool IsModifier(Key key) => key is
         Key.Shift or
         Key.Ctrl or
@@ -155,7 +86,7 @@ public sealed class KeybindSettings
         if (values is null)
             return;
 
-        foreach (KeybindAction action in Actions)
+        foreach (KeybindAction action in KeybindActions.All)
         {
             if (values.TryGetValue(action.ToString(), out int raw) &&
                 Enum.IsDefined(typeof(Key), (long)raw))

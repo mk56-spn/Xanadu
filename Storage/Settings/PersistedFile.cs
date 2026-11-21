@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Ecs.Storage;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>
 /// A JSON document stored under a Godot path, written atomically and read

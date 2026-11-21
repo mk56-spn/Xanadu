@@ -1,10 +1,12 @@
+using Xanadu.Serialisation.Levels;
+using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Levels;
+namespace Xanadu.Storage.Levels;
 
 /// <summary>Reads and writes XMF level maps below user://levels.</summary>
 public static class LevelStore

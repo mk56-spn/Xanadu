@@ -1,8 +1,8 @@
+using Xanadu.Model.Settings;
 using System;
-using Xanadu.Model.Ecs.Storage;
 using Xanadu.Ui.Systems;
 
-namespace Xanadu.Model.Settings;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>Persisted general options: vertical sync, window mode and editor autosave.</summary>
 public sealed class DisplaySettings

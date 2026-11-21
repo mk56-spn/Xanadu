@@ -1,3 +1,5 @@
+using Xanadu.Storage.Settings;
+using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,9 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xanadu.Core.Storage;
-using Xanadu.Model.Ecs.Storage;
 
-namespace Xanadu.Model.Levels;
+namespace Xanadu.Storage.Levels;
 
 /// <summary>
 /// The song library, and the only code that touches it on disk. The game points

@@ -1,3 +1,4 @@
+using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,7 +6,7 @@ using System.Text;
 using Xanadu.Core.Diagnostics;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Settings;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>
 /// The player's own offset for each map, added to the global one. It belongs to this

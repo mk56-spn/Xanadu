@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace Xanadu.Model.Ecs.Storage;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>Shared atomic JSON persistence for program-owned data.</summary>
 public static class JsonFileStore

@@ -1,3 +1,4 @@
+using Xanadu.Serialisation.Levels;
 using System;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,7 @@ using Xanadu.Core.Diagnostics;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Levels;
 
-namespace Xanadu.Logic.Editor.Recovery;
+namespace Xanadu.Storage.Editor;
 
 /// <summary>
 ///     Autosaved copies of levels with unsaved edits, one file per level, kept

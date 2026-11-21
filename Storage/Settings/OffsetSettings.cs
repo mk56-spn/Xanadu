@@ -1,7 +1,7 @@
+using Xanadu.Model.Settings;
 using System;
-using Xanadu.Model.Ecs.Storage;
 
-namespace Xanadu.Model.Settings;
+namespace Xanadu.Storage.Settings;
 
 /// <summary>Persisted global input/audio calibration offset.</summary>
 public sealed class OffsetSettings

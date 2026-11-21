@@ -1,9 +1,11 @@
+using Xanadu.Serialisation.Replays;
+using Xanadu.Model.Replays;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using Xanadu.Core.Storage;
 
-namespace Xanadu.Model.Replays;
+namespace Xanadu.Storage.Replays;
 
 /// <summary>Reads and writes .xrs files in one directory.</summary>
 public sealed class ReplayStore(string directory)
