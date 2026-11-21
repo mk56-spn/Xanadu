@@ -691,7 +691,7 @@ them for the UI and publishes them as the globals `tweens` and
 |---|---|
 | `tweenClip(tweens[i])` | Any tween as a plain `Clip`: `.progress`, `.mixed(a, b)`, `.playing` as above. |
 | `tweenWeight(t)` | Its weight now: the clip's progress, mixed between its two weights. |
-| `tweenPose(target)` | Where a target's moves put it: offsets and turns added, scales multiplied (`.placed(p, pivot)`). |
+| `tweenPose(target)` | Where a target's moves put it: offsets and turns added, scales and opacity multiplied (`.placed(p, pivot)`, `.opacity`). |
 | `tweenColour(target, own)` | Its colour over `own`: colours by priority, each fading over what's beneath. |
 
 Keep the two sides one idea: a change to `Clip` here goes into Core's `Clip`

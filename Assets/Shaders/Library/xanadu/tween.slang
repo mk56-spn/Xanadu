@@ -50,7 +50,7 @@ public struct TweenRange
 /// Each target's range of `tweens`, by target index.
 [Global] public StructuredBuffer<TweenRange> tweenTargets;
 
-public static const uint TweenOffset = 0, TweenRotation = 1, TweenScale = 2, TweenColour = 3, TweenNumber = 4;
+public static const uint TweenOffset = 0, TweenRotation = 1, TweenScale = 2, TweenColour = 3, TweenNumber = 4, TweenOpacity = 5;
 public static const uint TweenOnce = 0, TweenLooped = 1, TweenStacked = 2;
 
 /// Core's EasePreset (by number) as the `eases.` value drawing the same curve.
@@ -130,6 +130,8 @@ public struct TweenPose
     public float2 offset;
     public float rotation;
     public float2 scale;
+    /// How much of its opacity it keeps, 0..1 (more overshoots).
+    public float opacity;
 
     /// Where a point in the target's own space shows: scaled and turned about `pivot`, then slid.
     public float2 placed(float2 p, float2 pivot)
@@ -140,13 +142,14 @@ public struct TweenPose
     }
 };
 
-/// TweenPool.Pose: a target's offsets and turns summed, its scales multiplied.
+/// TweenPool.Pose: a target's offsets and turns summed, its scales and opacities multiplied.
 public TweenPose tweenPose(uint target)
 {
     TweenPose pose;
     pose.offset = float2(0, 0);
     pose.rotation = 0.0;
     pose.scale = float2(1, 1);
+    pose.opacity = 1.0;
     TweenRange range = tweenTargets[target];
     for (uint i = range.start; i < range.start + range.count; i++)
     {
@@ -161,6 +164,8 @@ public TweenPose tweenPose(uint target)
             pose.rotation += t.value.x * w;
         else if (channel == TweenScale)
             pose.scale *= 1.0 + (t.value.xy - 1.0) * w;
+        else if (channel == TweenOpacity)
+            pose.opacity *= 1.0 + (t.value.x - 1.0) * w;
     }
     return pose;
 }
