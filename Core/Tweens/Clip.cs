@@ -69,8 +69,6 @@ public static class ClipClocks
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public struct Clip
 {
-    public const int Size = 12;
-
     /// <summary>Where it starts on its clock, in seconds or beats.</summary>
     public float Start;
 
@@ -120,9 +118,9 @@ public struct Clip
     /// <summary>A copy that plays backwards: 1 to 0.</summary>
     public readonly Clip Reversed() => this with { Shape = Shape ^ ClipShape.Reversed };
 
-    public readonly bool Bounces => (Shape & ClipShape.Bounced) != 0;
+    private readonly bool Bounces => (Shape & ClipShape.Bounced) != 0;
 
-    public readonly bool Backwards => (Shape & ClipShape.Reversed) != 0;
+    private readonly bool Backwards => (Shape & ClipShape.Reversed) != 0;
 
     /// <summary>How long it takes from start to end (twice its length when bounced).</summary>
     public readonly float Span => Bounces ? Length * 2f : Length;

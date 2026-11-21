@@ -72,7 +72,7 @@ public enum TweenLoop : byte
 public struct Tween
 {
     /// <summary>Bytes in one tween, on both sides.</summary>
-    public const int Size = 48;
+    internal const int Size = 48;
 
     /// <summary>What it applies at full weight: an offset (xy), a rotation (x), a scale (xy) or a colour (rgba).</summary>
     public Vector4 Value;
@@ -135,10 +135,10 @@ public struct Tween
     /// The weight it holds once done: a one-shot's at its end (reversed and
     /// bounced clips included); a looping one's end weight, which it keeps returning to.
     /// </summary>
-    public readonly float Settled => Loop == TweenLoop.None ? Weight(float.MaxValue) : WeightTo;
+    internal readonly float Settled => Loop == TweenLoop.None ? Weight(float.MaxValue) : WeightTo;
 
     /// <summary>Whether it is done changing at <paramref name="now"/>: played once and past its clip's end.</summary>
-    public readonly bool SettledAt(float now) => Loop == TweenLoop.None && now >= Clip.End;
+    internal readonly bool SettledAt(float now) => Loop == TweenLoop.None && now >= Clip.End;
 
     /// <summary>A slide by <paramref name="offset"/>: weight 0 → 1 over the clip.</summary>
     public static Tween MoveBy(Vector2 offset, Clip clip) =>

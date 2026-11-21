@@ -56,7 +56,11 @@ public sealed class TweenPool
         public uint Start, Count, Pad0, Pad1;
     }
 
-    public TweenPool(bool publish = false)
+    public TweenPool() : this(publish: false)
+    {
+    }
+
+    private TweenPool(bool publish)
     {
         if (Unsafe.SizeOf<Tween>() != Tween.Size)
             throw new InvalidOperationException($"Tween is {Unsafe.SizeOf<Tween>()} bytes, not {Tween.Size}.");
@@ -65,7 +69,7 @@ public sealed class TweenPool
     }
 
     /// <summary>Moves on every change, so a reader (the GPU upload) knows to copy.</summary>
-    public int Version { get; private set; }
+    private int Version { get; set; }
 
     public TweenTarget Create()
     {
@@ -88,7 +92,7 @@ public sealed class TweenPool
         Version++;
     }
 
-    public bool IsLive(TweenTarget target) =>
+    private bool IsLive(TweenTarget target) =>
         target.Index >= 0 && target.Index < _slotCount && _slots[target.Index].Live;
 
     /// <summary>The target's tweens, by priority then start.</summary>
@@ -284,23 +288,12 @@ public sealed class TweenPool
         return new Color(c.X, c.Y, c.Z, c.W);
     }
 
-    /// <summary>Whether any tween of the target drives this channel.</summary>
-    public bool Drives(TweenTarget target, TweenChannel channel)
-    {
-        foreach (Tween tween in Of(target))
-        {
-            if (tween.Channel == channel)
-                return true;
-        }
-        return false;
-    }
-
     /// <summary>
     /// Drops what can never show again, on the seconds clock only (it never runs
     /// back): runs that ended at weight 0, and colours under a finished full
     /// colour. Beat-clock tweens follow the music, which scrubs, so they always stay.
     /// </summary>
-    public void Prune(TweenTarget target)
+    private void Prune(TweenTarget target)
     {
         if (!IsLive(target))
             return;

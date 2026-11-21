@@ -12,9 +12,6 @@ public readonly record struct TweenPose(Vector2 Offset, float Rotation, Vector2 
 {
     public static TweenPose Identity => new(Vector2.Zero, 0f, Vector2.One);
 
-    /// <summary>Whether it changes nothing: no move and full opacity.</summary>
-    public bool IsIdentity => !Moves && Opacity == 1f;
-
     /// <summary>Whether it moves, turns or scales the target.</summary>
     public bool Moves => Offset != Vector2.Zero || Rotation != 0f || Scale != Vector2.One;
 
