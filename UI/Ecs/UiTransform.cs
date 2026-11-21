@@ -57,7 +57,7 @@ public static class UiTransform
     {
         var placed = new Transform2D(entity.TryGetComponent(out UiRotation rotation) ? rotation.Radians : 0, position);
         TweenPose pose = UiTween.Pose(entity);
-        if (pose.IsIdentity)
+        if (!pose.Moves)
             return placed;
 
         Vector2 pivot = entity.TryGetComponent(out Rectangle rect) ? rect.Bounds.GetCenter() : Vector2.Zero;

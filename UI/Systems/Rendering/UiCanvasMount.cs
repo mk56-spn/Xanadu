@@ -87,7 +87,13 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
         if (entity.TryGetComponent(out UiMaterial material))
             CanvasServer.Current.SetMaterial(item, material.Material);
 
-        into.Item(item, transform, parent.Modulate, z, parent.Clip);
+        // A tweened fade tints it and everything under it.
+        Color modulate = parent.Modulate;
+        float opacity = UiTween.Pose(entity).Opacity;
+        if (opacity != 1f)
+            modulate = new Color(modulate, modulate.A * Math.Clamp(opacity, 0f, 1f));
+
+        into.Item(item, transform, modulate, z, parent.Clip);
 
         Rect2? clip = parent.Clip;
         if (entity.TryGetComponent(out UiContainer container) && container.Clip)
@@ -96,7 +102,7 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
             clip = clip is { } outer ? outer.Intersection(own) : own;
         }
 
-        var here = new Base(transform, parent.Modulate, z, clip);
+        var here = new Base(transform, modulate, z, clip);
         foreach (Entity child in entity.ChildEntities)
             Walk(into, child, here, layer);
     }

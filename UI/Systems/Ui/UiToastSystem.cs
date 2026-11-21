@@ -5,12 +5,18 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
+using Xanadu.Core.Tweens;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Ui;
 
-/// <summary>General-purpose timed toast with pop-in and fade-out animation.</summary>
+/// <summary>
+/// General-purpose timed toast. Showing one plays its whole life as tweens at
+/// once: a pop in (fading in, rising into place), then, after its time up, a
+/// fade out (fading, drifting up). The toast's place and colours never change;
+/// the tweens fade and move it from there.
+/// </summary>
 public sealed class ToastSystem : BaseSystem
 {
     private const float PopInSeconds = 0.16f;
@@ -22,6 +28,10 @@ public sealed class ToastSystem : BaseSystem
     private const float PaddingX = 24f;
     private const float MinWidth = 220f;
     private const float ScreenMargin = 16f;
+
+    /// <summary>How far below its place it pops in from, and how far above it it leaves to.</summary>
+    private const float PopRise = 10f;
+    private const float LeaveRise = 8f;
 
     /// <summary>Extra time on screen per character, so a long message stays long enough to read.</summary>
     private const float SecondsPerCharacter = 0.05f;
@@ -35,9 +45,7 @@ public sealed class ToastSystem : BaseSystem
     private readonly Vector2 _home;
     private readonly float _maxWidth;
     private readonly Entity _toast;
-    private string _message = "";
-    private float _age;
-    private float _duration;
+    private float _gone;
     private bool _active;
 
     /// <summary>The toast's entity: its panel and text.</summary>
@@ -56,11 +64,12 @@ public sealed class ToastSystem : BaseSystem
 
         UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Toast);
         _toast = ui.RectEntity(
-            Vector2.Zero,
+            _home,
             new Vector2(MinWidth, Height),
-            new Color(PanelColor, 0f),
+            PanelColor,
             "");
-        _toast.AddComponent(new TextStyle(FontSize, new Color(TextColor, 0f)));
+        _toast.AddComponent(new TextStyle(FontSize, TextColor));
+        UiTween.Target(_toast);
         UiLayout.SetHidden(_toast, true);
     }
 
@@ -112,55 +121,31 @@ public sealed class ToastSystem : BaseSystem
             Begin(message, duration);
         }
 
-        _age += Tick.deltaTime;
-
-        float total = PopInSeconds + _duration + FadeOutSeconds;
-        float alpha;
-        float offsetY;
-
-        if (_age < PopInSeconds)
-        {
-            float t = _age / PopInSeconds;
-            alpha = t;
-            offsetY = (1f - t) * 10f;
-        }
-        else if (_age < PopInSeconds + _duration)
-        {
-            alpha = 1f;
-            offsetY = 0f;
-        }
-        else if (_age < total)
-        {
-            float t = (_age - PopInSeconds - _duration) /
-                      FadeOutSeconds;
-            alpha = 1f - t;
-            offsetY = -t * 8f;
-        }
-        else
-        {
-            _active = false;
-            SetVisual(string.Empty, _home, 0f);
-            Mark();
-            UiLayout.SetHidden(_toast, true);
+        if (ClipClocks.Seconds < _gone)
             return;
-        }
 
-        SetVisual(
-            _message,
-            _home + new Vector2(0, offsetY),
-            alpha);
-        Mark();
+        _active = false;
+        UiTween.Clear(_toast);
+        SetText(string.Empty);
+        UiLayout.SetHidden(_toast, true);
     }
 
+    /// <summary>Puts the message up and plays its whole life: in now, out once its time is up.</summary>
     private void Begin(string message, float duration)
     {
         UiLayout.SetHidden(_toast, false);
-        _message = message;
-        _age = 0f;
-        _duration = Math.Max(0.1f, duration);
         _active = true;
         Fit(message);
-        SetVisual(message, _home, 0f);
+        SetText(message);
+
+        Clip popIn = Clip.FromNow(PopInSeconds);
+        Clip fadeOut = popIn.Then(Math.Max(0.1f, duration)).Then(FadeOutSeconds);
+        _gone = fadeOut.End;
+        UiTween.Clear(_toast);
+        UiTween.Play(_toast, Tween.FadeOpacityIn(0f, popIn));
+        UiTween.MoveIn(_toast, new Vector2(0, PopRise), popIn);
+        UiTween.Play(_toast, Tween.FadeOpacity(0f, fadeOut));
+        UiTween.MoveBy(_toast, new Vector2(0, -LeaveRise), fadeOut);
     }
 
     /// <summary>Sizes the toast to the whole message, dropping to a smaller font before it would run off screen.</summary>
@@ -179,24 +164,9 @@ public sealed class ToastSystem : BaseSystem
         _toast.GetComponent<TextStyle>().FontSize = fontSize;
     }
 
-    private void SetVisual(string message, Vector2 position, float alpha)
+    private void SetText(string message)
     {
-        ref Text text = ref _toast.GetComponent<Text>();
-        text.Value = message;
-
-        ref Position pos = ref _toast.GetComponent<Position>();
-        pos.Value = position;
-
-        ref FillColor fill = ref _toast.GetComponent<FillColor>();
-        fill.Value = new Color(PanelColor, PanelColor.A * alpha);
-
-        ref TextStyle style = ref _toast.GetComponent<TextStyle>();
-        style.Color = new Color(TextColor, TextColor.A * alpha);
-    }
-
-    private void Mark()
-    {
+        _toast.GetComponent<Text>().Value = message;
         _toast.AddTag<Dirty>();
-        _toast.AddTag<Moved>();
     }
 }
