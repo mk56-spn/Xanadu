@@ -4,7 +4,7 @@
     shell (HostCore/Tools/TabbedToolApp.cs). Atlas charts the project's types
     from the built assemblies (what touches what); Autopsy opens the frame
     captures every host exe saves when it closes and splits a frame's CPU and
-    GPU time into bars.
+    GPU time into bars; Clock measures the song clock judging reads.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="4.0.0" />
     <ProjectReference Include="../../HostCore/Xanadu.HostCore.csproj" />
+    <ProjectReference Include="../../Audio/Xanadu.Audio.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
   </ItemGroup>
   <Import Project="../../Core/Maths/Maths.props" />

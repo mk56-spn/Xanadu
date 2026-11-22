@@ -30,17 +30,21 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
     };
 
     private readonly List<Key> _held = new();
+    private readonly Dictionary<Key, long> _changedAt = new();
     private readonly Dictionary<long, int> _dashTurns = new();
 
     protected override void OnUpdate()
     {
         long? now = null;
+        Playhead clock = default;
         _held.Clear();
+        _changedAt.Clear();
         foreach (Entity entity in Query.Store.Query<Playhead, PlayfieldMode>().Entities)
         {
             if (entity.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Play)
                 continue;
-            now = entity.GetComponent<Playhead>().TimeMs;
+            clock = entity.GetComponent<Playhead>();
+            now = clock.TimeMs;
 
             // Riding an orb: keep its key down to the tail.
             if (entity.TryGetComponent(out CurveBody body) && body.HoldOpen && now < body.Ride.EndMs)
@@ -69,11 +73,15 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
                     NoteKind.Orb => KeybindAction.Action3,
                     _ => note.Target,
                 };
-                _held.Add(keybinds.Get(action));
+                Key key = keybinds.Get(action);
+                _held.Add(key);
+                // Pressed on the note's time itself, not on the frame that reached it.
+                if (clock.TicksAt(note.TimeMs) is var ticks and not 0 && !_changedAt.ContainsKey(key))
+                    _changedAt[key] = ticks;
             }
         }
 
-        keyboard.Replay(_held);
+        keyboard.Replay(_held, _changedAt);
     }
 
     /// <summary>Each dash gets the next way the first time it is seen, and keeps it.</summary>

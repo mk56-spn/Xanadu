@@ -77,6 +77,35 @@ public struct Playhead(
     /// <summary>The time to draw and move things by: the smooth clock while playing, the audio clock while held.</summary>
     public readonly double ShownMs => Playing ? SmoothMs : TimeMs;
 
+    /// <summary>The audio clock at its last read while playing, ms, unrounded.</summary>
+    public double ClockMs;
+
+    /// <summary>When that read was, a <see cref="System.Diagnostics.Stopwatch"/> timestamp; 0 while held.</summary>
+    public long ClockTicks;
+
+    /// <summary>A key change this long before the clock's read still maps; older ones (across a pause, say) are held there, ms.</summary>
+    public const double LookBackMs = 100;
+
+    /// <summary>The song time at a <see cref="System.Diagnostics.Stopwatch"/> timestamp, from the last audio read.</summary>
+    public readonly double SongMsAt(long ticks)
+    {
+        if (ClockTicks == 0)
+            return TimeMs;
+        double ms = ClockMs + (ticks - ClockTicks) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+        return System.Math.Clamp(ms, ClockMs - LookBackMs, ClockMs);
+    }
+
+    /// <summary>The <see cref="System.Diagnostics.Stopwatch"/> timestamp at a song time, from the last audio read; 0 while held.</summary>
+    public readonly long TicksAt(double songMs) =>
+        ClockTicks == 0 ? 0 : ClockTicks + (long)((songMs - ClockMs) * System.Diagnostics.Stopwatch.Frequency / 1000d);
+
+    /// <summary>
+    /// The song time a key change is judged at, ms: when it happened if the
+    /// keyboard knows (<paramref name="changedAt"/>), else this frame's audio clock.
+    /// </summary>
+    public readonly long KeyMs(long? changedAt) =>
+        changedAt is { } ticks && ClockTicks != 0 ? (long)System.Math.Round(SongMsAt(ticks)) : TimeMs;
+
     private TempoMap? _tempo = TempoMap.Single(bpm, offsetMs);
 
     /// <summary>The song's tempo map: beat 0, BPM changes and bar lengths.</summary>

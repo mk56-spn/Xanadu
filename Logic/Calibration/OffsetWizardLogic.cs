@@ -125,6 +125,19 @@ public sealed class OffsetWizardLogic(
         Listening = false;
     }
 
+    /// <summary>
+    /// The track's time when Space went down, not when this frame read it, so
+    /// the offset measured matches presses judged the same way.
+    /// </summary>
+    private double TapSeconds()
+    {
+        double now = audio.PositionSeconds;
+        if (keyboard?.ChangedAt(Key.Space) is not { } ticks)
+            return now;
+        double ago = (System.Diagnostics.Stopwatch.GetTimestamp() - ticks) / (double)System.Diagnostics.Stopwatch.Frequency;
+        return now - System.Math.Clamp(ago, 0d, Xanadu.Model.Ecs.Components.Playhead.LookBackMs / 1000d);
+    }
+
     private void TapOrStart()
     {
         if (!Listening)
@@ -133,7 +146,7 @@ public sealed class OffsetWizardLogic(
             return;
         }
 
-        if (!Run.Tap(audio.PositionSeconds))
+        if (!Run.Tap(TapSeconds()))
             return;
 
         Phase = OffsetWizardPhase.Tapping;

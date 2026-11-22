@@ -114,7 +114,7 @@ public sealed class PlayCameraSystem : QuerySystem<PlayCamera, Player, Position,
         }
 
         Note note = camera.DropNote.GetComponent<Note>();
-        if (session.Started && playhead.TimeMs >= note.TimeMs)
+        if (session.Started && playhead.ShownMs >= note.TimeMs)
         {
             camera.DroppedIn = true;
             return false;

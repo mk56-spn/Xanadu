@@ -6,6 +6,7 @@ using Xanadu.Host.Tools;
 using Xanadu.Tools.DevTools.Arch;
 using Xanadu.Tools.DevTools.Atlas;
 using Xanadu.Tools.DevTools.Autopsy;
+using Xanadu.Tools.DevTools.Clock;
 
 namespace Xanadu.Tools.DevTools;
 
@@ -26,11 +27,12 @@ internal sealed record DevToolTab(string Name) : IToolTab
 /// The dev tools: one window for looking at the project, on the shared tabbed
 /// tool shell. ATLAS charts the project's types (what touches what); AUTOPSY
 /// takes apart the frames each exe saved when it last closed; ARCH is the architecture as it is
-/// meant to be, drawn by hand on an open board.
+/// meant to be, drawn by hand on an open board; CLOCK measures the song clock
+/// judging reads.
 /// </summary>
 internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
 {
-    public const int AtlasTab = 0, AutopsyTab = 1, ArchTab = 2;
+    public const int AtlasTab = 0, AutopsyTab = 1, ArchTab = 2, ClockTab = 3;
 
     private readonly DevToolsOptions _options;
 
@@ -41,7 +43,7 @@ internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
     private string? _pendingFocus;
 
     public DevToolsApp(HostWindowOptions window, DevToolsOptions options)
-        : base("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("ARCH")], options.Tab)
+        : base("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("ARCH"), new DevToolTab("CLOCK")], options.Tab)
     {
         _options = options;
         _map = Task.Run(() => CodeMap.Read(options.Root));
@@ -57,6 +59,8 @@ internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
             return new AutopsyStage(context, parent, area, this, _options.Methods);
         if (tab == ArchTab)
             return new ArchStage(_options.Root);
+        if (tab == ClockTab)
+            return new ClockStage(context, parent, area);
 
         AtlasOptions start = _pendingFocus is { } focus
             ? _options.Atlas with { Focus = focus, Compare = null, Similar = false }

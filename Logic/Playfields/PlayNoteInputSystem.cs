@@ -73,7 +73,8 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
             // Direction keys only hit dashes; action keys drop the beam too.
             if (!KeybindActions.IsDirection(action))
                 DropBeam(action, playfield);
-            _judge.Note(action, playfield);
+            // Judged when the key went down, not when this frame read it.
+            _judge.Note(action, playfield, playfield.GetComponent<Playhead>().KeyMs(_keyboard.ChangedAt(key)));
         }
 
         _tails.Update(playfield);
@@ -89,7 +90,7 @@ public sealed class PlayNoteInputSystem : QuerySystem<Note>
         if (!playfield.TryGetComponent(out CurveBody body))
             return;
 
-        long now = playfield.GetComponent<Playhead>().TimeMs;
+        long now = (long)Math.Round(playfield.GetComponent<Playhead>().ShownMs);
         float judgement = Chords.At(_entities, now) is { } chord
             ? chord.Anchor.Y
             : PlayRules.FloorY(playfield.GetComponent<Playfield>());

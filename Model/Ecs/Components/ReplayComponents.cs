@@ -33,4 +33,6 @@ public struct ReplayPlayer(Replay replay) : IComponent
     public int OffsetCursor;
     public long LastTimeMs = long.MinValue;
     public bool[] Down = new bool[KeybindActions.All.Length];
+    /// <summary>The song time each action last changed, ms: the keyboard reports it so presses judge on the recorded time.</summary>
+    public long[] ChangedMs = new long[KeybindActions.All.Length];
 }

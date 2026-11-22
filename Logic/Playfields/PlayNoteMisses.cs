@@ -40,7 +40,7 @@ public sealed class PlayNoteMisses(PlayNoteContext context)
             score.LastJudgement = Judgement.Miss;
             PlayfieldView view = playfield.GetComponent<PlayfieldView>();
             score.JudgementPosition = view.PlayfieldToScreen(Chords.Landing(entity.Store, note));
-            score.JudgementTimeMs = playhead.TimeMs;
+            score.JudgementTimeMs = playhead.ShownMs;
             PlayScoring.Count(ref score, Judgement.Miss);
             // An orb missed at its head misses its tail with it.
             if (note.IsOrb)

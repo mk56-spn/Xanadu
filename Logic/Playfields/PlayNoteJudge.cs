@@ -23,7 +23,8 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
     private readonly ArchetypeQuery<Note> _open =
         context.Entities.Query<Note>().WithoutAnyTags(Tags.Get<NoteMissed>());
 
-    public void Note(KeybindAction action, Entity playfield)
+    /// <param name="pressMs">The song time the key went down (<see cref="Playhead.KeyMs"/>).</param>
+    public void Note(KeybindAction action, Entity playfield, long pressMs)
     {
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
         ref ScoreState score = ref playfield.GetComponent<ScoreState>();
@@ -33,7 +34,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             return;
 
-        long judgedTime = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
+        long judgedTime = pressMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
         NearestNote nearest = _open.EachEntity(
@@ -55,7 +56,7 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
             ref score,
             view,
             playerScreen,
-            playhead.TimeMs);
+            playhead.ShownMs);
     }
 
     /// <summary>The open action note matching the key that is nearest in time, in reach and visible.</summary>

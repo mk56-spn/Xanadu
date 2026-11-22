@@ -29,6 +29,6 @@ public static class HitEffects
         entities.CreateEntity(new ParticleBurst(origin, GameParticles.Hit, color, area, heading: origin - position));
         PlayCameraSystem.Kick(playfield);
         if (playfield.HasComponent<BodyPunch>() && playfield.TryGetComponent(out Playhead playhead))
-            playfield.GetComponent<BodyPunch>().HitMs = playhead.TimeMs;
+            playfield.GetComponent<BodyPunch>().HitMs = playhead.ShownMs;
     }
 }

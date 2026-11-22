@@ -26,7 +26,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
         PlayfieldView view = frame.View;
         Vector2 pointer = view.ScreenToPlayfield(ghost.Screen);
         Vector2 at = ViewportSnap.IsOn(surface.Entities) ? PlayfieldGrid.NearestCrossing(pointer, frame.Playfield) : pointer;
-        long now = frame.Playhead.TimeMs;
+        long now = (long)Math.Round(frame.Playhead.ShownMs);
         if (editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Draft)
         {
             Vector2 centre = view.PlayfieldToScreen(at);

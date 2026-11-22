@@ -81,7 +81,7 @@ public sealed class EditorTimelineDrawer
                      _surface.Entities, ruler, windowStart, windowEnd, timeline.Zoom))
             DrawNoteSlot(entity.GetComponent<Note>(), bounds, axis, ruler, frame.Selection.Contains(entity));
 
-        DrawPlayhead(painter, axis, ruler, Math.Clamp(playhead.TimeMs, windowStart, windowEnd));
+        DrawPlayhead(painter, axis, ruler, Math.Clamp((long)Math.Round(playhead.ShownMs), windowStart, windowEnd));
     }
 
     /// <summary>

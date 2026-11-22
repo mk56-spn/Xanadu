@@ -22,6 +22,9 @@ namespace MoonWorks.Input
 		private KeyboardButton[] Keys { get; }
 		private List<SDL.SDL_KeyboardEvent>[] ButtonEvents;
 
+		/// <summary>Per scancode: SDL's timestamp (ns) of the event that last changed the key's held state, 0 if never.</summary>
+		private ulong[] ChangedTimestamps;
+
 		internal Keyboard()
 		{
 			SDL.SDL_GetKeyboardState(out var numKeys);
@@ -29,6 +32,7 @@ namespace MoonWorks.Input
 			var scanCodes = Enum.GetValues<ScanCode>();
 			Keys = new KeyboardButton[numKeys];
 			ButtonEvents = new List<SDL.SDL_KeyboardEvent>[numKeys];
+			ChangedTimestamps = new ulong[numKeys];
 
 			foreach (var scancode in scanCodes)
 			{
@@ -74,6 +78,18 @@ namespace MoonWorks.Input
 
 				if (events.Count > 0)
                 {
+					// Xanadu: when the held state changed, from the event that changed it, so a
+					// press can be judged when it happened rather than when the frame read it.
+					bool held = button.Down;
+					foreach (var buttonEvent in events)
+					{
+						if (buttonEvent.down != held && !buttonEvent.repeat)
+						{
+							held = buttonEvent.down;
+							ChangedTimestamps[(int) button.ScanCode] = buttonEvent.timestamp;
+						}
+					}
+
                     wasPressed = ButtonWasPressed(timestamp, events);
 					isDown = events[^1].down;
 					events.Clear();
@@ -132,6 +148,19 @@ namespace MoonWorks.Input
 		/// True if the button was either pressed or continued to be held this frame.
 		/// </summary>
 		public bool IsDown(KeyCode keycode) => IsDown(FromKeyCode(keycode));
+
+		/// <summary>
+		/// Xanadu: nanoseconds since the key was last pressed or let go, from the event's own
+		/// timestamp; null if it never changed.
+		/// </summary>
+		public ulong? NanosecondsSinceChange(KeyCode keycode)
+		{
+			ulong changed = ChangedTimestamps[(int) FromKeyCode(keycode)];
+			if (changed == 0)
+				return null;
+			ulong now = SDL.SDL_GetTicksNS();
+			return now > changed ? now - changed : 0;
+		}
 
 		/// <summary>
 		/// True if the button was let go this frame.

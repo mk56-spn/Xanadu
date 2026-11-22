@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Scoring;
@@ -26,10 +27,13 @@ public sealed class PlayHoldTails(PlayNoteContext context, IKeyboardState keyboa
             return;
 
         ref Playhead playhead = ref playfield.GetComponent<Playhead>();
-        long judged = playhead.TimeMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
+        Key key = context.Keybinds.Get(body.RideKey);
+        bool held = keyboard.IsPressed(key);
+        // A release is judged when the key came up, not when this frame read it.
+        long at = held ? playhead.TimeMs : playhead.KeyMs(keyboard.ChangedAt(key));
+        long judged = at - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long window = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
         long early = body.Ride.EndMs - judged;
-        bool held = keyboard.IsPressed(context.Keybinds.Get(body.RideKey));
 
         Judgement judgement;
         if (!held)
@@ -51,6 +55,6 @@ public sealed class PlayHoldTails(PlayNoteContext context, IKeyboardState keyboa
         PlayScoring.Apply(ref score, judgement, early);
         PlayfieldView view = playfield.GetComponent<PlayfieldView>();
         score.JudgementPosition = view.PlayfieldToScreen(Orbs.At(body.Ride, playhead.ShownMs));
-        score.JudgementTimeMs = playhead.TimeMs;
+        score.JudgementTimeMs = playhead.ShownMs;
     }
 }

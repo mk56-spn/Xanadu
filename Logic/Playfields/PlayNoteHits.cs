@@ -21,13 +21,13 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         ref ScoreState score,
         PlayfieldView view,
         Vector2 playerScreen,
-        long playheadTimeMs)
+        double shownMs)
     {
         Vector2 hitPosition = view.PlayfieldToScreen(Chords.Landing(context.Entities, note));
         Color hitColor = PlayfieldColors.ColorFor(note);
         float hitRadius = PlayfieldMetrics.NoteSize * view.Scale / 2f;
         score.JudgementPosition = hitPosition;
-        score.JudgementTimeMs = playheadTimeMs;
+        score.JudgementTimeMs = shownMs;
 
         // Read before the hit takes the note away.
         int chartIndex = ChartIndex.Of(noteEntity);

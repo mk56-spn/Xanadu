@@ -29,7 +29,8 @@ public struct ScoreState(
 
     /// <summary>Screen position of the note that was judged; judgements sit on it.</summary>
     public Vector2 JudgementPosition;
-    public long JudgementTimeMs;
+    /// <summary>When the last judgement popped, on the shown (smooth) clock, ms; the pop ages by that clock.</summary>
+    public double JudgementTimeMs;
     public int FlawlessPCount;
     public int FlawlessCount;
     public int CleanCount;

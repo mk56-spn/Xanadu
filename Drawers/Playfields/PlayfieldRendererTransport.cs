@@ -22,7 +22,7 @@ public static partial class PlayfieldRenderer
             return;
 
         float progress = Math.Clamp(
-            playhead.TimeMs / (float)playhead.DurationMs,
+            (float)(playhead.ShownMs / playhead.DurationMs),
             0f,
             1f);
 

@@ -12,6 +12,7 @@ namespace Xanadu.Logic.Replays;
 public sealed class ReplayKeyboard(IKeyboardState real) : IKeyboardState
 {
     private readonly HashSet<Key> _replayed = new();
+    private readonly Dictionary<Key, long> _changedAt = new();
 
     /// <summary>The real keyboard, which the recorder samples directly.</summary>
     public IKeyboardState Real { get; } = real;
@@ -21,17 +22,28 @@ public sealed class ReplayKeyboard(IKeyboardState real) : IKeyboardState
     public bool IsPressed(Key key) =>
         IsReplaying ? _replayed.Contains(key) : Real.IsPressed(key);
 
-    public void Replay(IEnumerable<Key> keys)
+    public long? ChangedAt(Key key) =>
+        IsReplaying ? _changedAt.TryGetValue(key, out long ticks) ? ticks : null : Real.ChangedAt(key);
+
+    /// <summary>Holds <paramref name="keys"/>; <paramref name="changedAt"/> says when each last changed (Stopwatch ticks), where known.</summary>
+    public void Replay(IEnumerable<Key> keys, IReadOnlyDictionary<Key, long>? changedAt = null)
     {
         IsReplaying = true;
         _replayed.Clear();
         foreach (Key key in keys)
             _replayed.Add(key);
+        _changedAt.Clear();
+        if (changedAt is not null)
+        {
+            foreach ((Key key, long ticks) in changedAt)
+                _changedAt[key] = ticks;
+        }
     }
 
     public void StopReplay()
     {
         IsReplaying = false;
         _replayed.Clear();
+        _changedAt.Clear();
     }
 }

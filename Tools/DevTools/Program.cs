@@ -4,8 +4,9 @@ using Xanadu.Host;
 using Xanadu.Tools.DevTools;
 using Xanadu.Tools.DevTools.Atlas;
 using Xanadu.Tools.DevTools.Autopsy;
+using Xanadu.Tools.DevTools.Clock;
 
-// dotnet run --project Tools/DevTools [atlas|autopsy|moves|arch] [flags]   -> opens on that tab (atlas by default)
+// dotnet run --project Tools/DevTools [atlas|autopsy|arch|clock] [flags]   -> opens on that tab (atlas by default)
 //
 // atlas --focus=TextEditor   -> opens on that type          atlas --compare=A,B    -> comparing two types
 // atlas --sort=used          -> sorted: name, used, uses, type or project; --sort=used- flips it
@@ -16,6 +17,7 @@ using Xanadu.Tools.DevTools.Autopsy;
 // autopsy --methods          -> opens on the METHODS view
 // autopsy --dump[=app]       -> prints the latest (or that app's) capture as text, no window
 //         --under=<name>     -> with --dump: the methods run beneath methods named like that
+// clock --dump[=seconds]    -> measures the song clock muted (5 s by default) and prints it, no window
 // --shot=<png>               -> saves frame 60 and quits (--shot-frame=<n> to pick)
 string? shot = null, focus = null, compare = null;
 int frame = 60, tab = DevToolsApp.AtlasTab;
@@ -23,12 +25,13 @@ var sort = AtlasStage.SortMode.Name;
 bool reverse = false, similar = false, methods = false;
 string root = FindRoot();
 int first = 0;
-if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "arch")
+if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "arch" or "clock")
 {
     tab = args[0] switch
     {
         "atlas" => DevToolsApp.AtlasTab,
         "autopsy" => DevToolsApp.AutopsyTab,
+        "clock" => DevToolsApp.ClockTab,
         _ => DevToolsApp.ArchTab,
     };
     first = 1;
@@ -60,6 +63,13 @@ for (int i = first; i < args.Length; i++)
         HostApp.UseGameRoots();
         string? under = Array.Find(args, a => a.StartsWith("--under=", StringComparison.Ordinal))?["--under=".Length..];
         AutopsyDump.Print(arg.Length > "--dump=".Length ? arg["--dump=".Length..] : null, under);
+        return;
+    }
+
+    if (tab == DevToolsApp.ClockTab && (arg == "--dump" || arg.StartsWith("--dump=", StringComparison.Ordinal)))
+    {
+        HostApp.UseGameRoots();
+        ClockDump.Print(arg.Length > "--dump=".Length ? double.Parse(arg["--dump=".Length..], System.Globalization.CultureInfo.InvariantCulture) : 5);
         return;
     }
 

@@ -144,8 +144,8 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                 Buffer);
             bool showJudgement =
                 score.HasJudgement &&
-                playhead.TimeMs >= score.JudgementTimeMs &&
-                playhead.TimeMs - score.JudgementTimeMs <= JudgementPop.ShowMs;
+                playhead.ShownMs >= score.JudgementTimeMs &&
+                playhead.ShownMs - score.JudgementTimeMs <= JudgementPop.ShowMs;
 
             UiText.Set(
                 score.JudgementText,
@@ -154,7 +154,7 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
                     : "",
                 Buffer);
 
-            float age = (float)(playhead.TimeMs - score.JudgementTimeMs);
+            float age = (float)(playhead.ShownMs - score.JudgementTimeMs);
             if (showJudgement &&
                 !score.JudgementText.IsNull &&
                 score.JudgementText.HasComponent<TextStyle>())

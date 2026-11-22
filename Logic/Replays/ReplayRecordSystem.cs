@@ -2,6 +2,7 @@ using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
+using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
@@ -11,7 +12,7 @@ namespace Xanadu.Logic.Replays;
 
 /// <summary>
 /// Notes each key press and release, stamped with the song time the play
-/// systems will judge it against. Nothing is recorded during the countdown,
+/// systems will judge it against: when the key changed, where the keyboard knows. Nothing is recorded during the countdown,
 /// while paused, or after the song has ended.
 /// </summary>
 public sealed class ReplayRecordSystem(
@@ -40,12 +41,13 @@ public sealed class ReplayRecordSystem(
             for (int i = 0; i < KeybindActions.All.Length; i++)
             {
                 KeybindAction action = KeybindActions.All[i];
-                bool down = Keyboard.IsPressed(Keybinds.Get(action));
+                Key key = Keybinds.Get(action);
+                bool down = Keyboard.IsPressed(key);
                 if (down == recorder.Down[i])
                     continue;
 
                 recorder.Down[i] = down;
-                recorder.Events.Add(new ReplayEvent((int)playhead.TimeMs, action, down));
+                recorder.Events.Add(new ReplayEvent((int)playhead.KeyMs(Keyboard.ChangedAt(key)), action, down));
             }
         }
     }

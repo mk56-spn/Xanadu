@@ -20,10 +20,10 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
     protected override void OnUpdate() => Query.EachEntity(new Publish(Query.Store));
 
     /// <summary>Seconds until the next note still waiting to be played, or never.</summary>
-    private static float UntilNote(EntityStore store, long nowMs)
+    private static float UntilNote(EntityStore store, double nowMs)
     {
         long next = store.Query<Note>().Each(new NextNote(nowMs)).Next;
-        return next == long.MaxValue ? ShaderKeys.Never : (next - nowMs) / 1000f;
+        return next == long.MaxValue ? ShaderKeys.Never : (float)((next - nowMs) / 1000d);
     }
 
     private readonly record struct Publish(EntityStore Store) : IEachEntity<PlayfieldMode, Player, Position, PlayfieldView, Playhead>
@@ -68,11 +68,11 @@ public sealed class ShaderPlaySystem : QuerySystem<PlayfieldMode, Player, Positi
             ShaderPlay.SongSeconds = (float)(now / 1000d);
             ShaderPlay.Beat = (float)playhead.Tempo.BeatAt(now);
             ShaderPlay.Bpm = (float)playhead.Tempo.At(now).Bpm;
-            ShaderPlay.UntilNote = UntilNote(entity.Store, playhead.TimeMs);
+            ShaderPlay.UntilNote = UntilNote(entity.Store, now);
         }
     }
 
-    private struct NextNote(long NowMs) : IEach<Note>
+    private struct NextNote(double NowMs) : IEach<Note>
     {
         public long Next = long.MaxValue;
 

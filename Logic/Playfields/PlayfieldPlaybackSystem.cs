@@ -59,16 +59,10 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
             _audio.Resume();
         }
 
-        if (playhead.DurationMs > 0)
-        {
-            playhead.TimeMs = Math.Min(
-                (long)(_audio.PositionSeconds * 1000),
-                playhead.DurationMs);
-        }
-        else
-        {
-            playhead.TimeMs = (long)(_audio.PositionSeconds * 1000);
-        }
+        double clockMs = _audio.PositionSeconds * 1000d;
+        playhead.ClockTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+        playhead.ClockMs = playhead.DurationMs > 0 ? Math.Min(clockMs, playhead.DurationMs) : clockMs;
+        playhead.TimeMs = (long)playhead.ClockMs;
 
         if (playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
             End(ref playhead);
@@ -82,6 +76,7 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
     {
         if (!playhead.Playing)
         {
+            playhead.ClockTicks = 0;
             playhead.SmoothMs = playhead.TimeMs;
             return;
         }

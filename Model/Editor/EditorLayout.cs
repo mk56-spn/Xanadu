@@ -81,7 +81,7 @@ public static class EditorLayout
     /// <summary>The timeline's visible window: held while scrubbing, pinned by a wheel zoom, or following the playhead.</summary>
     public static (long Start, long End) TimelineWindow(Playhead playhead, TimelineView view)
     {
-        TimeWindow window = TimeWindow.Of(view, playhead.TimeMs, playhead.DurationMs);
+        TimeWindow window = TimeWindow.Of(view, (long)Math.Round(playhead.ShownMs), playhead.DurationMs);
         return (window.Start, window.End);
     }
 
@@ -91,7 +91,7 @@ public static class EditorLayout
         float zoom)
     {
         TimeWindow window = TimeWindow.Following(
-            playhead.TimeMs, playhead.DurationMs, zoom);
+            (long)Math.Round(playhead.ShownMs), playhead.DurationMs, zoom);
         return (window.Start, window.End);
     }
 

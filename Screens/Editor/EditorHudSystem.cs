@@ -38,7 +38,7 @@ public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead
             UiText.Set(hud.Song, level.Song?.Title ?? "No song loaded", Buffer);
             System._shownStatus = ShellStatus.Show(System._toasts, hud.StatusText, hud.StatusSerial, System._shownStatus);
             UiText.Set(hud.Time,
-                $"{TimeFormat.Clock(playhead.TimeMs)} / {TimeFormat.Clock(playhead.DurationMs)}",
+                $"{TimeFormat.Clock((long)playhead.ShownMs)} / {TimeFormat.Clock(playhead.DurationMs)}",
                 Buffer);
             UiText.Set(hud.Notes,
                 $"{System._entities.Query<Note>().Count} notes",

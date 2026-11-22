@@ -53,7 +53,7 @@ public static class PlayScoring
     public static void FailContact(
         ref ScoreState score,
         Vector2 position,
-        long timeMs)
+        double shownMs)
     {
         score.AccuracyPenalty += ScoreRules.ContactAccuracyPenalty * score.TotalNotes;
         Mark(Judgement.Contact, comboBroken: score.Combo > 0);
@@ -61,7 +61,7 @@ public static class PlayScoring
         score.HasJudgement = true;
         score.LastJudgement = Judgement.Contact;
         score.JudgementPosition = position;
-        score.JudgementTimeMs = timeMs;
+        score.JudgementTimeMs = shownMs;
     }
 
     /// <summary>Level shaders' clocks for a judgement (<c>events.</c> in rhythm.play).</summary>

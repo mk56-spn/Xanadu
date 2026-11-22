@@ -20,6 +20,15 @@ internal sealed class HostKeyboard(Keyboard keyboard) : IKeyboardState
         _ => ToKeyCode(key) is { } code && keyboard.IsDown(code),
     };
 
+    /// <summary>From SDL's own event timestamp, moved onto the <see cref="System.Diagnostics.Stopwatch"/> clock.</summary>
+    public long? ChangedAt(Key key)
+    {
+        if (ToKeyCode(key) is not { } code || keyboard.NanosecondsSinceChange(code) is not { } ago)
+            return null;
+        return System.Diagnostics.Stopwatch.GetTimestamp() -
+               (long)(ago * (double)System.Diagnostics.Stopwatch.Frequency / 1_000_000_000d);
+    }
+
     /// <summary>Feeds this frame's new presses to the shortcut queue, the way Godot's unhandled key events did.</summary>
     /// <param name="allow">Which keys may reach the queue this frame; null for all.</param>
     public void FeedPresses(Keyboard keyboard, KeyPressQueue queue, System.Func<Key, bool>? allow = null)

@@ -18,6 +18,7 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
     : QuerySystem<ReplayPlayer, Playhead, PlaySession>
 {
     private readonly List<Key> _held = new();
+    private readonly Dictionary<Key, long> _changedAt = new();
 
     protected override void OnUpdate()
     {
@@ -32,9 +33,10 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
         }
 
         _held.Clear();
-        Query.Each(new HeldKeys(keybinds, _held));
+        _changedAt.Clear();
+        Query.Each(new HeldKeys(keybinds, _held, _changedAt));
 
-        keyboard.Replay(_held);
+        keyboard.Replay(_held, _changedAt);
     }
 
     /// <summary>Judges with the offset the play had at this point, whatever the settings are now.</summary>
@@ -58,6 +60,7 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
             player.Cursor = 0;
             player.OffsetCursor = 0;
             System.Array.Clear(player.Down);
+            System.Array.Clear(player.ChangedMs);
         }
 
         player.LastTimeMs = timeMs;
@@ -66,17 +69,22 @@ public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboar
         {
             ReplayEvent next = events[player.Cursor++];
             player.Down[(int)next.Action] = next.Down;
+            player.ChangedMs[(int)next.Action] = next.TimeMs;
         }
     }
 
-    private readonly record struct HeldKeys(KeybindSettings Keybinds, List<Key> Held) : IEach<ReplayPlayer, Playhead, PlaySession>
+    private readonly record struct HeldKeys(KeybindSettings Keybinds, List<Key> Held, Dictionary<Key, long> ChangedAt) : IEach<ReplayPlayer, Playhead, PlaySession>
     {
-        public void Execute(ref ReplayPlayer player, ref Playhead _, ref PlaySession __)
+        public void Execute(ref ReplayPlayer player, ref Playhead playhead, ref PlaySession __)
         {
             for (int i = 0; i < player.Down.Length; i++)
             {
+                Key key = Keybinds.Get(KeybindActions.All[i]);
                 if (player.Down[i])
-                    Held.Add(Keybinds.Get(KeybindActions.All[i]));
+                    Held.Add(key);
+                // Put back on the wall clock, so the judge maps it to the very song time recorded.
+                if (playhead.TicksAt(player.ChangedMs[i]) is var ticks and not 0)
+                    ChangedAt[key] = ticks;
             }
         }
     }
