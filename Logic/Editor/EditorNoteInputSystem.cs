@@ -189,6 +189,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             EditorPlacementMode.Pad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed)),
             EditorPlacementMode.TimedPad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed, time)),
             EditorPlacementMode.Draft => EditorItems.Place(_entities, new Draft(point, Drafts.DefaultHeight)),
+            EditorPlacementMode.DashStop => EditorItems.Place(_entities, new DashStop(point)),
             _ => EditorItems.Place(_entities, placed),
         };
         _history.Record(before, _history.Capture());

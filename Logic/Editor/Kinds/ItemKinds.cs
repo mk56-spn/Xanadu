@@ -20,6 +20,8 @@ public static class ItemKinds
 
     public static readonly DraftItemKind Drafts = new();
 
+    public static readonly DashStopItemKind DashStops = new();
+
     /// <summary>
     /// Every kind, in the order items are made when a level loads or an undo
     /// lands; later items draw over earlier ones on the same layer and z.
@@ -28,6 +30,7 @@ public static class ItemKinds
     {
         Chords,
         Drafts,
+        DashStops,
         Pads,
         Notes,
     };
@@ -39,6 +42,7 @@ public static class ItemKinds
     {
         Notes,
         Pads,
+        DashStops,
         Drafts,
         Chords,
     };
@@ -49,6 +53,7 @@ public static class ItemKinds
         [typeof(Chord)] = Chords,
         [typeof(Pad)] = Pads,
         [typeof(Draft)] = Drafts,
+        [typeof(DashStop)] = DashStops,
     };
 
     /// <summary>The kind an entity is, or null when it is not a placed item.</summary>

@@ -37,8 +37,10 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         long judgedTime = pressMs - PlayOffset.TotalMs(playfield, context.Offsets.OffsetMs);
         long missWindow = (long)ScoreRules.JudgementDeviation(Judgement.Miss);
 
+        CurveBody body = playfield.TryGetComponent(out CurveBody found) ? found : default;
         NearestNote nearest = _open.EachEntity(
-            new NearestNote(context.Entities, view, action, playerScreen, judgedTime, missWindow));
+            new NearestNote(context.Entities, view, action, playerScreen, judgedTime, missWindow,
+                body.Position, playfield.GetComponent<Playfield>(), body.Placed));
         if (nearest.Id == 0)
             return;
 
@@ -66,7 +68,10 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
         KeybindAction action,
         Vector2 playerScreen,
         long judgedTime,
-        long missWindow) : IEachEntity<Note>
+        long missWindow,
+        Vector2 body,
+        Playfield field,
+        bool placed) : IEachEntity<Note>
     {
         public int Id;
         public long Offset;
@@ -83,6 +88,10 @@ public sealed class PlayNoteJudge(PlayNoteContext context, PlayNoteHits hits)
                 return;
 
             if (NoteFade.Alpha(note, judgedTime) <= 0)
+                return;
+
+            // An orb is taken by a dash that reaches its head, or with the body already on the head.
+            if (note.IsOrb && (!placed || !Orbs.Catches(note, judgedTime, body, PlayRules.DashDirection(action), field)))
                 return;
 
             _bestError = error;

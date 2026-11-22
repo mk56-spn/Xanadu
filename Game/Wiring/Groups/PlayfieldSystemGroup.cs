@@ -72,6 +72,8 @@ public sealed class PlayfieldSystemGroup : SystemGroup, IDisposable
         Add(new CurvePlayerSystem());
         Add(new BodyThrustSystem());
         Add(new PlayNoteInputSystem(entities, keybinds, keyboard, offsets));
+        // After the hits, so a dash or a grab this frame poses the puppet this frame.
+        Add(new Xanadu.Logic.Characters.PuppetSystem());
         Add(new TrailAgeSystem<HitTrail>());
         Add(new NotePopSystem());
         Add(new ParticleBurstSystem(_particles));

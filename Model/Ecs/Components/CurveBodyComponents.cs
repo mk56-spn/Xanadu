@@ -41,8 +41,9 @@ public struct CurveBody() : IComponent
     public bool Exiting;
 
     /// <summary>
-    /// The way the body is dashing, unit length, or zero when it isn't. A dash
-    /// runs at <c>PlayRules.DashSpeed</c>, free of gravity, until a wall stops it.
+    /// The way the body is dashing, unit length, or zero when it isn't. A dash is
+    /// instant: set on the hit, the curve player runs it out to a wall, a dash
+    /// ender or a pad on its next step.
     /// </summary>
     public Vector2 Dash;
 
@@ -73,8 +74,11 @@ public struct CurveBody() : IComponent
     /// <summary>The key that grabbed the orb; letting it go ends the hold.</summary>
     public Settings.KeybindAction RideKey;
 
-    /// <summary>Where the dash went off, playfield units: the afterimages trail back to it, no further.</summary>
+    /// <summary>Where the dash went off, playfield units: the smear runs from here.</summary>
     public Vector2 DashFrom;
+
+    /// <summary>Where the last dash ended, playfield units: it is instant, so a smear is left from <see cref="DashFrom"/> to here.</summary>
+    public Vector2 DashTo;
 
     /// <summary>When the last dash went off, on the body's song clock, ms.</summary>
     public double DashStartMs = double.NegativeInfinity;

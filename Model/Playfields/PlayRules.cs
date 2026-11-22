@@ -79,11 +79,11 @@ public static class PlayRules
     /// <summary>The pull down on the body, playfield units a second squared.</summary>
     public const float Gravity = 1800f;
 
-    /// <summary>The body's cruise speed, playfield units a second.</summary>
+    /// <summary>
+    /// The one sideways speed, playfield units a second: the body runs at it,
+    /// and orbs cross at it. Dashes take no time at all.
+    /// </summary>
     public const float CruiseSpeed = 900f;
-
-    /// <summary>How fast a dash goes, playfield units a second. A placeholder.</summary>
-    public const float DashSpeed = 2400f;
 
     /// <summary>The way a direction key dashes, unit length (y points down); zero for an action key.</summary>
     public static Vector2 DashDirection(Settings.KeybindAction key) => key switch

@@ -13,8 +13,8 @@ namespace Xanadu.Model.Playfields;
 /// </summary>
 public static class Orbs
 {
-    /// <summary>How fast every orb crosses, playfield units a second, rightwards. A placeholder.</summary>
-    public const float Speed = 600f;
+    /// <summary>How fast every orb crosses, rightwards: the player's one speed.</summary>
+    public const float Speed = PlayRules.CruiseSpeed;
 
     /// <summary>How long an orb shows before its head, with a ring closing on it, ms.</summary>
     public const long ApproachMs = 800;
@@ -27,6 +27,31 @@ public static class Orbs
 
     /// <summary>The body hangs with its top at the orb.</summary>
     public static Vector2 Hang => new(0f, PlayRules.BodyHeight / 2f);
+
+    /// <summary>
+    /// Whether a dash <paramref name="way"/> at <paramref name="nowMs"/> catches
+    /// the orb's head: the body already overlapping the head, or the body's
+    /// path to the wall that way crossing it. Only the head catches; its trail
+    /// does not.
+    /// </summary>
+    public static bool Catches(in Note orb, double nowMs, Vector2 body, Vector2 way, in Playfield playfield)
+    {
+        Vector2 head = At(orb, nowMs);
+        Vector2 half = PlayRules.BodySize / 2f;
+        Vector2 reach = half + new Vector2(Radius);
+        if (MathF.Abs(head.X - body.X) <= reach.X && MathF.Abs(head.Y - body.Y) <= reach.Y)
+            return true;
+        if (way == Vector2.Zero)
+            return false;
+
+        // Where a dash that way stops: the field's edges, the floor.
+        Vector2 end = way.X > 0 ? body with { X = playfield.Width - half.X }
+            : way.X < 0 ? body with { X = half.X }
+            : way.Y > 0 ? body with { Y = PlayRules.FloorY(playfield) - half.Y }
+            : body with { Y = half.Y };
+        Vector2 low = Vector2.Min(body, end) - reach, high = Vector2.Max(body, end) + reach;
+        return head.X >= low.X && head.X <= high.X && head.Y >= low.Y && head.Y <= high.Y;
+    }
 
     /// <summary>Where the orb is at a time, held at its start before the head and at its end after the tail.</summary>
     public static Vector2 At(in Note note, double nowMs)

@@ -13,14 +13,15 @@ namespace Xanadu.Host;
 /// <param name="Editor"><c>--editor</c> starts in the editor; with <c>--play</c>, on that level.</param>
 /// <param name="Demo"><c>--demo</c> plays a level made in memory (<see cref="DemoLevel"/>).</param>
 /// <param name="Auto"><c>--auto</c> plays every note perfectly by itself (<c>AutoPlaySystem</c>).</param>
+/// <param name="Replay"><c>--replay=&lt;name&gt;</c> watches the newest saved replay whose file name contains it.</param>
 /// <param name="Scene"><c>--scene=&lt;name&gt;</c> starts on that screen (a <c>SceneKind</c> name, any case), for checking one screen.</param>
-internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene, bool Auto = false)
+internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowWidth, uint WindowHeight, string? Play, bool Editor, bool Demo, string? Scene, bool Auto = false, string? Replay = null)
 {
     public static HostOptions Parse(string[] args)
     {
         string? shot = null;
         string? play = null;
-        string? scene = null;
+        string? scene = null, replay = null;
         bool editor = false, demo = false, auto = false;
         int frame = 60;
         uint width = 1280, height = 720;
@@ -46,12 +47,14 @@ internal sealed record HostOptions(string? ShotPath, int ShotFrame, uint WindowW
                 demo = true;
             else if (arg == "--auto")
                 auto = true;
+            else if (arg.StartsWith("--replay=", StringComparison.Ordinal))
+                replay = arg["--replay=".Length..];
             else if (arg.StartsWith("--scene=", StringComparison.Ordinal))
                 scene = arg["--scene=".Length..];
             else
                 throw new ArgumentException($"Unknown argument: {arg}");
         }
 
-        return new HostOptions(shot, frame, width, height, play, editor, demo, scene, auto);
+        return new HostOptions(shot, frame, width, height, play, editor, demo, scene, auto, replay);
     }
 }

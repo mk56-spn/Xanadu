@@ -51,6 +51,9 @@ public static class PlayfieldColors
     /// <summary>An updraft: pale sky blue, air.</summary>
     public static readonly Color DraftColor = new(0.55f, 0.88f, 1f);
 
+    /// <summary>Dash enders: a warm orange, apart from the cool items, so a dash's end reads at a glance.</summary>
+    public static readonly Color DashStopColor = new(1f, 0.55f, 0.25f);
+
     /// <summary>A pad: hot magenta-pink, like a launch pad.</summary>
     public static readonly Color PadColor = new(1f, 0.35f, 0.75f);
 

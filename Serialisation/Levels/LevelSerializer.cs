@@ -34,6 +34,8 @@ public static class LevelSerializer
         document.Pads.RemoveAll(pad => pad is null);
         document.Drafts ??= new();
         document.Drafts.RemoveAll(draft => draft is null);
+        document.DashStops ??= new();
+        document.DashStops.RemoveAll(stop => stop is null);
         return document;
     }
 }

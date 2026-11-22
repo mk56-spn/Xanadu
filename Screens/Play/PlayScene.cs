@@ -19,15 +19,6 @@ namespace Xanadu.Screens.Play;
 /// <summary>Reuses the editor playfield to play a selected level.</summary>
 public static class PlayScene
 {
-    private const float TopInset = 92;
-    private const float BottomInset = 54;
-    internal const float SideInset = 40;
-
-    /// <summary>The field size, in units, that would fit the screen whole before <see cref="PlayZoom"/>.</summary>
-    public const float ViewSize = 2000;
-
-    /// <summary>How far the play view is zoomed in past fitting a ViewSize field whole.</summary>
-    public const float PlayZoom = 1.3f;
 
     public static void Build(
         EntityStore entities,
@@ -44,26 +35,18 @@ public static class PlayScene
         LoadedSong? song = entry.Song;
         Vector2 screen = UiStage.Full.Size;
 
-        // A field up to ViewSize units fits the screen whole, then the view
-        // zooms in by PlayZoom; whatever no longer fits, the camera follows
-        // the player across.
-        var viewport = new Rect2(
-            SideInset,
-            TopInset,
-            screen.X - SideInset * 2,
-            screen.Y - TopInset - BottomInset);
-        float logicalSize = Math.Max(1, Math.Min(ViewSize, Math.Max(
-            document.PlayfieldWidth,
-            document.PlayfieldHeight)));
-        float available = Math.Min(viewport.Size.X, viewport.Size.Y);
-        float renderedSize = Math.Min(logicalSize, Math.Max(1, available));
-        float scale = renderedSize / logicalSize * PlayZoom;
+        // The whole screen (the 1920 x 1080 design stage, scaled to the window)
+        // is the view, and the whole field fits it: the camera stands still.
+        var viewport = new Rect2(Vector2.Zero, screen);
+        float scale = Math.Min(
+            screen.X / Math.Max(1, document.PlayfieldWidth),
+            screen.Y / Math.Max(1, document.PlayfieldHeight));
 
         float fieldWidth = document.PlayfieldWidth * scale;
         float fieldHeight = document.PlayfieldHeight * scale;
         var origin = new Vector2(
             (screen.X - Math.Min(fieldWidth, viewport.Size.X)) / 2,
-            TopInset + (viewport.Size.Y - Math.Min(fieldHeight, viewport.Size.Y)) / 2);
+            (screen.Y - Math.Min(fieldHeight, viewport.Size.Y)) / 2);
         Vector2 playerSize = Player.ScaledSize(scale);
 
         Entity playfieldEntity = entities.CreateEntity(

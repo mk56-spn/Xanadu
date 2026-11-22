@@ -40,6 +40,7 @@ public static partial class PlayfieldRenderer
         DrawFloor(canvas, rid, frame.View, frame.Playfield);
         DrawChords(canvas, rid, entities, frame.View, frame.Playfield, frame.Playhead.ShownMs);
         DrawDrafts(canvas, rid, entities, frame);
+        DrawDashStops(canvas, rid, entities, frame);
         DrawPads(canvas, rid, entities, frame);
 
         NoteOrder.Clear();

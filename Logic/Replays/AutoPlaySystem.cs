@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
 using Xanadu.Storage.Settings;
 
@@ -37,6 +38,8 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
     {
         long? now = null;
         Playhead clock = default;
+        CurveBody body = default;
+        Playfield field = default;
         _held.Clear();
         _changedAt.Clear();
         foreach (Entity entity in Query.Store.Query<Playhead, PlayfieldMode>().Entities)
@@ -45,9 +48,10 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
                 continue;
             clock = entity.GetComponent<Playhead>();
             now = clock.TimeMs;
+            field = entity.GetComponent<Playfield>();
 
             // Riding an orb: keep its key down to the tail.
-            if (entity.TryGetComponent(out CurveBody body) && body.HoldOpen && now < body.Ride.EndMs)
+            if (entity.TryGetComponent(out body) && body.HoldOpen && now < body.Ride.EndMs)
                 _held.Add(keybinds.Get(body.RideKey));
 
             // Skips the song's entrance, as a player would.
@@ -70,7 +74,7 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
                 {
                     NoteKind.Dash => DashWayFor(note.TimeMs),
                     NoteKind.Entrance => KeybindAction.Action2,
-                    NoteKind.Orb => KeybindAction.Action3,
+                    NoteKind.Orb => OrbWayFor(note, body, field),
                     _ => note.Target,
                 };
                 Key key = keybinds.Get(action);
@@ -82,6 +86,18 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
         }
 
         keyboard.Replay(_held, _changedAt);
+    }
+
+    /// <summary>The way a dash catches the orb's head from where the body is (Right when none does: it misses).</summary>
+    private static KeybindAction OrbWayFor(in Note orb, in CurveBody body, in Playfield field)
+    {
+        foreach (KeybindAction way in DashWays)
+        {
+            if (Orbs.Catches(orb, orb.TimeMs, body.Position, PlayRules.DashDirection(way), field))
+                return way;
+        }
+
+        return KeybindAction.Right;
     }
 
     /// <summary>Each dash gets the next way the first time it is seen, and keeps it.</summary>

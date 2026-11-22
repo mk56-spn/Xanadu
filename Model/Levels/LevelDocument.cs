@@ -39,6 +39,9 @@ public sealed class LevelDocument
     public List<PadDocument> Pads { get; set; } = new();
 
     public List<DraftDocument> Drafts { get; set; } = new();
+
+    /// <summary>Dash enders: a dash entering one ends there.</summary>
+    public List<DashStopDocument> DashStops { get; set; } = new();
 }
 
 /// <summary>A chord as saved: when it starts, and where its first line meets the judgement line.</summary>
@@ -100,6 +103,18 @@ public sealed class DraftDocument
         Y = draft.Position.Y,
         Height = draft.Height,
     };
+}
+
+/// <summary>A dash ender as saved: its centre.</summary>
+public sealed class DashStopDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public DashStop ToDashStop() => new(new Vector2(X, Y));
+
+    public static DashStopDocument From(in DashStop stop) => new() { X = stop.Position.X, Y = stop.Position.Y };
 }
 
 /// <summary>A note as saved: an action note at its time and place.</summary>

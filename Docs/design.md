@@ -56,9 +56,12 @@
 Holds work like the ORBS lab.
 
 - A hold is an orb.
-- Every orb moves sideways at one fixed speed; its height is free, and follows
-  the shape of the hold.
-- Hitting the hold takes the player instantly to the orb.
+- Every orb moves sideways at one fixed speed, the player's (there is only one
+  horizontal speed); its height is free, and follows the shape of the hold.
+- Getting onto an orb only takes a dash within its head's judgement window.
+- It has no hitbox along its body: only the head.
+- Travel is instant when dashing onto it.
+- It can also be grabbed if the player's hitbox is overlapping its head.
 - Holding the key rides it: the player hangs from the orb.
 - Letting go leaves with the orb's sideways speed and its vertical speed at
   that instant, and keeps both.
@@ -85,6 +88,7 @@ Holds work like the ORBS lab.
 - Dash notes are directional: the line through the chord lets the player
   choose the direction.
 - You aren't told what to do with them; that's on you as the player.
+- Dashes are instant, not a dash that travels in time with the beat.
 - Dashes have no set ending.
 - A dash ends on either:
   - a wall

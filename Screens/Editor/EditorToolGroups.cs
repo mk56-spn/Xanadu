@@ -34,6 +34,7 @@ public static class EditorToolGroups
         new("Dashes", new EditorTool[]
         {
             new(EditorPlacementMode.Dash, "D", "Dashes: click to place one at the snapped playhead; it crosses the whole chord, and the player dashes whichever way they press"),
+            new(EditorPlacementMode.DashStop, "S", "Dash enders: click to place one; a dash that enters it ends there, stopped on its centre, instead of running on to a wall"),
         }),
         new("Entrance", new EditorTool[]
         {

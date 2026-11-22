@@ -36,6 +36,9 @@ public enum EditorPlacementMode
     /// click above it in its column sets its hover height there.
     /// </summary>
     Draft,
+
+    /// <summary>A dash ender, centred where clicked: a dash entering it ends there.</summary>
+    DashStop,
 }
 
 /// <summary>The editor's placement brush: what clicking the field places, and what a new note gets.</summary>

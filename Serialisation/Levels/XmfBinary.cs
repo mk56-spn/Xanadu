@@ -20,6 +20,7 @@ public enum XmfChunk : uint
     Chords = 11,
     Pads = 12,
     Drafts = 13,
+    DashStops = 14,
 }
 
 /// <summary>
@@ -57,6 +58,7 @@ public static class XmfBinary
         byte[]? chords = document.Chords.Count > 0 ? XmfRecords.WriteList(document.Chords, WriteChord) : null;
         byte[]? pads = document.Pads.Count > 0 ? XmfRecords.WriteList(document.Pads, WritePad) : null;
         byte[]? drafts = document.Drafts.Count > 0 ? XmfRecords.WriteList(document.Drafts, WriteDraft) : null;
+        byte[]? stops = document.DashStops.Count > 0 ? XmfRecords.WriteList(document.DashStops, WriteDashStop) : null;
 
         // The table is written first in the file but last here, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
@@ -70,6 +72,8 @@ public static class XmfBinary
             file.Add((uint)XmfChunk.Pads, pads);
         if (drafts is not null)
             file.Add((uint)XmfChunk.Drafts, drafts);
+        if (stops is not null)
+            file.Add((uint)XmfChunk.DashStops, stops);
         return file.ToArray();
     }
 
@@ -92,6 +96,9 @@ public static class XmfBinary
             document.Drafts = file.TryGet((uint)XmfChunk.Drafts, out Chunk drafts)
                 ? XmfRecords.ReadList(drafts, MaxNotes, "draft", ReadDraft)
                 : new List<DraftDocument>();
+            document.DashStops = file.TryGet((uint)XmfChunk.DashStops, out Chunk stops)
+                ? XmfRecords.ReadList(stops, MaxNotes, "dash ender", ReadDashStop)
+                : new List<DashStopDocument>();
             return document;
         }
         catch (Exception exception) when (exception is FormatException or IOException)
@@ -239,6 +246,21 @@ public static class XmfBinary
         if (!float.IsFinite(draft.X) || !float.IsFinite(draft.Y) || !float.IsFinite(draft.Height))
             throw new FormatException("XMF draft is not on the field.");
         return draft;
+    }
+
+    /// <summary>A dash ender: its centre.</summary>
+    private static void WriteDashStop(BinaryWriter writer, DashStopDocument stop)
+    {
+        writer.Write(stop.X);
+        writer.Write(stop.Y);
+    }
+
+    private static DashStopDocument ReadDashStop(BinaryReader reader)
+    {
+        var stop = new DashStopDocument { X = reader.ReadSingle(), Y = reader.ReadSingle() };
+        if (!float.IsFinite(stop.X) || !float.IsFinite(stop.Y))
+            throw new FormatException("XMF dash ender is not on the field.");
+        return stop;
     }
 
     private static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum

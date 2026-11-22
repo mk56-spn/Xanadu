@@ -103,6 +103,7 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             EditorPlacementMode.Pad => "Pads: click to place one; touching it launches the player up",
             EditorPlacementMode.TimedPad => "Timed pads: click to place one firing at the playhead",
             EditorPlacementMode.Draft => "Updrafts: click to place; still selected, click above it to set its hover",
+            EditorPlacementMode.DashStop => "Dash enders: click to place; a dash entering one ends there",
             _ => "Placement mode",
         });
     }

@@ -59,9 +59,8 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
                 Ride(ref body, playfield, clock);
             else if (body.Dashing)
             {
-                body.Velocity = body.Dash * PlayRules.DashSpeed;
-                body.Position += body.Velocity * delta;
-                if (Contain(ref body, playfield))
+                // Instant: straight to where it ends. A pad it reaches ends it below, in TouchPads.
+                if (Sweep(ref body, entity.Store, playfield))
                     EndDash(ref body, entity, clock);
             }
             else
@@ -134,7 +133,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
                 body.Dash = way;
                 body.DashFrom = body.Position;
                 body.DashStartMs = release;
-                body.Velocity = way * PlayRules.DashSpeed;
+                body.Velocity = way;
                 break;
             case EntranceExit.Orb when entrance.EndMs > entrance.TimeMs:
                 body.OnOrb = true;
@@ -146,6 +145,64 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
                 body.Velocity = PlayRules.SpawnVelocity;
                 break;
         }
+    }
+
+    /// <summary>How far a dash's sweep steps at a time, playfield units: finer than any item.</summary>
+    private const float SweepStep = 4f;
+
+    /// <summary>
+    /// Runs a dash out at once: the body goes its way until a wall stops it, it
+    /// enters a dash ender (stopped on the ender's centre) or it comes onto a pad
+    /// (left dashing, for the pad to end). True when the dash is over here.
+    /// Enders the body starts in are passed out of, not stopped in.
+    /// </summary>
+    private bool Sweep(ref CurveBody body, EntityStore store, Playfield playfield)
+    {
+        Vector2 way = body.Dash;
+        Vector2 from = body.Position;
+        body.Velocity = way;
+        int steps = (int)((playfield.Width + playfield.Height) / SweepStep) + 2;
+        bool over = false;
+        for (int i = 0; i < steps && !over; i++)
+        {
+            body.Position += way * SweepStep;
+            foreach (var (stops, _) in store.Query<DashStop>().Chunks)
+            {
+                foreach (DashStop stop in stops.Span)
+                {
+                    if (!over && DashStops.Holds(stop, body.Position) && !DashStops.Holds(stop, from))
+                    {
+                        body.Position = DashStops.StopAt(stop, body.Position, way);
+                        over = true;
+                    }
+                }
+            }
+
+            if (over || Contain(ref body, playfield))
+            {
+                over = true;
+                break;
+            }
+
+            if (ReachesPad(store, body.Position))
+                break;
+        }
+
+        body.DashTo = body.Position;
+        return over;
+    }
+
+    /// <summary>Whether the body has just come onto an untimed pad it wasn't on, which then ends the dash.</summary>
+    private bool ReachesPad(EntityStore store, Vector2 at)
+    {
+        foreach (Entity padEntity in store.Query<Pad>().Entities)
+        {
+            Pad pad = padEntity.GetComponent<Pad>();
+            if (!pad.IsTimed && !_touching.Contains(padEntity.Id) && Pads.Touches(pad, at))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>The updraft whose column the body is in, the nearest emitter's when columns overlap; null in none.</summary>

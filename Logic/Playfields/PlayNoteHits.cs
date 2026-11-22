@@ -43,8 +43,9 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
     }
 
     /// <summary>
-    /// The head of an orb hold: the body is on the orb at once, wherever it was,
-    /// and rides it by song time from the head (so a late grab is already that far along).
+    /// The head of an orb hold, taken by a dash that reaches it: the dash is
+    /// instant, so the body is on the orb at once, and rides it by song time from
+    /// the head (so a late grab is already that far along), held by that direction key.
     /// </summary>
     private static void Grab(Entity playfield, in Note orb, KeybindAction action)
     {
@@ -52,6 +53,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
             return;
 
         ref CurveBody body = ref playfield.GetComponent<CurveBody>();
+        Vector2 from = body.Position;
         body.Dash = Vector2.Zero;
         body.OnOrb = true;
         body.HoldOpen = true;
@@ -60,12 +62,29 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         double now = Math.Max(body.SongMs, orb.TimeMs);
         body.Position = Orbs.At(orb, now) + Orbs.Hang;
         body.Velocity = Orbs.Velocity(orb, now);
-        PlayCameraSystem.Kick(playfield, 1.2f);
+        // The dash onto it is instant, drawn like any dash: streak, afterimages, shockwave.
+        body.DashFrom = from;
+        body.DashTo = body.Position;
+        body.DashStartMs = body.SongMs;
+
+        // The dash onto it is instant: a dash's spray off where the body left.
+        Vector2 way = PlayRules.DashDirection(action);
+        if (Vector2.DistanceSquared(body.Position, from) > 1f && playfield.TryGetComponent(out PlayfieldView view))
+        {
+            playfield.Store.CreateEntity(new ParticleBurst(
+                view.PlayfieldToScreen(from),
+                GameParticles.Dash,
+                PlayfieldColors.NeutralColor,
+                PlayRules.BodySize * view.Scale,
+                heading: -way));
+        }
+
+        PlayCameraSystem.Kick(playfield, 2.6f);
     }
 
     /// <summary>
-    /// Sends the body off the way the key points. The dash runs from the note's
-    /// time, so a late press starts it that far along; an early one starts on the press.
+    /// Sends the body off the way the key points. A dash is instant: the curve
+    /// player puts the body at its end (a wall, a dash ender, a pad) on its next step.
     /// </summary>
     private static void StartDash(Entity playfield, KeybindAction action, long offsetMs)
     {
@@ -79,9 +98,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         body.Dash = direction;
         body.DashFrom = body.Position;
         body.DashStartMs = body.SongMs;
-        body.Velocity = direction * PlayRules.DashSpeed;
-        if (offsetMs < 0)
-            body.Position += body.Velocity * (-offsetMs / 1000f);
+        body.Velocity = direction;
 
         // A spray thrown back the way the body came from, and a harder kick than a tap's.
         if (playfield.TryGetComponent(out PlayfieldView view))
@@ -94,6 +111,6 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
                 heading: -direction));
         }
 
-        PlayCameraSystem.Kick(playfield, 1.6f);
+        PlayCameraSystem.Kick(playfield, 2.6f);
     }
 }

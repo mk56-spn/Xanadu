@@ -29,12 +29,12 @@ public static partial class PlayfieldRenderer
         float seconds = 0f)
     {
         // Under a camera the layer is scrolled by it, so the backdrop follows to keep the screen covered.
-        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), PlayBackground);
+        // In the field's own colour, so the strips a field not 16:9 leaves read as more field, not a bar.
+        canvas.DrawRect(rid, new Rect2(camera, view.ScreenSize), PlayfieldBackground);
 
         Rect2 field = FieldRect(view, playfield);
-        DrawFieldFrame(canvas, rid, field, view.Scale, null);
+        // Play is a bare full-screen view: no frame or border round the field.
         canvas.DrawRect(rid, field, PlayfieldBackground);
-        canvas.DrawBorder(rid, field, BorderColor, 2);
 
         DrawItems(
             canvas,

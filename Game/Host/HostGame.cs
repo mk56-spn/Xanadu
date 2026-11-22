@@ -128,6 +128,25 @@ internal sealed class HostGame : HostApp
             return;
         }
 
+        if (_options.Replay is { } wanted)
+        {
+            var store = Xanadu.Storage.Replays.ReplayStore.Default;
+            string? file = store.List().FirstOrDefault(path => Path.GetFileName(path).Contains(wanted, StringComparison.OrdinalIgnoreCase));
+            if (file is not null)
+            {
+                _systems.Scenes.Start(SceneKind.Profiles);
+                if (_systems.Scenes.StartReplay(Xanadu.Storage.Replays.ReplayStore.Load(file)))
+                {
+                    Console.WriteLine($"Watching {file}");
+                    return;
+                }
+
+                Console.WriteLine($"{file}: its level is gone; starting normally.");
+            }
+            else
+                Console.WriteLine($"No replay matches '{wanted}'; starting normally.");
+        }
+
         if (_options.Play is { } name)
         {
             LevelEntry? level = LevelStore.List()

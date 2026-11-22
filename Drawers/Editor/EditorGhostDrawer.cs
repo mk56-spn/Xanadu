@@ -35,6 +35,14 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
             return;
         }
 
+        if (editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.DashStop)
+        {
+            Vector2 centre = view.PlayfieldToScreen(at);
+            Vector2 half = DashStops.Size * view.Scale / 2f;
+            surface.Canvas.DrawRect(surface.Target, new Rect2(centre - half, half * 2f), Faint(valid ? PlayfieldColors.DashStopColor : Palette.Danger));
+            return;
+        }
+
         if (editor.GetComponent<EditorPlacement>().Mode is EditorPlacementMode.Pad or EditorPlacementMode.TimedPad)
         {
             Vector2 half = Pads.Size * view.Scale / 2f;
