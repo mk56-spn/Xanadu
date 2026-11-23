@@ -93,7 +93,7 @@ public static partial class SlangColourConversions
             }
         }
 
-        origin = from.ToArray();
+        origin = [.. from];
         return text.ToString();
     }
 
@@ -300,7 +300,7 @@ public static partial class SlangColourConversions
         private readonly HashSet<string> _names = new(StringComparer.Ordinal);
 
         /// <summary>Whether each parameter is a colour, by (function, argument count); null where declarations disagree.</summary>
-        private readonly Dictionary<(string Name, int Count), bool[]?> _parameters = new();
+        private readonly Dictionary<(string Name, int Count), bool[]?> _parameters = [];
 
         public Slots(string code)
         {
@@ -389,7 +389,7 @@ public static partial class SlangColourConversions
 
         private void Add(string name, List<string> parameters)
         {
-            bool[] colours = parameters.Select(IsColourParameter).ToArray();
+            bool[] colours = [.. parameters.Select(IsColourParameter)];
             int required = parameters.Count(p => !p.Contains('='));
             // A call may leave off any of the defaulted parameters at the end.
             for (int count = required; count <= colours.Length; count++)
@@ -462,7 +462,7 @@ public static partial class SlangColourConversions
                 starts.Add(i + 1);
         }
 
-        return starts.ToArray();
+        return [.. starts];
     }
 
     /// <summary>The text with comments and strings turned to spaces (newlines kept), so places don't move.</summary>

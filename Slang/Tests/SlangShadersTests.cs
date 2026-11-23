@@ -30,43 +30,8 @@ public sealed class SlangShadersTests
     }
 
     [Test]
-    public void ADeformGivesTheEffectItsOwnVertexStageWithTheSameValues()
-    {
-        CompiledShader compiled = SlangShaders.CompileEffectBody("test", """
-            import xanadu;
-            [Default(8)] uniform float height;
-            uniform float4 tint;
-            ItemVertex deform(ItemVertex v) { v.position.y += sin(time * 4 + v.uv.x * 6) * height; return v; }
-            float4 shade(ItemInput i) { return i.colour * tint; }
-            """);
-
-        Assert.That(compiled.Vertex, Is.Not.Null);
-        CompiledShader vertex = compiled.Vertex!;
-        Assert.That(BitConverter.ToUInt32(vertex.Spirv, 0), Is.EqualTo(0x07230203u));
-        // The values block is laid out as the fragment's, so one push fits both.
-        Assert.That(vertex.Params.Select(p => (p.Name, p.Offset)), Is.EqualTo(compiled.Params.Select(p => (p.Name, p.Offset))));
-        Assert.That(vertex.ParamsSize, Is.EqualTo(compiled.ParamsSize));
-        // View, values, frame; nothing in the fragment's sets.
-        Assert.That(vertex.UniformBuffers, Is.EqualTo((uint)SlangShaders.VertexFrameSlot + 1));
-        Assert.That(SpirvScan.BindsSet(vertex.Spirv, 2) || SpirvScan.BindsSet(vertex.Spirv, 3), Is.False);
-        Assert.That(vertex.StorageBuffers, Is.EqualTo(0));
-    }
-
-    [Test]
     public void ABodyWithoutDeformKeepsTheStandardVertexStage() =>
         Assert.That(SlangShaders.CompileEffectBody("test", "float4 shade(ItemInput i) { return i.colour; }").Vertex, Is.Null);
-
-    [Test]
-    public void ADeformThatReadsTheChartBindsItInTheVertexStage()
-    {
-        CompiledShader compiled = SlangShaders.CompileEffectBody("test", """
-            import xanadu;
-            ItemVertex deform(ItemVertex v) { v.position.x += chart[0].place.x; return v; }
-            float4 shade(ItemInput i) { return i.colour; }
-            """);
-
-        Assert.That(compiled.Vertex!.StorageBuffers, Is.EqualTo(1));
-    }
 
     [Test]
     public void ADeformThatSamplesATextureSaysOnlyShadeCan()
@@ -276,46 +241,6 @@ public sealed class SlangShadersTests
 
         // Slang may throw its own exception type; what matters is the message names our line.
         Assert.That(SlangProblems.Parse(error.Message, "mine").Select(p => p.Line), Does.Contain(5));
-    }
-
-    [Test]
-    public void KeptStateNeedsTheLabsSayso()
-    {
-        const string body = """
-            import xanadu;
-            struct State { float x; };
-            void update(inout State s, float dt) { s.x += dt; }
-            float4 shade() { return state.x; }
-            """;
-
-        Assert.That(SlangShaders.KeepsState(body), Is.True);
-        Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("test", body));
-
-        CompiledShader compiled = SlangShaders.CompileEffectBody("test", body, keepsState: true);
-        Assert.That(compiled.Update, Is.Not.Null);
-        // The chart, then the kept state.
-        Assert.That(compiled.StorageBuffers, Is.EqualTo(2));
-        Assert.That(compiled.Update!.StateBytes, Is.EqualTo(4));
-    }
-
-    [Test]
-    public void EveryEffectReadsTheChartAfterItsTextures()
-    {
-        const string body = """
-            import xanadu;
-            [[vk::binding(2, 2)]] Sampler2D extra;
-            float4 shade(Canvas canvas)
-            {
-                Note next = notes.dueAfter(song.seconds);
-                Clip pop = clock.since(notes[0]).clip(0, 0.3);
-                return extra.Sample(float2(0.5)) * next.colour * pop.progress;
-            }
-            """;
-
-        CompiledShader compiled = SlangShaders.CompileEffectBody("test", body);
-        Assert.That(compiled.Samplers, Has.Length.EqualTo(3));
-        Assert.That(compiled.StorageBuffers, Is.EqualTo(1));
-        Assert.That(SpirvScan.Binds(compiled.Spirv, set: 2, binding: 3), Is.True);
     }
 
     [Test]

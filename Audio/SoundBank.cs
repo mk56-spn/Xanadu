@@ -13,27 +13,19 @@ namespace Xanadu.Audio;
 /// once, on first use or on <see cref="Prepare"/>, into a few voices taken in turn, so a quick run of the
 /// same sound overlaps instead of cutting itself off.
 /// </summary>
-public sealed unsafe class SoundBank : IDisposable
+public sealed unsafe class SoundBank(string[] files) : IDisposable
 {
     private const int Voices = 4;
     private const float Volume = 0.6f;
 
-    private readonly string[] _files;
+    private readonly string[] _files = files;
 
     private ma_engine* _engine;
     private bool _engineFailed;
     private bool _disposed;
-    private readonly ma_sound*[][] _voices;
-    private readonly bool[] _failed;
-    private readonly int[] _next;
-
-    public SoundBank(string[] files)
-    {
-        _files = files;
-        _voices = new ma_sound*[files.Length][];
-        _failed = new bool[files.Length];
-        _next = new int[files.Length];
-    }
+    private readonly ma_sound*[][] _voices = new ma_sound*[files.Length][];
+    private readonly bool[] _failed = new bool[files.Length];
+    private readonly int[] _next = new int[files.Length];
 
     /// <summary>Plays the sound at <paramref name="index"/> in the file list.</summary>
     public void Play(int index)

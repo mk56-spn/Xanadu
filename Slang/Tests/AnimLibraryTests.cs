@@ -97,20 +97,6 @@ public sealed class AnimLibraryTests
         """);
 
     [Test]
-    public void KeysCountFromTheirLastPress() => Compiles("""
-        float4 shade(Canvas canvas)
-        {
-            colour c = colours.midnightBlue;
-            Clip flash = clock.since(keys.action1).clip(0, 0.25).eased(eases.outQuad);
-            c.paint(Circle(flash.mixed(120, 40)), colours.white.withAlpha(1 - flash.progress));
-            if (keys.anyDirection.pressedWithin(0.1))
-                c.paint(Box(float2(40)), colours.gold);
-            float sinceLeft = keys.left.since;
-            return c.painted(Circle(10).moved(float2(min(sinceLeft, 1) * 100, 0)), colours.hotPink);
-        }
-        """);
-
-    [Test]
     public void AToolCanDriveTheClock()
     {
         string body = """

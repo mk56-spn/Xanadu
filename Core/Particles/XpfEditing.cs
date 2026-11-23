@@ -144,10 +144,10 @@ public static class XpfEditing
     public static void SetScalePreset(XpfParticle particle, XpfScalePreset preset) =>
         particle.ScaleCurve = preset switch
         {
-            XpfScalePreset.Shrink => new() { new(0f, 1f), new(1f, 0f) },
-            XpfScalePreset.Grow => new() { new(0f, 0f), new(1f, 1f) },
-            XpfScalePreset.Pop => new() { new(0f, 0f), new(0.2f, 1f), new(1f, 0f) },
-            _ => new List<XpfCurvePoint>(),
+            XpfScalePreset.Shrink => [new(0f, 1f), new(1f, 0f)],
+            XpfScalePreset.Grow => [new(0f, 0f), new(1f, 1f)],
+            XpfScalePreset.Pop => [new(0f, 0f), new(0.2f, 1f), new(1f, 0f)],
+            _ => [],
         };
 
     public static XpfFadePreset FadePreset(XpfParticle particle) => particle.Ramp switch
@@ -164,9 +164,9 @@ public static class XpfEditing
         var clear = new Color(1, 1, 1, 0);
         particle.Ramp = preset switch
         {
-            XpfFadePreset.Out => new() { new(0f, Colors.White), new(1f, clear) },
-            XpfFadePreset.InOut => new() { new(0f, clear), new(0.2f, Colors.White), new(1f, clear) },
-            _ => new List<XpfColorStop>(),
+            XpfFadePreset.Out => [new(0f, Colors.White), new(1f, clear)],
+            XpfFadePreset.InOut => [new(0f, clear), new(0.2f, Colors.White), new(1f, clear)],
+            _ => [],
         };
     }
 

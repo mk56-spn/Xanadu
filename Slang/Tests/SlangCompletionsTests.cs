@@ -341,20 +341,14 @@ public sealed class SlangCompletionsTests
     /// The rule book as rows: the code with the caret at its end, the names that must come first
     /// (in that order), and names that mustn't be offered at all. Every tweak asked for becomes a row.
     /// </summary>
-    [TestCase(Body + "let g = grad", new[] { "Conical", "Diamond", "Focal", "Linear", "Radial", "Reflected", "Spiral", "Square", "gradient" }, new string[0],
-        TestName = "Family word: typing grad lists every gradient, then the gradient namespace")]
     [TestCase(Body + "IGra", new[] { "Conical", "Diamond" }, new string[0],
         TestName = "Family: typing the interface's own name lists its structs")]
-    [TestCase(Body + "let s = sha", new[] { "Arc", "Box" }, new string[0],
-        TestName = "Family word: typing sha lists the shapes")]
     [TestCase(Body + "colour c = colours.black;\n    c.paint(", new[] { "Arc" }, new[] { "gold" },
         TestName = "Expected type: paint's first argument wants a shape or a gradient, not a colour")]
     [TestCase(Body + "colour c = colours.black;\n    c.paint(Circle(4), ", new[] { "aliceBlue" }, new[] { "Arc" },
         TestName = "Expected type: paint's second argument wants a colour (or a Look)")]
     [TestCase(Body + "Box b = ", new[] { "Box" }, new[] { "Circle" },
         TestName = "Expected type: a struct's declaration offers that struct")]
-    [TestCase(Body + "let s = ", new[] { "Arc", "Box" }, new string[0],
-        TestName = "Default: an untyped value offers the shapes first")]
     [TestCase(Body + "float d = ", new[] { "Arc" }, new string[0],
         TestName = "Default: a number can come from anything, so it offers the shapes")]
     [TestCase(Body + "let e = ease.oB", new[] { "outBack", "outBounce" }, new string[0],

@@ -79,7 +79,7 @@ public sealed class XpfParticle
     public float ScaleMax = 1f;
 
     /// <summary>The particle's size over its life; empty keeps it constant.</summary>
-    public List<XpfCurvePoint> ScaleCurve = new();
+    public List<XpfCurvePoint> ScaleCurve = [];
 
     /// <summary>The range each particle is turned by at birth, in degrees.</summary>
     public float AngleMin;
@@ -92,7 +92,7 @@ public sealed class XpfParticle
     public Color Color = Colors.White;
 
     /// <summary>The colour over a particle's life, multiplying <see cref="Color"/>; empty keeps it constant.</summary>
-    public List<XpfColorStop> Ramp = new();
+    public List<XpfColorStop> Ramp = [];
 
     /// <summary>How far from the emitter particles can be drawn; the renderer culls outside it.</summary>
     public float Reach = 300f;
@@ -110,8 +110,8 @@ public sealed class XpfParticle
     public XpfParticle Clone()
     {
         var copy = (XpfParticle)MemberwiseClone();
-        copy.ScaleCurve = new List<XpfCurvePoint>(ScaleCurve);
-        copy.Ramp = new List<XpfColorStop>(Ramp);
+        copy.ScaleCurve = [.. ScaleCurve];
+        copy.Ramp = [.. Ramp];
         copy.Version = 0;
         return copy;
     }
@@ -134,7 +134,7 @@ public sealed class XpfLibrary
     public const ushort MajorVersion = 1;
     public const ushort MinorVersion = 0;
 
-    public List<XpfParticle> Particles = new();
+    public List<XpfParticle> Particles = [];
 
     /// <summary>The effect called <paramref name="name"/>, or null.</summary>
     public XpfParticle? Find(string name) => Particles.Find(particle => particle.Name == name);

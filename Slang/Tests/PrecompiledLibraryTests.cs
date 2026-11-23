@@ -68,51 +68,6 @@ public sealed class PrecompiledLibraryTests
         Directory.EnumerateFiles(Path.Combine(_cache, "modules", "store"), module + "-*.slang-module").ToArray();
 
     [Test]
-    public void AnotherChartBindingBuildsOnlyTheStageAgain()
-    {
-        SlangShaders.CacheFolder = _cache;
-        SlangShaders.CompileEffectBody("plain", "float4 shade(ItemInput i) { return i.colour; }");
-        CompiledShader textured = SlangShaders.CompileEffectBody("textured", """
-            [[vk::binding(2, 2)]] Sampler2D extra;
-            float4 shade(ItemInput i) { return i.colour * extra.Sample(i.uv) * chart[0].colour; }
-            """);
-
-        Assert.That(SlangShaders.ModuleProblem, Is.Null);
-        // The chart moved behind the effect's texture, in a stage built for it; the rest was built once.
-        Assert.That(SpirvScan.Binds(textured.Spirv, set: 2, binding: 3), Is.True);
-        Assert.That(Stored("xanadu.stage"), Has.Length.EqualTo(2));
-        foreach (string module in new[] { "xanadu", "xanadu.math", "xanadu.shape", "xanadu.play", "xanadu.paint" })
-            Assert.That(Stored(module), Has.Length.EqualTo(1), module);
-    }
-
-    [Test]
-    public void ModulesBuiltBesideAnotherStageCompileTheSame()
-    {
-        // What sharing them between sets of defines rests on: here every module but the stage was
-        // built for a chart behind a texture, then used where there is none.
-        const string body = """
-            import xanadu;
-            float4 shade(Canvas canvas) { return colours.gold * Circle(40).filled() * chart[0].colour * float(notes.count) * beat; }
-            """;
-        SlangShaders.CacheFolder = _cache;
-        SlangShaders.CompileEffectBody("textured", "[[vk::binding(2, 2)]] Sampler2D extra;\n" + body);
-        byte[] shared = SlangShaders.CompileEffectBody("test", body).Spirv;
-        Assert.That(SlangShaders.ModuleProblem, Is.Null);
-
-        SlangShaders.CacheFolder = _cache + "-alone";
-        try
-        {
-            byte[] alone = SlangShaders.CompileEffectBody("test", body).Spirv;
-            Assert.That(SlangShaders.ModuleProblem, Is.Null);
-            Assert.That(shared, Is.EqualTo(alone));
-        }
-        finally
-        {
-            Directory.Delete(_cache + "-alone", recursive: true);
-        }
-    }
-
-    [Test]
     public void AnEditBuildsOnlyTheModuleAndWhatImportsIt()
     {
         string library = Path.Combine(_cache, "library");

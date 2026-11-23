@@ -85,7 +85,7 @@ internal static class SlangNative
         lock (Turn)
         {
             IntPtr request = spCreateCompileRequest(Session());
-            IntPtr[] strings = args.Select(Marshal.StringToCoTaskMemUTF8).ToArray();
+            IntPtr[] strings = [.. args.Select(Marshal.StringToCoTaskMemUTF8)];
             try
             {
                 int result = spProcessCommandLineArguments(request, strings, strings.Length);
@@ -116,7 +116,7 @@ internal static class SlangNative
         lock (Turn)
         {
             IntPtr request = spCreateCompileRequest(Session());
-            IntPtr[] strings = args.Select(Marshal.StringToCoTaskMemUTF8).ToArray();
+            IntPtr[] strings = [.. args.Select(Marshal.StringToCoTaskMemUTF8)];
             try
             {
                 int result = spProcessCommandLineArguments(request, strings, strings.Length);

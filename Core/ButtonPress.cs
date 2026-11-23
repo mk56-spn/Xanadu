@@ -10,7 +10,7 @@ namespace Xanadu.Core;
 /// </summary>
 public sealed class ButtonPress
 {
-    private readonly HashSet<int> _held = new();
+    private readonly HashSet<int> _held = [];
 
     /// <summary>True on the one frame <paramref name="button"/> starts being pressed.</summary>
     public bool Started(Entity button) => Started(button, button.Tags.Has<Pressed>());

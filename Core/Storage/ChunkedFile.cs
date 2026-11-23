@@ -10,21 +10,14 @@ namespace Xanadu.Core.Storage;
 /// a magic number, a major/minor version and a directory of typed chunks. Each
 /// format owns its chunk payloads; this only writes the frame around them.
 /// </summary>
-public sealed class ChunkWriter
+public sealed class ChunkWriter(byte[] magic, ushort major, ushort minor)
 {
     private const int DirectoryEntrySize = 12;
 
-    private readonly byte[] _magic;
-    private readonly ushort _major;
-    private readonly ushort _minor;
-    private readonly List<(uint Id, byte[] Data)> _chunks = new();
-
-    public ChunkWriter(byte[] magic, ushort major, ushort minor)
-    {
-        _magic = magic;
-        _major = major;
-        _minor = minor;
-    }
+    private readonly byte[] _magic = magic;
+    private readonly ushort _major = major;
+    private readonly ushort _minor = minor;
+    private readonly List<(uint Id, byte[] Data)> _chunks = [];
 
     public void Add(uint id, byte[] data) => _chunks.Add((id, data));
 
@@ -150,7 +143,7 @@ public sealed class StringTable(string format)
 
     private readonly Dictionary<string, int> _indices = new(StringComparer.Ordinal);
 
-    public List<string> Values { get; } = new();
+    public List<string> Values { get; } = [];
 
     public void Add(string value)
     {

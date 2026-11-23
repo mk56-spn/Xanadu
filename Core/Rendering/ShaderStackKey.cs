@@ -29,7 +29,7 @@ public static class ShaderStackKey
     {
         if (!key.StartsWith(Prefix, StringComparison.Ordinal))
         {
-            paths = Array.Empty<string>();
+            paths = [];
             return false;
         }
 

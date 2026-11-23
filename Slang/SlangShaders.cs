@@ -335,8 +335,7 @@ public static class SlangShaders
             }
             catch (Exception exception) when (pass < MaxConversionPasses)
             {
-                List<ColourConversion> found = SlangColourConversions.Find(exception.Message, label, source, compiled, origin, LibraryText())
-                    .Where(conversion => !conversions.Contains(conversion)).ToList();
+                List<ColourConversion> found = [.. SlangColourConversions.Find(exception.Message, label, source, compiled, origin, LibraryText()).Where(conversion => !conversions.Contains(conversion))];
                 if (found.Count == 0)
                 {
                     RememberConversions(source, conversions);
@@ -372,7 +371,7 @@ public static class SlangShaders
             // Kept so the next compile of the same body skips the failing pass; the editor makes many.
             if (KnownConversions.Count > 64)
                 KnownConversions.Clear();
-            KnownConversions[source] = conversions.ToArray();
+            KnownConversions[source] = [.. conversions];
         }
     }
 
@@ -738,12 +737,12 @@ public static class SlangShaders
     {
         string source = File.ReadAllText(path);
         if (CacheFolder is not { } folder || source.Contains("#include", StringComparison.Ordinal))
-            return RunSlang(Arguments(path, entry, stage, []).ToArray());
+            return RunSlang([.. Arguments(path, entry, stage, [])]);
 
         string cached = Path.Combine(folder, CacheKey(source, $"plain|{entry}|{stage}") + ".spv");
         if (File.Exists(cached))
             return File.ReadAllBytes(cached);
-        byte[] spirv = RunSlang(Arguments(path, entry, stage, []).ToArray());
+        byte[] spirv = RunSlang([.. Arguments(path, entry, stage, [])]);
         Directory.CreateDirectory(folder);
         File.WriteAllBytes(cached, spirv);
         return spirv;
@@ -861,7 +860,7 @@ public static class SlangShaders
         }
         try
         {
-            byte[] spirv = RunSlang(args.ToArray());
+            byte[] spirv = RunSlang([.. args]);
             reflectionJson = File.ReadAllText(json);
             using JsonDocument reflection = JsonDocument.Parse(reflectionJson);
             return Reflect(spirv, reflection.RootElement, samplerSpace, uniformSpace);
@@ -930,7 +929,7 @@ public static class SlangShaders
         }
 
         // Global uniforms (a level shader's, bound to buffer 1) are listed one by one.
-        List<ShaderParam> globals = new();
+        List<ShaderParam> globals = [];
         int globalsEnd = 0;
         foreach (JsonElement parameter in root.GetProperty("parameters").EnumerateArray())
         {
@@ -994,13 +993,13 @@ public static class SlangShaders
                     options = OptionNames(attribute.GetProperty("arguments"));
                 if (attribute.GetProperty("name").GetString() == "Default")
                 {
-                    float[] values = attribute.GetProperty("arguments").EnumerateArray()
+                    float[] values = [.. attribute.GetProperty("arguments").EnumerateArray()
                         .Select(a => a.ValueKind switch
                         {
                             JsonValueKind.Number => a.GetSingle(),
                             JsonValueKind.True => 1f,
                             _ => 0f,
-                        }).ToArray();
+                        })];
                     fallback = new Vector4(At(values, 0), At(values, 1), At(values, 2), At(values, 3));
                 }
             }

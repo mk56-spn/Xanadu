@@ -7,7 +7,7 @@ public static class TimelineZoom
 {
     public const float TargetSeconds = 6f;
 
-    public static readonly float[] Levels = { 1f, 2f, 4f, 8f, 16f, 32f };
+    public static readonly float[] Levels = [1f, 2f, 4f, 8f, 16f, 32f];
 
     public static float ClosestForDuration(long durationMs)
     {

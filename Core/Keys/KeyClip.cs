@@ -28,7 +28,7 @@ public class KeyClip
     public bool Loop;
     public float LoopStart;
     public float LoopEnd;
-    public List<KeyChannel> Channels = new();
+    public List<KeyChannel> Channels = [];
 
     /// <summary>The channel keying <paramref name="address"/>, or null.</summary>
     public KeyChannel? Find(KeyAddress address) => Channels.Find(channel => channel.Address == address);

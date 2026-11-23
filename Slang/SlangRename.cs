@@ -85,20 +85,19 @@ public static partial class SlangRename
             // A field: declared in one of the code's structs, used after a dot.
             if (!declarations.Exists(d => Owner(d) is { Struct: true }))
                 return null;
-            found = uses.Where(u => u.Member || declarations.Contains(u.Index) && Owner(u.Index) is { Struct: true })
-                .Select(u => u.Index).ToList();
+            found = [.. uses.Where(u => u.Member || declarations.Contains(u.Index) && Owner(u.Index) is { Struct: true }).Select(u => u.Index)];
         }
         else
         {
             var plain = uses.Where(u => !u.Member).Select(u => u.Index).ToList();
             // Declared in the function round the caret: only that function's.
             if (BlockOf(blocks, start) is { Struct: false } here && declarations.Exists(d => Owner(d) == here))
-                found = plain.Where(u => BlockOf(blocks, u) == here).ToList();
+                found = [.. plain.Where(u => BlockOf(blocks, u) == here)];
             else if (declarations.Exists(d => Owner(d) is null))
             {
                 // Declared at the top: everywhere but functions that declare their own.
                 var shadowing = blocks.Where(b => !b.Struct && declarations.Exists(d => Owner(d) == b)).ToList();
-                found = plain.Where(u => BlockOf(blocks, u) is not { } b || !shadowing.Contains(b)).ToList();
+                found = [.. plain.Where(u => BlockOf(blocks, u) is not { } b || !shadowing.Contains(b))];
             }
             else
                 return null;

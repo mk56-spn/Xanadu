@@ -40,7 +40,7 @@ public sealed class TweenPool
     private Slot[] _slots = new Slot[64];
     private int _slotCount;
     private readonly Stack<int> _freeSlots = new();
-    private readonly Dictionary<int, Stack<int>> _freeRanges = new();
+    private readonly Dictionary<int, Stack<int>> _freeRanges = [];
     private int _published = -1;
 
     private struct Slot
@@ -99,7 +99,7 @@ public sealed class TweenPool
     public ReadOnlySpan<Tween> Of(TweenTarget target)
     {
         if (!IsLive(target))
-            return ReadOnlySpan<Tween>.Empty;
+            return [];
         Slot slot = _slots[target.Index];
         return _tweens.AsSpan(slot.Start, slot.Count);
     }

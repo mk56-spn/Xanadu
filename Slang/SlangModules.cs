@@ -95,8 +95,8 @@ public static partial class SlangModules
                 modules[name] = text;
             }
 
-            string[] sorted = defines.Order(StringComparer.Ordinal).ToArray();
-            string[] defined = sorted.Select(define => define.Split('=')[0]).ToArray();
+            string[] sorted = [.. defines.Order(StringComparer.Ordinal)];
+            string[] defined = [.. sorted.Select(define => define.Split('=')[0])];
             var keys = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (string name in InOrder(modules))
             {

@@ -257,7 +257,7 @@ public sealed partial class SlangCompletions
         public readonly Dictionary<string, List<Completion>> Scopes = new(StringComparer.Ordinal);
         public readonly Dictionary<string, Dictionary<string, string>> MemberTypes = new(StringComparer.Ordinal);
         public readonly Dictionary<string, List<string>> Interfaces = new(StringComparer.Ordinal);
-        public readonly Dictionary<(string Scope, string Name), List<Completion>> Declared = new();
+        public readonly Dictionary<(string Scope, string Name), List<Completion>> Declared = [];
     }
 
     private CodeStructs _code = CodeStructs.None;
@@ -301,7 +301,7 @@ public sealed partial class SlangCompletions
             var types = found.MemberTypes[name] = new Dictionary<string, string>(StringComparer.Ordinal);
             found.Types.Add(new Completion(name, CompletionKind.Type, "struct", Doc: DocAbove(text, match.Index)));
             if (match.Groups[2].Success)
-                found.Interfaces[name] = match.Groups[2].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+                found.Interfaces[name] = [.. match.Groups[2].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0)];
 
             // Only what sits straight inside the struct's braces is a member; method bodies are not.
             string body = source[(open + 1)..end];

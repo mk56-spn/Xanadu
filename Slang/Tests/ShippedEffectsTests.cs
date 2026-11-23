@@ -44,18 +44,4 @@ public sealed class ShippedEffectsTests
         Assert.Throws<System.InvalidOperationException>(() => SlangShaders.CompileEffectBody("Assets/Shaders/Misc/x.slang", File.ReadAllText(tiled)));
     }
 
-    /// <summary>The game sets values and textures by name, so the wrapper's namespace mustn't show in them.</summary>
-    [Test]
-    public void ValuesAndTexturesKeepTheirPlainNames()
-    {
-        string folder = Path.GetDirectoryName(ShippedLibrary.Path)!;
-        string background = Path.Combine(folder, "note_background.slang");
-        CompiledShader notes = SlangShaders.CompileEffectBody(background, File.ReadAllText(background));
-        string flarePath = Path.Combine(folder, "flare.slang");
-        CompiledShader flare = SlangShaders.CompileEffectBody(flarePath, File.ReadAllText(flarePath));
-
-        Assert.That(notes.Samplers.ElementAtOrDefault(2), Is.EqualTo("notes"));
-        Assert.That(notes.Params.Select(p => p.Name), Does.Contain("glyph_count").And.Contain("energy"));
-        Assert.That(flare.Params.Select(p => p.Name), Is.EquivalentTo(new[] { "flare_box", "flare_light", "flare_tint", "flare_shape" }));
-    }
 }

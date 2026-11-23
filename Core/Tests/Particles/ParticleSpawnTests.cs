@@ -126,7 +126,7 @@ public sealed class ParticleSpawnTests
         var effect = new XpfParticle();
         Assert.That(ParticleSpawn.Ramp(effect, 0.5f), Is.EqualTo(Colors.White));
 
-        effect.Ramp.Add(new XpfColorStop(0f, new Color(1f, 1f, 1f, 1f)));
+        effect.Ramp.Add(new XpfColorStop(0f, new Color(1f, 1f, 1f)));
         effect.Ramp.Add(new XpfColorStop(1f, new Color(1f, 0f, 0f, 0f)));
         Color middle = ParticleSpawn.Ramp(effect, 0.25f);
         Assert.That(middle.G, Is.EqualTo(0.75f).Within(1e-5f));

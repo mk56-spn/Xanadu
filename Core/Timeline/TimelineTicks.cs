@@ -23,9 +23,9 @@ public static class TimelineTicks
     public const int MaxTicks = 4000;
 
     private static readonly double[] NiceSeconds =
-    {
+    [
         0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 30, 60,
-    };
+    ];
 
     /// <summary>
     /// The smallest round step, in seconds, that is at least

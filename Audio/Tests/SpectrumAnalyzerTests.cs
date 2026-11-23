@@ -17,7 +17,7 @@ public sealed class SpectrumAnalyzerTests
     {
         float[] samples = Sine(hertz, 1);
 
-        SpectrumData data = SpectrumAnalyzer.Analyze(samples, Rate, 48);
+        SpectrumData data = SpectrumAnalyzer.Analyze(samples, Rate);
 
         float[] levels = new float[48];
         data.Sample(0.5, levels);

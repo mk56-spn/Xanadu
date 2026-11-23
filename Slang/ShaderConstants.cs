@@ -68,7 +68,7 @@ public sealed partial class ShaderConstants
                 return null;
         }
 
-        return numbers.Count > 4 ? numbers.GetRange(0, 4).ToArray() : numbers.ToArray();
+        return numbers.Count > 4 ? [.. numbers.GetRange(0, 4)] : [.. numbers];
     }
 
     /// <summary>Rewrites every <c>[Default(...)]</c> that names a library constant into plain numbers; others are left alone.</summary>
@@ -145,6 +145,6 @@ public sealed partial class ShaderConstants
             return Array.ConvertAll(new float[channels], _ => numbers[0]);
         }
 
-        return numbers.ToArray();
+        return [.. numbers];
     }
 }

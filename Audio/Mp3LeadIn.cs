@@ -20,7 +20,7 @@ public static class Mp3LeadIn
     /// <summary>How far past the ID3 tag to look for the first audio frame.</summary>
     private const int ScanBytes = 8192;
 
-    private static readonly int[] Mpeg1Rates = { 44100, 48000, 32000 };
+    private static readonly int[] Mpeg1Rates = [44100, 48000, 32000];
 
     /// <summary>The lead-in of a file in seconds, 0 for anything that has none or cannot be read.</summary>
     public static double Seconds(string path)

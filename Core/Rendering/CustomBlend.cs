@@ -68,7 +68,7 @@ public readonly record struct CustomBlend(
     public static CustomBlend Mix => new(true,
         BlendOp.Add, BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha,
         BlendOp.Add, BlendFactor.One, BlendFactor.OneMinusSrcAlpha,
-        ColorWrite.All, new Color(1, 1, 1, 1));
+        ColorWrite.All, new Color(1, 1, 1));
 
     /// <summary>This blend without its constant: what a pipeline is built from (the constant is set per draw).</summary>
     public CustomBlend PipelineKey => this with { Constant = default };

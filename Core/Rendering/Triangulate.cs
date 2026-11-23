@@ -59,7 +59,7 @@ public static class Triangulate
             }
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 
     private static bool IsEar(ReadOnlySpan<Vector2> p, List<int> remaining, int ia, int ib, int ic, float winding)

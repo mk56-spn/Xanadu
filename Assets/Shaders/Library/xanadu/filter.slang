@@ -316,6 +316,19 @@ public namespace filter
         return d > 1e-3 ? -to / d * ring * strength : float2(0.0);
     }
 
+    /// How far to push a pixel seen through a slab of glass with a rounded rim (liquid glass):
+    /// flat on top, the rim `bevel` pixels wide dropping to the edge like a quarter circle, so the
+    /// view bends most right at the edge (by `strength` pixels) and not at all on the flat. `d` and
+    /// `outward` are the shape's distance and outward direction there (distance, outward). Add the
+    /// push to the pixel and read there: a positive strength pulls what lies past the edge in over
+    /// the rim, as a thick lens does; a negative one pushes the inside out.
+    public float2 glassRim(float d, float2 outward, float bevel, float strength)
+    {
+        float t = 1.0 - saturate(-d / max(bevel, 1e-5)); // 1 on the edge, 0 where the flat starts
+        float drop = 1.0 - sqrt(saturate(1.0 - t * t));  // how far the rim has fallen from the top
+        return outward * strength * drop;
+    }
+
     /// How far to push a pixel for wavering heat over a fire or a road: noise-free, cheap sines,
     /// `strength` pixels at most, rising as `time` goes.
     public float2 heatHaze(float2 pixel, float strength = 2.0, float scale = 40.0)

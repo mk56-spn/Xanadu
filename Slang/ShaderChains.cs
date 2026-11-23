@@ -52,7 +52,7 @@ public sealed partial class ShaderChains
     public static ShaderChains FromSources(IEnumerable<string> sources)
     {
         var chains = new ShaderChains();
-        string[] all = sources.ToArray();
+        string[] all = [.. sources];
         var mutating = new HashSet<string>(StringComparer.Ordinal);
         var methods = new HashSet<string>(StringComparer.Ordinal);
         foreach (string source in all)

@@ -58,7 +58,7 @@ public static class ShaderChart
     /// <summary>A new chart: every note waiting.</summary>
     public static void Load(ReadOnlySpan<ChartNote> notes)
     {
-        _notes = notes.ToArray();
+        _notes = [.. notes];
         for (int i = 0; i < _notes.Length; i++)
         {
             _notes[i].Timing.W = i;

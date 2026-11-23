@@ -1305,6 +1305,18 @@ public extension<S : IShape> S
     /// Worked out once at `position`: a Measured that filled, and, paint and the rest reuse.
     public Measured measured(float2 position) { return Measured(distance(position), position); }
 
+    /// The way out of the shape at `position`: a unit direction across its edge, away from the
+    /// inside (the distance's slope, from four reads round the point). What light or a lens bends by.
+    /// @cost 4
+    public float2 outward(float2 position)
+    {
+        const float e = 0.5;
+        float2 slope = float2(distance(position + float2(e, 0.0)) - distance(position - float2(e, 0.0)),
+            distance(position + float2(0.0, e)) - distance(position - float2(0.0, e)));
+        float size = length(slope);
+        return size > 1e-6 ? slope / size : float2(0.0);
+    }
+
     /// measured at the pixel being shaded, from the quad's centre.
     public Measured measured() { return measured(shading.canvas.centred); }
 

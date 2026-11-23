@@ -9,23 +9,16 @@ namespace Xanadu.Core.History;
 /// hand the stored snapshot back through the <c>apply</c> callback. Snapshots
 /// must be independent copies, because the history keeps them.
 /// </summary>
-public sealed class UndoHistory<TSnapshot>
+public sealed class UndoHistory<TSnapshot>(
+    Func<TSnapshot, TSnapshot, bool> areEqual,
+    Action<TSnapshot> apply,
+    int maxEntries = 200)
 {
-    private readonly List<Step> _undo = new();
-    private readonly List<Step> _redo = new();
-    private readonly Func<TSnapshot, TSnapshot, bool> _areEqual;
-    private readonly Action<TSnapshot> _apply;
-    private readonly int _maxEntries;
-
-    public UndoHistory(
-        Func<TSnapshot, TSnapshot, bool> areEqual,
-        Action<TSnapshot> apply,
-        int maxEntries = 200)
-    {
-        _areEqual = areEqual;
-        _apply = apply;
-        _maxEntries = Math.Max(1, maxEntries);
-    }
+    private readonly List<Step> _undo = [];
+    private readonly List<Step> _redo = [];
+    private readonly Func<TSnapshot, TSnapshot, bool> _areEqual = areEqual;
+    private readonly Action<TSnapshot> _apply = apply;
+    private readonly int _maxEntries = Math.Max(1, maxEntries);
 
     public bool CanUndo => _undo.Count > 0;
 

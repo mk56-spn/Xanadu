@@ -311,7 +311,7 @@ public static partial class SlangLint
             }
         }
 
-        return args.Where(a => a.Trim().Length > 0).ToList();
+        return [.. args.Where(a => a.Trim().Length > 0)];
     }
 
     /// <summary>Where the statement a value starts in ends: its ';' or the bracket closing round it.</summary>

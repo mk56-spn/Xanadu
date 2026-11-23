@@ -93,7 +93,7 @@ public sealed partial class SlangCompletions
             // A dot after a number (1.5) or a call isn't a member access.
             if (!match.Success || (match.Index > 0 && (char.IsDigit(collapsed[match.Index - 1]) || collapsed[match.Index - 1] == '.')))
                 return NowhereCaret;
-            string[] chain = match.Groups[1].Value.Split('.').Select(part => part.Trim()).ToArray();
+            string[] chain = [.. match.Groups[1].Value.Split('.').Select(part => part.Trim())];
             if (Scope(chain, code) is not { } scope)
                 return NowhereCaret;
             string member = match.Groups[2].Value;
@@ -138,7 +138,7 @@ public sealed partial class SlangCompletions
             '(' or ',' => ArgumentTypes(beforeCaret[..start], code, caretLine),
             _ => [],
         };
-        wants = types.Where(Makeable).Distinct().ToList();
+        wants = [.. types.Where(Makeable).Distinct()];
         return true;
     }
 
@@ -151,7 +151,7 @@ public sealed partial class SlangCompletions
         if (target.Groups[1].Success)
             return IsTypeName(target.Groups[1].Value) ? target.Groups[1].Value : null;
 
-        string[] chain = target.Groups[3].Value.Split('.').Select(part => part.Trim()).ToArray();
+        string[] chain = [.. target.Groups[3].Value.Split('.').Select(part => part.Trim())];
         if (chain.Length == 1)
             return DeclaredType(chain[0], code);
         return Scope(chain[..^1], code) is { } owner && TryMemberTypes(owner, out var types)
@@ -208,7 +208,7 @@ public sealed partial class SlangCompletions
         Match called = Callee().Match(callee);
         if (!called.Success || (called.Index > 0 && callee[called.Index - 1] is '.' or ')' or ']'))
             return [];
-        string[] chain = called.Groups[1].Value.Split('.').Select(part => part.Trim()).ToArray();
+        string[] chain = [.. called.Groups[1].Value.Split('.').Select(part => part.Trim())];
         string name = chain[^1];
         var scopes = new List<string>();
         if (chain.Length == 1)

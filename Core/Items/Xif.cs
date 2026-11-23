@@ -85,14 +85,14 @@ public enum XifShapeKind : byte
 
 public sealed class XifPolygon
 {
-    public List<Vector2> Points { get; set; } = new();
+    public List<Vector2> Points { get; set; } = [];
 
     public XifShapeKind Kind { get; set; } = XifShapeKind.Free;
 
     /// <summary>The polygon's colour; the node's shader may tint it further.</summary>
     public Color Fill { get; set; } = Colors.White;
 
-    public XifPolygon Copy() => new() { Points = new List<Vector2>(Points), Fill = Fill, Kind = Kind };
+    public XifPolygon Copy() => new() { Points = [.. Points], Fill = Fill, Kind = Kind };
 
     public bool Same(XifPolygon other)
     {
@@ -110,7 +110,7 @@ public sealed class XifPolygon
 /// <summary>The node's shape: polygons only, no textures (a texture is a shader input).</summary>
 public sealed class XifGeometry : XifModule
 {
-    public List<XifPolygon> Polygons { get; set; } = new();
+    public List<XifPolygon> Polygons { get; set; } = [];
 
     public override XifModule Copy()
     {
@@ -148,13 +148,13 @@ public sealed class XifShader : XifModule
     /// each one's deform runs on what the one under it moved, and its shade gets the colour
     /// so far as <c>i.colour</c>. Their params share <see cref="Params"/>, by name.
     /// </summary>
-    public List<string> Layers { get; set; } = new();
+    public List<string> Layers { get; set; } = [];
 
     /// <summary>Tuned uniform values by name; vectors and colours are one float per channel.</summary>
-    public Dictionary<string, float[]> Params { get; set; } = new();
+    public Dictionary<string, float[]> Params { get; set; } = [];
 
     /// <summary>Texture inputs by sampler name, as resource paths.</summary>
-    public Dictionary<string, string> Textures { get; set; } = new();
+    public Dictionary<string, string> Textures { get; set; } = [];
 
     /// <summary>
     /// The shader fits itself to the node's shape: its <c>[Fit]</c> values
@@ -165,7 +165,7 @@ public sealed class XifShader : XifModule
 
     public override XifModule Copy()
     {
-        var copy = new XifShader { Shader = Shader.Copy(), Fit = Fit, Layers = new List<string>(Layers) };
+        var copy = new XifShader { Shader = Shader.Copy(), Fit = Fit, Layers = [.. Layers] };
         foreach (KeyValuePair<string, float[]> param in Params)
             copy.Params[param.Key] = (float[])param.Value.Clone();
         foreach (KeyValuePair<string, string> texture in Textures)
@@ -215,9 +215,9 @@ public sealed class Xif
     public string Ref { get; set; } = "";
 
     /// <summary>At most one module of each type.</summary>
-    public List<XifModule> Modules { get; set; } = new();
+    public List<XifModule> Modules { get; set; } = [];
 
-    public List<Xif> Children { get; set; } = new();
+    public List<Xif> Children { get; set; } = [];
 
     public bool IsReference => Ref.Length > 0;
 
@@ -244,7 +244,7 @@ public sealed class Xif
     }
 
     /// <summary>The node's polygons, empty if it has no geometry.</summary>
-    public IReadOnlyList<XifPolygon> Polygons => Get<XifGeometry>()?.Polygons ?? (IReadOnlyList<XifPolygon>)System.Array.Empty<XifPolygon>();
+    public IReadOnlyList<XifPolygon> Polygons => Get<XifGeometry>()?.Polygons ?? (IReadOnlyList<XifPolygon>)[];
 
     /// <summary>The node's shader ref, the none value if it has no shader module.</summary>
     public XifShaderRef ShaderRef => Get<XifShader>()?.Shader ?? new XifShaderRef();

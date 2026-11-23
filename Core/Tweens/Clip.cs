@@ -67,26 +67,18 @@ public static class ClipClocks
 /// </para>
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public struct Clip
+public struct Clip(ClipClock clock, float start, float length)
 {
     /// <summary>Where it starts on its clock, in seconds or beats.</summary>
-    public float Start;
+    public float Start = start;
 
     /// <summary>How long one way takes, in seconds or beats.</summary>
-    public float Length;
+    public float Length = length;
 
-    private byte _ease;
-    public ClipClock Clock;
+    private byte _ease = (byte)EasePreset.Linear;
+    public ClipClock Clock = clock;
     public ClipShape Shape;
     private byte _pad;
-
-    public Clip(ClipClock clock, float start, float length)
-    {
-        Clock = clock;
-        Start = start;
-        Length = length;
-        _ease = (byte)EasePreset.Linear;
-    }
 
     /// <summary><c>clock.clip(start, length)</c>.</summary>
     public static Clip Seconds(float start, float length) => new(ClipClock.Seconds, start, length);

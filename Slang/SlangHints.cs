@@ -24,7 +24,7 @@ public readonly record struct InlayHint(int Column, string Label);
 public sealed partial class SlangHints
 {
     /// <summary>Parameter names by (name, argument count); null where two declarations disagree.</summary>
-    private readonly Dictionary<(string Name, int Count), string[]?> _table = new();
+    private readonly Dictionary<(string Name, int Count), string[]?> _table = [];
 
     [GeneratedRegex(@"public\s+struct\s+(\w+)")]
     private static partial Regex Struct();
@@ -44,23 +44,23 @@ public sealed partial class SlangHints
     public int Count => _table.Count;
 
     /// <summary>The library's struct names (shapes, <c>Bezier</c>, …), for colouring.</summary>
-    public HashSet<string> Types { get; } = new();
+    public HashSet<string> Types { get; } = [];
 
     /// <summary>The library's type aliases (<c>colour</c>): other names for built-in types, so coloured as those are.</summary>
-    public HashSet<string> Aliases { get; } = new();
+    public HashSet<string> Aliases { get; } = [];
 
     /// <summary>The attributes the library declares (<c>DefaultAttribute</c> → <c>Default</c>), for colouring apart from Slang's.</summary>
-    public HashSet<string> Attributes { get; } = new();
+    public HashSet<string> Attributes { get; } = [];
 
     /// <summary>The library's namespaces (<c>color</c>, <c>ease</c>, …), for colouring.</summary>
-    public HashSet<string> Namespaces { get; } = new();
+    public HashSet<string> Namespaces { get; } = [];
 
     /// <summary>
     /// What working out each shape costs a pixel, from the library's <c>/// @cost n</c> tags: by
     /// struct for a shape (<c>Circle</c> is 1, the unit) and by method for a change that adds its
     /// own work (<c>repeated</c>, <c>melted</c>). For the cost warnings (<see cref="SlangLint"/>).
     /// </summary>
-    public Dictionary<string, float> Costs { get; } = new();
+    public Dictionary<string, float> Costs { get; } = [];
 
     [GeneratedRegex(@"///\s*@cost\s+(\d+(?:\.\d+)?)[^\n]*\n(?:[ \t]*(?:///|\[)[^\n]*\n)*[ \t]*public\s+(?:struct\s+(\w+)|[\w<>:, ]+?\s+(\w+)\s*(?:<[^>()]*>)?\s*\()")]
     private static partial Regex CostTag();
@@ -146,8 +146,8 @@ public sealed partial class SlangHints
 
     private void Add(string name, string parameters)
     {
-        List<string> parts = SplitTopLevel(parameters, 0, parameters.Length).Select(p => p.Text).Where(p => p.Length > 0).ToList();
-        string[] names = parts.Select(NameOf).ToArray();
+        List<string> parts = [.. SplitTopLevel(parameters, 0, parameters.Length).Select(p => p.Text).Where(p => p.Length > 0)];
+        string[] names = [.. parts.Select(NameOf)];
         int required = parts.Count(p => !p.Contains('='));
         // A call may leave off any of the defaulted parameters at the end.
         for (int count = required; count <= names.Length; count++)
@@ -177,7 +177,7 @@ public sealed partial class SlangHints
             if (code[i] is '(' or '[' or '{')
                 depth++;
             else if (code[i] is ')' or ']' or '}' && --depth == 0)
-                return SplitTopLevel(code, open + 1, i).Where(arg => arg.Text.Length > 0).ToList();
+                return [.. SplitTopLevel(code, open + 1, i).Where(arg => arg.Text.Length > 0)];
         }
 
         return null;

@@ -24,7 +24,7 @@ public sealed partial class SlangCompletions
     private readonly HashSet<string> _namespaces = new(StringComparer.Ordinal);
 
     /// <summary>Every declaration by scope ("" for top level) and name, overloads included, for hovering.</summary>
-    private readonly Dictionary<(string Scope, string Name), List<Completion>> _declared = new();
+    private readonly Dictionary<(string Scope, string Name), List<Completion>> _declared = [];
 
     /// <summary>The interfaces each struct says it implements.</summary>
     private readonly Dictionary<string, List<string>> _interfaces = new(StringComparer.Ordinal);
@@ -39,16 +39,16 @@ public sealed partial class SlangCompletions
     private readonly Dictionary<string, string[]> _fits = new(StringComparer.Ordinal);
 
     /// <summary>Each call's overloads by scope ("" for top level, a struct for its constructors) and name: their parameter types, generic ones as their constraint.</summary>
-    private readonly Dictionary<(string Scope, string Name), List<string[]>> _parameters = new();
+    private readonly Dictionary<(string Scope, string Name), List<string[]>> _parameters = [];
 
     /// <summary>Each call's overloads by name alone, every scope together: their parameter names (<c>moved</c> → offset).</summary>
     private readonly Dictionary<string, List<string[]>> _parameterNames = new(StringComparer.Ordinal);
 
     /// <summary>The library's top-level names: free functions and constants, structs, aliases, namespaces.</summary>
-    private readonly List<Completion> _globals = new();
+    private readonly List<Completion> _globals = [];
 
     /// <summary>Names the host declares for the code (the lab's time, mouse, …).</summary>
-    private readonly List<Completion> _provided = new();
+    private readonly List<Completion> _provided = [];
 
     /// <summary>Every type name a declaration can start with: Slang's, the library's structs and aliases.</summary>
     private readonly HashSet<string> _typeNames = new(SlangSyntax.BuiltInTypes, StringComparer.Ordinal);
@@ -137,7 +137,7 @@ public sealed partial class SlangCompletions
                     _fits[name] = fits.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             }
             if (kind is "struct" or "interface" && match.Groups[3].Success)
-                _interfaces[name] = match.Groups[3].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
+                _interfaces[name] = [.. match.Groups[3].Value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0)];
         }
 
         foreach (Match match in ShapeExtension().Matches(source))
@@ -392,17 +392,14 @@ public sealed partial class SlangCompletions
         var constraints = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (Match generic in Regex.Matches(generics, @"(\w+)\s*:\s*(\w+)"))
             constraints[generic.Groups[1].Value] = generic.Groups[2].Value;
-        string[] types = SplitArguments(parameters)
+        string[] types = [.. SplitArguments(parameters)
             .Select(p => Regex.Match(p, @"^\s*(?:(?:in|out|inout|const)\s+)*([A-Za-z_][\w<>]*)").Groups[1].Value)
-            .Select(type => constraints.GetValueOrDefault(type, type))
-            .ToArray();
+            .Select(type => constraints.GetValueOrDefault(type, type))];
         if (!_parameters.TryGetValue((scope, name), out var overloads))
             _parameters[(scope, name)] = overloads = [];
         overloads.Add(types);
 
-        string[] names = SplitArguments(parameters)
-            .Select(p => Regex.Match(p, @"^\s*(?:(?:in|out|inout|const)\s+)*[A-Za-z_][\w<>]*\s+([A-Za-z_]\w*)").Groups[1].Value)
-            .ToArray();
+        string[] names = [.. SplitArguments(parameters).Select(p => Regex.Match(p, @"^\s*(?:(?:in|out|inout|const)\s+)*[A-Za-z_][\w<>]*\s+([A-Za-z_]\w*)").Groups[1].Value)];
         if (!_parameterNames.TryGetValue(name, out var named))
             _parameterNames[name] = named = [];
         named.Add(names);

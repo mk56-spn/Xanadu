@@ -37,7 +37,7 @@ public sealed partial class SlangCompletions
             Match match = DotChain().Match(before);
             if (!match.Success || (match.Index > 0 && (char.IsDigit(before[match.Index - 1]) || before[match.Index - 1] == '.')))
                 return null;
-            string[] chain = match.Groups[1].Value.Split('.').Select(part => part.Trim()).ToArray();
+            string[] chain = [.. match.Groups[1].Value.Split('.').Select(part => part.Trim())];
             if (Scope(chain, code) is not { } scope)
                 return null;
             if (_declared.TryGetValue((scope, name), out var own) || _code.Declared.TryGetValue((scope, name), out own))

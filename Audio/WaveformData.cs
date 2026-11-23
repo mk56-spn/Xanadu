@@ -27,7 +27,7 @@ public sealed class WaveformData
 
     public WaveformData(float[] low, float[] mid, float[] high, long durationMs)
     {
-        _levels = new[] { low, mid, high };
+        _levels = [low, mid, high];
         _running = new double[3][];
         for (int band = 0; band < 3; band++)
         {

@@ -41,7 +41,7 @@ public sealed class KeyChannel
     public const float TimeTolerance = 0.0001f;
 
     public KeyAddress Address = new("", "", "");
-    public List<Keyframe> Keys = new();
+    public List<Keyframe> Keys = [];
 
     public KeyChannel Copy()
     {

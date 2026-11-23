@@ -58,12 +58,12 @@ public static class XpfValidation
         }
 
         float[] values =
-        {
+        [
             particle.Explosiveness, particle.Randomness, particle.BoxSize.X, particle.BoxSize.Y,
             particle.Direction, particle.Spread, particle.HeadedSpread, particle.SpeedMin, particle.SpeedMax,
             particle.Gravity.X, particle.Gravity.Y, particle.DampingMin, particle.DampingMax,
             particle.ScaleMin, particle.ScaleMax, particle.AngleMin, particle.AngleMax,
-        };
+        ];
         foreach (float value in values)
         {
             if (!float.IsFinite(value))
