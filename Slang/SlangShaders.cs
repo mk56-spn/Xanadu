@@ -14,6 +14,12 @@ namespace Xanadu.Slang;
 public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default, bool IsBool = false,
     int Rows = 1, int Columns = 1, bool IsUnsigned = false)
 {
+    /// <summary>Tagged <c>[Fit]</c>: an item fitting its shader fills x and y with its shape's half size.</summary>
+    public bool Fit { get; init; }
+
+    /// <summary>Tagged <c>[Options("a|b|c")]</c>: the names of a whole-number value's choices, 0 first; null when untagged.</summary>
+    public string[]? Options { get; init; }
+
     /// <summary>A <c>floatRxC</c>: rows of <see cref="Columns"/>, 16 bytes apart.</summary>
     public bool IsMatrix => Rows > 1;
 }
@@ -978,8 +984,14 @@ public static class SlangShaders
             : "";
 
         Vector4 fallback = default;
+        bool fit = false;
+        string[]? options = null;
         if (field.TryGetProperty("userAttribs", out JsonElement attributes))
             foreach (JsonElement attribute in attributes.EnumerateArray())
+            {
+                fit |= attribute.GetProperty("name").GetString() == "Fit";
+                if (attribute.GetProperty("name").GetString() == "Options")
+                    options = OptionNames(attribute.GetProperty("arguments"));
                 if (attribute.GetProperty("name").GetString() == "Default")
                 {
                     float[] values = attribute.GetProperty("arguments").EnumerateArray()
@@ -991,6 +1003,7 @@ public static class SlangShaders
                         }).ToArray();
                     fallback = new Vector4(At(values, 0), At(values, 1), At(values, 2), At(values, 3));
                 }
+            }
 
         string kind = type.TryGetProperty("kind", out JsonElement k) ? k.GetString() ?? "" : "";
         int rows = kind == "matrix" && type.TryGetProperty("rowCount", out JsonElement r) ? r.GetInt32() : 1;
@@ -1003,7 +1016,21 @@ public static class SlangShaders
 
         return new ShaderParam(field.GetProperty("name").GetString() ?? "", offset, size,
             scalar is "int32" or "uint32" or "bool", fallback, scalar == "bool",
-            rows, columns, scalar == "uint32");
+            rows, columns, scalar == "uint32") { Fit = fit, Options = options };
+    }
+
+    /// <summary>The names an <c>[Options]</c> attribute gives, split by |; null when it gives none.</summary>
+    private static string[]? OptionNames(JsonElement arguments)
+    {
+        foreach (JsonElement argument in arguments.EnumerateArray())
+        {
+            string? text = argument.ValueKind == JsonValueKind.String ? argument.GetString()
+                : argument.ValueKind == JsonValueKind.Object && argument.TryGetProperty("string", out JsonElement s) ? s.GetString()
+                : null;
+            if (!string.IsNullOrWhiteSpace(text))
+                return text.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        }
+        return null;
     }
 
     private static float At(float[] values, int index) => index < values.Length ? values[index] : 0f;

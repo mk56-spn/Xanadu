@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Xanadu.Core.Items;
 using System;
 using Xanadu.Model.Ecs.Components;
 
@@ -6,6 +8,53 @@ namespace Xanadu.Model.Playfields;
 /// <summary>The dash ender's shape: one fixed square, and whether the body's centre is in it.</summary>
 public static class DashStops
 {
+    /// <summary>The shader that draws a dash ender's look.</summary>
+    public const string Shader = "Assets/Shaders/Items/dash_stop.slang";
+
+    /// <summary>
+    /// What every dash ender looks like: a quad with room round the block for
+    /// its glow, drawn by <see cref="Shader"/> with the block's size and the
+    /// stop colour. Centred on the ender's place; drawn by XifDrawer.
+    /// </summary>
+    public static Xif Look => _look ??= MakeLook();
+
+    // Made on first use: a static initialiser here would run before Size's.
+    private static Xif? _look;
+
+    private static Xif MakeLook()
+    {
+        Vector2 half = Size / 2f;
+        Vector2 room = half * 1.55f;
+        return new Xif
+        {
+            Name = "dash stop",
+            Modules =
+            {
+                new XifGeometry
+                {
+                    Polygons =
+                    {
+                        new XifPolygon
+                        {
+                            Fill = Colors.White,
+                            Kind = XifShapeKind.Quad,
+                            Points = new List<Vector2> { new(-room.X, -room.Y), new(room.X, -room.Y), new(room.X, room.Y), new(-room.X, room.Y) },
+                        },
+                    },
+                },
+                new XifShader
+                {
+                    Shader = XifShaderRef.OfCommon(Shader),
+                    Params =
+                    {
+                        ["stop_block"] = [half.X, half.Y, 3f, 4f],
+                        ["stop_tint"] = [PlayfieldColors.DashStopColor.R, PlayfieldColors.DashStopColor.G, PlayfieldColors.DashStopColor.B, 1f],
+                    },
+                },
+            },
+        };
+    }
+
     /// <summary>The marker's size, playfield units.</summary>
     public static readonly Vector2 Size = new(110f, 110f);
 

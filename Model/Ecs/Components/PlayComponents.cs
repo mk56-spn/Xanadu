@@ -69,7 +69,7 @@ public struct Player(Vector2 size) : IComponent
     public const float DefaultHeight = 180;
 
     /// <summary>
-    /// How tall the character art is drawn, in playfield units. Contact.xaf's
+    /// How tall the character art is drawn, in playfield units. Contact.xif's
     /// art is 209 px tall at rest, so this makes it a little smaller than
     /// authored. The art's feet sit on the bottom of the box.
     /// </summary>

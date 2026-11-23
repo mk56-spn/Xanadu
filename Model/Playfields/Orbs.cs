@@ -1,3 +1,5 @@
+using Xanadu.Core.Items;
+using Xanadu.Core.Keys;
 using System;
 using Xanadu.Model.Ecs.Components;
 
@@ -13,6 +15,67 @@ namespace Xanadu.Model.Playfields;
 /// </summary>
 public static class Orbs
 {
+    /// <summary>The shader that draws an orb's ball.</summary>
+    public const string Shader = "Assets/Shaders/Items/orb.slang";
+
+    /// <summary>
+    /// What an orb's ball looks like: a quad centred on it with room for its glow
+    /// and approach ring, drawn by <see cref="Shader"/>. Its colour and state are
+    /// set from each orb as it is drawn (<see cref="SetState"/>).
+    /// </summary>
+    public static Xif Look => _look ??= MakeLook();
+
+    // Made on first use: a static initialiser here would run before Radius is read.
+    private static Xif? _look;
+
+    private static Xif MakeLook()
+    {
+        float room = Radius * 4.4f;
+        return new Xif
+        {
+            Name = "orb",
+            Modules =
+            {
+                new XifGeometry
+                {
+                    Polygons =
+                    {
+                        new XifPolygon
+                        {
+                            Fill = Colors.White,
+                            Kind = XifShapeKind.Quad,
+                            Points = new System.Collections.Generic.List<Vector2> { new(-room, -room), new(room, -room), new(room, room), new(-room, room) },
+                        },
+                    },
+                },
+                new XifShader
+                {
+                    Shader = XifShaderRef.OfCommon(Shader),
+                    Params =
+                    {
+                        ["orb_radius"] = [Radius],
+                        ["orb_tint"] = [1f, 1f, 1f, 1f],
+                        ["orb_state"] = [1f, 0f, -1f, 0f],
+                    },
+                },
+            },
+        };
+    }
+
+    /// <summary>Sets the ball's colour and state for its next draw: how shown it is, lit while ridden, and its approach (1 far, 0 at its head, below 0 none).</summary>
+    public static void SetState(Color colour, float alpha, bool lit, float approach)
+    {
+        XifShader shader = Look.Get<XifShader>()!;
+        float[] tint = shader.Params["orb_tint"];
+        tint[0] = colour.R;
+        tint[1] = colour.G;
+        tint[2] = colour.B;
+        float[] state = shader.Params["orb_state"];
+        state[0] = alpha;
+        state[1] = lit ? 1f : 0f;
+        state[2] = approach;
+    }
+
     /// <summary>How fast every orb crosses, rightwards: the player's one speed.</summary>
     public const float Speed = PlayRules.CruiseSpeed;
 

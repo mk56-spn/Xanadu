@@ -3,7 +3,7 @@ using Xanadu.Model.Animation;
 
 namespace Xanadu.Model.Ecs.Components;
 
-/// <summary>XAF package to load and draw as this player's character.</summary>
+/// <summary>Rig (XIF file) to load and draw as this player's character.</summary>
 public struct CharacterRigSource(string path) : IComponent
 {
     public string Path = path;

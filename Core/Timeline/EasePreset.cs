@@ -4,7 +4,7 @@ namespace Xanadu.Core.Timeline;
 
 /// <summary>
 /// How a timed change travels from its start to its end: the segment leaving
-/// an animator key, a group effect, a shader key. Stored as a byte in XAF and
+/// an animator key, a group effect, a shader key. Stored as a byte in XIF and
 /// XMF, so values keep their order.
 /// </summary>
 public enum EasePreset
@@ -21,7 +21,7 @@ public enum EasePreset
     /// <summary>Full speed at the start, slow end.</summary>
     EaseOut,
 
-    // Named curves; the animator stores them as the XafInterpolation of the same name.
+    // Named curves; the animator stores them as the RigInterpolation of the same name.
     SineIn,
     SineOut,
     SineInOut,

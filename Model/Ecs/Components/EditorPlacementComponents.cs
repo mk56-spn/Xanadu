@@ -39,6 +39,12 @@ public enum EditorPlacementMode
 
     /// <summary>A dash ender, centred where clicked: a dash entering it ends there.</summary>
     DashStop,
+
+    /// <summary>A patch of grass (a deco), rooted where clicked: one blade copied across a strip, swaying.</summary>
+    Grass,
+
+    /// <summary>A lens flare (a deco), centred where clicked.</summary>
+    Flare,
 }
 
 /// <summary>The editor's placement brush: what clicking the field places, and what a new note gets.</summary>

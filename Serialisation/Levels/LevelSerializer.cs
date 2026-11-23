@@ -36,6 +36,8 @@ public static class LevelSerializer
         document.Drafts.RemoveAll(draft => draft is null);
         document.DashStops ??= new();
         document.DashStops.RemoveAll(stop => stop is null);
+        document.Decos ??= new();
+        document.Decos.RemoveAll(deco => deco?.Xif is null);
         return document;
     }
 }

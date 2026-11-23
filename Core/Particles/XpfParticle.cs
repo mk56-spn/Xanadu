@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Core.Particles;
@@ -96,13 +97,35 @@ public sealed class XpfParticle
     /// <summary>How far from the emitter particles can be drawn; the renderer culls outside it.</summary>
     public float Reach = 300f;
 
+    /// <summary>
+    /// Goes up with every edit in place, so whatever caches what it made from
+    /// the settings (the particle server's sampled ramp and scale) makes it again.
+    /// Not saved.
+    /// </summary>
+    public int Version;
+
+    /// <summary>Marks the settings edited in place; see <see cref="Version"/>.</summary>
+    public void Touch() => Version++;
+
     public XpfParticle Clone()
     {
         var copy = (XpfParticle)MemberwiseClone();
         copy.ScaleCurve = new List<XpfCurvePoint>(ScaleCurve);
         copy.Ramp = new List<XpfColorStop>(Ramp);
+        copy.Version = 0;
         return copy;
     }
+
+    /// <summary>Whether every saved setting matches <paramref name="other"/>'s.</summary>
+    public bool Same(XpfParticle other) =>
+        Name == other.Name && Texture == other.Texture && Amount == other.Amount && Lifetime == other.Lifetime &&
+        Explosiveness == other.Explosiveness && Randomness == other.Randomness && Shape == other.Shape &&
+        BoxSize == other.BoxSize && Direction == other.Direction && Spread == other.Spread &&
+        HeadedSpread == other.HeadedSpread && SpeedMin == other.SpeedMin && SpeedMax == other.SpeedMax &&
+        Gravity == other.Gravity && DampingMin == other.DampingMin && DampingMax == other.DampingMax &&
+        ScaleMin == other.ScaleMin && ScaleMax == other.ScaleMax && AngleMin == other.AngleMin &&
+        AngleMax == other.AngleMax && Upright == other.Upright && Color == other.Color && Reach == other.Reach &&
+        ScaleCurve.SequenceEqual(other.ScaleCurve) && Ramp.SequenceEqual(other.Ramp);
 }
 
 /// <summary>Every particle effect the game, the animator and levels can use, by name.</summary>

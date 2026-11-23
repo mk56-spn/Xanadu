@@ -6,7 +6,7 @@ using System.Text;
 namespace Xanadu.Core.Storage;
 
 /// <summary>
-/// Lays out the chunked files XAF character packages and XMF level maps share:
+/// Lays out the chunked files XIF items and rigs and XMF level maps share:
 /// a magic number, a major/minor version and a directory of typed chunks. Each
 /// format owns its chunk payloads; this only writes the frame around them.
 /// </summary>
@@ -94,7 +94,7 @@ public sealed class ChunkReader
     /// <summary>
     /// Opens a chunked file, checking its magic, major version and that every
     /// directory entry points inside the file. <paramref name="format"/> names
-    /// the format in error messages, for example "XAF" or "XMF".
+    /// the format in error messages, for example "XIF" or "XMF".
     /// </summary>
     public static ChunkReader Open(
         byte[] data,

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Xanadu.Core.Items;
 using System;
 using Xanadu.Model.Ecs.Components;
 
@@ -12,6 +14,65 @@ namespace Xanadu.Model.Playfields;
 /// </summary>
 public static class Drafts
 {
+    /// <summary>The shader that draws a draft's look.</summary>
+    public const string Shader = "Assets/Shaders/Items/draft.slang";
+
+    private static readonly Dictionary<float, Xif> Looks = new();
+
+    /// <summary>
+    /// What a draft of <paramref name="height"/> looks like: a quad from the top
+    /// of its column (a quarter past the hover) down to its slab's foot, drawn by
+    /// <see cref="Shader"/>; one kept per height. Its <c>draft_state</c> is set
+    /// from each draft as it is drawn (<see cref="SetState"/>).
+    /// </summary>
+    public static Xif LookFor(float height)
+    {
+        if (Looks.TryGetValue(height, out Xif? known))
+            return known;
+
+        float half = Diameter / 2f, reach = height * 1.25f, foot = EmitterHeight / 2f;
+        var look = new Xif
+        {
+            Name = "draft",
+            Modules =
+            {
+                new XifGeometry
+                {
+                    Polygons =
+                    {
+                        new XifPolygon
+                        {
+                            Fill = Colors.White,
+                            Kind = XifShapeKind.Quad,
+                            Points = new List<Vector2> { new(-half, -reach), new(half, -reach), new(half, foot), new(-half, foot) },
+                        },
+                    },
+                },
+                new XifShader
+                {
+                    Shader = XifShaderRef.OfCommon(Shader),
+                    Params =
+                    {
+                        ["draft_box"] = [half, reach, EmitterHeight, 0f],
+                        ["draft_tint"] = [PlayfieldColors.DraftColor.R, PlayfieldColors.DraftColor.G, PlayfieldColors.DraftColor.B, 1f],
+                        ["draft_state"] = [0f, -height, 0.35f, 0f],
+                    },
+                },
+            },
+        };
+        Looks[height] = look;
+        return look;
+    }
+
+    /// <summary>Sets a look's state for its next draw: the song's seconds, the hover's height from the vent (up is negative) and its bar's alpha.</summary>
+    public static void SetState(Xif look, float seconds, float hover, float bar)
+    {
+        float[] state = look.Get<XifShader>()!.Params["draft_state"];
+        state[0] = seconds;
+        state[1] = hover;
+        state[2] = bar;
+    }
+
     /// <summary>Every emitter's width, playfield units.</summary>
     public const float Diameter = 360f;
 

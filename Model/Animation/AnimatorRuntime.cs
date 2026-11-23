@@ -7,50 +7,45 @@ namespace Xanadu.Model.Animation;
 /// <summary>Runtime state for one character animator instance.</summary>
 public sealed partial class AnimatorRuntime
 {
-    private readonly Dictionary<string, XafClip> _clips =
+    private readonly Dictionary<string, RigClip> _clips =
         new(StringComparer.Ordinal);
 
-    private XafClip? _current;
-    private XafClip? _next;
+    private RigClip? _current;
+    private RigClip? _next;
     private float _currentTime;
     private float _nextTime;
     private float _fadeDuration;
     private float _fadeElapsed;
-    private XafFadeCurve _fadeCurve;
+    private RigFadeCurve _fadeCurve;
 
     /// <summary>
     /// The pose on screen when a fade was cut short by another, faded out in
     /// place of a clip so the new fade starts from what was shown, not a pop.
     /// </summary>
-    private XafPose? _frozen;
+    private RigPose? _frozen;
     private readonly List<AdditiveLayer> _additives = new();
-    private readonly List<XafFiredEvent> _fired = new();
+    private readonly List<RigFiredEvent> _fired = new();
 
     // A clip that has just begun also reports an event sitting on its first instant.
     private bool _currentStarted;
     private bool _nextStarted;
 
-    public AnimatorRuntime(XafPackage package)
+    public AnimatorRuntime(RigPackage package)
     {
         Package = package;
-        foreach (XafClip clip in package.Clips)
+        foreach (RigClip clip in package.Clips)
             _clips[clip.Id] = clip;
-        Pose = new XafPose(
-            package.Skeleton.Bones.Count,
-            package.Attachments.Count,
-            package.Effects.Count);
-        for (int i = 0; i < Pose.Effects.Length; i++)
-            Pose.Effects[i] = XafEffectState.Rest(package.Effects[i]);
+        Pose = RigPose.For(package);
     }
 
-    public XafPackage Package { get; }
+    public RigPackage Package { get; }
 
     /// <summary>
     /// The events the last <see cref="Update"/> passed, in the clip playing and
     /// in the clip fading in; cleared by the next update. Seeking passes none.
     /// </summary>
-    public IReadOnlyList<XafFiredEvent> Fired => _fired;
-    public XafPose Pose { get; private set; }
+    public IReadOnlyList<RigFiredEvent> Fired => _fired;
+    public RigPose Pose { get; private set; }
     public string CurrentClip => _current?.Id ?? "";
     public string NextClip => _next?.Id ?? "";
     public bool IsCrossfading => _next is not null;
@@ -67,7 +62,7 @@ public sealed partial class AnimatorRuntime
         ? 0f
         : _fadeDuration <= 0f
             ? 1f
-            : XafTransitions.Weight(_fadeCurve, _fadeElapsed / _fadeDuration);
+            : RigTransitions.Weight(_fadeCurve, _fadeElapsed / _fadeDuration);
 
     public IReadOnlyList<AdditiveLayer> Additives => _additives;
 
@@ -78,9 +73,9 @@ public sealed partial class AnimatorRuntime
     public bool Play(
         string clipId,
         float fadeSeconds = 0.15f,
-        XafFadeCurve curve = XafFadeCurve.Linear)
+        RigFadeCurve curve = RigFadeCurve.Linear)
     {
-        if (!_clips.TryGetValue(clipId, out XafClip? clip))
+        if (!_clips.TryGetValue(clipId, out RigClip? clip))
             return false;
 
         if (_current is null)
@@ -90,7 +85,7 @@ public sealed partial class AnimatorRuntime
             _currentStarted = true;
             _next = null;
             _frozen = null;
-            Pose = XafSampler.Sample(Package, clip, 0f);
+            Pose = RigSampler.Sample(Package, clip, 0f);
             return true;
         }
 
@@ -123,12 +118,12 @@ public sealed partial class AnimatorRuntime
         string from = _next?.Id ?? _current.Id;
         if (from == clipId)
             return true;
-        if (!XafTransitions.Allows(Package, from, clipId))
+        if (!RigTransitions.Allows(Package, from, clipId))
             return false;
 
-        (float fade, XafFadeCurve curve) = XafTransitions.Blend(Package, from, clipId);
+        (float fade, RigFadeCurve curve) = RigTransitions.Blend(Package, from, clipId);
         // A hand-over the package names no fade for settles at the inertial default.
-        if (Inertial && XafTransitions.Find(Package, from, clipId) is null)
+        if (Inertial && RigTransitions.Find(Package, from, clipId) is null)
             fade = InertialSeconds;
         return Play(clipId, fade, curve);
     }
@@ -156,7 +151,7 @@ public sealed partial class AnimatorRuntime
         _nextTime = 0f;
         _fadeDuration = 0f;
         _fadeElapsed = 0f;
-        Pose = XafSampler.Sample(Package, _current, 0f);
+        Pose = RigSampler.Sample(Package, _current, 0f);
     }
 
     public void Seek(float time)
@@ -172,7 +167,7 @@ public sealed partial class AnimatorRuntime
         _nextTime = 0f;
         _fadeDuration = 0f;
         _fadeElapsed = 0f;
-        Pose = XafSampler.Sample(Package, _current, _currentTime);
+        Pose = RigSampler.Sample(Package, _current, _currentTime);
     }
 
     /// <summary>
@@ -183,10 +178,10 @@ public sealed partial class AnimatorRuntime
     public void AddLayer(
         string clipId,
         float weight,
-        XafLayerBlend blend = XafLayerBlend.Additive,
+        RigLayerBlend blend = RigLayerBlend.Additive,
         float startTime = 0f)
     {
-        if (!_clips.TryGetValue(clipId, out XafClip? clip))
+        if (!_clips.TryGetValue(clipId, out RigClip? clip))
             return;
 
         for (int i = 0; i < _additives.Count; i++)
@@ -206,9 +201,9 @@ public sealed partial class AnimatorRuntime
     /// already layered there, keeping its place among the layers: for a pose
     /// that is set each frame rather than played, such as bracing for a landing.
     /// </summary>
-    public void HoldLayer(string clipId, float weight, float time, XafLayerBlend blend)
+    public void HoldLayer(string clipId, float weight, float time, RigLayerBlend blend)
     {
-        if (!_clips.TryGetValue(clipId, out XafClip? clip))
+        if (!_clips.TryGetValue(clipId, out RigClip? clip))
             return;
 
         for (int i = 0; i < _additives.Count; i++)
@@ -266,10 +261,10 @@ public sealed partial class AnimatorRuntime
         if (_next is not null && _fadeElapsed >= _fadeDuration)
             FinishFade();
 
-        XafPose currentPose = _next is not null && _frozen is not null
+        RigPose currentPose = _next is not null && _frozen is not null
             ? _frozen
-            : XafSampler.Sample(Package, _current, _currentTime);
-        XafPose basePose = currentPose;
+            : RigSampler.Sample(Package, _current, _currentTime);
+        RigPose basePose = currentPose;
         if (Inertial)
         {
             StepGap(delta);
@@ -279,45 +274,45 @@ public sealed partial class AnimatorRuntime
 
         if (_next is not null)
         {
-            XafPose nextPose = XafSampler.Sample(
+            RigPose nextPose = RigSampler.Sample(
                 Package,
                 _next,
                 _nextTime);
-            basePose = XafBlend.Crossfade(currentPose, nextPose, FadeWeight);
+            basePose = RigBlend.Crossfade(currentPose, nextPose, FadeWeight);
         }
 
         foreach (AdditiveLayer layer in _additives)
         {
-            if (layer.Blend == XafLayerBlend.Override)
+            if (layer.Blend == RigLayerBlend.Override)
             {
-                XafPose over = XafSampler.SampleOver(Package, layer.Clip, layer.Time, basePose);
-                basePose = XafBlend.Crossfade(basePose, over, layer.Weight);
+                RigPose over = RigSampler.SampleOver(Package, layer.Clip, layer.Time, basePose);
+                basePose = RigBlend.Crossfade(basePose, over, layer.Weight);
                 continue;
             }
 
-            XafPose additivePose = XafSampler.Sample(
+            RigPose additivePose = RigSampler.Sample(
                 Package,
                 layer.Clip,
                 layer.Time,
                 additive: true);
-            basePose = XafBlend.Add(basePose, additivePose, layer.Weight);
+            basePose = RigBlend.Add(basePose, additivePose, layer.Weight);
         }
 
         Pose = basePose;
     }
 
     /// <summary>Notes the events a clip passed going from one time to another; a loop that came round wrapped.</summary>
-    private void Pass(XafClip clip, float from, float to, float delta, bool started)
+    private void Pass(RigClip clip, float from, float to, float delta, bool started)
     {
-        bool wrapped = clip.Loop && to < from - XafTracks.TimeTolerance && delta > 0f;
-        XafEventAuthoring.Passed(clip, from, to, wrapped, started, _fired);
+        bool wrapped = clip.Loop && to < from - RigTracks.TimeTolerance && delta > 0f;
+        RigEventAuthoring.Passed(clip, from, to, wrapped, started, _fired);
     }
 
-    private static float ClampTime(XafClip? clip, float time) =>
+    private static float ClampTime(RigClip? clip, float time) =>
         clip is null ? time : WrapTime(clip, time);
 
     /// <summary>A time in a clip after playing on: wrapped into the loop range, or held at the end.</summary>
-    public static float WrapTime(XafClip clip, float time)
+    public static float WrapTime(RigClip clip, float time)
     {
         if (clip.Loop)
         {
@@ -329,7 +324,7 @@ public sealed partial class AnimatorRuntime
         return Math.Clamp(time, 0f, clip.Duration);
     }
 
-    private void StartFade(XafClip clip, float fadeSeconds, XafFadeCurve curve)
+    private void StartFade(RigClip clip, float fadeSeconds, RigFadeCurve curve)
     {
         if (_next is not null)
         {
@@ -370,8 +365,8 @@ public sealed partial class AnimatorRuntime
     }
 
     public readonly record struct AdditiveLayer(
-        XafClip Clip,
+        RigClip Clip,
         float Weight,
         float Time,
-        XafLayerBlend Blend = XafLayerBlend.Additive);
+        RigLayerBlend Blend = RigLayerBlend.Additive);
 }

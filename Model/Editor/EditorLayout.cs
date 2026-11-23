@@ -58,17 +58,42 @@ public static class EditorLayout
             TimelineHeight);
     }
 
-    public const float AnalysisHeight = 18;
+    public const float GroupKeysHeight = 26;
 
-    /// <summary>The density strip, between the transport and the timeline.</summary>
-    public static Rect2 AnalysisRect(PlayfieldView view)
+    /// <summary>The picked group's key strip, between the transport and the timeline, on the timeline's time axis.</summary>
+    public static Rect2 GroupKeysRect(PlayfieldView view)
     {
         Rect2 ruler = RulerRect(view);
         return new Rect2(
             ruler.Position.X,
-            ruler.Position.Y - AnalysisHeight - 2,
+            ruler.Position.Y - GroupKeysHeight - 2,
             ruler.Size.X,
-            AnalysisHeight);
+            GroupKeysHeight);
+    }
+
+    public const float GroupFieldRowHeight = 18;
+
+    /// <summary>
+    /// Row <paramref name="row"/> of the picked group's field rows (one per keyed
+    /// field, <see cref="Xanadu.Model.Levels.GroupKeys.FieldRows"/>): stacked up
+    /// from the footer's top edge over the playfield, on the timeline's time axis,
+    /// the first row lowest. The field's name sits left of it, over the clock's column.
+    /// </summary>
+    public static Rect2 GroupFieldRowRect(PlayfieldView view, int row)
+    {
+        Rect2 ruler = RulerRect(view);
+        float bottom = view.ScreenSize.Y - FooterHeight - 4;
+        return new Rect2(ruler.Position.X, bottom - (row + 1) * GroupFieldRowHeight, ruler.Size.X, GroupFieldRowHeight - 2);
+    }
+
+    /// <summary>The panel behind <paramref name="rows"/> field rows, label column included; empty for none.</summary>
+    public static Rect2 GroupFieldPanelRect(PlayfieldView view, int rows)
+    {
+        if (rows <= 0)
+            return new Rect2();
+        Rect2 top = GroupFieldRowRect(view, rows - 1);
+        Rect2 bottom = GroupFieldRowRect(view, 0);
+        return new Rect2(Margin, top.Position.Y - 3, bottom.End.X - Margin, bottom.End.Y - top.Position.Y + 6);
     }
 
     /// <summary>Centre of the lens icon that labels the timeline zoom controls.</summary>

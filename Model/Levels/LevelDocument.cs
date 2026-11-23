@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Items;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
 
@@ -42,6 +43,26 @@ public sealed class LevelDocument
 
     /// <summary>Dash enders: a dash entering one ends there.</summary>
     public List<DashStopDocument> DashStops { get; set; } = new();
+
+    /// <summary>Placed Xifs that only look: grass, flares.</summary>
+    public List<DecoDocument> Decos { get; set; } = new();
+
+    /// <summary>The level's groups: sets of items, by id, and the keys over song beats that move and fade them.</summary>
+    public List<GroupDocument> Groups { get; set; } = new();
+}
+
+/// <summary>A deco as saved: its origin and its own Xif tree.</summary>
+public sealed class DecoDocument
+{
+    public float X { get; set; }
+
+    public float Y { get; set; }
+
+    public Xif Xif { get; set; } = new();
+
+    public Deco ToDeco() => new(new Vector2(X, Y), XifCopy.Clone(Xif));
+
+    public static DecoDocument From(in Deco deco) => new() { X = deco.Position.X, Y = deco.Position.Y, Xif = XifCopy.Clone(deco.Xif) };
 }
 
 /// <summary>A chord as saved: when it starts, and where its first line meets the judgement line.</summary>

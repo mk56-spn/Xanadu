@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Storage;
+using Xanadu.Serialisation.Items;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
 
@@ -21,14 +22,19 @@ public enum XmfChunk : uint
     Pads = 12,
     Drafts = 13,
     DashStops = 14,
+    Decos = 15,
+
+    /// <summary>The level's groups: a name, the ids of the items held, and a clip on the song's beats.</summary>
+    Groups = 16,
 }
 
 /// <summary>
 /// Binary XMF map format, 1.0: the level's settings, its notes (each a time,
-/// a place, a key and a kind; an orb adds its tail and height path) and its
-/// chords (a time and an anchor). It shares
-/// its container (magic, version, chunk directory, string table) with XAF
-/// packages, and every list is a count of length-framed records
+/// a place, a key and a kind; an orb adds its tail and height path), its
+/// chords (a time and an anchor), its decos (an origin and a Xif tree), and its
+/// groups (item ids and a clip on the song's beats). It shares
+/// its container (magic, version, chunk directory, string table) with XIF
+/// files, and every list is a count of length-framed records
 /// (<see cref="XmfRecords"/>), so a record grows by appending fields and a new
 /// kind of thing is a new chunk.
 /// </summary>
@@ -59,6 +65,26 @@ public static class XmfBinary
         byte[]? pads = document.Pads.Count > 0 ? XmfRecords.WriteList(document.Pads, WritePad) : null;
         byte[]? drafts = document.Drafts.Count > 0 ? XmfRecords.WriteList(document.Drafts, WriteDraft) : null;
         byte[]? stops = document.DashStops.Count > 0 ? XmfRecords.WriteList(document.DashStops, WriteDashStop) : null;
+        byte[]? decos = null;
+        if (document.Decos.Count > 0)
+        {
+            foreach (DecoDocument deco in document.Decos)
+                XifBinary.Index(deco.Xif, strings);
+            decos = XmfRecords.WriteList(document.Decos, (w, d) => WriteDeco(w, d, strings));
+        }
+
+        byte[]? groups = null;
+        if (document.Groups.Count > 0)
+        {
+            foreach (GroupDocument group in document.Groups)
+            {
+                strings.Add(group.Name);
+                foreach (string member in group.Members)
+                    strings.Add(member);
+                KeyBinary.Index(group.Clip.Channels, strings);
+            }
+            groups = XmfRecords.WriteList(document.Groups, (w, g) => WriteGroup(w, g, strings));
+        }
 
         // The table is written first in the file but last here, once every chunk has put its strings in it.
         var file = new ChunkWriter(Magic, MajorVersion, MinorVersion);
@@ -74,6 +100,10 @@ public static class XmfBinary
             file.Add((uint)XmfChunk.Drafts, drafts);
         if (stops is not null)
             file.Add((uint)XmfChunk.DashStops, stops);
+        if (decos is not null)
+            file.Add((uint)XmfChunk.Decos, decos);
+        if (groups is not null)
+            file.Add((uint)XmfChunk.Groups, groups);
         return file.ToArray();
     }
 
@@ -99,6 +129,12 @@ public static class XmfBinary
             document.DashStops = file.TryGet((uint)XmfChunk.DashStops, out Chunk stops)
                 ? XmfRecords.ReadList(stops, MaxNotes, "dash ender", ReadDashStop)
                 : new List<DashStopDocument>();
+            document.Decos = file.TryGet((uint)XmfChunk.Decos, out Chunk decos)
+                ? XmfRecords.ReadList(decos, MaxNotes, "deco", r => ReadDeco(r, strings))
+                : new List<DecoDocument>();
+            document.Groups = file.TryGet((uint)XmfChunk.Groups, out Chunk groups)
+                ? XmfRecords.ReadList(groups, MaxNotes, "group", r => ReadGroup(r, strings))
+                : new List<GroupDocument>();
             return document;
         }
         catch (Exception exception) when (exception is FormatException or IOException)
@@ -261,6 +297,52 @@ public static class XmfBinary
         if (!float.IsFinite(stop.X) || !float.IsFinite(stop.Y))
             throw new FormatException("XMF dash ender is not on the field.");
         return stop;
+    }
+
+    /// <summary>A deco: its origin, then its Xif tree (XIF's flat node list, sharing the map's string table).</summary>
+    private static void WriteGroup(BinaryWriter writer, GroupDocument group, StringTable strings)
+    {
+        strings.WriteIndex(writer, group.Name);
+        writer.Write((uint)group.Members.Count);
+        foreach (string member in group.Members)
+            strings.WriteIndex(writer, member);
+        writer.Write(group.Clip.Duration);
+        writer.Write(group.Clip.Loop);
+        writer.Write(group.Clip.LoopStart);
+        writer.Write(group.Clip.LoopEnd);
+        KeyBinary.WriteChannels(writer, group.Clip.Channels, strings);
+    }
+
+    private static GroupDocument ReadGroup(BinaryReader reader, StringTable strings)
+    {
+        var group = new GroupDocument { Name = strings.ReadIndex(reader) };
+        uint members = reader.ReadUInt32();
+        if (members > MaxNotes)
+            throw new FormatException("Too many XMF group members.");
+        for (uint i = 0; i < members; i++)
+            group.Members.Add(strings.ReadIndex(reader));
+        group.Clip.Duration = reader.ReadSingle();
+        group.Clip.Loop = reader.ReadBoolean();
+        group.Clip.LoopStart = reader.ReadSingle();
+        group.Clip.LoopEnd = reader.ReadSingle();
+        KeyBinary.ReadChannels(reader, group.Clip.Channels, strings);
+        return group;
+    }
+
+    private static void WriteDeco(BinaryWriter writer, DecoDocument deco, StringTable strings)
+    {
+        writer.Write(deco.X);
+        writer.Write(deco.Y);
+        XifBinary.Write(writer, deco.Xif, strings);
+    }
+
+    private static DecoDocument ReadDeco(BinaryReader reader, StringTable strings)
+    {
+        var deco = new DecoDocument { X = reader.ReadSingle(), Y = reader.ReadSingle() };
+        if (!float.IsFinite(deco.X) || !float.IsFinite(deco.Y))
+            throw new FormatException("XMF deco is not on the field.");
+        deco.Xif = XifBinary.Read(reader, strings);
+        return deco;
     }
 
     private static T ReadEnum<T>(BinaryReader reader) where T : struct, Enum

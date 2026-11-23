@@ -66,45 +66,7 @@ public static class XpfBinary
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write((uint)particles.Count);
         foreach (XpfParticle particle in particles)
-        {
-            strings.WriteIndex(writer, particle.Name);
-            writer.Write((byte)particle.Texture);
-            writer.Write(particle.Amount);
-            writer.Write(particle.Lifetime);
-            writer.Write(particle.Explosiveness);
-            writer.Write(particle.Randomness);
-            writer.Write((byte)particle.Shape);
-            WriteVector(writer, particle.BoxSize);
-            writer.Write(particle.Direction);
-            writer.Write(particle.Spread);
-            writer.Write(particle.HeadedSpread);
-            writer.Write(particle.SpeedMin);
-            writer.Write(particle.SpeedMax);
-            WriteVector(writer, particle.Gravity);
-            writer.Write(particle.DampingMin);
-            writer.Write(particle.DampingMax);
-            writer.Write(particle.ScaleMin);
-            writer.Write(particle.ScaleMax);
-            writer.Write((byte)particle.ScaleCurve.Count);
-            foreach (XpfCurvePoint point in particle.ScaleCurve)
-            {
-                writer.Write(point.Time);
-                writer.Write(point.Value);
-            }
-
-            writer.Write(particle.AngleMin);
-            writer.Write(particle.AngleMax);
-            writer.Write(particle.Upright);
-            WriteColor(writer, particle.Color);
-            writer.Write((byte)particle.Ramp.Count);
-            foreach (XpfColorStop stop in particle.Ramp)
-            {
-                writer.Write(stop.Time);
-                WriteColor(writer, stop.Color);
-            }
-
-            writer.Write(particle.Reach);
-        }
+            WriteParticle(writer, particle, strings);
 
         writer.Flush();
         return stream.ToArray();
@@ -120,45 +82,93 @@ public static class XpfBinary
         var particles = new List<XpfParticle>((int)count);
         for (uint i = 0; i < count; i++)
         {
-            var particle = new XpfParticle
-            {
-                Name = strings.ReadIndex(reader),
-                Texture = (XpfTexture)reader.ReadByte(),
-                Amount = reader.ReadInt32(),
-                Lifetime = reader.ReadSingle(),
-                Explosiveness = reader.ReadSingle(),
-                Randomness = reader.ReadSingle(),
-                Shape = (XpfShape)reader.ReadByte(),
-                BoxSize = ReadVector(reader),
-                Direction = reader.ReadSingle(),
-                Spread = reader.ReadSingle(),
-                HeadedSpread = reader.ReadSingle(),
-                SpeedMin = reader.ReadSingle(),
-                SpeedMax = reader.ReadSingle(),
-                Gravity = ReadVector(reader),
-                DampingMin = reader.ReadSingle(),
-                DampingMax = reader.ReadSingle(),
-                ScaleMin = reader.ReadSingle(),
-                ScaleMax = reader.ReadSingle(),
-            };
-
-            int points = reader.ReadByte();
-            for (int p = 0; p < points; p++)
-                particle.ScaleCurve.Add(new XpfCurvePoint(reader.ReadSingle(), reader.ReadSingle()));
-
-            particle.AngleMin = reader.ReadSingle();
-            particle.AngleMax = reader.ReadSingle();
-            particle.Upright = reader.ReadBoolean();
-            particle.Color = ReadColor(reader);
-            int stops = reader.ReadByte();
-            for (int s = 0; s < stops; s++)
-                particle.Ramp.Add(new XpfColorStop(reader.ReadSingle(), ReadColor(reader)));
-
-            particle.Reach = reader.ReadSingle();
-            particles.Add(particle);
+            particles.Add(ReadParticle(reader, strings));
         }
 
         return particles;
+    }
+
+    /// <summary>One effect's settings, its name an index into <paramref name="strings"/> (which must hold it); also how a Xif node keeps its own.</summary>
+    public static void WriteParticle(BinaryWriter writer, XpfParticle particle, StringTable strings)
+    {
+        strings.WriteIndex(writer, particle.Name);
+        writer.Write((byte)particle.Texture);
+        writer.Write(particle.Amount);
+        writer.Write(particle.Lifetime);
+        writer.Write(particle.Explosiveness);
+        writer.Write(particle.Randomness);
+        writer.Write((byte)particle.Shape);
+        WriteVector(writer, particle.BoxSize);
+        writer.Write(particle.Direction);
+        writer.Write(particle.Spread);
+        writer.Write(particle.HeadedSpread);
+        writer.Write(particle.SpeedMin);
+        writer.Write(particle.SpeedMax);
+        WriteVector(writer, particle.Gravity);
+        writer.Write(particle.DampingMin);
+        writer.Write(particle.DampingMax);
+        writer.Write(particle.ScaleMin);
+        writer.Write(particle.ScaleMax);
+        writer.Write((byte)particle.ScaleCurve.Count);
+        foreach (XpfCurvePoint point in particle.ScaleCurve)
+        {
+            writer.Write(point.Time);
+            writer.Write(point.Value);
+        }
+
+        writer.Write(particle.AngleMin);
+        writer.Write(particle.AngleMax);
+        writer.Write(particle.Upright);
+        WriteColor(writer, particle.Color);
+        writer.Write((byte)particle.Ramp.Count);
+        foreach (XpfColorStop stop in particle.Ramp)
+        {
+            writer.Write(stop.Time);
+            WriteColor(writer, stop.Color);
+        }
+
+        writer.Write(particle.Reach);
+    }
+
+    /// <summary>Reads what <see cref="WriteParticle"/> wrote.</summary>
+    public static XpfParticle ReadParticle(BinaryReader reader, StringTable strings)
+    {
+        var particle = new XpfParticle
+        {
+            Name = strings.ReadIndex(reader),
+            Texture = (XpfTexture)reader.ReadByte(),
+            Amount = reader.ReadInt32(),
+            Lifetime = reader.ReadSingle(),
+            Explosiveness = reader.ReadSingle(),
+            Randomness = reader.ReadSingle(),
+            Shape = (XpfShape)reader.ReadByte(),
+            BoxSize = ReadVector(reader),
+            Direction = reader.ReadSingle(),
+            Spread = reader.ReadSingle(),
+            HeadedSpread = reader.ReadSingle(),
+            SpeedMin = reader.ReadSingle(),
+            SpeedMax = reader.ReadSingle(),
+            Gravity = ReadVector(reader),
+            DampingMin = reader.ReadSingle(),
+            DampingMax = reader.ReadSingle(),
+            ScaleMin = reader.ReadSingle(),
+            ScaleMax = reader.ReadSingle(),
+        };
+
+        int points = reader.ReadByte();
+        for (int p = 0; p < points; p++)
+            particle.ScaleCurve.Add(new XpfCurvePoint(reader.ReadSingle(), reader.ReadSingle()));
+
+        particle.AngleMin = reader.ReadSingle();
+        particle.AngleMax = reader.ReadSingle();
+        particle.Upright = reader.ReadBoolean();
+        particle.Color = ReadColor(reader);
+        int stops = reader.ReadByte();
+        for (int s = 0; s < stops; s++)
+            particle.Ramp.Add(new XpfColorStop(reader.ReadSingle(), ReadColor(reader)));
+
+        particle.Reach = reader.ReadSingle();
+        return particle;
     }
 
     private static void WriteVector(BinaryWriter writer, Vector2 value)

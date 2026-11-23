@@ -1,70 +1,37 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Xanadu.Core.Items;
 
-/// <summary>Deep copy and comparison of items, for snapshots that must not share them.</summary>
+/// <summary>Deep copy and comparison of item trees, for snapshots that must not share them.</summary>
 public static class XifCopy
 {
     public static Xif Clone(Xif item)
     {
-        var copy = new Xif { Id = item.Id, Name = item.Name, Owner = item.Owner };
-        foreach (XifPrimitive primitive in item.Primitives)
-        {
-            copy.Primitives.Add(new XifPrimitive
-            {
-                Kind = primitive.Kind,
-                Ref = primitive.Ref,
-                Shader = Clone(primitive.Shader),
-                Points = new(primitive.Points),
-                Fill = primitive.Fill,
-            });
-        }
-        foreach (XifShaderRef shader in item.Shaders)
-            copy.Shaders.Add(Clone(shader));
-        foreach (KeyValuePair<string, float[]> param in item.Params)
-            copy.Params[param.Key] = (float[])param.Value.Clone();
+        var copy = new Xif { Id = item.Id, Name = item.Name, Owner = item.Owner, Ref = item.Ref };
+        foreach (XifModule module in item.Modules)
+            copy.Modules.Add(module.Copy());
+        foreach (Xif child in item.Children)
+            copy.Children.Add(Clone(child));
         return copy;
     }
 
     public static bool AreEqual(Xif a, Xif b)
     {
-        if (a.Id != b.Id || a.Name != b.Name || a.Owner != b.Owner ||
-            a.Primitives.Count != b.Primitives.Count || a.Shaders.Count != b.Shaders.Count ||
-            a.Params.Count != b.Params.Count)
+        if (a.Id != b.Id || a.Name != b.Name || a.Owner != b.Owner || a.Ref != b.Ref ||
+            a.Modules.Count != b.Modules.Count || a.Children.Count != b.Children.Count)
         {
             return false;
         }
 
-        for (int i = 0; i < a.Primitives.Count; i++)
+        for (int i = 0; i < a.Modules.Count; i++)
         {
-            XifPrimitive x = a.Primitives[i];
-            XifPrimitive y = b.Primitives[i];
-            if (x.Kind != y.Kind || x.Ref != y.Ref || !ShaderEqual(x.Shader, y.Shader) ||
-                x.Fill != y.Fill || !x.Points.SequenceEqual(y.Points))
-            {
-                return false;
-            }
-        }
-
-        for (int i = 0; i < a.Shaders.Count; i++)
-        {
-            if (!ShaderEqual(a.Shaders[i], b.Shaders[i]))
+            if (!a.Modules[i].Same(b.Modules[i]))
                 return false;
         }
 
-        foreach (KeyValuePair<string, float[]> param in a.Params)
+        for (int i = 0; i < a.Children.Count; i++)
         {
-            if (!b.Params.TryGetValue(param.Key, out float[]? other) || !param.Value.AsSpan().SequenceEqual(other))
+            if (!AreEqual(a.Children[i], b.Children[i]))
                 return false;
         }
         return true;
     }
-
-    private static XifShaderRef Clone(XifShaderRef shader) =>
-        new() { Scope = shader.Scope, Slot = shader.Slot, Path = shader.Path };
-
-    private static bool ShaderEqual(XifShaderRef a, XifShaderRef b) =>
-        a.Scope == b.Scope && a.Slot == b.Slot && a.Path == b.Path;
 }

@@ -37,47 +37,169 @@ public sealed class XifShaderRef
     public static XifShaderRef OfMap(int slot) => new() { Scope = XifShaderScope.Map, Slot = slot };
 
     public static XifShaderRef OfCommon(string path) => new() { Scope = XifShaderScope.Common, Path = path };
+
+    public XifShaderRef Copy() => new() { Scope = Scope, Slot = Slot, Path = Path };
+
+    public bool Same(XifShaderRef other) => Scope == other.Scope && Slot == other.Slot && Path == other.Path;
 }
 
 /// <summary>
-/// One visual primitive a Xif lists itself as built from, and the shader it
-/// is drawn with, if any. A manifest entry only; drawing it is up to
-/// whatever embeds the Xif.
+/// One part of what a <see cref="Xif"/> is: its shape, its shader, its bones,
+/// its clips. A Xif is whatever its modules make it; there is no per-kind item
+/// type. Each module copies and compares itself so undo and copy stay generic.
 /// </summary>
-public sealed class XifPrimitive
+public abstract class XifModule
 {
-    /// <summary>An SVG drawn from <see cref="Ref"/>.</summary>
-    public const string SvgKind = "svg";
+    public abstract XifModule Copy();
 
-    /// <summary>A filled outline: <see cref="Points"/>, tinted by <see cref="Fill"/>, textured by <see cref="Ref"/> if set.</summary>
-    public const string PolygonKind = "polygon";
+    /// <summary>Whether <paramref name="other"/> is the same kind of module holding the same values.</summary>
+    public abstract bool Same(XifModule other);
+}
 
-    public string Kind { get; set; } = "";
+/// <summary>A filled outline in the item's own space, in order.</summary>
+/// <summary>
+/// What a shape is: a free outline of points, or a primitive the editor keeps
+/// as such. Every straight kind keeps its outline in <see cref="XifPolygon.Points"/>,
+/// so drawing never needs to know and the kind only changes how it is edited;
+/// a curve's points are its on-curve and control points, which drawing reads as such.
+/// </summary>
+public enum XifShapeKind : byte
+{
+    /// <summary>Points placed one by one.</summary>
+    Free,
 
-    public string Ref { get; set; } = "";
+    /// <summary>An axis-aligned rectangle: its four corners, dragged as a box.</summary>
+    Quad,
 
-    /// <summary>The shader this layer is drawn with; <see cref="XifShaderRef.IsNone"/> when it has none.</summary>
-    public XifShaderRef Shader { get; set; } = new();
+    /// <summary>An axis-aligned ellipse, sized by its four sides.</summary>
+    Ellipse,
 
-    /// <summary>A polygon's outline in the item's own space, in order; empty for other kinds.</summary>
+    /// <summary>
+    /// A closed run of quadratic Bézier segments. <see cref="XifPolygon.Points"/>
+    /// alternate on-curve and control points: point 2i is on the curve, 2i+1
+    /// pulls the segment from 2i to 2i+2 (wrapping). The curves are filled on
+    /// the GPU; nothing samples them into points (see <c>ArtMesh</c>).
+    /// </summary>
+    Curve,
+}
+
+public sealed class XifPolygon
+{
     public List<Vector2> Points { get; set; } = new();
 
-    /// <summary>A polygon's colour, multiplied with its texture when it has one.</summary>
+    public XifShapeKind Kind { get; set; } = XifShapeKind.Free;
+
+    /// <summary>The polygon's colour; the node's shader may tint it further.</summary>
     public Color Fill { get; set; } = Colors.White;
 
-    public bool IsPolygon => Kind == PolygonKind;
+    public XifPolygon Copy() => new() { Points = new List<Vector2>(Points), Fill = Fill, Kind = Kind };
 
-    /// <summary>Whether this primitive carries geometry beyond the kind, ref and shader every format stores.</summary>
-    public bool HasGeometry => Points.Count > 0 || Fill != Colors.White;
+    public bool Same(XifPolygon other)
+    {
+        if (Fill != other.Fill || Kind != other.Kind || Points.Count != other.Points.Count)
+            return false;
+        for (int i = 0; i < Points.Count; i++)
+        {
+            if (Points[i] != other.Points[i])
+                return false;
+        }
+        return true;
+    }
+}
+
+/// <summary>The node's shape: polygons only, no textures (a texture is a shader input).</summary>
+public sealed class XifGeometry : XifModule
+{
+    public List<XifPolygon> Polygons { get; set; } = new();
+
+    public override XifModule Copy()
+    {
+        var copy = new XifGeometry();
+        foreach (XifPolygon polygon in Polygons)
+            copy.Polygons.Add(polygon.Copy());
+        return copy;
+    }
+
+    public override bool Same(XifModule other)
+    {
+        if (other is not XifGeometry geometry || geometry.Polygons.Count != Polygons.Count)
+            return false;
+        for (int i = 0; i < Polygons.Count; i++)
+        {
+            if (!Polygons[i].Same(geometry.Polygons[i]))
+                return false;
+        }
+        return true;
+    }
 }
 
 /// <summary>
-/// A self-contained item: the primitives and shaders it uses, and the params
-/// tuned for it. A note is a Xif plus note-specific fields (time, target,
-/// kind, ...); a rig attachment embeds a Xif the same way a note does. Xif
-/// only lists what it is built from and points at its shaders by reference —
-/// drawing, animating, and resolving those shaders stays with whatever
-/// embeds it.
+/// How the node looks: the shader its geometry is drawn with and everything
+/// fed into it, tuned params and textures alike. More common shaders can be
+/// stacked over it (<see cref="Layers"/>), stitched into one on the GPU: the
+/// shader mirror of a Xif's modules (Docs/xif-modules.md).
+/// </summary>
+public sealed class XifShader : XifModule
+{
+    public XifShaderRef Shader { get; set; } = new();
+
+    /// <summary>
+    /// Common shaders stacked over <see cref="Shader"/>, bottom to top, by resource path:
+    /// each one's deform runs on what the one under it moved, and its shade gets the colour
+    /// so far as <c>i.colour</c>. Their params share <see cref="Params"/>, by name.
+    /// </summary>
+    public List<string> Layers { get; set; } = new();
+
+    /// <summary>Tuned uniform values by name; vectors and colours are one float per channel.</summary>
+    public Dictionary<string, float[]> Params { get; set; } = new();
+
+    /// <summary>Texture inputs by sampler name, as resource paths.</summary>
+    public Dictionary<string, string> Textures { get; set; } = new();
+
+    /// <summary>
+    /// The shader fits itself to the node's shape: its <c>[Fit]</c> values
+    /// take their x and y from the shape's half size (a flare's box), not
+    /// from <see cref="Params"/>.
+    /// </summary>
+    public bool Fit { get; set; }
+
+    public override XifModule Copy()
+    {
+        var copy = new XifShader { Shader = Shader.Copy(), Fit = Fit, Layers = new List<string>(Layers) };
+        foreach (KeyValuePair<string, float[]> param in Params)
+            copy.Params[param.Key] = (float[])param.Value.Clone();
+        foreach (KeyValuePair<string, string> texture in Textures)
+            copy.Textures[texture.Key] = texture.Value;
+        return copy;
+    }
+
+    public override bool Same(XifModule other)
+    {
+        if (other is not XifShader shader || !Shader.Same(shader.Shader) || Fit != shader.Fit ||
+            Params.Count != shader.Params.Count || Textures.Count != shader.Textures.Count ||
+            !System.Linq.Enumerable.SequenceEqual(Layers, shader.Layers))
+            return false;
+        foreach (KeyValuePair<string, float[]> param in Params)
+        {
+            if (!shader.Params.TryGetValue(param.Key, out float[]? values) ||
+                !System.MemoryExtensions.SequenceEqual<float>(param.Value, values))
+                return false;
+        }
+        foreach (KeyValuePair<string, string> texture in Textures)
+        {
+            if (!shader.Textures.TryGetValue(texture.Key, out string? path) || path != texture.Value)
+                return false;
+        }
+        return true;
+    }
+}
+
+/// <summary>
+/// Anything composable: a note, a flare, a body mesh, a hair chain, a whole
+/// character. What it is comes from its <see cref="Modules"/>; it may hold
+/// child Xifs. A node is inline, or points at a promoted Xif by
+/// <see cref="Ref"/>. Drawing, animating and resolving shaders stay with
+/// whatever plays it. See Docs/xif-modules.md.
 /// </summary>
 public sealed class Xif
 {
@@ -89,40 +211,44 @@ public sealed class Xif
     /// <summary>Whether this item's data lives with the level that placed it, or the game.</summary>
     public XifOwner Owner { get; set; } = XifOwner.Level;
 
-    public List<XifPrimitive> Primitives { get; set; } = new();
+    /// <summary>The <see cref="Id"/> of a promoted Xif this node stands for; empty for an inline node.</summary>
+    public string Ref { get; set; } = "";
 
-    /// <summary>The shaders this item uses, by reference.</summary>
-    public List<XifShaderRef> Shaders { get; set; } = new();
+    /// <summary>At most one module of each type.</summary>
+    public List<XifModule> Modules { get; set; } = new();
 
-    /// <summary>Tuned uniform values by name; vectors and colours are one float per channel.</summary>
-    public Dictionary<string, float[]> Params { get; set; } = new();
+    public List<Xif> Children { get; set; } = new();
 
-    /// <summary>A Xif that uses a single map-owned shader slot, or none for slot 0.</summary>
-    public static Xif ForShader(int slot) => slot == 0 ? new Xif() : new Xif { Shaders = { XifShaderRef.OfMap(slot) } };
+    public bool IsReference => Ref.Length > 0;
 
-    /// <summary>A Xif that uses a single common shader.</summary>
-    public static Xif ForCommonShader(string path) => new() { Shaders = { XifShaderRef.OfCommon(path) } };
-
-    /// <summary>A Xif for the shaders an ECS entity carries at the editor/ECS boundary.</summary>
-    public static Xif FromEcs(int mapSlot, string commonPath)
+    /// <summary>This node's module of type <typeparamref name="T"/>, or null.</summary>
+    public T? Get<T>() where T : XifModule
     {
-        var item = new Xif();
-        if (mapSlot != 0)
-            item.Shaders.Add(XifShaderRef.OfMap(mapSlot));
-        if (!string.IsNullOrEmpty(commonPath))
-            item.Shaders.Add(XifShaderRef.OfCommon(commonPath));
-        return item;
+        foreach (XifModule module in Modules)
+        {
+            if (module is T found)
+                return found;
+        }
+        return null;
     }
 
-    /// <summary>
-    /// The map shader slot this item uses at the editor/ECS boundary, or 0 if
-    /// it uses none there (including if it only uses common shaders).
-    /// </summary>
-    public int PrimaryShader => Shaders.Find(shader => shader.Scope == XifShaderScope.Map)?.Slot ?? 0;
+    /// <summary>This node's module of type <typeparamref name="T"/>, added empty if it has none.</summary>
+    public T Need<T>() where T : XifModule, new()
+    {
+        T? found = Get<T>();
+        if (found is not null)
+            return found;
+        var added = new T();
+        Modules.Add(added);
+        return added;
+    }
 
-    /// <summary>
-    /// The common shader this item uses at the editor/ECS boundary, or "" if
-    /// it uses none there (including if it only uses map shaders).
-    /// </summary>
-    public string PrimaryCommonShader => Shaders.Find(shader => shader.Scope == XifShaderScope.Common)?.Path ?? "";
+    /// <summary>The node's polygons, empty if it has no geometry.</summary>
+    public IReadOnlyList<XifPolygon> Polygons => Get<XifGeometry>()?.Polygons ?? (IReadOnlyList<XifPolygon>)System.Array.Empty<XifPolygon>();
+
+    /// <summary>The node's shader ref, the none value if it has no shader module.</summary>
+    public XifShaderRef ShaderRef => Get<XifShader>()?.Shader ?? new XifShaderRef();
+
+    /// <summary>A node drawn with one common shader.</summary>
+    public static Xif ForCommonShader(string path) => new() { Modules = { new XifShader { Shader = XifShaderRef.OfCommon(path) } } };
 }

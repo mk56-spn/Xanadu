@@ -8,86 +8,266 @@ using Xanadu.Core.Storage;
 namespace Xanadu.Serialisation.Items;
 
 /// <summary>
-/// The binary form of a <see cref="Xif"/> inside a chunked file, shared by
-/// XMF notes and XAF effects. The item itself is written first; primitive
-/// geometry follows separately, so a format that predates it can keep its
-/// layout and carry the geometry as an optional extension.
+/// The binary form of a <see cref="Xif"/> tree inside a chunked file. The tree
+/// is stored flat, depth first: a node count, then each node with its parent's
+/// index (-1 for the root), its identity, and its modules, each a tag byte
+/// followed by that module's fields.
 /// </summary>
-public static class XifBinary
+public static partial class XifBinary
 {
-    private const uint MaxPrimitives = 1_000_000;
+    private const uint MaxNodes = 65_536;
+    private const uint MaxModules = 64;
+    private const uint MaxPolygons = 1_000_000;
     private const uint MaxParams = 4_096;
+    private const uint MaxLayers = 64;
     private const uint MaxChannels = 16;
     private const uint MaxPoints = 4_096;
 
-    /// <summary>Every string an item's entry carries, so it ends up in the shared table.</summary>
+    /// <summary>Which module follows; a reader refuses a tag it does not know.</summary>
+    private enum ModuleTag : byte
+    {
+        Geometry = 1,
+        Shader = 2,
+        Skeleton = 3,
+        Clips = 4,
+        Attachment = 5,
+        Variants = 6,
+        Particles = 7,
+        Mesh = 8,
+        Chain = 9,
+        Cloth = 10,
+        Instancer = 11,
+
+        /// <summary>Geometry whose shapes each carry their kind (free, quad, ellipse) after their fill.</summary>
+        ShapedGeometry = 12,
+
+        /// <summary>A shader module with its fit flag ahead of the rest.</summary>
+        FittedShader = 13,
+
+        /// <summary>Alternate art whose shapes each carry their kind, as <see cref="ShapedGeometry"/> does.</summary>
+        ShapedVariants = 14,
+
+        /// <summary>Clips whose channels are addressed by node, part and field (Core/Keys), in place of <see cref="Clips"/>.</summary>
+        KeyedClips = 15,
+
+        /// <summary>A fitted shader module with the layers stacked over it after its ref.</summary>
+        LayeredShader = 16,
+    }
+
+    /// <summary>Every string a tree's entry carries, so it ends up in the shared table.</summary>
     public static void Index(Xif item, StringTable strings)
     {
         strings.Add(item.Id);
         strings.Add(item.Name);
-        foreach (XifPrimitive primitive in item.Primitives)
+        strings.Add(item.Ref);
+        foreach (XifModule module in item.Modules)
         {
-            strings.Add(primitive.Kind);
-            strings.Add(primitive.Ref);
-            strings.Add(primitive.Shader.Path);
+            IndexRig(module, strings);
+            if (module is not XifShader shader)
+                continue;
+            strings.Add(shader.Shader.Path);
+            foreach (string layer in shader.Layers)
+                strings.Add(layer);
+            foreach (string key in shader.Params.Keys)
+                strings.Add(key);
+            foreach (KeyValuePair<string, string> texture in shader.Textures)
+            {
+                strings.Add(texture.Key);
+                strings.Add(texture.Value);
+            }
         }
-        foreach (string key in item.Params.Keys)
-            strings.Add(key);
-        foreach (XifShaderRef shader in item.Shaders)
-            strings.Add(shader.Path);
+        foreach (Xif child in item.Children)
+            Index(child, strings);
     }
 
     public static void Write(BinaryWriter writer, Xif item, StringTable strings)
     {
-        strings.WriteIndex(writer, item.Id);
-        strings.WriteIndex(writer, item.Name);
-        writer.Write((byte)item.Owner);
+        var nodes = new List<(Xif Node, int Parent)>();
+        Flatten(item, -1, nodes);
+        writer.Write((uint)nodes.Count);
+        foreach ((Xif node, int parent) in nodes)
+            WriteNode(writer, node, parent, strings);
+    }
 
-        writer.Write((uint)item.Primitives.Count);
-        foreach (XifPrimitive primitive in item.Primitives)
+    public static Xif Read(BinaryReader reader, StringTable strings)
+    {
+        uint count = ReadCount(reader, MaxNodes, "xif node");
+        if (count == 0)
+            throw new FormatException("A xif tree needs a root node.");
+
+        var nodes = new List<Xif>((int)count);
+        for (uint i = 0; i < count; i++)
         {
-            strings.WriteIndex(writer, primitive.Kind);
-            strings.WriteIndex(writer, primitive.Ref);
-            WriteShaderRef(writer, primitive.Shader, strings);
+            int parent = reader.ReadInt32();
+            Xif node = ReadNode(reader, strings);
+            if (i == 0)
+            {
+                if (parent != -1)
+                    throw new FormatException("A xif root has no parent.");
+            }
+            else
+            {
+                if (parent < 0 || parent >= nodes.Count)
+                    throw new FormatException($"Xif node {i} has parent {parent}, which does not come before it.");
+                nodes[parent].Children.Add(node);
+            }
+            nodes.Add(node);
         }
+        return nodes[0];
+    }
 
-        writer.Write((uint)item.Shaders.Count);
-        foreach (XifShaderRef shader in item.Shaders)
-            WriteShaderRef(writer, shader, strings);
+    private static void Flatten(Xif node, int parent, List<(Xif, int)> nodes)
+    {
+        int index = nodes.Count;
+        nodes.Add((node, parent));
+        foreach (Xif child in node.Children)
+            Flatten(child, index, nodes);
+    }
 
-        writer.Write((uint)item.Params.Count);
-        foreach (KeyValuePair<string, float[]> param in item.Params)
+    private static void WriteNode(BinaryWriter writer, Xif node, int parent, StringTable strings)
+    {
+        writer.Write(parent);
+        strings.WriteIndex(writer, node.Id);
+        strings.WriteIndex(writer, node.Name);
+        writer.Write((byte)node.Owner);
+        strings.WriteIndex(writer, node.Ref);
+
+        writer.Write((uint)node.Modules.Count);
+        foreach (XifModule module in node.Modules)
+        {
+            switch (module)
+            {
+                case XifGeometry geometry:
+                    writer.Write((byte)ModuleTag.ShapedGeometry);
+                    WriteGeometry(writer, geometry);
+                    break;
+                case XifShader shader:
+                    writer.Write((byte)ModuleTag.LayeredShader);
+                    WriteShader(writer, shader, strings);
+                    break;
+                case XifInstancer instancer:
+                    writer.Write((byte)ModuleTag.Instancer);
+                    WriteInstancer(writer, instancer);
+                    break;
+                default:
+                    if (!TryWriteRig(writer, module, strings))
+                        throw new InvalidOperationException($"No binary form for xif module {module.GetType().Name}.");
+                    break;
+            }
+        }
+    }
+
+    private static Xif ReadNode(BinaryReader reader, StringTable strings)
+    {
+        var node = new Xif
+        {
+            Id = strings.ReadIndex(reader),
+            Name = strings.ReadIndex(reader),
+            Owner = ReadEnum<XifOwner>(reader),
+            Ref = strings.ReadIndex(reader),
+        };
+
+        uint modules = ReadCount(reader, MaxModules, "xif module");
+        for (uint i = 0; i < modules; i++)
+        {
+            node.Modules.Add(ReadEnum<ModuleTag>(reader) switch
+            {
+                ModuleTag.Geometry => ReadGeometry(reader, kinds: false),
+                ModuleTag.ShapedGeometry => ReadGeometry(reader, kinds: true),
+                ModuleTag.Shader => ReadShader(reader, strings, fit: false),
+                ModuleTag.FittedShader => ReadShader(reader, strings, fit: true),
+                ModuleTag.LayeredShader => ReadShader(reader, strings, fit: true, layers: true),
+                ModuleTag.Instancer => ReadInstancer(reader),
+                var tag => ReadRig(reader, tag, strings),
+            });
+        }
+        return node;
+    }
+
+    private static void WriteGeometry(BinaryWriter writer, XifGeometry geometry)
+    {
+        writer.Write((uint)geometry.Polygons.Count);
+        foreach (XifPolygon polygon in geometry.Polygons)
+        {
+            writer.Write((uint)polygon.Points.Count);
+            foreach (Vector2 point in polygon.Points)
+            {
+                writer.Write(point.X);
+                writer.Write(point.Y);
+            }
+            writer.Write(polygon.Fill.R);
+            writer.Write(polygon.Fill.G);
+            writer.Write(polygon.Fill.B);
+            writer.Write(polygon.Fill.A);
+            writer.Write((byte)polygon.Kind);
+        }
+    }
+
+    private static XifGeometry ReadGeometry(BinaryReader reader, bool kinds)
+    {
+        var geometry = new XifGeometry();
+        uint count = ReadCount(reader, MaxPolygons, "xif polygon");
+        for (uint p = 0; p < count; p++)
+        {
+            uint points = ReadCount(reader, MaxPoints, "xif point");
+            var polygon = new XifPolygon { Points = new List<Vector2>((int)points) };
+            for (uint i = 0; i < points; i++)
+                polygon.Points.Add(new Vector2(reader.ReadSingle(), reader.ReadSingle()));
+            polygon.Fill = new Color(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+            if (kinds)
+                polygon.Kind = ReadEnum<XifShapeKind>(reader);
+            geometry.Polygons.Add(polygon);
+        }
+        return geometry;
+    }
+
+    private static void WriteShader(BinaryWriter writer, XifShader shader, StringTable strings)
+    {
+        writer.Write(shader.Fit);
+        writer.Write((byte)shader.Shader.Scope);
+        writer.Write(shader.Shader.Slot);
+        strings.WriteIndex(writer, shader.Shader.Path);
+        writer.Write((uint)shader.Layers.Count);
+        foreach (string layer in shader.Layers)
+            strings.WriteIndex(writer, layer);
+
+        writer.Write((uint)shader.Params.Count);
+        foreach (KeyValuePair<string, float[]> param in shader.Params)
         {
             strings.WriteIndex(writer, param.Key);
             writer.Write((uint)param.Value.Length);
             foreach (float channel in param.Value)
                 writer.Write(channel);
         }
+
+        writer.Write((uint)shader.Textures.Count);
+        foreach (KeyValuePair<string, string> texture in shader.Textures)
+        {
+            strings.WriteIndex(writer, texture.Key);
+            strings.WriteIndex(writer, texture.Value);
+        }
     }
 
-    public static Xif Read(BinaryReader reader, StringTable strings)
+    private static XifShader ReadShader(BinaryReader reader, StringTable strings, bool fit, bool layers = false)
     {
-        var item = new Xif
+        bool fitted = fit && reader.ReadBoolean();
+        var shader = new XifShader
         {
-            Id = strings.ReadIndex(reader),
-            Name = strings.ReadIndex(reader),
-            Owner = ReadEnum<XifOwner>(reader),
+            Fit = fitted,
+            Shader = new XifShaderRef
+            {
+                Scope = ReadEnum<XifShaderScope>(reader),
+                Slot = reader.ReadInt32(),
+                Path = strings.ReadIndex(reader),
+            },
         };
 
-        uint primitiveCount = ReadCount(reader, MaxPrimitives, "xif primitive");
-        for (uint i = 0; i < primitiveCount; i++)
+        if (layers)
         {
-            item.Primitives.Add(new XifPrimitive
-            {
-                Kind = strings.ReadIndex(reader),
-                Ref = strings.ReadIndex(reader),
-                Shader = ReadShaderRef(reader, strings),
-            });
+            uint layerCount = ReadCount(reader, MaxLayers, "xif shader layer");
+            for (uint i = 0; i < layerCount; i++)
+                shader.Layers.Add(strings.ReadIndex(reader));
         }
-
-        uint shaderCount = ReadCount(reader, MaxParams, "xif shader");
-        for (uint i = 0; i < shaderCount; i++)
-            item.Shaders.Add(ReadShaderRef(reader, strings));
 
         uint paramCount = ReadCount(reader, MaxParams, "xif param");
         for (uint i = 0; i < paramCount; i++)
@@ -97,57 +277,42 @@ public static class XifBinary
             var channels = new float[channelCount];
             for (uint c = 0; c < channelCount; c++)
                 channels[c] = reader.ReadSingle();
-            item.Params[key] = channels;
+            shader.Params[key] = channels;
         }
 
-        return item;
+        uint textureCount = ReadCount(reader, MaxParams, "xif texture");
+        for (uint i = 0; i < textureCount; i++)
+            shader.Textures[strings.ReadIndex(reader)] = strings.ReadIndex(reader);
+        return shader;
     }
 
-    public static bool HasGeometry(Xif item) => item.Primitives.Exists(primitive => primitive.HasGeometry);
-
-    /// <summary>Each primitive's points and fill, in primitive order.</summary>
-    public static void WriteGeometry(BinaryWriter writer, Xif item)
+    private static void WriteInstancer(BinaryWriter writer, XifInstancer instancer)
     {
-        foreach (XifPrimitive primitive in item.Primitives)
+        writer.Write(instancer.Count);
+        writer.Write(instancer.Area.X);
+        writer.Write(instancer.Area.Y);
+        writer.Write(instancer.ScaleJitter);
+        writer.Write(instancer.TurnJitter);
+        writer.Write(instancer.Seed);
+    }
+
+    private static XifInstancer ReadInstancer(BinaryReader reader)
+    {
+        var instancer = new XifInstancer
         {
-            writer.Write((uint)primitive.Points.Count);
-            foreach (Vector2 point in primitive.Points)
-            {
-                writer.Write(point.X);
-                writer.Write(point.Y);
-            }
-            writer.Write(primitive.Fill.R);
-            writer.Write(primitive.Fill.G);
-            writer.Write(primitive.Fill.B);
-            writer.Write(primitive.Fill.A);
-        }
+            Count = reader.ReadInt32(),
+            Area = new Vector2(reader.ReadSingle(), reader.ReadSingle()),
+            ScaleJitter = reader.ReadSingle(),
+            TurnJitter = reader.ReadSingle(),
+            Seed = reader.ReadUInt32(),
+        };
+        if (instancer.Count < 0 || instancer.Count > XifInstancer.MaxCount)
+            throw new FormatException($"Xif instancer count {instancer.Count} is out of range.");
+        if (!float.IsFinite(instancer.Area.X) || !float.IsFinite(instancer.Area.Y) ||
+            !float.IsFinite(instancer.ScaleJitter) || !float.IsFinite(instancer.TurnJitter))
+            throw new FormatException("Xif instancer values are not finite.");
+        return instancer;
     }
-
-    public static void ReadGeometry(BinaryReader reader, Xif item)
-    {
-        foreach (XifPrimitive primitive in item.Primitives)
-        {
-            uint count = ReadCount(reader, MaxPoints, "xif point");
-            primitive.Points = new List<Vector2>((int)count);
-            for (uint i = 0; i < count; i++)
-                primitive.Points.Add(new Vector2(reader.ReadSingle(), reader.ReadSingle()));
-            primitive.Fill = new Color(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-        }
-    }
-
-    private static void WriteShaderRef(BinaryWriter writer, XifShaderRef shader, StringTable strings)
-    {
-        writer.Write((byte)shader.Scope);
-        writer.Write(shader.Slot);
-        strings.WriteIndex(writer, shader.Path);
-    }
-
-    private static XifShaderRef ReadShaderRef(BinaryReader reader, StringTable strings) => new()
-    {
-        Scope = ReadEnum<XifShaderScope>(reader),
-        Slot = reader.ReadInt32(),
-        Path = strings.ReadIndex(reader),
-    };
 
     private static uint ReadCount(BinaryReader reader, uint max, string what)
     {

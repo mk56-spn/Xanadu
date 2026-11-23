@@ -20,38 +20,38 @@ public static class Palette
     // and inset controls sit below panels.
 
     /// <summary>The window/game backdrop behind everything.</summary>
-    public static readonly Color Background = new("#0b1020");
+    public static readonly Color Background = new("#0c0c0c");
 
     /// <summary>
     /// The stage: the playfield surface and the space around it in play and in
     /// the editor. True black, so a level reads as a field rather than a blue
-    /// panel and the slate UI around it reads as chrome.
+    /// panel and the grey UI around it reads as chrome.
     /// </summary>
     public static readonly Color Stage = new("#000000");
 
     /// <summary>Inputs, rulers, and preview wells recessed into a panel.</summary>
-    public static readonly Color SurfaceInset = new("#0b1220");
+    public static readonly Color SurfaceInset = new("#0e0e0e");
 
     /// <summary>The timeline ruler, animator rows, and other recessed UI wells.</summary>
-    public static readonly Color SurfaceDeep = new("#0f172a");
+    public static readonly Color SurfaceDeep = new("#121212");
 
     /// <summary>Panels, cards, and popup bodies.</summary>
-    public static readonly Color Surface = new("#111827");
+    public static readonly Color Surface = new("#161616");
 
     /// <summary>
     /// Rows, fields, and hover states that sit above a panel: the idle row of a
     /// list, an editable text field, or the row under the pointer.
     /// </summary>
-    public static readonly Color SurfaceRaised = new("#16223a");
+    public static readonly Color SurfaceRaised = new("#1c1c1c");
 
     /// <summary>
     /// Secondary panels, grid lines, and dropdown options. Also the dark ink
     /// drawn on top of an accent fill, where a light tone would not read.
     /// </summary>
-    public static readonly Color SurfaceAlt = new("#1e293b");
+    public static readonly Color SurfaceAlt = new("#232323");
 
     /// <summary>Disabled controls and unselected block fills.</summary>
-    public static readonly Color SurfaceDisabled = new("#1f2937");
+    public static readonly Color SurfaceDisabled = new("#262626");
 
     // ── Lines ─────────────────────────────────────────────────────────────
 
@@ -59,19 +59,19 @@ public static class Palette
     /// Muted control fill and subtle border. Serves both roles deliberately:
     /// a muted button and its outline share one tone.
     /// </summary>
-    public static readonly Color Muted = new("#334155");
+    public static readonly Color Muted = new("#3a3a3a");
 
     /// <summary>Emphasised borders and block edges.</summary>
-    public static readonly Color BorderStrong = new("#475569");
+    public static readonly Color BorderStrong = new("#4d4d4d");
 
     /// <summary>Axes and tick marks on grids and timelines.</summary>
-    public static readonly Color BorderSubtle = new("#64748b");
+    public static readonly Color BorderSubtle = new("#6b6b6b");
 
     /// <summary>Grid lines inside canvases and timelines.</summary>
-    public static readonly Color GridLine = new("#273449");
+    public static readonly Color GridLine = new("#2c2c2c");
 
     /// <summary>Tooltip bodies.</summary>
-    public static readonly Color Tooltip = new("#243044");
+    public static readonly Color Tooltip = new("#2a2a2a");
 
     // ── Text ──────────────────────────────────────────────────────────────
 

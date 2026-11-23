@@ -38,6 +38,30 @@ public enum EditorButtonKind
     QuietSave,
 
     // Sidebar buttons; their argument is given beside each.
+    /// <summary>Picks a level group to edit; the argument is its index.</summary>
+    GroupPick,
+    /// <summary>Makes a group of the selected decos.</summary>
+    GroupNew,
+    /// <summary>Puts the selected decos in the picked group.</summary>
+    GroupAdd,
+    /// <summary>Takes the selected decos out of the picked group.</summary>
+    GroupRemove,
+    /// <summary>Deletes the picked group.</summary>
+    GroupDelete,
+    /// <summary>Takes out the picked group's keys at the playhead.</summary>
+    GroupDeleteKeys,
+    /// <summary>Steps the picked group's loop length; the argument is -1 or +1 (0 marks the readout).</summary>
+    GroupLoop,
+    /// <summary>Scrolls the group rows; the argument is -1 or +1 (0 marks the readout and -2 the row holding them).</summary>
+    GroupPage,
+    /// <summary>Not a button: marks the picked group's name field.</summary>
+    GroupName,
+    /// <summary>Opens or closes the ease picker for the group keys at the playhead.</summary>
+    GroupEase,
+    /// <summary>The escape hatch: keys go to the one selected member instead of the whole group.</summary>
+    GroupOneMember,
+    /// <summary>Not a button: marks a group field's value slot; the argument is its index in <c>LevelItemFields.All</c>.</summary>
+    GroupField,
     /// <summary>Picks the placement tool; the argument is an <see cref="EditorPlacementMode"/>.</summary>
     Place,
     /// <summary>Picks the size of new blocks; the argument is a <see cref="BlockBrushSize"/>.</summary>
