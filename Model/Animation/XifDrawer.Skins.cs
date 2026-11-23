@@ -127,7 +127,7 @@ public sealed partial class XifDrawer
         public WeightKey? Key { get; set; }
 
         /// <summary>The stored skin this was built from, or null for the grid.</summary>
-        public RigSkinMesh? Skin { get; set; }
+        public RigSkinMesh? Skin { get; init; }
     }
 
     /// <summary>What a mesh's weights were worked out from: they hold while it does.</summary>

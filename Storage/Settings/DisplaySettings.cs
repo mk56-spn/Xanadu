@@ -59,14 +59,14 @@ public sealed class DisplaySettings
         EditorAutosave = data.EditorAutosave;
     }
 
-    public void Save() => _file.Save(new DisplayData
+    private void Save() => _file.Save(new DisplayData
     {
         VSyncEnabled = VSyncEnabled,
         WindowMode = WindowMode,
         EditorAutosave = EditorAutosave,
     });
 
-    public void Apply()
+    private void Apply()
     {
         if (!_apply)
             return;
@@ -84,8 +84,8 @@ public sealed class DisplaySettings
 
     private sealed class DisplayData
     {
-        public bool VSyncEnabled { get; set; } = true;
-        public WindowMode WindowMode { get; set; } = WindowMode.Windowed;
-        public bool EditorAutosave { get; set; } = true;
+        public bool VSyncEnabled { get; init; } = true;
+        public WindowMode WindowMode { get; init; } = WindowMode.Windowed;
+        public bool EditorAutosave { get; init; } = true;
     }
 }

@@ -90,7 +90,7 @@ public struct Clip(ClipClock clock, float start, float length)
     public EasePreset Ease
     {
         readonly get => (EasePreset)_ease;
-        set => _ease = (byte)value;
+        init => _ease = (byte)value;
     }
 
     /// <summary>A copy with an easing.</summary>

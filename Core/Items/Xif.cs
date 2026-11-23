@@ -22,13 +22,13 @@ public enum XifShaderScope
 /// <summary>One shader a Xif points at, by reference rather than by owning its source.</summary>
 public sealed class XifShaderRef
 {
-    public XifShaderScope Scope { get; set; } = XifShaderScope.Map;
+    public XifShaderScope Scope { get; init; } = XifShaderScope.Map;
 
     /// <summary>The owning map or mapset's shader slot, for <see cref="XifShaderScope.Map"/>. 0 means none.</summary>
-    public int Slot { get; set; }
+    public int Slot { get; init; }
 
     /// <summary>The common shader's resource path, for <see cref="XifShaderScope.Common"/>.</summary>
-    public string Path { get; set; } = "";
+    public string Path { get; init; } = "";
 
     /// <summary>Whether this is the "no shader" value: a map ref to slot 0.</summary>
     public bool IsNone => Scope == XifShaderScope.Map && Slot == 0;
@@ -84,7 +84,7 @@ public enum XifShapeKind : byte
 
 public sealed class XifPolygon
 {
-    public List<Vector2> Points { get; set; } = [];
+    public List<Vector2> Points { get; init; } = [];
 
     public XifShapeKind Kind { get; set; } = XifShapeKind.Free;
 
@@ -147,10 +147,10 @@ public sealed class XifShader : XifModule
     /// each one's deform runs on what the one under it moved, and its shade gets the colour
     /// so far as <c>i.colour</c>. Their params share <see cref="Params"/>, by name.
     /// </summary>
-    public List<string> Layers { get; set; } = [];
+    public List<string> Layers { get; init; } = [];
 
     /// <summary>Tuned uniform values by name; vectors and colours are one float per channel.</summary>
-    public Dictionary<string, float[]> Params { get; set; } = [];
+    public Dictionary<string, float[]> Params { get; init; } = [];
 
     /// <summary>Texture inputs by sampler name, as resource paths.</summary>
     public Dictionary<string, string> Textures { get; set; } = [];
@@ -208,10 +208,10 @@ public sealed class Xif
     public string Name { get; set; } = "";
 
     /// <summary>Whether this item's data lives with the level that placed it, or the game.</summary>
-    public XifOwner Owner { get; set; } = XifOwner.Level;
+    public XifOwner Owner { get; init; } = XifOwner.Level;
 
     /// <summary>The <see cref="Id"/> of a promoted Xif this node stands for; empty for an inline node.</summary>
-    public string Ref { get; set; } = "";
+    public string Ref { get; init; } = "";
 
     /// <summary>At most one module of each type.</summary>
     public List<XifModule> Modules { get; set; } = [];

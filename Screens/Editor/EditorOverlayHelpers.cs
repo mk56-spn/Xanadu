@@ -43,7 +43,7 @@ public sealed partial class EditorOverlay
     private bool NativeDialogVisible() => FileDialogOpen?.Invoke() ?? false;
 
     /// <summary>Whether the host's file picker is up; the pointer is held off the ECS UI while it is.</summary>
-    public Func<bool>? FileDialogOpen { get; set; }
+    public Func<bool>? FileDialogOpen { get; init; }
 
     private void SetStatus(string message)
     {

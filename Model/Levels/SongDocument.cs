@@ -10,14 +10,14 @@ public sealed class SongDocument
     public int Version { get; set; } = 1;
 
     /// <summary>Stable identity. Never derived from the title.</summary>
-    public string Id { get; set; } = "";
+    public string Id { get; init; } = "";
 
     /// <summary>Stable human-readable slug generated once on import.</summary>
-    public string Slug { get; set; } = "";
+    public string Slug { get; init; } = "";
 
-    public string Title { get; set; } = "";
+    public string Title { get; init; } = "";
 
-    public string Artist { get; set; } = "";
+    public string Artist { get; init; } = "";
 
     /// <summary>The song's genre, shown on song select. Empty when unknown.</summary>
     public string Genre { get; set; } = "";

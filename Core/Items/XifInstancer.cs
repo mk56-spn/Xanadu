@@ -16,16 +16,16 @@ public sealed class XifInstancer : XifModule
     public const int MaxCount = 4096;
 
     /// <summary>How many copies.</summary>
-    public int Count { get; set; } = 32;
+    public int Count { get; init; } = 32;
 
     /// <summary>The patch the copies' origins spread over, centred on the node, in the node's own units.</summary>
-    public Vector2 Area { get; set; } = new(320f, 0f);
+    public Vector2 Area { get; init; } = new(320f, 0f);
 
     /// <summary>How much a copy's size varies, as a share either way: 0.3 makes copies 0.7 to 1.3 times as big.</summary>
-    public float ScaleJitter { get; set; } = 0.3f;
+    public float ScaleJitter { get; init; } = 0.3f;
 
     /// <summary>How far a copy may be turned either way, radians.</summary>
-    public float TurnJitter { get; set; } = 0.15f;
+    public float TurnJitter { get; init; } = 0.15f;
 
     /// <summary>A new seed is a new scatter of the same copies.</summary>
     public uint Seed { get; set; } = 1;

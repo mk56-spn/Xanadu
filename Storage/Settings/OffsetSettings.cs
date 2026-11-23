@@ -27,17 +27,17 @@ public sealed class OffsetSettings
         Save();
     }
 
-    public void Load()
+    private void Load()
     {
         OffsetData? data = _file.Load();
         if (data is not null)
             OffsetMs = Math.Clamp(data.OffsetMs, -300, 300);
     }
 
-    public void Save() => _file.Save(new OffsetData { OffsetMs = OffsetMs });
+    private void Save() => _file.Save(new OffsetData { OffsetMs = OffsetMs });
 
     private sealed class OffsetData
     {
-        public long OffsetMs { get; set; }
+        public long OffsetMs { get; init; }
     }
 }

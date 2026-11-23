@@ -22,9 +22,9 @@ public sealed class UserProfile
 /// <summary>One play result attached to a profile and level path.</summary>
 public sealed class ScoreRecord
 {
-    public long Score { get; set; }
-    public double Accuracy { get; set; }
-    public int MaxCombo { get; set; }
+    public long Score { get; init; }
+    public double Accuracy { get; init; }
+    public int MaxCombo { get; init; }
     public int NotesHit { get; set; }
     public int TotalNotes { get; set; }
     public string Rank { get; set; } = "FAIL";
@@ -214,8 +214,8 @@ public sealed class ProfileStore
 
     private sealed class ProfileData
     {
-        public string ActiveProfileId { get; set; } = "";
-        public List<UserProfile> Profiles { get; set; } = [];
+        public string ActiveProfileId { get; init; } = "";
+        public List<UserProfile> Profiles { get; init; } = [];
     }
 }
 

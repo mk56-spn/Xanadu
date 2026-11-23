@@ -18,8 +18,8 @@ public sealed class TimelineShortcutsTests
         public double NowMs { get; set; } = 1_000;
         public double DurationMs { get; set; } = 5_000;
         public double StepMs { get; set; } = 250;
-        public double StepOriginMs { get; set; }
-        public bool Blocked { get; set; }
+        public double StepOriginMs { get; init; }
+        public bool Blocked { get; init; }
         public Rect2 Panel = new(0, 0, 100, 100);
         public Rect2 Ruler = new(0, 0, 100, 10);
         public double[] Markers = [500, 1_000, 2_000];
@@ -58,7 +58,7 @@ public sealed class TimelineShortcutsTests
     private sealed class Wheel : IWheelSource
     {
         public int Notches { get; set; }
-        public bool Control { get; set; }
+        public bool Control { get; init; }
         public bool Shift { get; set; }
 
         public int TakeWheel()

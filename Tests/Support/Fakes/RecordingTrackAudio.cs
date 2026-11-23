@@ -20,7 +20,7 @@ public sealed class RecordingTrackAudio : ITrackAudio
     public float LengthSeconds { get; set; }
     public bool IsPlaying { get; private set; }
     public bool Stopped { get; private set; }
-    public bool LoadSucceeds { get; set; } = true;
+    public bool LoadSucceeds { get; init; } = true;
     public bool ResumeSucceeds { get; set; } = true;
 
     public bool Play(string audioPath, float volume)

@@ -114,7 +114,7 @@ internal sealed class ClipTimeline : IDisposable
     }
 
     /// <summary>Whether a press on the ruler moves the shader's clock: false for a preview that keeps its own.</summary>
-    public bool Scrubs { get; set; } = true;
+    public bool Scrubs { get; init; } = true;
 
     /// <summary>A row's name was pressed: the caret goes to its clip (0-based line and column).</summary>
     public event Action<int, int>? Jump;

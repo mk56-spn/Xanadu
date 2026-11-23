@@ -23,14 +23,14 @@ public sealed class LevelDocument
 
     public string Name { get; set; } = "Untitled";
 
-    public int SnapDivision { get; set; } = 4;
+    public int SnapDivision { get; init; } = 4;
 
     /// <summary>A new level's playfield, in units on each side; the editor and the play camera scroll round it.</summary>
     public const int DefaultFieldSize = 5000;
 
-    public int PlayfieldWidth { get; set; } = DefaultFieldSize;
+    public int PlayfieldWidth { get; init; } = DefaultFieldSize;
 
-    public int PlayfieldHeight { get; set; } = DefaultFieldSize;
+    public int PlayfieldHeight { get; init; } = DefaultFieldSize;
 
     public List<NoteDocument> Notes { get; set; } = [];
 
@@ -53,9 +53,9 @@ public sealed class LevelDocument
 /// <summary>A deco as saved: its origin and its own Xif tree.</summary>
 public sealed class DecoDocument
 {
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
     public Xif Xif { get; set; } = new();
 
@@ -67,11 +67,11 @@ public sealed class DecoDocument
 /// <summary>A chord as saved: when it starts, and where its first line meets the judgement line.</summary>
 public sealed class ChordDocument
 {
-    public long TimeMs { get; set; }
+    public long TimeMs { get; init; }
 
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
     public Chord ToChord() => new(TimeMs, new Vector2(X, Y));
 
@@ -86,14 +86,14 @@ public sealed class ChordDocument
 /// <summary>A pad as saved: its centre and the upward speed it launches at.</summary>
 public sealed class PadDocument
 {
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
-    public float Speed { get; set; }
+    public float Speed { get; init; }
 
     /// <summary>A timed pad's time, ms; -1 fires on touch.</summary>
-    public long TimeMs { get; set; } = -1;
+    public long TimeMs { get; init; } = -1;
 
     public Pad ToPad() => new(new Vector2(X, Y), Speed, TimeMs);
 
@@ -109,11 +109,11 @@ public sealed class PadDocument
 /// <summary>An updraft as saved: its emitter's centre and its hover height.</summary>
 public sealed class DraftDocument
 {
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
-    public float Height { get; set; }
+    public float Height { get; init; }
 
     public Draft ToDraft() => new(new Vector2(X, Y), Height);
 
@@ -128,9 +128,9 @@ public sealed class DraftDocument
 /// <summary>A dash ender as saved: its centre.</summary>
 public sealed class DashStopDocument
 {
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
     public DashStop ToDashStop() => new(new Vector2(X, Y));
 
@@ -140,16 +140,16 @@ public sealed class DashStopDocument
 /// <summary>A note as saved: an action note at its time and place.</summary>
 public sealed class NoteDocument
 {
-    public long TimeMs { get; set; }
+    public long TimeMs { get; init; }
 
-    public float X { get; set; }
+    public float X { get; init; }
 
-    public float Y { get; set; }
+    public float Y { get; init; }
 
     /// <summary>The action key the note asks for.</summary>
     public KeybindAction Target { get; set; } = KeybindAction.Action1;
 
-    public NoteKind Kind { get; set; } = NoteKind.Tap;
+    public NoteKind Kind { get; init; } = NoteKind.Tap;
 
     /// <summary>An orb's tail, ms.</summary>
     public long EndMs { get; set; }

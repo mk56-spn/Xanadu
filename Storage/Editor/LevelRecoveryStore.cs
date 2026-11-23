@@ -16,7 +16,7 @@ namespace Xanadu.Storage.Editor;
 /// </summary>
 public sealed class LevelRecoveryStore(string directory)
 {
-    public const string UserFolder = "user://recovery";
+    private const string UserFolder = "user://recovery";
 
     private const string Format = "XMR";
     private const ushort MajorVersion = 1;
@@ -29,7 +29,7 @@ public sealed class LevelRecoveryStore(string directory)
     public static LevelRecoveryStore Default =>
         _default ??= new LevelRecoveryStore(GamePaths.Full(UserFolder));
 
-    public string Directory { get; } = directory;
+    private string Directory { get; } = directory;
 
     public void Write(string levelPath, LevelDocument level, DateTimeOffset now)
     {
@@ -117,7 +117,7 @@ public sealed class LevelRecoveryStore(string directory)
     public sealed class Entry
     {
         public string LevelPath { get; set; } = "";
-        public DateTimeOffset SavedAt { get; set; }
-        public LevelDocument Level { get; set; } = new();
+        public DateTimeOffset SavedAt { get; init; }
+        public LevelDocument Level { get; init; } = new();
     }
 }
