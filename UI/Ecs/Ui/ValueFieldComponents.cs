@@ -125,6 +125,24 @@ public readonly record struct UiValueShape(UiScalar Scalar, int Rows = 1, int Co
 /// <c>OnComponentChanged</c> (an update of this component); see
 /// <see cref="UiValueFields.OnValueChanged"/>.
 /// </summary>
+/// <summary>
+/// How a field's value stands against keys, as editors that key values show
+/// it: keyed right here, animated (between keys), or changed and not keyed.
+/// </summary>
+public enum UiValueMark
+{
+    None,
+
+    /// <summary>A key sits at the current time: yellow.</summary>
+    Keyed,
+
+    /// <summary>Keys drive it, but none sits at the current time: green.</summary>
+    Animated,
+
+    /// <summary>Edited away from what the keys say and not keyed yet: orange.</summary>
+    Changed,
+}
+
 public struct UiValueField : IComponent
 {
     public UiValueShape Shape;
@@ -151,6 +169,12 @@ public struct UiValueField : IComponent
 
     /// <summary>A drag (on a slot or the picker) is still going, so the edit isn't final yet.</summary>
     public bool Live;
+
+    /// <summary>
+    /// How the value stands against the keys of whatever owns it, shown as a
+    /// tint on its number slots; the owner sets it, the field never does.
+    /// </summary>
+    public UiValueMark Mark;
 
     internal bool LessHeld;
     internal bool MoreHeld;
@@ -214,6 +238,15 @@ public static class UiValueFields
     public static void Set(Entity field, Matrix4x4 value) => Set(field, FromMatrix(value, field.GetComponent<UiValueField>().Shape));
 
     /// <summary>A copy of the values, row by row.</summary>
+    /// <summary>A setting's name as its field shows it: <c>flare_box</c> reads FLARE BOX.</summary>
+    public static string SettingLabel(string name) => name.Replace('_', ' ').ToUpperInvariant();
+
+    /// <summary>A material value's declared default, one number per slot of <paramref name="shape"/> (a matrix starts as identity).</summary>
+    public static float[] Defaults(MaterialParam param, UiValueShape shape) =>
+        shape.IsMatrix
+            ? FromMatrix(Matrix4x4.Identity, shape)
+            : new[] { param.Default.X, param.Default.Y, param.Default.Z, param.Default.W }[..shape.Count];
+
     public static float[] Get(Entity field) => (float[])field.GetComponent<UiValueField>().Values.Clone();
 
     /// <summary>Up to the first four values, missing ones zero.</summary>

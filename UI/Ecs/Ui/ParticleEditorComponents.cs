@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Particles;
@@ -5,38 +6,50 @@ using Xanadu.Core.Particles;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
-/// What a tool gives the particle editor: which library effect the selected
-/// thing plays, and how to point it at another one. The effects themselves
-/// live in the shared <see cref="ParticleLibrary"/>, which the editor changes
-/// directly, so every tool sees an edit at once; the host only records which
-/// effect its own thing uses. The editor asks every frame, so an undo that
-/// changes the selection is picked up.
+/// What a tool gives the particle editor: the selected thing's own particle
+/// settings (a Xif node's <c>XifParticles</c>), edited in place through the
+/// host so its undo records them. The shared <see cref="ParticleLibrary"/>
+/// only holds presets: loading one copies it into the settings, storing puts
+/// a copy of the settings into it. The editor asks every frame, so an undo
+/// that changes the selection or swaps the settings is picked up.
 /// </summary>
 public interface IParticleEditorHost
 {
-    /// <summary>The name of the effect the selected thing plays, or null to hide the editor.</summary>
-    string? Particle { get; }
+    /// <summary>The selected thing's particle settings, or null to hide the editor.</summary>
+    XpfParticle? Particle { get; }
 
-    /// <summary>What the editor's title calls the thing, such as the effect or emitter it belongs to.</summary>
+    /// <summary>What the editor's title calls the thing, such as the part or emitter it belongs to.</summary>
     string Title { get; }
 
-    /// <summary>Points the selected thing at the effect called <paramref name="name"/>, as one undo step.</summary>
-    void Use(string name);
+    /// <summary>Gives the selected thing <paramref name="settings"/> in place of its own, as one undo step.</summary>
+    void Use(XpfParticle settings);
+
+    /// <summary>Runs one edit of the settings as one undo step and redraws whatever plays them.</summary>
+    void Edit(Action change);
+
+    /// <summary>Opens a run of edits, such as a slider drag, that undo as one step.</summary>
+    void BeginGesture();
+
+    /// <summary>Closes the run <see cref="BeginGesture"/> opened.</summary>
+    void EndGesture();
+
+    /// <summary>The settings changed inside a gesture; redraw without recording a step yet.</summary>
+    void Changed();
 }
 
 public enum ParticleEditorActionKind
 {
-    /// <summary>Plays the previous effect in the library.</summary>
+    /// <summary>Loads the previous preset in the library into the settings.</summary>
     Previous,
 
-    /// <summary>Plays the next effect in the library.</summary>
+    /// <summary>Loads the next preset in the library into the settings.</summary>
     Next,
 
-    /// <summary>Adds a plain effect and plays it.</summary>
+    /// <summary>Starts the settings over, plain.</summary>
     New,
 
-    /// <summary>Adds a copy of the effect and plays the copy, so the original stays as other things use it.</summary>
-    Copy,
+    /// <summary>Stores a copy of the settings in the library as a preset under their name, replacing one of that name.</summary>
+    Store,
 
     /// <summary>Writes the library to its file.</summary>
     Save,
@@ -88,6 +101,9 @@ public struct ParticleEditor : IComponent
 
     /// <summary>The last message, such as why an edit was refused.</summary>
     public string Status;
+
+    /// <summary>A slider is being dragged, inside one gesture of the host's.</summary>
+    public bool Sliding;
 }
 
 /// <summary>The entities of a particle editor panel that its system writes to or reads.</summary>

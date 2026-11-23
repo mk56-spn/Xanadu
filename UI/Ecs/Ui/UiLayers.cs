@@ -13,10 +13,34 @@ public static class UiLayers
 
     // Animator: a tool of its own, never on screen with the game.
     public const int AnimatorMenu = 6;
-    public const int AnimatorTooltip = 7;
+
+    /// <summary>
+    /// The XIF editor, opened over everything else in the animator. Well clear
+    /// of the menu layer: overlays inside a layer add their own z on top of
+    /// its number, so a menu's picker cursors would otherwise draw over it.
+    /// </summary>
+    public const int AnimatorXif = 30;
+
+    /// <summary>
+    /// The XIF editor's field lines: over its panel, so the panel can fade
+    /// while they stay solid, and clear of the panel's overlays.
+    /// </summary>
+    public const int AnimatorXifLines = 45;
+
+    /// <summary>
+    /// The item the XIF editor holds where it really is (a part on its bone),
+    /// drawn by its host: above the editor's see-through backing (and its
+    /// overlays), under its field lines.
+    /// </summary>
+    public const int AnimatorXifItem = 42;
+
+    public const int AnimatorTooltip = 60;
 
     // Lab: a tool of its own. The engine settings panel covers the experiment's panel.
-    public const int LabSettings = 8;
+    public const int LabSettings = 70;
+
+    // The shader editor's values column, over its code and chrome (the shader tool and the lab's editor tabs).
+    public const int ShaderEditorValues = 72;
 
     // Menu scenes. The shared background and the settings backdrop never coexist.
     public const int MenuBackground = 99;

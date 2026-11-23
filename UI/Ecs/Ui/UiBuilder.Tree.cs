@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Ui.Ecs.Ui;
@@ -116,9 +117,11 @@ public sealed partial class UiBuilder
         Entity current = UiTreeControl.Row(node);
         if (!current.IsNull &&
             !moved &&
-            !UiTreeControl.Disclosure(node).Tags.Has<UiTreeDisclosure>() == !row.HasChildren)
+            !UiTreeControl.Disclosure(node).Tags.Has<UiTreeDisclosure>() == !row.HasChildren &&
+            SameBadges(node.GetComponent<UiTreeNode>().Badges, row.Item.Badges))
         {
             UiText.Set(UiTreeControl.Label(node), row.Item.Label);
+            TintLabel(UiTreeControl.Label(node), row.Item.Tint);
             int column = 0;
             foreach (Entity cell in UiTreeControl.Cells(node))
                 UiText.Set(cell, CellText(row.Item, column++));
@@ -130,6 +133,7 @@ public sealed partial class UiBuilder
 
         UiBuilder builder = new UiBuilder(_entities, _visuals).Use(node);
         builder.TreeRowEntity(row, state);
+        node.GetComponent<UiTreeNode>().Badges = row.Item.Badges;
         UiLayout.MoveChild(node, node.ChildEntities[node.ChildCount - 1], 0);
     }
 
@@ -149,18 +153,33 @@ public sealed partial class UiBuilder
             StackDirection.Horizontal,
             color: new Color(0, 0, 0, 0));
 
-        if (indent > 0)
-            RectEntity(Vector2.Zero, new Vector2(indent, state.RowHeight), new Color(0, 0, 0, 0));
+        if (row.Depth > 0)
+            IndentGuides(row.Depth, state);
 
         Entity disclosure = row.HasChildren
             ? Button("", new Vector2(DisclosureWidth, state.RowHeight), UiTheme.ButtonMuted, fontSize: DisclosureFontSize)
             : RectEntity(Vector2.Zero, new Vector2(DisclosureWidth, state.RowHeight), new Color(0, 0, 0, 0));
+        UiTreeBadge[] badges = row.Item.Badges ?? [];
         Entity label = Button(
             row.Item.Label,
-            new Vector2(state.Width - indent - DisclosureWidth - cells, state.RowHeight),
+            new Vector2(state.Width - indent - DisclosureWidth - cells - badges.Length * state.RowHeight, state.RowHeight),
             UiTheme.PanelAlt);
         label.AddComponent(new TextAlignment(TextAlign.Left));
         label.AddTag<UiTreeLabel>();
+        TintLabel(label, row.Item.Tint);
+        string tips = BadgeTips(badges);
+        if (tips.Length > 0)
+            label.AddComponent(new UiTooltip(tips));
+        foreach (UiTreeBadge badge in badges)
+        {
+            float side = state.RowHeight * BadgeScale;
+            Entity mark = RectEntity(Vector2.Zero, new Vector2(state.RowHeight, state.RowHeight), Colors.White);
+            mark.AddComponent(new UiMaterial(UiShapes.Material(
+                badge.Shape,
+                badge.Shape == UiSdfShape.Ellipse ? new Vector2(side, side * 0.65f) : new Vector2(side * 0.75f, side * 0.75f),
+                badge.Color,
+                badge.Filled)));
+        }
         for (int column = 0; column < (state.CellWidths?.Length ?? 0); column++)
         {
             Text(CellText(row.Item, column), new Vector2(state.CellWidths![column], state.RowHeight), align: TextAlign.Right);
@@ -168,6 +187,58 @@ public sealed partial class UiBuilder
         if (row.HasChildren)
             disclosure.AddTag<UiTreeDisclosure>();
         End();
+    }
+
+    private static void TintLabel(Entity label, Color? tint)
+    {
+        if (label.IsNull || !label.HasComponent<TextStyle>())
+            return;
+        Color colour = tint ?? UiTheme.Text;
+        ref TextStyle style = ref label.GetComponent<TextStyle>();
+        if (style.Color == colour)
+            return;
+        style.Color = colour;
+        label.AddTag<Dirty>();
+    }
+
+    /// <summary>
+    /// The row's indent with a line down from each level's arrow, so a branch can
+    /// be followed by eye. Each line runs on through the gap below the row, so the
+    /// lines of rows one under another join up.
+    /// </summary>
+    private void IndentGuides(int depth, in UiTree state)
+    {
+        var clear = new Color(0, 0, 0, 0);
+        float offset = Math.Min(MathF.Floor(DisclosureWidth / 2f), state.Indent - GuideWidth);
+        var line = new Vector2(GuideWidth, state.RowHeight + TreeSpacing);
+        RectEntity(Vector2.Zero, new Vector2(offset, state.RowHeight), clear);
+        for (int level = 0; level < depth; level++)
+        {
+            RectEntity(Vector2.Zero, line, UiTheme.TreeGuide);
+            float after = level < depth - 1 ? state.Indent - GuideWidth : state.Indent - offset - GuideWidth;
+            if (after > 0)
+                RectEntity(Vector2.Zero, new Vector2(after, state.RowHeight), clear);
+        }
+    }
+
+    private const float GuideWidth = 1f;
+
+    /// <summary>A badge's shape as a share of the row's height.</summary>
+    private const float BadgeScale = 0.7f;
+
+    private static bool SameBadges(UiTreeBadge[]? a, UiTreeBadge[]? b) =>
+        (a ?? []).AsSpan().SequenceEqual(b ?? []);
+
+    private static string BadgeTips(UiTreeBadge[] badges)
+    {
+        var tips = new List<string>();
+        foreach (UiTreeBadge badge in badges)
+        {
+            if (!string.IsNullOrEmpty(badge.Tip))
+                tips.Add(badge.Tip);
+        }
+
+        return string.Join(" · ", tips);
     }
 
     private static string CellText(in UiTreeItem item, int column) =>

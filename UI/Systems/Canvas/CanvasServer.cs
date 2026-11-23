@@ -50,6 +50,15 @@ public interface ICanvasServer
 
     void Clear(Handle item);
 
+    /// <summary>
+    /// Makes <paramref name="item"/>'s own draws the look of each particle emitted
+    /// into it: drawn once per live particle, placed, turned, sized and tinted by it,
+    /// through whatever shader they were drawn with, and never on their own. Draw
+    /// them around the item's origin, about 1 unit to a side's half: a particle's
+    /// size scales that. Off, the particles draw as dots or strip cells.
+    /// </summary>
+    void SetParticleMesh(Handle item, bool on) { }
+
     void AddRect(Handle item, Rect2 rect, Color color);
 
     void AddCircle(Handle item, Vector2 center, float radius, Color color);
@@ -66,6 +75,20 @@ public interface ICanvasServer
 
     /// <summary>Indexed triangles, optionally textured by <paramref name="texture"/> (a texture id from the same server).</summary>
     void AddTriangleArray(Handle item, int[] indices, Vector2[] points, Color[] colors, Vector2[]? uvs = null, Handle texture = default);
+
+    /// <summary>
+    /// Triangles three points each, with a curve tag per triangle
+    /// (<see cref="CanvasCurves"/>): the GPU trims tagged ones to their
+    /// quadratic curve. A server that cannot draws each curve as its chord.
+    /// </summary>
+    void AddCurveTriangles(Handle item, Vector2[] points, Color[] colors, Vector2[] uvs, byte[] curves)
+    {
+        (Vector2[] kept, Color[] keptColors, Vector2[] keptUvs) = CanvasCurves.Straighten(points, colors, uvs, curves);
+        var indices = new int[kept.Length];
+        for (int i = 0; i < indices.Length; i++)
+            indices[i] = i;
+        AddTriangleArray(item, indices, kept, keptColors, keptUvs);
+    }
 
     /// <summary>A texture stretched over a rect.</summary>
     void AddTextureRect(Handle item, Rect2 rect, Handle texture);

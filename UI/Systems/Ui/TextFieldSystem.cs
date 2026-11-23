@@ -26,7 +26,7 @@ public sealed class TextFieldSystem : QuerySystem<TextField, Text, FillColor>
 
             Color target = entity.Tags.Has<TextFieldFocused>()
                 ? FocusColor
-                : NormalColor;
+                : field.Fill ?? NormalColor;
             if (fill.Value != target)
             {
                 fill.Value = target;

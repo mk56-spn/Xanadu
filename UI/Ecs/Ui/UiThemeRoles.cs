@@ -39,6 +39,9 @@ public sealed record UiThemeRoles
     /// <summary>A see-through panel behind controls that sit over a busy view, for contrast.</summary>
     public required Color Backing { get; init; }
 
+    /// <summary>The line round a panel that has to stand apart from what is behind it.</summary>
+    public required Color Edge { get; init; }
+
     public required Color Text { get; init; }
     public required Color TextDim { get; init; }
 
@@ -94,6 +97,7 @@ public static class UiThemes
         Chosen = new UiTone(Palette.Primary, Palette.TextBright),
         Surface = Palette.Surface,
         Backing = new Color(0f, 0f, 0f, 0.3f),
+        Edge = Palette.BorderStrong,
         Text = Palette.Text,
         TextDim = Palette.TextDim,
         Accent = Palette.Accent,

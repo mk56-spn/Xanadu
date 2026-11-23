@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
@@ -5,100 +7,162 @@ using Xanadu.Core.Theme;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
-/// Builds a XIF editor panel: the item's name, which primitive is being
-/// edited, a shape box to drag its points in, and its fill, texture and
-/// shader. Any tool can host one; <see cref="Xanadu.Systems.Ui.XifEditorSystem"/>
-/// runs it and the host supplies the item through <see cref="IXifEditorHost"/>.
+/// Builds a XIF editor: a panel that opens over the host's work, with a big
+/// shape box on the left where the item is drawn filled and edited by hand
+/// (drag points, click an edge to add one, right-click one to delete it,
+/// click a shape to pick it, drag it to move it), and its settings on the
+/// right: name, polygons, fill colour and shader. Any tool can host one;
+/// <see cref="Xanadu.Ui.Systems.Ui.XifEditorSystem"/> runs it and the host
+/// supplies the item through <see cref="IXifEditorHost"/>.
 /// </summary>
 public static class XifEditorPanel
 {
-    public const float Width = 260f;
-    public static readonly Vector2 CanvasSize = new(Width - UiTheme.ContainerPadding * 2, 130f);
-    private const float Row = 26f;
-    private const float LabelWidth = 64f;
-    private const float StepWidth = 30f;
+    /// <summary>The settings column's width.</summary>
+    public const float SideWidth = 250f;
 
-    /// <summary>Total height, so a host can place the panel before it is laid out.</summary>
-    public const float Height = 20 + Row * 7 + 130 + 16 + UiTheme.ContainerSpacing * 9 + UiTheme.ContainerPadding * 2;
+    /// <summary>Room between the controls and the edge of their dark panel.</summary>
+    private const float SidePad = 8f;
 
-    private static float Inner => Width - UiTheme.ContainerPadding * 2;
+    private const float Row = 28f;
+    private const float Header = 30f;
+    private const float StepWidth = 34f;
+
+    /// <summary>The backgrounds at full opacity; the host's opacity scales their alpha.</summary>
+    public static readonly Color BackdropColor = new(0f, 0f, 0f, 0.55f);
+    public static readonly Color CanvasColor = Palette.SurfaceInset;
+
+    /// <summary>A shape row: its colour swatch and its name button.</summary>
+    public const float SwatchWidth = 28f;
+    public const float ShapeRowHeight = 24f;
+
+    /// <summary>How many shapes the box shows filled; more still edit, outlined only when picked.</summary>
+    public const int MaxFilledShapes = 48;
 
     /// <summary>
-    /// Builds the panel hidden on <paramref name="layer"/>; it shows at
-    /// <paramref name="home"/> (its centre) whenever the host has an item.
+    /// Builds the panel closed on <paramref name="layer"/>; opened, it covers
+    /// <paramref name="area"/> (screen space), over a backdrop that dims all of
+    /// <paramref name="screen"/> and takes its clicks. The field lines and fills
+    /// draw on <paramref name="lines"/>, a layer of the host's above
+    /// <paramref name="layer"/>, so the panel can fade while they stay solid;
+    /// without one they share the panel's layer and fade with it.
     /// </summary>
-    public static Entity Build(UiNode layer, Vector2 home, IXifEditorHost host)
+    public static Entity Build(UiNode layer, Rect2 area, IXifEditorHost host, Vector2 screen, UiNode lines = default)
     {
-        UiNode panel = layer.Panel().Size(Width, Height).Hidden()
-            .Main(StackMainAlignment.Start);
+        Entity backdrop = layer.Rect(BackdropColor, size: screen).Input()
+            .IgnoreLayout().Hidden();
+
+        float pad = UiTheme.ContainerPadding;
+        float gap = UiTheme.ContainerSpacing;
+        float inner = area.Size.X - pad * 2;
+        float body = area.Size.Y - pad * 2 - Header - gap * 2 - 18;
+        float canvasWidth = inner - SideWidth - SidePad * 2 - gap * 2;
+
+        // One see-through backing across the whole editor, outlined, so what it
+        // edits shows through while the editor still reads as one panel.
+        UiNode panel = layer.Panel().Size(area.Size.X, area.Size.Y).Hidden()
+            .Main(StackMainAlignment.Start).Backing().Outlined(2);
         Entity editor = panel;
-        var parts = new XifEditorParts();
+        UiNode floating = lines.IsNull ? panel.LayerNode : lines;
+        var parts = new XifEditorParts
+        {
+            Fills = new List<Entity>(), Backdrop = backdrop, Screen = screen, Lines = floating,
+        };
 
-        parts.Title = panel.Text("", UiType.Label, UiTheme.Accent).Size(Inner, 20);
+        UiNode header = panel.Row().Size(inner, Header).Gap(gap);
+        parts.Title = header.Text("", UiType.Label, UiTheme.Accent).Size(inner - 120 - gap, Header);
+        Button(header, "DONE  (ESC)", XifEditorActionKind.Done, editor, 120, "Close the editor; every change is already kept");
 
-        UiNode name = panel.Row().Size(Inner, Row).Gap(6);
-        name.Text("NAME", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
-        parts.Name = Field(name, XifEditorFieldKind.Name, editor, Inner - LabelWidth - 6,
-            "The item's name");
+        UiNode main = panel.Row().Size(inner, body).Gap(gap * 2).Cross(StackCrossAlignment.Start);
+        parts.Canvas = main.Rect(CanvasColor, size: new Vector2(canvasWidth, body)).Input()
+            .Tooltip("Drag a point to move it · click an edge to add one · right-click a point to delete it · click a shape to pick it, drag it to move it · Shift: no snapping");
 
-        UiNode primitives = panel.Row().Size(Inner, Row).Gap(4);
-        Button(primitives, "<", XifEditorActionKind.PreviousPrimitive, editor, StepWidth, "Edit the previous primitive");
-        parts.PrimitiveLabel = primitives.Text("", UiType.Caption, UiTheme.Text, TextAlign.Center)
-            .Size(Inner - StepWidth * 2 - 8, Row);
-        Button(primitives, ">", XifEditorActionKind.NextPrimitive, editor, StepWidth, "Edit the next primitive");
+        UiNode side = main.Column().Size(SideWidth + SidePad * 2, body).Pad(SidePad).Gap(gap)
+            .Main(StackMainAlignment.Start);
 
-        parts.Canvas = panel.Rect(Palette.SurfaceInset, size: CanvasSize).Input()
-            .Tooltip("Drag a point to move it; click one to select it");
+        Caption(side, "NAME");
+        parts.Name = Field(side, XifEditorFieldKind.Name, editor, SideWidth, "The item's name");
 
-        // Outlines float on the panel's layer over the box; the system places them.
-        // Overlay puts them above the box, whose z stacks on the panel's.
-        UiNode floating = panel.LayerNode;
-        parts.Others = floating.Shape(Square(), new Color(0, 0, 0, 0), new Color(UiTheme.TextDim, 0.5f), 1f)
-            .IgnoreLayout().Overlay().Hidden();
-        parts.Shape = floating.Shape(Square(), new Color(Palette.Accent, 0.25f), Palette.Accent, 1.5f)
+        // One row per shape, back to front: its colour, then its name. The
+        // system fills the list; the picker opens under it from a swatch.
+        Caption(side, "SHAPES");
+        parts.ShapeList = side.Column().Width(SideWidth).Gap(2).Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start).Entity;
+        UiNode fill = side.Column().Width(SideWidth).Gap(4).Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start);
+        parts.Fill = fill.ColorField("COLOUR", SideWidth, "The picked shape's colour: drag in the picker, or type #rrggbb or #rrggbbaa").Entity;
+        parts.FillBox = fill.Entity;
+        UiLayout.SetHidden(parts.FillBox, true);
+        UiNode shapes = side.Row().Size(SideWidth, Row).Gap(4);
+        float half = (SideWidth - 4) / 2;
+        Button(shapes, "+ SHAPE", XifEditorActionKind.AddPolygon, editor, half, "Add a free shape on top: a square to drag into shape, point by point");
+        Button(shapes, "+ CURVE", XifEditorActionKind.AddCurve, editor, half, "Add a curve: quadratic Bézier segments filled on the GPU; drag the on-curve points and the controls between them");
+        UiNode primitives = side.Row().Size(SideWidth, Row).Gap(4);
+        Button(primitives, "+ QUAD", XifEditorActionKind.AddQuad, editor, half, "Add a quad: a rectangle sized by dragging its corners");
+        Button(primitives, "+ CIRCLE", XifEditorActionKind.AddCircle, editor, half, "Add a circle: an ellipse sized by dragging its four sides");
+        Button(side, "DELETE SHAPE", XifEditorActionKind.RemovePolygon, editor, SideWidth,
+            "Delete the picked shape; the last one stays");
+
+        Caption(side, "POINT");
+        UiNode points = side.Row().Size(SideWidth, Row).Gap(4);
+        Button(points, "+ PT", XifEditorActionKind.InsertPoint, editor, 52, "Add a point after the picked one (or click an edge)");
+        Button(points, "- PT", XifEditorActionKind.RemovePoint, editor, 52, "Delete the picked point (or right-click it); a shape keeps three");
+        parts.PointLabel = points.Text("", UiType.Caption, UiTheme.TextDim).Size(SideWidth - 112, Row);
+
+        Caption(side, "SHADER");
+        parts.Shader = Button(side, "", XifEditorActionKind.NextShader, editor, SideWidth,
+            "Draw the item with the next shader this tool allows");
+
+        // Shaders stacked over it, bottom first: each moves or colours what the one under it gave.
+        parts.LayersCaption = side.Text("LAYERS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;
+        parts.LayerList = side.Column().Width(SideWidth).Gap(2).Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start).Entity;
+        IReadOnlyList<XifShaderChoice> layers = host.Layers;
+        parts.LayerAdd = side.Dropdown(AddLayerText, layers.Select(layer => layer.Label).ToList(), 0, new Vector2(SideWidth, Row))
+            .Button.Tooltip("Stack a shader over the item's: it moves or colours what the ones under it gave");
+        UiLayout.SetHidden(parts.LayersCaption, layers.Count == 0);
+        UiLayout.SetHidden(parts.LayerAdd, layers.Count == 0);
+        parts.SettingsCaption = side.Text("SETTINGS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;
+        parts.FitToggle = Button(side, "FIT TO SHAPE", XifEditorActionKind.ToggleFit, editor, SideWidth,
+            "Size the shader to the item's shape: its fitted settings take their width and height from the shape");
+        UiLayout.SetHidden(parts.FitToggle, true);
+        parts.Settings = side.Column().Width(SideWidth).Gap(gap).Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start).Entity;
+
+        parts.Status = panel.Text("", UiType.Caption, UiTheme.TextDim).Size(inner, 18);
+
+        // Shapes float on the lines layer over the box; the system places them.
+        // The fills come first so the outline, the marks and the handles draw over them.
+        for (int i = 0; i < MaxFilledShapes; i++)
+        {
+            parts.Fills.Add(floating.Shape(Square(), Colors.White, new Color(0, 0, 0, 0), 1f)
+                .IgnoreLayout().Overlay().Hidden());
+        }
+        parts.Shape = floating.Shape(Square(), new Color(0, 0, 0, 0), Palette.Accent, 2f)
             .IgnoreLayout().Overlay().Hidden();
         parts.Origin = floating.Shape(Cross(), new Color(0, 0, 0, 0), Palette.Rose, 1.5f, closed: false)
             .IgnoreLayout().Overlay().Hidden();
-
-        UiNode points = panel.Row().Size(Inner, Row).Gap(4);
-        Button(points, "+ PT", XifEditorActionKind.InsertPoint, editor, 48, "Insert a point after the selected one");
-        Button(points, "- PT", XifEditorActionKind.RemovePoint, editor, 48, "Delete the selected point; a polygon keeps three");
-        parts.PointLabel = points.Text("", UiType.Caption, UiTheme.TextDim).Size(Inner - 104, Row);
-
-        UiNode shapes = panel.Row().Size(Inner, Row).Gap(4);
-        Button(shapes, "+ POLY", XifEditorActionKind.AddPolygon, editor, (Inner - 4) / 2, "Add a polygon to the item");
-        Button(shapes, "DEL POLY", XifEditorActionKind.RemovePrimitive, editor, (Inner - 4) / 2,
-            "Delete this primitive; the last one stays");
-
-        UiNode fill = panel.Row().Size(Inner, Row).Gap(6);
-        fill.Text("FILL", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
-        parts.Fill = Field(fill, XifEditorFieldKind.Fill, editor, Inner - LabelWidth - 6,
-            "The polygon's colour as #rrggbb or #rrggbbaa");
-
-        UiNode texture = panel.Row().Size(Inner, Row).Gap(6);
-        texture.Text("TEXTURE", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
-        parts.Texture = Field(texture, XifEditorFieldKind.Texture, editor, Inner - LabelWidth - 6,
-            "A texture stretched over the polygon, as a path in the game folder; empty for none");
-
-        UiNode shader = panel.Row().Size(Inner, Row).Gap(6);
-        shader.Text("SHADER", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
-        parts.Shader = Button(shader, "", XifEditorActionKind.NextShader, editor, Inner - LabelWidth - 6,
-            "Draw the primitive with the next shader this tool allows");
-
-        parts.Status = panel.Text("", UiType.Caption, UiTheme.TextDim).Size(Inner, 16);
+        parts.EdgeGhost = floating.Shape(Diamond(), Colors.White, Palette.Accent, 1.5f)
+            .IgnoreLayout().Overlay().Hidden();
 
         panel.With(new XifEditor
         {
             Host = host,
-            Home = home,
-            Primitive = 0,
+            Home = area.GetCenter(),
+            Polygon = 0,
             Point = 0,
+            HoverPoint = -1,
             Parts = parts,
             Handles = new(),
             Status = "",
+            SettingsFor = "",
+            LayersFor = "",
+            ShapeRows = new(),
+            SettingFields = new(),
         });
         return editor;
     }
+
+    /// <summary>What the add-a-layer list's button always reads.</summary>
+    public const string AddLayerText = "+ LAYER ▼";
+
+    private static void Caption(UiNode column, string text) =>
+        column.Text(text, UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16);
 
     private static Entity Button(
         UiNode row,
@@ -122,9 +186,11 @@ public static class XifEditorPanel
 
     private static Vector2[] Square() => new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1) };
 
+    private static Vector2[] Diamond() => new[] { new Vector2(0, -5), new Vector2(5, 0), new Vector2(0, 5), new Vector2(-5, 0) };
+
     /// <summary>A plus at the item's origin, where it attaches to whatever carries it.</summary>
     private static Vector2[] Cross() => new[]
     {
-        new Vector2(-6, 0), new Vector2(6, 0), new Vector2(0, 0), new Vector2(0, -6), new Vector2(0, 6),
+        new Vector2(-8, 0), new Vector2(8, 0), new Vector2(0, 0), new Vector2(0, -8), new Vector2(0, 8),
     };
 }

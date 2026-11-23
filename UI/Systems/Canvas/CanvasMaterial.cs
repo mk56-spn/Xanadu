@@ -11,7 +11,8 @@ namespace Xanadu.Ui.Systems.Canvas;
 /// is kept with <see cref="CanvasMaterial.Set(string, Matrix4x4)"/>.
 /// </summary>
 public readonly record struct MaterialParam(
-    string Name, int Channels, bool IsInt, Vector4 Default, bool IsBool = false, bool IsUnsigned = false, int Rows = 1)
+    string Name, int Channels, bool IsInt, Vector4 Default, bool IsBool = false, bool IsUnsigned = false, int Rows = 1,
+    bool Fit = false, IReadOnlyList<string>? Options = null)
 {
     public bool IsMatrix => Rows > 1;
 }

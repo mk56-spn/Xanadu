@@ -7,11 +7,17 @@ using Xanadu.Core.Timeline;
 using Xanadu.Core.Tweens;
 using Xanadu.Host;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
+using static Xanadu.Core.Theme.UiMetrics;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Showcase;
 
-/// <summary>Standalone demo of the generic Xanadu.Ui feature set, on the MoonWorks host.</summary>
+/// <summary>
+/// Standalone demo of the generic Xanadu.Ui feature set, on the MoonWorks host.
+/// Opens on every shared control in each theme; <c>--page=values</c> shows a
+/// value field of every shape, <c>--page=demo</c> the old free-placed demo.
+/// </summary>
 internal sealed class UiShowcase : HostApp
 {
 
@@ -19,9 +25,93 @@ internal sealed class UiShowcase : HostApp
     {
         if (Array.Exists(args, arg => arg == "--page=values"))
             BuildValues();
-        else
+        else if (Array.Exists(args, arg => arg == "--page=demo"))
             Build();
+        else
+            BuildControls();
     }
+
+    /// <summary>How wide each theme's column of controls is.</summary>
+    private const float SetWidth = 460;
+
+    /// <summary>
+    /// The default page: every shared control (<see cref="UiNode"/>'s builders and
+    /// the tree's specs), once per built-in theme side by side. Anything two
+    /// screens both need should be one of these; when a screen builds its own
+    /// version instead, this page is where the two would differ.
+    /// </summary>
+    private void BuildControls()
+    {
+        var screen = new Vector2(Width, Height);
+        UiNode page = UiNode.Layer(Entities, default, UiLayers.Base).Page(screen).Pad(Space.Xl).Gap(Space.Md).Backing();
+        page.Add(
+            new Label("COMMON CONTROLS", UiType.Heading, ink: Ink.Accent),
+            new Label("Every shared control, once per theme. Two screens that need the same thing use one of these.", UiType.Small, ink: Ink.Dim));
+        UiNode columns = page.Row().Gap(Space.Xl).Cross(StackCrossAlignment.Start);
+        foreach (UiThemeRoles theme in new[] { UiThemes.Tools, UiThemes.Menu, UiThemes.Hud })
+            columns.Add(Controls(theme));
+    }
+
+    /// <summary>One theme's full set of controls, top to bottom.</summary>
+    private static Column Controls(UiThemeRoles theme) =>
+        new(gap: Space.Sm, pad: Space.Md, cross: Cross.Start, width: SetWidth, tone: Tone.Solid, style: n => n.Theme(theme))
+        {
+            new Label(theme.Name.ToUpperInvariant(), UiType.Section, ink: Ink.Accent),
+
+            Caption("TEXT"),
+            new Row(gap: Space.Md, cross: Cross.End)
+            {
+                new Label("Title", UiType.Title),
+                new Label("Heading", UiType.Heading),
+                new Label("Section", UiType.Section),
+            },
+            new Row(gap: Space.Md, cross: Cross.End)
+            {
+                new Label("Label", UiType.Label),
+                new Label("Body", UiType.Body),
+                new Label("Small", UiType.Small),
+                new Label("Caption", UiType.Caption),
+                new Label("dim", UiType.Body, ink: Ink.Dim),
+                new Label("accent", UiType.Body, ink: Ink.Accent),
+            },
+
+            Caption("BUTTONS"),
+            new Row(gap: Space.Sm)
+            {
+                new Button("PRIMARY", tone: Tone.Primary, tip: "The main action of a screen or group"),
+                new Button("SECONDARY", tone: Tone.Secondary, tip: "Every other action"),
+                new Button("QUIET", tone: Tone.Quiet, tip: "An action that should not draw the eye"),
+                new Button("DANGER", tone: Tone.Danger, tip: "An action that destroys something"),
+            },
+            new Row(gap: Space.Sm)
+            {
+                new ToggleButton("ON", "OFF", value: true, tip: "A toggle: bright while on"),
+                new ToggleButton("ON", "OFF", value: false, tip: "A toggle: muted while off"),
+                new Choice(["ONE", "TWO", "THREE"], 1, 140, tip: "A pick that reads what is picked"),
+                new Custom(p => p.Dropdown("MENU ▼", ["NEW", "OPEN", "SAVE"], 0, new Vector2(120, Control.Xs)).Button, tip: "A menu: its text stays"),
+            },
+
+            Caption("ROWS"),
+            new Slider("SLIDER", 0, 1, 0.4f, SetWidth - Space.Md * 2, tip: "Drag along the track"),
+            new Stepper("STEPPER", "3 of 8", SetWidth - Space.Md * 2),
+            new Field("a text field", width: SetWidth - Space.Md * 2, tip: "Click to type"),
+
+            Caption("VALUES"),
+            new ValueField("FLOAT", UiValueShape.Float, [0.5f], SetWidth - Space.Md * 2),
+            new ValueField("INT", UiValueShape.Int, [4], SetWidth - Space.Md * 2),
+            new ValueField("FLOAT3", UiValueShape.Vector(3), [0, 1, 0], SetWidth - Space.Md * 2),
+            new ValueField("BOOL3", UiValueShape.Vector(3, UiScalar.Bool), [1, 0, 1], SetWidth - Space.Md * 2),
+
+            Caption("METERS"),
+            new Row(gap: Space.Sm)
+            {
+                new Meter(0.4f, width: 130, height: 10, tip: "Well under its limit"),
+                new Meter(0.8f, width: 130, height: 10, tip: "Close to its limit"),
+                new Meter(0.95f, width: 130, height: 10, tip: "At its limit"),
+            },
+        };
+
+    private static Label Caption(string text) => new(text, UiType.Caption, ink: Ink.Dim);
 
     /// <summary><c>--page=values</c>: a value field of every shape a shader uniform can take.</summary>
     private void BuildValues()

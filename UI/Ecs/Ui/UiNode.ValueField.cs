@@ -8,7 +8,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 
 public readonly partial struct UiNode
 {
-    private const float SlotHeight = 24;
+    private const float SlotHeight = ControlRow;
     private const float SlotGap = 4;
     private const float ElementWidth = 12;
 
@@ -62,7 +62,7 @@ public readonly partial struct UiNode
         bool lone = shape.Count == 1 && shape.Scalar is UiScalar.Int or UiScalar.UInt;
         // A switch's toggle carries its own letter.
         bool lettered = !shape.IsMatrix && shape.Count > 1 && shape.Scalar != UiScalar.Bool;
-        float steppers = lone ? 2 * (SlotHeight + SlotGap) : 0;
+        float steppers = lone ? 2 * (ControlRow * 1.5f + SlotGap) : 0;
         float letters = lettered ? ElementWidth + SlotGap : 0;
         // A lone number takes the row; vectors and matrices keep compact slots
         // rather than stretching to the field's width.
@@ -74,7 +74,7 @@ public readonly partial struct UiNode
         {
             UiNode line = field.Row().Gap(SlotGap).Main(StackMainAlignment.Start);
             if (lone)
-                state.Less = line.Stepper("-", "One less").Entity;
+                state.Less = line.StepButton("-", "One less", UiTheme.SmallFontSize).Entity;
 
             for (int column = 0; column < shape.Columns; column++)
             {
@@ -85,7 +85,7 @@ public readonly partial struct UiNode
             }
 
             if (lone)
-                state.More = line.Stepper("+", "One more").Entity;
+                state.More = line.StepButton("+", "One more", UiTheme.SmallFontSize).Entity;
         }
 
         field.Entity.AddComponent(state);
@@ -104,6 +104,33 @@ public readonly partial struct UiNode
             .With(new UiMaterialBinding(material, param.Name));
 
         static float[] Channels(Vector4 v) => [v.X, v.Y, v.Z, v.W];
+    }
+
+    /// <summary>
+    /// A shader setting as every editor shows it: its name (FLARE BOX for
+    /// <c>flare_box</c>), then a pick among its <c>[Options]</c> names
+    /// (<see cref="Choice"/>, whose button this returns) or a value field of its
+    /// shape (<see cref="ValueField"/>, which this returns) starting on
+    /// <paramref name="stored"/>, else the declared default, which a right-click resets to.
+    /// </summary>
+    public UiNode SettingField(MaterialParam param, float[]? stored, float width, (float Min, float Max)? range = null)
+    {
+        UiValueShape shape = UiValueShape.Of(param);
+        float[] defaults = UiValueFields.Defaults(param, shape);
+        float[] initial = stored ?? defaults;
+        string label = UiValueFields.SettingLabel(param.Name);
+        if (param.Options is { Count: > 0 } options)
+        {
+            int selected = Math.Clamp((int)MathF.Round(initial.Length > 0 ? initial[0] : 0f), 0, options.Count - 1);
+            UiNode column = Column().Gap(SlotGap).Cross(StackCrossAlignment.Start).Width(width);
+            column.Text(label, UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left).Size(width, 18);
+            return column.Choice(options, selected, width).Tooltip(param.Name);
+        }
+
+        UiNode node = ValueField(label, shape, initial, width, range, param.Name);
+        ref UiValueField field = ref node.Entity.GetComponent<UiValueField>();
+        Array.Copy(defaults, field.Defaults, Math.Min(defaults.Length, field.Defaults.Length));
+        return node;
     }
 
     /// <summary>One number's slot: a toggle for a switch, else a numeric field with a bar along its foot for a float.</summary>
@@ -136,12 +163,5 @@ public readonly partial struct UiNode
 
         string how = shape.IsWhole ? "drag sideways to step, type to set" : "drag sideways to scrub, type to set";
         return box.With(slot).Tooltip($"{(tip.Length > 0 ? tip + ": " : "")}{how}, right-click to reset");
-    }
-
-    /// <summary>A square - or + beside a lone whole number.</summary>
-    private UiNode Stepper(string sign, string tip)
-    {
-        UiNode button = Button(sign, UiTheme.SmallFontSize).Size(SlotHeight, SlotHeight);
-        return button.Tooltip(tip);
     }
 }

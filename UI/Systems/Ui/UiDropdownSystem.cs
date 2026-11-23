@@ -16,11 +16,13 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
     private readonly EntityStore _entities;
     private readonly ButtonPress _buttonPresses = new();
     private readonly ButtonPress _optionPresses = new();
+    private readonly ArchetypeQuery<Dropdown, DropdownShowsPick, Text> _picks;
 
     public UiDropdownSystem(EntityStore entities)
     {
         _entities = entities;
         Filter.WithoutAnyTags(Tags.Get<UiDisabled>());
+        _picks = entities.Query<Dropdown, DropdownShowsPick, Text>();
     }
 
     protected override void OnUpdate()
@@ -93,6 +95,19 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             dropdown.Open = false;
             buffer.AddComponent(option.Owner.Id, new DropdownChanged(option.Value));
             LayOut(option.Owner, ref dropdown, buffer);
+        }
+
+        // A choice reads its pick, however the pick was made.
+        foreach (var (drops, picks, texts, ids) in _picks.Chunks)
+        {
+            for (int i = 0; i < drops.Length; i++)
+            {
+                string wanted = picks.Span[i].Text(drops.Span[i].Selected);
+                if (texts.Span[i].Value == wanted)
+                    continue;
+                texts.Span[i].Value = wanted;
+                buffer.AddTag<Dirty>(ids.Ids[i]);
+            }
         }
     }
 

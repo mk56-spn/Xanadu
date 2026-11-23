@@ -43,6 +43,9 @@ public readonly partial struct UiNode
     /// <summary>The see-through backing behind controls over a busy view.</summary>
     public UiNode Backing() => Fill(Roles.Backing);
 
+    /// <summary>A line round the node in the theme's edge colour, so it stands apart from what is behind it.</summary>
+    public UiNode Outlined(float width = 1) => Border(Roles.Edge, width);
+
     /// <summary>Text in the theme's accent, for titles and highlights.</summary>
     public UiNode AccentText() => TextColor(Roles.Accent);
 

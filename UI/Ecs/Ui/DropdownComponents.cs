@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 
 namespace Xanadu.Ui.Ecs.Ui;
@@ -27,6 +28,20 @@ public struct Dropdown(
 public struct DropdownChanged(int value) : IComponent
 {
     public int Value = value;
+}
+
+/// <summary>
+/// A dropdown whose button reads its pick (<see cref="UiNode.Choice"/>): the
+/// dropdown system keeps the button's text on <c>Names[Selected]</c> and a
+/// down arrow, whether the pick came from the list or from code.
+/// </summary>
+public struct DropdownShowsPick(IReadOnlyList<string> names) : IComponent
+{
+    public IReadOnlyList<string> Names = names;
+
+    /// <summary>What the button reads for pick <paramref name="selected"/>.</summary>
+    public readonly string Text(int selected) =>
+        Names.Count == 0 ? "▼" : $"{Names[System.Math.Clamp(selected, 0, Names.Count - 1)]} ▼";
 }
 
 /// <summary>Marks the backing panel of a dropdown's list, so it draws above ordinary content.</summary>

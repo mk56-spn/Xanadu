@@ -25,7 +25,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
 {
     private const int InlaySize = 11;
 
-    private static readonly Color Background = new("#0b1020");
+    private static readonly Color Background = Palette.Background;
     private static readonly Color GutterText = new("#4a5578");
 
     /// <summary>Plain text: anything no run colours.</summary>

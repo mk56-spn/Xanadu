@@ -146,6 +146,16 @@ public class ServerRectCanvas : IRectCanvas
             canvas, indices, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray());
     }
 
+    public void DrawCurveTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<byte> curves)
+    {
+        Route(canvas);
+        int count = points.Length - points.Length % 3;
+        if (count < 3 || colors.Length < count || uvs.Length < count)
+            return;
+
+        Server.AddCurveTriangles(canvas, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray(), curves.ToArray());
+    }
+
     public void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         Route(canvas);

@@ -76,6 +76,18 @@ public interface IRectCanvas
     void DrawTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs) =>
         DrawTriangles(canvas, points, colors);
 
+    /// <summary>
+    /// The same, with a curve tag per triangle (<see cref="CanvasCurves"/>):
+    /// a tagged triangle's corners are a quadratic Bézier's start, control and
+    /// end, and the GPU fills it only up to the curve. Canvases that cannot
+    /// trim draw the straight chord instead (see <see cref="CanvasCurves.Straighten"/>).
+    /// </summary>
+    void DrawCurveTriangles(Handle canvas, ReadOnlySpan<Vector2> points, ReadOnlySpan<Color> colors, ReadOnlySpan<Vector2> uvs, ReadOnlySpan<byte> curves)
+    {
+        (Vector2[] kept, Color[] keptColors, Vector2[] keptUvs) = CanvasCurves.Straighten(points, colors, uvs, curves);
+        DrawTriangles(canvas, kept, keptColors, keptUvs);
+    }
+
     /// <summary>Fills a rectangle with a smooth ramp between two colours, along its width or its height.</summary>
     void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
 

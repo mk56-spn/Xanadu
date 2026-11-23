@@ -12,7 +12,7 @@ namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// Presses and drags on every timeline, read the same way in every tool: the
-/// row scrollbar and the wheel over the rows, fixed handles (event flags, loop
+/// time scrollbar, the row scrollbar and the wheel over the rows, fixed handles (event flags, loop
 /// ends), scrubbing the ruler, track labels, items on the rows, and a box over
 /// empty row space. The tool describes its timeline as a
 /// <see cref="TimelineScene"/> and is told what each gesture meant through
@@ -73,6 +73,16 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
         Vector2 point = press.Position;
         gesture.Clear();
         gesture.StartPointer = point;
+
+        if (scene.TimeBar is { } timeBar && timeBar.Hit.HasPoint(point) &&
+            TimelineTimeBar.Shows(scene.Axis, scene.DurationMs))
+        {
+            Start(input, gesture, TimelineGestureKind.TimeScroll);
+            gesture.ScrollGrab = timeBar.Slider(scene.Axis, scene.DurationMs)
+                .Grab(point.X, TimelineTimeBar.Value(scene.Axis, scene.DurationMs));
+            ScrollTime(entity, scene, timeBar, point.X, gesture.ScrollGrab);
+            return;
+        }
 
         if (scene.Lanes is { HasBar: true } barred && barred.BarHit.HasPoint(point))
         {
@@ -163,6 +173,10 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
                 input.ScrollRows(lanes.FirstFor(lanes.Slider.ValueAt(point.Y, gesture.ScrollGrab)));
                 return;
 
+            case TimelineGestureKind.TimeScroll when scene.TimeBar is { } timeBar:
+                ScrollTime(entity, scene, timeBar, point.X, gesture.ScrollGrab);
+                return;
+
             case TimelineGestureKind.Box when scene.Lanes is { } lanes:
                 if (!gesture.Box.Update(lanes.ToContent(point), out _))
                     return;
@@ -189,6 +203,19 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
                 MoveItem(input, gesture, scene, press);
                 return;
         }
+    }
+
+    /// <summary>
+    /// Pins the visible window where the time scrollbar's thumb is dragged to;
+    /// the playhead stays where it is, and the pin lets go when it moves out.
+    /// </summary>
+    private static void ScrollTime(Entity entity, TimelineScene scene, TimelineTimeBar bar, float x, float grab)
+    {
+        float value = bar.Slider(scene.Axis, scene.DurationMs).ValueAt(x, grab);
+        ref TimelineView view = ref entity.GetComponent<TimelineView>();
+        view.PinStartMs = TimelineTimeBar.StartFor(scene.Axis, scene.DurationMs, value);
+        view.PinNowMs = (long)Math.Round(entity.GetComponent<TimelineHost>().Host.NowMs);
+        view.Pinned = true;
     }
 
     /// <summary>Sends the playhead to the time under the pointer, kept on the axis when the pointer runs off it.</summary>

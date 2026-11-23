@@ -4,9 +4,9 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Ui.Tests;
 
 [TestFixture]
-public sealed class VerticalSliderTests
+public sealed class ScrollSliderTests
 {
-    private static readonly VerticalSlider Slider = new(100, 300, 0.25f, 10);
+    private static readonly ScrollSlider Slider = new(100, 300, 0.25f, 10);
 
     [Test]
     public void TheThumbShowsTheShareOnScreen() =>
@@ -22,9 +22,9 @@ public sealed class VerticalSliderTests
     [Test]
     public void ValueRunsTheThumbFromTopToBottom()
     {
-        Assert.That(Slider.ThumbTop(0f), Is.EqualTo(100f));
-        Assert.That(Slider.ThumbTop(1f), Is.EqualTo(250f));
-        Assert.That(Slider.ThumbTop(2f), Is.EqualTo(250f));
+        Assert.That(Slider.ThumbStart(0f), Is.EqualTo(100f));
+        Assert.That(Slider.ThumbStart(1f), Is.EqualTo(250f));
+        Assert.That(Slider.ThumbStart(2f), Is.EqualTo(250f));
     }
 
     [Test]
@@ -42,7 +42,7 @@ public sealed class VerticalSliderTests
         float grab = Slider.Grab(200f, 0f);
 
         Assert.That(grab, Is.EqualTo(25f));
-        Assert.That(Slider.ThumbTop(Slider.ValueAt(200f, grab)), Is.EqualTo(175f).Within(0.001f));
+        Assert.That(Slider.ThumbStart(Slider.ValueAt(200f, grab)), Is.EqualTo(175f).Within(0.001f));
     }
 
     [Test]
@@ -55,7 +55,7 @@ public sealed class VerticalSliderTests
     [Test]
     public void AThumbFillingTheTrackCannotSlide()
     {
-        VerticalSlider full = Slider with { Shown = 1f };
+        ScrollSlider full = Slider with { Shown = 1f };
 
         Assert.That(full.CanSlide, Is.False);
         Assert.That(full.ValueAt(200f, 0f), Is.EqualTo(0f));

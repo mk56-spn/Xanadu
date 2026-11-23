@@ -6,8 +6,9 @@ using Xanadu.Core.Theme;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
-/// Builds a particle editor panel: which library effect the selected thing
-/// plays, its name, its look and a slider for each of its numbers. Any tool
+/// Builds a particle editor panel: the selected thing's own particle settings
+/// (presets to load from and store into the library, their name, their look
+/// and a slider for each of their numbers). Any tool
 /// can host one, the way it hosts the XIF editor;
 /// <see cref="Xanadu.Systems.Ui.ParticleEditorSystem"/> runs it and the host says
 /// what is selected through <see cref="IParticleEditorHost"/>.
@@ -19,8 +20,6 @@ public static class ParticleEditorPanel
     private const float Gap = 3f;
     private const float LabelWidth = 64f;
     private const float StepWidth = 28f;
-    private const float ReadoutWidth = 44f;
-    private const float TrackHeight = 8f;
 
     /// <summary>Rows above the sliders: title, effect, name, file, look twice, colour; and the status under them.</summary>
     private const int FixedRows = 7;
@@ -51,23 +50,23 @@ public static class ParticleEditorPanel
         parts.Title = panel.Text("", UiType.Label, UiTheme.Accent).Size(Inner, Row);
 
         UiNode effect = panel.Row().Size(Inner, Row).Gap(4);
-        Button(effect, "<", ParticleEditorActionKind.Previous, editor, StepWidth, "Play the previous effect in the library");
+        Button(effect, "<", ParticleEditorActionKind.Previous, editor, StepWidth, "Load the previous preset from the library into these settings");
         Button(effect, "+ NEW", ParticleEditorActionKind.New, editor, (Inner - StepWidth * 2 - 12) / 2,
-            "Add a plain effect and play it here");
-        Button(effect, "COPY", ParticleEditorActionKind.Copy, editor, (Inner - StepWidth * 2 - 12) / 2,
-            "Play a copy of this effect, to change it without changing everything else that plays it");
-        Button(effect, ">", ParticleEditorActionKind.Next, editor, StepWidth, "Play the next effect in the library");
+            "Start these settings over, plain");
+        Button(effect, "STORE", ParticleEditorActionKind.Store, editor, (Inner - StepWidth * 2 - 12) / 2,
+            "Store a copy of these settings in the library as a preset, under their name");
+        Button(effect, ">", ParticleEditorActionKind.Next, editor, StepWidth, "Load the next preset from the library into these settings");
 
         UiNode name = panel.Row().Size(Inner, Row).Gap(6);
-        name.Text("EFFECT", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
+        name.Text("NAME", UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
         parts.Name = Field(name, ParticleEditorFieldKind.Name, editor, Inner - LabelWidth - 6,
-            "The effect's name in the library; renaming it here leaves other users on the old name");
+            "These settings' name: the preset they store as, and the one < and > step on from");
 
         UiNode file = panel.Row().Size(Inner, Row).Gap(4);
         parts.Save = Button(file, "SAVE", ParticleEditorActionKind.Save, editor, (Inner - 4) / 2,
-            "Write the particle library, which every editor and the game read");
+            "Write the preset library, which every editor and the game read");
         Button(file, "REVERT", ParticleEditorActionKind.Revert, editor, (Inner - 4) / 2,
-            "Drop unsaved particle edits and read the library back");
+            "Drop unsaved preset changes and read the library back");
 
         float third = (Inner - 8) / 3;
         UiNode look = panel.Row().Size(Inner, Row).Gap(4);
@@ -103,23 +102,13 @@ public static class ParticleEditorPanel
         return editor;
     }
 
-    /// <summary>A number set by dragging: its name, the track, then the value; a right-click puts back what it was built with.</summary>
+    /// <summary>A number set by dragging (the shared slider row); a right-click puts back what it was built with.</summary>
     private static Entity Slider(UiNode panel, XpfField field, Entity editor)
     {
         XpfFieldRange range = XpfEditing.Range(field);
-        UiNode row = panel.Row().Size(Inner, Row).Gap(6).Cross(StackCrossAlignment.Center);
-        row.Text(range.Label, UiType.Caption, UiTheme.TextDim).Size(LabelWidth, Row);
-
-        var size = new Vector2(Inner - LabelWidth - ReadoutWidth - 12, TrackHeight);
-        UiNode track = row.Rect(Palette.Muted, size: size).Input();
-        UiNode fill = row.Rect(Palette.PrimaryMuted, "", size).IgnoreLayout();
-        UiNode readout = row.Text("", UiType.Caption, UiTheme.Text, TextAlign.Right).Size(ReadoutWidth, Row);
-
         float rest = XpfEditing.Get(new XpfParticle(), field);
-        return track
-            .With(new UiSlider(fill, readout, range.Min, range.Max, rest, format: range.Format, defaultValue: rest))
-            .With(new ParticleEditorSlider(field, editor))
-            .Tooltip(range.Tooltip + " · right-click resets");
+        return panel.Slider(range.Label, range.Min, range.Max, rest, Inner, range.Format, tooltip: range.Tooltip)
+            .With(new ParticleEditorSlider(field, editor));
     }
 
     private static Entity Button(

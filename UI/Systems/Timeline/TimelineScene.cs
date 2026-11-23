@@ -94,7 +94,7 @@ public readonly record struct TimelineLanes(
 {
     public bool HasBar => Count > Visible;
 
-    public VerticalSlider Slider => new(Bar.Position.Y, Bar.End.Y, Count > 0 ? (float)Visible / Count : 1f, MinThumb);
+    public ScrollSlider Slider => new(Bar.Position.Y, Bar.End.Y, Count > 0 ? (float)Visible / Count : 1f, MinThumb);
 
     /// <summary>How far down the rows are scrolled, from 0 to 1.</summary>
     public float Value => HasBar ? (float)First / (Count - Visible) : 0f;
@@ -126,6 +126,36 @@ public readonly record struct TimelineLanes(
     }
 
     public bool Shows(int lane) => lane >= First && lane < First + Visible && lane < Count;
+}
+
+/// <summary>
+/// A scrollbar along time: its thumb is the visible window within the whole
+/// timeline, and dragging it moves the window without moving the playhead.
+/// </summary>
+/// <param name="Bar">The drawn track, as wide as the time axis.</param>
+/// <param name="Hit">Where a press takes it.</param>
+/// <param name="MinThumb">The shortest the thumb is drawn.</param>
+public readonly record struct TimelineTimeBar(Rect2 Bar, Rect2 Hit, float MinThumb)
+{
+    /// <summary>Whether part of the timeline is out of sight, so the bar shows.</summary>
+    public static bool Shows(TimelineAxis axis, double durationMs) => durationMs > 0 && axis.EndMs - axis.StartMs < durationMs - 0.5;
+
+    public ScrollSlider Slider(TimelineAxis axis, double durationMs) => new(
+        Bar.Position.X,
+        Bar.End.X,
+        durationMs > 0 ? (float)Math.Min(1.0, (axis.EndMs - axis.StartMs) / durationMs) : 1f,
+        MinThumb);
+
+    /// <summary>How far along the window is, from 0 at the start to 1 at the end.</summary>
+    public static float Value(TimelineAxis axis, double durationMs)
+    {
+        double room = durationMs - (axis.EndMs - axis.StartMs);
+        return room > 0 ? (float)Math.Clamp(axis.StartMs / room, 0.0, 1.0) : 0f;
+    }
+
+    /// <summary>Where the window starts for a value.</summary>
+    public static long StartFor(TimelineAxis axis, double durationMs, float value) =>
+        (long)Math.Round(Math.Max(0.0, durationMs - (axis.EndMs - axis.StartMs)) * value);
 }
 
 /// <summary>
@@ -174,6 +204,9 @@ public sealed class TimelineScene
 
     public TimelineLanes? Lanes;
 
+    /// <summary>The scrollbar along time under the rows, or null for none; it shows only while zoomed in.</summary>
+    public TimelineTimeBar? TimeBar;
+
     public readonly List<TimelineItem> Items = new();
 
     public double TimeAt(float x) => Axis.TimeAt(x);
@@ -210,6 +243,9 @@ public enum TimelineGestureKind
     None,
     Scrub,
     RowScroll,
+
+    /// <summary>Dragging the scrollbar along time.</summary>
+    TimeScroll,
     Item,
     Box,
 }

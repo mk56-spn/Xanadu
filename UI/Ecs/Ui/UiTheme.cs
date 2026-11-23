@@ -21,6 +21,8 @@ public static class UiTheme
     public static readonly Color Focus = Palette.TextBright;
     public static readonly Color Disabled = Palette.SurfaceDisabled;
     public static readonly Color Tooltip = Palette.Tooltip;
+    /// <summary>A tree's indentation lines, one down from each level's arrow.</summary>
+    public static readonly Color TreeGuide = Palette.BorderStrong;
 
     public const int FontSize = 14;
     public const int SmallFontSize = 12;

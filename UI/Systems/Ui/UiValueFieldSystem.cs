@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
@@ -70,7 +71,11 @@ public sealed class UiValueFieldSystem(IPointerInputSource pointer) : QuerySyste
             if (field.Shape.Scalar == UiScalar.Bool)
                 changed |= SyncToggle(ref field, slot, i);
             else
+            {
                 changed |= UpdateSlot(ref field, slot, i, input, resetStarted, ref live);
+                if (slot.HasComponent<TextField>())
+                    slot.GetComponent<TextField>().Fill = MarkFill(field.Mark);
+            }
         }
 
         if (!field.Picker.IsNull)
@@ -235,6 +240,15 @@ public sealed class UiValueFieldSystem(IPointerInputSource pointer) : QuerySyste
     }
 
     /// <summary>Lays the slot's bar along its foot, from zero (or the range's near end) to the value.</summary>
+    /// <summary>A slot's fill for its key mark: the inset colour, tinted yellow, green or orange.</summary>
+    public static Color? MarkFill(UiValueMark mark) => mark switch
+    {
+        UiValueMark.Keyed => Palette.SurfaceInset.Lerp(Palette.Gold, 0.32f),
+        UiValueMark.Animated => Palette.SurfaceInset.Lerp(Palette.Success, 0.26f),
+        UiValueMark.Changed => Palette.SurfaceInset.Lerp(Palette.Warning, 0.34f),
+        _ => null,
+    };
+
     private static void PlaceBar(Entity bar, Entity slot, in UiValueField field, int index)
     {
         if (bar.IsNull || !bar.HasComponent<Rectangle>())

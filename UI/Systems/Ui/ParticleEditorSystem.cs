@@ -12,10 +12,9 @@ namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Runs every particle editor panel: shows it while its host has a selection,
-/// applies its buttons, fields and sliders to the shared library's effect, and
-/// keeps its readouts in step with that effect. Choosing another effect goes
-/// through the host, which records it however its tool does undo; changes to
-/// the effect itself go to the library, which every tool and the game share.
+/// applies its buttons, fields and sliders to the host's own settings (through
+/// the host, so its undo records them), and keeps its readouts in step with
+/// them. The library is only presets: loaded into the settings, or stored from them.
 /// </summary>
 public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
 {
@@ -38,6 +37,11 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         ref ParticleEditor editor = ref panel.GetComponent<ParticleEditor>();
         if (editor.Host.Particle is null)
         {
+            if (editor.Sliding)
+            {
+                editor.Host.EndGesture();
+                editor.Sliding = false;
+            }
             UiLayout.SetHidden(panel, true);
             return;
         }
@@ -47,10 +51,10 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         UiLayout.SetHidden(panel, false);
 
         RunActions(panel, ref editor);
-        XpfParticle? particle = ParticleLibrary.Find(editor.Host.Particle ?? "");
+        XpfParticle? particle = editor.Host.Particle;
         SyncFields(panel, ref editor, particle);
         if (particle is not null)
-            SyncSliders(panel, particle);
+            SyncSliders(panel, ref editor, particle);
         SyncLabels(ref editor, particle);
     }
 
@@ -73,31 +77,37 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     public static void Run(ref ParticleEditor editor, ParticleEditorActionKind kind)
     {
         XpfLibrary library = ParticleLibrary.Shared;
-        string? name = editor.Host.Particle;
-        XpfParticle? particle = name is null ? null : library.Find(name);
+        XpfParticle? particle = editor.Host.Particle;
         switch (kind)
         {
             case ParticleEditorActionKind.Previous:
             case ParticleEditorActionKind.Next:
-                if (XpfEditing.Step(library, name, kind == ParticleEditorActionKind.Next ? 1 : -1) is { } other && other != name)
+                if (XpfEditing.Step(library, particle?.Name, kind == ParticleEditorActionKind.Next ? 1 : -1) is { } other &&
+                    library.Find(other) is { } preset)
                 {
-                    editor.Host.Use(other);
-                    editor.Status = $"PLAYS {other}";
+                    editor.Host.Use(preset.Clone());
+                    editor.Status = $"LOADED PRESET {other}";
+                }
+                else
+                {
+                    editor.Status = "THE LIBRARY HAS NO PRESETS";
                 }
                 break;
             case ParticleEditorActionKind.New:
-                string added = XpfEditing.Add(library);
-                ParticleLibrary.MarkEdited();
-                editor.Host.Use(added);
-                editor.Status = $"ADDED {added}";
+                var plain = new XpfParticle();
+                XpfEditing.SetFadePreset(plain, XpfFadePreset.Out);
+                editor.Host.Use(plain);
+                editor.Status = "STARTED OVER";
                 break;
-            case ParticleEditorActionKind.Copy:
-                if (name is not null && XpfEditing.Copy(library, name) is { } copy)
-                {
-                    ParticleLibrary.MarkEdited();
-                    editor.Host.Use(copy);
-                    editor.Status = $"COPIED TO {copy}";
-                }
+            case ParticleEditorActionKind.Store when particle is not null:
+                XpfParticle stored = particle.Clone();
+                int at = library.Particles.FindIndex(preset => preset.Name == stored.Name);
+                if (at >= 0)
+                    library.Particles[at] = stored;
+                else
+                    library.Particles.Add(stored);
+                ParticleLibrary.MarkEdited();
+                editor.Status = $"STORED AS PRESET {stored.Name} · SAVE TO KEEP IT";
                 break;
             case ParticleEditorActionKind.Save:
                 try
@@ -115,27 +125,30 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
                 editor.Status = "LIBRARY RELOADED";
                 break;
             case ParticleEditorActionKind.Texture when particle is not null:
-                particle.Texture = XpfEditing.Next(particle.Texture);
-                ParticleLibrary.MarkEdited();
+                Edit(ref editor, particle, () => particle.Texture = XpfEditing.Next(particle.Texture));
                 break;
             case ParticleEditorActionKind.Shape when particle is not null:
-                particle.Shape = XpfEditing.Next(particle.Shape);
-                ParticleLibrary.MarkEdited();
+                Edit(ref editor, particle, () => particle.Shape = XpfEditing.Next(particle.Shape));
                 break;
             case ParticleEditorActionKind.Upright when particle is not null:
-                particle.Upright = !particle.Upright;
-                ParticleLibrary.MarkEdited();
+                Edit(ref editor, particle, () => particle.Upright = !particle.Upright);
                 break;
             case ParticleEditorActionKind.ScaleCurve when particle is not null:
-                XpfEditing.SetScalePreset(particle, XpfEditing.Next(XpfEditing.ScalePreset(particle)));
-                ParticleLibrary.MarkEdited();
+                Edit(ref editor, particle, () => XpfEditing.SetScalePreset(particle, XpfEditing.Next(XpfEditing.ScalePreset(particle))));
                 break;
             case ParticleEditorActionKind.Fade when particle is not null:
-                XpfEditing.SetFadePreset(particle, XpfEditing.Next(XpfEditing.FadePreset(particle)));
-                ParticleLibrary.MarkEdited();
+                Edit(ref editor, particle, () => XpfEditing.SetFadePreset(particle, XpfEditing.Next(XpfEditing.FadePreset(particle))));
                 break;
         }
     }
+
+    /// <summary>One edit of the settings in place, as one undo step of the host's.</summary>
+    private static void Edit(ref ParticleEditor editor, XpfParticle particle, Action change) =>
+        editor.Host.Edit(() =>
+        {
+            change();
+            particle.Touch();
+        });
 
     // -------------------------------------------------------------- fields
 
@@ -163,17 +176,16 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         switch (kind)
         {
             case ParticleEditorFieldKind.Name:
-                string old = particle.Name;
-                if (typed.Trim() == old)
+                string name = typed.Trim();
+                if (name == particle.Name)
                     break;
-                if (!XpfEditing.Rename(ParticleLibrary.Shared, old, typed))
+                if (name.Length == 0 || name.Length > XpfParticle.MaxNameLength)
                 {
-                    editor.Status = "NAME IS TAKEN OR BLANK";
+                    editor.Status = "NAME IS BLANK OR TOO LONG";
                     break;
                 }
-                ParticleLibrary.MarkEdited();
-                editor.Host.Use(particle.Name);
-                editor.Status = $"RENAMED; OTHERS STILL PLAY {old}";
+                Edit(ref editor, particle, () => particle.Name = name);
+                editor.Status = "RENAMED";
                 break;
             case ParticleEditorFieldKind.Color:
                 if (!XifEditing.TryParseFill(typed, out Color color))
@@ -183,8 +195,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
                 }
                 if (color != particle.Color)
                 {
-                    particle.Color = color;
-                    ParticleLibrary.MarkEdited();
+                    Edit(ref editor, particle, () => particle.Color = color);
                     editor.Status = "COLOUR SET";
                 }
                 break;
@@ -213,7 +224,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     /// to the effect. Then every slider shows the effect, which may differ
     /// after a drag (a low end pushing its high end) or another selection.
     /// </summary>
-    private void SyncSliders(Entity panel, XpfParticle particle)
+    private void SyncSliders(Entity panel, ref ParticleEditor editor, XpfParticle particle)
     {
         bool edited = false;
         foreach (Entity track in Query.Store.Query<ParticleEditorSlider, UiSlider>().ToEntityList())
@@ -225,13 +236,27 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
             ref UiSlider slider = ref track.GetComponent<UiSlider>();
             if (!float.IsNaN(binding.Shown) && slider.Value != binding.Shown)
             {
+                // A drag is one undo step: opened on the first change, closed on the first frame without one.
+                if (!editor.Sliding)
+                {
+                    editor.Host.BeginGesture();
+                    editor.Sliding = true;
+                }
                 XpfEditing.Set(particle, binding.Field, slider.Value);
                 edited = true;
             }
         }
 
         if (edited)
-            ParticleLibrary.MarkEdited();
+        {
+            particle.Touch();
+            editor.Host.Changed();
+        }
+        else if (editor.Sliding)
+        {
+            editor.Host.EndGesture();
+            editor.Sliding = false;
+        }
 
         foreach (Entity track in Query.Store.Query<ParticleEditorSlider, UiSlider>().ToEntityList())
         {
@@ -250,10 +275,9 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     private static void SyncLabels(ref ParticleEditor editor, XpfParticle? particle)
     {
         ParticleEditorParts parts = editor.Parts;
-        string? name = editor.Host.Particle;
         UiText.Set(parts.Title, editor.Host.Title);
         UiText.Set(parts.Save, ParticleLibrary.Unsaved ? "SAVE *" : "SAVE");
-        UiText.Set(parts.Status, particle is null ? $"NO EFFECT CALLED {name}" : editor.Status);
+        UiText.Set(parts.Status, editor.Status);
         if (particle is null)
             return;
 
