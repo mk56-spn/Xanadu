@@ -5,14 +5,14 @@ using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
-using Color = Xanadu.Core.Maths.Color;
-using Buffer = MoonWorks.Graphics.Buffer;
-using MwColor = MoonWorks.Graphics.Color;
-using Rect = MoonWorks.Graphics.Rect;
-using Texture = MoonWorks.Graphics.Texture;
-using Shader = MoonWorks.Graphics.Shader;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
+using Buffer = MoonWorks.Graphics.Buffer;
+using Color = Xanadu.Core.Maths.Color;
+using MwColor = MoonWorks.Graphics.Color;
+using Rect = MoonWorks.Graphics.Rect;
+using Shader = MoonWorks.Graphics.Shader;
+using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Host.Rendering;
 
@@ -118,8 +118,8 @@ internal sealed class CanvasRenderer : IDisposable
         public Color Color;
         public Buffer? Buffer;
         public uint Capacity;
-        public readonly List<CanvasVertex> Vertices = new();
-        public readonly List<(uint Start, uint Count, ulong Texture)> Pieces = new();
+        public readonly List<CanvasVertex> Vertices = [];
+        public readonly List<(uint Start, uint Count, ulong Texture)> Pieces = [];
         public bool Pending;
         public long LastFrame;
     }
@@ -130,8 +130,8 @@ internal sealed class CanvasRenderer : IDisposable
     /// <summary>Frames a kept mesh may go undrawn before its buffer is let go.</summary>
     private const int KeptFrames = 120;
 
-    private readonly Dictionary<(CanvasItem Item, int From), KeptMesh> _kept = new();
-    private readonly List<(CanvasItem, int)> _keptStale = new();
+    private readonly Dictionary<(CanvasItem Item, int From), KeptMesh> _kept = [];
+    private readonly List<(CanvasItem, int)> _keptStale = [];
     private long _buildFrame;
 
     /// <summary>One root drawn into one target.</summary>
@@ -140,7 +140,7 @@ internal sealed class CanvasRenderer : IDisposable
         public readonly CanvasItem Root = root;
         public readonly Texture Target = target;
         public readonly MwColor Clear = clear;
-        public readonly List<Entry> Entries = new();
+        public readonly List<Entry> Entries = [];
         public int FirstStep, StepCount;
         public uint OpaqueStart, OpaqueReserved;
     }
@@ -194,13 +194,13 @@ internal sealed class CanvasRenderer : IDisposable
 
     private readonly Shader _primitiveVertex, _primitiveShade, _primitiveOpaque;
     private readonly ComputePipeline _expand;
-    private readonly Dictionary<(bool Opaque, SampleCount Samples), GraphicsPipeline> _primitivePipelines = new();
+    private readonly Dictionary<(bool Opaque, SampleCount Samples), GraphicsPipeline> _primitivePipelines = [];
 
-    private readonly List<Job> _jobs = new();
-    private readonly List<Step> _steps = new();
-    private readonly List<(CanvasItem Root, Texture Target)> _offscreen = new();
+    private readonly List<Job> _jobs = [];
+    private readonly List<Step> _steps = [];
+    private readonly List<(CanvasItem Root, Texture Target)> _offscreen = [];
 
-    private readonly List<ulong> _stepTextures = new();
+    private readonly List<ulong> _stepTextures = [];
 
     /// <summary>Every recording's primitives in its own space, in ranges that stay while it does (<see cref="Resident"/>).</summary>
     private Buffer? _pool;
@@ -212,13 +212,13 @@ internal sealed class CanvasRenderer : IDisposable
     /// <summary>Recordings changed since they were sent: their primitives, and where they go.</summary>
     private GpuPrimitive[] _staging = new GpuPrimitive[1 << 12];
     private int _stagingCount;
-    private readonly List<(int From, int To, int Count)> _uploads = new();
+    private readonly List<(int From, int To, int Count)> _uploads = [];
     private TransferBuffer? _stagingTransfer;
     private uint _stagingTransferCapacity;
 
     /// <summary>One a recording drawn this frame, and each one's run slots.</summary>
-    private readonly List<GpuInstance> _instances = new();
-    private readonly List<uint> _slots = new();
+    private readonly List<GpuInstance> _instances = [];
+    private readonly List<uint> _slots = [];
     private Buffer? _instanceBuffer, _slotBuffer;
     private uint _instanceCapacity, _slotCapacity;
     private TransferBuffer? _instanceTransfer, _slotTransfer;
@@ -236,7 +236,7 @@ internal sealed class CanvasRenderer : IDisposable
 
     private const uint AllowOpaque = 1;
 
-    private readonly List<CanvasVertex> _vertices = new();
+    private readonly List<CanvasVertex> _vertices = [];
     private Buffer? _buffer;
     private TransferBuffer? _transfer;
     private uint _capacity;
@@ -266,7 +266,7 @@ internal sealed class CanvasRenderer : IDisposable
     }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
-    public Dictionary<ulong, Texture> Textures { get; } = new();
+    public Dictionary<ulong, Texture> Textures { get; } = [];
 
     public CanvasPipelines Pipelines => _pipelines;
 
@@ -1281,7 +1281,7 @@ internal sealed class CanvasRenderer : IDisposable
             {
                 // A deforming effect's vertex stage reads the frame too; only its clocks matter there.
                 commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
-                commands.PushFragmentUniformData(frame, 0);
+                commands.PushFragmentUniformData(frame);
                 effectState = true;
             }
 

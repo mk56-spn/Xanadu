@@ -7,11 +7,11 @@ using MoonWorks.Graphics;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Core.Rendering;
-using Color = Xanadu.Core.Maths.Color;
+using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;
+using Color = Xanadu.Core.Maths.Color;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
-using Xanadu.Slang;
 
 namespace Xanadu.Host.Rendering;
 
@@ -37,7 +37,7 @@ internal sealed class ParticleField : IDisposable
     public readonly Buffer Buffer;
     private readonly TransferBuffer _upload;
     private readonly GpuParticle[] _staging = new GpuParticle[Capacity];
-    private readonly List<(uint Start, uint Count)> _dirty = new();
+    private readonly List<(uint Start, uint Count)> _dirty = [];
     private uint _head;
 
     /// <summary>Seconds until every particle in the ring has died; the field neither steps nor draws past it.</summary>
@@ -157,12 +157,12 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     private readonly TextureFormat _format;
 
     /// <summary>The draw pipeline per sample count, made the first time a target with that count draws particles.</summary>
-    private readonly Dictionary<SampleCount, GraphicsPipeline> _draws = new();
+    private readonly Dictionary<SampleCount, GraphicsPipeline> _draws = [];
     private readonly Buffer _effects;
     private readonly TransferBuffer _effectUpload;
     private readonly Vector4[] _rows = new Vector4[MaxEffects * RowSize];
     private readonly Dictionary<XpfParticle, (int Row, int Version)> _effectRows = new(ReferenceEqualityComparer.Instance);
-    private readonly List<ParticleField> _fields = new();
+    private readonly List<ParticleField> _fields = [];
     private bool _rowsDirty = true;
 
     public CanvasParticles(GraphicsDevice device, CanvasTree tree, TextureFormat format)

@@ -1,12 +1,12 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using FreeTypeSharp;
 using MoonWorks.Graphics;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Storage;
-using Texture = MoonWorks.Graphics.Texture;
 using static FreeTypeSharp.FT;
+using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Host.Text;
 
@@ -59,8 +59,8 @@ internal sealed unsafe class HostText : IDisposable
 
     private readonly FT_LibraryRec_* _library;
     private readonly FontFace[] _faces;
-    private readonly Dictionary<Key, AtlasGlyph> _glyphs = new();
-    private readonly List<ShapedGlyph> _shaped = new();
+    private readonly Dictionary<Key, AtlasGlyph> _glyphs = [];
+    private readonly List<ShapedGlyph> _shaped = [];
 
     public TextAtlas Atlas { get; }
 
@@ -94,7 +94,7 @@ internal sealed unsafe class HostText : IDisposable
         foreach (FontFace face in faces)
             face.Fallbacks = chain;
         faces.AddRange(fallbacks);
-        _faces = faces.ToArray();
+        _faces = [.. faces];
         Atlas = new TextAtlas(device, registerTexture);
     }
 

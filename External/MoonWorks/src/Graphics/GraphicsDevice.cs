@@ -272,7 +272,7 @@ public class GraphicsDevice : IDisposable
 		TextVertexShader = textVertShader;
 		TextFragmentShader = textFragShader;
 
-		TextVertexInputState = VertexInputState.CreateSingleBinding<Font.Vertex>(0);
+		TextVertexInputState = VertexInputState.CreateSingleBinding<Font.Vertex>();
 
 		PointSampler = Sampler.Create(this, SamplerCreateInfo.PointClamp);
 		LinearSampler = Sampler.Create(this, SamplerCreateInfo.LinearClamp);

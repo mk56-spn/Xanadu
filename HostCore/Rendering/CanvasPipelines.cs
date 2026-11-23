@@ -6,11 +6,11 @@ using MoonWorks.Graphics;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Storage;
+using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
 using BlendFactor = MoonWorks.Graphics.BlendFactor;
 using BlendOp = MoonWorks.Graphics.BlendOp;
 using Shader = MoonWorks.Graphics.Shader;
-using Xanadu.Slang;
-using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Rendering;
 
@@ -55,11 +55,11 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly Shader _particleVertex;
 
     /// <summary>Particle-mesh pipelines, by effect, blend and sample count.</summary>
-    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, SampleCount), GraphicsPipeline> _particlePipelines = new();
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, SampleCount), GraphicsPipeline> _particlePipelines = [];
     private readonly CanvasEffect _plain;
-    private readonly Dictionary<string, CanvasEffect?> _effects = new();
+    private readonly Dictionary<string, CanvasEffect?> _effects = [];
     /// <summary>By effect, blend and whether it draws only the triangles' edges (the triangles overlay).</summary>
-    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines, SampleCount Samples, bool Depth), GraphicsPipeline> _pipelines = new();
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, bool Lines, SampleCount Samples, bool Depth), GraphicsPipeline> _pipelines = [];
 
     /// <summary>The main frame's MSAA sample count, set by the renderer; warming makes pipelines for it as well as for single-sampled targets.</summary>
     public SampleCount MainSamples { get; set; } = SampleCount.One;
@@ -292,9 +292,7 @@ internal sealed class CanvasPipelines : IDisposable
     {
         string root = GamePaths.Full("Assets/Shaders");
         string library = Path.Combine(root, "Library");
-        string[] files = Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
-            .Where(file => !file.StartsWith(library, StringComparison.Ordinal) && !SlangShaders.IsLabOnly(file))
-            .ToArray();
+        string[] files = [.. Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories).Where(file => !file.StartsWith(library, StringComparison.Ordinal) && !SlangShaders.IsLabOnly(file))];
         for (int i = 0; i < files.Length; i++)
         {
             string path = "Assets/Shaders/" + Path.GetRelativePath(root, files[i]).Replace('\\', '/');

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
@@ -134,10 +135,13 @@ internal abstract class TabbedToolApp : HostApp
         _bodies = new Entity[tabs.Length];
 
         // Stages describe timelines (the shader editor's clips); the shared group reads their presses.
-        var systems = new SystemRoot(Entities, title);
-        systems.Add(new TimelineSystemGroup(Pointer, Pointer));
+        var systems = new SystemRoot(Entities, title)
+        {
+            new TimelineSystemGroup(Pointer, Pointer)
+        };
         UseSystems(systems);
         Build();
+        AddTabCommand();
         if (openTab >= 0 && openTab < _tabs.Length)
             _strip.GetComponent<UiTabs>().Selected = openTab;
     }
@@ -150,6 +154,25 @@ internal abstract class TabbedToolApp : HostApp
     {
         if (tab >= 0 && tab < _tabs.Length)
             _strip.GetComponent<UiTabs>().Selected = tab;
+    }
+
+    /// <summary>The terminal's <c>tab</c>: each tab by its name, squashed to one lower-case word (a repeat gets its number).</summary>
+    private void AddTabCommand()
+    {
+        var names = new string[_tabs.Length];
+        for (int i = 0; i < _tabs.Length; i++)
+        {
+            string name = new([.. _tabs[i].Name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
+            int seen = names.Take(i).Count(n => n == name || n.StartsWith(name, StringComparison.Ordinal) && n[name.Length..].All(char.IsDigit));
+            names[i] = seen > 0 ? name + (seen + 1) : name;
+        }
+
+        Terminal.Add(new Xanadu.Ui.Terminal.TerminalCommand("tab", "Opens a tab by its name (Tab completes)",
+            [Xanadu.Ui.Terminal.TerminalArg.Choice("name", names)], args =>
+            {
+                Open(args.Choice(0));
+                return "opened " + _tabs[args.Choice(0)].Name;
+            }));
     }
 
     /// <summary>A tab's stage, if it has one now.</summary>

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
@@ -55,7 +55,7 @@ internal sealed class EditorChrome
     private Rect2 _bar;
     private Rect2 _preview;
     private Rect2 _side;
-    private readonly List<(Rect2 Box, SlangProblem Problem)> _problemRows = new();
+    private readonly List<(Rect2 Box, SlangProblem Problem)> _problemRows = [];
 
     public EditorChrome(IRectCanvas canvas, Handle item, Rect2 bar, Rect2 preview, Rect2 side)
     {

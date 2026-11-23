@@ -24,12 +24,12 @@ internal sealed class AutopsyRecorder
     private const int GpuPatience = 16;
 
     private readonly FrameAutopsy _autopsy;
-    private readonly Dictionary<(int Parent, string Name), int> _children = new();
-    private readonly Dictionary<BaseSystem, (int Track, double Sum)> _systems = new();
+    private readonly Dictionary<(int Parent, string Name), int> _children = [];
+    private readonly Dictionary<BaseSystem, (int Track, double Sum)> _systems = [];
     private readonly Queue<AutopsyFrame> _recent = new();
-    private readonly List<AutopsyFrame> _worstCpu = new(), _worstGpu = new();
-    private readonly Dictionary<long, AutopsyFrame> _pending = new();
-    private readonly List<long> _settled = new();
+    private readonly List<AutopsyFrame> _worstCpu = [], _worstGpu = [];
+    private readonly Dictionary<long, AutopsyFrame> _pending = [];
+    private readonly List<long> _settled = [];
     private readonly int _update, _draw, _acquire, _record, _idle;
     private double[] _sums = [];
     private long _finished;

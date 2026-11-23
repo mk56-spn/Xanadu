@@ -21,10 +21,10 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
     private const int FontSize = 16;
     private const float TextPadding = 4;
 
-    private readonly List<HostText.Placed> _placed = new();
+    private readonly List<HostText.Placed> _placed = [];
     private HostShapeGlow? _shapeGlow;
 
-    public void DrawShapeGlow(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow) =>
+    public void DrawShapeGlow(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, Glow glow) =>
         (_shapeGlow ??= new HostShapeGlow(Server)).Draw(canvas, points, closed, filled, strokeWidth, glow);
 
     public override void DrawText(Handle canvas, Rect2 bounds, string text, Color color) =>
@@ -56,7 +56,7 @@ internal sealed class HostRectCanvas(HostText text) : ServerRectCanvas, IRectCan
 
     public void DrawTextGlow(
         Handle canvas, Rect2 bounds, string text, Color color, int fontSize, TextAlign align, bool bold,
-        TextGlow glow, TextOutline? outline = null)
+        Glow glow, TextOutline? outline = null)
     {
         if (string.IsNullOrEmpty(text))
             return;

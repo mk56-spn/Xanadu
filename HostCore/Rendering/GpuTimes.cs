@@ -47,8 +47,8 @@ internal static unsafe class GpuTimes
 
     private static delegate* unmanaged<Range*, int, int> _read;
     private static delegate* unmanaged<int> _active;
-    private static readonly Dictionary<string, Total> Totals = new();
-    private static readonly List<string> Order = new();
+    private static readonly Dictionary<string, Total> Totals = [];
+    private static readonly List<string> Order = [];
     private static readonly string[] Names = new string[32];
     private static readonly Range[] Buffer = new Range[4096];
     private static int _frames;
@@ -56,7 +56,7 @@ internal static unsafe class GpuTimes
     private static int _otherCount;
     private static long _lastPrint = Environment.TickCount64;
     private static bool _warned, _print;
-    private static readonly List<(int Depth, string Name, double Ms)> FrameRanges = new();
+    private static readonly List<(int Depth, string Name, double Ms)> FrameRanges = [];
 
     /// <summary>One frame's groups once the GPU has run them: the frame number from its "frame N" group, then each group (depth 1 is the frame) in recording order.</summary>
     public delegate void FrameHandler(long number, ReadOnlySpan<(int Depth, string Name, double Ms)> ranges);

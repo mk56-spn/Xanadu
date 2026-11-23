@@ -7,8 +7,8 @@ using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Timeline;
 using Color = Xanadu.Core.Maths.Color;
@@ -26,7 +26,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// press on a row's name puts the caret on that clip in the code. Presses and
 /// drags are read by the shared <see cref="TimelineInputSystem"/>.
 /// </summary>
-internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
+internal sealed class ClipTimeline : IDisposable
 {
     /// <summary>The beats the lab counts for <c>clock.beats</c> until the editor has a song.</summary>
     public const double LabBpm = 120;
@@ -95,7 +95,25 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
 
     public ClipTimeline(EntityStore entities)
     {
-        _entity = entities.CreateEntity(new TimelineView(1f), new TimelineHost(this));
+        _entity = entities.CreateEntity(new TimelineView(1f), new TimelineFrame());
+        _entity.AddSignalHandler<TimelineFrameDue>(_ => Write(ref _entity.GetComponent<TimelineFrame>()));
+        _entity.AddSignalHandler<TimelineSeek>(signal => _seconds = Wrap(signal.Event.Ms / 1000));
+        _entity.AddSignalHandler<TimelineTogglePlay>(_ => _playing = !_playing);
+        _entity.AddSignalHandler<TimelineGestureStarted>(signal =>
+        {
+            if (signal.Event.Kind == TimelineGestureKind.Scrub)
+                _playing = false;
+        });
+        _entity.AddSignalHandler<TimelineGestureEnded>(_ => Released?.Invoke());
+        _entity.AddSignalHandler<TimelineRowsScrolled>(signal =>
+            _first = Math.Clamp(signal.Event.First, 0, Math.Max(0, _clips.Count - Rows)));
+        _entity.AddSignalHandler<TimelineScrubbed>(signal => Scrub(signal.Event.Ms));
+        _entity.AddSignalHandler<TimelineLabelPressed>(signal => LabelPressed(signal.Event.Lane));
+        _entity.AddSignalHandler<TimelineItemPressed>(signal =>
+        {
+            if (signal.Event.Item.Ref == _play)
+                _playing = !_playing;
+        });
     }
 
     /// <summary>Whether a press on the ruler moves the shader's clock: false for a preview that keeps its own.</summary>
@@ -255,45 +273,32 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
         return new TimelineLanes(body, labels, RowHeight, _clips.Count, _first, Rows, bar, bar.Grow(4), 12);
     }
 
-    // ITimelineHost
+    // The shared timeline
 
-    public double NowMs => _seconds * 1000;
+    private double NowMs => _seconds * 1000;
 
-    public double DurationMs => _window * 1000;
-
-    public double StepMs => 100;
-
-    public double StepOriginMs => 0;
-
-    public bool Blocked => false;
-
-    public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
+    private void Write(ref TimelineFrame frame)
     {
-        panel = _area;
-        ruler = Ruler;
-        return _area.Size.X > 0;
-    }
+        frame.NowMs = NowMs;
+        frame.DurationMs = _window * 1000;
+        frame.StepMs = 100;
+        frame.StepOriginMs = 0;
+        frame.Blocked = false;
+        frame.Shown = _area.Size.X > 0;
+        frame.Panel = _area;
+        frame.Ruler = Ruler;
 
-    public IEnumerable<double> MarkerTimesMs()
-    {
+        frame.Markers.Clear();
         foreach (SlangClip clip in _clips)
         {
             if (clip.Fixed && !clip.OnKey)
-                yield return clip.Start * Unit(clip) * 1000;
+                frame.Markers.Add(clip.Start * Unit(clip) * 1000);
         }
+
+        frame.Scene = Scene();
     }
 
-    public void SeekMs(double ms) => _seconds = Wrap(ms / 1000);
-
-    public void TogglePlay() => _playing = !_playing;
-
-    public void NoMarker(int direction)
-    {
-    }
-
-    // ITimelineInput
-
-    public TimelineScene? Scene()
+    private TimelineScene? Scene()
     {
         if (_area.Size.X <= 0)
             return null;
@@ -322,49 +327,17 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
         return scene;
     }
 
-    public void GestureStarted(TimelineGestureKind kind)
-    {
-        if (kind == TimelineGestureKind.Scrub)
-            _playing = false;
-    }
-
-    public void GestureEnded(TimelineGestureKind kind) => Released?.Invoke();
-
-    public void ScrollRows(int first) => _first = Math.Clamp(first, 0, Math.Max(0, _clips.Count - Rows));
-
     /// <summary>Scrubbing stays in the turn shown, so the ruler holds still under the pointer.</summary>
-    public void Scrub(double ms)
+    private void Scrub(double ms)
     {
         TimelineAxis axis = Axis;
         _seconds = Wrap(Math.Clamp(ms, axis.StartMs, axis.EndMs - 1) / 1000);
     }
 
-    public void LabelPressed(int lane, Vector2 point)
+    private void LabelPressed(int lane)
     {
         if (lane >= 0 && lane < _clips.Count)
             Jump?.Invoke(_clips[lane].Line, _clips[lane].Column);
-    }
-
-    public void LanePressed(int lane, double ms, bool additive)
-    {
-    }
-
-    public void ItemPressed(in TimelineItem item, TimelinePick pick, TimelineGrabPart part)
-    {
-        if (item.Ref == _play)
-            _playing = !_playing;
-    }
-
-    public void ItemMoved(in TimelineItem item, double fromMs, double toMs)
-    {
-    }
-
-    public void ItemReleased(in TimelineItem item, bool remove)
-    {
-    }
-
-    public void BoxSelected(IReadOnlyList<object> selection)
-    {
     }
 
     // Drawing

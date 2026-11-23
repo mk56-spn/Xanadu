@@ -17,7 +17,8 @@ internal readonly record struct AtlasGlyph(int Page, int X, int Y, int Width, in
 /// colour. Pages are never evicted (retained canvas items keep their UVs), and
 /// a new page opens when one fills. Changed rows upload once per frame.
 /// </summary>
-internal sealed class TextAtlas : IDisposable
+/// <param name="register">Gives a new page texture an id the canvas can draw it by.</param>
+internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> register) : IDisposable
 {
     public const int Size = 1024;
     private const int Gap = 1;
@@ -27,21 +28,14 @@ internal sealed class TextAtlas : IDisposable
         public readonly Texture Texture = texture;
         public readonly ulong Id = id;
         public readonly uint[] Pixels = new uint[Size * Size];
-        public readonly List<(int Y, int Height, int X)> Shelves = new();
+        public readonly List<(int Y, int Height, int X)> Shelves = [];
         public int Bottom;
         public int DirtyTop = int.MaxValue, DirtyBottom;
     }
 
-    private readonly GraphicsDevice _device;
-    private readonly Func<Texture, ulong> _register;
-    private readonly List<Page> _pages = new();
-
-    /// <param name="register">Gives a new page texture an id the canvas can draw it by.</param>
-    public TextAtlas(GraphicsDevice device, Func<Texture, ulong> register)
-    {
-        _device = device;
-        _register = register;
-    }
+    private readonly GraphicsDevice _device = device;
+    private readonly Func<Texture, ulong> _register = register;
+    private readonly List<Page> _pages = [];
 
     public int PageCount => _pages.Count;
 

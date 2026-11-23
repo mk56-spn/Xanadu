@@ -20,7 +20,7 @@ namespace Xanadu.Host.Rendering;
 /// </remarks>
 internal sealed class CanvasTree : ICanvasServer
 {
-    private readonly Dictionary<ulong, CanvasItem> _items = new();
+    private readonly Dictionary<ulong, CanvasItem> _items = [];
     private ulong _nextId = 1;
     private long _nextOrder;
 
@@ -302,7 +302,7 @@ internal sealed class CanvasTree : ICanvasServer
     public void Mount(Handle rid, ICanvasMount mount)
     {
         if (Find(rid) is { } item)
-            (item.Mounts ??= new List<ICanvasMount>()).Add(mount);
+            (item.Mounts ??= []).Add(mount);
     }
 
     public void Unmount(Handle rid, ICanvasMount mount) => Find(rid)?.Mounts?.Remove(mount);
@@ -322,7 +322,7 @@ internal sealed class CanvasItem(ulong id)
 {
     public readonly ulong Id = id;
     public CanvasItem? Parent;
-    public readonly List<CanvasItem> Children = new();
+    public readonly List<CanvasItem> Children = [];
     public bool ChildrenSorted = true;
     public long Order;
     public int Z;
@@ -338,7 +338,7 @@ internal sealed class CanvasItem(ulong id)
     public CanvasMaterial? Material;
 
     /// <summary>Shaded runs among the item's draws: each primitive's <see cref="Primitive.Run"/> points into this.</summary>
-    public readonly List<(CanvasMaterial? Material, IReadOnlyDictionary<string, Vector4>? Values)> Runs = new();
+    public readonly List<(CanvasMaterial? Material, IReadOnlyDictionary<string, Vector4>? Values)> Runs = [];
 
     /// <summary>The run draws added now go into; 0 is plain.</summary>
     public int CurrentRun;
@@ -346,7 +346,7 @@ internal sealed class CanvasItem(ulong id)
     /// <summary>Set by <c>AddSetTransform</c>: applied to the commands that follow.</summary>
     public Transform2D CommandTransform = Transform2D.Identity;
 
-    public readonly List<Primitive> Primitives = new();
+    public readonly List<Primitive> Primitives = [];
 
     /// <summary>
     /// Mesh points added so far: the next command's points are numbered from here, so a
@@ -377,7 +377,7 @@ internal sealed class CanvasItem(ulong id)
     public int PoolHash;
 
     /// <summary>The textures the primitives read, in the order of their local slots on the GPU.</summary>
-    public readonly List<ulong> LocalTextures = new();
+    public readonly List<ulong> LocalTextures = [];
 
     public void ClearCommands()
     {

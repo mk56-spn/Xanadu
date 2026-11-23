@@ -1,12 +1,12 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ui.Editing;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Editing;
 using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
@@ -116,7 +116,7 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
     public void StopRename() => _rename = null;
 
     /// <summary>This frame's bracket colours by line, column.</summary>
-    private readonly Dictionary<(int Line, int Column), Color> _brackets = new();
+    private readonly Dictionary<(int Line, int Column), Color> _brackets = [];
 
     /// <summary>What Slang and the lint found, by 1-based line; the first on a line is the one shown.</summary>
     public IReadOnlyList<SlangProblem> Problems { get; set; } = [];
@@ -135,7 +135,7 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
 
     private List<Faded> _faded = [];
     private List<LoopIndex> _loopIndexes = [];
-    private Dictionary<string, System.Numerics.Vector4> _declaredColours = new();
+    private Dictionary<string, System.Numerics.Vector4> _declaredColours = [];
     private int _fadedVersion = -1;
 
     /// <summary>Why the name at a place is faded, or null when it isn't.</summary>

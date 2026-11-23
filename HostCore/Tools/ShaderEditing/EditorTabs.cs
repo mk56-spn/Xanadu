@@ -34,7 +34,7 @@ internal sealed class EditorTabs : IDisposable
     private readonly UiNode _scrim;
     private readonly UiNode _dialog;
     private readonly Entity _title, _message, _yes, _no;
-    private readonly List<(Entity Tab, Entity Cross)> _tabs = new();
+    private readonly List<(Entity Tab, Entity Cross)> _tabs = [];
     private string _shown = "";
     private Rect2 _code;
     private EditorQuestion? _question;

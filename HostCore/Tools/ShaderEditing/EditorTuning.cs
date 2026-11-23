@@ -27,16 +27,16 @@ internal sealed class EditorTuning : IDisposable
     private readonly HashSet<string> _filledByLab;
 
     /// <summary>The shader's own values in declaration order.</summary>
-    private readonly List<MaterialParam> _declared = new();
+    private readonly List<MaterialParam> _declared = [];
 
     /// <summary>The play values the code reads that the editor stands in for (<see cref="PlayStandIns"/>), under the shader's own.</summary>
-    private readonly List<PlayStandIns.Slider> _standIns = new();
+    private readonly List<PlayStandIns.Slider> _standIns = [];
 
     /// <summary>Every value as last tuned, by name: kept when a compile drops a value, for when it comes back.</summary>
-    private readonly Dictionary<string, float[]> _tuned = new();
+    private readonly Dictionary<string, float[]> _tuned = [];
 
     /// <summary>Each value's field (or a pick's button) as built.</summary>
-    private readonly Dictionary<string, Entity> _fields = new();
+    private readonly Dictionary<string, Entity> _fields = [];
 
     private Rect2 _area;
     private string _shown = "";
@@ -44,7 +44,7 @@ internal sealed class EditorTuning : IDisposable
 
     public EditorTuning(EntityStore entities, Rect2 area, IEnumerable<string> filledByLab)
     {
-        _filledByLab = new HashSet<string>(filledByLab);
+        _filledByLab = [.. filledByLab];
         _layer = UiNode.Layer(entities, default, UiLayers.ShaderEditorValues, null, UiStage.Full).Theme(UiThemes.Tools);
         _column = _layer.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Start).Clip();
         Area = area;
@@ -188,11 +188,7 @@ internal sealed class EditorTuning : IDisposable
         _fields[name] = field;
         if (field.HasComponent<Dropdown>())
         {
-            field.OnComponentChanged += change =>
-            {
-                if (change.Type == typeof(DropdownChanged) && change.Action != ComponentChangedAction.Remove)
-                    _tuned[name] = [change.Component<DropdownChanged>().Value];
-            };
+            field.OnPicked(value => _tuned[name] = [value]);
             return;
         }
 

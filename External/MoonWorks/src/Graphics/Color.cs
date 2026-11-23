@@ -52,8 +52,7 @@ namespace MoonWorks.Graphics
 		public Color(float r, float g, float b) : this(
 			(byte) (System.Math.Clamp(r, 0, 1) * byte.MaxValue),
 			(byte) (System.Math.Clamp(g, 0, 1) * byte.MaxValue),
-			(byte) (System.Math.Clamp(b, 0, 1) * byte.MaxValue),
-			(byte) 255
+			(byte) (System.Math.Clamp(b, 0, 1) * byte.MaxValue)
 		) { }
 
 		public Color(Vector4 vector) : this(vector.X, vector.Y, vector.Z, vector.W) { }
@@ -471,7 +470,7 @@ namespace MoonWorks.Graphics
 		/// <summary>
 		/// Maroon color (R:128,G:0,B:0,A:255).
 		/// </summary>
-		public static Color Maroon => new(128, 0, 0, 255);
+		public static Color Maroon => new(128, 0, 0);
 
 		/// <summary>
 		/// MediumAquamarine color (R:102,G:205,B:170,A:255).

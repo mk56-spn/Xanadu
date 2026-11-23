@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ui.Editing;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Editing;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
@@ -15,7 +15,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// caret leaves that spot or on Esc (until the spot changes). Up/Down choose,
 /// Tab/Enter or a click take the choice.
 /// </summary>
-internal sealed class CompletionPopup
+internal sealed class CompletionPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
 {
     private const int Shown = 10;
     private const float Row = 22;
@@ -26,10 +26,10 @@ internal sealed class CompletionPopup
     internal static readonly Color Border = new("#2c3a66");
     private static readonly Color Chosen = new("#24335f");
 
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _item;
+    private readonly IRectCanvas _canvas = canvas;
+    private readonly Handle _item = item;
     /// <summary>The code's area: the box stays inside it. Follows the editor when it is resized.</summary>
-    public Rect2 Bounds { get; set; }
+    public Rect2 Bounds { get; set; } = bounds;
     private List<Completion> _items = [];
     private int _selected;
     private int _first;
@@ -37,13 +37,6 @@ internal sealed class CompletionPopup
 
     /// <summary>The (line, column) it was closed at with Esc; it stays shut there.</summary>
     private (int Line, int Start)? _dismissed;
-
-    public CompletionPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
-    {
-        _canvas = canvas;
-        _item = item;
-        Bounds = bounds;
-    }
 
     public bool Open { get; private set; }
 
@@ -157,7 +150,7 @@ internal sealed class CompletionPopup
 
             float left = x + 8;
             if (entry.Swatch is { } s)
-                _canvas.DrawRect(_item, new Rect2(left, top + 5, 12, 12), new Color(s.X, s.Y, s.Z, 1));
+                _canvas.DrawRect(_item, new Rect2(left, top + 5, 12, 12), new Color(s.X, s.Y, s.Z));
             else
                 _canvas.DrawTextMono(_item, new Rect2(left - 4, top, 20, Row), Mark(entry.Kind), Palette.TextMuted, 11, TextAlign.Left);
             _canvas.DrawTextMono(_item, new Rect2(left + 18, top, Width * 0.5f, Row), entry.Name, Palette.Text, TextSize, TextAlign.Left);

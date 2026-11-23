@@ -1,8 +1,8 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Host.Rendering;
 using Xanadu.Ui.Ecs.Ui;
@@ -31,12 +31,12 @@ internal sealed class HostShapeGlow(ICanvasServer server)
         public int Users;
     }
 
-    private readonly Dictionary<string, Baked> _baked = new();
+    private readonly Dictionary<string, Baked> _baked = [];
 
     /// <summary>The bake each canvas item draws now, so one no item uses is freed.</summary>
-    private readonly Dictionary<Handle, string> _drawing = new();
+    private readonly Dictionary<Handle, string> _drawing = [];
 
-    public void Draw(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, ShapeGlow glow)
+    public void Draw(Handle canvas, ReadOnlySpan<Vector2> points, bool closed, bool filled, float strokeWidth, Glow glow)
     {
         if (points.Length < 2 && !(filled && points.Length >= 3))
             return;
@@ -90,7 +90,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
     }
 
     private static Baked Bake(
-        ReadOnlySpan<Vector2> points, Vector2 anchor, bool closed, bool filled, float strokeWidth, ShapeGlow glow)
+        ReadOnlySpan<Vector2> points, Vector2 anchor, bool closed, bool filled, float strokeWidth, Glow glow)
     {
         Vector2 min = points[0], max = points[0];
         foreach (Vector2 point in points)
@@ -160,7 +160,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
 
     /// <summary>The shape relative to its corner, to an eighth of a pixel, and what the glow looks like.</summary>
     private static string Key(
-        ReadOnlySpan<Vector2> points, Vector2 anchor, bool closed, bool filled, float strokeWidth, ShapeGlow glow)
+        ReadOnlySpan<Vector2> points, Vector2 anchor, bool closed, bool filled, float strokeWidth, Glow glow)
     {
         var key = new StringBuilder(points.Length * 12 + 32);
         CultureInfo inv = CultureInfo.InvariantCulture;

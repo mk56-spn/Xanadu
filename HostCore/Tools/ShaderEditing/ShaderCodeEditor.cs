@@ -9,9 +9,9 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
+using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
-using Xanadu.Slang;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 
@@ -102,7 +102,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         }
     }
 
-    private readonly List<Tab> _tabs = new();
+    private readonly List<Tab> _tabs = [];
     private int _open;
     private readonly EditorTabs _strip;
     private LibraryPlace? _goTo;
@@ -571,10 +571,9 @@ internal sealed class ShaderCodeEditor : IDisposable
         _compiledVersion = version;
         _lint = lint;
         string[] compiledLines = source.Split('\n');
-        _shownConversions = SlangShaders.ColourConversionsOf(source)
+        _shownConversions = [.. SlangShaders.ColourConversionsOf(source)
             .Where(c => c.Line < compiledLines.Length)
-            .Select(c => (c, compiledLines[c.Line][c.Column..Math.Min(compiledLines[c.Line].Length, c.Column + c.Length)]))
-            .ToList();
+            .Select(c => (c, compiledLines[c.Line][c.Column..Math.Min(compiledLines[c.Line].Length, c.Column + c.Length)]))];
         string said = "";
         if (error is null)
         {

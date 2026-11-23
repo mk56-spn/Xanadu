@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ui.Editing;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Editing;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
@@ -15,7 +15,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// what its <c>///</c> comment says. Goes the moment the pointer leaves the name, a key edits or a button is
 /// down, and never shows while the completion list is open.
 /// </summary>
-internal sealed class HoverPopup
+internal sealed class HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
 {
     private const float Delay = 0.4f;
     private const float MaxWidth = 540;
@@ -25,13 +25,13 @@ internal sealed class HoverPopup
 
     private static readonly Color Signature = new("#82aaff");
 
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _item;
+    private readonly IRectCanvas _canvas = canvas;
+    private readonly Handle _item = item;
     /// <summary>The code's area: the box stays inside it. Follows the editor when it is resized.</summary>
-    public Rect2 Bounds { get; set; }
+    public Rect2 Bounds { get; set; } = bounds;
 
     /// <summary>One character's width at <see cref="TextSize"/>.</summary>
-    private readonly float _charWidth;
+    private readonly float _charWidth = UiTextMetrics.MonoCharWidth(TextSize);
 
     /// <summary>The name the pointer is on (line, where it starts), and how long it has been there.</summary>
     private (int Line, int Start)? _over;
@@ -40,14 +40,6 @@ internal sealed class HoverPopup
     private string? _shownReason;
     private Vector2 _anchor;
     private float _lineHeight;
-
-    public HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
-    {
-        _canvas = canvas;
-        _item = item;
-        Bounds = bounds;
-        _charWidth = UiTextMetrics.MonoCharWidth(TextSize);
-    }
 
     /// <summary>
     /// Follows the pointer: <paramref name="under"/> is the code under it (null when it is

@@ -60,8 +60,8 @@ public sealed class FrameAutopsy
     public long TicksPerSecond { get; set; }
     /// <summary>Whether this launch also wrote a CPU sample trace (XANADU_PROFILE=1).</summary>
     public bool HasTrace { get; set; }
-    public List<AutopsyTrack> Tracks { get; } = new();
-    public List<AutopsyFrame> Frames { get; } = new();
+    public List<AutopsyTrack> Tracks { get; } = [];
+    public List<AutopsyFrame> Frames { get; } = [];
 
     public const int CpuRoot = 0;
     public const int GpuRoot = 1;

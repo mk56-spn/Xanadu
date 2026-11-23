@@ -15,15 +15,16 @@ using Xanadu.Core.Theme;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
 using Xanadu.Host.Text;
-using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
-using MwColor = MoonWorks.Graphics.Color;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Debug;
 using Xanadu.Ui.Systems.Ui;
+using Xanadu.Ui.Terminal;
 using Color = Xanadu.Core.Maths.Color;
+using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
+using MwColor = MoonWorks.Graphics.Color;
 
 namespace Xanadu.Host;
 
@@ -94,6 +95,24 @@ internal abstract class HostApp : Game
 
     /// <summary>The host's UI; null with <see cref="HostUi.None"/>.</summary>
     private readonly UiRoot? _ui;
+
+    /// <summary>
+    /// The text terminal's commands (Ctrl+`). The host adds its own (vsync,
+    /// frame cap, window mode…); an exe adds whatever it wants to be told.
+    /// </summary>
+    protected TerminalCommands Terminal { get; } = new();
+
+    /// <summary>True while the terminal is down: it has the keyboard, so exes hold their shortcuts back.</summary>
+    protected bool TerminalOpen => _ui?.Terminal?.IsOpen ?? false;
+
+    private bool _vsync = true;
+
+    /// <summary>
+    /// <c>XANADU_TERMINAL="vsync off;maxfps 144"</c>: lines run at launch, once the exe has
+    /// added its commands, with the terminal left down to show what they said.
+    /// </summary>
+    private string? _startupLines;
+    private int _maxFps;
 
     /// <summary>The canvas the host's UI draws with, for exe systems that draw alongside it.</summary>
     protected IRectCanvas UiCanvas => _ui!.Canvas;
@@ -177,8 +196,12 @@ internal abstract class HostApp : Game
                 new Vector2(Width, Height),
                 Keyboard,
                 Pointer,
-                tooltips: ui != HostUi.NoTooltips);
+                tooltips: ui != HostUi.NoTooltips,
+                terminal: Terminal);
+            HostTerminal.AddCommands(this);
         }
+
+        _startupLines = Environment.GetEnvironmentVariable("XANADU_TERMINAL");
         _splash.Show(0.9f, force: true);
 
         // Every launch is recorded for the Autopsy tool and saved when the window closes.
@@ -255,13 +278,14 @@ internal abstract class HostApp : Game
     /// </summary>
     private void ApplyVSync(bool enabled)
     {
+        _vsync = enabled;
         PresentMode mode = enabled ? PresentMode.VSync
             : GraphicsDevice.SupportsPresentMode(MainWindow, PresentMode.Mailbox) ? PresentMode.Mailbox
             : PresentMode.Immediate;
         GraphicsDevice.SetSwapchainParameters(MainWindow, SwapchainComposition.SDR, mode);
         // MoonWorks' Uncapped mode draws without updating between timesteps, so
         // "off" is a cap no frame reaches: every frame still gets one update.
-        SetFramePacingSettings(FramePacingSettings.CreateCapped(enabled ? RefreshRate() : 100_000, 1));
+        SetFramePacingSettings(FramePacingSettings.CreateCapped(enabled ? RefreshRate() : _maxFps > 0 ? _maxFps : 100_000, 1));
         // Under KDE fullscreen the compositor scans our buffer out and holds it
         // until the next flip; with two frames in flight vsync locked at half
         // the refresh rate with the GPU idle. A third costs at most one refresh
@@ -301,6 +325,34 @@ internal abstract class HostApp : Game
         }
         SDL.SDL_SyncWindow(window);
     }
+
+    /// <summary>What the terminal reads and sets; see <see cref="HostTerminal"/>.</summary>
+    internal bool VSync
+    {
+        get => _vsync;
+        set => ApplyVSync(value);
+    }
+
+    /// <summary>The frame cap while vsync is off; 0 for none.</summary>
+    internal int MaxFps
+    {
+        get => _maxFps;
+        set
+        {
+            _maxFps = Math.Max(0, value);
+            ApplyVSync(_vsync);
+        }
+    }
+
+    internal int DisplayHz => RefreshRate();
+
+    internal double CurrentFps => Fps.GetFps();
+
+    internal TerminalCommands Commands => Terminal;
+
+    internal void SetWindowMode(WindowMode mode) => ApplyWindowMode(mode);
+
+    internal void RequestScreenshot() => _screenshotRequested = true;
 
     private unsafe int RefreshRate()
     {
@@ -356,6 +408,13 @@ internal abstract class HostApp : Game
         Xanadu.Core.Tweens.ClipClocks.SetSeconds(time);
         BeforeSystems(delta);
         _phases.Lap(HostFramePhases.Phase.Input, ref lap);
+        if (_startupLines is { } lines && _ui?.Terminal is { } terminal)
+        {
+            _startupLines = null;
+            foreach (string line in lines.Split(';'))
+                terminal.Run(line);
+            terminal.Show(true);
+        }
         _ui?.Update(new UpdateTick(delta, time));
         _phases.Lap(HostFramePhases.Phase.UiAndSystems, ref lap);
         Tick(delta, time);
