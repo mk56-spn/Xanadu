@@ -43,8 +43,8 @@ public sealed class RigClipAuthoringTests
 
         Assert.That(package.Clips.IndexOf(copy), Is.EqualTo(1));
         Assert.That(copy.Id, Is.EqualTo("idle-2"));
-        copy.Channels[0].Keyframes[0].Value = 9f;
-        Assert.That(source.Channels[0].Keyframes[0].Value, Is.EqualTo(1f));
+        copy.Channels[0].Keys[0].Value = 9f;
+        Assert.That(source.Channels[0].Keys[0].Value, Is.EqualTo(1f));
     }
 
     [Test]

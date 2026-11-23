@@ -32,7 +32,6 @@ public sealed class EditorHelpSceneTest : SceneTest
         {
             _overlay = new EditorOverlay(
                 Context.Entities,
-                Context.Systems.Commands,
                 Context.Pointer,
                 () => Context.Scenes.TryBack(),
                 () => Context.Scenes.TryForward(),
@@ -41,13 +40,14 @@ public sealed class EditorHelpSceneTest : SceneTest
         });
         AddStep("open the key list", () =>
         {
-            EditorShortcuts.Binding? binding = EditorShortcuts.Find(
-                new KeyChord(GameDebugKeys.EditorHelp),
-                _overlay!.ActiveScopes);
-            if (binding is null)
-                throw new SceneTestAssertionException("no binding opens the key list");
+            // The host hands keys to whatever takes them: the overlay tagged the editor when it opened.
+            Entity editor = default;
+            foreach (Entity entity in Context.Entities.Query().AllTags(Tags.Get<KeyTarget>()).Entities)
+                editor = entity;
+            if (editor.IsNull)
+                throw new SceneTestAssertionException("the overlay did not take the editor's keys");
 
-            _overlay.Run(binding.Value);
+            editor.EmitSignal(new KeyPressed(new KeyChord(GameDebugKeys.EditorHelp)));
         });
         AddUntilStep("the key list shows", () =>
         {
@@ -59,7 +59,7 @@ public sealed class EditorHelpSceneTest : SceneTest
         AddAssert("the list scrolls inside its panel", () =>
         {
             Entity viewport = default;
-            foreach (Entity entity in Context.Entities.Query<ScrollView>().ToEntityList())
+            foreach (Entity entity in Context.Entities.Query<ScrollOffset>().ToEntityList())
                 viewport = entity;
 
             if (viewport.IsNull || viewport.ChildCount == 0)

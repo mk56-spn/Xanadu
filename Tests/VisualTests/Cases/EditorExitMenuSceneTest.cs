@@ -31,7 +31,6 @@ public sealed class EditorExitMenuSceneTest : SceneTest
         {
             _overlay = new EditorOverlay(
                 Context.Entities,
-                Context.Systems.Commands,
                 Context.Pointer,
                 () => Context.Scenes.TryBack(),
                 () => Context.Scenes.TryForward(),

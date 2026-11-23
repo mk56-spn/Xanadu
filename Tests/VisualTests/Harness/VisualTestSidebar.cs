@@ -199,7 +199,7 @@ public sealed class VisualTestSidebar : IDisposable
         if (focus != _detailFocus)
         {
             _detailFocus = focus;
-            _detailView.GetComponent<ScrollView>().Offset =
+            _detailView.GetComponent<ScrollOffset>().Value =
                 focus < 0 ? 0 : focusTop - DetailHeight / 2;
         }
     }
@@ -275,12 +275,12 @@ public sealed class VisualTestSidebar : IDisposable
 
     private void KeepRowInView(int index)
     {
-        ref ScrollView view = ref _listView.GetComponent<ScrollView>();
+        ref ScrollOffset view = ref _listView.GetComponent<ScrollOffset>();
         float top = index * RowPitch;
-        if (top < view.Offset)
-            view.Offset = top;
-        else if (top + RowHeight > view.Offset + ListHeight)
-            view.Offset = top + RowHeight - ListHeight;
+        if (top < view.Value)
+            view.Value = top;
+        else if (top + RowHeight > view.Value + ListHeight)
+            view.Value = top + RowHeight - ListHeight;
     }
 
     private void RefreshRows()

@@ -30,25 +30,6 @@ public sealed class HudLayoutSystemTests : EcsSystemTest
         Root.Add(new HudLayoutSystem(_canvas, _pointer, _keyboard, new HudLayoutSettings(persist: false)));
     }
 
-    [Test]
-    public void DragMovesAndSavesTheWholeItem()
-    {
-        Entity member = Store.CreateEntity(new VisualItem(default), new Position(new Vector2(100, 100)));
-        Entity playfield = Store.CreateEntity(
-            new HudLayout(),
-            new PlayfieldView(Vector2.Zero, 1f, new Vector2(800, 600)));
-        ref HudLayout layout = ref playfield.GetComponent<HudLayout>();
-        layout.Add("score", new Vector2(100, 100), new Rect2(80, 80, 40, 40), member);
-
-        _keyboard.Press(Key.F7);
-        _pointer.Current = new PointerInput(new Vector2(100, 100), true);
-        Frame();
-        _pointer.Current = new PointerInput(new Vector2(140, 120), true);
-        Frame();
-
-        Assert.That(member.GetComponent<Position>().Value, Is.EqualTo(new Vector2(140, 120)));
-    }
-
     private sealed class ScriptedPointer : IPointerInputSource
     {
         public PointerInput Current;

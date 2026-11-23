@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using NUnit.Framework;
 using Xanadu.Model.Animation;
 
@@ -18,11 +19,11 @@ public sealed class RigAuthoringTests
             Is.True);
         Assert.That(RigAuthoring.SetBoneProperty(package, clip, "root", RigChannelProperty.Rotation, 1f, 3f), Is.True);
 
-        RigChannel channel = clip.Channels[0];
-        Assert.That(channel.Keyframes, Has.Count.EqualTo(2));
-        Assert.That(channel.Keyframes[0].Time, Is.EqualTo(0.5f));
-        Assert.That(channel.Keyframes[1].Time, Is.EqualTo(1f));
-        Assert.That(channel.Keyframes[1].Value, Is.EqualTo(3f));
+        KeyChannel channel = clip.Channels[0];
+        Assert.That(channel.Keys, Has.Count.EqualTo(2));
+        Assert.That(channel.Keys[0].Time, Is.EqualTo(0.5f));
+        Assert.That(channel.Keys[1].Time, Is.EqualTo(1f));
+        Assert.That(channel.Keys[1].Value, Is.EqualTo(3f));
     }
 
     [Test]
@@ -55,7 +56,7 @@ public sealed class RigAuthoringTests
 
         Assert.That(clip.Channels, Has.Count.EqualTo(5));
         Assert.That(
-            clip.Channels.TrueForAll(channel => channel.Keyframes.Count == 1 && channel.Keyframes[0].Time == 0.5f),
+            clip.Channels.TrueForAll(channel => channel.Keys.Count == 1 && channel.Keys[0].Time == 0.5f),
             Is.True);
     }
 

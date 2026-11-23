@@ -1,3 +1,4 @@
+using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs;
 using System;
@@ -34,7 +35,7 @@ public sealed class SongSelectSceneTest : SceneTest
                 UiLayers.Menu) == 0);
         AddAssert(
             "level list has nine rows",
-            () => Context.Entities.Query<SongSelectTile>().Count == 9);
+            () => Context.Entities.Query().AllTags(Tags.Get<SongSelectTile>()).Count == 9);
         AddAssert(
             "the empty carousel says so",
             () => VisualAssert.HasText(Context.Entities, "NO LEVELS FOUND"));
@@ -47,7 +48,7 @@ public sealed class SongSelectSceneTest : SceneTest
         AddUntilStep(
             "the editor opens a new level",
             () => Context.Scenes.Current == SceneKind.Editor &&
-                  Context.Entities.Query<LevelFile>().Count == 1);
+                  Context.Entities.Query<LevelInfo, FilePath>().Count == 1);
     }
 
     private void ClickCreateLevel()

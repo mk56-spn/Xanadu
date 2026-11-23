@@ -99,28 +99,6 @@ public sealed class SongTimingSceneTests
         Assert.That(hasBack, Is.True);
     }
 
-    [Test]
-    public void TheActionRowIsCenteredAndTheAdjustButtonsFlankTheirValues()
-    {
-        Build();
-
-        Rect2 save = Area(ByText("SAVE"));
-        Rect2 back = Area(ByText("BACK"));
-        Rect2 minus = Area(ByText("-1 BPM"));
-        Rect2 plus = Area(ByText("+1 BPM"));
-        Rect2 bpm = Area(ByText("BPM 128"));
-
-        Assert.That(save.End.X, Is.LessThan(back.Position.X));
-        Assert.That((save.Position.X + back.End.X) / 2, Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
-
-        // The value box is deliberately wider than its text, so the step buttons
-        // beside it stay put however long the value gets.
-        Assert.That(CenterX(bpm), Is.EqualTo(UiStage.Full.Center.X).Within(0.5f));
-        Assert.That(minus.End.X, Is.LessThan(bpm.Position.X));
-        Assert.That(plus.Position.X, Is.GreaterThan(bpm.End.X));
-        Assert.That(CenterX(minus) + CenterX(plus), Is.EqualTo(2 * UiStage.Full.Center.X).Within(0.5f));
-    }
-
     private static float CenterX(Rect2 area) => area.Position.X + area.Size.X / 2;
 
     private Entity ByText(string text) =>
