@@ -36,25 +36,25 @@ public sealed class AnimatorPlaybackTests
         Assert.That(playback.Runtime.CurrentTime, Is.EqualTo(0.5f).Within(0.001f));
     }
 
-    private static XafPackage Package()
+    private static RigPackage Package()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "root",
                 Parent = -1,
                 Rest = Transform2D.Identity
             });
-        var clip = new XafClip { Id = "idle", Duration = 2f };
-        var channel = new XafChannel
+        var clip = new RigClip { Id = "idle", Duration = 2f };
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.TranslationX
+            Property = RigChannelProperty.TranslationX
         };
-        channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        channel.Keyframes.Add(new XafKeyframe { Time = 2f, Value = 10f });
+        channel.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        channel.Keyframes.Add(new RigKeyframe { Time = 2f, Value = 10f });
         clip.Channels.Add(channel);
         package.Clips.Add(clip);
         return package;

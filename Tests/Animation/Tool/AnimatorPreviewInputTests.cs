@@ -56,7 +56,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         // The torso joint sits straight above the root; pull it to the right.
         MoveTo(PreviewOrigin() + new Vector2(200, 0));
 
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[1].Origin, Is.EqualTo(new Vector2(80, 0)).Using<Vector2>(Close));
         Assert.That(Runtime.Pose.Bones[0].Rotation, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(Runtime.Pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -80)).Using<Vector2>(Close));
@@ -71,7 +71,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
         {
             MoveTo(PreviewOrigin() + offset);
 
-            Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+            Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
             Assert.That(world[1].Origin.DistanceTo(world[0].Origin), Is.EqualTo(80f).Within(0.01f));
         }
     }
@@ -85,7 +85,7 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         MoveTo(PreviewOrigin() + new Vector2(-100, 0));
 
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Vector2 direction = world[1].Origin.Normalized();
         Assert.That(direction, Is.EqualTo(new Vector2(-1, 0)).Using<Vector2>(Close));
     }
@@ -192,12 +192,12 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         Release();
 
-        XafChannel? rotation = Idle.Channels.Find(channel =>
-            channel.TargetId == "root" && channel.Property == XafChannelProperty.Rotation);
+        RigChannel? rotation = Idle.Channels.Find(channel =>
+            channel.TargetId == "root" && channel.Property == RigChannelProperty.Rotation);
         Assert.That(rotation, Is.Not.Null);
         Assert.That(rotation!.Keyframes[0].Value, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(
-            Idle.Channels.Exists(channel => channel.TargetId == "torso" && XafSampler.IsTranslation(channel.Property)),
+            Idle.Channels.Exists(channel => channel.TargetId == "torso" && RigSampler.IsTranslation(channel.Property)),
             Is.False);
     }
 
@@ -213,8 +213,8 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
 
         Release();
 
-        XafChannel? x = Idle.Channels.Find(channel =>
-            channel.TargetId == "torso" && channel.Property == XafChannelProperty.TranslationX);
+        RigChannel? x = Idle.Channels.Find(channel =>
+            channel.TargetId == "torso" && channel.Property == RigChannelProperty.TranslationX);
         Assert.That(x, Is.Not.Null);
         Assert.That(x!.Keyframes[0].Value, Is.EqualTo(10f).Within(0.001f));
     }
@@ -237,9 +237,9 @@ public sealed class AnimatorPreviewInputTests : AnimatorToolTest
     {
         AnimatorDocument document = Session.GetComponent<AnimatorDocument>();
         Session.GetComponent<AnimatorModes>().Svg = true;
-        XafPose pose = document.Runtime.Pose;
-        Transform2D[] bones = XafRig.WorldBones(Package, pose);
-        Vector2 marker = PreviewOrigin() + XafRig.WorldAttachments(Package, pose, bones)[0].Origin;
+        RigPose pose = document.Runtime.Pose;
+        Transform2D[] bones = RigRig.WorldBones(Package, pose);
+        Vector2 marker = PreviewOrigin() + RigRig.WorldAttachments(Package, pose, bones)[0].Origin;
         PressAt(marker);
 
         MoveTo(marker + new Vector2(0, 8));

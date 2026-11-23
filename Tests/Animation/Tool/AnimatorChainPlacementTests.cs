@@ -35,7 +35,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         Root.Add(new AnimatorHierarchySystem(new FakeVisualRidFactory()));
     }
 
-    private XafChain Chain => Package.Chains[0];
+    private RigChain Chain => Package.Chains[0];
     private AnimatorChains Chains => Session.GetComponent<AnimatorChains>();
     private string Status => Session.GetComponent<AnimatorStatus>().Message;
     private static string TextOf(Entity entity) => entity.GetComponent<Text>().Value;
@@ -53,14 +53,14 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
     }
 
     private Transform2D[] World() =>
-        XafRig.WorldBones(
+        RigRig.WorldBones(
             Package,
             AnimatorGeometry.PreviewPose(
                 Session.GetComponent<AnimatorDocument>(),
                 Session.GetComponent<AnimatorModes>()));
 
-    private Vector2 RootScreen() => PreviewOrigin() + XafChainSimulation.Anchor(Package, Chain, World())!.Value;
-    private Vector2 ColliderScreen() => PreviewOrigin() + XafChainSimulation.Collider(Package, Chain, World())!.Value;
+    private Vector2 RootScreen() => PreviewOrigin() + RigChainSimulation.Anchor(Package, Chain, World())!.Value;
+    private Vector2 ColliderScreen() => PreviewOrigin() + RigChainSimulation.Collider(Package, Chain, World())!.Value;
 
     private void PressAt(Vector2 position)
     {
@@ -94,8 +94,8 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
 
     private Vector2 RootInRestWorld() => RootInRestWorld(Chain);
 
-    private Vector2 RootInRestWorld(XafChain chain) =>
-        XafRig.RestWorld(Package)[XafRig.FindBone(Package, chain.BoneId)] * chain.Offset;
+    private Vector2 RootInRestWorld(RigChain chain) =>
+        RigRig.RestWorld(Package)[RigRig.FindBone(Package, chain.BoneId)] * chain.Offset;
 
     // ---- the inspector shows where everything is
 
@@ -212,7 +212,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         Assert.That(TextOf(Ui.ChainArtButton), Is.EqualTo("leaf / leaf_piece"));
 
         AnimatorHistoryCommands.Undo(Session);
-        Assert.That(Package.Chains[0].SvgPath, Is.EqualTo(XafChain.DefaultSvgPath));
+        Assert.That(Package.Chains[0].SvgPath, Is.EqualTo(RigChain.DefaultSvgPath));
     }
 
     [Test]
@@ -244,7 +244,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.AttachSvg, "0"));
 
         Assert.That(Package.Attachments, Has.Count.EqualTo(2));
-        Assert.That(Chain.SvgPath, Is.EqualTo(XafChain.DefaultSvgPath));
+        Assert.That(Chain.SvgPath, Is.EqualTo(RigChain.DefaultSvgPath));
     }
 
     [Test]
@@ -347,7 +347,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
         Release();
 
         Assert.That(Chain.CollideBoneId, Is.EqualTo("torso"));
-        Assert.That(Chain.CollideRadius, Is.EqualTo(XafChainAuthoring.DefaultColliderRadius));
+        Assert.That(Chain.CollideRadius, Is.EqualTo(RigChainAuthoring.DefaultColliderRadius));
         Assert.That(Chain.HasCollider, Is.True);
         Assert.That(Status, Is.EqualTo("head_chain COLLIDES WITH torso"));
         Frame();
@@ -360,7 +360,7 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
     public void TheColliderSizeCanBeTypedAndZeroRemovesTheCollider()
     {
         AddChainOnHead();
-        XafChainAuthoring.SetColliderBone(Package, 0, 1);
+        RigChainAuthoring.SetColliderBone(Package, 0, 1);
         Frame();
 
         Type(Ui.ChainCollide, "14");
@@ -415,8 +415,8 @@ public sealed class AnimatorChainPlacementTests : AnimatorToolTest
     public void DraggingTheColliderRingsCentreMovesTheColliderAlongItsBone()
     {
         AddChainOnHead();
-        XafChainAuthoring.SetColliderBone(Package, 0, 1);
-        XafChainAuthoring.SetCollideOffset(Package, 0, new Vector2(30, 0));
+        RigChainAuthoring.SetColliderBone(Package, 0, 1);
+        RigChainAuthoring.SetCollideOffset(Package, 0, new Vector2(30, 0));
         Frame();
         Vector2 start = ColliderScreen();
 

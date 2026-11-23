@@ -23,7 +23,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
     private void Run(ToolActionKind kind) =>
         AnimatorCommands.Run(Session, new ToolAction(kind));
 
-    private XafChannel? Channel(string bone, XafChannelProperty property) =>
+    private RigChannel? Channel(string bone, RigChannelProperty property) =>
         Idle.Channels.Find(channel => channel.TargetId == bone && channel.Property == property);
 
     private void Tap(params Key[] keys)
@@ -58,10 +58,10 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
         foreach (string bone in new[] { "root", "torso", "head" })
             Assert.That(
-                Channel(bone, XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 0.5f),
+                Channel(bone, RigChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 0.5f),
                 Is.True,
                 bone);
-        Assert.That(XafSampler.Sample(Package, Idle, 0.5f).Bones[1].Rotation, Is.EqualTo(0.3f).Within(0.0001f));
+        Assert.That(RigSampler.Sample(Package, Idle, 0.5f).Bones[1].Rotation, Is.EqualTo(0.3f).Within(0.0001f));
     }
 
     [Test]
@@ -75,8 +75,8 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Tap(Key.Ctrl, Key.V);
 
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0.4f));
-        Assert.That(XafSampler.Sample(Package, Idle, 1.5f).Bones[1].Rotation, Is.EqualTo(0.4f).Within(0.0001f));
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 1.5f), Is.True);
+        Assert.That(RigSampler.Sample(Package, Idle, 1.5f).Bones[1].Rotation, Is.EqualTo(0.4f).Within(0.0001f));
+        Assert.That(Channel("torso", RigChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 1.5f), Is.True);
     }
 
     [Test]
@@ -90,7 +90,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Run(ToolActionKind.Undo);
 
         Assert.That(
-            Channel("torso", XafChannelProperty.Rotation)?.Keyframes.Exists(key => key.Time == 1.5f) ?? false,
+            Channel("torso", RigChannelProperty.Rotation)?.Keyframes.Exists(key => key.Time == 1.5f) ?? false,
             Is.False);
     }
 
@@ -104,7 +104,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
         Run(ToolActionKind.PastePose);
 
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 1f), Is.True);
+        Assert.That(Channel("torso", RigChannelProperty.Rotation)!.Keyframes.Exists(key => key.Time == 1f), Is.True);
     }
 
     [Test]
@@ -129,7 +129,7 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Frame();
 
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Ik));
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.01f));
         Assert.That(world[1].Origin.DistanceTo(world[0].Origin), Is.EqualTo(80f).Within(0.01f));
         Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
@@ -151,14 +151,14 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
         Frame();
 
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.Ik));
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.01f));
 
         Session.GetComponent<AnimatorModes>().Ik = false;
         Frame();
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(plain));
         // Switching back starts from where the IK left the rig, so nothing jumps.
-        world = XafRig.WorldBones(Package, Runtime.Pose);
+        world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[2].Origin.DistanceTo(target - PreviewOrigin()), Is.LessThan(0.5f));
     }
 
@@ -170,8 +170,8 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 
         Drag(BoneScreenPosition(2), PreviewOrigin() + new Vector2(60, -100));
 
-        Assert.That(Channel("root", XafChannelProperty.Rotation), Is.Not.Null);
-        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Not.Null);
+        Assert.That(Channel("root", RigChannelProperty.Rotation), Is.Not.Null);
+        Assert.That(Channel("torso", RigChannelProperty.Rotation), Is.Not.Null);
     }
 
     [Test]
@@ -248,13 +248,13 @@ public sealed class AnimatorPoseToolsTests : AnimatorToolTest
 [TestFixture]
 public sealed class AnimatorMirrorPoseTests : AnimatorToolTest
 {
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
+        RigPackage package = base.CreatePackage();
         package.Skeleton.Bones.Add(
-            new XafBone { Id = "arm_l", Parent = 1, Rest = new Transform2D(0f, new Vector2(-30, -60)) });
+            new RigBone { Id = "arm_l", Parent = 1, Rest = new Transform2D(0f, new Vector2(-30, -60)) });
         package.Skeleton.Bones.Add(
-            new XafBone { Id = "arm_r", Parent = 1, Rest = new Transform2D(0f, new Vector2(30, -60)) });
+            new RigBone { Id = "arm_r", Parent = 1, Rest = new Transform2D(0f, new Vector2(30, -60)) });
         return package;
     }
 

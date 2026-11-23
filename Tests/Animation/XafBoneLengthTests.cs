@@ -6,46 +6,46 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafBoneLengthTests
+public sealed class RigBoneLengthTests
 {
-    private static XafPackage Package(bool childMovable = false)
+    private static RigPackage Package(bool childMovable = false)
     {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
+        var package = new RigPackage();
+        package.Skeleton.Bones.Add(new RigBone { Id = "root", Parent = -1 });
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "child",
                 Parent = 0,
                 Rest = new Transform2D(0f, new Vector2(0, -50)),
                 AllowTranslation = childMovable
             });
-        var clip = new XafClip { Id = "idle", Duration = 1f };
-        AddKey(clip, "root", XafChannelProperty.TranslationX, 10f);
-        AddKey(clip, "child", XafChannelProperty.TranslationX, 30f);
-        AddKey(clip, "child", XafChannelProperty.Rotation, 0.5f);
+        var clip = new RigClip { Id = "idle", Duration = 1f };
+        AddKey(clip, "root", RigChannelProperty.TranslationX, 10f);
+        AddKey(clip, "child", RigChannelProperty.TranslationX, 30f);
+        AddKey(clip, "child", RigChannelProperty.Rotation, 0.5f);
         package.Clips.Add(clip);
         return package;
     }
 
-    private static void AddKey(XafClip clip, string bone, XafChannelProperty property, float value)
+    private static void AddKey(RigClip clip, string bone, RigChannelProperty property, float value)
     {
-        var channel = new XafChannel
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = bone,
             Property = property
         };
-        channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = value });
+        channel.Keyframes.Add(new RigKeyframe { Time = 0f, Value = value });
         clip.Channels.Add(channel);
     }
 
     [Test]
     public void TheRootAlwaysTranslates()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
-        XafPose pose = XafSampler.Sample(package, package.Clips[0], 0f);
+        RigPose pose = RigSampler.Sample(package, package.Clips[0], 0f);
 
         Assert.That(pose.Bones[0].Translation.X, Is.EqualTo(10f));
     }
@@ -53,9 +53,9 @@ public sealed class XafBoneLengthTests
     [Test]
     public void ABoneIsFixedLengthByDefaultButStillRotates()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
-        XafPose pose = XafSampler.Sample(package, package.Clips[0], 0f);
+        RigPose pose = RigSampler.Sample(package, package.Clips[0], 0f);
 
         Assert.That(pose.Bones[1].Translation, Is.EqualTo(new Vector2(0, -50)));
         Assert.That(pose.Bones[1].Rotation, Is.EqualTo(0.5f));
@@ -64,9 +64,9 @@ public sealed class XafBoneLengthTests
     [Test]
     public void AMovableBoneFollowsItsTranslationChannel()
     {
-        XafPackage package = Package(true);
+        RigPackage package = Package(true);
 
-        XafPose pose = XafSampler.Sample(package, package.Clips[0], 0f);
+        RigPose pose = RigSampler.Sample(package, package.Clips[0], 0f);
 
         Assert.That(pose.Bones[1].Translation.X, Is.EqualTo(30f));
     }
@@ -74,23 +74,23 @@ public sealed class XafBoneLengthTests
     [Test]
     public void KeyingAFixedLengthBoneWritesNoTranslationChannels()
     {
-        XafPackage package = Package();
-        var clip = new XafClip { Id = "new", Duration = 1f };
+        RigPackage package = Package();
+        var clip = new RigClip { Id = "new", Duration = 1f };
 
-        XafAuthoring.KeyBoneTransform(package, clip, 1, 0.5f, XafTransform.Identity);
+        RigAuthoring.KeyBoneTransform(package, clip, 1, 0.5f, RigTransform.Identity);
 
         Assert.That(clip.Channels, Has.Count.EqualTo(3));
-        Assert.That(clip.Channels.Exists(channel => XafSampler.IsTranslation(channel.Property)), Is.False);
+        Assert.That(clip.Channels.Exists(channel => RigSampler.IsTranslation(channel.Property)), Is.False);
     }
 
     [Test]
     public void KeyingTheRootOrAMovableBoneWritesTranslation()
     {
-        XafPackage package = Package(true);
-        var clip = new XafClip { Id = "new", Duration = 1f };
+        RigPackage package = Package(true);
+        var clip = new RigClip { Id = "new", Duration = 1f };
 
-        XafAuthoring.KeyBoneTransform(package, clip, 0, 0.5f, XafTransform.Identity);
-        XafAuthoring.KeyBoneTransform(package, clip, 1, 0.5f, XafTransform.Identity);
+        RigAuthoring.KeyBoneTransform(package, clip, 0, 0.5f, RigTransform.Identity);
+        RigAuthoring.KeyBoneTransform(package, clip, 1, 0.5f, RigTransform.Identity);
 
         Assert.That(clip.Channels, Has.Count.EqualTo(10));
     }
@@ -98,43 +98,43 @@ public sealed class XafBoneLengthTests
     [Test]
     public void TheMovableFlagSurvivesASaveAndLoad()
     {
-        XafPackage package = Package(true);
+        RigPackage package = Package(true);
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
 
         Assert.That(loaded.Skeleton.Bones[1].AllowTranslation, Is.True);
         Assert.That(loaded.Skeleton.Bones[0].AllowTranslation, Is.False);
-        Assert.That(loaded.Minor, Is.EqualTo(XafPackage.MinorVersion));
+        Assert.That(loaded.Minor, Is.EqualTo(RigPackage.MinorVersion));
     }
 
     /// <summary>
     /// A leg hanging straight down, hip at the origin: a 50 long thigh, a 50
     /// long shin and a foot, each with its own art.
     /// </summary>
-    private static XafPackage Leg()
+    private static RigPackage Leg()
     {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "thigh", Parent = -1 });
+        var package = new RigPackage();
+        package.Skeleton.Bones.Add(new RigBone { Id = "thigh", Parent = -1 });
         package.Skeleton.Bones.Add(
-            new XafBone { Id = "shin", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+            new RigBone { Id = "shin", Parent = 0, Rest = new Transform2D(0f, new Vector2(0, 50)) });
         package.Skeleton.Bones.Add(
-            new XafBone { Id = "foot", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 50)) });
+            new RigBone { Id = "foot", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 50)) });
         foreach (string id in new[] { "thigh", "shin", "foot" })
-            package.Attachments.Add(new XafAttachment { Group = id, BoneId = id });
+            package.Attachments.Add(new RigAttachment { Group = id, BoneId = id });
         return package;
     }
 
     [Test]
     public void AKneeBroughtOutOfThePlaneForeshortensTheThighAndTheShinAlike()
     {
-        XafPackage package = Leg();
-        var clip = new XafClip { Id = "chamber", Duration = 1f };
-        AddKey(clip, "shin", XafChannelProperty.Depth, 30f);
+        RigPackage package = Leg();
+        var clip = new RigClip { Id = "chamber", Duration = 1f };
+        AddKey(clip, "shin", RigChannelProperty.Depth, 30f);
         package.Clips.Add(clip);
 
-        XafPose pose = XafSampler.Sample(package, clip, 0f);
-        Transform2D[] bones = XafRig.WorldBones(package, pose);
-        Transform2D[] art = XafRig.WorldAttachments(package, pose, bones);
+        RigPose pose = RigSampler.Sample(package, clip, 0f);
+        Transform2D[] bones = RigRig.WorldBones(package, pose);
+        Transform2D[] art = RigRig.WorldAttachments(package, pose, bones);
 
         // Each 50 long segment spans a depth gap of 30, so 40 of it shows.
         Assert.That(bones[0].Origin, Is.EqualTo(Vector2.Zero), "the hip stays put");
@@ -149,14 +149,14 @@ public sealed class XafBoneLengthTests
     [Test]
     public void ASegmentSquashesAlongItsOwnDirectionWhicheverWayItPoints()
     {
-        XafPackage package = Leg();
+        RigPackage package = Leg();
         package.Skeleton.Bones[1].Rest = new Transform2D(0f, new Vector2(50, 0));
-        var clip = new XafClip { Id = "chamber", Duration = 1f };
-        AddKey(clip, "shin", XafChannelProperty.Depth, 30f);
+        var clip = new RigClip { Id = "chamber", Duration = 1f };
+        AddKey(clip, "shin", RigChannelProperty.Depth, 30f);
         package.Clips.Add(clip);
 
-        XafPose pose = XafSampler.Sample(package, clip, 0f);
-        Transform2D squash = XafRig.Foreshorten(package, pose, 0);
+        RigPose pose = RigSampler.Sample(package, clip, 0f);
+        Transform2D squash = RigRig.Foreshorten(package, pose, 0);
 
         Assert.That(squash * new Vector2(10, 0), Is.EqualTo(new Vector2(8, 0)));
         Assert.That(squash * new Vector2(0, 10), Is.EqualTo(new Vector2(0, 10)));
@@ -165,7 +165,7 @@ public sealed class XafBoneLengthTests
     [Test]
     public void AJointCannotSinkFurtherThanItsSegmentIsLong()
     {
-        Assert.That(XafRig.Projection(50f, 0f, 80f), Is.EqualTo(XafRig.MinProjection));
-        Assert.That(XafRig.Projection(50f, 10f, 10f), Is.EqualTo(1f));
+        Assert.That(RigRig.Projection(50f, 0f, 80f), Is.EqualTo(RigRig.MinProjection));
+        Assert.That(RigRig.Projection(50f, 10f, 10f), Is.EqualTo(1f));
     }
 }

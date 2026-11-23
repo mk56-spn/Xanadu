@@ -8,12 +8,12 @@ namespace Xanadu.Tests.Animation;
 
 /// <summary>Clip events: kept in order, passed by playback exactly once, through loops and fades, and saved.</summary>
 [TestFixture]
-public sealed class XafEventTests
+public sealed class RigEventTests
 {
-    private static XafPackage Package(out XafClip kick, out XafClip idle)
+    private static RigPackage Package(out RigClip kick, out RigClip idle)
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        kick = XafClipAuthoring.Add(package, "kick");
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        kick = RigClipAuthoring.Add(package, "kick");
         kick.Duration = 1f;
         idle = package.Clips.Find(clip => clip.Id == "idle")!;
         idle.Loop = true;
@@ -37,21 +37,21 @@ public sealed class XafEventTests
     [Test]
     public void EventsStayInTimeOrderWhereverTheyAreAddedOrMoved()
     {
-        Package(out XafClip kick, out _);
-        XafEventAuthoring.Add(kick, 0.6f, "land");
-        int hit = XafEventAuthoring.Add(kick, 0.3f, "Hit Frame");
+        Package(out RigClip kick, out _);
+        RigEventAuthoring.Add(kick, 0.6f, "land");
+        int hit = RigEventAuthoring.Add(kick, 0.3f, "Hit Frame");
 
         Assert.That(kick.Events.Select(item => item.Name), Is.EqualTo(new[] { "hit_frame", "land" }));
-        Assert.That(XafEventAuthoring.Move(kick, hit, 0.9f), Is.EqualTo(1));
-        Assert.That(XafEventAuthoring.Add(kick, 5f), Is.EqualTo(-1), "outside the clip");
+        Assert.That(RigEventAuthoring.Move(kick, hit, 0.9f), Is.EqualTo(1));
+        Assert.That(RigEventAuthoring.Add(kick, 5f), Is.EqualTo(-1), "outside the clip");
     }
 
     [Test]
     public void PlaybackPassesEachEventOnceIncludingOneOnTheFirstInstant()
     {
-        XafPackage package = Package(out XafClip kick, out _);
-        XafEventAuthoring.Add(kick, 0f, "wind_up");
-        XafEventAuthoring.Add(kick, 0.5f, "hit");
+        RigPackage package = Package(out RigClip kick, out _);
+        RigEventAuthoring.Add(kick, 0f, "wind_up");
+        RigEventAuthoring.Add(kick, 0.5f, "hit");
         var runtime = new AnimatorRuntime(package);
         runtime.Play("kick");
 
@@ -64,8 +64,8 @@ public sealed class XafEventTests
     [Test]
     public void ALoopPassesItsEventsEveryTimeRound()
     {
-        XafPackage package = Package(out _, out XafClip idle);
-        XafEventAuthoring.Add(idle, 1.9f, "step");
+        RigPackage package = Package(out _, out RigClip idle);
+        RigEventAuthoring.Add(idle, 1.9f, "step");
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
 
@@ -75,8 +75,8 @@ public sealed class XafEventTests
     [Test]
     public void AClipFadingInReportsItsEventsAndSeekingReportsNone()
     {
-        XafPackage package = Package(out XafClip kick, out _);
-        XafEventAuthoring.Add(kick, 0.05f, "hit");
+        RigPackage package = Package(out RigClip kick, out _);
+        RigEventAuthoring.Add(kick, 0.05f, "hit");
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
         Play(runtime, 0.5f);
@@ -90,11 +90,11 @@ public sealed class XafEventTests
     [Test]
     public void EventsAreSaved()
     {
-        XafPackage package = Package(out XafClip kick, out _);
-        XafEventAuthoring.Add(kick, 0.25f, "hit");
+        RigPackage package = Package(out RigClip kick, out _);
+        RigEventAuthoring.Add(kick, 0.25f, "hit");
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
         Assert.That(loaded.Clips.Find(clip => clip.Id == "kick")!.Events.Single().Name, Is.EqualTo("hit"));
-        Assert.That(XafPackageCopy.AreEqual(package, loaded), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(package, loaded), Is.True);
     }
 }

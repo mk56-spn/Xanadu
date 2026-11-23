@@ -259,7 +259,7 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     [Test]
     public void DeleteRemovesTheSelectedKey()
     {
-        AnimatorKeyCommands.SelectKey(Session, new XafTrack(XafChannelTarget.Bone, "head"), 1f);
+        AnimatorKeyCommands.SelectKey(Session, new RigTrack(RigChannelTarget.Bone, "head"), 1f);
         Assert.That(Idle.Channels[0].Keyframes, Has.Count.EqualTo(3));
 
         Tap(Key.Delete);
@@ -306,11 +306,11 @@ public sealed class AnimatorBindingTests : AnimatorToolTest
     [Test]
     public void TheNumberKeysSetTheSelectedKeysEasing()
     {
-        AnimatorKeyCommands.SelectKey(Session, new XafTrack(XafChannelTarget.Bone, "head"), 1f);
+        AnimatorKeyCommands.SelectKey(Session, new RigTrack(RigChannelTarget.Bone, "head"), 1f);
 
         Tap(Key.Key3);
 
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Ease));
+        Assert.That(RigEasing.Read(Idle, RigChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Ease));
     }
 
     [Test]

@@ -4,7 +4,7 @@ using Xanadu.Model.Animation;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafFabrikTests
+public sealed class RigFabrikTests
 {
     [Test]
     public void ReachesATargetWithinChainLength()
@@ -16,7 +16,7 @@ public sealed class XafFabrikTests
             new(20, 0)
         };
 
-        Vector2[] result = XafFabrik.Solve(joints, new Vector2(10, 10), true);
+        Vector2[] result = RigFabrik.Solve(joints, new Vector2(10, 10), true);
 
         Assert.That(result[^1].DistanceTo(new Vector2(10, 10)), Is.LessThan(0.05f));
         Assert.That(result[0], Is.EqualTo(joints[0]));
@@ -34,7 +34,7 @@ public sealed class XafFabrikTests
         float first = joints[0].DistanceTo(joints[1]);
         float second = joints[1].DistanceTo(joints[2]);
 
-        Vector2[] result = XafFabrik.Solve(joints, new Vector2(5, 8), false);
+        Vector2[] result = RigFabrik.Solve(joints, new Vector2(5, 8), false);
 
         Assert.That(result[0].DistanceTo(result[1]), Is.EqualTo(first).Within(0.02f));
         Assert.That(result[1].DistanceTo(result[2]), Is.EqualTo(second).Within(0.02f));
@@ -49,7 +49,7 @@ public sealed class XafFabrikTests
             new(10, 0)
         };
 
-        Vector2[] result = XafFabrik.Solve(joints, new Vector2(100, 0), true);
+        Vector2[] result = RigFabrik.Solve(joints, new Vector2(100, 0), true);
 
         Assert.That(result[^1], Is.EqualTo(new Vector2(10, 0)));
     }
@@ -65,8 +65,8 @@ public sealed class XafFabrikTests
         };
         Vector2 target = new(10, 8);
 
-        Vector2 positive = XafFabrik.Solve(joints, target, true)[1];
-        Vector2 negative = XafFabrik.Solve(joints, target, false)[1];
+        Vector2 positive = RigFabrik.Solve(joints, target, true)[1];
+        Vector2 negative = RigFabrik.Solve(joints, target, false)[1];
 
         Assert.That(positive.Y, Is.GreaterThan(negative.Y));
     }

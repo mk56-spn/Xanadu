@@ -29,10 +29,10 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     }
 
     /// <summary>Clips: idle 2 s, jump 1 s, landing 0.4 s.</summary>
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
-        package.Clips.Add(new XafClip { Id = "landing", Duration = 0.4f });
+        RigPackage package = base.CreatePackage();
+        package.Clips.Add(new RigClip { Id = "landing", Duration = 0.4f });
         return package;
     }
 
@@ -67,7 +67,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     {
         Click(Button(ToolActionKind.AllowTransition, "jump"));
 
-        Assert.That(XafTransitions.Find(Package, "idle", "jump"), Is.Not.Null);
+        Assert.That(RigTransitions.Find(Package, "idle", "jump"), Is.Not.Null);
         Assert.That(Session.GetComponent<AnimatorFlow>().Target, Is.EqualTo("jump"));
         Assert.That(Status, Does.Contain("OTHER HAND-OVERS NOW NEED A RULE"));
         Assert.That(Label(Button(ToolActionKind.AllowTransition, "jump")), Is.EqualTo("ON"));
@@ -75,7 +75,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
         Assert.That(Label(Ui.FlowRule), Is.EqualTo("IDLE ▸ JUMP"));
 
         Click(Button(ToolActionKind.Undo));
-        Assert.That(XafTransitions.IsOpen(Package), Is.True);
+        Assert.That(RigTransitions.IsOpen(Package), Is.True);
     }
 
     [Test]
@@ -84,15 +84,15 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
         Click(Button(ToolActionKind.AllowTransition, "jump"));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
-        Click(Button(ToolActionKind.TransitionCurve, nameof(XafFadeCurve.Smooth)));
+        Click(Button(ToolActionKind.TransitionCurve, nameof(RigFadeCurve.Smooth)));
 
-        XafTransition rule = XafTransitions.Find(Package, "idle", "jump")!;
+        RigTransition rule = RigTransitions.Find(Package, "idle", "jump")!;
         Assert.That(rule.Fade, Is.EqualTo(0.2f).Within(0.0001f));
-        Assert.That(rule.Curve, Is.EqualTo(XafFadeCurve.Smooth));
+        Assert.That(rule.Curve, Is.EqualTo(RigFadeCurve.Smooth));
         Assert.That(Label(Ui.FlowFade), Is.EqualTo("0.20 s  SMOOTH"));
         Assert.That(Label(Button(ToolActionKind.SelectTransition, "jump")), Is.EqualTo("JUMP  0.20s SMO"));
         Assert.That(
-            Button(ToolActionKind.TransitionCurve, nameof(XafFadeCurve.Smooth)).GetComponent<ButtonVisual>().Normal,
+            Button(ToolActionKind.TransitionCurve, nameof(RigFadeCurve.Smooth)).GetComponent<ButtonVisual>().Normal,
             Is.EqualTo(Palette.Selected));
     }
 
@@ -102,7 +102,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
         Click(Button(ToolActionKind.SelectTransition, "jump"));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.TransitionFadeUp));
 
-        Assert.That(XafTransitions.IsOpen(Package), Is.True);
+        Assert.That(RigTransitions.IsOpen(Package), Is.True);
         Assert.That(Status, Is.EqualTo("ALLOW A TRANSITION FIRST"));
     }
 
@@ -110,7 +110,7 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     public void PreviewPlaysTheClipIntoTheTargetWithItsFadeAndReturns()
     {
         Click(Button(ToolActionKind.AllowTransition, "jump"));
-        XafTransitions.Find(Package, "idle", "jump")!.Fade = 0.5f;
+        RigTransitions.Find(Package, "idle", "jump")!.Fade = 0.5f;
         Click(Button(ToolActionKind.PreviewTransition));
 
         Assert.That(Sequence.Active, Is.True);
@@ -157,9 +157,9 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     [Test]
     public void TheGameChainRefusesAHandOverTheTableDoesNotAllow()
     {
-        Package.Clips.Add(new XafClip { Id = "jumping", Duration = 0.3f });
+        Package.Clips.Add(new RigClip { Id = "jumping", Duration = 0.3f });
         AnimatorSession.RigChanged(Session);
-        XafTransitions.Allow(Package, "jumping", "idle");
+        RigTransitions.Allow(Package, "jumping", "idle");
         AnimatorSequenceCommands.StartGame(Session);
         Assert.That(Sequence.Steps!.ConvertAll(step => step.Clip), Is.EqualTo(new[] { "jumping", "landing", "idle" }));
 
@@ -173,9 +173,9 @@ public sealed class AnimatorFlowTests : AnimatorToolTest
     [Test]
     public void TheGapRatingWeighsTheJumpAgainstTheFadeAndItsCurve()
     {
-        Assert.That(AnimatorFlowSystem.Rate(4f, 0f, XafFadeCurve.Linear).Rating, Is.EqualTo("SMOOTH"));
-        Assert.That(AnimatorFlowSystem.Rate(40f, 0.1f, XafFadeCurve.Linear).Rating, Is.EqualTo("SMOOTH"));
-        Assert.That(AnimatorFlowSystem.Rate(40f, 0.1f, XafFadeCurve.EaseIn).Rating, Does.StartWith("VISIBLE"));
-        Assert.That(AnimatorFlowSystem.Rate(200f, 0.05f, XafFadeCurve.Linear).Rating, Does.StartWith("POPS"));
+        Assert.That(AnimatorFlowSystem.Rate(4f, 0f, RigFadeCurve.Linear).Rating, Is.EqualTo("SMOOTH"));
+        Assert.That(AnimatorFlowSystem.Rate(40f, 0.1f, RigFadeCurve.Linear).Rating, Is.EqualTo("SMOOTH"));
+        Assert.That(AnimatorFlowSystem.Rate(40f, 0.1f, RigFadeCurve.EaseIn).Rating, Does.StartWith("VISIBLE"));
+        Assert.That(AnimatorFlowSystem.Rate(200f, 0.05f, RigFadeCurve.Linear).Rating, Does.StartWith("POPS"));
     }
 }

@@ -22,7 +22,7 @@ public sealed class AnimatorMotionPathTests : AnimatorToolTest
     private void KeyTorso(params (float Time, float Rotation)[] keys)
     {
         foreach ((float time, float rotation) in keys)
-            XafAuthoring.SetBoneProperty(Package, Idle, "torso", XafChannelProperty.Rotation, time, rotation);
+            RigAuthoring.SetBoneProperty(Package, Idle, "torso", RigChannelProperty.Rotation, time, rotation);
     }
 
     private AnimatorMotionPath HeadPath() =>

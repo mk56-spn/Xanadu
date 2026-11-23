@@ -99,7 +99,7 @@ public sealed class AnimatorEaseBandTests
     [Test]
     public void NothingChangingOrChannelsDisagreeingIsAHairline()
     {
-        foreach (XafEaseSegment segment in new[] { new XafEaseSegment(false, null), new XafEaseSegment(true, null) })
+        foreach (RigEaseSegment segment in new[] { new RigEaseSegment(false, null), new RigEaseSegment(true, null) })
         {
             List<EaseBandPiece> band = TimelineEaseBand.Pieces(segment.Preset, 100f, 200f, 0f, 1000f, Row);
             Assert.That(band, Has.Count.EqualTo(1));
@@ -123,66 +123,66 @@ public sealed class AnimatorEaseBandTests
         Assert.That(HalfAt(part, 165f), Is.EqualTo(HalfAt(whole, 165f)).Within(0.05f));
     }
 
-    private static XafClip Clip()
+    private static RigClip Clip()
     {
-        var clip = new XafClip { Id = "c", Duration = 1f };
-        foreach (XafChannelProperty property in new[] { XafChannelProperty.Rotation, XafChannelProperty.ScaleX })
+        var clip = new RigClip { Id = "c", Duration = 1f };
+        foreach (RigChannelProperty property in new[] { RigChannelProperty.Rotation, RigChannelProperty.ScaleX })
         {
-            var channel = new XafChannel { Target = XafChannelTarget.Bone, TargetId = "a", Property = property };
-            channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-            channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 1f });
+            var channel = new RigChannel { Target = RigChannelTarget.Bone, TargetId = "a", Property = property };
+            channel.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+            channel.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 1f });
             clip.Channels.Add(channel);
         }
 
         return clip;
     }
 
-    private static XafEaseSegment Read(XafClip clip, XafChannelProperty? property = null, float from = 0f) =>
-        XafEasing.ReadSegment(clip, XafChannelTarget.Bone, "a", property, from);
+    private static RigEaseSegment Read(RigClip clip, RigChannelProperty? property = null, float from = 0f) =>
+        RigEasing.ReadSegment(clip, RigChannelTarget.Bone, "a", property, from);
 
     [Test]
     public void ASegmentReadsTheEasingLeavingTheKey()
     {
-        XafClip clip = Clip();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "a", 0f, EasePreset.EaseIn);
-        Assert.That(Read(clip), Is.EqualTo(new XafEaseSegment(true, EasePreset.EaseIn)));
+        RigClip clip = Clip();
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "a", 0f, EasePreset.EaseIn);
+        Assert.That(Read(clip), Is.EqualTo(new RigEaseSegment(true, EasePreset.EaseIn)));
     }
 
     [Test]
     public void ChannelsThatDisagreeHaveNoOneEasingOnTheTrackButDoOnTheirOwnRow()
     {
-        XafClip clip = Clip();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "a", XafChannelProperty.Rotation, 0f, EasePreset.Step);
-        Assert.That(Read(clip), Is.EqualTo(new XafEaseSegment(true, null)));
-        Assert.That(Read(clip, XafChannelProperty.Rotation).Preset, Is.EqualTo(EasePreset.Step));
-        Assert.That(Read(clip, XafChannelProperty.ScaleX).Preset, Is.EqualTo(EasePreset.Linear));
+        RigClip clip = Clip();
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "a", RigChannelProperty.Rotation, 0f, EasePreset.Step);
+        Assert.That(Read(clip), Is.EqualTo(new RigEaseSegment(true, null)));
+        Assert.That(Read(clip, RigChannelProperty.Rotation).Preset, Is.EqualTo(EasePreset.Step));
+        Assert.That(Read(clip, RigChannelProperty.ScaleX).Preset, Is.EqualTo(EasePreset.Linear));
     }
 
     [Test]
     public void AChannelThatDoesNotChangeHasNoSayInTheShape()
     {
-        XafClip clip = Clip();
+        RigClip clip = Clip();
         clip.Channels[1].Keyframes[1].Value = 0f;
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "a", XafChannelProperty.Rotation, 0f, EasePreset.Ease);
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "a", XafChannelProperty.ScaleX, 0f, EasePreset.Step);
-        Assert.That(Read(clip), Is.EqualTo(new XafEaseSegment(true, EasePreset.Ease)));
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "a", RigChannelProperty.Rotation, 0f, EasePreset.Ease);
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "a", RigChannelProperty.ScaleX, 0f, EasePreset.Step);
+        Assert.That(Read(clip), Is.EqualTo(new RigEaseSegment(true, EasePreset.Ease)));
     }
 
     [Test]
     public void NothingChangingReadsAsAHold()
     {
-        XafClip clip = Clip();
+        RigClip clip = Clip();
         clip.Channels[0].Keyframes[1].Value = 0f;
         clip.Channels[1].Keyframes[1].Value = 0f;
-        Assert.That(Read(clip), Is.EqualTo(new XafEaseSegment(false, null)));
+        Assert.That(Read(clip), Is.EqualTo(new RigEaseSegment(false, null)));
     }
 
     [Test]
     public void AChannelStillTravellingFromAnEarlierKeyCounts()
     {
-        XafClip clip = Clip();
-        clip.Channels[0].Keyframes.Insert(1, new XafKeyframe { Time = 0.5f, Value = 0.5f });
+        RigClip clip = Clip();
+        clip.Channels[0].Keyframes.Insert(1, new RigKeyframe { Time = 0.5f, Value = 0.5f });
         Assert.That(Read(clip, null, 0.5f).Moves, Is.True);
-        Assert.That(Read(clip, XafChannelProperty.ScaleX, 0.5f).Moves, Is.True);
+        Assert.That(Read(clip, RigChannelProperty.ScaleX, 0.5f).Moves, Is.True);
     }
 }

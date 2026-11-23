@@ -35,7 +35,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
 
     private bool CanUndo => Session.GetComponent<AnimatorSessionState>().History.History.CanUndo;
 
-    private XafChannel? Channel(string bone, XafChannelProperty property) =>
+    private RigChannel? Channel(string bone, RigChannelProperty property) =>
         Idle.Channels.Find(channel => channel.TargetId == bone && channel.Property == property);
 
     [Test]
@@ -45,13 +45,13 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Runtime.Seek(0.5f);
 
         Run(ToolActionKind.KeyBone);
-        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Not.Null);
+        Assert.That(Channel("torso", RigChannelProperty.Rotation), Is.Not.Null);
 
         Run(ToolActionKind.Undo);
-        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Null);
+        Assert.That(Channel("torso", RigChannelProperty.Rotation), Is.Null);
 
         Run(ToolActionKind.Redo);
-        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Not.Null);
+        Assert.That(Channel("torso", RigChannelProperty.Rotation), Is.Not.Null);
     }
 
     [Test]
@@ -92,7 +92,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     [Test]
     public void UndoingDeleteBoneRestoresTheBoneAndItsChannels()
     {
-        XafAuthoring.SetBoneProperty(Package, Idle, "head", XafChannelProperty.TranslationX, 0.5f, 3f);
+        RigAuthoring.SetBoneProperty(Package, Idle, "head", RigChannelProperty.TranslationX, 0.5f, 3f);
         Select(2);
         Run(ToolActionKind.DeleteBone);
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(2));
@@ -101,7 +101,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
 
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(3));
         Assert.That(Idle.Channels.Exists(channel => channel.TargetId == "head"), Is.True);
-        Assert.That(XafValidation.Validate(Package), Is.Empty);
+        Assert.That(RigValidation.Validate(Package), Is.Empty);
     }
 
     [Test]
@@ -135,17 +135,17 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Select(1);
         Runtime.Seek(0.5f);
         Run(ToolActionKind.KeyBone);
-        float first = Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Value;
+        float first = Channel("torso", RigChannelProperty.Rotation)!.Keyframes[0].Value;
 
         Run(ToolActionKind.Undo);
         Run(ToolActionKind.Redo);
         Runtime.Pose.Bones[1].Rotation = 2f;
         Run(ToolActionKind.KeyBone);
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Value, Is.EqualTo(2f));
+        Assert.That(Channel("torso", RigChannelProperty.Rotation)!.Keyframes[0].Value, Is.EqualTo(2f));
 
         Run(ToolActionKind.Undo);
 
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Value, Is.EqualTo(first));
+        Assert.That(Channel("torso", RigChannelProperty.Rotation)!.Keyframes[0].Value, Is.EqualTo(first));
     }
 
     [Test]
@@ -304,8 +304,8 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
         Assert.That(Session.GetComponent<AnimatorFile>().Dirty, Is.EqualTo(dirty));
     }
 
-    private static List<float> HeadKeyTimes(XafClip clip) =>
-        XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, "head"));
+    private static List<float> HeadKeyTimes(RigClip clip) =>
+        RigTracks.KeyTimes(clip, new RigTrack(RigChannelTarget.Bone, "head"));
 
     [Test]
     public void RetimingAKeyByDraggingIsOneUndoStep()
@@ -336,7 +336,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     {
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
-        selection.KeyTarget = XafChannelTarget.Bone;
+        selection.KeyTarget = RigChannelTarget.Bone;
         selection.KeyId = "head";
         selection.KeyTime = 1f;
 
@@ -354,7 +354,7 @@ public sealed class AnimatorHistoryTests : AnimatorToolTest
     {
         Select(1);
         Run(ToolActionKind.AddBone);
-        Files.ToLoad = XafRigAuthoring.CreateEmptyPackage();
+        Files.ToLoad = RigRigAuthoring.CreateEmptyPackage();
 
         Run(ToolActionKind.Load);
         Run(ToolActionKind.Load);

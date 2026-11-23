@@ -5,7 +5,7 @@ using Xanadu.Model.Animation;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafSvgDocumentTests
+public sealed class RigSvgDocumentTests
 {
     [Test]
     public void KeepsOnlyTheRequestedGroupAndItsAncestors()
@@ -22,7 +22,7 @@ public sealed class XafSvgDocumentTests
                      </svg>
                      """;
 
-        string result = XafSvgDocument.IsolateGroup(svg, "body");
+        string result = RigSvgDocument.IsolateGroup(svg, "body");
 
         StringAssert.Contains("id=\"body\"", result);
         StringAssert.Contains("translate(10 20)", result);
@@ -36,13 +36,13 @@ public sealed class XafSvgDocumentTests
     {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><g id=\"body\"/></svg>";
 
-        Assert.Throws<XafFormatException>(() => XafSvgDocument.IsolateGroup(svg, "missing"));
+        Assert.Throws<RigFormatException>(() => RigSvgDocument.IsolateGroup(svg, "missing"));
     }
 
     [Test]
     public void RejectsMalformedXml()
     {
-        Assert.Throws<XafFormatException>(() => XafSvgDocument.IsolateGroup("<svg>", "body"));
+        Assert.Throws<RigFormatException>(() => RigSvgDocument.IsolateGroup("<svg>", "body"));
     }
 
     [Test]
@@ -58,18 +58,18 @@ public sealed class XafSvgDocumentTests
                      </svg>
                      """;
 
-        Assert.That(XafSvgDocument.Groups(svg), Is.EqualTo(new[] { "body", "arm" }));
+        Assert.That(RigSvgDocument.Groups(svg), Is.EqualTo(new[] { "body", "arm" }));
     }
 
     [Test]
     public void GroupsOfAnSvgWithoutGroupsIsEmpty()
     {
-        Assert.That(XafSvgDocument.Groups("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>"), Is.Empty);
+        Assert.That(RigSvgDocument.Groups("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>"), Is.Empty);
     }
 
     [Test]
     public void RejectsMalformedXmlWhenListingGroups()
     {
-        Assert.Throws<XafFormatException>(() => XafSvgDocument.Groups("<svg>"));
+        Assert.Throws<RigFormatException>(() => RigSvgDocument.Groups("<svg>"));
     }
 }

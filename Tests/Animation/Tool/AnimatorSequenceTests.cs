@@ -19,13 +19,13 @@ public sealed class AnimatorSequenceTests : AnimatorToolTest
     }
 
     /// <summary>Clips: idle 2 s (looping), jump 1 s, then jumping 1 s, landing 0.4 s.</summary>
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
+        RigPackage package = base.CreatePackage();
         package.Clips[0].Loop = true;
         package.Clips[0].LoopEnd = 2f;
-        package.Clips.Add(new XafClip { Id = "jumping", Duration = 1f });
-        package.Clips.Add(new XafClip { Id = "landing", Duration = 0.4f });
+        package.Clips.Add(new RigClip { Id = "jumping", Duration = 1f });
+        package.Clips.Add(new RigClip { Id = "landing", Duration = 0.4f });
         return package;
     }
 
@@ -50,7 +50,7 @@ public sealed class AnimatorSequenceTests : AnimatorToolTest
     [Test]
     public void AFallingClipGetsItsOwnStep()
     {
-        Package.Clips.Add(new XafClip { Id = "falling", Duration = 0.5f });
+        Package.Clips.Add(new RigClip { Id = "falling", Duration = 0.5f });
 
         Assert.That(Names(AnimatorSequenceCommands.GameSteps(Package)), Is.EqualTo("jumping>falling>landing>idle"));
     }

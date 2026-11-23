@@ -16,7 +16,7 @@ namespace Xanadu.Tests.Animation.Tool;
 [TestFixture]
 public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
 {
-    private static readonly XafTrack HeadTrack = new(XafChannelTarget.Bone, "head");
+    private static readonly RigTrack HeadTrack = new(RigChannelTarget.Bone, "head");
 
     protected override void AddSystems()
     {
@@ -27,12 +27,12 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
 
     private AnimatorSelection Selection => Session.GetComponent<AnimatorSelection>();
 
-    private static XafChannel HeadChannel(XafClip clip) =>
-        clip.Channels.Find(channel => channel.Target == XafChannelTarget.Bone && channel.TargetId == "head" &&
-                                      channel.Property == XafChannelProperty.Rotation)!;
+    private static RigChannel HeadChannel(RigClip clip) =>
+        clip.Channels.Find(channel => channel.Target == RigChannelTarget.Bone && channel.TargetId == "head" &&
+                                      channel.Property == RigChannelProperty.Rotation)!;
 
-    private static XafKeyframe? KeyAt(XafClip clip, float time) =>
-        HeadChannel(clip).Keyframes.Find(key => System.Math.Abs(key.Time - time) <= XafTracks.TimeTolerance);
+    private static RigKeyframe? KeyAt(RigClip clip, float time) =>
+        HeadChannel(clip).Keyframes.Find(key => System.Math.Abs(key.Time - time) <= RigTracks.TimeTolerance);
 
     private void Press(Vector2 position, bool shift = false)
     {
@@ -60,7 +60,7 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
         Runtime.Seek(0.25f);
         AnimatorKeyClipboardCommands.Paste(Session);
 
-        XafKeyframe? key = KeyAt(Idle, 0.25f);
+        RigKeyframe? key = KeyAt(Idle, 0.25f);
         Assert.That(key, Is.Not.Null);
         Assert.That(key!.Value, Is.EqualTo(1f).Within(0.0001f));
         Assert.That(Selection.HasKey, Is.True);
@@ -70,14 +70,14 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
     [Test]
     public void PasteKeepsTheCurveOfTheCopiedKey()
     {
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, EasePreset.Step);
+        RigEasing.Apply(Idle, RigChannelTarget.Bone, "head", 1f, EasePreset.Step);
         AnimatorKeyCommands.SelectKey(Session, HeadTrack, 1f);
         AnimatorKeyClipboardCommands.Copy(Session);
 
         Runtime.Seek(0.5f);
         AnimatorKeyClipboardCommands.Paste(Session);
 
-        Assert.That(KeyAt(Idle, 0.5f)!.Interpolation, Is.EqualTo(XafInterpolation.Step));
+        Assert.That(KeyAt(Idle, 0.5f)!.Interpolation, Is.EqualTo(RigInterpolation.Step));
     }
 
     [Test]
@@ -89,7 +89,7 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
 
         AnimatorKeyClipboardCommands.Paste(Session);
 
-        XafClip jump = Package.Clips[1];
+        RigClip jump = Package.Clips[1];
         Assert.That(jump.Channels, Has.Count.EqualTo(1));
         Assert.That(KeyAt(jump, 0f), Is.Not.Null);
     }
@@ -101,8 +101,8 @@ public sealed class AnimatorKeyClipboardTests : AnimatorToolTest
             Session,
             new List<AnimatorKeyRef>
             {
-                new(XafChannelTarget.Bone, "head", 1f),
-                new(XafChannelTarget.Bone, "head", 2f)
+                new(RigChannelTarget.Bone, "head", 1f),
+                new(RigChannelTarget.Bone, "head", 2f)
             });
         AnimatorKeyClipboardCommands.Copy(Session);
 

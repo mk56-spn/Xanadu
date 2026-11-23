@@ -26,35 +26,35 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
 
     private AnimatorSelection Selection => Session.GetComponent<AnimatorSelection>();
 
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
+        RigPackage package = base.CreatePackage();
         // The head also has an eased scale channel, and the body attachment moves.
-        XafChannel scale = new()
+        RigChannel scale = new()
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "head",
-            Property = XafChannelProperty.ScaleX
+            Property = RigChannelProperty.ScaleX
         };
-        scale.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 1f, Interpolation = XafInterpolation.CubicBezier });
-        scale.Keyframes.Add(new XafKeyframe { Time = 2f, Value = 3f, Interpolation = XafInterpolation.Linear });
+        scale.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 1f, Interpolation = RigInterpolation.CubicBezier });
+        scale.Keyframes.Add(new RigKeyframe { Time = 2f, Value = 3f, Interpolation = RigInterpolation.Linear });
         package.Clips[0].Channels.Add(scale);
-        XafChannel body = new()
+        RigChannel body = new()
         {
-            Target = XafChannelTarget.Attachment,
+            Target = RigChannelTarget.Attachment,
             TargetId = "body",
-            Property = XafChannelProperty.TranslationX
+            Property = RigChannelProperty.TranslationX
         };
-        body.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        body.Keyframes.Add(new XafKeyframe { Time = 2f, Value = 10f });
+        body.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        body.Keyframes.Add(new RigKeyframe { Time = 2f, Value = 10f });
         package.Clips[0].Channels.Add(body);
         return package;
     }
 
-    private XafChannel? Channel(string target, XafChannelProperty property) =>
+    private RigChannel? Channel(string target, RigChannelProperty property) =>
         Idle.Channels.Find(channel => channel.TargetId == target && channel.Property == property);
 
-    private bool HasKeyAt(string target, XafChannelProperty property, float time) =>
+    private bool HasKeyAt(string target, RigChannelProperty property, float time) =>
         Channel(target, property)?.Keyframes.Exists(key => System.Math.Abs(key.Time - time) < 0.0001f) ?? false;
 
     /// <summary>A point on a track's row at a time, in the key area.</summary>
@@ -92,7 +92,7 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         RightClick(point);
 
         Assert.That(Menu.Open, Is.True);
-        Assert.That(Menu.Track, Is.EqualTo(new XafTrack(XafChannelTarget.Bone, "head")));
+        Assert.That(Menu.Track, Is.EqualTo(new RigTrack(RigChannelTarget.Bone, "head")));
         Assert.That(Ui.KeyMenu.GetComponent<Position>().Value, Is.EqualTo(point + AnimatorLayout.KeyMenuSize / 2));
         Assert.That(Selection.Bone, Is.EqualTo(2));
     }
@@ -125,19 +125,19 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         ChooseOption(Ui.KeyMenuAdd);
 
         // Rotation runs 0 -> 1 over the first second: halfway is 0.5.
-        XafChannel rotation = Channel("head", XafChannelProperty.Rotation)!;
+        RigChannel rotation = Channel("head", RigChannelProperty.Rotation)!;
         Assert.That(
             rotation.Keyframes.Find(key => System.Math.Abs(key.Time - time) < 0.0001f)!.Value,
             Is.EqualTo(
-                XafSampler.SampleChannel(
-                    new XafChannel
+                RigSampler.SampleChannel(
+                    new RigChannel
                     {
-                        Keyframes = { new XafKeyframe { Time = 0, Value = 0 }, new XafKeyframe { Time = 1, Value = 1 } }
+                        Keyframes = { new RigKeyframe { Time = 0, Value = 0 }, new RigKeyframe { Time = 1, Value = 1 } }
                     },
                     time)).Within(0.001f));
-        Assert.That(HasKeyAt("head", XafChannelProperty.ScaleX, time), Is.True);
+        Assert.That(HasKeyAt("head", RigChannelProperty.ScaleX, time), Is.True);
         // Only the channels the track already animates are keyed.
-        Assert.That(Channel("head", XafChannelProperty.TranslationX), Is.Null);
+        Assert.That(Channel("head", RigChannelProperty.TranslationX), Is.Null);
         Assert.That(Menu.Open, Is.False);
         Assert.That(Selection.HasKey, Is.True);
         Assert.That(Selection.KeyTime, Is.EqualTo(time).Within(0.0001f));
@@ -149,7 +149,7 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         float[] probes = { 0.1f, 0.5f, 0.9f, 1.4f, 1.9f };
         float[] before = new float[probes.Length];
         for (int i = 0; i < probes.Length; i++)
-            before[i] = XafSampler.Sample(Package, Idle, probes[i]).Bones[2].Rotation;
+            before[i] = RigSampler.Sample(Package, Idle, probes[i]).Bones[2].Rotation;
 
         RightClick(RowPoint("head", 0.5f));
         ChooseOption(Ui.KeyMenuAdd);
@@ -157,7 +157,7 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         for (int i = 0; i < probes.Length; i++)
         {
             Assert.That(
-                XafSampler.Sample(Package, Idle, probes[i]).Bones[2].Rotation,
+                RigSampler.Sample(Package, Idle, probes[i]).Bones[2].Rotation,
                 Is.EqualTo(before[i]).Within(0.001f),
                 $"at {probes[i]}s");
         }
@@ -173,10 +173,10 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
 
         ChooseOption(Ui.KeyMenuAdd);
 
-        XafKeyframe added =
-            Channel("head", XafChannelProperty.ScaleX)!.Keyframes.Find(key =>
+        RigKeyframe added =
+            Channel("head", RigChannelProperty.ScaleX)!.Keyframes.Find(key =>
                 System.Math.Abs(key.Time - time) < 0.0001f)!;
-        Assert.That(added.Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
+        Assert.That(added.Interpolation, Is.EqualTo(RigInterpolation.CubicBezier));
     }
 
     [Test]
@@ -185,12 +185,12 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
         RightClick(RowPoint("head", 0.5f));
         float time = Menu.Time;
         ChooseOption(Ui.KeyMenuAdd);
-        Assert.That(HasKeyAt("head", XafChannelProperty.Rotation, time), Is.True);
+        Assert.That(HasKeyAt("head", RigChannelProperty.Rotation, time), Is.True);
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
 
-        Assert.That(HasKeyAt("head", XafChannelProperty.Rotation, time), Is.False);
-        Assert.That(HasKeyAt("head", XafChannelProperty.ScaleX, time), Is.False);
+        Assert.That(HasKeyAt("head", RigChannelProperty.Rotation, time), Is.False);
+        Assert.That(HasKeyAt("head", RigChannelProperty.ScaleX, time), Is.False);
     }
 
     [Test]
@@ -198,11 +198,11 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
     {
         // Exactly on the key at one second.
         RightClick(RowPoint("head", 1f));
-        int keys = Channel("head", XafChannelProperty.Rotation)!.Keyframes.Count;
+        int keys = Channel("head", RigChannelProperty.Rotation)!.Keyframes.Count;
 
         ChooseOption(Ui.KeyMenuAdd);
 
-        Assert.That(Channel("head", XafChannelProperty.Rotation)!.Keyframes, Has.Count.EqualTo(keys));
+        Assert.That(Channel("head", RigChannelProperty.Rotation)!.Keyframes, Has.Count.EqualTo(keys));
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("KEY ALREADY HERE"));
     }
 
@@ -216,11 +216,11 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
 
         ChooseOption(Ui.KeyMenuDelete);
 
-        Assert.That(HasKeyAt("head", XafChannelProperty.Rotation, 1f), Is.False);
-        Assert.That(HasKeyAt("head", XafChannelProperty.ScaleX, 1f), Is.False);
+        Assert.That(HasKeyAt("head", RigChannelProperty.Rotation, 1f), Is.False);
+        Assert.That(HasKeyAt("head", RigChannelProperty.ScaleX, 1f), Is.False);
         // Other times and targets are untouched.
-        Assert.That(HasKeyAt("head", XafChannelProperty.Rotation, 0f), Is.True);
-        Assert.That(HasKeyAt("body", XafChannelProperty.TranslationX, 0f), Is.True);
+        Assert.That(HasKeyAt("head", RigChannelProperty.Rotation, 0f), Is.True);
+        Assert.That(HasKeyAt("body", RigChannelProperty.TranslationX, 0f), Is.True);
         Assert.That(Selection.HasKey, Is.False);
     }
 
@@ -232,18 +232,18 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
 
-        Assert.That(HasKeyAt("head", XafChannelProperty.Rotation, 1f), Is.True);
+        Assert.That(HasKeyAt("head", RigChannelProperty.Rotation, 1f), Is.True);
     }
 
     [Test]
     public void DeleteKeyWithNoKeyUnderThePointerSaysSoAndDeletesNothing()
     {
         RightClick(RowPoint("head", 0.52f));
-        int keys = Channel("head", XafChannelProperty.Rotation)!.Keyframes.Count;
+        int keys = Channel("head", RigChannelProperty.Rotation)!.Keyframes.Count;
 
         ChooseOption(Ui.KeyMenuDelete);
 
-        Assert.That(Channel("head", XafChannelProperty.Rotation)!.Keyframes, Has.Count.EqualTo(keys));
+        Assert.That(Channel("head", RigChannelProperty.Rotation)!.Keyframes, Has.Count.EqualTo(keys));
         Assert.That(Session.GetComponent<AnimatorStatus>().Message, Is.EqualTo("NO KEY SELECTED"));
     }
 
@@ -252,12 +252,12 @@ public sealed class AnimatorKeyMenuTests : AnimatorToolTest
     {
         RightClick(RowPoint("body", 1f));
         // The attachment has keys at 0 and 2 only, so one second is empty.
-        Assert.That(Menu.Track, Is.EqualTo(new XafTrack(XafChannelTarget.Attachment, "body")));
+        Assert.That(Menu.Track, Is.EqualTo(new RigTrack(RigChannelTarget.Attachment, "body")));
 
         ChooseOption(Ui.KeyMenuAdd);
 
-        XafKeyframe added =
-            Channel("body", XafChannelProperty.TranslationX)!.Keyframes.Find(key =>
+        RigKeyframe added =
+            Channel("body", RigChannelProperty.TranslationX)!.Keyframes.Find(key =>
                 System.Math.Abs(key.Time - Menu.Time) < 0.0001f)!;
         Assert.That(added.Value, Is.EqualTo(5f).Within(0.5f));
         Assert.That(Selection.Attachment, Is.EqualTo(0));

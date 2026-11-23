@@ -14,13 +14,13 @@ namespace Xanadu.Tests.Animation.Tool;
 [TestFixture]
 public sealed class AnimatorKeyEditTests : AnimatorToolTest
 {
-    private static readonly XafTrack Head = new(XafChannelTarget.Bone, "head");
+    private static readonly RigTrack Head = new(RigChannelTarget.Bone, "head");
 
-    private XafChannel? Channel(string bone, XafChannelProperty property) =>
+    private RigChannel? Channel(string bone, RigChannelProperty property) =>
         Idle.Channels.Find(channel => channel.TargetId == bone && channel.Property == property);
 
     private float HeadKey(float time) =>
-        Channel("head", XafChannelProperty.Rotation)!.Keyframes.Find(key => key.Time == time)!.Value;
+        Channel("head", RigChannelProperty.Rotation)!.Keyframes.Find(key => key.Time == time)!.Value;
 
     private void Run(ToolActionKind kind) => AnimatorCommands.Run(Session, new ToolAction(kind));
 
@@ -44,8 +44,8 @@ public sealed class AnimatorKeyEditTests : AnimatorToolTest
 
         Run(ToolActionKind.RotateRight);
 
-        Assert.That(Channel("head", XafChannelProperty.ScaleX), Is.Null);
-        Assert.That(Channel("head", XafChannelProperty.ScaleY), Is.Null);
+        Assert.That(Channel("head", RigChannelProperty.ScaleX), Is.Null);
+        Assert.That(Channel("head", RigChannelProperty.ScaleY), Is.Null);
     }
 
     [Test]
@@ -71,7 +71,7 @@ public sealed class AnimatorKeyEditTests : AnimatorToolTest
         Run(ToolActionKind.RotateRight);
 
         Assert.That(HeadKey(1f), Is.EqualTo(1f));
-        Assert.That(Channel("torso", XafChannelProperty.Rotation), Is.Null, "auto-key is off, so nothing is keyed");
+        Assert.That(Channel("torso", RigChannelProperty.Rotation), Is.Null, "auto-key is off, so nothing is keyed");
     }
 
     [Test]
@@ -83,7 +83,7 @@ public sealed class AnimatorKeyEditTests : AnimatorToolTest
 
         Run(ToolActionKind.RotateRight);
 
-        Assert.That(Channel("torso", XafChannelProperty.Rotation)!.Keyframes[0].Time, Is.EqualTo(0.5f));
+        Assert.That(Channel("torso", RigChannelProperty.Rotation)!.Keyframes[0].Time, Is.EqualTo(0.5f));
     }
 
     [Test]

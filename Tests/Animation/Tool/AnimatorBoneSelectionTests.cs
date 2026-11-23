@@ -98,8 +98,8 @@ public sealed class AnimatorBoneSelectionTests : AnimatorToolTest
 
         Click(Button(ToolActionKind.KeyBone));
 
-        Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "torso")), Does.Contain(0.5f));
-        Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head")), Does.Contain(0.5f));
+        Assert.That(RigTracks.KeyTimes(Idle, new RigTrack(RigChannelTarget.Bone, "torso")), Does.Contain(0.5f));
+        Assert.That(RigTracks.KeyTimes(Idle, new RigTrack(RigChannelTarget.Bone, "head")), Does.Contain(0.5f));
     }
 
     [Test]

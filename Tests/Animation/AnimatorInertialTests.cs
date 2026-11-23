@@ -71,8 +71,8 @@ public sealed class AnimatorInertialTests
 
     private static AnimatorRuntime Runtime(bool inertial = true)
     {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "root" });
+        var package = new RigPackage();
+        package.Skeleton.Bones.Add(new RigBone { Id = "root" });
         package.Clips.Add(Held("a", 0f));
         package.Clips.Add(Held("b", 1f));
         var runtime = new AnimatorRuntime(package) { Inertial = inertial };
@@ -81,13 +81,13 @@ public sealed class AnimatorInertialTests
     }
 
     /// <summary>A looping clip that holds the root turned by <paramref name="turn"/>.</summary>
-    private static XafClip Held(string id, float turn)
+    private static RigClip Held(string id, float turn)
     {
-        var clip = new XafClip { Id = id, Duration = 1f, Loop = true, LoopStart = 0f, LoopEnd = 1f };
-        var channel = new XafChannel
-            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.Rotation };
-        channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = turn });
-        channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = turn });
+        var clip = new RigClip { Id = id, Duration = 1f, Loop = true, LoopStart = 0f, LoopEnd = 1f };
+        var channel = new RigChannel
+            { Target = RigChannelTarget.Bone, TargetId = "root", Property = RigChannelProperty.Rotation };
+        channel.Keyframes.Add(new RigKeyframe { Time = 0f, Value = turn });
+        channel.Keyframes.Add(new RigKeyframe { Time = 1f, Value = turn });
         clip.Channels.Add(channel);
         return clip;
     }

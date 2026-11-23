@@ -82,7 +82,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     private void AddChain(string art)
     {
         Package.Chains.Add(
-            new XafChain
+            new RigChain
             {
                 Id = "hair", BoneId = "head", Segments = 6, SvgPath = art, Group = art.Length > 0 ? "hair_segment" : ""
             });
@@ -92,7 +92,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     [Test]
     public void ChainArtIsHandedTheSimulatedPointsEveryFrame()
     {
-        AddChain(XafChain.DefaultSvgPath);
+        AddChain(RigChain.DefaultSvgPath);
         int before = _visuals.ChainFrames;
 
         Frame(3);
@@ -104,7 +104,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     [Test]
     public void AChainWithArtDrawsNoLineUntilItIsSelectedWhileOneWithoutDoes()
     {
-        AddChain(XafChain.DefaultSvgPath);
+        AddChain(RigChain.DefaultSvgPath);
         Assert.That(Circles(3), Is.EqualTo(0));
         Assert.That(Circles(4), Is.EqualTo(0));
 
@@ -262,7 +262,7 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
 
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
-        selection.KeyTarget = XafChannelTarget.Bone;
+        selection.KeyTarget = RigChannelTarget.Bone;
         selection.KeyId = "head";
         selection.KeyTime = 1f;
         Frame();
@@ -279,8 +279,8 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         int diamonds = _timeline.Diamonds.Count;
         int circles = TimelineCircles(5);
 
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 1f, EasePreset.Ease);
-        XafEasing.Apply(Idle, XafChannelTarget.Bone, "head", 0f, EasePreset.Step);
+        RigEasing.Apply(Idle, RigChannelTarget.Bone, "head", 1f, EasePreset.Ease);
+        RigEasing.Apply(Idle, RigChannelTarget.Bone, "head", 0f, EasePreset.Step);
         Frame();
 
         // One diamond became a circle and another a square.
@@ -304,8 +304,8 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
     public void AnExpandedTrackDrawsItsChannelRows()
     {
         ref AnimatorTracks tracks = ref Session.GetComponent<AnimatorTracks>();
-        tracks.Expanded ??= new HashSet<XafTrack>();
-        tracks.Expanded.Add(new XafTrack(XafChannelTarget.Bone, "head"));
+        tracks.Expanded ??= new HashSet<RigTrack>();
+        tracks.Expanded.Add(new RigTrack(RigChannelTarget.Bone, "head"));
         Frame();
 
         Assert.That(_timeline.Texts, Has.Some.StartsWith("▾ head"));
@@ -392,13 +392,13 @@ public sealed class AnimatorDrawTests : AnimatorToolTest
         public int ChainFrames;
         public int ChainPoints;
 
-        public void Reload(XafPackage package) => Reloads++;
+        public void Reload(RigPackage package) => Reloads++;
 
         public void Apply(Transform2D[] attachments, Transform2D placement)
         {
         }
 
-        public void ApplyChains(XafPackage package, XafChainSimulation simulation, Transform2D placement)
+        public void ApplyChains(RigPackage package, RigChainSimulation simulation, Transform2D placement)
         {
             ChainFrames++;
             ChainPoints = simulation.Points(0).Count;

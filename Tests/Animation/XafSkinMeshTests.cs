@@ -15,7 +15,7 @@ namespace Xanadu.Tests.Animation;
 /// the whole saved with the rig.
 /// </summary>
 [TestFixture]
-public sealed class XafSkinMeshTests
+public sealed class RigSkinMeshTests
 {
     private static float Area(Vector2[] points, int[] triangles)
     {
@@ -31,7 +31,7 @@ public sealed class XafSkinMeshTests
     public void PathDataReadsLinesCurvesAndRelativeMoves()
     {
         List<List<Vector2>> shapes =
-            XafSvgOutline.Parse("M 0 0 L 10 0 l 0 10 H 0 Z m 20 0 C 25 -5, 30 5, 35 0 v 5 h -15 z");
+            RigSvgOutline.Parse("M 0 0 L 10 0 l 0 10 H 0 Z m 20 0 C 25 -5, 30 5, 35 0 v 5 h -15 z");
 
         Assert.That(shapes, Has.Count.EqualTo(2));
         Assert.That(
@@ -42,8 +42,8 @@ public sealed class XafSkinMeshTests
             Is.EqualTo(new Vector2(20, 0)),
             "a relative move after a close starts from the shape's start");
         Assert.That(shapes[1].Count, Is.GreaterThan(6), "the curve is flattened into many points");
-        Assert.That(XafSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(5, 5)), Is.True);
-        Assert.That(XafSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(15, 5)), Is.False);
+        Assert.That(RigSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(5, 5)), Is.True);
+        Assert.That(RigSvgOutline.Inside(new[] { shapes[0].ToArray() }, new Vector2(15, 5)), Is.False);
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class XafSkinMeshTests
     {
         // An L: its inner corner must stay empty.
         Vector2[] l = { new(0, 0), new(10, 0), new(10, 30), new(30, 30), new(30, 40), new(0, 40) };
-        (Vector2[] points, int[] triangles) = XafSkinBuilder.Build(new[] { l }, 2f);
+        (Vector2[] points, int[] triangles) = RigSkinBuilder.Build(new[] { l }, 2f);
 
         Assert.That(Area(points, triangles), Is.EqualTo(10 * 40 + 20 * 10).Within(25f));
         for (int t = 0; t < triangles.Length; t += 3)
@@ -68,7 +68,7 @@ public sealed class XafSkinMeshTests
     private static (Vector2[] Points, int[] Triangles, Vector2[] Outline) Strip()
     {
         Vector2[] outline = { new(-5, 0), new(5, 0), new(5, 100), new(-5, 100) };
-        (Vector2[] points, int[] triangles) = XafSkinBuilder.Build(new[] { outline }, 2.5f);
+        (Vector2[] points, int[] triangles) = RigSkinBuilder.Build(new[] { outline }, 2.5f);
         return (points, triangles, outline);
     }
 
@@ -79,11 +79,11 @@ public sealed class XafSkinMeshTests
         var bones = new List<(Vector2, Vector2)>
             { (new Vector2(0, 0), new Vector2(0, 50)), (new Vector2(0, 50), new Vector2(0, 100)) };
 
-        float[][] weights = XafHeatWeights.Compute(
+        float[][] weights = RigHeatWeights.Compute(
             points,
             triangles,
             bones,
-            spot => XafSvgOutline.Inside(new[] { outline }, spot));
+            spot => RigSvgOutline.Inside(new[] { outline }, spot));
 
         foreach (float[] row in weights)
             Assert.That(row.Sum(), Is.EqualTo(1f).Within(1e-4f));
@@ -102,15 +102,15 @@ public sealed class XafSkinMeshTests
         Vector2[] left = { new(-15, 0), new(-5, 0), new(-5, 100), new(-15, 100) };
         Vector2[] right = { new(5, 0), new(15, 0), new(15, 100), new(5, 100) };
         Vector2[][] outline = new[] { left, right };
-        (Vector2[] points, int[] triangles) = XafSkinBuilder.Build(outline, 2.5f);
+        (Vector2[] points, int[] triangles) = RigSkinBuilder.Build(outline, 2.5f);
         var bones = new List<(Vector2, Vector2)>
             { (new Vector2(-10, 0), new Vector2(-10, 100)), (new Vector2(10, 0), new Vector2(10, 100)) };
 
-        float[][] weights = XafHeatWeights.Compute(
+        float[][] weights = RigHeatWeights.Compute(
             points,
             triangles,
             bones,
-            spot => XafSvgOutline.Inside(outline, spot));
+            spot => RigSvgOutline.Inside(outline, spot));
 
         for (int i = 0; i < points.Length; i++)
             Assert.That(weights[i][points[i].X < 0 ? 0 : 1], Is.EqualTo(1f).Within(1e-4f), $"point {points[i]}");
@@ -119,14 +119,14 @@ public sealed class XafSkinMeshTests
     [Test]
     public void PaintingRaisesOneBoneAndSharesTheRestAsBefore()
     {
-        var skin = new XafSkinMesh
+        var skin = new RigSkinMesh
         {
             Points = new[] { Vector2.Zero, Vector2.One },
             Bones = { "a", "b", "c" },
             Weights = new[] { new[] { 0.5f, 0.3f, 0.2f }, new[] { 1f, 0f, 0f } }
         };
 
-        XafSkinAuthoring.Paint(skin, "c", new[] { (0, 1f) }, 0.4f);
+        RigSkinAuthoring.Paint(skin, "c", new[] { (0, 1f) }, 0.4f);
 
         Assert.That(skin.Weights[0][2], Is.EqualTo(0.6f).Within(1e-4f));
         Assert.That(
@@ -135,23 +135,23 @@ public sealed class XafSkinMeshTests
             "the others keep their proportions");
         Assert.That(skin.Weights[0].Sum(), Is.EqualTo(1f).Within(1e-4f));
 
-        XafSkinAuthoring.Paint(skin, "d", new[] { (1, 0.5f) }, 0.4f);
+        RigSkinAuthoring.Paint(skin, "d", new[] { (1, 0.5f) }, 0.4f);
         Assert.That(skin.Bones, Is.EqualTo(new[] { "a", "b", "c", "d" }), "a new bone joins the skin");
         Assert.That(skin.Weights[1][3], Is.EqualTo(0.2f).Within(1e-4f));
 
-        XafSkinAuthoring.Paint(skin, "a", new[] { (1, 1f) }, -1f);
+        RigSkinAuthoring.Paint(skin, "a", new[] { (1, 1f) }, -1f);
         Assert.That(skin.Weights[1][0], Is.Zero);
         Assert.That(skin.Weights[1].Sum(), Is.EqualTo(1f).Within(1e-4f));
     }
 
-    private static XafPackage SkinnedStrip()
+    private static RigPackage SkinnedStrip()
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        int upper = XafRigAuthoring.AddBone(package, 0, "upper", Vector2.Zero);
-        int lower = XafRigAuthoring.AddBone(package, upper, "lower", new Vector2(0, 50));
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        int upper = RigRigAuthoring.AddBone(package, 0, "upper", Vector2.Zero);
+        int lower = RigRigAuthoring.AddBone(package, upper, "lower", new Vector2(0, 50));
         package.Skeleton.Bones[lower].Tip = new Vector2(0, 50);
         package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "strip.svg", Group = "strip", BoneId = "upper",
                 Transform = new Transform2D(0f, new Vector2(0, 50))
@@ -159,15 +159,15 @@ public sealed class XafSkinMeshTests
         const string svg = """
                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 100"><g id="strip"><path d="M 0 0 H 10 V 100 H 0 Z"/></g></svg>
                            """;
-        Assert.That(XafSkinAuthoring.Build(package, 0, svg, 2.5f), Is.True);
+        Assert.That(RigSkinAuthoring.Build(package, 0, svg, 2.5f), Is.True);
         return package;
     }
 
     [Test]
     public void AnAttachmentIsTracedAndWeightedToTheBonesThatBendIt()
     {
-        XafPackage package = SkinnedStrip();
-        XafSkinMesh skin = package.Attachments[0].Mesh!.Skin!;
+        RigPackage package = SkinnedStrip();
+        RigSkinMesh skin = package.Attachments[0].Mesh!.Skin!;
 
         Assert.That(skin.Bones, Is.EqualTo(new[] { "upper", "lower" }));
         Assert.That(skin.ArtSize, Is.EqualTo(new Vector2(10, 100)));
@@ -176,10 +176,10 @@ public sealed class XafSkinMeshTests
         Assert.That(skin.Weights[bottom][1], Is.GreaterThan(0.95f), "the far end follows the lower bone");
 
         // Bending the lower bone carries the far end with it; the near end stays.
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[2].Rotation = float.Pi / 2f;
-        Vector2[] posed = XafSkinAuthoring.Posed(package, 0, pose);
-        Vector2[] rest = XafSkinAuthoring.Posed(package, 0, XafClothLayout.RestPose(package));
+        Vector2[] posed = RigSkinAuthoring.Posed(package, 0, pose);
+        Vector2[] rest = RigSkinAuthoring.Posed(package, 0, RigClothLayout.RestPose(package));
         int top = Enumerable.Range(0, skin.Points.Length).OrderBy(i => skin.Points[i].DistanceTo(new Vector2(5, 0)))
             .First();
         Assert.That(posed[top].DistanceTo(rest[top]), Is.LessThan(1e-3f));
@@ -189,11 +189,11 @@ public sealed class XafSkinMeshTests
     [Test]
     public void SkinsAreSaved()
     {
-        XafPackage package = SkinnedStrip();
+        RigPackage package = SkinnedStrip();
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
-        Assert.That(XafSkinMesh.AreEqual(loaded.Attachments[0].Mesh!.Skin, package.Attachments[0].Mesh!.Skin), Is.True);
-        Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
+        Assert.That(RigSkinMesh.AreEqual(loaded.Attachments[0].Mesh!.Skin, package.Attachments[0].Mesh!.Skin), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(package, RigPackageCopy.Clone(package)), Is.True);
     }
 
     [Test]
@@ -202,8 +202,8 @@ public sealed class XafSkinMeshTests
         string file = Path.Combine(
             TestContext.CurrentContext.TestDirectory,
             "../../../../Tools/Animator/Animations/Characters/contact.xaf");
-        XafPackage package = XafBinary.Read(File.ReadAllBytes(Path.GetFullPath(file)));
-        XafSkinMesh skin = package.Attachments.Single(attachment => attachment.Group == "leg_r").Mesh!.Skin!;
+        RigPackage package = RigBinary.Read(File.ReadAllBytes(Path.GetFullPath(file)));
+        RigSkinMesh skin = package.Attachments.Single(attachment => attachment.Group == "leg_r").Mesh!.Skin!;
 
         Assert.That(skin.Points.Length, Is.GreaterThan(100));
         Assert.That(skin.Bones, Is.EqualTo(new[] { "thigh_r", "shin_r", "foot_r", "torso" }));

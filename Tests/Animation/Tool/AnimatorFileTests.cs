@@ -130,7 +130,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     public void LoadingWithUnsavedChangesWarnsFirstAndTheSecondPressDiscards()
     {
         Edit();
-        Files.ToLoad = XafRigAuthoring.CreateEmptyPackage();
+        Files.ToLoad = RigRigAuthoring.CreateEmptyPackage();
 
         Run(ToolActionKind.Load);
         Assert.That(Files.LoadedPath, Is.Null);
@@ -147,7 +147,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     public void AnyOtherActionWithdrawsThePendingDiscard()
     {
         Edit();
-        Files.ToLoad = XafRigAuthoring.CreateEmptyPackage();
+        Files.ToLoad = RigRigAuthoring.CreateEmptyPackage();
         Run(ToolActionKind.Load);
 
         Run(ToolActionKind.Play);
@@ -162,7 +162,7 @@ public sealed class AnimatorFileTests : AnimatorToolTest
     {
         Edit();
         Run(ToolActionKind.Save);
-        Files.ToLoad = XafRigAuthoring.CreateEmptyPackage();
+        Files.ToLoad = RigRigAuthoring.CreateEmptyPackage();
 
         Run(ToolActionKind.Load);
 

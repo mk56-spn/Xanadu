@@ -32,7 +32,7 @@ public sealed class AnimatorClothTests : AnimatorToolTest
         Root.Add(new AnimatorClothInspectorSystem());
     }
 
-    private XafCloth Dress => Package.Cloths[0];
+    private RigCloth Dress => Package.Cloths[0];
 
     private void AddDress()
     {
@@ -46,7 +46,7 @@ public sealed class AnimatorClothTests : AnimatorToolTest
             AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());
 
-    private Transform2D[] World() => XafRig.WorldBones(Package, Runtime.Pose);
+    private Transform2D[] World() => RigRig.WorldBones(Package, Runtime.Pose);
 
     [Test]
     public void TheDressButtonAddsADressOnTheSelectedBoneAndSelectsIt()
@@ -126,13 +126,13 @@ public sealed class AnimatorClothTests : AnimatorToolTest
         AnimatorClothCommands.SetFill(Session, "#ff000080");
 
         Assert.That(Dress.Stiffness, Is.EqualTo(0.9f));
-        Assert.That(Dress.Rows, Is.EqualTo(XafCloth.MaxRows), "rows are clamped");
+        Assert.That(Dress.Rows, Is.EqualTo(RigCloth.MaxRows), "rows are clamped");
         Assert.That(Dress.Fill.A, Is.EqualTo(128f / 255f).Within(0.01f));
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
-        Assert.That(Package.Cloths[0].Stiffness, Is.EqualTo(new XafCloth().Stiffness));
+        Assert.That(Package.Cloths[0].Stiffness, Is.EqualTo(new RigCloth().Stiffness));
     }
 
     [Test]
@@ -154,8 +154,8 @@ public sealed class AnimatorClothTests : AnimatorToolTest
     {
         AddDress();
 
-        XafPackage saved = XafBinary.Read(XafBinary.Write(Package));
+        RigPackage saved = RigBinary.Read(RigBinary.Write(Package));
 
-        Assert.That(XafPackageCopy.AreEqual(Package, saved), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(Package, saved), Is.True);
     }
 }

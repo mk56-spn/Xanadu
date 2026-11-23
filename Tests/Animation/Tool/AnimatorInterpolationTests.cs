@@ -29,13 +29,13 @@ public sealed class AnimatorInterpolationTests : AnimatorToolTest
     {
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
-        selection.KeyTarget = XafChannelTarget.Bone;
+        selection.KeyTarget = RigChannelTarget.Bone;
         selection.KeyId = "head";
         selection.KeyTime = time;
     }
 
     private EasePreset? HeadEase(float time) =>
-        XafEasing.Read(Idle, XafChannelTarget.Bone, "head", time);
+        RigEasing.Read(Idle, RigChannelTarget.Bone, "head", time);
 
     private Entity PresetButton(EasePreset preset) => EaseCell(preset);
 

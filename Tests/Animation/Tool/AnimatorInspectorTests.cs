@@ -79,7 +79,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     public void LayerOnASelectedSvgSetsJustThatOne()
     {
         Package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "leg.svg",
                 Group = "leg",
@@ -99,7 +99,7 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
     public void ABoneWhoseArtSitsOnDifferentLayersShowsNoSingleLayer()
     {
         Package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "leg.svg",
                 Group = "leg",
@@ -161,8 +161,8 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
 
         Type(Ui.InspectRotation, "45");
 
-        var track = new XafTrack(XafChannelTarget.Bone, "torso");
-        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Contain(1f));
+        var track = new RigTrack(RigChannelTarget.Bone, "torso");
+        Assert.That(RigTracks.KeyTimes(Idle, track), Does.Contain(1f));
     }
 
     /// <summary>Moves a slider as the slider system would while it is held, one value per frame.</summary>
@@ -197,13 +197,13 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         SelectBone(1);
         Runtime.Seek(1f);
         UndoHistory<AnimatorSnapshot> history = Session.GetComponent<AnimatorSessionState>().History.History;
-        var track = new XafTrack(XafChannelTarget.Bone, "torso");
+        var track = new RigTrack(RigChannelTarget.Bone, "torso");
 
         Ui.InspectRotationSlider.AddTag<Pressed>();
         Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 30f;
         Frame();
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(float.DegreesToRadians(30f)).Within(0.0001f));
-        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Not.Contain(1f), "keys only on release");
+        Assert.That(RigTracks.KeyTimes(Idle, track), Does.Not.Contain(1f), "keys only on release");
 
         Ui.InspectRotationSlider.GetComponent<UiSlider>().Value = 60f;
         Frame();
@@ -211,11 +211,11 @@ public sealed class AnimatorInspectorTests : AnimatorToolTest
         Frame();
 
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(float.DegreesToRadians(60f)).Within(0.0001f));
-        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Contain(1f));
+        Assert.That(RigTracks.KeyTimes(Idle, track), Does.Contain(1f));
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
         Assert.That(Runtime.Pose.Bones[1].Rotation, Is.EqualTo(0f).Within(0.0001f));
-        Assert.That(XafTracks.KeyTimes(Idle, track), Does.Not.Contain(1f));
+        Assert.That(RigTracks.KeyTimes(Idle, track), Does.Not.Contain(1f));
         Assert.That(history.CanUndo, Is.False, "the whole drag was one step");
     }
 

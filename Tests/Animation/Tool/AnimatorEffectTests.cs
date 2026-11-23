@@ -81,10 +81,10 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         Assert.That(Selection.Effect, Is.EqualTo(0));
         Assert.That(Selection.Bone, Is.EqualTo(-1));
 
-        Assert.That(XafSampler.Sample(Package, Idle, 0.45f).Effects[0].Visible, Is.False);
-        Assert.That(XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Visible, Is.True);
+        Assert.That(RigSampler.Sample(Package, Idle, 0.45f).Effects[0].Visible, Is.False);
+        Assert.That(RigSampler.Sample(Package, Idle, 0.55f).Effects[0].Visible, Is.True);
         Assert.That(
-            XafSampler.Sample(Package, Idle, 0.5f + XafEffects.DefaultShowSeconds).Effects[0].Visible,
+            RigSampler.Sample(Package, Idle, 0.5f + RigEffects.DefaultShowSeconds).Effects[0].Visible,
             Is.False);
 
         Assert.That(
@@ -116,10 +116,10 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.EffectOpacityDown));
 
         Assert.That(Runtime.Pose.Effects[0].Opacity, Is.EqualTo(0.5f).Within(0.001f));
-        var track = new XafTrack(XafChannelTarget.Effect, "streak");
-        Assert.That(XafTracks.Of(Package, Idle), Does.Contain(track));
-        Assert.That(AnimatorTrackRows.Channels(Idle, track), Does.Contain(XafChannelProperty.Opacity));
-        Assert.That(AnimatorTrackRow.PropertyLabel(XafChannelProperty.Visible), Is.EqualTo("show"));
+        var track = new RigTrack(RigChannelTarget.Effect, "streak");
+        Assert.That(RigTracks.Of(Package, Idle), Does.Contain(track));
+        Assert.That(AnimatorTrackRows.Channels(Idle, track), Does.Contain(RigChannelProperty.Opacity));
+        Assert.That(AnimatorTrackRow.PropertyLabel(RigChannelProperty.Visible), Is.EqualTo("show"));
     }
 
     [Test]
@@ -131,12 +131,12 @@ public sealed class AnimatorEffectTests : AnimatorToolTest
         Click(Button(ToolActionKind.KeyBone));
 
         Assert.That(
-            XafSampler.Sample(Package, Idle, 0.55f).Effects[0].Transform.Rotation,
+            RigSampler.Sample(Package, Idle, 0.55f).Effects[0].Transform.Rotation,
             Is.EqualTo(AnimatorEditing.RotationStep).Within(0.001f));
 
         Click(Button(ToolActionKind.DeleteEffect));
         Assert.That(Package.Effects, Is.Empty);
-        Assert.That(Idle.Channels.Exists(channel => channel.Target == XafChannelTarget.Effect), Is.False);
+        Assert.That(Idle.Channels.Exists(channel => channel.Target == RigChannelTarget.Effect), Is.False);
 
         Click(Button(ToolActionKind.Undo));
         Assert.That(Package.Effects, Has.Count.EqualTo(1));

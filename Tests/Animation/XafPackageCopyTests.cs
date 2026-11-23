@@ -5,31 +5,31 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafPackageCopyTests
+public sealed class RigPackageCopyTests
 {
-    private static XafPackage Sample()
+    private static RigPackage Sample()
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        XafRigAuthoring.AddBone(package, 0, "child", new Vector2(0, -40));
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        RigRigAuthoring.AddBone(package, 0, "child", new Vector2(0, -40));
         package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "a.svg",
                 Group = "a",
                 BoneId = "child"
             });
-        XafAuthoring.SetBoneProperty(package, package.Clips[0], "child", XafChannelProperty.Rotation, 0.5f, 1f);
+        RigAuthoring.SetBoneProperty(package, package.Clips[0], "child", RigChannelProperty.Rotation, 0.5f, 1f);
         return package;
     }
 
     [Test]
     public void ACloneIsEqualButIndependent()
     {
-        XafPackage original = Sample();
+        RigPackage original = Sample();
 
-        XafPackage copy = XafPackageCopy.Clone(original);
+        RigPackage copy = RigPackageCopy.Clone(original);
 
-        Assert.That(XafPackageCopy.AreEqual(original, copy), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(original, copy), Is.True);
         copy.Clips[0].Channels[0].Keyframes[0].Value = 9f;
         copy.Skeleton.Bones[1].AllowTranslation = true;
         Assert.That(original.Clips[0].Channels[0].Keyframes[0].Value, Is.EqualTo(1f));
@@ -39,22 +39,22 @@ public sealed class XafPackageCopyTests
     [Test]
     public void AnyDifferenceMakesPackagesUnequal()
     {
-        XafPackage original = Sample();
+        RigPackage original = Sample();
 
-        foreach (System.Action<XafPackage> change in new System.Action<XafPackage>[]
+        foreach (System.Action<RigPackage> change in new System.Action<RigPackage>[]
                  {
                      p => p.Skeleton.Bones[1].Rest = new Transform2D(0f, new Vector2(1, 1)),
                      p => p.Skeleton.Bones[1].AllowTranslation = true,
                      p => p.Attachments[0].Group = "b",
                      p => p.Clips[0].Duration = 3f,
                      p => p.Clips[0].Channels[0].Keyframes[0].Time = 0.6f,
-                     p => p.Clips[0].Channels[0].Keyframes.Add(new XafKeyframe { Time = 1.5f }),
+                     p => p.Clips[0].Channels[0].Keyframes.Add(new RigKeyframe { Time = 1.5f }),
                      p => p.Clips.RemoveAt(1)
                  })
         {
-            XafPackage copy = XafPackageCopy.Clone(original);
+            RigPackage copy = RigPackageCopy.Clone(original);
             change(copy);
-            Assert.That(XafPackageCopy.AreEqual(original, copy), Is.False);
+            Assert.That(RigPackageCopy.AreEqual(original, copy), Is.False);
         }
     }
 }

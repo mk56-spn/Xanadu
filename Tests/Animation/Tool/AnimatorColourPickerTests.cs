@@ -22,7 +22,7 @@ public sealed class AnimatorColourPickerTests : AnimatorToolTest
     /// <summary>What the picker system leaves behind over a drag; pointer handling has its own tests.</summary>
     private void DragColour()
     {
-        Package.Attachments.Add(new XafAttachment { Group = "art", BoneId = "head" });
+        Package.Attachments.Add(new RigAttachment { Group = "art", BoneId = "head" });
         Session.GetComponent<AnimatorSelection>().Attachment = 0;
         Frame();
 

@@ -307,13 +307,13 @@ public sealed class AnimatorClipTests : AnimatorToolTest
 
         // The last head key sits at 2.0 s.
         Assert.That(Idle.Duration, Is.EqualTo(2f).Within(0.0001f));
-        Assert.That(XafValidation.Validate(Package), Is.Empty);
+        Assert.That(RigValidation.Validate(Package), Is.Empty);
     }
 
     [Test]
     public void ShorteningPullsThePlayheadBackInside()
     {
-        XafClip jump = Package.Clips[1];
+        RigClip jump = Package.Clips[1];
         jump.Duration = 1f;
         Run(ToolActionKind.DuplicateClip);
         Runtime.Seek(0.95f);
@@ -442,7 +442,7 @@ public sealed class AnimatorClipTests : AnimatorToolTest
     public void ShortcutsAreIgnoredWhileTypingAName()
     {
         Session.GetComponent<AnimatorSelection>().HasKey = true;
-        Session.GetComponent<AnimatorSelection>().KeyTarget = XafChannelTarget.Bone;
+        Session.GetComponent<AnimatorSelection>().KeyTarget = RigChannelTarget.Bone;
         Session.GetComponent<AnimatorSelection>().KeyId = "head";
         Session.GetComponent<AnimatorSelection>().KeyTime = 1f;
         Ui.ClipName.AddTag<TextFieldFocused>();
@@ -450,6 +450,6 @@ public sealed class AnimatorClipTests : AnimatorToolTest
         Keyboard.Press(Key.Delete);
         Frame(2);
 
-        Assert.That(XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head")), Has.Count.EqualTo(3));
+        Assert.That(RigTracks.KeyTimes(Idle, new RigTrack(RigChannelTarget.Bone, "head")), Has.Count.EqualTo(3));
     }
 }

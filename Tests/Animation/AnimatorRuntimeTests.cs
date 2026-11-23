@@ -74,7 +74,7 @@ public sealed class AnimatorRuntimeTests
     public void LoopingClipWrapsItsRuntimeTime()
     {
         var runtime = new AnimatorRuntime(Package());
-        XafClip clip = runtime.Package.Clips[2];
+        RigClip clip = runtime.Package.Clips[2];
         clip.Loop = true;
         clip.LoopStart = 0f;
         clip.LoopEnd = 1f;
@@ -113,10 +113,10 @@ public sealed class AnimatorRuntimeTests
     [Test]
     public void ATransitionUsesItsRulesFadeAndCurve()
     {
-        XafPackage package = Package();
-        XafTransition rule = XafTransitions.Allow(package, "idle", "jump");
+        RigPackage package = Package();
+        RigTransition rule = RigTransitions.Allow(package, "idle", "jump");
         rule.Fade = 1f;
-        rule.Curve = XafFadeCurve.EaseIn;
+        rule.Curve = RigFadeCurve.EaseIn;
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
 
@@ -132,8 +132,8 @@ public sealed class AnimatorRuntimeTests
     [Test]
     public void ATransitionTheTableDoesNotAllowLeavesTheClipPlaying()
     {
-        XafPackage package = Package();
-        XafTransitions.Allow(package, "idle", "jump");
+        RigPackage package = Package();
+        RigTransitions.Allow(package, "idle", "jump");
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
 
@@ -172,9 +172,9 @@ public sealed class AnimatorRuntimeTests
     [Test]
     public void ATransitionIsJudgedFromTheClipBeingFadedInto()
     {
-        XafPackage package = Package();
-        XafTransitions.Allow(package, "idle", "jump");
-        XafTransitions.Allow(package, "jump", "bob");
+        RigPackage package = Package();
+        RigTransitions.Allow(package, "idle", "jump");
+        RigTransitions.Allow(package, "jump", "bob");
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle");
         runtime.Transition("jump");
@@ -183,11 +183,11 @@ public sealed class AnimatorRuntimeTests
         Assert.That(runtime.NextClip, Is.EqualTo("bob"));
     }
 
-    private static XafPackage Package()
+    private static RigPackage Package()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "root",
                 Parent = -1,
@@ -199,22 +199,22 @@ public sealed class AnimatorRuntimeTests
         return package;
     }
 
-    private static XafClip Clip(string id, float start, float end)
+    private static RigClip Clip(string id, float start, float end)
     {
-        var clip = new XafClip
+        var clip = new RigClip
         {
             Id = id,
             Duration = 2f
         };
-        var channel = new XafChannel
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.TranslationX
+            Property = RigChannelProperty.TranslationX
         };
-        channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = start });
-        channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = end });
-        channel.Keyframes.Add(new XafKeyframe { Time = 2f, Value = end });
+        channel.Keyframes.Add(new RigKeyframe { Time = 0f, Value = start });
+        channel.Keyframes.Add(new RigKeyframe { Time = 1f, Value = end });
+        channel.Keyframes.Add(new RigKeyframe { Time = 2f, Value = end });
         clip.Channels.Add(channel);
         return clip;
     }

@@ -4,23 +4,23 @@ using Xanadu.Model.Animation;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafKeyRemovalTests
+public sealed class RigKeyRemovalTests
 {
     [Test]
     public void RemovesMatchingKeyAndDropsEmptyChannel()
     {
-        var clip = new XafClip { Id = "idle", Duration = 2f };
-        var channel = new XafChannel
+        var clip = new RigClip { Id = "idle", Duration = 2f };
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.Rotation
+            Property = RigChannelProperty.Rotation
         };
-        channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 2f });
+        channel.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 2f });
         clip.Channels.Add(channel);
 
         Assert.That(
-            XafAuthoring.RemoveKey(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1f),
+            RigAuthoring.RemoveKey(clip, RigChannelTarget.Bone, "root", RigChannelProperty.Rotation, 1f),
             Is.True);
         Assert.That(clip.Channels, Is.Empty);
     }
@@ -28,18 +28,18 @@ public sealed class XafKeyRemovalTests
     [Test]
     public void DoesNotRemoveNonMatchingKey()
     {
-        var clip = new XafClip { Id = "idle", Duration = 2f };
-        var channel = new XafChannel
+        var clip = new RigClip { Id = "idle", Duration = 2f };
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "root",
-            Property = XafChannelProperty.Rotation
+            Property = RigChannelProperty.Rotation
         };
-        channel.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 2f });
+        channel.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 2f });
         clip.Channels.Add(channel);
 
         Assert.That(
-            XafAuthoring.RemoveKey(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1.5f),
+            RigAuthoring.RemoveKey(clip, RigChannelTarget.Bone, "root", RigChannelProperty.Rotation, 1.5f),
             Is.False);
         Assert.That(channel.Keyframes, Has.Count.EqualTo(1));
     }

@@ -13,55 +13,55 @@ namespace Xanadu.Tests.Animation;
 /// and one leg down to a foot on the ground.
 /// </summary>
 [TestFixture]
-public sealed class XafClothTests
+public sealed class RigClothTests
 {
     private const int Torso = 1;
     private const int Thigh = 3;
 
-    private static XafPackage Rig()
+    private static RigPackage Rig()
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        XafRigAuthoring.AddBone(package, 0, "torso", new Vector2(0, -100));
-        XafRigAuthoring.AddBone(package, Torso, "head", new Vector2(0, -70));
-        XafRigAuthoring.AddBone(package, Torso, "thigh", new Vector2(4, 0));
-        XafRigAuthoring.AddBone(package, Thigh, "shin", new Vector2(0, 50));
-        XafRigAuthoring.AddBone(package, 4, "foot", new Vector2(0, 50));
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        RigRigAuthoring.AddBone(package, 0, "torso", new Vector2(0, -100));
+        RigRigAuthoring.AddBone(package, Torso, "head", new Vector2(0, -70));
+        RigRigAuthoring.AddBone(package, Torso, "thigh", new Vector2(4, 0));
+        RigRigAuthoring.AddBone(package, Thigh, "shin", new Vector2(0, 50));
+        RigRigAuthoring.AddBone(package, 4, "foot", new Vector2(0, 50));
         return package;
     }
 
-    private static XafPackage Dressed()
+    private static RigPackage Dressed()
     {
-        XafPackage package = Rig();
-        XafClothAuthoring.Add(package, Torso);
+        RigPackage package = Rig();
+        RigClothAuthoring.Add(package, Torso);
         return package;
     }
 
-    private static Transform2D[] Rest(XafPackage package) =>
-        XafRig.WorldBones(package, XafClothLayout.RestPose(package));
+    private static Transform2D[] Rest(RigPackage package) =>
+        RigRig.WorldBones(package, RigClothLayout.RestPose(package));
 
     /// <summary>Runs the simulation for a while with the bones held in one pose.</summary>
     private static IReadOnlyList<Vector2> Hang(
-        XafPackage package,
-        XafClothSimulation simulation,
+        RigPackage package,
+        RigClothSimulation simulation,
         Transform2D[] world,
         float seconds = 2f)
     {
-        for (float t = 0; t < seconds; t += XafClothSimulation.FixedStep)
-            simulation.Update(package, world, XafClothSimulation.FixedStep);
+        for (float t = 0; t < seconds; t += RigClothSimulation.FixedStep)
+            simulation.Update(package, world, RigClothSimulation.FixedStep);
         return simulation.Points(0);
     }
 
     [Test]
     public void ADressIsPinnedDownToTheWaistAndDrapesOverTheLegs()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        Vector2[] rest = XafClothLayout.RestPoints(package, dress, Rest(package));
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        Vector2[] rest = RigClothLayout.RestPoints(package, dress, Rest(package));
         float waist = Rest(package)[Torso].Origin.Y;
 
         Assert.That(dress.BoneId, Is.EqualTo("torso"));
         Assert.That(dress.Pins, Is.Not.Empty);
-        foreach (XafClothPin pin in dress.Pins)
+        foreach (RigClothPin pin in dress.Pins)
             Assert.That(rest[dress.Index(pin.Column, pin.Row)].Y, Is.LessThanOrEqualTo(waist + 0.5f));
         Assert.That(dress.IsPinned(0, dress.Rows - 1), Is.False, "the hem is free");
 
@@ -73,12 +73,12 @@ public sealed class XafClothTests
     [Test]
     public void AtRestItHangsAsLaidOut()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
         Transform2D[] rest = Rest(package);
-        Vector2[] laidOut = XafClothLayout.RestPoints(package, dress, rest);
+        Vector2[] laidOut = RigClothLayout.RestPoints(package, dress, rest);
 
-        IReadOnlyList<Vector2> points = Hang(package, new XafClothSimulation(), rest);
+        IReadOnlyList<Vector2> points = Hang(package, new RigClothSimulation(), rest);
 
         Assert.That(points, Has.Count.EqualTo(dress.Count));
         Vector2 hem = points[dress.Index(dress.Columns / 2, dress.Rows - 1)];
@@ -91,14 +91,14 @@ public sealed class XafClothTests
     [Test]
     public void PinnedPointsRideTheirBone()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[Torso].Rotation = 0.5f;
-        Transform2D[] turned = XafRig.WorldBones(package, pose);
-        Vector2[] laidOut = XafClothLayout.RestPoints(package, dress, Rest(package));
+        Transform2D[] turned = RigRig.WorldBones(package, pose);
+        Vector2[] laidOut = RigClothLayout.RestPoints(package, dress, Rest(package));
 
-        IReadOnlyList<Vector2> points = Hang(package, new XafClothSimulation(), turned, 0.5f);
+        IReadOnlyList<Vector2> points = Hang(package, new RigClothSimulation(), turned, 0.5f);
 
         int top = dress.Index(0, 0);
         Vector2 expected = turned[Torso] * (Rest(package)[Torso].AffineInverse() * laidOut[top]);
@@ -108,16 +108,16 @@ public sealed class XafClothTests
     [Test]
     public void TheSkirtSwingsWhenTheBodyMoves()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        var simulation = new XafClothSimulation();
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        var simulation = new RigClothSimulation();
         Transform2D[] rest = Rest(package);
         Hang(package, simulation, rest);
         Vector2 before = simulation.Points(0)[dress.Index(dress.Columns / 2, dress.Rows - 1)];
 
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[0].Translation = new Vector2(60, 0);
-        simulation.Update(package, XafRig.WorldBones(package, pose), 0.1f);
+        simulation.Update(package, RigRig.WorldBones(package, pose), 0.1f);
         Vector2 after = simulation.Points(0)[dress.Index(dress.Columns / 2, dress.Rows - 1)];
 
         Assert.That(after.X - before.X, Is.GreaterThan(0f).And.LessThan(60f), "the hem trails the body");
@@ -126,26 +126,26 @@ public sealed class XafClothTests
     [Test]
     public void AKickingLegPushesTheSkirtsEdgeOut()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        foreach (XafClothCollider collider in dress.Colliders)
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        foreach (RigClothCollider collider in dress.Colliders)
             collider.Radius = 6f;
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[Thigh].Rotation = -1.4f;
-        Transform2D[] kicked = XafRig.WorldBones(package, pose);
+        Transform2D[] kicked = RigRig.WorldBones(package, pose);
 
-        IReadOnlyList<Vector2> points = Hang(package, new XafClothSimulation(), kicked);
+        IReadOnlyList<Vector2> points = Hang(package, new RigClothSimulation(), kicked);
 
-        (Vector2 From, Vector2 To) thigh = XafClothLayout.Capsule(
+        (Vector2 From, Vector2 To) thigh = RigClothLayout.Capsule(
             package,
-            new XafClothCollider { BoneId = "thigh" },
+            new RigClothCollider { BoneId = "thigh" },
             kicked)!.Value;
         for (int row = 0; row < dress.Rows; row++)
         {
             foreach (int column in new[] { 0, dress.Columns - 1 })
             {
                 Vector2 point = points[dress.Index(column, row)];
-                float distance = XafClothLayout.ClosestOnSegment(point, thigh.From, thigh.To).DistanceTo(point);
+                float distance = RigClothLayout.ClosestOnSegment(point, thigh.From, thigh.To).DistanceTo(point);
                 if (!dress.IsPinned(column, row))
                     Assert.That(
                         distance,
@@ -158,19 +158,19 @@ public sealed class XafClothTests
     [Test]
     public void AKickFasterThanAFrameStillLiftsTheSkirt()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        var simulation = new XafClothSimulation();
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        var simulation = new RigClothSimulation();
         Hang(package, simulation, Rest(package));
 
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[Thigh].Rotation = -1.4f;
-        Transform2D[] kicked = XafRig.WorldBones(package, pose);
+        Transform2D[] kicked = RigRig.WorldBones(package, pose);
         IReadOnlyList<Vector2> points = Hang(package, simulation, kicked, 0.3f);
 
-        (Vector2 From, Vector2 To) thigh = XafClothLayout.Capsule(
+        (Vector2 From, Vector2 To) thigh = RigClothLayout.Capsule(
             package,
-            new XafClothCollider { BoneId = "thigh" },
+            new RigClothCollider { BoneId = "thigh" },
             kicked)!.Value;
         Vector2 axis = (thigh.To - thigh.From).Normalized();
         float length = thigh.From.DistanceTo(thigh.To);
@@ -194,74 +194,74 @@ public sealed class XafClothTests
     [Test]
     public void DressesSurviveASaveACopyAndABoneRename()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
         dress.Fill = new Color(0.2f, 0.4f, 0.6f, 0.8f);
         dress.Lean = 40f;
         dress.ZOrder = 5;
-        XafClothAuthoring.ToggleTether(package, 0, 0, dress.Rows - 1, 4);
-        XafClothAuthoring.SetTetherRadius(package, 0, 30f);
+        RigClothAuthoring.ToggleTether(package, 0, 0, dress.Rows - 1, 4);
+        RigClothAuthoring.SetTetherRadius(package, 0, 30f);
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
-        Assert.That(XafPackageCopy.AreEqual(package, loaded), Is.True);
-        Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
+        Assert.That(RigPackageCopy.AreEqual(package, loaded), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(package, RigPackageCopy.Clone(package)), Is.True);
 
         Assert.That(loaded.Cloths[0].Tethers, Has.Count.EqualTo(1));
         Assert.That(loaded.Cloths[0].Tethers[0].Radius, Is.EqualTo(30f));
 
-        XafRigAuthoring.RenameBone(package, Thigh, "leg");
+        RigRigAuthoring.RenameBone(package, Thigh, "leg");
         Assert.That(package.Cloths[0].Colliders.ConvertAll(collider => collider.BoneId), Does.Contain("leg"));
-        XafRigAuthoring.RenameBone(package, 4, "calf");
+        RigRigAuthoring.RenameBone(package, 4, "calf");
         Assert.That(package.Cloths[0].Tethers[0].BoneId, Is.EqualTo("calf"));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
     }
 
     [Test]
     public void ABoneADressUsesCannotBeDeleted()
     {
-        XafPackage package = Dressed();
+        RigPackage package = Dressed();
         Assert.That(
             package.Cloths[0].Colliders.Exists(collider => collider.BoneId == "foot"),
             Is.False,
             "the foot is below the hem, so the dress leaves it out");
 
-        XafClothAuthoring.ToggleCollider(package, 0, 5);
+        RigClothAuthoring.ToggleCollider(package, 0, 5);
 
-        Assert.That(XafRigAuthoring.DeleteBone(package, 5), Is.False, "the foot is now a collider");
+        Assert.That(RigRigAuthoring.DeleteBone(package, 5), Is.False, "the foot is now a collider");
     }
 
     [Test]
     public void APointCyclesFromFreeToPinnedToTetheredToFree()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
         int row = dress.Rows - 1;
 
-        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        RigClothAuthoring.CyclePoint(package, 0, 0, row, 4);
         Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((true, false)));
-        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        RigClothAuthoring.CyclePoint(package, 0, 0, row, 4);
         Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((false, true)));
-        XafClothAuthoring.CyclePoint(package, 0, 0, row, 4);
+        RigClothAuthoring.CyclePoint(package, 0, 0, row, 4);
         Assert.That((dress.IsPinned(0, row), dress.IsTethered(0, row)), Is.EqualTo((false, false)));
     }
 
     [Test]
     public void ATetheredHemStaysWithinReachOfItsBone()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
         int hem = dress.Index(dress.Columns / 2, dress.Rows - 1);
-        XafClothAuthoring.ToggleTether(package, 0, dress.Columns / 2, dress.Rows - 1, Torso);
-        XafClothAuthoring.SetTetherRadius(package, 0, 10f);
+        RigClothAuthoring.ToggleTether(package, 0, dress.Columns / 2, dress.Rows - 1, Torso);
+        RigClothAuthoring.SetTetherRadius(package, 0, 10f);
         Transform2D[] rest = Rest(package);
-        Vector2 onBone = rest[Torso].AffineInverse() * XafClothLayout.RestPoints(package, dress, rest)[hem];
+        Vector2 onBone = rest[Torso].AffineInverse() * RigClothLayout.RestPoints(package, dress, rest)[hem];
 
-        var simulation = new XafClothSimulation();
+        var simulation = new RigClothSimulation();
         Hang(package, simulation, rest);
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[0].Translation = new Vector2(300, 0);
-        Transform2D[] moved = XafRig.WorldBones(package, pose);
-        simulation.Update(package, moved, XafClothSimulation.FixedStep * 2);
+        Transform2D[] moved = RigRig.WorldBones(package, pose);
+        simulation.Update(package, moved, RigClothSimulation.FixedStep * 2);
 
         Assert.That(
             simulation.Points(0)[hem].DistanceTo(moved[Torso] * onBone),
@@ -272,15 +272,15 @@ public sealed class XafClothTests
     [Test]
     public void TheSkirtNeverFoldsThroughItself()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
-        var simulation = new XafClothSimulation();
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
+        var simulation = new RigClothSimulation();
         Hang(package, simulation, Rest(package));
-        XafPose pose = XafClothLayout.RestPose(package);
+        RigPose pose = RigClothLayout.RestPose(package);
         pose.Bones[Torso].Rotation = 1.2f;
-        IReadOnlyList<Vector2> points = Hang(package, simulation, XafRig.WorldBones(package, pose), 0.5f);
+        IReadOnlyList<Vector2> points = Hang(package, simulation, RigRig.WorldBones(package, pose), 0.5f);
 
-        int[] triangles = XafClothLayout.Triangles(dress.Columns, dress.Rows);
+        int[] triangles = RigClothLayout.Triangles(dress.Columns, dress.Rows);
         for (int t = 0; t < triangles.Length; t += 3)
         {
             Vector2 a = points[triangles[t]];
@@ -292,11 +292,11 @@ public sealed class XafClothTests
     [Test]
     public void BadClothsAreRefused()
     {
-        XafPackage package = Dressed();
+        RigPackage package = Dressed();
         package.Cloths[0].Rows = 1;
-        package.Cloths[0].Pins.Add(new XafClothPin { Column = 99, Row = 0, BoneId = "nobody" });
+        package.Cloths[0].Pins.Add(new RigClothPin { Column = 99, Row = 0, BoneId = "nobody" });
 
-        IReadOnlyList<string> issues = XafValidation.Validate(package);
+        IReadOnlyList<string> issues = RigValidation.Validate(package);
 
         Assert.That(issues, Has.Some.Contains("invalid grid"));
         Assert.That(issues, Has.Some.Contains("outside its grid"));
@@ -306,14 +306,14 @@ public sealed class XafClothTests
     [Test]
     public void PinsToggleAndShrinkingTheGridDropsPinsThatNoLongerFit()
     {
-        XafPackage package = Dressed();
-        XafCloth dress = package.Cloths[0];
+        RigPackage package = Dressed();
+        RigCloth dress = package.Cloths[0];
         int bottom = dress.Rows - 1;
 
-        XafClothAuthoring.TogglePin(package, 0, 0, bottom, Thigh);
+        RigClothAuthoring.TogglePin(package, 0, 0, bottom, Thigh);
         Assert.That(dress.IsPinned(0, bottom), Is.True);
 
-        XafClothAuthoring.SetGrid(package, 0, dress.Columns, bottom);
+        RigClothAuthoring.SetGrid(package, 0, dress.Columns, bottom);
         Assert.That(dress.Pins.TrueForAll(pin => pin.Row < dress.Rows), Is.True);
     }
 }

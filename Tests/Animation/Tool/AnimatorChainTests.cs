@@ -136,9 +136,9 @@ public sealed class AnimatorChainTests : AnimatorToolTest
     {
         AddChainOnHead();
 
-        XafChain chain = Package.Chains[0];
-        Assert.That(chain.SvgPath, Is.EqualTo(XafChain.DefaultSvgPath));
-        Assert.That(chain.Group, Is.EqualTo(XafChain.DefaultGroup));
+        RigChain chain = Package.Chains[0];
+        Assert.That(chain.SvgPath, Is.EqualTo(RigChain.DefaultSvgPath));
+        Assert.That(chain.Group, Is.EqualTo(RigChain.DefaultGroup));
         Assert.That(Ui.ChainWidth.GetComponent<TextField>().Value, Is.EqualTo("10"));
         Assert.That(Ui.ChainLean.GetComponent<TextField>().Value, Is.EqualTo("0"));
         Assert.That(Ui.ChainCollide.GetComponent<TextField>().Value, Is.EqualTo("0"));
@@ -153,7 +153,7 @@ public sealed class AnimatorChainTests : AnimatorToolTest
         Type(Ui.ChainLean, "80");
         Type(Ui.ChainCollide, "12");
 
-        XafChain chain = Package.Chains[0];
+        RigChain chain = Package.Chains[0];
         Assert.That(chain.Width, Is.EqualTo(6f));
         Assert.That(chain.Lean, Is.EqualTo(80f));
         Assert.That(chain.CollideRadius, Is.EqualTo(12f));
@@ -186,7 +186,7 @@ public sealed class AnimatorChainTests : AnimatorToolTest
         Type(Ui.ChainGravity, "250");
         Type(Ui.ChainDamping, "0.8");
 
-        XafChain chain = Package.Chains[0];
+        RigChain chain = Package.Chains[0];
         Assert.That(chain.Segments, Is.EqualTo(10));
         Assert.That(chain.SegmentLength, Is.EqualTo(8.5f));
         Assert.That(chain.Gravity, Is.EqualTo(250f));
@@ -204,7 +204,7 @@ public sealed class AnimatorChainTests : AnimatorToolTest
 
         Type(Ui.ChainSegments, "9999");
 
-        Assert.That(Package.Chains[0].Segments, Is.EqualTo(XafChain.MaxSegments));
+        Assert.That(Package.Chains[0].Segments, Is.EqualTo(RigChain.MaxSegments));
         Assert.That(Ui.ChainSegments.GetComponent<TextField>().Value, Is.EqualTo("64"));
     }
 
@@ -278,11 +278,11 @@ public sealed class AnimatorChainTests : AnimatorToolTest
     {
         AddChainOnHead();
         Frame(10);
-        XafChainSimulation simulation = Session.GetComponent<AnimatorChains>().Simulation;
+        RigChainSimulation simulation = Session.GetComponent<AnimatorChains>().Simulation;
         Assert.That(simulation.Points(0), Has.Count.EqualTo(7));
 
         Vector2 anchor = simulation.Points(0)[0];
-        XafPackage package = Package;
+        RigPackage package = Package;
         package.Skeleton.Bones[0].Rest = new Transform2D(0f, new Vector2(60, 0));
         Session.GetComponent<AnimatorModes>().Rest = true;
         Frame(30);
@@ -295,10 +295,10 @@ public sealed class AnimatorChainTests : AnimatorToolTest
     {
         AddChainOnHead();
         Frame(10);
-        XafChainSimulation simulation = Session.GetComponent<AnimatorChains>().Simulation;
+        RigChainSimulation simulation = Session.GetComponent<AnimatorChains>().Simulation;
         Assert.That(simulation.Points(0), Is.Not.Empty);
 
-        AnimatorSession.Replace(Session, new XafPackage());
+        AnimatorSession.Replace(Session, new RigPackage());
         Frame();
 
         Assert.That(simulation.Points(0), Is.Empty);

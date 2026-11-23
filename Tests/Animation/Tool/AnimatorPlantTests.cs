@@ -19,31 +19,31 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     protected override void AddSystems() => base.Root.Add(new AnimatorPlantSystem());
 
     /// <summary>A hip over a slightly bent leg, so it has room to fold; "idle" lasts a second and keys only the root.</summary>
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         Add(package, "root", -1, Vector2.Zero);
         Add(package, "hip", 0, new Vector2(0, -100));
         Add(package, "thigh", 1, Vector2.Zero);
         Add(package, "shin", 2, new Vector2(4, 48));
         Add(package, "foot", 3, new Vector2(-4, 48));
-        var clip = new XafClip { Id = "idle", Duration = 1f };
-        var down = new XafChannel
-            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationY };
-        down.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        down.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 30f });
+        var clip = new RigClip { Id = "idle", Duration = 1f };
+        var down = new RigChannel
+            { Target = RigChannelTarget.Bone, TargetId = "root", Property = RigChannelProperty.TranslationY };
+        down.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        down.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 30f });
         clip.Channels.Add(down);
         package.Clips.Add(clip);
-        package.Clips.Add(new XafClip { Id = "other", Duration = 1f });
+        package.Clips.Add(new RigClip { Id = "other", Duration = 1f });
         return package;
     }
 
-    private static void Add(XafPackage package, string id, int parent, Vector2 offset) =>
-        package.Skeleton.Bones.Add(new XafBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
+    private static void Add(RigPackage package, string id, int parent, Vector2 offset) =>
+        package.Skeleton.Bones.Add(new RigBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
 
-    private Vector2 FootAt => XafRig.WorldBones(Package, Runtime.Pose)[Foot].Origin;
+    private Vector2 FootAt => RigRig.WorldBones(Package, Runtime.Pose)[Foot].Origin;
 
-    private float FootFacing => XafRig.WorldBones(Package, Runtime.Pose)[Foot].Rotation;
+    private float FootFacing => RigRig.WorldBones(Package, Runtime.Pose)[Foot].Rotation;
 
     private void Toggle(int bone)
     {
@@ -77,12 +77,12 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Vector2 spot = FootAt;
         Toggle(Foot);
         float facing = FootFacing;
-        int footKeys = Keys("foot", XafChannelProperty.Rotation);
+        int footKeys = Keys("foot", RigChannelProperty.Rotation);
 
         AnimatorTransformCommands.SetRotation(Session, Runtime.Pose.Bones[Foot].Rotation + 0.4f);
         Frame();
 
-        XafLimbTarget pin = Idle.Targets[0];
+        RigLimbTarget pin = Idle.Targets[0];
         Assert.That(pin.Facing, Is.EqualTo(facing + 0.4f).Within(0.001f));
         Assert.That(FootFacing, Is.EqualTo(facing + 0.4f).Within(0.001f));
         Assert.That(FootAt.DistanceTo(spot), Is.LessThan(0.05f));
@@ -91,7 +91,7 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Runtime.Seek(0.7f);
         Frame();
         Assert.That(FootFacing, Is.EqualTo(facing + 0.4f).Within(0.001f));
-        Assert.That(Keys("foot", XafChannelProperty.Rotation), Is.EqualTo(footKeys));
+        Assert.That(Keys("foot", RigChannelProperty.Rotation), Is.EqualTo(footKeys));
     }
 
     [Test]
@@ -104,7 +104,7 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Session.GetComponent<AnimatorModes>().Svg = false;
 
         Transform2D placement = Transform2D.Identity;
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Vector2 joint = world[Foot].Origin;
         Vector2 stem = AnimatorTipHandles.Tip(Package, Foot, world, placement);
         Assert.That(AnimatorTipHandles.TryBegin(Session, stem, placement, Runtime.Pose, world), Is.True);
@@ -154,7 +154,7 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         }
     }
 
-    private int Keys(string bone, XafChannelProperty property) =>
+    private int Keys(string bone, RigChannelProperty property) =>
         Idle.Channels.Find(c => c.TargetId == bone && c.Property == property)?.Keyframes.Count ?? 0;
 
     [Test]
@@ -168,8 +168,8 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Toggle(Foot);
 
         // One second is 61 moments; the body only sinks a little in a straight line.
-        Assert.That(Keys("shin", XafChannelProperty.Rotation), Is.InRange(2, 8));
-        Assert.That(Keys("thigh", XafChannelProperty.Rotation), Is.EqualTo(Keys("shin", XafChannelProperty.Rotation)));
+        Assert.That(Keys("shin", RigChannelProperty.Rotation), Is.InRange(2, 8));
+        Assert.That(Keys("thigh", RigChannelProperty.Rotation), Is.EqualTo(Keys("shin", RigChannelProperty.Rotation)));
     }
 
     [Test]
@@ -181,7 +181,7 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
 
         Assert.That(Idle.Targets, Is.Empty);
         Assert.That(Held, Is.Empty);
-        Assert.That(Keys("shin", XafChannelProperty.Rotation), Is.GreaterThan(0));
+        Assert.That(Keys("shin", RigChannelProperty.Rotation), Is.GreaterThan(0));
     }
 
     [Test]
@@ -194,10 +194,10 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
 
         Toggle(Foot);
 
-        foreach (XafChannel channel in Idle.Channels)
+        foreach (RigChannel channel in Idle.Channels)
         {
             if (channel.TargetId is "thigh" or "shin" or "foot")
-                Assert.That(channel.Property, Is.EqualTo(XafChannelProperty.Rotation));
+                Assert.That(channel.Property, Is.EqualTo(RigChannelProperty.Rotation));
         }
     }
 
@@ -205,14 +205,14 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     public void AFastSwingStillHoldsTheFootByAddingKeysOnlyWhereNeeded()
     {
         // The hip sinks first, then swings over the foot: bent throughout, so always in reach.
-        XafChannel across = new()
-            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationX };
-        across.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        across.Keyframes.Add(new XafKeyframe { Time = 0.25f, Value = 15f });
-        across.Keyframes.Add(new XafKeyframe { Time = 0.5f, Value = -15f });
-        across.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 0f });
+        RigChannel across = new()
+            { Target = RigChannelTarget.Bone, TargetId = "root", Property = RigChannelProperty.TranslationX };
+        across.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        across.Keyframes.Add(new RigKeyframe { Time = 0.25f, Value = 15f });
+        across.Keyframes.Add(new RigKeyframe { Time = 0.5f, Value = -15f });
+        across.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 0f });
         Idle.Channels.Add(across);
-        Idle.Channels[0].Keyframes.Insert(1, new XafKeyframe { Time = 0.25f, Value = 30f });
+        Idle.Channels[0].Keyframes.Insert(1, new RigKeyframe { Time = 0.25f, Value = 30f });
         Idle.Channels[0].Keyframes[2].Value = 30f;
         Runtime.Seek(0f);
         Vector2 spot = FootAt;
@@ -231,8 +231,8 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
                 $"at {time}");
         }
 
-        Assert.That(Keys("shin", XafChannelProperty.Rotation), Is.LessThan(30));
-        TestContext.Out.WriteLine($"KEYS {Keys("shin", XafChannelProperty.Rotation)}");
+        Assert.That(Keys("shin", RigChannelProperty.Rotation), Is.LessThan(30));
+        TestContext.Out.WriteLine($"KEYS {Keys("shin", RigChannelProperty.Rotation)}");
     }
 
     [Test]
@@ -262,10 +262,10 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     [Test]
     public void SpotsPastTheLegsReachDoNotAskForMoreKeys()
     {
-        XafChannel across = new()
-            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationX };
-        across.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        across.Keyframes.Add(new XafKeyframe { Time = 1f, Value = 300f });
+        RigChannel across = new()
+            { Target = RigChannelTarget.Bone, TargetId = "root", Property = RigChannelProperty.TranslationX };
+        across.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        across.Keyframes.Add(new RigKeyframe { Time = 1f, Value = 300f });
         Idle.Channels.Add(across);
         Runtime.Seek(0f);
         Toggle(Foot);
@@ -274,7 +274,7 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
 
         Toggle(Foot);
 
-        Assert.That(Keys("shin", XafChannelProperty.Rotation), Is.LessThan(12));
+        Assert.That(Keys("shin", RigChannelProperty.Rotation), Is.LessThan(12));
     }
 
     [Test]
@@ -295,16 +295,16 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     [Test]
     public void APlantOverwritesLegKeysFromThePlayheadOnOnly()
     {
-        var old = new XafChannel
-            { Target = XafChannelTarget.Bone, TargetId = "shin", Property = XafChannelProperty.Rotation };
-        old.Keyframes.Add(new XafKeyframe { Time = 0.103f, Value = 2f });
-        old.Keyframes.Add(new XafKeyframe { Time = 0.9f, Value = 0f });
+        var old = new RigChannel
+            { Target = RigChannelTarget.Bone, TargetId = "shin", Property = RigChannelProperty.Rotation };
+        old.Keyframes.Add(new RigKeyframe { Time = 0.103f, Value = 2f });
+        old.Keyframes.Add(new RigKeyframe { Time = 0.9f, Value = 0f });
         Idle.Channels.Add(old);
         Runtime.Seek(0.5f);
 
         Toggle(Foot);
 
-        XafChannel shin = Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation)!;
+        RigChannel shin = Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == RigChannelProperty.Rotation)!;
         Assert.That(shin.Keyframes.Exists(key => key.Time == 0.103f), Is.True);
         Assert.That(shin.Keyframes.Exists(key => key.Time == 0.9f), Is.False);
     }
@@ -381,11 +381,11 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
         Vector2 spot = FootAt;
         Toggle(Foot);
 
-        XafPackage saved = XafBinary.Read(XafBinary.Write(Package));
+        RigPackage saved = RigBinary.Read(RigBinary.Write(Package));
 
-        XafLimbTarget plant = saved.Clips[0].Targets[0];
+        RigLimbTarget plant = saved.Clips[0].Targets[0];
         Assert.That(plant.BoneId, Is.EqualTo("foot"));
-        Assert.That(plant.Shape, Is.EqualTo(XafTargetShape.Spot));
+        Assert.That(plant.Shape, Is.EqualTo(RigTargetShape.Spot));
         Assert.That(plant.Center.DistanceTo(spot), Is.LessThan(0.001f));
         Assert.That(plant.From, Is.EqualTo(0.25f).Within(0.001f));
         Assert.That(plant.To, Is.EqualTo(1f).Within(0.001f));
@@ -411,8 +411,8 @@ public sealed class AnimatorPlantTests : AnimatorToolTest
     public void APlantStopsShortOfTheBonesNextTarget()
     {
         Idle.Targets.Add(
-            new XafLimbTarget
-                { BoneId = "foot", Shape = XafTargetShape.Spot, Center = Vector2.Zero, From = 0.6f, To = 0.8f });
+            new RigLimbTarget
+                { BoneId = "foot", Shape = RigTargetShape.Spot, Center = Vector2.Zero, From = 0.6f, To = 0.8f });
         Runtime.Seek(0.1f);
 
         Toggle(Foot);

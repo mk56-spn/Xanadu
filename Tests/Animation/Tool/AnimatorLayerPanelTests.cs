@@ -32,7 +32,7 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
         foreach ((string group, int layer) in art)
         {
             Package.Attachments.Add(
-                new XafAttachment
+                new RigAttachment
                 {
                     SvgPath = $"{group}.svg",
                     Group = group,
@@ -74,7 +74,7 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
     [Test]
     public void ClothIsListedWithTheArtAndAboveItOnTheSameLayer()
     {
-        Package.Cloths.Add(new XafCloth { Id = "dress", BoneId = "torso", ZOrder = 2 });
+        Package.Cloths.Add(new RigCloth { Id = "dress", BoneId = "torso", ZOrder = 2 });
         Art(("legs", 2));
 
         Assert.That(Shown(), Is.EqualTo(new[] { "2   dress", "2   legs" }));
@@ -157,7 +157,7 @@ public sealed class AnimatorLayerPanelTests : AnimatorToolTest
     public void AKeyedLayerIsKeyedRatherThanEditingItsBase()
     {
         Art(("legs", 0), ("hair", 5));
-        XafAttachmentAuthoring.KeyLayer(Package, Idle, 0, 0f, 1);
+        RigAttachmentAuthoring.KeyLayer(Package, Idle, 0, 0f, 1);
         Session.GetComponent<AnimatorDocument>().Runtime.Seek(0f);
         Frame(2);
         Assert.That(Shown()[1], Is.EqualTo("1   legs"));

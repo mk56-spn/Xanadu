@@ -7,20 +7,20 @@ using Xanadu.Core.Timeline;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafCurveTests
+public sealed class RigCurveTests
 {
-    private static (XafClip Clip, XafChannel Channel) TwoKeys()
+    private static (RigClip Clip, RigChannel Channel) TwoKeys()
     {
-        var clip = new XafClip { Id = "c", Duration = 1f };
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "b", XafChannelProperty.Rotation, 0f, 0f);
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "b", XafChannelProperty.Rotation, 1f, 10f);
+        var clip = new RigClip { Id = "c", Duration = 1f };
+        RigAuthoring.SetChannel(clip, RigChannelTarget.Bone, "b", RigChannelProperty.Rotation, 0f, 0f);
+        RigAuthoring.SetChannel(clip, RigChannelTarget.Bone, "b", RigChannelProperty.Rotation, 1f, 10f);
         return (clip, clip.Channels[0]);
     }
 
-    private static XafPackage Package(XafClip clip)
+    private static RigPackage Package(RigClip clip)
     {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "b" });
+        var package = new RigPackage();
+        package.Skeleton.Bones.Add(new RigBone { Id = "b" });
         package.Clips.Add(clip);
         return package;
     }
@@ -84,59 +84,59 @@ public sealed class XafCurveTests
     [Test]
     public void ANamedCurveIsSampledAndReadBack()
     {
-        (XafClip clip, XafChannel channel) = TwoKeys();
+        (RigClip clip, RigChannel channel) = TwoKeys();
 
-        Assert.That(XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.BounceOut), Is.True);
+        Assert.That(RigEasing.Apply(clip, RigChannelTarget.Bone, "b", 0f, EasePreset.BounceOut), Is.True);
 
-        Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.BounceOut));
-        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.BounceOut));
+        Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(RigInterpolation.BounceOut));
+        Assert.That(RigEasing.Read(clip, RigChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.BounceOut));
         Assert.That(
-            XafSampler.SampleChannel(channel, 0.3f),
+            RigSampler.SampleChannel(channel, 0.3f),
             Is.EqualTo(10f * EaseCurves.Evaluate(CurveFamily.Bounce, CurveDirection.Out, 0.3f)).Within(0.001f));
     }
 
     [Test]
     public void QuadInAndOutStayTheTangentEasesTheyAlwaysWere()
     {
-        (XafClip clip, XafChannel channel) = TwoKeys();
+        (RigClip clip, RigChannel channel) = TwoKeys();
 
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePresets.Preset(CurveFamily.Quad, CurveDirection.Out));
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "b", 0f, EasePresets.Preset(CurveFamily.Quad, CurveDirection.Out));
 
-        Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
-        Assert.That(XafSampler.SampleChannel(channel, 0.5f), Is.EqualTo(7.5f).Within(0.001f));
+        Assert.That(channel.Keyframes[0].Interpolation, Is.EqualTo(RigInterpolation.CubicBezier));
+        Assert.That(RigSampler.SampleChannel(channel, 0.5f), Is.EqualTo(7.5f).Within(0.001f));
     }
 
     [Test]
     public void SwitchingFromATangentEaseToANamedCurveClearsTheTangents()
     {
-        (XafClip clip, XafChannel channel) = TwoKeys();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.EaseIn);
+        (RigClip clip, RigChannel channel) = TwoKeys();
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "b", 0f, EasePreset.EaseIn);
 
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.SineOut);
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "b", 0f, EasePreset.SineOut);
 
         Assert.That(channel.Keyframes[1].TangentIn, Is.EqualTo(0f));
-        Assert.That(XafEasing.Read(clip, XafChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.SineOut));
+        Assert.That(RigEasing.Read(clip, RigChannelTarget.Bone, "b", 0f), Is.EqualTo(EasePreset.SineOut));
     }
 
     [Test]
     public void NamedCurvesRoundTripTheFile()
     {
-        (XafClip clip, _) = TwoKeys();
-        XafEasing.Apply(clip, XafChannelTarget.Bone, "b", 0f, EasePreset.ElasticInOut);
+        (RigClip clip, _) = TwoKeys();
+        RigEasing.Apply(clip, RigChannelTarget.Bone, "b", 0f, EasePreset.ElasticInOut);
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(Package(clip)));
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(Package(clip)));
 
-        Assert.That(loaded.Clips[0].Channels[0].Keyframes[0].Interpolation, Is.EqualTo(XafInterpolation.ElasticInOut));
+        Assert.That(loaded.Clips[0].Channels[0].Keyframes[0].Interpolation, Is.EqualTo(RigInterpolation.ElasticInOut));
     }
 
     [Test]
     public void AnUnknownInterpolationIsRefused()
     {
-        (XafClip clip, XafChannel channel) = TwoKeys();
-        channel.Keyframes[0].Interpolation = (XafInterpolation)250;
+        (RigClip clip, RigChannel channel) = TwoKeys();
+        channel.Keyframes[0].Interpolation = (RigInterpolation)250;
 
-        byte[] data = XafBinary.Write(Package(clip));
+        byte[] data = RigBinary.Write(Package(clip));
 
-        Assert.Throws<XafFormatException>(() => XafBinary.Read(data));
+        Assert.Throws<RigFormatException>(() => RigBinary.Read(data));
     }
 }

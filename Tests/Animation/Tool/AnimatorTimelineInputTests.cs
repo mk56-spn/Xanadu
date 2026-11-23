@@ -40,7 +40,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     }
 
     private List<float> HeadTimes() =>
-        XafTracks.KeyTimes(Idle, new XafTrack(XafChannelTarget.Bone, "head"));
+        RigTracks.KeyTimes(Idle, new RigTrack(RigChannelTarget.Bone, "head"));
 
     private AnimatorSelection Selection => Session.GetComponent<AnimatorSelection>();
 
@@ -62,7 +62,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     [Test]
     public void AKeyAtTheClipsEndCanBeGrabbedFromJustPastIt()
     {
-        XafAuthoring.SetChannel(Idle, XafChannelTarget.Bone, "head", XafChannelProperty.Rotation, Idle.Duration, 0.3f);
+        RigAuthoring.SetChannel(Idle, RigChannelTarget.Bone, "head", RigChannelProperty.Rotation, Idle.Duration, 0.3f);
         Vector2 end = KeyPoint("head", Idle.Duration);
 
         PressAt(end + new Vector2(AnimatorTimelineModel.KeyHitRadius - 2f, 0f));
@@ -74,14 +74,14 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     [Test]
     public void DraggingAKeySetRetimesEveryChannelAndSnaps()
     {
-        XafAuthoring.KeyBoneTransform(Package, Idle, 2, 1f, XafTransform.Identity);
+        RigAuthoring.KeyBoneTransform(Package, Idle, 2, 1f, RigTransform.Identity);
         PressAt(KeyPoint("head", 1f));
 
         Pointer.Position = KeyPoint("head", 1.504f);
         Frame();
 
         Assert.That(HeadTimes(), Is.EqualTo(new[] { 0f, 1.5f, 2f }).Within(0.0001f));
-        foreach (XafChannel channel in Idle.Channels)
+        foreach (RigChannel channel in Idle.Channels)
             Assert.That(channel.Keyframes.Exists(key => System.Math.Abs(key.Time - 1.5f) < 0.001f), Is.True);
         Assert.That(Selection.KeyTime, Is.EqualTo(1.5f).Within(0.001f));
         Release();
@@ -121,13 +121,13 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     [Test]
     public void CrossingAnotherChannelsKeyDoesNotPickItUp()
     {
-        var translation = new XafChannel
+        var translation = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "head",
-            Property = XafChannelProperty.TranslationX
+            Property = RigChannelProperty.TranslationX
         };
-        translation.Keyframes.Add(new XafKeyframe { Time = 1.5f, Value = 4f });
+        translation.Keyframes.Add(new RigKeyframe { Time = 1.5f, Value = 4f });
         Idle.Channels.Add(translation);
         PressAt(KeyPoint("head", 1f));
         Pointer.Shift = true;
@@ -235,7 +235,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         Assert.That(
             Model().Tracks,
             Has.Some.Matches<AnimatorTrackRow>(row =>
-                row.Track == new XafTrack(XafChannelTarget.Bone, "torso") && !row.IsChannel));
+                row.Track == new RigTrack(RigChannelTarget.Bone, "torso") && !row.IsChannel));
     }
 
     [Test]
@@ -320,8 +320,8 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         for (int i = 0; i < 12; i++)
         {
             string id = $"extra-{i}";
-            XafRigAuthoring.AddBone(Package, 0, id, Vector2.Zero);
-            XafAuthoring.SetBoneProperty(Package, Idle, id, XafChannelProperty.Rotation, 0.5f, 1f);
+            RigRigAuthoring.AddBone(Package, 0, id, Vector2.Zero);
+            RigAuthoring.SetBoneProperty(Package, Idle, id, RigChannelProperty.Rotation, 0.5f, 1f);
         }
 
         AnimatorTimelineModel model = Model();
@@ -355,8 +355,8 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
         for (int i = 0; i < 40; i++)
         {
             string id = $"extra-{i}";
-            XafRigAuthoring.AddBone(Package, 0, id, Vector2.Zero);
-            XafAuthoring.SetBoneProperty(Package, Idle, id, XafChannelProperty.Rotation, 0.5f, 1f);
+            RigRigAuthoring.AddBone(Package, 0, id, Vector2.Zero);
+            RigAuthoring.SetBoneProperty(Package, Idle, id, RigChannelProperty.Rotation, 0.5f, 1f);
         }
 
         return Model();
@@ -387,7 +387,7 @@ public sealed class AnimatorTimelineInputTests : AnimatorToolTest
     {
         AnimatorTimelineModel model = ManyRows();
         int max = model.Tracks.Count - model.VisibleRows;
-        float top = model.RowSlider.ThumbTop(0f);
+        float top = model.RowSlider.ThumbStart(0f);
 
         PressAt(OnRowBar(model, top + 2));
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.RowScroll));

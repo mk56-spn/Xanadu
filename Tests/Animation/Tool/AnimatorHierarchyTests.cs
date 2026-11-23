@@ -109,9 +109,9 @@ public sealed class AnimatorHierarchyTests : AnimatorToolTest
     [Test]
     public void LoadingAPackageRefreshesTheClipList()
     {
-        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
+        RigPackage other = RigRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
-        other.Clips.Add(new XafClip { Id = "walk", Duration = 1f });
+        other.Clips.Add(new RigClip { Id = "walk", Duration = 1f });
         Files.ToLoad = other;
 
         Click(Button(ToolActionKind.Load));

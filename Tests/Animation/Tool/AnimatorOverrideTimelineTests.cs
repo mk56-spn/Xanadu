@@ -24,35 +24,35 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Root.Add(new AnimatorKeyMenuSystem(Pointer));
     }
 
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         Add(package, "root", -1, Vector2.Zero);
         Add(package, "hip", 0, new Vector2(0, -100));
         Add(package, "thigh", 1, Vector2.Zero);
         Add(package, "shin", 2, new Vector2(4, 48));
         Add(package, "foot", 3, new Vector2(-4, 48));
-        var clip = new XafClip { Id = "idle", Duration = 2f };
-        var down = new XafChannel
-            { Target = XafChannelTarget.Bone, TargetId = "root", Property = XafChannelProperty.TranslationY };
-        down.Keyframes.Add(new XafKeyframe { Time = 0f, Value = 0f });
-        down.Keyframes.Add(new XafKeyframe { Time = 2f, Value = 30f });
+        var clip = new RigClip { Id = "idle", Duration = 2f };
+        var down = new RigChannel
+            { Target = RigChannelTarget.Bone, TargetId = "root", Property = RigChannelProperty.TranslationY };
+        down.Keyframes.Add(new RigKeyframe { Time = 0f, Value = 0f });
+        down.Keyframes.Add(new RigKeyframe { Time = 2f, Value = 30f });
         clip.Channels.Add(down);
         package.Clips.Add(clip);
         return package;
     }
 
-    private static void Add(XafPackage package, string id, int parent, Vector2 offset) =>
-        package.Skeleton.Bones.Add(new XafBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
+    private static void Add(RigPackage package, string id, int parent, Vector2 offset) =>
+        package.Skeleton.Bones.Add(new RigBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
 
-    private XafLimbTarget AddOverride(XafTargetShape shape, float from, float to)
+    private RigLimbTarget AddOverride(RigTargetShape shape, float from, float to)
     {
-        var target = new XafLimbTarget
+        var target = new RigLimbTarget
         {
             BoneId = "foot", Shape = shape, Center = new Vector2(0, 0), RadiusX = 5f, RadiusY = 5f, From = from, To = to
         };
         Idle.Targets.Add(target);
-        XafTargets.Bake(Package, Idle);
+        RigTargets.Bake(Package, Idle);
         return target;
     }
 
@@ -94,7 +94,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void RightClickingABarOpensTheOverrideMenuNotTheKeyMenu()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         RightClickBar(0.75f);
 
         AnimatorKeyMenu menu = Session.GetComponent<AnimatorKeyMenu>();
@@ -106,7 +106,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void RemoveDropsTheOverrideAndTheKeysItBaked()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         Assert.That(Shin.Keyframes, Is.Not.Empty);
 
         RightClickBar(0.75f);
@@ -115,7 +115,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Assert.That(Idle.Targets, Is.Empty);
         Assert.That(
             Idle.Channels.Exists(c =>
-                c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation &&
+                c.TargetId == "shin" && c.Property == RigChannelProperty.Rotation &&
                 c.Keyframes.Exists(k => k.Time >= 0.5f && k.Time <= 1f)),
             Is.False);
         Assert.That(Session.GetComponent<AnimatorKeyMenu>().OverrideOpen, Is.False);
@@ -127,7 +127,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void KeepKeysDetachesTheOverrideAndLeavesItsKeys()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         int keys = Shin.Keyframes.Count;
 
         RightClickBar(0.75f);
@@ -137,23 +137,23 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
         Assert.That(Shin.Keyframes, Has.Count.EqualTo(keys));
     }
 
-    private XafChannel Shin =>
-        Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == XafChannelProperty.Rotation)!;
+    private RigChannel Shin =>
+        Idle.Channels.Find(c => c.TargetId == "shin" && c.Property == RigChannelProperty.Rotation)!;
 
-    [TestCase(XafTargetShape.Spot)]
-    [TestCase(XafTargetShape.Ellipse)]
-    public void PinsAndEllipsesBothGetAnOverrideRowAboveTheKeys(XafTargetShape shape)
+    [TestCase(RigTargetShape.Spot)]
+    [TestCase(RigTargetShape.Ellipse)]
+    public void PinsAndEllipsesBothGetAnOverrideRowAboveTheKeys(RigTargetShape shape)
     {
         AddOverride(shape, 0.5f, 1f);
         Assert.That(Model().Tracks[0].IsOverride, Is.True);
         Assert.That(Model().Tracks[0].Id, Is.EqualTo("foot"));
     }
 
-    [TestCase(XafTargetShape.Spot)]
-    [TestCase(XafTargetShape.Ellipse)]
-    public void DraggingTheEndChangesTheDuration(XafTargetShape shape)
+    [TestCase(RigTargetShape.Spot)]
+    [TestCase(RigTargetShape.Ellipse)]
+    public void DraggingTheEndChangesTheDuration(RigTargetShape shape)
     {
-        XafLimbTarget target = AddOverride(shape, 0.5f, 1f);
+        RigLimbTarget target = AddOverride(shape, 0.5f, 1f);
         DragFromTo(1f, 1.5f);
         target = Idle.Targets[0];
         Assert.That(target.From, Is.EqualTo(0.5f).Within(0.001f));
@@ -163,7 +163,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void DraggingTheStartChangesTheDuration()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         DragFromTo(0.5f, 0.2f);
         Assert.That(Idle.Targets[0].From, Is.EqualTo(0.2f).Within(0.001f));
         Assert.That(Idle.Targets[0].To, Is.EqualTo(1f).Within(0.001f));
@@ -172,7 +172,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void DraggingTheBodyMovesItAndKeepsItsDuration()
     {
-        AddOverride(XafTargetShape.Ellipse, 0.5f, 1f);
+        AddOverride(RigTargetShape.Ellipse, 0.5f, 1f);
         DragFromTo(0.75f, 1.25f);
         Assert.That(Idle.Targets[0].From, Is.EqualTo(1f).Within(0.01f));
         Assert.That(Idle.Targets[0].To - Idle.Targets[0].From, Is.EqualTo(0.5f).Within(0.001f));
@@ -181,8 +181,8 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void AnEndCannotPassTheOtherEndOrTheClipOrItsNeighbour()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
-        AddOverride(XafTargetShape.Spot, 1.5f, 1.8f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 1.5f, 1.8f);
 
         DragFromTo(1f, 1.9f);
         Assert.That(Idle.Targets[0].To, Is.EqualTo(1.5f).Within(0.001f));
@@ -194,7 +194,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void ShorteningLeavesNoKeysOfTheOldPathBehind()
     {
-        AddOverride(XafTargetShape.Ellipse, 0.5f, 1.5f);
+        AddOverride(RigTargetShape.Ellipse, 0.5f, 1.5f);
         DragFromTo(1.5f, 1f);
 
         Assert.That(Shin.Keyframes.Exists(key => key.Time > 1.01f), Is.False);
@@ -204,7 +204,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void TheWholeDragIsOneUndoStep()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         DragFromTo(1f, 1.5f);
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Undo));
@@ -215,7 +215,7 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void PressingABarSelectsItsBone()
     {
-        AddOverride(XafTargetShape.Spot, 0.5f, 1f);
+        AddOverride(RigTargetShape.Spot, 0.5f, 1f);
         DragFromTo(0.75f, 0.75f);
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(Foot));
         Assert.That(Idle.Targets[0].From, Is.EqualTo(0.5f).Within(0.0001f));
@@ -224,10 +224,10 @@ public sealed class AnimatorOverrideTimelineTests : AnimatorToolTest
     [Test]
     public void TheNewSpanIsSaved()
     {
-        AddOverride(XafTargetShape.Ellipse, 0.5f, 1f);
+        AddOverride(RigTargetShape.Ellipse, 0.5f, 1f);
         DragFromTo(1f, 1.5f);
 
-        XafPackage saved = XafBinary.Read(XafBinary.Write(Package));
+        RigPackage saved = RigBinary.Read(RigBinary.Write(Package));
 
         Assert.That(saved.Clips[0].Targets[0].To, Is.EqualTo(1.5f).Within(0.01f));
     }

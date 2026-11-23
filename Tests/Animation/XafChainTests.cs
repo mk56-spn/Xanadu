@@ -8,16 +8,16 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafChainTests
+public sealed class RigChainTests
 {
-    private static XafPackage Package()
+    private static RigPackage Package()
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        XafRigAuthoring.AddBone(package, 0, "head", new Vector2(0, -80));
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        RigRigAuthoring.AddBone(package, 0, "head", new Vector2(0, -80));
         return package;
     }
 
-    private static XafChain Hair(string bone = "head") => new()
+    private static RigChain Hair(string bone = "head") => new()
     {
         Id = "hair",
         BoneId = bone,
@@ -38,14 +38,14 @@ public sealed class XafChainTests
     [Test]
     public void ChainsSurviveASaveAndLoad()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
 
         Assert.That(loaded.Chains, Has.Count.EqualTo(1));
-        Assert.That(XafPackageCopy.AreEqual(package, loaded), Is.True);
-        XafChain chain = loaded.Chains[0];
+        Assert.That(RigPackageCopy.AreEqual(package, loaded), Is.True);
+        RigChain chain = loaded.Chains[0];
         Assert.That(chain.Id, Is.EqualTo("hair"));
         Assert.That(chain.BoneId, Is.EqualTo("head"));
         Assert.That(chain.Offset, Is.EqualTo(new Vector2(3, -4)));
@@ -65,22 +65,22 @@ public sealed class XafChainTests
     [Test]
     public void ValidationRejectsHalfAnArtReferenceAndABadColliderOrWidth()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(
-            new XafChain
+            new RigChain
             {
                 Id = "a", BoneId = "head", SvgPath = "x.svg", Group = ""
             });
-        package.Chains.Add(new XafChain { Id = "b", BoneId = "head", Width = 0f });
+        package.Chains.Add(new RigChain { Id = "b", BoneId = "head", Width = 0f });
         package.Chains.Add(
-            new XafChain
+            new RigChain
             {
                 Id = "c", BoneId = "head", CollideBoneId = "nowhere", CollideRadius = 5f
             });
-        package.Chains.Add(new XafChain { Id = "d", BoneId = "head", CollideRadius = -1f });
-        package.Chains.Add(new XafChain { Id = "e", BoneId = "head", SvgPath = "", Group = "" });
+        package.Chains.Add(new RigChain { Id = "d", BoneId = "head", CollideRadius = -1f });
+        package.Chains.Add(new RigChain { Id = "e", BoneId = "head", SvgPath = "", Group = "" });
 
-        string message = string.Join(" ", XafValidation.Validate(package));
+        string message = string.Join(" ", RigValidation.Validate(package));
 
         Assert.That(message, Does.Contain("Chain 'a' needs both an SVG path and a group"));
         Assert.That(message, Does.Contain("Chain 'b' has an invalid width"));
@@ -92,24 +92,24 @@ public sealed class XafChainTests
     [Test]
     public void ACopyKeepsTheArtAndColliderToo()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
 
-        XafPackage copy = XafPackageCopy.Clone(package);
-        Assert.That(XafPackageCopy.AreEqual(package, copy), Is.True);
+        RigPackage copy = RigPackageCopy.Clone(package);
+        Assert.That(RigPackageCopy.AreEqual(package, copy), Is.True);
 
         copy.Chains[0].CollideRadius = 1f;
-        Assert.That(XafPackageCopy.AreEqual(package, copy), Is.False);
+        Assert.That(RigPackageCopy.AreEqual(package, copy), Is.False);
         copy.Chains[0].CollideRadius = 9f;
         copy.Chains[0].Lean = 0f;
-        Assert.That(XafPackageCopy.AreEqual(package, copy), Is.False);
+        Assert.That(RigPackageCopy.AreEqual(package, copy), Is.False);
     }
 
     [Test]
     public void ANewChainStartsAlongTheWayItIsPulledAndNeverInsideItsCollider()
     {
-        XafPackage package = Package();
-        XafChain chain = Hair();
+        RigPackage package = Package();
+        RigChain chain = Hair();
         chain.Gravity = 900f;
         chain.Lean = 150f;
         chain.Offset = Vector2.Zero;
@@ -118,7 +118,7 @@ public sealed class XafChainTests
         chain.CollideRadius = 9f;
         package.Chains.Add(chain);
         Transform2D[] world = { Transform2D.Identity, Transform2D.Identity };
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
 
         simulation.Update(package, world, 1f / 60f);
 
@@ -132,14 +132,14 @@ public sealed class XafChainTests
     [Test]
     public void LeanPullsAHangingChainOffTheVertical()
     {
-        XafPackage package = Package();
-        XafChain chain = Hair();
+        RigPackage package = Package();
+        RigChain chain = Hair();
         chain.CollideRadius = 0f;
         chain.Lean = 300f;
         chain.Offset = Vector2.Zero;
         package.Chains.Add(chain);
         Transform2D[] world = { Transform2D.Identity, Transform2D.Identity };
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
 
         for (int i = 0; i < 600; i++)
             simulation.Update(package, world, 1f / 60f);
@@ -152,26 +152,26 @@ public sealed class XafChainTests
     [Test]
     public void ACopyHoldsItsOwnChains()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
 
-        XafPackage copy = XafPackageCopy.Clone(package);
-        Assert.That(XafPackageCopy.AreEqual(package, copy), Is.True);
+        RigPackage copy = RigPackageCopy.Clone(package);
+        Assert.That(RigPackageCopy.AreEqual(package, copy), Is.True);
 
         copy.Chains[0].Gravity = 1f;
         Assert.That(package.Chains[0].Gravity, Is.EqualTo(700f));
-        Assert.That(XafPackageCopy.AreEqual(package, copy), Is.False);
+        Assert.That(RigPackageCopy.AreEqual(package, copy), Is.False);
     }
 
     [Test]
     public void ValidationRejectsBadChains()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair("missing"));
         package.Chains.Add(Hair());
-        package.Chains.Add(new XafChain { Id = "bad", BoneId = "head", Segments = 0, SegmentLength = 0f });
+        package.Chains.Add(new RigChain { Id = "bad", BoneId = "head", Segments = 0, SegmentLength = 0f });
 
-        string message = string.Join(" ", XafValidation.Validate(package));
+        string message = string.Join(" ", RigValidation.Validate(package));
 
         Assert.That(message, Does.Contain("missing bone 'missing'"));
         Assert.That(message, Does.Contain("Duplicate chain id 'hair'"));
@@ -182,65 +182,65 @@ public sealed class XafChainTests
     [Test]
     public void AddingNamesTheChainAfterItsBoneAndNumbersRepeats()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
-        int first = XafChainAuthoring.Add(package, 1);
-        int second = XafChainAuthoring.Add(package, 1);
+        int first = RigChainAuthoring.Add(package, 1);
+        int second = RigChainAuthoring.Add(package, 1);
 
         Assert.That(package.Chains[first].Id, Is.EqualTo("head_chain"));
         Assert.That(package.Chains[second].Id, Is.EqualTo("head_chain2"));
         Assert.That(package.Chains[first].BoneId, Is.EqualTo("head"));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
-        Assert.That(XafChainAuthoring.Add(package, 9), Is.EqualTo(-1));
+        Assert.That(RigValidation.Validate(package), Is.Empty);
+        Assert.That(RigChainAuthoring.Add(package, 9), Is.EqualTo(-1));
     }
 
     [Test]
     public void SettingsAreClampedToWhatAChainAllows()
     {
-        XafPackage package = Package();
-        XafChainAuthoring.Add(package, 1);
+        RigPackage package = Package();
+        RigChainAuthoring.Add(package, 1);
 
-        XafChainAuthoring.SetSegments(package, 0, 1000);
-        XafChainAuthoring.SetSegmentLength(package, 0, -3f);
-        XafChainAuthoring.SetDamping(package, 0, 7f);
+        RigChainAuthoring.SetSegments(package, 0, 1000);
+        RigChainAuthoring.SetSegmentLength(package, 0, -3f);
+        RigChainAuthoring.SetDamping(package, 0, 7f);
 
-        XafChain chain = package.Chains[0];
-        Assert.That(chain.Segments, Is.EqualTo(XafChain.MaxSegments));
-        Assert.That(chain.SegmentLength, Is.EqualTo(XafChain.MinSegmentLength));
+        RigChain chain = package.Chains[0];
+        Assert.That(chain.Segments, Is.EqualTo(RigChain.MaxSegments));
+        Assert.That(chain.SegmentLength, Is.EqualTo(RigChain.MinSegmentLength));
         Assert.That(chain.Damping, Is.EqualTo(1f));
-        Assert.That(XafChainAuthoring.SetGravity(package, 4, 1f), Is.False);
+        Assert.That(RigChainAuthoring.SetGravity(package, 4, 1f), Is.False);
     }
 
     [Test]
     public void RenamingABoneMovesItsChains()
     {
-        XafPackage package = Package();
-        XafChainAuthoring.Add(package, 1);
+        RigPackage package = Package();
+        RigChainAuthoring.Add(package, 1);
 
-        Assert.That(XafRigAuthoring.RenameBone(package, 1, "skull"), Is.True);
+        Assert.That(RigRigAuthoring.RenameBone(package, 1, "skull"), Is.True);
 
         Assert.That(package.Chains[0].BoneId, Is.EqualTo("skull"));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
     }
 
     [Test]
     public void ABoneWithAChainCannotBeDeleted()
     {
-        XafPackage package = Package();
-        XafChainAuthoring.Add(package, 1);
+        RigPackage package = Package();
+        RigChainAuthoring.Add(package, 1);
 
-        Assert.That(XafRigAuthoring.DeleteBone(package, 1), Is.False);
+        Assert.That(RigRigAuthoring.DeleteBone(package, 1), Is.False);
 
-        XafChainAuthoring.Delete(package, 0);
-        Assert.That(XafRigAuthoring.DeleteBone(package, 1), Is.True);
+        RigChainAuthoring.Delete(package, 0);
+        Assert.That(RigRigAuthoring.DeleteBone(package, 1), Is.True);
     }
 
     [Test]
     public void TheChainHangsFromItsBoneAndKeepsItsLinkLengths()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
         Transform2D[] world = { Transform2D.Identity, new(0f, new Vector2(100, 50)) };
 
         for (int i = 0; i < 120; i++)
@@ -257,9 +257,9 @@ public sealed class XafChainTests
     [Test]
     public void MovingTheBoneDragsTheChainAlong()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
         Transform2D[] world = { Transform2D.Identity, new(0f, new Vector2(0, 0)) };
         for (int i = 0; i < 60; i++)
             simulation.Update(package, world, 1f / 60f);
@@ -275,9 +275,9 @@ public sealed class XafChainTests
     [Test]
     public void ChangingSettingsActsLiveWithoutRebuildingTheChain()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
         Transform2D[] world = { Transform2D.Identity, Transform2D.Identity };
         for (int i = 0; i < 120; i++)
             simulation.Update(package, world, 1f / 60f);
@@ -295,10 +295,10 @@ public sealed class XafChainTests
     [Test]
     public void ALongFrameCatchesUpInFixedSteps()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var steady = new XafChainSimulation();
-        var extended = new XafChainSimulation();
+        var steady = new RigChainSimulation();
+        var extended = new RigChainSimulation();
         Transform2D[] start = { Transform2D.Identity, Transform2D.Identity };
         steady.Update(package, start, 1f / 60f);
         extended.Update(package, start, 1f / 60f);
@@ -316,10 +316,10 @@ public sealed class XafChainTests
     [Test]
     public void AStalledFrameIsCappedInsteadOfSimulatingTheWholeStall()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var capped = new XafChainSimulation();
-        var quarter = new XafChainSimulation();
+        var capped = new RigChainSimulation();
+        var quarter = new RigChainSimulation();
         Transform2D[] start = { Transform2D.Identity, Transform2D.Identity };
         capped.Update(package, start, 1f / 60f);
         quarter.Update(package, start, 1f / 60f);
@@ -334,9 +334,9 @@ public sealed class XafChainTests
     [Test]
     public void ResetDropsTheMotion()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
         package.Chains.Add(Hair());
-        var simulation = new XafChainSimulation();
+        var simulation = new RigChainSimulation();
         Transform2D[] world = { Transform2D.Identity, Transform2D.Identity };
         for (int i = 0; i < 60; i++)
             simulation.Update(package, world, 1f / 60f);
@@ -346,21 +346,21 @@ public sealed class XafChainTests
         Assert.That(simulation.Points(0), Is.Empty);
     }
 
-    private static XafPackage TwoBones()
+    private static RigPackage TwoBones()
     {
-        XafPackage package = XafRigAuthoring.CreateEmptyPackage();
-        XafRigAuthoring.AddBone(package, 0, "torso", new Vector2(10, -80));
-        XafRigAuthoring.AddBone(package, 1, "head", new Vector2(5, -70));
+        RigPackage package = RigRigAuthoring.CreateEmptyPackage();
+        RigRigAuthoring.AddBone(package, 0, "torso", new Vector2(10, -80));
+        RigRigAuthoring.AddBone(package, 1, "head", new Vector2(5, -70));
         return package;
     }
 
-    private static Vector2 RootInRestWorld(XafPackage package, XafChain chain) =>
-        XafRig.RestWorld(package)[XafRig.FindBone(package, chain.BoneId)] * chain.Offset;
+    private static Vector2 RootInRestWorld(RigPackage package, RigChain chain) =>
+        RigRig.RestWorld(package)[RigRig.FindBone(package, chain.BoneId)] * chain.Offset;
 
     [Test]
     public void TheRestWorldPutsEachBoneWhereItsOffsetsAddUp()
     {
-        Transform2D[] world = XafRig.RestWorld(TwoBones());
+        Transform2D[] world = RigRig.RestWorld(TwoBones());
 
         Assert.That(world[0].Origin, Is.EqualTo(Vector2.Zero));
         Assert.That(world[1].Origin, Is.EqualTo(new Vector2(10, -80)));
@@ -370,76 +370,76 @@ public sealed class XafChainTests
     [Test]
     public void ArtCanBeChosenAndClearedAndAHalfReferenceClearsBoth()
     {
-        XafPackage package = TwoBones();
-        XafChainAuthoring.Add(package, 2);
+        RigPackage package = TwoBones();
+        RigChainAuthoring.Add(package, 2);
 
-        Assert.That(XafChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "leaf"), Is.True);
+        Assert.That(RigChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "leaf"), Is.True);
         Assert.That(package.Chains[0].SvgPath, Is.EqualTo("Assets/SVG/leaf.svg"));
         Assert.That(package.Chains[0].Group, Is.EqualTo("leaf"));
         Assert.That(package.Chains[0].HasArt, Is.True);
 
-        XafChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "");
+        RigChainAuthoring.SetArt(package, 0, "Assets/SVG/leaf.svg", "");
         Assert.That(package.Chains[0].HasArt, Is.False);
         Assert.That(package.Chains[0].SvgPath, Is.EqualTo(""));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
-        Assert.That(XafChainAuthoring.SetArt(package, 5, "a", "b"), Is.False);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
+        Assert.That(RigChainAuthoring.SetArt(package, 5, "a", "b"), Is.False);
     }
 
     [Test]
     public void RehangingAChainOnAnotherBoneKeepsItsFirstPointWhereItWas()
     {
-        XafPackage package = TwoBones();
-        XafChainAuthoring.Add(package, 2);
-        XafChainAuthoring.SetOffset(package, 0, new Vector2(-4, -17));
+        RigPackage package = TwoBones();
+        RigChainAuthoring.Add(package, 2);
+        RigChainAuthoring.SetOffset(package, 0, new Vector2(-4, -17));
         Vector2 before = RootInRestWorld(package, package.Chains[0]);
 
-        Assert.That(XafChainAuthoring.SetBone(package, 0, 1), Is.True);
+        Assert.That(RigChainAuthoring.SetBone(package, 0, 1), Is.True);
 
         Assert.That(package.Chains[0].BoneId, Is.EqualTo("torso"));
         Assert.That(RootInRestWorld(package, package.Chains[0]).DistanceTo(before), Is.LessThan(0.001f));
         Assert.That(package.Chains[0].Offset, Is.Not.EqualTo(new Vector2(-4, -17)));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
-        Assert.That(XafChainAuthoring.SetBone(package, 0, 9), Is.False);
-        Assert.That(XafChainAuthoring.SetBone(package, 3, 1), Is.False);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
+        Assert.That(RigChainAuthoring.SetBone(package, 0, 9), Is.False);
+        Assert.That(RigChainAuthoring.SetBone(package, 3, 1), Is.False);
     }
 
     [Test]
     public void PuttingAColliderOnABoneCreatesOneCentredThereThenMovesItWithoutMovingIt()
     {
-        XafPackage package = TwoBones();
-        XafChainAuthoring.Add(package, 2);
-        XafChain chain = package.Chains[0];
+        RigPackage package = TwoBones();
+        RigChainAuthoring.Add(package, 2);
+        RigChain chain = package.Chains[0];
         Assert.That(chain.HasCollider, Is.False);
 
-        Assert.That(XafChainAuthoring.SetColliderBone(package, 0, 1), Is.True);
+        Assert.That(RigChainAuthoring.SetColliderBone(package, 0, 1), Is.True);
         Assert.That(chain.CollideBoneId, Is.EqualTo("torso"));
-        Assert.That(chain.CollideRadius, Is.EqualTo(XafChainAuthoring.DefaultColliderRadius));
+        Assert.That(chain.CollideRadius, Is.EqualTo(RigChainAuthoring.DefaultColliderRadius));
         Assert.That(chain.CollideOffset, Is.EqualTo(Vector2.Zero));
 
-        XafChainAuthoring.SetCollideOffset(package, 0, new Vector2(7, 3));
-        Transform2D[] world = XafRig.RestWorld(package);
+        RigChainAuthoring.SetCollideOffset(package, 0, new Vector2(7, 3));
+        Transform2D[] world = RigRig.RestWorld(package);
         Vector2 before = world[1] * chain.CollideOffset;
 
-        XafChainAuthoring.SetColliderBone(package, 0, 2);
+        RigChainAuthoring.SetColliderBone(package, 0, 2);
 
         Assert.That(chain.CollideBoneId, Is.EqualTo("head"));
         Assert.That((world[2] * chain.CollideOffset).DistanceTo(before), Is.LessThan(0.001f));
         Assert.That(
             chain.CollideRadius,
-            Is.EqualTo(XafChainAuthoring.DefaultColliderRadius),
+            Is.EqualTo(RigChainAuthoring.DefaultColliderRadius),
             "an existing size is kept");
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
     }
 
     [Test]
     public void AnExistingColliderSizeSurvivesMovingItToAnotherBone()
     {
-        XafPackage package = TwoBones();
-        XafChainAuthoring.Add(package, 2);
-        XafChainAuthoring.SetColliderBone(package, 0, 1);
-        XafChainAuthoring.SetCollideRadius(package, 0, 14f);
+        RigPackage package = TwoBones();
+        RigChainAuthoring.Add(package, 2);
+        RigChainAuthoring.SetColliderBone(package, 0, 1);
+        RigChainAuthoring.SetCollideRadius(package, 0, 14f);
 
-        XafChainAuthoring.SetColliderBone(package, 0, 2);
+        RigChainAuthoring.SetColliderBone(package, 0, 2);
 
         Assert.That(package.Chains[0].CollideRadius, Is.EqualTo(14f));
     }
@@ -449,9 +449,9 @@ public sealed class XafChainTests
     {
         Vector2[] points = { new(0, 0), new(0, 10), new(10, 20) };
 
-        (Vector2[] vertices, Vector2[] uvs, int[] triangles) = XafChainArt.Sheet(points, 4f);
+        (Vector2[] vertices, Vector2[] uvs, int[] triangles) = RigChainArt.Sheet(points, 4f);
 
-        int samples = (points.Length - 1) * XafChainArt.SheetSteps + 1;
+        int samples = (points.Length - 1) * RigChainArt.SheetSteps + 1;
         Assert.That(vertices, Has.Length.EqualTo(samples * 2));
         Assert.That(triangles, Has.Length.EqualTo((samples - 1) * 6));
         Assert.That((vertices[0] + vertices[1]) / 2f, Is.EqualTo(points[0]), "it starts at the root");
@@ -466,11 +466,11 @@ public sealed class XafChainTests
     [Test]
     public void SheetsAndTheirLayersAreSaved()
     {
-        XafPackage package = Package();
-        package.Chains.Add(new XafChain { Id = "strand", BoneId = "head", Sheet = true, Layer = 7 });
+        RigPackage package = Package();
+        package.Chains.Add(new RigChain { Id = "strand", BoneId = "head", Sheet = true, Layer = 7 });
 
-        XafChain loaded = XafBinary.Read(XafBinary.Write(package)).Chains.Single(chain => chain.Id == "strand");
+        RigChain loaded = RigBinary.Read(RigBinary.Write(package)).Chains.Single(chain => chain.Id == "strand");
         Assert.That((loaded.Sheet, loaded.Layer), Is.EqualTo((true, (int?)7)));
-        Assert.That(XafPackageCopy.AreEqual(package, XafPackageCopy.Clone(package)), Is.True);
+        Assert.That(RigPackageCopy.AreEqual(package, RigPackageCopy.Clone(package)), Is.True);
     }
 }

@@ -33,7 +33,7 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected Entity Session { get; private set; }
 
     protected AnimatorUi Ui => Session.GetComponent<AnimatorUi>();
-    protected XafPackage Package => Session.GetComponent<AnimatorDocument>().Package;
+    protected RigPackage Package => Session.GetComponent<AnimatorDocument>().Package;
     protected AnimatorRuntime Runtime => Session.GetComponent<AnimatorDocument>().Runtime;
 
     protected override void OnEcsSetUp()
@@ -58,14 +58,14 @@ public abstract class AnimatorToolTest : EcsSystemTest
     }
 
     /// <summary>Root, torso (0,-80), head (0,-70); body attachment on torso; clip "idle".</summary>
-    protected virtual XafPackage CreatePackage()
+    protected virtual RigPackage CreatePackage()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         Bone(package, "root", -1, Vector2.Zero);
         Bone(package, "torso", 0, new Vector2(0, -80));
         Bone(package, "head", 1, new Vector2(0, -70));
         package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "body.svg",
                 Group = "body",
@@ -73,22 +73,22 @@ public abstract class AnimatorToolTest : EcsSystemTest
                 Transform = new Transform2D(0f, new Vector2(0, -20))
             });
 
-        var clip = new XafClip { Id = "idle", Duration = 2f };
-        var channel = new XafChannel
+        var clip = new RigClip { Id = "idle", Duration = 2f };
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "head",
-            Property = XafChannelProperty.Rotation
+            Property = RigChannelProperty.Rotation
         };
         foreach (float time in new[] { 0f, 1f, 2f })
-            channel.Keyframes.Add(new XafKeyframe { Time = time, Value = time });
+            channel.Keyframes.Add(new RigKeyframe { Time = time, Value = time });
         clip.Channels.Add(channel);
         package.Clips.Add(clip);
-        package.Clips.Add(new XafClip { Id = "jump", Duration = 1f });
+        package.Clips.Add(new RigClip { Id = "jump", Duration = 1f });
         return package;
     }
 
-    protected XafClip Idle => Package.Clips[0];
+    protected RigClip Idle => Package.Clips[0];
 
     protected Entity Button(ToolActionKind kind, string argument = "")
     {
@@ -219,13 +219,13 @@ public abstract class AnimatorToolTest : EcsSystemTest
     protected Vector2 BoneScreenPosition(int bone)
     {
         AnimatorDocument document = Session.GetComponent<AnimatorDocument>();
-        XafPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
-        return PreviewOrigin() + XafRig.WorldBones(document.Package, pose)[bone].Origin;
+        RigPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
+        return PreviewOrigin() + RigRig.WorldBones(document.Package, pose)[bone].Origin;
     }
 
-    private static void Bone(XafPackage package, string id, int parent, Vector2 offset) =>
+    private static void Bone(RigPackage package, string id, int parent, Vector2 offset) =>
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = id,
                 Parent = parent,
@@ -259,8 +259,8 @@ public abstract class AnimatorToolTest : EcsSystemTest
 
     protected sealed class FakeAnimatorFiles : IAnimatorFiles
     {
-        public XafPackage? ToLoad;
-        public XafPackage? Saved;
+        public RigPackage? ToLoad;
+        public RigPackage? Saved;
         public bool FailSave;
         public string? LoadedPath;
         public string? SavedPath;
@@ -272,16 +272,16 @@ public abstract class AnimatorToolTest : EcsSystemTest
             return true;
         }
 
-        public XafPackage? Load(string path)
+        public RigPackage? Load(string path)
         {
             LoadedPath = path;
             return ToLoad;
         }
 
-        public void Save(string path, XafPackage package)
+        public void Save(string path, RigPackage package)
         {
             if (FailSave)
-                throw new XafFormatException("invalid");
+                throw new RigFormatException("invalid");
             SavedPath = path;
             Saved = package;
         }

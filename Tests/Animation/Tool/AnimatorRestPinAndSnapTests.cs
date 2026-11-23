@@ -24,8 +24,8 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
         Root.Add(new AnimatorPreviewInputSystem(Pointer, Pointer));
     }
 
-    private XafBone Torso => Package.Skeleton.Bones[1];
-    private XafBone Head => Package.Skeleton.Bones[2];
+    private RigBone Torso => Package.Skeleton.Bones[1];
+    private RigBone Head => Package.Skeleton.Bones[2];
 
     private void RestMode(bool pin)
     {
@@ -108,7 +108,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         // Add a hand under the head; moving the torso must leave it put as well.
         Package.Skeleton.Bones.Add(
-            new XafBone { Id = "hand", Parent = 2, Rest = new Transform2D(0f, new Vector2(30, 0)) });
+            new RigBone { Id = "hand", Parent = 2, Rest = new Transform2D(0f, new Vector2(30, 0)) });
         AnimatorSession.RigChanged(Session);
         RestMode(true);
         Vector2 before = AnimatorRestPin.RestWorld(Package)[3].Origin;
@@ -239,7 +239,7 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         DragBone(2, new Vector2(5, 0));
 
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
     }
 
@@ -248,14 +248,14 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         // A marker at the head's height to the right; swing the head toward it.
         Package.Skeleton.Bones.Add(
-            new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(60, -75)) });
+            new RigBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(60, -75)) });
         AnimatorSession.RigChanged(Session);
 
         // Pointing right of the torso, near the marker's Y (-75): the torso is at -80, so the head ends up level with it.
         DragBone(2, new Vector2(70, 73));
 
         AnimatorSnapGuides guides = Session.GetComponent<AnimatorSnapGuides>();
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(guides.HasY || guides.HasX, Is.True);
         Assert.That(world[2].Origin.DistanceTo(world[1].Origin), Is.EqualTo(70f).Within(0.01f));
         if (guides.HasY)
@@ -267,13 +267,13 @@ public sealed class AnimatorRestPinAndSnapTests : AnimatorToolTest
     {
         // A separate root bone to snap to; the chain is root > torso > head.
         Package.Skeleton.Bones.Add(
-            new XafBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(30, -100)) });
+            new RigBone { Id = "marker", Parent = -1, Rest = new Transform2D(0f, new Vector2(30, -100)) });
         AnimatorSession.RigChanged(Session);
         Session.GetComponent<AnimatorModes>().Ik = true;
 
         DragBone(2, new Vector2(27, 50));
 
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Assert.That(world[2].Origin.X, Is.EqualTo(30f).Within(0.01f));
         Assert.That(Session.GetComponent<AnimatorSnapGuides>().HasX, Is.True);
     }

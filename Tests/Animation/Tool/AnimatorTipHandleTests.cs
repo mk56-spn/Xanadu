@@ -51,8 +51,8 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
     private Vector2 Tip(int bone = Head)
     {
         AnimatorDocument document = Session.GetComponent<AnimatorDocument>();
-        XafPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
-        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        RigPose pose = AnimatorGeometry.PreviewPose(document, Session.GetComponent<AnimatorModes>());
+        Transform2D[] world = RigRig.WorldBones(document.Package, pose);
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
             AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());
@@ -83,7 +83,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
             AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());
-        return placement * XafRig.WorldBones(Package, Runtime.Pose)[Head].Origin;
+        return placement * RigRig.WorldBones(Package, Runtime.Pose)[Head].Origin;
     }
 
     [Test]
@@ -194,8 +194,8 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
         Release();
 
         Assert.That(Session.GetComponent<AnimatorDrag>().Kind, Is.EqualTo(AnimatorDragKind.None));
-        XafChannel channel = Idle.Channels.Find(c =>
-            c.TargetId == "head" && c.Property == XafChannelProperty.Rotation)!;
+        RigChannel channel = Idle.Channels.Find(c =>
+            c.TargetId == "head" && c.Property == RigChannelProperty.Rotation)!;
         Assert.That(channel.Keyframes.Find(key => key.Time == 0f)!.Value, Is.EqualTo(float.Pi / 2).Within(0.001f));
     }
 
@@ -228,7 +228,7 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
 
         MoveTo(joint + new Vector2(100, 0));
 
-        XafBone head = Package.Skeleton.Bones[Head];
+        RigBone head = Package.Skeleton.Bones[Head];
         Assert.That(head.Rest.Rotation, Is.EqualTo(float.Pi / 2).Within(0.001f));
         Assert.That(head.Rest.Origin, Is.EqualTo(new Vector2(0, -70)).Using<Vector2>(Close));
     }
@@ -238,16 +238,16 @@ public sealed class AnimatorTipHandleTests : AnimatorToolTest
     {
         // "ear" hangs off the torso exactly where the head's dot ends up.
         Package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "ear",
                 Parent = 1,
                 Rest = new Transform2D(0f, new Vector2(0, -70 - AnimatorTipHandles.StemLength))
             });
-        var pose = new XafPose(4, 0);
+        var pose = new RigPose(4, 0);
         for (int i = 0; i < 4; i++)
-            pose.Bones[i] = XafTransform.From(Package.Skeleton.Bones[i].Rest);
-        Transform2D[] world = XafRig.WorldBones(Package, pose);
+            pose.Bones[i] = RigTransform.From(Package.Skeleton.Bones[i].Rest);
+        Transform2D[] world = RigRig.WorldBones(Package, pose);
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
             AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());

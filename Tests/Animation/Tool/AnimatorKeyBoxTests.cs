@@ -20,9 +20,9 @@ namespace Xanadu.Tests.Animation.Tool;
 [TestFixture]
 public sealed class AnimatorKeyBoxTests : AnimatorToolTest
 {
-    private static readonly XafTrack RootTrack = new(XafChannelTarget.Bone, "root");
-    private static readonly XafTrack TorsoTrack = new(XafChannelTarget.Bone, "torso");
-    private static readonly XafTrack HeadTrack = new(XafChannelTarget.Bone, "head");
+    private static readonly RigTrack RootTrack = new(RigChannelTarget.Bone, "root");
+    private static readonly RigTrack TorsoTrack = new(RigChannelTarget.Bone, "torso");
+    private static readonly RigTrack HeadTrack = new(RigChannelTarget.Bone, "head");
 
     protected override void AddSystems()
     {
@@ -33,24 +33,24 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     }
 
     /// <summary>Rows, top to bottom: root (keys 0, 2), torso (0.5, 1.5), head (0, 1, 2).</summary>
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
+        RigPackage package = base.CreatePackage();
         package.Clips[0].Channels.Add(Channel("root", 0f, 2f));
         package.Clips[0].Channels.Add(Channel("torso", 0.5f, 1.5f));
         return package;
     }
 
-    private static XafChannel Channel(string bone, params float[] times)
+    private static RigChannel Channel(string bone, params float[] times)
     {
-        var channel = new XafChannel
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = bone,
-            Property = XafChannelProperty.Rotation
+            Property = RigChannelProperty.Rotation
         };
         foreach (float time in times)
-            channel.Keyframes.Add(new XafKeyframe { Time = time, Value = time });
+            channel.Keyframes.Add(new RigKeyframe { Time = time, Value = time });
         return channel;
     }
 
@@ -59,10 +59,10 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
     private List<AnimatorKeyRef> Selected => Selection.Keys();
 
     /// <summary>A screen point on a track's row at a time; empty space unless a key is there.</summary>
-    private Vector2 At(XafTrack track, float seconds) =>
+    private Vector2 At(RigTrack track, float seconds) =>
         new(Model().XForSeconds(seconds), KeyPoint(track.Id, 0f).Y);
 
-    private static AnimatorKeyRef Ref(XafTrack track, float time) => new(track.Target, track.Id, time);
+    private static AnimatorKeyRef Ref(RigTrack track, float time) => new(track.Target, track.Id, time);
 
     private void Press(Vector2 position, bool shift = false)
     {
@@ -94,7 +94,7 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         Release();
     }
 
-    private List<float> Times(XafTrack track) => XafTracks.KeyTimes(Idle, track);
+    private List<float> Times(RigTrack track) => RigTracks.KeyTimes(Idle, track);
 
     /// <summary>Box over the torso key at 0.5 and the head key at 1.</summary>
     private void SelectTorsoAndHead() =>
@@ -181,15 +181,15 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
         Assert.That(Selected, Has.Count.EqualTo(2));
     }
 
-    private static XafTrack Extra(int i) => new(XafChannelTarget.Bone, $"extra-{i}");
+    private static RigTrack Extra(int i) => new(RigChannelTarget.Bone, $"extra-{i}");
 
     /// <summary>Enough keyed rows to scroll, with a key at 1s on each.</summary>
     private void ManyRows()
     {
         for (int i = 0; i < 40; i++)
         {
-            XafRigAuthoring.AddBone(Package, 0, Extra(i).Id, Vector2.Zero);
-            XafAuthoring.SetBoneProperty(Package, Idle, Extra(i).Id, XafChannelProperty.Rotation, 1f, 1f);
+            RigRigAuthoring.AddBone(Package, 0, Extra(i).Id, Vector2.Zero);
+            RigAuthoring.SetBoneProperty(Package, Idle, Extra(i).Id, RigChannelProperty.Rotation, 1f, 1f);
         }
     }
 
@@ -449,9 +449,9 @@ public sealed class AnimatorKeyBoxTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Interpolate, EasePreset.Step.ToString()));
 
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 0.5f), Is.EqualTo(EasePreset.Step));
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Step));
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "torso", 1.5f), Is.Not.EqualTo(EasePreset.Step));
+        Assert.That(RigEasing.Read(Idle, RigChannelTarget.Bone, "torso", 0.5f), Is.EqualTo(EasePreset.Step));
+        Assert.That(RigEasing.Read(Idle, RigChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.Step));
+        Assert.That(RigEasing.Read(Idle, RigChannelTarget.Bone, "torso", 1.5f), Is.Not.EqualTo(EasePreset.Step));
     }
 
     [Test]

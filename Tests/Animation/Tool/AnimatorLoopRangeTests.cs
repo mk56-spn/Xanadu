@@ -112,14 +112,14 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
         MoveTo(RulerPoint(0.1f));
         Release();
 
-        Assert.That(Idle.LoopEnd, Is.GreaterThanOrEqualTo(Idle.LoopStart + XafClipAuthoring.MinDuration - 0.001f));
+        Assert.That(Idle.LoopEnd, Is.GreaterThanOrEqualTo(Idle.LoopStart + RigClipAuthoring.MinDuration - 0.001f));
         Assert.That(Idle.LoopEnd, Is.LessThanOrEqualTo(Idle.Duration));
     }
 
     [Test]
     public void TheAuthoringHelpersClampBothEnds()
     {
-        var clip = new XafClip
+        var clip = new RigClip
         {
             Id = "idle",
             Duration = 2f,
@@ -128,8 +128,8 @@ public sealed class AnimatorLoopRangeTests : AnimatorToolTest
             LoopEnd = 1.5f
         };
 
-        Assert.That(XafClipAuthoring.SetLoopStart(clip, 9f), Is.EqualTo(1.4f).Within(0.0001f));
-        Assert.That(XafClipAuthoring.SetLoopEnd(clip, 0f), Is.EqualTo(1.5f).Within(0.0001f));
-        Assert.That(XafClipAuthoring.SetLoopEnd(clip, 9f), Is.EqualTo(2f).Within(0.0001f));
+        Assert.That(RigClipAuthoring.SetLoopStart(clip, 9f), Is.EqualTo(1.4f).Within(0.0001f));
+        Assert.That(RigClipAuthoring.SetLoopEnd(clip, 0f), Is.EqualTo(1.5f).Within(0.0001f));
+        Assert.That(RigClipAuthoring.SetLoopEnd(clip, 9f), Is.EqualTo(2f).Within(0.0001f));
     }
 }

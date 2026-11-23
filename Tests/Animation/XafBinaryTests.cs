@@ -9,16 +9,16 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafBinaryTests
+public sealed class RigBinaryTests
 {
     [Test]
     public void RoundTripsACharacterPackage()
     {
-        XafPackage package = Sample();
+        RigPackage package = Sample();
 
-        XafPackage loaded = XafBinary.Read(XafBinary.Write(package));
+        RigPackage loaded = RigBinary.Read(RigBinary.Write(package));
 
-        Assert.That(loaded.Major, Is.EqualTo(XafPackage.MajorVersion));
+        Assert.That(loaded.Major, Is.EqualTo(RigPackage.MajorVersion));
         Assert.That(loaded.Skeleton.Bones, Has.Count.EqualTo(2));
         Assert.That(loaded.Skeleton.Bones[0].Id, Is.EqualTo("root"));
         Assert.That(loaded.Skeleton.Bones[1].Parent, Is.EqualTo(0));
@@ -31,70 +31,70 @@ public sealed class XafBinaryTests
         Assert.That(loaded.Attachments[1].ZOrder, Is.EqualTo(2));
 
         Assert.That(loaded.Clips, Has.Count.EqualTo(1));
-        XafClip clip = loaded.Clips[0];
+        RigClip clip = loaded.Clips[0];
         Assert.That(clip.Id, Is.EqualTo("idle"));
         Assert.That(clip.Duration, Is.EqualTo(2f).Within(0.001f));
         Assert.That(clip.Loop, Is.True);
         Assert.That(clip.Channels, Has.Count.EqualTo(2));
-        Assert.That(clip.Channels[0].Property, Is.EqualTo(XafChannelProperty.TranslationX));
+        Assert.That(clip.Channels[0].Property, Is.EqualTo(RigChannelProperty.TranslationX));
         Assert.That(clip.Channels[0].Keyframes, Has.Count.EqualTo(2));
-        Assert.That(clip.Channels[0].Keyframes[1].Interpolation, Is.EqualTo(XafInterpolation.CubicBezier));
+        Assert.That(clip.Channels[0].Keyframes[1].Interpolation, Is.EqualTo(RigInterpolation.CubicBezier));
         Assert.That(clip.Channels[0].Keyframes[1].TangentOut, Is.EqualTo(0.5f));
     }
 
     [Test]
     public void RejectsWrongMagic()
     {
-        Assert.Throws<XafFormatException>(() => XafBinary.Read("NOPE"u8.ToArray()));
+        Assert.Throws<RigFormatException>(() => RigBinary.Read("NOPE"u8.ToArray()));
     }
 
     [Test]
     public void RejectsUnsupportedMajorVersion()
     {
-        byte[] data = XafBinary.Write(Sample());
+        byte[] data = RigBinary.Write(Sample());
         data[4] = 9;
 
-        Assert.Throws<XafFormatException>(() => XafBinary.Read(data));
+        Assert.Throws<RigFormatException>(() => RigBinary.Read(data));
     }
 
     [Test]
     public void RejectsMalformedPackage()
     {
-        XafPackage package = Sample();
+        RigPackage package = Sample();
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "detached",
                 Parent = -1
             });
 
-        Assert.That(XafValidation.Validate(package), Is.Not.Empty);
-        Assert.Throws<XafFormatException>(() => XafBinary.Write(package));
+        Assert.That(RigValidation.Validate(package), Is.Not.Empty);
+        Assert.Throws<RigFormatException>(() => RigBinary.Write(package));
     }
 
     [Test]
     public void RejectsMissingBoneTarget()
     {
-        XafPackage package = Sample();
+        RigPackage package = Sample();
         package.Clips[0].Channels[0].TargetId = "missing";
 
-        Assert.That(XafValidation.Validate(package), Is.Not.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Not.Empty);
     }
 
     [Test]
     public void RejectsUnsortedKeyframes()
     {
-        XafPackage package = Sample();
+        RigPackage package = Sample();
         package.Clips[0].Channels[0].Keyframes[0].Time = 1.5f;
 
-        Assert.That(XafValidation.Validate(package), Is.Not.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Not.Empty);
     }
 
-    private static XafPackage Sample()
+    private static RigPackage Sample()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "root",
                 Parent = -1,
@@ -102,7 +102,7 @@ public sealed class XafBinaryTests
                 ZOrder = 0
             });
         package.Skeleton.Bones.Add(
-            new XafBone
+            new RigBone
             {
                 Id = "head-bone",
                 Parent = 0,
@@ -110,7 +110,7 @@ public sealed class XafBinaryTests
                 ZOrder = 3
             });
         package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "Assets/SVG/body.svg",
                 Group = "body",
@@ -119,7 +119,7 @@ public sealed class XafBinaryTests
                 ZOrder = 1
             });
         package.Attachments.Add(
-            new XafAttachment
+            new RigAttachment
             {
                 SvgPath = "Assets/SVG/head.svg",
                 Group = "head",
@@ -128,7 +128,7 @@ public sealed class XafBinaryTests
                 ZOrder = 2
             });
 
-        var clip = new XafClip
+        var clip = new RigClip
         {
             Id = "idle",
             Duration = 2f,
@@ -136,37 +136,37 @@ public sealed class XafBinaryTests
             LoopStart = 0f,
             LoopEnd = 2f
         };
-        var channel = new XafChannel
+        var channel = new RigChannel
         {
-            Target = XafChannelTarget.Bone,
+            Target = RigChannelTarget.Bone,
             TargetId = "head-bone",
-            Property = XafChannelProperty.TranslationX
+            Property = RigChannelProperty.TranslationX
         };
         channel.Keyframes.Add(
-            new XafKeyframe
+            new RigKeyframe
             {
                 Time = 0f,
                 Value = 0f,
-                Interpolation = XafInterpolation.Linear
+                Interpolation = RigInterpolation.Linear
             });
         channel.Keyframes.Add(
-            new XafKeyframe
+            new RigKeyframe
             {
                 Time = 1f,
                 Value = 5f,
-                Interpolation = XafInterpolation.CubicBezier,
+                Interpolation = RigInterpolation.CubicBezier,
                 TangentOut = 0.5f
             });
         clip.Channels.Add(channel);
 
-        var attachmentChannel = new XafChannel
+        var attachmentChannel = new RigChannel
         {
-            Target = XafChannelTarget.Attachment,
+            Target = RigChannelTarget.Attachment,
             TargetId = "head",
-            Property = XafChannelProperty.ScaleY
+            Property = RigChannelProperty.ScaleY
         };
         attachmentChannel.Keyframes.Add(
-            new XafKeyframe
+            new RigKeyframe
             {
                 Time = 0f,
                 Value = 1f

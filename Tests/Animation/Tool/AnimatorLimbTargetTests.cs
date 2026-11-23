@@ -22,34 +22,34 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Root.Add(new AnimatorPlantSystem());
     }
 
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         Add(package, "root", -1, Vector2.Zero);
         Add(package, "hip", 0, new Vector2(0, -100));
         Add(package, "thigh", 1, Vector2.Zero);
         Add(package, "shin", 2, new Vector2(4, 48));
         Add(package, "foot", 3, new Vector2(-4, 48));
-        package.Clips.Add(new XafClip { Id = "idle", Duration = 1f });
-        package.Clips.Add(new XafClip { Id = "other", Duration = 1f });
+        package.Clips.Add(new RigClip { Id = "idle", Duration = 1f });
+        package.Clips.Add(new RigClip { Id = "other", Duration = 1f });
         return package;
     }
 
-    private static void Add(XafPackage package, string id, int parent, Vector2 offset) =>
-        package.Skeleton.Bones.Add(new XafBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
+    private static void Add(RigPackage package, string id, int parent, Vector2 offset) =>
+        package.Skeleton.Bones.Add(new RigBone { Id = id, Parent = parent, Rest = new Transform2D(0f, offset) });
 
-    private XafClip Clip => Package.Clips[0];
+    private RigClip Clip => Package.Clips[0];
 
     private void Select(int bone) => Session.GetComponent<AnimatorSelection>().SelectOnlyBone(bone);
 
     private void Verb(string verb) => AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.LimbTarget, verb));
 
     private Vector2 Where(int bone, float time) =>
-        XafRig.WorldBones(Package, XafSampler.Sample(Package, Clip, time))[bone].Origin;
+        RigRig.WorldBones(Package, RigSampler.Sample(Package, Clip, time))[bone].Origin;
 
     private string Status => Session.GetComponent<AnimatorStatus>().Message;
 
-    private XafLimbTarget Orbit()
+    private RigLimbTarget Orbit()
     {
         Select(Foot);
         Verb("orbit");
@@ -60,7 +60,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     public void AnOrbitStartsWhereTheBoneIsAndTravelsWithTheBoneAboveTheLimb()
     {
         Vector2 start = Where(Foot, 0f);
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
 
         Assert.That(target.AnchorId, Is.EqualTo("hip"));
         Assert.That((target.From, target.To), Is.EqualTo((0f, 1f)));
@@ -71,13 +71,13 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void ANewOrbitOnAStraightLimbIsAllWithinReach()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         for (int i = 0; i <= 40; i++)
         {
             float time = i / 40f;
-            Transform2D[] world = XafRig.WorldBones(Package, XafSampler.Sample(Package, Clip, time));
+            Transform2D[] world = RigRig.WorldBones(Package, RigSampler.Sample(Package, Clip, time));
             Assert.That(
-                world[Foot].Origin.DistanceTo(XafTargets.WorldAt(Package, target, world, time)),
+                world[Foot].Origin.DistanceTo(RigTargets.WorldAt(Package, target, world, time)),
                 Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f),
                 $"at {time}");
         }
@@ -89,7 +89,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Clip.Loop = true;
         Clip.LoopStart = 0.2f;
         Clip.LoopEnd = 0.8f;
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         Assert.That((target.From, target.To), Is.EqualTo((0.2f, 0.8f)));
     }
 
@@ -123,7 +123,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void ChangingTheShapeReBakesAndIsOneUndoStep()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
 
         Vector2 before = Where(Foot, 0.25f);
         float radius = target.RadiusX;
@@ -155,11 +155,11 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
 
         AnimatorHistoryCommands.Edit(
             Session,
-            () => XafAuthoring.SetChannel(
+            () => RigAuthoring.SetChannel(
                 Clip,
-                XafChannelTarget.Bone,
+                RigChannelTarget.Bone,
                 "shin",
-                XafChannelProperty.Rotation,
+                RigChannelProperty.Rotation,
                 0f,
                 value + 1f));
 
@@ -172,7 +172,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void AnUpstreamEditIsFollowedWithoutComplaint()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         target.AnchorId = "";
         target.Center = Where(Foot, 0f) - new Vector2(target.RadiusX, 0f);
         Verb("rx:0");
@@ -181,8 +181,8 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
             Session,
             () =>
             {
-                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
-                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
+                RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "root", RigChannelProperty.TranslationY, 0f, 0f);
+                RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "root", RigChannelProperty.TranslationY, 1f, 25f);
                 AnimatorSession.SetStatus(Session, "ROOT KEYED");
             });
 
@@ -205,21 +205,21 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
 
         AnimatorHistoryCommands.Edit(
             Session,
-            () => XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
+            () => RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "shin", RigChannelProperty.Rotation, 0.5f, 2f));
         Assert.That(Status, Does.Not.Contain("BELONG"));
     }
 
     [Test]
     public void AnOverrideTooShortToSeeIsDroppedAndItsKeysAreOrdinary()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         // As a file can hold: a sliver far shorter than any span the tool makes.
         target.From = 0.5f;
         target.To = 0.5007f;
 
         AnimatorHistoryCommands.Edit(
             Session,
-            () => XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "shin", XafChannelProperty.Rotation, 0.5f, 2f));
+            () => RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "shin", RigChannelProperty.Rotation, 0.5f, 2f));
 
         Assert.That(Clip.Targets, Is.Empty);
         Assert.That(Status, Does.Not.Contain("BELONG"));
@@ -264,14 +264,14 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void SavingBakesEveryClipAndKeepsTheTarget()
     {
-        XafClip other = Package.Clips[1];
+        RigClip other = Package.Clips[1];
         other.Targets.Add(
-            new XafLimbTarget { BoneId = "foot", Shape = XafTargetShape.Spot, Center = new Vector2(0, -4), To = 1f });
+            new RigLimbTarget { BoneId = "foot", Shape = RigTargetShape.Spot, Center = new Vector2(0, -4), To = 1f });
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Save));
 
         Assert.That(other.Channels.Exists(c => c.TargetId == "shin"), Is.True);
-        Assert.That(XafBinary.Read(XafBinary.Write(Files.Saved!)).Clips[1].Targets, Has.Count.EqualTo(1));
+        Assert.That(RigBinary.Read(RigBinary.Write(Files.Saved!)).Clips[1].Targets, Has.Count.EqualTo(1));
     }
 
     [Test]
@@ -288,25 +288,25 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.PlantBone));
         Frame();
 
-        Assert.That(Clip.Targets[0].Shape, Is.EqualTo(XafTargetShape.Spot));
+        Assert.That(Clip.Targets[0].Shape, Is.EqualTo(RigTargetShape.Spot));
 
         // The body moves after the plant was released, and the foot still holds.
         AnimatorHistoryCommands.Edit(
             Session,
             () =>
             {
-                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 0f, 0f);
-                XafAuthoring.SetChannel(Clip, XafChannelTarget.Bone, "root", XafChannelProperty.TranslationY, 1f, 25f);
+                RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "root", RigChannelProperty.TranslationY, 0f, 0f);
+                RigAuthoring.SetChannel(Clip, RigChannelTarget.Bone, "root", RigChannelProperty.TranslationY, 1f, 25f);
             });
         Assert.That(Where(Foot, 0.6f).DistanceTo(spot), Is.LessThan(AnimatorPlantCommands.DriftTolerance + 0.3f));
     }
 
-    private Vector2 Screen(XafLimbTarget target, Vector2 local)
+    private Vector2 Screen(RigLimbTarget target, Vector2 local)
     {
         Transform2D placement = AnimatorGeometry.PreviewPlacement(
             AnimatorGeometry.PanelArea(Ui.Preview),
             Session.GetComponent<AnimatorPreviewView>());
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         return placement * AnimatorTargetCommands.AnchorWorld(Package, target, world) * local;
     }
 
@@ -326,7 +326,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void DraggingTheCentreHandleMovesTheEllipseAsOneUndoStep()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         Runtime.Seek(0f);
         Runtime.SetPaused(true);
         Vector2 center = target.Center;
@@ -341,7 +341,7 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void DraggingTheLongHandleSizesAndTiltsIt()
     {
-        XafLimbTarget target = Orbit();
+        RigLimbTarget target = Orbit();
         Runtime.Seek(0f);
         Runtime.SetPaused(true);
         Vector2 handle = Screen(target, AnimatorTargetCommands.RadiusXHandle(target));
@@ -355,11 +355,11 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
     [Test]
     public void ReachIsMeasuredFromTheTopOfTheLimb()
     {
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         Vector2 top = world[2].Origin;
-        Assert.That(XafTargets.CanReach(Package, world, Foot, top + new Vector2(0f, 40f)), Is.True);
-        Assert.That(XafTargets.CanReach(Package, world, Foot, top + new Vector2(0f, 200f)), Is.False);
-        Assert.That(XafTargets.CanReach(Package, world, RootBone, new Vector2(900f, 900f)), Is.True);
+        Assert.That(RigTargets.CanReach(Package, world, Foot, top + new Vector2(0f, 40f)), Is.True);
+        Assert.That(RigTargets.CanReach(Package, world, Foot, top + new Vector2(0f, 200f)), Is.False);
+        Assert.That(RigTargets.CanReach(Package, world, RootBone, new Vector2(900f, 900f)), Is.True);
     }
 
     [Test]
@@ -370,6 +370,6 @@ public sealed class AnimatorLimbTargetTests : AnimatorToolTest
         Verb("rx:1");
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Save));
         Frame();
-        Assert.That(XafTargets.IsValid(Package, Clip.Targets[0]), Is.False);
+        Assert.That(RigTargets.IsValid(Package, Clip.Targets[0]), Is.False);
     }
 }

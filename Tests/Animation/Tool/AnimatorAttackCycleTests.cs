@@ -22,14 +22,14 @@ public sealed class AnimatorAttackCycleTests : AnimatorToolTest
     }
 
     /// <summary>Idle loops; the rig has a jump but no fall, and one grounded and one air attack.</summary>
-    protected override XafPackage CreatePackage()
+    protected override RigPackage CreatePackage()
     {
-        XafPackage package = base.CreatePackage();
+        RigPackage package = base.CreatePackage();
         package.Clips[0].Loop = true;
         package.Clips[0].LoopEnd = 2f;
-        package.Clips.Add(new XafClip { Id = ContactClip.Jumping.Id(), Duration = 1f });
-        package.Clips.Add(new XafClip { Id = ContactClip.AttackMid.Id(), Duration = AttackSeconds });
-        package.Clips.Add(new XafClip { Id = ContactClip.AttackAirHigh.Id(), Duration = AttackSeconds });
+        package.Clips.Add(new RigClip { Id = ContactClip.Jumping.Id(), Duration = 1f });
+        package.Clips.Add(new RigClip { Id = ContactClip.AttackMid.Id(), Duration = AttackSeconds });
+        package.Clips.Add(new RigClip { Id = ContactClip.AttackAirHigh.Id(), Duration = AttackSeconds });
         return package;
     }
 
@@ -61,7 +61,7 @@ public sealed class AnimatorAttackCycleTests : AnimatorToolTest
 
         Assert.That(Runtime.CurrentClip, Is.EqualTo("idle"));
         Assert.That(Layer, Is.EqualTo(ContactClip.AttackMid.Id()));
-        Assert.That(Runtime.Additives[0].Blend, Is.EqualTo(XafLayerBlend.Override));
+        Assert.That(Runtime.Additives[0].Blend, Is.EqualTo(RigLayerBlend.Override));
 
         // The beat between attacks only clicks.
         Assert.That(AnimatorAttackCycleCommands.Tick(Session, Beat), Is.EqualTo(AnimatorBeat.Beat));
@@ -81,8 +81,8 @@ public sealed class AnimatorAttackCycleTests : AnimatorToolTest
     [Test]
     public void AnAttackStartsFromItsContactEvent()
     {
-        XafClip mid = Package.Clips.Find(clip => clip.Id == ContactClip.AttackMid.Id())!;
-        XafEventAuthoring.Add(mid, 0.1f);
+        RigClip mid = Package.Clips.Find(clip => clip.Id == ContactClip.AttackMid.Id())!;
+        RigEventAuthoring.Add(mid, 0.1f);
 
         AnimatorAttackCycleCommands.Toggle(Session);
 

@@ -32,7 +32,7 @@ public sealed class AnimatorEasingWindowTests : AnimatorToolTest
     {
         ref AnimatorSelection selection = ref Session.GetComponent<AnimatorSelection>();
         selection.HasKey = true;
-        selection.KeyTarget = XafChannelTarget.Bone;
+        selection.KeyTarget = RigChannelTarget.Bone;
         selection.KeyId = "head";
         selection.KeyTime = time;
     }
@@ -94,7 +94,7 @@ public sealed class AnimatorEasingWindowTests : AnimatorToolTest
         Click(EaseCell(EasePreset.BackOut));
         Frame();
 
-        Assert.That(XafEasing.Read(Idle, XafChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.BackOut));
+        Assert.That(RigEasing.Read(Idle, RigChannelTarget.Bone, "head", 1f), Is.EqualTo(EasePreset.BackOut));
         Assert.That(Window.Open, Is.True);
         Assert.That(Ui.EasingButton.GetComponent<Text>().Value, Is.EqualTo("EASE: BACK OUT"));
         Assert.That(Parts.Name.GetComponent<Text>().Value, Is.EqualTo("BACK OUT"));

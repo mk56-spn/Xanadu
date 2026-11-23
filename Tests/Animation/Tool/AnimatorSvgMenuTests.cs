@@ -137,7 +137,7 @@ public sealed class AnimatorSvgMenuTests : AnimatorToolTest
         ClickRow(Rows()[1]);
 
         Assert.That(Package.Attachments.Count, Is.EqualTo(before + 1));
-        XafAttachment added = Package.Attachments[^1];
+        RigAttachment added = Package.Attachments[^1];
         Assert.That(added.SvgPath, Is.EqualTo("Assets/SVG/arm.svg"));
         Assert.That(added.Group, Is.EqualTo("sleeve"));
         Assert.That(added.BoneId, Is.EqualTo("head"));

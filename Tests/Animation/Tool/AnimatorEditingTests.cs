@@ -19,7 +19,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
 
-        XafTransform torso = Runtime.Pose.Bones[1];
+        RigTransform torso = Runtime.Pose.Bones[1];
         Assert.That(torso.Rotation, Is.EqualTo(AnimatorEditing.RotationStep).Within(0.0001f));
         Assert.That(torso.Scale, Is.EqualTo(Vector2.One));
     }
@@ -31,7 +31,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.ScaleUp));
 
-        XafTransform torso = Runtime.Pose.Bones[1];
+        RigTransform torso = Runtime.Pose.Bones[1];
         Assert.That(torso.Rotation, Is.EqualTo(0f));
         Assert.That(torso.Scale.X, Is.EqualTo(1f + AnimatorEditing.ScaleStep).Within(0.0001f));
     }
@@ -57,8 +57,8 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.RotateRight));
 
-        XafChannel? channel = Idle.Channels.Find(candidate =>
-            candidate.TargetId == "torso" && candidate.Property == XafChannelProperty.Rotation);
+        RigChannel? channel = Idle.Channels.Find(candidate =>
+            candidate.TargetId == "torso" && candidate.Property == RigChannelProperty.Rotation);
         Assert.That(channel, Is.Not.Null);
         Assert.That(channel!.Keyframes[0].Time, Is.EqualTo(0.5f));
     }
@@ -92,14 +92,14 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void DeletingABoneRemovesItsChannelsSoTheRigStillSaves()
     {
-        XafAuthoring.SetBoneProperty(Package, Idle, "head", XafChannelProperty.TranslationX, 0.5f, 3f);
+        RigAuthoring.SetBoneProperty(Package, Idle, "head", RigChannelProperty.TranslationX, 0.5f, 3f);
         Select(2);
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.DeleteBone));
 
         Assert.That(Package.Skeleton.Bones, Has.Count.EqualTo(2));
         Assert.That(Idle.Channels.Exists(channel => channel.TargetId == "head"), Is.False);
-        Assert.That(XafValidation.Validate(Package), Is.Empty);
+        Assert.That(RigValidation.Validate(Package), Is.Empty);
         Assert.That(Session.GetComponent<AnimatorSelection>().Bone, Is.EqualTo(1));
     }
 
@@ -127,7 +127,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void LoadingWithNothingToLoadKeepsThePackage()
     {
-        XafPackage before = Package;
+        RigPackage before = Package;
         Files.ToLoad = null;
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Load));
@@ -142,7 +142,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
         Select(2);
         Session.GetComponent<AnimatorSelection>().HasKey = true;
         int version = Session.GetComponent<AnimatorDocument>().Version;
-        Files.ToLoad = XafRigAuthoring.CreateEmptyPackage();
+        Files.ToLoad = RigRigAuthoring.CreateEmptyPackage();
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Load));
 
@@ -156,9 +156,9 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void LoadingAPackageWithoutAnIdleClipPlaysItsFirstClip()
     {
-        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
+        RigPackage other = RigRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
-        other.Clips.Add(new XafClip { Id = "walk", Duration = 1f });
+        other.Clips.Add(new RigClip { Id = "walk", Duration = 1f });
         Files.ToLoad = other;
 
         AnimatorCommands.Run(Session, new ToolAction(ToolActionKind.Load));
@@ -169,7 +169,7 @@ public sealed class AnimatorEditingTests : AnimatorToolTest
     [Test]
     public void LoadingAPackageWithNoClipsDoesNotBreakPlayback()
     {
-        XafPackage other = XafRigAuthoring.CreateEmptyPackage();
+        RigPackage other = RigRigAuthoring.CreateEmptyPackage();
         other.Clips.Clear();
         Files.ToLoad = other;
 

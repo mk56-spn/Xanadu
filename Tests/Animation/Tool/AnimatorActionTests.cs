@@ -107,10 +107,10 @@ public sealed class AnimatorActionTests : AnimatorToolTest
     [Test]
     public void FileMenuOptionsRunTheirActions()
     {
-        Files.ToLoad = new XafPackage();
-        Files.ToLoad.Skeleton.Bones.Add(new XafBone { Id = "only", Parent = -1 });
+        Files.ToLoad = new RigPackage();
+        Files.ToLoad.Skeleton.Bones.Add(new RigBone { Id = "only", Parent = -1 });
 
-        XafPackage original = Package;
+        RigPackage original = Package;
 
         Click(Button(ToolActionKind.Save));
         Assert.That(Files.Saved, Is.SameAs(original));

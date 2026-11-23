@@ -5,29 +5,29 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafStrikeTests
+public sealed class RigStrikeTests
 {
     /// <summary>Idle bends the knee to 0.5 and the hip to 0.2; the kick poses only the knee.</summary>
-    private static XafPackage Package(float kickDuration = 0.5f)
+    private static RigPackage Package(float kickDuration = 0.5f)
     {
-        var package = new XafPackage();
-        package.Skeleton.Bones.Add(new XafBone { Id = "root", Parent = -1 });
-        package.Skeleton.Bones.Add(new XafBone { Id = "hip", Parent = 0 });
+        var package = new RigPackage();
+        package.Skeleton.Bones.Add(new RigBone { Id = "root", Parent = -1 });
+        package.Skeleton.Bones.Add(new RigBone { Id = "hip", Parent = 0 });
         package.Skeleton.Bones.Add(
-            new XafBone { Id = "knee", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 40)) });
+            new RigBone { Id = "knee", Parent = 1, Rest = new Transform2D(0f, new Vector2(0, 40)) });
 
-        var idle = new XafClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f };
-        XafAuthoring.SetChannel(idle, XafChannelTarget.Bone, "knee", XafChannelProperty.Rotation, 0f, 0.5f);
-        XafAuthoring.SetChannel(idle, XafChannelTarget.Bone, "hip", XafChannelProperty.Rotation, 0f, 0.2f);
+        var idle = new RigClip { Id = "idle", Duration = 2f, Loop = true, LoopEnd = 2f };
+        RigAuthoring.SetChannel(idle, RigChannelTarget.Bone, "knee", RigChannelProperty.Rotation, 0f, 0.5f);
+        RigAuthoring.SetChannel(idle, RigChannelTarget.Bone, "hip", RigChannelProperty.Rotation, 0f, 0.2f);
         package.Clips.Add(idle);
 
-        var kick = new XafClip { Id = "kick", Duration = kickDuration };
-        XafAuthoring.SetChannel(kick, XafChannelTarget.Bone, "knee", XafChannelProperty.Rotation, 0f, -1f);
+        var kick = new RigClip { Id = "kick", Duration = kickDuration };
+        RigAuthoring.SetChannel(kick, RigChannelTarget.Bone, "knee", RigChannelProperty.Rotation, 0f, -1f);
         package.Clips.Add(kick);
         return package;
     }
 
-    private static AnimatorRuntime Playing(XafPackage package)
+    private static AnimatorRuntime Playing(RigPackage package)
     {
         var runtime = new AnimatorRuntime(package);
         runtime.Play("idle", 0f);
@@ -39,7 +39,7 @@ public sealed class XafStrikeTests
     {
         AnimatorRuntime runtime = Playing(Package());
 
-        runtime.AddLayer("kick", 1f, XafLayerBlend.Override);
+        runtime.AddLayer("kick", 1f, RigLayerBlend.Override);
         runtime.Update(0.01f);
 
         Assert.That(runtime.Pose.Bones[2].Rotation, Is.EqualTo(-1f).Within(0.0001f));
@@ -61,41 +61,41 @@ public sealed class XafStrikeTests
     [Test]
     public void AStrikeStartsAtItsContactEvent()
     {
-        XafPackage package = Package();
-        XafClip kick = package.Clips[1];
-        XafEventAuthoring.Add(kick, 0.15f);
+        RigPackage package = Package();
+        RigClip kick = package.Clips[1];
+        RigEventAuthoring.Add(kick, 0.15f);
         AnimatorRuntime runtime = Playing(package);
 
-        XafStrike.Start(runtime, kick);
+        RigStrike.Start(runtime, kick);
 
-        Assert.That(XafStrike.ContactTime(kick), Is.EqualTo(0.15f));
+        Assert.That(RigStrike.ContactTime(kick), Is.EqualTo(0.15f));
         Assert.That(runtime.Layer("kick")!.Value.Time, Is.EqualTo(0.15f));
-        Assert.That(runtime.Layer("kick")!.Value.Blend, Is.EqualTo(XafLayerBlend.Override));
+        Assert.That(runtime.Layer("kick")!.Value.Blend, Is.EqualTo(RigLayerBlend.Override));
     }
 
     [Test]
     public void WithoutAContactEventAStrikeStartsAtTheTop() => Assert.That(
-        XafStrike.ContactTime(Package().Clips[1]),
+        RigStrike.ContactTime(Package().Clips[1]),
         Is.EqualTo(0f));
 
     [Test]
     public void AStrikeHoldsFullWeightThenFadesBackIntoTheBaseAndEnds()
     {
-        XafPackage package = Package();
-        XafClip kick = package.Clips[1];
+        RigPackage package = Package();
+        RigClip kick = package.Clips[1];
         AnimatorRuntime runtime = Playing(package);
-        XafStrike.Start(runtime, kick);
+        RigStrike.Start(runtime, kick);
 
         runtime.Update(0.2f);
-        Assert.That(XafStrike.Step(runtime, kick), Is.True);
+        Assert.That(RigStrike.Step(runtime, kick), Is.True);
         Assert.That(runtime.Layer("kick")!.Value.Weight, Is.EqualTo(1f));
 
         runtime.Update(0.24f);
-        Assert.That(XafStrike.Step(runtime, kick), Is.True);
+        Assert.That(RigStrike.Step(runtime, kick), Is.True);
         Assert.That(runtime.Layer("kick")!.Value.Weight, Is.EqualTo(0.5f).Within(0.01f));
 
         runtime.Update(0.1f);
-        Assert.That(XafStrike.Step(runtime, kick), Is.False);
+        Assert.That(RigStrike.Step(runtime, kick), Is.False);
         Assert.That(runtime.Layer("kick"), Is.Null);
     }
 }

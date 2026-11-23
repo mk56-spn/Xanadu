@@ -4,42 +4,42 @@ using Xanadu.Model.Animation;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafClipAuthoringTests
+public sealed class RigClipAuthoringTests
 {
-    private static XafPackage Package() => XafRigAuthoring.CreateEmptyPackage();
+    private static RigPackage Package() => RigRigAuthoring.CreateEmptyPackage();
 
     [Test]
     public void IdsStayUnique()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
-        Assert.That(XafClipAuthoring.UniqueId(package, "walk"), Is.EqualTo("walk"));
-        Assert.That(XafClipAuthoring.UniqueId(package, "idle"), Is.EqualTo("idle-2"));
-        XafClipAuthoring.Add(package, "idle");
-        Assert.That(XafClipAuthoring.UniqueId(package, "idle"), Is.EqualTo("idle-3"));
-        Assert.That(XafClipAuthoring.UniqueId(package, "  "), Is.EqualTo("clip"));
+        Assert.That(RigClipAuthoring.UniqueId(package, "walk"), Is.EqualTo("walk"));
+        Assert.That(RigClipAuthoring.UniqueId(package, "idle"), Is.EqualTo("idle-2"));
+        RigClipAuthoring.Add(package, "idle");
+        Assert.That(RigClipAuthoring.UniqueId(package, "idle"), Is.EqualTo("idle-3"));
+        Assert.That(RigClipAuthoring.UniqueId(package, "  "), Is.EqualTo("clip"));
     }
 
     [Test]
     public void AddedClipsAreValidAndAppended()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
-        XafClip clip = XafClipAuthoring.Add(package);
+        RigClip clip = RigClipAuthoring.Add(package);
 
         Assert.That(package.Clips[^1], Is.SameAs(clip));
-        Assert.That(clip.Duration, Is.EqualTo(XafClipAuthoring.DefaultDuration));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        Assert.That(clip.Duration, Is.EqualTo(RigClipAuthoring.DefaultDuration));
+        Assert.That(RigValidation.Validate(package), Is.Empty);
     }
 
     [Test]
     public void DuplicatesAreIndependentDeepCopiesPlacedAfterTheSource()
     {
-        XafPackage package = Package();
-        XafClip source = package.Clips[0];
-        XafAuthoring.SetChannel(source, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 0.5f, 1f);
+        RigPackage package = Package();
+        RigClip source = package.Clips[0];
+        RigAuthoring.SetChannel(source, RigChannelTarget.Bone, "root", RigChannelProperty.Rotation, 0.5f, 1f);
 
-        XafClip copy = XafClipAuthoring.Duplicate(package, source);
+        RigClip copy = RigClipAuthoring.Duplicate(package, source);
 
         Assert.That(package.Clips.IndexOf(copy), Is.EqualTo(1));
         Assert.That(copy.Id, Is.EqualTo("idle-2"));
@@ -50,61 +50,61 @@ public sealed class XafClipAuthoringTests
     [Test]
     public void TheLastClipCannotBeDeleted()
     {
-        XafPackage package = Package();
+        RigPackage package = Package();
 
         while (package.Clips.Count > 1)
-            Assert.That(XafClipAuthoring.Delete(package, package.Clips[0]), Is.True);
+            Assert.That(RigClipAuthoring.Delete(package, package.Clips[0]), Is.True);
 
-        Assert.That(XafClipAuthoring.Delete(package, package.Clips[0]), Is.False);
+        Assert.That(RigClipAuthoring.Delete(package, package.Clips[0]), Is.False);
         Assert.That(package.Clips, Has.Count.EqualTo(1));
     }
 
     [Test]
     public void RenameTrimsAndRefusesEmptyOrTakenNames()
     {
-        XafPackage package = Package();
-        XafClip idle = package.Clips[0];
+        RigPackage package = Package();
+        RigClip idle = package.Clips[0];
 
-        Assert.That(XafClipAuthoring.Rename(package, idle, "  stand  "), Is.True);
+        Assert.That(RigClipAuthoring.Rename(package, idle, "  stand  "), Is.True);
         Assert.That(idle.Id, Is.EqualTo("stand"));
-        Assert.That(XafClipAuthoring.Rename(package, idle, "   "), Is.False);
-        Assert.That(XafClipAuthoring.Rename(package, idle, "death"), Is.False);
-        Assert.That(XafClipAuthoring.Rename(package, idle, "stand"), Is.True);
+        Assert.That(RigClipAuthoring.Rename(package, idle, "   "), Is.False);
+        Assert.That(RigClipAuthoring.Rename(package, idle, "death"), Is.False);
+        Assert.That(RigClipAuthoring.Rename(package, idle, "stand"), Is.True);
         Assert.That(idle.Id, Is.EqualTo("stand"));
     }
 
     [Test]
     public void ADurationCannotCutOffKeysOrDropBelowTheMinimum()
     {
-        XafPackage package = Package();
-        XafClip clip = package.Clips[0];
+        RigPackage package = Package();
+        RigClip clip = package.Clips[0];
         clip.Duration = 2f;
-        XafAuthoring.SetChannel(clip, XafChannelTarget.Bone, "root", XafChannelProperty.Rotation, 1.5f, 1f);
+        RigAuthoring.SetChannel(clip, RigChannelTarget.Bone, "root", RigChannelProperty.Rotation, 1.5f, 1f);
 
-        Assert.That(XafClipAuthoring.SetDuration(clip, 1f), Is.EqualTo(1.5f));
-        Assert.That(XafClipAuthoring.SetDuration(clip, 3f), Is.EqualTo(3f));
+        Assert.That(RigClipAuthoring.SetDuration(clip, 1f), Is.EqualTo(1.5f));
+        Assert.That(RigClipAuthoring.SetDuration(clip, 3f), Is.EqualTo(3f));
 
-        XafClip empty = XafClipAuthoring.Add(package);
-        Assert.That(XafClipAuthoring.SetDuration(empty, 0f), Is.EqualTo(XafClipAuthoring.MinDuration));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        RigClip empty = RigClipAuthoring.Add(package);
+        Assert.That(RigClipAuthoring.SetDuration(empty, 0f), Is.EqualTo(RigClipAuthoring.MinDuration));
+        Assert.That(RigValidation.Validate(package), Is.Empty);
     }
 
     [Test]
     public void TurningLoopOnLoopsTheWholeClipAndItFollowsLengthChanges()
     {
-        XafPackage package = Package();
-        XafClip clip = package.Clips[0];
+        RigPackage package = Package();
+        RigClip clip = package.Clips[0];
 
-        XafClipAuthoring.SetLoop(clip, true);
+        RigClipAuthoring.SetLoop(clip, true);
         Assert.That((clip.LoopStart, clip.LoopEnd), Is.EqualTo((0f, 2f)));
 
-        XafClipAuthoring.SetDuration(clip, 3f);
+        RigClipAuthoring.SetDuration(clip, 3f);
         Assert.That(clip.LoopEnd, Is.EqualTo(3f));
-        XafClipAuthoring.SetDuration(clip, 1f);
+        RigClipAuthoring.SetDuration(clip, 1f);
         Assert.That(clip.LoopEnd, Is.EqualTo(1f));
-        Assert.That(XafValidation.Validate(package), Is.Empty);
+        Assert.That(RigValidation.Validate(package), Is.Empty);
 
-        XafClipAuthoring.SetLoop(clip, false);
+        RigClipAuthoring.SetLoop(clip, false);
         Assert.That(clip.Loop, Is.False);
     }
 }

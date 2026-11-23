@@ -5,12 +5,12 @@ using Xanadu.Core.Maths;
 namespace Xanadu.Tests.Animation;
 
 [TestFixture]
-public sealed class XafVerletTests
+public sealed class RigVerletTests
 {
     [Test]
     public void ChainKeepsSegmentLengthsWhileFalling()
     {
-        var chain = new XafVerletChain(4, new Vector2(0, 0), Vector2.Right, 10);
+        var chain = new RigVerletChain(4, new Vector2(0, 0), Vector2.Right, 10);
 
         for (int i = 0; i < 120; i++)
             chain.Step(1f / 60f);
@@ -28,7 +28,7 @@ public sealed class XafVerletTests
     public void AChainLandingOnAColliderRestsOnItAndNeverEntersIt()
     {
         // Slightly off-centre, as a hairline above a shoulder is: dead centre has no side to fall to.
-        var chain = new XafVerletChain(6, new Vector2(4, -40), Vector2.Down, 10)
+        var chain = new RigVerletChain(6, new Vector2(4, -40), Vector2.Down, 10)
         {
             ColliderCenter = new Vector2(0, 0),
             ColliderRadius = 12
@@ -48,7 +48,7 @@ public sealed class XafVerletTests
     [Test]
     public void ADroppedPointSlidesOffAColliderInsteadOfBeingThrown()
     {
-        var chain = new XafVerletChain(1, new Vector2(3, -20), Vector2.Down, 20)
+        var chain = new RigVerletChain(1, new Vector2(3, -20), Vector2.Down, 20)
         {
             ColliderCenter = Vector2.Zero,
             ColliderRadius = 6,
@@ -67,8 +67,8 @@ public sealed class XafVerletTests
     [Test]
     public void ARadiusOfZeroLeavesThePointsAlone()
     {
-        var withCollider = new XafVerletChain(4, Vector2.Zero, Vector2.Down, 10) { ColliderRadius = 0 };
-        var without = new XafVerletChain(4, Vector2.Zero, Vector2.Down, 10);
+        var withCollider = new RigVerletChain(4, Vector2.Zero, Vector2.Down, 10) { ColliderRadius = 0 };
+        var without = new RigVerletChain(4, Vector2.Zero, Vector2.Down, 10);
 
         for (int i = 0; i < 60; i++)
         {
@@ -82,7 +82,7 @@ public sealed class XafVerletTests
     [Test]
     public void PendulumStaysOnItsConstraintCircle()
     {
-        var pendulum = new XafPendulum(new Vector2(0, 0), new Vector2(10, 0), 10);
+        var pendulum = new RigPendulum(new Vector2(0, 0), new Vector2(10, 0), 10);
 
         for (int i = 0; i < 120; i++)
             pendulum.Step(1f / 60f);

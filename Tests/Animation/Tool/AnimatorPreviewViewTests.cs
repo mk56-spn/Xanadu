@@ -83,7 +83,7 @@ public sealed class AnimatorPreviewViewTests : AnimatorToolTest
 
         Assert.That(View.Zoom, Is.GreaterThan(1f));
         Transform2D placement = Placement();
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         foreach (Transform2D bone in world)
             Assert.That(PreviewArea().Grow(-1f).HasPoint(placement * bone.Origin), Is.True);
     }
@@ -94,7 +94,7 @@ public sealed class AnimatorPreviewViewTests : AnimatorToolTest
         Assert.That(AnimatorPreviewCommands.Fit(Session), Is.True);
         Frame();
 
-        Transform2D[] world = XafRig.WorldBones(Package, Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(Package, Runtime.Pose);
         PressAt(Placement() * world[2].Origin);
 
         // The head is fixed length, so grabbing it selects the torso it swings.
