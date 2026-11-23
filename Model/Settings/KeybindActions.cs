@@ -1,5 +1,3 @@
-using Xanadu.Ui.Systems.Input;
-
 namespace Xanadu.Model.Settings;
 
 /// <summary>What the playfield keys are: their order, which steer, their default keys and their names on screen.</summary>

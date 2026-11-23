@@ -1,10 +1,8 @@
-using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using MoonWorks.Graphics;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
 using Xanadu.Labs.Experiments.EcsRender.Systems;

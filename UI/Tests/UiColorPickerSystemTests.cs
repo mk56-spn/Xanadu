@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Position = Xanadu.Core.Position;
 using Rect2 = Xanadu.Core.Maths.Rect2;
-using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs;

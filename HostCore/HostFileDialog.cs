@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using MoonWorks;
-using SDL3;
 using SDL = SDL3.SDL;
 
 namespace Xanadu.Host;

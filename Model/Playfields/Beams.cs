@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Xanadu.Core.Items;
 
 namespace Xanadu.Model.Playfields;

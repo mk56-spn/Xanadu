@@ -1,5 +1,3 @@
-using System;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 
 namespace Xanadu.Model.Animation;

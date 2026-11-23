@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Model.Levels;
 
 namespace Xanadu.Model.Playfields;

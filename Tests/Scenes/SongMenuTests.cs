@@ -7,7 +7,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
 using Xanadu.Core;
-using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Storage.Profiles;

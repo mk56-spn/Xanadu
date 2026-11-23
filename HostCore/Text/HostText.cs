@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using FreeTypeSharp;
 using MoonWorks.Graphics;
-using Xanadu.Core.Keys;
 using Xanadu.Core.Storage;
 using static FreeTypeSharp.FT;
 using Texture = MoonWorks.Graphics.Texture;

@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Xanadu.Core.Items;
 using Xanadu.Core.Layering;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems.Canvas;

@@ -1,5 +1,4 @@
 using MoonWorks.Input;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Host.Input;

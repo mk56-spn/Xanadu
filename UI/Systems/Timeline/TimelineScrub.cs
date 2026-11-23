@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Core.Timeline;
 using Rect2 = Xanadu.Core.Maths.Rect2;
 

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;

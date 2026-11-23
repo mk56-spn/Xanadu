@@ -1,4 +1,3 @@
-using System;
 using Friflo.Engine.ECS.Systems;
 
 namespace Xanadu.Labs.Experiments.EcsRender.Systems;

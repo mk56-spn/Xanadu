@@ -1,6 +1,4 @@
 
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>A cut across the top right corner of a rectangle or container, this many pixels along each side.</summary>

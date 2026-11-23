@@ -1,6 +1,5 @@
 using Xanadu.Serialisation.Replays;
 using Xanadu.Storage.Replays;
-using System;
 using System.IO;
 using NUnit.Framework;
 using Xanadu.Model.Replays;

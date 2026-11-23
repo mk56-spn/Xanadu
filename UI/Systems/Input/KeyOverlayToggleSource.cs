@@ -1,5 +1,3 @@
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>

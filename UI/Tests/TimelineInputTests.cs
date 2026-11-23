@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Ui.Systems.Timeline;
 

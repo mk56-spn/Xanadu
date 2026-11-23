@@ -1,23 +1,18 @@
 using Xanadu.Storage.Levels;
 using Xanadu.Storage.Settings;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Storage.Profiles;
 using Xanadu.Model.Replays;
-using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Wiring.Scenes;
-using SceneState = Xanadu.Model.Ecs.Components.SceneState;
-using Xanadu.Storage.Profiles;
 using Xanadu.Storage.Replays;
 
 namespace Xanadu.Tests.Replays;

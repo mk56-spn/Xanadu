@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
-using MoonWorks.Graphics;
 using SDL3;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems.Canvas;

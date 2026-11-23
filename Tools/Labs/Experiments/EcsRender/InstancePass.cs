@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Host.Text;

@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Ui.Systems.Ui;

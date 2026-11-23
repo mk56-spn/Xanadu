@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Logic.Editor;

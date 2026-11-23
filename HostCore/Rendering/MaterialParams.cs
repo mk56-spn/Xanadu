@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 

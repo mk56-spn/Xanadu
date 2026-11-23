@@ -1,13 +1,8 @@
-using System;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
-using static Xanadu.Model.Playfields.PlayfieldColors;
-using static Xanadu.Model.Playfields.PlayfieldMetrics;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Drawers.Playfields;
 

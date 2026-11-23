@@ -1,10 +1,7 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Scoring;
-using Xanadu.Model.Settings;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Playfields;

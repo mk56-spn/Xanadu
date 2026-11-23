@@ -1,9 +1,7 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using Xanadu.Core.Items;
 using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 
 namespace Xanadu.Model.Animation;

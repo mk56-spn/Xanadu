@@ -1,7 +1,5 @@
-using System;
 using Xanadu.Core.Items;
 using Xanadu.Core.Layering;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Animation;
 

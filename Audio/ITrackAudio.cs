@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Audio;
 
 /// <summary>Audio backend used by track and editor transport systems.</summary>

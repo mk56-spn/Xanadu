@@ -6,7 +6,6 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 

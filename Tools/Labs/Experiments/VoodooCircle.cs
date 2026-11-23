@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.CompilerServices;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
 using Xanadu.Ui.Systems.Canvas;

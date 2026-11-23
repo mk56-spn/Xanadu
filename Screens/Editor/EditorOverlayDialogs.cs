@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;

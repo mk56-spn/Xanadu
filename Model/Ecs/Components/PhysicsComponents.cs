@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Model.Ecs.Components;

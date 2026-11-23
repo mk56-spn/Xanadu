@@ -1,5 +1,3 @@
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Tests.Support;
 
 /// <summary>Distinct canvas ids for tests, which have no canvas server handing them out.</summary>

@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Audio;
 
 /// <summary>Collapses band levels into a few broad groups, lowest frequencies first.</summary>

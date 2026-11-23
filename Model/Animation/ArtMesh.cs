@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xanadu.Core.Items;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 
 namespace Xanadu.Model.Animation;

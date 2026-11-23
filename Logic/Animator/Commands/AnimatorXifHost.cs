@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Items;
-using Xanadu.Core.Maths;
-using Xanadu.Core.Storage;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Animator;
 using Xanadu.Model.Levels;

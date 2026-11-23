@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Storage.Settings;
 
 /// <summary>Persisted global input/audio calibration offset.</summary>

@@ -1,11 +1,9 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
 using Xanadu.Screens.Shared;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 

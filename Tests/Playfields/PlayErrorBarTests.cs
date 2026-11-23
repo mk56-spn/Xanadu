@@ -2,7 +2,6 @@ using Position = Xanadu.Core.Position;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
 using Xanadu.Tests.Support;

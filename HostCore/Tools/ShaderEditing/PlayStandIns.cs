@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Xanadu.Core.Maths;
-using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 
 namespace Xanadu.Host.Tools.ShaderEditing;

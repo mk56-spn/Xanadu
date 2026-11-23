@@ -1,10 +1,7 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Tests.Support;
 using Xanadu.Tests.Support.Fakes;
 using Xanadu.Ui.Systems.Groups;
 using Xanadu.Ui.Systems.Input;

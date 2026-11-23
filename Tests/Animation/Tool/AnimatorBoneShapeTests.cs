@@ -1,13 +1,5 @@
 using NUnit.Framework;
-using Xanadu.Tools.Animator;
 using Xanadu.Model.Animator;
-using Xanadu.Model.Animator.Intents;
-using Xanadu.Logic.Animator;
-using Xanadu.Logic.Animator.Commands;
-using Xanadu.Drawers.Animator;
-using Xanadu.Screens.Animator;
-using Xanadu.Model.Animation;
-using Xanadu.Storage.Animation;
 
 namespace Xanadu.Tests.Animation.Tool;
 

@@ -1,5 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Labs.Experiments.EcsRender;
 

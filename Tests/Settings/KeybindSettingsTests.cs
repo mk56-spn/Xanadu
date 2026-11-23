@@ -1,8 +1,6 @@
 using Xanadu.Storage.Settings;
-using System;
 using System.IO;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Settings;
 
 namespace Xanadu.Tests.Settings;

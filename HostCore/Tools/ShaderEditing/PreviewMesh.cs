@@ -1,5 +1,3 @@
-using System;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;

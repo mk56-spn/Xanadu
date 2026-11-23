@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Tests.Support;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;

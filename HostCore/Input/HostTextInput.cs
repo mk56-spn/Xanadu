@@ -2,7 +2,6 @@ using System.Text;
 using Friflo.Engine.ECS;
 using MoonWorks;
 using MoonWorks.Input;
-using SDL3;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using SDL = SDL3.SDL;

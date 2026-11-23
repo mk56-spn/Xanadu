@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Ui.Systems;
 
 namespace Xanadu.Ui.Ecs.Ui;

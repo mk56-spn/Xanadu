@@ -1,7 +1,4 @@
-using System;
 using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Core.Tweens;
@@ -9,7 +6,6 @@ using Xanadu.Host;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
 using static Xanadu.Core.Theme.UiMetrics;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Showcase;
 

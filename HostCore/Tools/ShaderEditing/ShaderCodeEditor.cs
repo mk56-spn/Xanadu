@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
-using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Slang;

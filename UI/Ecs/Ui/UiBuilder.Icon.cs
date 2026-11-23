@@ -1,6 +1,4 @@
-using System;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems.Canvas;
 

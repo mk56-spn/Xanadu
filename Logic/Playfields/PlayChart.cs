@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
-using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;

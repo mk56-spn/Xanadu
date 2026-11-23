@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Theme;

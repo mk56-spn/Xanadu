@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
-using Xanadu.Core.Maths;
 using Xanadu.Host.Text;
 using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;

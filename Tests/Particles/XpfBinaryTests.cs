@@ -1,9 +1,7 @@
 using Xanadu.Serialisation.Particles;
-using System;
 using System.IO;
 using System.Reflection;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Model.Ecs.Components;
 

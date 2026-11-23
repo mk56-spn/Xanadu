@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Host.Tools;
 using Xanadu.Ui.Ecs.Ui;
 

@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Geometry;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
-using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Logic.Editor.Kinds;
 

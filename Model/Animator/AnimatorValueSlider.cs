@@ -1,5 +1,3 @@
-using Friflo.Engine.ECS;
-
 namespace Xanadu.Model.Animator;
 
 /// <summary>A number a panel value field shows and sets; <see cref="AnimatorValueFieldSystem"/> binds each.</summary>

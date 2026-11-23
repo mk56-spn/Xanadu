@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using Xanadu.Core.Items;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 

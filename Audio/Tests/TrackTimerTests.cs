@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Xanadu.Audio;
 
 namespace Xanadu.Audio.Tests;
 

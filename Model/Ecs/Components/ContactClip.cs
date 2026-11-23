@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Model.Animation;
 
 namespace Xanadu.Model.Ecs.Components;

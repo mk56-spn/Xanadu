@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Host.Text;
 
 /// <summary>

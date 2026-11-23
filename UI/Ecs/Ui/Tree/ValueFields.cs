@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Ui.Ecs.Ui.Tree;

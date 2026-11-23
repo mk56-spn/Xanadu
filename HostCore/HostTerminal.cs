@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Terminal;
 

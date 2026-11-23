@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-
 namespace Xanadu.Core.Maths;
 
 // Godot 4.4's Vector2/3/4 methods (MIT, LICENSE.txt), moved onto

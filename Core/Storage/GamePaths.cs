@@ -1,6 +1,5 @@
 // Allowed disk access in Core (BannedSymbols.Io.txt): finding the game and user folders is how every layer, the host included, resolves a path; it reads only folder markers.
 #pragma warning disable RS0030
-using System;
 using System.IO;
 
 namespace Xanadu.Core.Storage;

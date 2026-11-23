@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Xanadu.Core.Items;
 using Xanadu.Model.Ecs.Components;
 

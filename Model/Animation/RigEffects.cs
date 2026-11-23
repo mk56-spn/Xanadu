@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Xanadu.Core.Items;
 using Xanadu.Core.Layering;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Model.Levels;
 

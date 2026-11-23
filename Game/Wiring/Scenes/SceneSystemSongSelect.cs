@@ -1,4 +1,3 @@
-using System;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Diagnostics;
 using Xanadu.Model.Ecs.Components;

@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Model.Levels;
 
 /// <summary>Shared beat/subdivision math for editor and timeline rendering.</summary>

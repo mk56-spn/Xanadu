@@ -1,4 +1,3 @@
-using System;
 using SkiaSharp;
 using Svg.Skia;
 

@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Host.Tools;
 using Xanadu.Ui.Systems;

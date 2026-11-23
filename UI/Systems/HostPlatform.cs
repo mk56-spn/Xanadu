@@ -1,4 +1,3 @@
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;

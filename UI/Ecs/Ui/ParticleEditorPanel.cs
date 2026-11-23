@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Particles;
 using Xanadu.Core.Theme;

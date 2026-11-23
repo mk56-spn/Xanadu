@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Model.Scoring;
 
 /// <summary>Timing judgement tiers for a play note.</summary>

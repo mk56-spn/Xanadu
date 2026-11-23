@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Items;
 using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Animation;

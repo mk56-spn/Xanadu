@@ -1,6 +1,4 @@
-using System;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Ecs.Ui;

@@ -1,10 +1,6 @@
-using System;
 using System.Collections.Generic;
-using Friflo.Engine.ECS;
-using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Logic.Characters;
 

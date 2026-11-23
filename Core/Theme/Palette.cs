@@ -1,6 +1,4 @@
 
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Core.Theme;
 
 /// <summary>

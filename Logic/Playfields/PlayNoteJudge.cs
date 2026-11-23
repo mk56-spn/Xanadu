@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Core;
-using Xanadu.Core.Maths;
-using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
-using Xanadu.Ui.Ecs;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Logic.Playfields;

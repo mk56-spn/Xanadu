@@ -1,11 +1,7 @@
-using System;
 using Friflo.Engine.ECS;
-using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Screens.Editor;
 

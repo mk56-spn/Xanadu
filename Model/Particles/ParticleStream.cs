@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Model.Shaders;
 using Xanadu.Ui.Systems.Canvas;

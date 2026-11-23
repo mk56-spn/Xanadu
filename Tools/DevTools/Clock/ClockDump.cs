@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 
 namespace Xanadu.Tools.DevTools.Clock;

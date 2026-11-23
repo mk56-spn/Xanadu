@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Numerics;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Logic.Editor;

@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Audio;
 
 /// <summary>A frequency band of a <see cref="WaveformData"/>.</summary>

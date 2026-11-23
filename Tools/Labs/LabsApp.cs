@@ -1,5 +1,4 @@
 using MoonWorks.Graphics;
-using Xanadu.Core.Maths;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
 

@@ -1,5 +1,4 @@
 using Xanadu.Core.Timeline;
-using Xanadu.Model.Animation;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Model.Animator.Intents;

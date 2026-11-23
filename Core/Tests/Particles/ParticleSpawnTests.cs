@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 
 namespace Xanadu.Core.Tests.Particles;

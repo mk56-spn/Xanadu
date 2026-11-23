@@ -1,6 +1,3 @@
-using System;
-using Xanadu.Core.Keys;
-
 namespace Xanadu.Screens.Shared;
 
 /// <summary>A translatable key with an English fallback.</summary>

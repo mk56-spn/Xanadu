@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Items;
 using Xanadu.Core.Layering;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Animator;
 using Xanadu.Model.Animator.Intents;

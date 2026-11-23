@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Replays;

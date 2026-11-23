@@ -1,12 +1,9 @@
-using System;
-using System.IO;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Ui;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 

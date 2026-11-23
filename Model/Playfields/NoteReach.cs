@@ -1,6 +1,4 @@
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Playfields;
 
 namespace Xanadu.Model.Playfields;
 

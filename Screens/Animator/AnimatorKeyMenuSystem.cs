@@ -1,16 +1,13 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Logic.Animator;
 using Xanadu.Logic.Animator.Commands;
 using Xanadu.Model.Animation;
 using Xanadu.Model.Animator;
-using Xanadu.Model.Animator.Intents;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Animator;
 

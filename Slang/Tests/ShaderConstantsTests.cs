@@ -2,7 +2,6 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using Xanadu.Core.Storage;
-using Xanadu.Slang;
 
 namespace Xanadu.Slang.Tests;
 

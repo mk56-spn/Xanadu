@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Ui.Editing;
 

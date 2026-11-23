@@ -1,10 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
-using Xanadu.Host.Rendering;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 

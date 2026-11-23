@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.Tracing;
 using System.IO;
 using System.Threading.Tasks;

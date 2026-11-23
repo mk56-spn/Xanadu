@@ -1,10 +1,5 @@
-using System;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Canvas;
-using static Xanadu.Model.Playfields.PlayfieldColors;
-using static Xanadu.Model.Playfields.PlayfieldMetrics;
 
 namespace Xanadu.Drawers.Playfields;
 

@@ -1,8 +1,5 @@
-using System;
 using System.IO;
 using MoonWorks.Graphics;
-using MoonWorks.Graphics;
-using SDL3;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Theme;
 using Color = Xanadu.Core.Maths.Color;

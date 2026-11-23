@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Xanadu.Audio;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Ecs.Components;
 

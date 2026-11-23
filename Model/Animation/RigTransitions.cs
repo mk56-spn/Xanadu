@@ -1,6 +1,3 @@
-using System;
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Model.Animation;
 
 /// <summary>How a crossfade's weight moves from the old clip to the new one.</summary>

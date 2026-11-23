@@ -1,5 +1,3 @@
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>PageUp/PageDown paging, Up/Down selection, Home sort cycling, End dumping.</summary>

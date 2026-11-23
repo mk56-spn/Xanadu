@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Model.Animation;
 
 /// <summary>How a layered clip combines with the pose under it.</summary>

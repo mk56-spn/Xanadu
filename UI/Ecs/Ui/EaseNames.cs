@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Core.Timeline;
 
 namespace Xanadu.Ui.Ecs.Ui;

@@ -1,4 +1,3 @@
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Ui.Ecs.Ui;

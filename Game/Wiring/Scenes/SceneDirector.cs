@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Wiring.Scenes;

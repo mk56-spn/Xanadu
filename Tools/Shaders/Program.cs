@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using Xanadu.Host;
 using Xanadu.Tools.Shaders;

@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Xanadu.Core.Maths;
 using Color = Xanadu.Core.Maths.Color;
 
 namespace Xanadu.Host.Rendering;

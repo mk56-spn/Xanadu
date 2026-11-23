@@ -1,6 +1,4 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Animator;
 using Xanadu.Model.Animator.Intents;
 using Xanadu.Ui.Ecs.Ui;

@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using Xanadu.Model.Animation;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Tests.Animation;
 

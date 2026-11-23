@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Levels;
 
 namespace Xanadu.Model.Editor;
 

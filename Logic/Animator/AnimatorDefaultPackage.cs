@@ -1,6 +1,5 @@
 using Xanadu.Core.Items;
 using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Animation;
 
 namespace Xanadu.Logic.Animator;

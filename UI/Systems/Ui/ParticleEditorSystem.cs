@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Items;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Particles;
 using Xanadu.Ui.Ecs.Ui;
 

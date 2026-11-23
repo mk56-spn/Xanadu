@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Xanadu.Slang;
 
 namespace Xanadu.Slang.Tests;
 

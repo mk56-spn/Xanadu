@@ -1,15 +1,12 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
-using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Timeline;

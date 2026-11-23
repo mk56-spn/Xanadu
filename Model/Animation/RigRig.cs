@@ -1,6 +1,3 @@
-using System;
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Model.Animation;
 
 /// <summary>Resolves local sampled poses into skeleton and attachment world transforms.</summary>

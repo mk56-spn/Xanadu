@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Ui.Tests.Rendering;

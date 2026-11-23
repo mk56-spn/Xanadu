@@ -2,7 +2,6 @@ using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 using LayerComponent = Xanadu.Ui.Ecs.Ui.Layer;
 using Position = Xanadu.Core.Position;

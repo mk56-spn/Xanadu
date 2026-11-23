@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Core.Keys;
 using Xanadu.Core.Timeline;
 

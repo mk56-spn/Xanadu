@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using Xanadu.Tests.VisualTests;
 
 namespace Xanadu.Tests.VisualTests;
 

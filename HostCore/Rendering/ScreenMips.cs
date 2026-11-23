@@ -1,7 +1,5 @@
-using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using MoonWorks.Graphics;
 using MoonWorks.Graphics;
 using Xanadu.Slang;
 using Texture = MoonWorks.Graphics.Texture;

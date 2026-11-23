@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.InteropServices;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Timeline;
 

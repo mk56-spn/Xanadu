@@ -3,7 +3,6 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Drawers.Timeline;
 using Xanadu.Ui.Systems.Canvas;

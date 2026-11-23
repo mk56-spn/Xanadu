@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SDL = MoonWorks.Graphics.SDL_GPU;
 
 namespace MoonWorks.Graphics;

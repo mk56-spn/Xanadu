@@ -1,4 +1,3 @@
-using Xanadu.Core.Keys;
 using Xanadu.Logic.Settings;
 using Xanadu.Model.Settings;
 using Xanadu.Screens.Shared;

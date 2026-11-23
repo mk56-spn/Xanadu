@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Animation;
 

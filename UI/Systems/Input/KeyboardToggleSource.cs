@@ -1,6 +1,4 @@
 
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>Adapts a key on an <see cref="IKeyboardState"/> to an overlay toggle.</summary>

@@ -1,6 +1,5 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 

@@ -1,6 +1,4 @@
-using Xanadu.Storage.Settings;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
 using Xanadu.Model.Playfields;

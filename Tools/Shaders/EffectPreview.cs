@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using Xanadu.Core.Maths;
 using Xanadu.Host.Rendering;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;

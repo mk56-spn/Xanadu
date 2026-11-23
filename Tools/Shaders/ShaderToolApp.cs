@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
 using Xanadu.Core;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Host;

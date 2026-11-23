@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using MoonWorks.Input;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
 using Xanadu.Ui.Systems.Canvas;

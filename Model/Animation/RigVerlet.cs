@@ -1,6 +1,4 @@
 
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Model.Animation;
 
 /// <summary>

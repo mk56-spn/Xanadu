@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Model.Animation;
 
 /// <summary>

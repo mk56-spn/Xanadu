@@ -1,14 +1,11 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Drawers.Playfields;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Drawers.Editor;

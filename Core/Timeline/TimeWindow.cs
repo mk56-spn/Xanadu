@@ -1,6 +1,3 @@
-using System;
-using Xanadu.Core.Maths;
-
 namespace Xanadu.Core.Timeline;
 
 /// <summary>

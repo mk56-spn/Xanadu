@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Levels;
 

@@ -1,4 +1,3 @@
-using System;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Labs.Experiments.Particles;

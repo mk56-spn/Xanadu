@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 using MoonWorks.Storage;
-using SDL3;
 
 namespace MoonWorks.Graphics;
 

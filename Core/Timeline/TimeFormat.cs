@@ -1,5 +1,3 @@
-using System;
-
 namespace Xanadu.Core.Timeline;
 
 /// <summary>Writes times for the timeline and HUD readouts.</summary>

@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Xanadu.Core.Diagnostics;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Ecs.Ui;
 

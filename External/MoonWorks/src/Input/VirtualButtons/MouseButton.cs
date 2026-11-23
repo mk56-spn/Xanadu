@@ -1,5 +1,3 @@
-using SDL3;
-
 namespace MoonWorks.Input
 {
 	/// <summary>

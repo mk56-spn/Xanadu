@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Xanadu.Logic.Bench;
 
 /// <summary>Where things stand on the bench stage, shared by the scene that builds it and the system that runs it.</summary>

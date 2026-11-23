@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Logic.Editor.History;
 using Xanadu.Logic.Editor.Kinds;
@@ -12,7 +9,6 @@ using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
-using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Logic.Editor;
 

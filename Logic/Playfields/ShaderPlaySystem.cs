@@ -1,7 +1,5 @@
-using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
 using Position = Xanadu.Core.Position;

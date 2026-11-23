@@ -1,5 +1,3 @@
-using Xanadu.Core.Keys;
-using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Logic.Editor;
