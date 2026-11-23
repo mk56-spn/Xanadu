@@ -40,6 +40,12 @@ internal struct Primitive
     public const uint FlagVertical = 1 << 8;
     public const uint FlagExact = 1 << 9;
 
+    /// <summary>A triangle whose corners are a quadratic Bézier's start, control and end: the fragment stage trims it to the curve.</summary>
+    public const uint FlagCurve = 1 << 10;
+
+    /// <summary>With <see cref="FlagCurve"/>: keep the side towards the control instead of the side towards the chord.</summary>
+    public const uint FlagConcave = 1 << 11;
+
     /// <summary>Box: centre, half axis x. Triangle: corners 0 and 1.</summary>
     public Vector4 A;
 
@@ -214,6 +220,10 @@ internal struct Primitive
     {
         if (Kind == PrimitiveKind.Triangle)
         {
+            // An effect's mesh has no curve trim: a curve shows as its chord
+            // (the bulging side dropped, the bending side drawn whole).
+            if ((Flags & FlagCurve) != 0 && (Flags & FlagConcave) == 0)
+                return;
             Vector2 a = new(A.X, A.Y), b = new(A.Z, A.W), c = new(B.X, B.Y);
             Add(into, t, tint, a, b, c, C0, C1, C2,
                 new Vector2(Uv.X, Uv.Y), new Vector2(Uv.Z, Uv.W), new Vector2(B.Z, B.W), (uint)IndexA, (uint)IndexB, (uint)IndexC);
@@ -334,5 +344,5 @@ internal struct GpuInstance
     public Vector4 Clip;
 
     public uint PoolStart, Count, OutStart, SlotBase;
-    public uint Flags, OpaqueBase, ArgsOffset, DepthBase;
+    public uint Flags, OpaqueBase, Unused, DepthBase;
 }

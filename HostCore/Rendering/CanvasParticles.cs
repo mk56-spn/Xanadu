@@ -161,7 +161,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     private readonly Buffer _effects;
     private readonly TransferBuffer _effectUpload;
     private readonly Vector4[] _rows = new Vector4[MaxEffects * RowSize];
-    private readonly Dictionary<XpfParticle, int> _effectRows = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<XpfParticle, (int Row, int Version)> _effectRows = new(ReferenceEqualityComparer.Instance);
     private readonly List<ParticleField> _fields = new();
     private bool _rowsDirty = true;
 
@@ -193,6 +193,9 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
 
         ParticleLibrary.Changed += DropEffects;
     }
+
+    /// <summary>Every effect's row (gravity, colour ramp, scale curve), which a particle-mesh draw reads too.</summary>
+    public Buffer Effects => _effects;
 
     /// <summary>Fields stepped in the last frame, for the debug line.</summary>
     public int LastLiveFields { get; private set; }
@@ -314,17 +317,23 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         return pipeline;
     }
 
-    /// <summary>The effect's row in the table, sampled the first time it is emitted.</summary>
+    /// <summary>The effect's row in the table, sampled the first time it is emitted and again after it was edited in place.</summary>
     private int Row(XpfParticle effect)
     {
-        if (_effectRows.TryGetValue(effect, out int row))
-            return row;
-
-        if (_effectRows.Count == MaxEffects)
-            _effectRows.Clear();
-
-        row = _effectRows.Count;
-        _effectRows[effect] = row;
+        int row;
+        if (_effectRows.TryGetValue(effect, out (int Row, int Version) known))
+        {
+            if (known.Version == effect.Version)
+                return known.Row;
+            row = known.Row;
+        }
+        else
+        {
+            if (_effectRows.Count == MaxEffects)
+                _effectRows.Clear();
+            row = _effectRows.Count;
+        }
+        _effectRows[effect] = (row, effect.Version);
         int start = row * RowSize;
         _rows[start] = new Vector4(effect.Gravity.X, effect.Gravity.Y, 0, 0);
         for (int i = 0; i < Samples; i++)

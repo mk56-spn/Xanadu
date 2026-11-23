@@ -328,6 +328,19 @@ public namespace looks
         float gap = y * 0.6;                            // the gaps grow downwards
         return disc * (1.0 - aastep(1.0 - gap, band));
     }
+
+    /// Wind on a stalk, -1..1 sideways (+1 to the right): a slow sway every stalk keeps out of step
+    /// by its own `seed` (0..1), and gusts `gustSize` pixels across rolling right over `position`
+    /// at `gustSpeed` pixels a second, pushing stalks over as they pass. `speed` scales the sway,
+    /// `gust` 0..1 how hard gusts push. Grass bends its tip by this, times its height squared.
+    /// @cost 4
+    public float wind(float2 position, float seed, float speed = 1.0, float gust = 0.5, float gustSize = 420.0, float gustSpeed = 260.0)
+    {
+        float t = time * speed;
+        float sway = sin(t * (1.4 + 0.5 * seed) + seed * TAU) * 0.7 + sin(t * 3.1 + seed * 17.0) * 0.12;
+        float roll = 0.5 + 0.5 * sin((position.x - time * gustSpeed) / max(gustSize, 1.0) * TAU);
+        return clamp(sway * (1.0 - 0.4 * gust) + roll * roll * roll * gust * 1.2, -1.0, 1.0);
+    }
 }
 
 /// Moving with the music, from the global `beat` (the song's beats in a level, the timeline's in

@@ -1,277 +1,204 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Core.Rendering;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// A slider for every value the shader declares (one per channel), except the
-/// ones the lab fills itself. Dragging sets the value on the preview's
-/// material straight away; values are kept by name across recompiles, and a
-/// value's range is guessed once, from its declared default, as the F2 tuner does.
+/// The values column: every value the shader declares, except the ones the lab
+/// fills itself, as the shared setting fields the XIF editor shows too (a value
+/// field of the value's shape, a pick for <c>[Options]</c>), then a field for
+/// each play stand-in the code reads. Values are kept by name across
+/// recompiles and put on the preview's materials each frame
+/// (<see cref="Apply"/>). The fields are ECS UI on a layer of their own over
+/// the editor's chrome; the column is rebuilt only when what it shows changes.
 /// </summary>
-internal sealed class EditorTuning
+internal sealed class EditorTuning : IDisposable
 {
-    private const float Row = 24;
-    private const float LabelWidth = 150;
-    private const float ValueWidth = 70;
-    private const int TextSize = 13;
-
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _item;
-    /// <summary>Where the sliders go; set again when the column is resized.</summary>
-    public Rect2 Area { get; set; }
+    private readonly UiNode _layer;
+    private readonly UiNode _column;
     private readonly HashSet<string> _filledByLab;
 
-    /// <summary>The values in declaration order, one slider per channel.</summary>
-    private readonly List<(string Name, int Channels, bool Colour)> _values = new();
-    private readonly Dictionary<string, Vector4> _tuned = new();
-    private readonly Dictionary<string, (float Min, float Max)> _ranges = new();
-    private readonly List<(Rect2 Track, string Name, int Channel)> _tracks = new();
-
-    /// <summary>The <c>uniform bool</c>s: a switch each instead of a slider.</summary>
-    private readonly HashSet<string> _switches = new();
-
-    /// <summary>Each switch's box as last drawn, for presses.</summary>
-    private readonly List<(Rect2 Box, string Name)> _switchBoxes = new();
-    private (string Name, int Channel)? _dragging;
+    /// <summary>The shader's own values in declaration order.</summary>
+    private readonly List<MaterialParam> _declared = new();
 
     /// <summary>The play values the code reads that the editor stands in for (<see cref="PlayStandIns"/>), under the shader's own.</summary>
-    private readonly List<(string Name, int Channels, bool Colour)> _standIns = new();
+    private readonly List<PlayStandIns.Slider> _standIns = new();
 
-    public EditorTuning(IRectCanvas canvas, Handle item, Rect2 area, IEnumerable<string> filledByLab)
+    /// <summary>Every value as last tuned, by name: kept when a compile drops a value, for when it comes back.</summary>
+    private readonly Dictionary<string, float[]> _tuned = new();
+
+    /// <summary>Each value's field (or a pick's button) as built.</summary>
+    private readonly Dictionary<string, Entity> _fields = new();
+
+    private Rect2 _area;
+    private string _shown = "";
+    private bool _holding;
+
+    public EditorTuning(EntityStore entities, Rect2 area, IEnumerable<string> filledByLab)
     {
-        _canvas = canvas;
-        _item = item;
-        Area = area;
         _filledByLab = new HashSet<string>(filledByLab);
+        _layer = UiNode.Layer(entities, default, UiLayers.ShaderEditorValues, null, UiStage.Full).Theme(UiThemes.Tools);
+        _column = _layer.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Start).Clip();
+        Area = area;
+    }
+
+    /// <summary>Where the fields go; set again when the column is resized.</summary>
+    public Rect2 Area
+    {
+        get => _area;
+        set
+        {
+            bool wider = !Mathf.IsEqualApprox(value.Size.X, _area.Size.X);
+            _area = value;
+            _column.Box(value);
+            if (wider)
+                Rebuild();
+        }
     }
 
     /// <summary>Takes a fresh compile's values: new ones start at their defaults, kept ones keep their tuning.</summary>
     public void Use(ShaderParam[] declared)
     {
-        _values.Clear();
+        _declared.Clear();
         foreach (ShaderParam param in declared)
         {
-            // A matrix has no sliders here; the UI's value fields edit it (UiNode.UniformField).
-            if (_filledByLab.Contains(param.Name) || param.IsMatrix)
+            if (_filledByLab.Contains(param.Name))
                 continue;
-
-            int channels = Math.Clamp(param.Size / 4, 1, 4);
-            bool colour = channels == 4 && UniformRanges.IsColourName(param.Name);
-            if (param.IsBool)
-                _switches.Add(param.Name);
-            else
-                _switches.Remove(param.Name);
-            _values.Add((param.Name, channels, colour));
-            if (!_tuned.ContainsKey(param.Name))
-                _tuned[param.Name] = param.Default;
-            for (int c = 0; c < channels; c++)
-            {
-                string key = Key(param.Name, c);
-                if (!_ranges.ContainsKey(key))
-                    _ranges[key] = UniformRanges.Guess(colour, Channel(param.Default, c));
-            }
+            MaterialParam described = MaterialParams.Describe(param);
+            _declared.Add(described);
+            Remember(described);
         }
+
+        Rebuild();
     }
 
-    /// <summary>Shows a slider for each stand-in the code needs; one dropped keeps its value for when it comes back.</summary>
+    /// <summary>Shows a field for each stand-in the code needs; one dropped keeps its value for when it comes back.</summary>
     public void UseStandIns(List<PlayStandIns.Slider> needed)
     {
         _standIns.Clear();
+        _standIns.AddRange(needed);
         foreach (PlayStandIns.Slider slider in needed)
-        {
-            _standIns.Add((slider.Name, slider.Channels, false));
-            if (!_tuned.ContainsKey(slider.Name))
-                _tuned[slider.Name] = slider.Default;
-            for (int c = 0; c < slider.Channels; c++)
-                _ranges.TryAdd(Key(slider.Name, c), (slider.Min, slider.Max));
-        }
+            Remember(StandInParam(slider));
+        Rebuild();
     }
 
-    /// <summary>A stand-in's value: its slider's, or <paramref name="fallback"/> in every channel before it ever had one.</summary>
+    /// <summary>A stand-in's value: its field's, or <paramref name="fallback"/> in every channel before it ever had one.</summary>
     public Vector4 StandIn(string name, float fallback) =>
-        _tuned.TryGetValue(name, out Vector4 value) ? value : new Vector4(fallback);
+        _tuned.TryGetValue(name, out float[]? value) ? UiValueFields.AsVector(value) : new Vector4(fallback);
 
     /// <summary>The <c>uniform float2</c>s that read as places (<see cref="SlangPoints.IsPlaceName"/>), for dragging on the preview.</summary>
     public IEnumerable<(string Name, Vector2 Value)> Points()
     {
-        foreach ((string name, int channels, _) in _values)
+        foreach (MaterialParam param in _declared)
         {
-            if (channels == 2 && SlangPoints.IsPlaceName(name))
-                yield return (name, new Vector2(_tuned[name].X, _tuned[name].Y));
+            if (param is { Channels: 2, IsMatrix: false } && SlangPoints.IsPlaceName(param.Name))
+                yield return (param.Name, new Vector2(_tuned[param.Name][0], _tuned[param.Name][1]));
         }
     }
 
-    /// <summary>A float2 dragged on the preview: its value, its sliders' ranges widened to hold it.</summary>
+    /// <summary>A float2 dragged on the preview: its value, and its field's span widened to hold it.</summary>
     public void SetPoint(string name, Vector2 value)
     {
-        if (!_tuned.TryGetValue(name, out Vector4 old))
+        if (!_tuned.TryGetValue(name, out float[]? values) || values.Length < 2)
             return;
-        _tuned[name] = old with { X = value.X, Y = value.Y };
-        for (int c = 0; c < 2; c++)
-        {
-            string key = Key(name, c);
-            float v = c == 0 ? value.X : value.Y;
-            if (_ranges.TryGetValue(key, out var range))
-                _ranges[key] = (Math.Min(range.Min, v), Math.Max(range.Max, v));
-        }
+        values[0] = value.X;
+        values[1] = value.Y;
+        if (!_fields.TryGetValue(name, out Entity field) || field.IsNull || !field.HasComponent<UiValueField>())
+            return;
+
+        ref UiValueField state = ref field.GetComponent<UiValueField>();
+        state.Min = MathF.Min(state.Min, MathF.Min(value.X, value.Y));
+        state.Max = MathF.Max(state.Max, MathF.Max(value.X, value.Y));
+        UiValueFields.Set(field, values);
     }
 
     /// <summary>Puts the tuned values on a material.</summary>
     public void Apply(CanvasMaterial material)
     {
-        foreach ((string name, _, _) in _values)
-            material.Set(name, _tuned[name]);
+        foreach (MaterialParam param in _declared)
+        {
+            float[] values = _tuned[param.Name];
+            if (param.IsMatrix)
+                material.Set(param.Name, UiValueFields.AsMatrix(values, UiValueShape.Of(param)));
+            else
+                material.Set(param.Name, UiValueFields.AsVector(values));
+        }
     }
 
-    /// <summary>Starts, continues or ends a drag; true while a slider is held.</summary>
+    /// <summary>True while a press that began over the column is held, so nothing under it takes the pointer.</summary>
     public bool Point(Vector2 pointer, bool held, bool pressed)
     {
         if (!held)
-        {
-            _dragging = null;
-            return false;
-        }
-
+            return _holding = false;
         if (pressed)
-        {
-            foreach ((Rect2 box, string name) in _switchBoxes)
-            {
-                if (box.HasPoint(pointer))
-                {
-                    _tuned[name] = _tuned[name] with { X = _tuned[name].X > 0.5f ? 0 : 1 };
-                    return true;
-                }
-            }
-
-            foreach ((Rect2 track, string name, int channel) in _tracks)
-            {
-                if (new Rect2(track.Position.X - 6, track.Position.Y, track.Size.X + 12, track.Size.Y).HasPoint(pointer))
-                    _dragging = (name, channel);
-            }
-        }
-
-        if (_dragging is not { } drag)
-            return false;
-
-        foreach ((Rect2 track, string name, int channel) in _tracks)
-        {
-            if (name != drag.Name || channel != drag.Channel)
-                continue;
-            (float min, float max) = _ranges[Key(name, channel)];
-            float t = Math.Clamp((pointer.X - track.Position.X) / track.Size.X, 0, 1);
-            _tuned[name] = WithChannel(_tuned[name], channel, min + (max - min) * t);
-        }
-
-        return true;
+            _holding = _area.HasPoint(pointer);
+        return _holding;
     }
 
-    public void Draw()
-    {
-        _tracks.Clear();
-        _switchBoxes.Clear();
-        float y = Area.Position.Y;
-        _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "VALUES", Palette.TextDim, 13);
-        y += Row + 2;
-        if (_values.Count == 0)
-        {
-            _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "declare a uniform to tune it here", Palette.TextMuted, 14);
-            y += Row;
-        }
+    public void Dispose() => UiLayout.DeleteSubtree(_layer.Entity);
 
-        y = DrawSliders(_values, y);
-        if (_standIns.Count == 0 || y + Row * 2 > Area.End.Y)
+    /// <summary>Starts a value on its default the first time it is seen, or when its shape changed.</summary>
+    private void Remember(MaterialParam param)
+    {
+        float[] defaults = UiValueFields.Defaults(param, UiValueShape.Of(param));
+        if (!_tuned.TryGetValue(param.Name, out float[]? kept) || kept.Length != defaults.Length)
+            _tuned[param.Name] = defaults;
+    }
+
+    private static MaterialParam StandInParam(PlayStandIns.Slider slider) =>
+        new(slider.Name, slider.Channels, false, slider.Default);
+
+    /// <summary>Builds the column again, when what it shows (or how wide it is) has changed.</summary>
+    private void Rebuild()
+    {
+        string shown = $"{_area.Size.X}|" + string.Join(",", _declared.Select(Signature)) + "|" + string.Join(",", _standIns.Select(s => s.Name));
+        if (shown == _shown)
             return;
+        _shown = shown;
 
-        y += 4;
-        _canvas.DrawTextStyledLeft(_item, new Rect2(Area.Position.X, y, Area.Size.X, Row), "STAND-INS  (the run, faked)", Palette.TextDim, 13);
-        DrawSliders(_standIns, y + Row + 2);
+        UiLayout.DeleteChildren(_column.Entity);
+        _fields.Clear();
+        float width = MathF.Max(0, _area.Size.X);
+        _column.Text("VALUES", UiType.Caption).DimText();
+        if (_declared.Count == 0)
+            _column.Text("declare a uniform to tune it here", UiType.Small).DimText();
+        foreach (MaterialParam param in _declared)
+            Add(param, width, null);
+
+        if (_standIns.Count == 0)
+            return;
+        _column.Text("STAND-INS  (the run, faked)", UiType.Caption).DimText();
+        foreach (PlayStandIns.Slider slider in _standIns)
+            Add(StandInParam(slider), width, (slider.Min, slider.Max));
     }
 
-    private float DrawSliders(List<(string Name, int Channels, bool Colour)> values, float y)
+    /// <summary>One value's shared setting field, bound so every edit lands in <see cref="_tuned"/>.</summary>
+    private void Add(MaterialParam param, float width, (float Min, float Max)? range)
     {
-        foreach ((string name, int channels, bool colour) in values)
+        string name = param.Name;
+        Entity field = _column.SettingField(param, (float[])_tuned[name].Clone(), width, range).Entity;
+        _fields[name] = field;
+        if (field.HasComponent<Dropdown>())
         {
-            if (_switches.Contains(name) && y + Row <= Area.End.Y)
+            field.OnComponentChanged += change =>
             {
-                DrawSwitch(name, y);
-                y += Row;
-                continue;
-            }
-
-            for (int c = 0; c < channels && y + Row <= Area.End.Y; c++)
-            {
-                string label = channels == 1 ? name : $"{name}.{(colour ? "rgba" : "xyzw")[c]}";
-                DrawSlider(label, name, c, colour, y);
-                y += Row;
-            }
+                if (change.Type == typeof(DropdownChanged) && change.Action != ComponentChangedAction.Remove)
+                    _tuned[name] = [change.Component<DropdownChanged>().Value];
+            };
+            return;
         }
 
-        return y;
+        field.OnValueChanged((values, _) => _tuned[name] = (float[])values.Clone());
     }
 
-    private void DrawSlider(string label, string name, int channel, bool colour, float y)
-    {
-        (float min, float max) = _ranges[Key(name, channel)];
-        float value = Channel(_tuned[name], channel);
-        float left = Area.Position.X;
-        var track = new Rect2(left + LabelWidth, y + Row / 2 - 2, Area.Size.X - LabelWidth - ValueWidth - 12, 4);
-        _tracks.Add((track, name, channel));
-
-        _canvas.DrawTextMono(_item, new Rect2(left - 4, y, LabelWidth, Row), label, Palette.TextMuted, TextSize, TextAlign.Left);
-        _canvas.DrawRect(_item, track, Palette.BorderStrong);
-        float t = max > min ? Math.Clamp((value - min) / (max - min), 0, 1) : 0;
-        Color fill = colour ? ChannelColour(channel) : Palette.Accent;
-        _canvas.DrawRect(_item, new Rect2(track.Position, new Vector2(track.Size.X * t, track.Size.Y)), fill);
-        bool active = _dragging is { } d && d.Name == name && d.Channel == channel;
-        _canvas.DrawRect(_item, new Rect2(track.Position.X + track.Size.X * t - 5, y + 5, 10, Row - 10), active ? Colors.White : fill);
-        _canvas.DrawTextMono(
-            _item, new Rect2(track.End.X + 8, y, ValueWidth, Row), value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
-            Palette.Text, TextSize, TextAlign.Left);
-    }
-
-    /// <summary>A uniform bool: its name, then one button that reads ON (bright blue) or OFF.</summary>
-    private void DrawSwitch(string name, float y)
-    {
-        bool on = _tuned[name].X > 0.5f;
-        float left = Area.Position.X;
-        var box = new Rect2(left + LabelWidth, y + 3, 64, Row - 6);
-        _switchBoxes.Add((box, name));
-        _canvas.DrawTextMono(_item, new Rect2(left - 4, y, LabelWidth, Row), name, Palette.TextMuted, TextSize, TextAlign.Left);
-        _canvas.DrawRect(_item, box, on ? Palette.Primary : Palette.Muted);
-        _canvas.DrawTextMono(_item, box, on ? "ON" : "OFF", on ? Palette.TextBright : Palette.TextMuted, TextSize, TextAlign.Center);
-    }
-
-    private static Color ChannelColour(int channel) => channel switch
-    {
-        0 => new Color("#ef4444"),
-        1 => new Color("#22c55e"),
-        2 => new Color("#3b82f6"),
-        _ => new Color("#cbd5e1"),
-    };
-
-    private static string Key(string name, int channel) => name + "." + channel;
-
-    private static float Channel(Vector4 value, int channel) => channel switch
-    {
-        0 => value.X,
-        1 => value.Y,
-        2 => value.Z,
-        _ => value.W,
-    };
-
-    private static Vector4 WithChannel(Vector4 value, int channel, float to) => channel switch
-    {
-        0 => value with { X = to },
-        1 => value with { Y = to },
-        2 => value with { Z = to },
-        _ => value with { W = to },
-    };
+    private static string Signature(MaterialParam param) =>
+        $"{param.Name}:{param.Channels}:{param.Rows}:{param.IsInt}:{param.IsBool}:{string.Join("/", param.Options ?? [])}";
 }

@@ -59,8 +59,8 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
         Palette.Gold, Palette.Pink, Palette.Cyan, Palette.Lime, Palette.Violet, Palette.Rose,
     ];
 
-    private static readonly Color Back = new("#0e1428");
-    private static readonly Color RulerBack = new("#111830");
+    private static readonly Color Back = Palette.SurfaceDeep;
+    private static readonly Color RulerBack = Palette.Surface;
 
     private readonly Entity _entity;
     private readonly object _play = new();
@@ -442,9 +442,9 @@ internal sealed class ClipTimeline : ITimelineHost, ITimelineInput, IDisposable
 
         if (lanes.HasBar)
         {
-            VerticalSlider slider = lanes.Slider;
+            ScrollSlider slider = lanes.Slider;
             canvas.DrawRect(item, lanes.Bar, Palette.SurfaceInset);
-            canvas.DrawRect(item, new Rect2(lanes.Bar.Position.X, slider.ThumbTop(lanes.Value), lanes.Bar.Size.X, slider.ThumbLength), Palette.BorderStrong);
+            canvas.DrawRect(item, new Rect2(lanes.Bar.Position.X, slider.ThumbStart(lanes.Value), lanes.Bar.Size.X, slider.ThumbLength), Palette.BorderStrong);
         }
 
         painter.Playhead(axis, NowMs, ruler.Position.Y + 4, lanes.Body.End.Y, Palette.TextBright);

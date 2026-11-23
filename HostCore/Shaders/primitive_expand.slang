@@ -6,8 +6,10 @@
 //
 // One workgroup an instance. A primitive outside its clip becomes a skip (the
 // vertex stage folds it away) so order never needs a scan. Plain opaque rects
-// leave the ordered list for the pre-pass list instead, counted into its
-// indirect draw with an atomic add: depth orders them, so their order is free.
+// leave the ordered list for the pre-pass list instead. That list has a slot
+// per placed primitive, holding its opaque cut or a skip, and is drawn whole:
+// an atomic count feeding an indirect draw raced this pass and left the
+// pre-pass empty on most frames.
 //
 // SDL_GPU's compute layout: read-only storage set 0, read-write set 1, uniforms set 2.
 
@@ -29,7 +31,7 @@ struct Instance
     float4 tint;
     float4 clip;    // pixels: min x, y, max x, y
     uint4 range;    // first in the pool, count, first out, first texture slot
-    uint4 more;     // flags, first opaque out, indirect args offset (uints), depth base
+    uint4 more;     // flags, first pre-pass slot, unused, depth base
 };
 
 struct Expand
@@ -49,7 +51,6 @@ static const uint AllowOpaque = 1;
 [[vk::binding(2, 0)]] StructuredBuffer<uint> slots;
 [[vk::binding(0, 1)]] RWStructuredBuffer<Primitive> placed;
 [[vk::binding(1, 1)]] RWStructuredBuffer<Primitive> opaque;
-[[vk::binding(2, 1)]] RWStructuredBuffer<uint> args;
 [[vk::binding(0, 2)]] ConstantBuffer<Expand> expand;
 
 float4 unpackColour(uint rg, uint ba)
@@ -123,24 +124,23 @@ void expandPrimitives(uint3 group : SV_GroupID, uint3 thread : SV_GroupThreadID)
             && p.a.w == 0 && p.b.x == 0 && c0.a >= 1.0 && all(p.colours.xy == p.colours.zw)
             && whole(lo.x) && whole(lo.y) && whole(hi.x) && whole(hi.y);
 
+        Primitive cut = p;
+        cut.more.z = KindSkip;
         if (!outside && solid && (at.more.x & AllowOpaque) != 0)
         {
             // Cut to the clip here, so the pre-pass never needs to discard.
             float2 cutLo = max(lo, at.clip.xy), cutHi = min(hi, at.clip.zw);
             if (all(cutHi > cutLo))
             {
-                Primitive cut = p;
                 cut.a = float4((cutLo + cutHi) * 0.5, (cutHi.x - cutLo.x) * 0.5, 0);
                 cut.b = float4(0, (cutHi.y - cutLo.y) * 0.5, 0, 0);
                 cut.more.z = KindRect | FlagExact;
-                uint vertices;
-                InterlockedAdd(args[at.more.z], 6u, vertices);
-                opaque[at.more.y + vertices / 6] = cut;
             }
 
             outside = true;
         }
 
+        opaque[at.more.y + i] = cut;
         if (outside)
             p.more.z = KindSkip;
         placed[out] = p;

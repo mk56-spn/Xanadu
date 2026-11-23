@@ -145,6 +145,12 @@ internal sealed class CanvasTree : ICanvasServer
 
 
 
+    public void SetParticleMesh(Handle rid, bool on)
+    {
+        if (Find(rid) is { } item)
+            item.ParticleMesh = on;
+    }
+
     public void Clear(Handle rid)
     {
         if (Find(rid) is { } item)
@@ -226,6 +232,29 @@ internal sealed class CanvasTree : ICanvasServer
                 ColorAt(colors, a), ColorAt(colors, b), ColorAt(colors, c),
                 uvs is null ? default : uvs[a], uvs is null ? default : uvs[b], uvs is null ? default : uvs[c],
                 texture.Id, first + a, first + b, first + c));
+        }
+
+        item.Points = first + points.Length;
+    }
+
+    /// <summary>Triangles with curve tags: a tagged one keeps its corners (start, control, end) and is trimmed to the curve in primitives.slang.</summary>
+    public void AddCurveTriangles(Handle rid, Vector2[] points, Color[] colors, Vector2[] uvs, byte[] curves)
+    {
+        if (Find(rid) is not { } item || colors.Length == 0)
+            return;
+
+        int first = item.Points;
+        for (int i = 0; i + 2 < points.Length; i += 3)
+        {
+            Primitive triangle = Primitive.Triangle(
+                points[i], points[i + 1], points[i + 2],
+                ColorAt(colors, i), ColorAt(colors, i + 1), ColorAt(colors, i + 2),
+                i < uvs.Length ? uvs[i] : default, i + 1 < uvs.Length ? uvs[i + 1] : default, i + 2 < uvs.Length ? uvs[i + 2] : default,
+                0, first + i, first + i + 1, first + i + 2);
+            byte tag = i / 3 < curves.Length ? curves[i / 3] : CanvasCurves.None;
+            if (tag != CanvasCurves.None)
+                triangle.Flags |= Primitive.FlagCurve | (tag == CanvasCurves.Concave ? Primitive.FlagConcave : 0u);
+            item.Add(triangle);
         }
 
         item.Points = first + points.Length;
@@ -327,6 +356,13 @@ internal sealed class CanvasItem(ulong id)
 
     /// <summary>GPU particles drawn after the item's own draws; made by the first burst into it.</summary>
     public ParticleField? Particles;
+
+    /// <summary>
+    /// Its own draws are the look of each of its particles: drawn once per live
+    /// particle of <see cref="Particles"/>, turned, sized, tinted and placed by it,
+    /// and not on their own.
+    /// </summary>
+    public bool ParticleMesh;
 
     /// <summary>Trees that list their own items here each frame, after this item's children.</summary>
     public List<ICanvasMount>? Mounts;

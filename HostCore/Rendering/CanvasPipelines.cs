@@ -50,6 +50,12 @@ internal sealed class CanvasPipelines : IDisposable
     private readonly GraphicsDevice _device;
     private readonly TextureFormat _format;
     private readonly Shader _vertex;
+
+    /// <summary>The vertex stage that draws an item's triangles once per particle (particle_mesh.slang).</summary>
+    private readonly Shader _particleVertex;
+
+    /// <summary>Particle-mesh pipelines, by effect, blend and sample count.</summary>
+    private readonly Dictionary<(CanvasEffect, BlendMode, CustomBlend?, SampleCount), GraphicsPipeline> _particlePipelines = new();
     private readonly CanvasEffect _plain;
     private readonly Dictionary<string, CanvasEffect?> _effects = new();
     /// <summary>By effect, blend and whether it draws only the triangles' edges (the triangles overlay).</summary>
@@ -70,6 +76,11 @@ internal sealed class CanvasPipelines : IDisposable
         _vertex = Shader.Create(device, vertex.Spirv, "main",
             new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumUniformBuffers = vertex.UniformBuffers });
         _plain = Make(SlangShaders.CompileReflected(canvas, "shade", "fragment", samplerSpace: 2, uniformSpace: 3));
+
+        string mesh = Path.Combine(AppContext.BaseDirectory, "Shaders", "particle_mesh.slang");
+        CompiledShader particle = SlangShaders.CompileReflected(mesh, "meshParticle", "vertex", samplerSpace: 0, uniformSpace: 1);
+        _particleVertex = Shader.Create(device, particle.Spirv, "main",
+            new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumStorageBuffers = 2, NumUniformBuffers = 2 });
     }
 
     /// <summary>The plain canvas fragment: vertex colour times the item's texture.</summary>
@@ -132,6 +143,9 @@ internal sealed class CanvasPipelines : IDisposable
 
     private CanvasEffect? TryCompile(string path, string? shadeWith)
     {
+        if (ShaderStackKey.TryParse(path, out string[] layers))
+            return TryCompileStack(path, layers, shadeWith);
+
         string file = GamePaths.Full(path);
         if (!File.Exists(file))
         {
@@ -147,6 +161,29 @@ internal sealed class CanvasPipelines : IDisposable
         catch (Exception exception)
         {
             Console.Error.WriteLine($"Shader {path} failed to compile; drawing plain.\n{exception.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>A stack of shaders (<see cref="ShaderStackKey"/>) stitched into one and compiled, or null with its error logged.</summary>
+    private CanvasEffect? TryCompileStack(string key, string[] layers, string? shadeWith)
+    {
+        try
+        {
+            var sources = new List<(string, string)>(layers.Length);
+            foreach (string layer in layers)
+            {
+                string file = GamePaths.Full(layer);
+                if (!File.Exists(file))
+                    throw new FileNotFoundException($"layer {layer} not found");
+                sources.Add((layer, File.ReadAllText(file)));
+            }
+
+            return Make(SlangShaders.CompileEffectBody(key, ShaderStack.Stitch(sources), keepsState: false, shadeWith));
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"Shader stack {key} failed to compile; drawing plain.\n{exception.Message}");
             return null;
         }
     }
@@ -223,6 +260,14 @@ internal sealed class CanvasPipelines : IDisposable
                 continue;
             pipeline.Dispose();
             _pipelines.Remove(key);
+        }
+
+        foreach (((CanvasEffect Effect, BlendMode, CustomBlend?, SampleCount) key, GraphicsPipeline pipeline) in _particlePipelines.ToArray())
+        {
+            if (key.Effect != effect)
+                continue;
+            pipeline.Dispose();
+            _particlePipelines.Remove(key);
         }
 
         effect.Dispose();
@@ -306,6 +351,39 @@ internal sealed class CanvasPipelines : IDisposable
         return pipeline;
     }
 
+    /// <summary>
+    /// The pipeline that draws an item's triangles once per particle (instanced,
+    /// <see cref="CanvasItem.ParticleMesh"/>) through <paramref name="effect"/>'s
+    /// fragment. Its own deform is left out: the particle places the corners.
+    /// Depth is tested, never written, as the quad particles do.
+    /// </summary>
+    public GraphicsPipeline ParticlePipeline(CanvasEffect effect, CanvasMaterial? material, SampleCount samples)
+    {
+        BlendMode blend = material?.Blend ?? BlendMode.Mix;
+        CustomBlend? custom = material?.Custom?.PipelineKey;
+        if (_particlePipelines.TryGetValue((effect, blend, custom, samples), out GraphicsPipeline? pipeline))
+            return pipeline;
+
+        pipeline = GraphicsPipeline.Create(_device, new GraphicsPipelineCreateInfo
+        {
+            VertexShader = _particleVertex,
+            FragmentShader = effect.Shader,
+            VertexInputState = VertexInputState.CreateSingleBinding<CanvasVertex>(),
+            PrimitiveType = PrimitiveType.TriangleList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = new MultisampleState { SampleCount = samples },
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = false, CompareOp = CompareOp.Less },
+            TargetInfo = new GraphicsPipelineTargetInfo
+            {
+                ColorTargetDescriptions = [new ColorTargetDescription { Format = _format, BlendState = custom is { } state ? Blend(state) : Blend(blend) }],
+                HasDepthStencilTarget = true,
+                DepthStencilFormat = DepthFormat,
+            },
+        });
+        _particlePipelines[(effect, blend, custom, samples)] = pipeline;
+        return pipeline;
+    }
+
     /// <summary>The canvas blend modes, as fixed-function state.</summary>
     internal static ColorTargetBlendState Blend(BlendMode blend) => blend switch
     {
@@ -346,6 +424,9 @@ internal sealed class CanvasPipelines : IDisposable
     {
         foreach (GraphicsPipeline pipeline in _pipelines.Values)
             pipeline.Dispose();
+        foreach (GraphicsPipeline pipeline in _particlePipelines.Values)
+            pipeline.Dispose();
+        _particleVertex.Dispose();
         foreach (CanvasEffect? effect in _effects.Values)
             effect?.Dispose();
         _plain.Dispose();

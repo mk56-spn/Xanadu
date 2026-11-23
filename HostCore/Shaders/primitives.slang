@@ -30,6 +30,11 @@ static const uint KindSkip = 0xFF;
 static const uint FlagVertical = 1 << 8;
 /// Drawn exactly to its box, with no room for a smoothed edge: textures and the opaque pre-pass.
 static const uint FlagExact = 1 << 9;
+/// A triangle whose corners are a quadratic Bézier's start, control and end,
+/// trimmed to the curve here (Loop–Blinn: u² − v); the CPU never samples it.
+static const uint FlagCurve = 1 << 10;
+/// With FlagCurve: keep the side towards the control, not towards the chord.
+static const uint FlagConcave = 1 << 11;
 static const uint NoTexture = 0xFFFF;
 
 struct Draw
@@ -99,7 +104,9 @@ Varyings primitiveVertex(uint vertex : SV_VertexID)
         o.colour = at == 0 ? unpackColour(p.colours.x, p.colours.y)
             : at == 1 ? unpackColour(p.colours.z, p.colours.w)
             : unpackColour(p.more.x, p.more.y);
-        o.local = 0;
+        // A curve triangle's canonical coordinates ride in local: start (0, 0),
+        // control (½, 0), end (1, 1), so the curve is where u² = v.
+        o.local = at == 0 ? float2(0, 0) : at == 1 ? float2(0.5, 0) : float2(1, 1);
         o.shape = 0;
         o.cell = 0;
     }
@@ -198,7 +205,16 @@ float4 primitiveShade(Varyings v) : SV_Target
     float2 half = v.shape.xy;
     float radius = v.shape.z, stroke = v.shape.w;
     float cover = 1.0;
-    if (kind == KindRect)
+
+    // The curve's distance in pixels, from u² − v over its screen gradient;
+    // taken before any branch so the derivatives are defined everywhere.
+    float2 dx = ddx(v.local), dy = ddy(v.local);
+    float curve = v.local.x * v.local.x - v.local.y;
+    float2 slope = float2(2.0 * v.local.x * dx.x - dx.y, 2.0 * v.local.x * dy.x - dy.y);
+    float across = curve / max(length(slope), 1e-6);
+    if (kind == KindTriangle && (v.kind.x & FlagCurve) != 0)
+        cover = (v.kind.x & FlagConcave) != 0 ? saturate(0.5 + across) : saturate(0.5 - across);
+    else if (kind == KindRect)
     {
         float d = Box(half * 2, radius).local(v.local);
         cover = stroke > 0 ? sdf.filled(d) - sdf.filled(d + stroke) : sdf.filled(d);

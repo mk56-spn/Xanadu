@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -73,7 +74,7 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
     /// <summary>How much of its owner's colour a bracket takes, the rest being the background: dimmer than the name, so the name leads.</summary>
     private const float BracketStrength = 0.7f;
 
-    private static readonly Color Background = new("#0b1020");
+    private static readonly Color Background = Palette.Background;
     private static readonly Color ErrorLine = new(0.94f, 0.27f, 0.27f, 0.12f);
     private static readonly Color WarningLine = new(0.98f, 0.75f, 0.14f, 0.10f);
 

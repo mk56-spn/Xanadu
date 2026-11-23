@@ -51,6 +51,26 @@ public struct DefaultAttribute
     float w = 0;
 };
 
+/// Asks for a value the item's shape gives when the item fits its shader to
+/// it (FIT, on in the XIF editor): x and y become the shape's half width and
+/// half height, in item units; z and w keep the set value.
+///
+///     [Fit] [Default(1, 1)] uniform float2 box;
+[__AttributeUsage(_AttributeTargets.Var)]
+public struct FitAttribute
+{
+};
+
+/// Names a whole-number value's choices, split by |, so editors show a list of
+/// names to pick from instead of a number: the first name is 0, the next 1, …
+///
+///     [Options("circle|box|star")] [Default(1)] uniform float shape;
+[__AttributeUsage(_AttributeTargets.Var)]
+public struct OptionsAttribute
+{
+    string names;
+};
+
 /// Marks a read-only global every shader can read (Docs/shader-pipeline.md §0):
 ///
 ///     [Global] public StructuredBuffer<PlayFrame> playFrame;

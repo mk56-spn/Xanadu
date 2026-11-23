@@ -27,8 +27,8 @@ internal sealed class EditorChrome
     /// <summary>Problems shown at most; the rest of the column is for tuning values.</summary>
     private const int ProblemRows = 6;
 
-    private static readonly Color Bar = new("#111830");
-    private static readonly Color Column = new("#0e1428");
+    private static readonly Color Bar = Palette.Surface;
+    private static readonly Color Column = Palette.SurfaceDeep;
     private static readonly Color Badge = new(0.04f, 0.06f, 0.13f, 0.85f);
 
     /// <summary>The lines under the problems: the editor's own keys; the stage puts its preview's lines before them.</summary>

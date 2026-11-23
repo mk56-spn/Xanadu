@@ -327,11 +327,7 @@ internal abstract class HostApp : Game
         if (effect == Renderer.Pipelines.Plain)
             return null;
 
-        return effect.Compiled.Params
-            .Select(param => new MaterialParam(
-                param.Name, param.IsMatrix ? param.Columns : Math.Clamp(param.Size / 4, 1, 4), param.IsInt, param.Default,
-                param.IsBool, param.IsUnsigned, param.Rows))
-            .ToList();
+        return effect.Compiled.Params.Select(MaterialParams.Describe).ToList();
     }
 
     protected override void Step() { }

@@ -161,7 +161,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         _chrome.Help = [.. _view.Help, .. _chrome.Help];
         // The room for sliders ends above the help, so it is worked out again now the help is longer.
         _chrome.Resize(boxes.Bar, boxes.Preview, side);
-        _tuning = new EditorTuning(canvas, chromeItem, _chrome.TuningArea,
+        _tuning = new EditorTuning(entities, _chrome.TuningArea,
             _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
         // Every library folder: the API's (xanadu/) and the game's (rhythm/).
         string library = SlangShaders.LibraryPath ?? "";
@@ -172,7 +172,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
-        _strip = new EditorTabs(canvas, Child(parent)) { Area = strip, Code = code };
+        _strip = new EditorTabs(entities) { Area = strip, Code = code };
         _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) { Save = Save, GoElsewhere = GoElsewhere };
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Host = _host;
@@ -475,7 +475,6 @@ internal sealed class ShaderCodeEditor : IDisposable
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
         _timeline.Draw(_canvas, _chromeItem);
-        _tuning.Draw();
         _points.Draw(_canvas, _chromeItem, _preview, _tuning, frame.Mouse);
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
@@ -627,6 +626,8 @@ internal sealed class ShaderCodeEditor : IDisposable
     public void Dispose()
     {
         TextEditors.Delete(_editor);
+        _tuning.Dispose();
+        _strip.Dispose();
         _timeline.Dispose();
         _view.Dispose();
     }

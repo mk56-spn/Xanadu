@@ -43,6 +43,10 @@ internal sealed class CanvasRenderer : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Span; }
 
+    /// <summary>particle_mesh.slang's <c>Place</c>: vertex uniform buffer 1 of a particle-mesh draw.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PlaceUniforms { public float OriginX, OriginY, Pad0, Pad1, XX, XY, YX, YY; }
+
     /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0. Only the engine's clocks; anything else is a global.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct FrameUniforms
@@ -84,6 +88,9 @@ internal sealed class CanvasRenderer : IDisposable
         Primitives,
         Effect,
         Particles,
+
+        /// <summary>An item's triangles drawn once per particle of its field (<see cref="CanvasItem.ParticleMesh"/>), through their effect.</summary>
+        MeshParticles,
     }
 
     /// <summary>
@@ -94,7 +101,38 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly record struct Step(
         StepKind Kind, uint Start, uint Count, int FirstTexture = 0,
         Rect Clip = default, CanvasMaterial? Material = null, IReadOnlyDictionary<string, Vector4>? Values = null, ulong Texture = 0,
-        ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0, float Span = 0);
+        ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0, float Span = 0,
+        KeptMesh? Mesh = null);
+
+    /// <summary>
+    /// A big [Grid] effect's vertices, kept on the GPU between frames. Cutting a 96 × 54 grid
+    /// into vertices costs the CPU milliseconds and sends megabytes, and the shader tool's
+    /// thumbnails hold several such grids that almost never change, so they are cut again only
+    /// when the item's primitives, its place or its tint change. Start and Count on a step
+    /// that uses one are within <see cref="Buffer"/>.
+    /// </summary>
+    private sealed class KeptMesh
+    {
+        public int Hash;
+        public Transform2D Transform;
+        public Color Color;
+        public Buffer? Buffer;
+        public uint Capacity;
+        public readonly List<CanvasVertex> Vertices = new();
+        public readonly List<(uint Start, uint Count, ulong Texture)> Pieces = new();
+        public bool Pending;
+        public long LastFrame;
+    }
+
+    /// <summary>Grids with at least this many cells are kept on the GPU (<see cref="KeptMesh"/>).</summary>
+    private const int KeptCells = 256;
+
+    /// <summary>Frames a kept mesh may go undrawn before its buffer is let go.</summary>
+    private const int KeptFrames = 120;
+
+    private readonly Dictionary<(CanvasItem Item, int From), KeptMesh> _kept = new();
+    private readonly List<(CanvasItem, int)> _keptStale = new();
+    private long _buildFrame;
 
     /// <summary>One root drawn into one target.</summary>
     private sealed class Job(CanvasItem root, Texture target, MwColor clear)
@@ -104,7 +142,7 @@ internal sealed class CanvasRenderer : IDisposable
         public readonly MwColor Clear = clear;
         public readonly List<Entry> Entries = new();
         public int FirstStep, StepCount;
-        public uint OpaqueStart, OpaqueReserved, ArgsOffset;
+        public uint OpaqueStart, OpaqueReserved;
     }
 
     /// <summary>Textures one primitive draw can read; a run starts again when it needs a ninth.</summary>
@@ -183,12 +221,17 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly List<uint> _slots = new();
     private Buffer? _instanceBuffer, _slotBuffer;
     private uint _instanceCapacity, _slotCapacity;
-    private TransferBuffer? _instanceTransfer, _slotTransfer, _argsTransfer;
-    private uint _instanceTransferCapacity, _slotTransferCapacity, _argsTransferCapacity;
+    private TransferBuffer? _instanceTransfer, _slotTransfer;
+    private uint _instanceTransferCapacity, _slotTransferCapacity;
 
-    /// <summary>The expand stage's output: placed primitives in order, the opaque ones for the pre-pass, and its indirect draws.</summary>
-    private Buffer? _placed, _opaqueBuffer, _args;
-    private uint _placedCapacity, _opaqueCapacity, _argsCapacity;
+    /// <summary>
+    /// The expand stage's output: placed primitives in order, and the pre-pass list, one slot per
+    /// placed primitive holding its opaque cut or a skip. Fixed slots rather than an atomic count and
+    /// an indirect draw: the indirect args raced the compute pass (the pre-pass drew nothing on most
+    /// frames), and a skip costs the vertex stage next to nothing.
+    /// </summary>
+    private Buffer? _placed, _opaqueBuffer;
+    private uint _placedCapacity, _opaqueCapacity;
     private int _placedCount, _opaqueReserved;
 
     private const uint AllowOpaque = 1;
@@ -356,10 +399,14 @@ internal sealed class CanvasRenderer : IDisposable
         Collect(_tree.Root, target, clear);
         phases?.Lap(HostFramePhases.Phase.Collect, ref lap);
 
+        _buildFrame++;
         Build();
         phases?.Lap(HostFramePhases.Phase.Build, ref lap);
         using (commands.Scope("upload primitives"))
+        {
             Upload(commands);
+            UploadKept(commands);
+        }
         using (commands.Scope("expand primitives"))
             Expand(commands);
         using (commands.Scope("upload globals"))
@@ -481,7 +528,6 @@ internal sealed class CanvasRenderer : IDisposable
     private void BuildJob(Job job, int index)
     {
         job.FirstStep = _steps.Count;
-        job.ArgsOffset = (uint)index * 4;
         job.OpaqueStart = (uint)_opaqueReserved;
         int jobFirst = _placedCount;
         uint sequence = 0;
@@ -562,8 +608,7 @@ internal sealed class CanvasRenderer : IDisposable
                 OutStart = (uint)_placedCount,
                 SlotBase = (uint)slotBase,
                 Flags = AllowOpaque,
-                OpaqueBase = job.OpaqueStart,
-                ArgsOffset = job.ArgsOffset,
+                OpaqueBase = job.OpaqueStart + (uint)(_placedCount - jobFirst),
                 DepthBase = sequence,
             });
             _placedCount += count;
@@ -573,6 +618,28 @@ internal sealed class CanvasRenderer : IDisposable
         {
             CanvasItem item = entry.Item;
             int total = item.Primitives.Count;
+
+            // The item's draws are its particles' look: drawn once per particle, never on their own.
+            if (item.ParticleMesh)
+            {
+                if (item.Particles is { Live: true } field && total > 0)
+                {
+                    CloseRun();
+                    for (int from = 0; from < total;)
+                    {
+                        int run = item.Primitives[from].Run;
+                        int to = from + 1;
+                        while (to < total && item.Primitives[to].Run == run)
+                            to++;
+                        (CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values) =
+                            item.Material is not null ? (item.Material, null) : run > 0 ? item.Runs[run - 1] : (null, null);
+                        sequence += AddEffect(item, entry, from, to, material, values, sequence, field);
+                        from = to;
+                    }
+                }
+                continue;
+            }
+
             if (item.Material is not null)
             {
                 CloseRun();
@@ -616,7 +683,7 @@ internal sealed class CanvasRenderer : IDisposable
 
         CloseRun();
         job.StepCount = _steps.Count - job.FirstStep;
-        // Worst case every placed primitive is an opaque rect.
+        // A pre-pass slot for every placed primitive.
         _opaqueReserved += _placedCount - jobFirst;
         job.OpaqueReserved = (uint)(_placedCount - jobFirst);
     }
@@ -688,18 +755,33 @@ internal sealed class CanvasRenderer : IDisposable
     private bool Deforms(CanvasMaterial? material) => _pipelines.Effect(material).Vertex is not null;
 
     /// <summary>The effect's steps at the draw-order depth after <paramref name="sequence"/>; returns the depth steps it takes.</summary>
+    /// <param name="particles">Draws the triangles once per particle of this field instead (a particle mesh); its deform is left out.</param>
     private uint AddEffect(CanvasItem item, in Entry entry, int from, int to, CanvasMaterial? material,
-        IReadOnlyDictionary<string, Vector4>? values, uint sequence)
+        IReadOnlyDictionary<string, Vector4>? values, uint sequence, ParticleField? particles = null)
     {
         float depth = 1f - (sequence + 1) * DepthStep;
         uint taken = (uint)(to - from);
         float span = 0;
+        StepKind kind = particles is null ? StepKind.Effect : StepKind.MeshParticles;
         // A deform's [Grid]: each rect it draws is cut into cells.
-        (int columns, int rows) = _pipelines.Effect(material).Compiled.Vertex?.Grid ?? (1, 1);
-        if (Deforms(material))
+        (int columns, int rows) = particles is null ? _pipelines.Effect(material).Compiled.Vertex?.Grid ?? (1, 1) : (1, 1);
+        if (particles is null && Deforms(material))
         {
             taken = Math.Max(taken, DeformSlice);
             span = (taken - 1) * DepthStep;
+        }
+
+        if (particles is null && columns * rows >= KeptCells)
+        {
+            KeptMesh mesh = Kept(item, entry, from, to, columns, rows);
+            foreach ((uint pieceStart, uint pieceCount, ulong pieceTexture) in mesh.Pieces)
+            {
+                _steps.Add(new Step(kind, pieceStart, pieceCount,
+                    Clip: entry.Clip, Material: material, Values: values, Texture: pieceTexture, Depth: depth, Span: span,
+                    Transform: entry.Transform, Mesh: mesh));
+            }
+
+            return taken;
         }
 
         int points = 0;
@@ -710,8 +792,9 @@ internal sealed class CanvasRenderer : IDisposable
             Primitive p = item.Primitives[i];
             if (p.Texture != texture && _vertices.Count > start)
             {
-                _steps.Add(new Step(StepKind.Effect, (uint)start, (uint)(_vertices.Count - start),
-                    Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span));
+                _steps.Add(new Step(kind, (uint)start, (uint)(_vertices.Count - start),
+                    Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span,
+                    Particles: particles, Transform: entry.Transform));
                 start = _vertices.Count;
             }
 
@@ -721,12 +804,97 @@ internal sealed class CanvasRenderer : IDisposable
 
         if (_vertices.Count > start)
         {
-            _steps.Add(new Step(StepKind.Effect, (uint)start, (uint)(_vertices.Count - start),
-                Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span));
+            _steps.Add(new Step(kind, (uint)start, (uint)(_vertices.Count - start),
+                Clip: entry.Clip, Material: material, Values: values, Texture: texture, Depth: depth, Span: span,
+                Particles: particles, Transform: entry.Transform));
         }
 
         return taken;
     }
+
+    /// <summary>The item's grid vertices for this range, cut again only when what they come from changed.</summary>
+    private KeptMesh Kept(CanvasItem item, in Entry entry, int from, int to, int columns, int rows)
+    {
+        var hash = new HashCode();
+        hash.AddBytes(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(item.Primitives).Slice(from, to - from)));
+        hash.Add(columns);
+        hash.Add(rows);
+        int content = hash.ToHashCode();
+
+        if (!_kept.TryGetValue((item, from), out KeptMesh? mesh))
+            _kept[(item, from)] = mesh = new KeptMesh();
+        mesh.LastFrame = _buildFrame;
+        if (mesh.Buffer is not null && mesh.Hash == content && mesh.Transform == entry.Transform && mesh.Color == entry.Color)
+            return mesh;
+
+        mesh.Hash = content;
+        mesh.Transform = entry.Transform;
+        mesh.Color = entry.Color;
+        mesh.Vertices.Clear();
+        mesh.Pieces.Clear();
+        mesh.Pending = true;
+
+        int points = 0, start = 0;
+        ulong texture = item.Primitives[from].Texture;
+        for (int i = from; i < to; i++)
+        {
+            Primitive p = item.Primitives[i];
+            if (p.Texture != texture && mesh.Vertices.Count > start)
+            {
+                mesh.Pieces.Add(((uint)start, (uint)(mesh.Vertices.Count - start), texture));
+                start = mesh.Vertices.Count;
+            }
+
+            texture = p.Texture;
+            p.Tessellate(mesh.Vertices, entry.Transform, entry.Color, ref points, columns, rows);
+        }
+
+        if (mesh.Vertices.Count > start)
+            mesh.Pieces.Add(((uint)start, (uint)(mesh.Vertices.Count - start), texture));
+        return mesh;
+    }
+
+    /// <summary>Sends kept meshes that were cut again this frame, and lets go of those no longer drawn.</summary>
+    private void UploadKept(CommandBuffer commands)
+    {
+        _keptStale.Clear();
+        foreach (((CanvasItem, int) key, KeptMesh mesh) in _kept)
+        {
+            if (_buildFrame - mesh.LastFrame > KeptFrames)
+            {
+                _keptStale.Add(key);
+                continue;
+            }
+
+            if (!mesh.Pending || mesh.Vertices.Count == 0)
+                continue;
+
+            mesh.Pending = false;
+            uint count = (uint)mesh.Vertices.Count;
+            if (mesh.Buffer is null || count > mesh.Capacity)
+            {
+                mesh.Buffer?.Dispose();
+                mesh.Capacity = Math.Max(count, 1 << 10);
+                mesh.Buffer = Buffer.Create<CanvasVertex>(_device, "kept grid vertices", BufferUsageFlags.Vertex, mesh.Capacity);
+            }
+
+            TransferBuffer staging = GrowTransfer<CanvasVertex>(_device, ref _keptTransfer, ref _keptTransferCapacity, (int)count, "kept grid upload");
+            CollectionsMarshal.AsSpan(mesh.Vertices).CopyTo(staging.Map<CanvasVertex>(cycle: true));
+            staging.Unmap();
+            CopyPass copy = commands.BeginCopyPass();
+            copy.UploadToBuffer<CanvasVertex>(staging, mesh.Buffer, 0, 0, count, cycle: true);
+            commands.EndCopyPass(copy);
+        }
+
+        foreach ((CanvasItem, int) key in _keptStale)
+        {
+            _kept[key].Buffer?.Dispose();
+            _kept.Remove(key);
+        }
+    }
+
+    private TransferBuffer? _keptTransfer;
+    private uint _keptTransferCapacity;
 
     private static void Reserve<T>(ref T[] array, int count)
     {
@@ -764,7 +932,7 @@ internal sealed class CanvasRenderer : IDisposable
 
     /// <summary>
     /// Sends what changed: recordings into their pool ranges, the frame's
-    /// instances and slots, and each job's indirect pre-pass draw, zeroed.
+    /// instances and slots.
     /// </summary>
     private void Upload(CommandBuffer commands)
     {
@@ -777,8 +945,6 @@ internal sealed class CanvasRenderer : IDisposable
             BufferUsageFlags.ComputeStorageRead, "primitive instances");
         Grow<uint>(_device, ref _slotBuffer, ref _slotCapacity, Math.Max(1, _slots.Count),
             BufferUsageFlags.ComputeStorageRead, "texture slots");
-        Grow<uint>(_device, ref _args, ref _argsCapacity, Math.Max(1, _jobs.Count) * 4,
-            BufferUsageFlags.Indirect | BufferUsageFlags.ComputeStorageWrite, "pre-pass draws");
 
         CopyPass copy = commands.BeginCopyPass();
         if (_stagingCount > 0)
@@ -809,19 +975,6 @@ internal sealed class CanvasRenderer : IDisposable
             copy.UploadToBuffer<uint>(slots, _slotBuffer!, 0, 0, (uint)_slots.Count, cycle: true);
         }
 
-        // Each job's pre-pass draw starts empty: no vertices, one instance; the expand stage counts the vertices in.
-        TransferBuffer args = GrowTransfer<uint>(_device, ref _argsTransfer, ref _argsTransferCapacity, _jobs.Count * 4, "args upload");
-        Span<uint> zeroed = args.Map<uint>(cycle: true);
-        for (int j = 0; j < _jobs.Count; j++)
-        {
-            zeroed[j * 4] = 0;
-            zeroed[j * 4 + 1] = 1;
-            zeroed[j * 4 + 2] = 0;
-            zeroed[j * 4 + 3] = 0;
-        }
-
-        args.Unmap();
-        copy.UploadToBuffer<uint>(args, _args!, 0, 0, (uint)_jobs.Count * 4, cycle: false);
         commands.EndCopyPass(copy);
 
         if (_vertices.Count == 0)
@@ -855,7 +1008,6 @@ internal sealed class CanvasRenderer : IDisposable
         [
             new StorageBufferReadWriteBinding(_placed!, cycle: true),
             new StorageBufferReadWriteBinding(_opaqueBuffer!, cycle: true),
-            new StorageBufferReadWriteBinding(_args!),
         ]);
         pass.BindComputePipeline(_expand);
         pass.BindStorageBuffers(_pool!, _instanceBuffer!, _slotBuffer!);
@@ -989,7 +1141,7 @@ internal sealed class CanvasRenderer : IDisposable
         return pipeline;
     }
 
-    private void DrawPrimitives(CommandBuffer commands, RenderPass pass, SampleCount samples, bool opaque, uint first, uint count, int firstTexture, Job? indirect = null)
+    private void DrawPrimitives(CommandBuffer commands, RenderPass pass, SampleCount samples, bool opaque, uint first, uint count, int firstTexture)
     {
         pass.BindGraphicsPipeline(PrimitivePipeline(opaque, samples));
         pass.BindVertexStorageBuffers(opaque ? _opaqueBuffer! : _placed!);
@@ -1007,10 +1159,7 @@ internal sealed class CanvasRenderer : IDisposable
         }
 
         commands.PushVertexUniformData(new DrawUniforms { Width = _width, Height = _height, First = first });
-        if (indirect is not null)
-            pass.DrawPrimitivesIndirect(_args!, indirect.ArgsOffset * 4, 1);
-        else
-            pass.DrawPrimitives(count * 6, 1, 0, 0);
+        pass.DrawPrimitives(count * 6, 1, 0, 0);
         LastBatchCount++;
     }
 
@@ -1052,7 +1201,7 @@ internal sealed class CanvasRenderer : IDisposable
             pass.BindVertexStorageBuffers(_opaqueBuffer!);
             pass.SetScissor(FullClip);
             commands.PushVertexUniformData(new DrawUniforms { Width = _width, Height = _height, First = job.OpaqueStart });
-            pass.DrawPrimitivesIndirect(_args!, job.ArgsOffset * 4, 1);
+            pass.DrawPrimitives(job.OpaqueReserved * 6, 1, 0, 0);
         }
 
         commands.EndRenderPass(pass);
@@ -1088,7 +1237,7 @@ internal sealed class CanvasRenderer : IDisposable
         }
 
         if (job.OpaqueReserved > 0)
-            DrawPrimitives(commands, pass, samples, opaque: true, job.OpaqueStart, 0, 0, indirect: job);
+            DrawPrimitives(commands, pass, samples, opaque: true, job.OpaqueStart, job.OpaqueReserved, 0);
 
         var frame = FrameUniforms.Now(_width, _height, time);
         bool drawnSinceCopy = true, copied = false, effectState = false;
@@ -1133,14 +1282,17 @@ internal sealed class CanvasRenderer : IDisposable
                 // A deforming effect's vertex stage reads the frame too; only its clocks matter there.
                 commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
                 commands.PushFragmentUniformData(frame, 0);
-                pass.BindVertexBuffers(_buffer!);
                 effectState = true;
             }
 
-            GraphicsPipeline pipeline = _pipelines.Pipeline(effect, step.Material, samples, depth: true);
+            bool instanced = step.Kind == StepKind.MeshParticles;
+            GraphicsPipeline pipeline = instanced
+                ? _pipelines.ParticlePipeline(effect, step.Material, samples)
+                : _pipelines.Pipeline(effect, step.Material, samples, depth: true);
             if (step.Material?.Custom is { UsesConstant: true } custom)
                 pass.SetBlendConstants(new MwColor(custom.Constant.R, custom.Constant.G, custom.Constant.B, custom.Constant.A));
             pass.BindGraphicsPipeline(pipeline);
+            pass.BindVertexBuffers(step.Mesh?.Buffer ?? _buffer!);
 
             pass.SetScissor(step.Clip);
             int count = Math.Clamp(names.Length, 1, samplers.Length);
@@ -1167,6 +1319,22 @@ internal sealed class CanvasRenderer : IDisposable
                     step.Material is { } kept && _states.TryGetValue(kept, out Buffer? state) ? state : null));
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, step.Material, step.Values);
+            if (instanced)
+            {
+                // Each particle places a copy of the triangles; the effect's own deform sits out.
+                pass.BindVertexStorageBuffers(step.Particles!.Buffer, Particles.Effects);
+                Transform2D place = step.Transform;
+                commands.PushVertexUniformData(new PlaceUniforms
+                {
+                    OriginX = place.Origin.X, OriginY = place.Origin.Y,
+                    XX = place.X.X, XY = place.X.Y, YX = place.Y.X, YY = place.Y.Y,
+                }, 1);
+                pass.DrawPrimitives(step.Count, ParticleField.Capacity, step.Start, 0);
+                LastBatchCount++;
+                drawnSinceCopy = true;
+                continue;
+            }
+
             if (effect.Compiled.Vertex is { } vertex)
             {
                 if (vertex.Samplers.Length > 0)
@@ -1334,6 +1502,9 @@ internal sealed class CanvasRenderer : IDisposable
 
     public void Dispose()
     {
+        foreach (KeptMesh mesh in _kept.Values)
+            mesh.Buffer?.Dispose();
+        _keptTransfer?.Dispose();
         _pipelines.Dispose();
         Particles.Dispose();
         foreach (GraphicsPipeline pipeline in _primitivePipelines.Values)
@@ -1359,13 +1530,11 @@ internal sealed class CanvasRenderer : IDisposable
         _pool?.Dispose();
         _placed?.Dispose();
         _opaqueBuffer?.Dispose();
-        _args?.Dispose();
         _instanceBuffer?.Dispose();
         _slotBuffer?.Dispose();
         _stagingTransfer?.Dispose();
         _instanceTransfer?.Dispose();
         _slotTransfer?.Dispose();
-        _argsTransfer?.Dispose();
         foreach (GlobalBuffer held in _globalBuffers.Values)
         {
             held.Buffer?.Dispose();
