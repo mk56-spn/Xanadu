@@ -224,9 +224,8 @@ compute expand stage and a depth buffer.
   transform, `LayerOpacity`, `LocalZIndex`, container clips and visibility
   (`Enabled`, the `CanvasHidden` tag) from components on the spot. UI entities
   keep only their own recording (`VisualItem`); there are no parenting,
-  transform, visibility or opacity sync systems. Rig art
-  (`SvgAttachmentVisuals`) is a mount too, listing its items by layer and
-  order. Game groups and tools still hang items under the root with a z.
+  transform, visibility or opacity sync systems. A rig's particle
+  streams (`RigParticleStreams`) are a mount too. Game groups and tools still hang items under the root with a z.
 - **Pool.** Every recording's primitives live on the GPU in its own space, in a
   range that stays while it fits (`Resident`). A recording goes up again only
   when its content changes: a hash of the primitives means a drawer that
@@ -408,9 +407,9 @@ compute expand stage and a depth buffer.
   images through IRO. `.svg` is rasterised at scale 1.
 - `Core/Rendering/SvgRaster.cs` (Svg.Skia + SkiaSharp natives) renders an SVG
   to straight-alpha RGBA (`RasterImage`); skin coverage reads the kept image.
-- Rig art (`CharacterRigDrawSystem`, `SvgAttachmentVisuals`,
-  `CharacterRigGhosts`) draws through the canvas; effect polygon shaders go
-  through `CanvasServer.SetMaterial`.
+- Every Xif, rig art included, draws through `XifDrawer` (Model/Animation):
+  triangles into an `IRectCanvas` each frame, back to front by layer, a node
+  with a common shader in a run of its own (`SelectCommonShader`).
 - UI icons: `UiImage` / `UiIcons` carry a texture id from `TextureServer`.
 
 ### 5.8 Window, input, editor overlay

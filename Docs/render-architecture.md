@@ -192,15 +192,15 @@ a buffered character on (step 12).
 ## 6. Shared core with the animator
 
 Before step 1 the animator had this (and the editor had none of it):
-- `XafAttachment.ZOrder` as the layer, `MinLayer = -4096`,
-  `MaxLayer = 4096` (`Model/Animation/XafPackage.cs`), with list order as the
+- `RigAttachment.ZOrder` as the layer, `MinLayer = -4096`,
+  `MaxLayer = 4096` (`Model/Animation/RigPackage.cs`), with list order as the
   tiebreak.
 - `ArtDrawOrder.Of(layer, order)`: the banded draw index. Gone since step 1;
   `DrawOrder.Banded` (`Core/Layering/`) replaced it.
 - `AnimatorLayerCommands.Rows` / `Move` (`Tools/Animator/Commands/AnimatorLayerCommands.cs`):
   the front-first row list, and moving forward/back (swap layers with a
   neighbour on another layer, step past one on the same layer).
-- Per-pose layer keys (`XafPose.LayerOf`). These stay **animator-only** (D4).
+- Per-pose layer keys (`RigAttachmentState.LayerOf`). These stay **animator-only** (D4).
 
 The shared core (built in step 1 under `Core/Layering/`):
 - `DrawOrder`: (layer, z, list index) → sort key, and the banded index. This
@@ -241,7 +241,7 @@ its results shaped §5 and are in git history.
 - `DrawSlot(Layer, Z, Index)`: compares back to front by layer, then z, then
   list index.
 - `DrawOrder`: `MinLayer`/`MaxLayer` = ±200, `ClampLayer`, and `Banded(layer,
-  order)`, which replaces `ArtDrawOrder.Of`. `XafAttachment.MinLayer`/`MaxLayer`
+  order)`, which replaces `ArtDrawOrder.Of`. `RigAttachment.MinLayer`/`MaxLayer`
   are gone; every animator clamp uses `DrawOrder.ClampLayer`.
 - `DrawStack`: `SortFrontFirst`, `Neighbour`, and `TryMove` with two rules.
   `Layers` is the animator's existing behaviour (step a layer past a same-layer
@@ -993,7 +993,7 @@ smaller, so it fits where it's placed.
   index from the shared `DrawOrder`: an attachment's place in the attachment
   list, then cloth, chains and effects in bands after it on the same layer. It
   also owns the layer panel's row slot, so `AnimatorLayerCommands` and
-  `SvgAttachmentVisuals` cannot disagree. When layers are contained
+  the drawer (`XifDrawer`, since 2026-11-22) cannot disagree. When layers are contained
   (`containLayers`, used by ghosts and the animator tool) the item gets the
   banded `DrawOrder.Banded` index at the canvas's own z, which is what a
   buffered group needs; otherwise the layer stays a relative `z_index` with the
@@ -1026,7 +1026,7 @@ smaller, so it fits where it's placed.
   read the image from before the group). On the host they read the group's own
   image so far (§5.2); revisit if a level needs the old behaviour.
 - ~~Q5. Layer number range.~~ Settled: **±200**, one shared limit (−200…−1
-  and 1…200 in levels, no 0). The animator's `XafAttachment.MinLayer` /
+  and 1…200 in levels, no 0). The animator's `RigAttachment.MinLayer` /
   `MaxLayer` (±4096) move onto the shared limit in step 1; no migration.
 - ~~Q6. Feedback passes.~~ Later (§9).
 - ~~Q7. Numbering around the wedge.~~ Settled: negatives, wedge, positives, no 0 (D1a).
