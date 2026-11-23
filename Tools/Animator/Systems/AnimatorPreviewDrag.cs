@@ -64,7 +64,7 @@ internal static class AnimatorPreviewDrag
             value = AlignToOtherBones(session, drag, selection.Bone, value, placement, shift);
             if (rest)
             {
-                XafBone bone = document.Package.Skeleton.Bones[selection.Bone];
+                RigBone bone = document.Package.Skeleton.Bones[selection.Bone];
                 bone.Rest = new Transform2D(bone.Rest.Rotation, bone.Rest.Scale, 0f, value);
                 AnimatorRestPin.Restore(session, drag.Pinned);
             }
@@ -80,7 +80,7 @@ internal static class AnimatorPreviewDrag
 
             if (rest)
             {
-                XafAttachment attachment = document.Package.Attachments[selection.Attachment];
+                RigAttachment attachment = document.Package.Attachments[selection.Attachment];
                 attachment.Transform = new Transform2D(
                     attachment.Transform.Rotation,
                     attachment.Transform.Scale,
@@ -113,8 +113,8 @@ internal static class AnimatorPreviewDrag
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         int joint = session.GetComponent<AnimatorDrag>().Joint;
         int parent = document.Package.Skeleton.Bones[joint].Parent;
-        XafPose pose = document.Runtime.Pose;
-        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        RigPose pose = document.Runtime.Pose;
+        Transform2D[] world = RigRig.WorldBones(document.Package, pose);
 
         Vector2 local = placement.AffineInverse() * pointer;
         Vector2 toPointer = local - world[parent].Origin;
@@ -144,7 +144,7 @@ internal static class AnimatorPreviewDrag
         if (world[parent].Determinant() < 0f)
             delta = -delta;
         pose.Bones[parent].Rotation += delta;
-        XafJointLocks.Apply(document.Package, pose);
+        RigJointLocks.Apply(document.Package, pose);
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ internal static class AnimatorPreviewDrag
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
-        Transform2D[] world = XafRig.WorldBones(
+        Transform2D[] world = RigRig.WorldBones(
             document.Package, AnimatorGeometry.PreviewPose(document, modes));
         float radius = AnimatorSnap.Pixels / Math.Max(0.0001f, Math.Abs(placement.Scale.X));
         Vector2 wanted = drag.ParentWorld * value;
@@ -185,7 +185,7 @@ internal static class AnimatorPreviewDrag
     {
         // An IK drag turned the parent and grandparent, so those are what get
         // keyed; selected keys on them take the change instead.
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (drag.Kind == AnimatorDragKind.Ik &&
             AnimatorPreviewChain.TryGet(package, drag.Joint, out int parent, out int grandparent))
         {

@@ -50,9 +50,9 @@ public static class AnimatorClothCommands
     public static void Add(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-            int index = XafClothAuthoring.Add(package, selection.Bone);
+            int index = RigClothAuthoring.Add(package, selection.Bone);
             if (index < 0)
             {
                 AnimatorSession.SetStatus(session, "SELECT THE BONE THE DRESS HANGS FROM FIRST");
@@ -62,7 +62,7 @@ public static class AnimatorClothCommands
             selection.SelectOnlyCloth(index);
             selection.HasKey = false;
             AnimatorSession.RigChanged(session);
-            XafCloth cloth = package.Cloths[index];
+            RigCloth cloth = package.Cloths[index];
             AnimatorSession.SetStatus(session,
                 $"ADDED {cloth.Id.ToUpperInvariant()}: {cloth.Pins.Count} POINTS PINNED, {cloth.Colliders.Count} COLLIDERS");
         });
@@ -71,23 +71,23 @@ public static class AnimatorClothCommands
         AnimatorHistoryCommands.Edit(session, () =>
         {
             int index = Selected(session);
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             if (index < 0)
             {
                 AnimatorSession.SetStatus(session, "SELECT A CLOTH FIRST");
                 return;
             }
 
-            XafCloth cloth = package.Cloths[index];
-            XafClothAuthoring.Delete(package, index);
-            session.GetComponent<AnimatorSelection>().SelectOnlyBone(Math.Max(XafRig.FindBone(package, cloth.BoneId), 0));
+            RigCloth cloth = package.Cloths[index];
+            RigClothAuthoring.Delete(package, index);
+            session.GetComponent<AnimatorSelection>().SelectOnlyBone(Math.Max(RigRig.FindBone(package, cloth.BoneId), 0));
             AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(session, $"DELETED {cloth.Id.ToUpperInvariant()}");
         });
 
     public static void Select(Entity session, int index)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (index < 0 || index >= package.Cloths.Count)
             return;
 
@@ -134,7 +134,7 @@ public static class AnimatorClothCommands
             return;
         }
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (pick == AnimatorClothPick.Pins)
         {
             IReadOnlyList<Vector2> points = cloths.Simulation.Points(index);
@@ -146,10 +146,10 @@ public static class AnimatorClothCommands
                 return;
             }
 
-            XafCloth cloth = package.Cloths[index];
+            RigCloth cloth = package.Cloths[index];
             int bone = AnimatorClothGeometry.NearestBone(package, world, points[point]);
             (int column, int row) = (point % cloth.Columns, point / cloth.Columns);
-            AnimatorHistoryCommands.Edit(session, () => XafClothAuthoring.CyclePoint(package, index, column, row, bone));
+            AnimatorHistoryCommands.Edit(session, () => RigClothAuthoring.CyclePoint(package, index, column, row, bone));
             string boneId = package.Skeleton.Bones[bone].Id;
             AnimatorSession.SetStatus(session,
                 cloth.IsPinned(column, row) ? $"PINNED TO {boneId}" :
@@ -168,7 +168,7 @@ public static class AnimatorClothCommands
 
         if (pick == AnimatorClothPick.Colliders)
         {
-            AnimatorHistoryCommands.Edit(session, () => XafClothAuthoring.ToggleCollider(package, index, picked));
+            AnimatorHistoryCommands.Edit(session, () => RigClothAuthoring.ToggleCollider(package, index, picked));
             string id = package.Skeleton.Bones[picked].Id;
             AnimatorSession.SetStatus(session,
                 package.Cloths[index].Colliders.Exists(collider => collider.BoneId == id)
@@ -183,14 +183,42 @@ public static class AnimatorClothCommands
     }
 
     /// <summary>Moves the cloth to another bone without moving it: the top edge keeps its rest position.</summary>
-    private static void SetBone(XafPackage package, int index, int bone)
+    private static void SetBone(RigPackage package, int index, int bone)
     {
-        XafCloth cloth = package.Cloths[index];
-        Transform2D[] rest = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
-        int old = XafRig.FindBone(package, cloth.BoneId);
+        RigCloth cloth = package.Cloths[index];
+        Transform2D[] rest = RigRig.WorldBones(package, RigClothLayout.RestPose(package));
+        int old = RigRig.FindBone(package, cloth.BoneId);
         Vector2 top = old >= 0 ? rest[old] * cloth.Offset : cloth.Offset;
         cloth.BoneId = package.Skeleton.Bones[bone].Id;
         cloth.Offset = rest[bone].AffineInverse() * top;
+    }
+
+    /// <summary>One setting of the selected cloth; false when no cloth is selected.</summary>
+    public static bool TryGet(Entity session, Setting setting, out float value)
+    {
+        int index = Selected(session);
+        value = 0f;
+        if (index < 0)
+            return false;
+        RigCloth cloth = session.GetComponent<AnimatorDocument>().Package.Cloths[index];
+        value = setting switch
+        {
+            Setting.OffsetX => cloth.Offset.X,
+            Setting.OffsetY => cloth.Offset.Y,
+            Setting.Columns => cloth.Columns,
+            Setting.Rows => cloth.Rows,
+            Setting.TopWidth => cloth.TopWidth,
+            Setting.HemWidth => cloth.HemWidth,
+            Setting.Length => cloth.Length,
+            Setting.Gravity => cloth.Gravity,
+            Setting.Lean => cloth.Lean,
+            Setting.Damping => cloth.Damping,
+            Setting.Stiffness => cloth.Stiffness,
+            Setting.Layer => cloth.ZOrder,
+            Setting.HitSize => cloth.Colliders.Count > 0 ? cloth.Colliders[0].Radius : 0f,
+            _ => cloth.Tethers.Count > 0 ? cloth.Tethers[0].Radius : 0f,
+        };
+        return true;
     }
 
     /// <summary>Sets one setting of the selected cloth, as one undo step.</summary>
@@ -198,15 +226,15 @@ public static class AnimatorClothCommands
         AnimatorHistoryCommands.Edit(session, () =>
         {
             int index = Selected(session);
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             if (index < 0 || !float.IsFinite(value))
             {
                 AnimatorSession.SetStatus(session, index < 0 ? "SELECT A CLOTH FIRST" : "NOT A NUMBER");
                 return;
             }
 
-            XafCloth cloth = package.Cloths[index];
-            float size = Math.Clamp(value, 1f, XafCloth.MaxSize);
+            RigCloth cloth = package.Cloths[index];
+            float size = Math.Clamp(value, 1f, RigCloth.MaxSize);
             switch (setting)
             {
                 case Setting.OffsetX:
@@ -216,10 +244,10 @@ public static class AnimatorClothCommands
                     cloth.Offset.Y = value;
                     break;
                 case Setting.Columns:
-                    XafClothAuthoring.SetGrid(package, index, (int)MathF.Round(value), cloth.Rows);
+                    RigClothAuthoring.SetGrid(package, index, (int)MathF.Round(value), cloth.Rows);
                     break;
                 case Setting.Rows:
-                    XafClothAuthoring.SetGrid(package, index, cloth.Columns, (int)MathF.Round(value));
+                    RigClothAuthoring.SetGrid(package, index, cloth.Columns, (int)MathF.Round(value));
                     break;
                 case Setting.TopWidth:
                     cloth.TopWidth = size;
@@ -247,31 +275,14 @@ public static class AnimatorClothCommands
                     AnimatorSession.RigChanged(session);
                     break;
                 case Setting.HitSize:
-                    XafClothAuthoring.SetColliderRadius(package, index, value);
+                    RigClothAuthoring.SetColliderRadius(package, index, value);
                     break;
                 case Setting.TetherReach:
-                    XafClothAuthoring.SetTetherRadius(package, index, value);
+                    RigClothAuthoring.SetTetherRadius(package, index, value);
                     break;
             }
             AnimatorSession.SetStatus(session, $"{setting.ToString().ToUpperInvariant()} SET");
         });
-
-    /// <summary>Sets the fill from <c>#rrggbb</c> or <c>#rrggbbaa</c>; anything else is refused.</summary>
-    public static void SetFill(Entity session, string typed)
-    {
-        int index = Selected(session);
-        string hex = typed.Trim().TrimStart('#');
-        if (index < 0 || hex.Length is not (6 or 8) ||
-            !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
-        {
-            AnimatorSession.SetStatus(session, index < 0 ? "SELECT A CLOTH FIRST" : "TYPE A COLOUR AS #RRGGBB");
-            return;
-        }
-
-        AnimatorHistoryCommands.Edit(session, () =>
-            session.GetComponent<AnimatorDocument>().Package.Cloths[index].Fill = new Color("#" + hex));
-        AnimatorSession.SetStatus(session, "COLOUR SET");
-    }
 }
 
 /// <summary>Finding cloth points and the bones near them on screen.</summary>
@@ -295,17 +306,17 @@ public static class AnimatorClothGeometry
     }
 
     /// <summary>The bone whose segment, from its joint to its first child's, is nearest a rig-space point.</summary>
-    public static int NearestBone(XafPackage package, Transform2D[] world, Vector2 point)
+    public static int NearestBone(RigPackage package, Transform2D[] world, Vector2 point)
     {
         int best = 0;
         float bestDistance = float.MaxValue;
         for (int i = 0; i < package.Skeleton.Bones.Count && i < world.Length; i++)
         {
-            var collider = new XafClothCollider { BoneId = package.Skeleton.Bones[i].Id };
-            if (XafClothLayout.Capsule(package, collider, world) is not { } segment)
+            var collider = new RigClothCollider { BoneId = package.Skeleton.Bones[i].Id };
+            if (RigClothLayout.Capsule(package, collider, world) is not { } segment)
                 continue;
 
-            float distance = XafClothLayout.ClosestOnSegment(point, segment.From, segment.To).DistanceTo(point);
+            float distance = RigClothLayout.ClosestOnSegment(point, segment.From, segment.To).DistanceTo(point);
             if (distance < bestDistance)
             {
                 best = i;

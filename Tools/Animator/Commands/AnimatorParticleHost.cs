@@ -1,4 +1,7 @@
+using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
+using Xanadu.Core.Particles;
 using Xanadu.Model.Animation;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
@@ -7,15 +10,16 @@ namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Hosts the shared particle editor in the animator: it shows while the
-/// selected effect streams particles, and choosing another effect for it is a
-/// step on the animator's undo history. Edits to the effect itself go to the
-/// particle library, which the preview picks up by itself.
+/// selected part streams particles and edits that part's own settings (its
+/// node's <see cref="XifParticles"/>), each change a step on the animator's
+/// undo history. The preview's streams play the settings in place, so edits
+/// show at once.
 /// </summary>
 public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHost
 {
     private Entity Session => AnimatorSession.Find(store);
 
-    private XafEffect? Effect
+    private RigAttachment? Effect
     {
         get
         {
@@ -24,15 +28,15 @@ public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHos
                 return null;
 
             int index = AnimatorEffectCommands.Selected(session);
-            return index < 0 ? null : session.GetComponent<AnimatorDocument>().Package.Effects[index];
+            return index < 0 ? null : session.GetComponent<AnimatorDocument>().Package.Attachments[index];
         }
     }
 
-    public string? Particle => Effect is { Particle.Length: > 0 } effect ? effect.Particle : null;
+    public XpfParticle? Particle => Effect?.Particles;
 
     public string Title => Effect is { } effect ? $"{effect.Id}  particles" : "";
 
-    public void Use(string name)
+    public void Use(XpfParticle settings)
     {
         Entity session = Session;
         int index = session.IsNull ? -1 : AnimatorEffectCommands.Selected(session);
@@ -42,8 +46,22 @@ public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHos
         AnimatorHistoryCommands.Edit(session, () =>
         {
             ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-            document.Package.Effects[index].Particle = name;
+            document.Package.Attachments[index].Particles = settings;
             document.EffectsVersion++;
         });
     }
+
+    public void Edit(Action change)
+    {
+        Entity session = Session;
+        if (!session.IsNull)
+            AnimatorHistoryCommands.Edit(session, change);
+    }
+
+    public void BeginGesture() => AnimatorHistoryCommands.BeginGesture(Session);
+
+    public void EndGesture() => AnimatorHistoryCommands.EndGesture(Session);
+
+    /// <summary>The streams play the settings in place; nothing to rebuild.</summary>
+    public void Changed() { }
 }

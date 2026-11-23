@@ -34,9 +34,21 @@ public sealed class AnimatorPreviewInputSystem(
 
     private void Update(Entity session)
     {
-        if (session.GetComponent<AnimatorNewClipDialog>().Open)
+        Entity xif = session.GetComponent<AnimatorUi>().XifEditor;
+        if (session.GetComponent<AnimatorNewClipDialog>().Open || Xanadu.Ui.Systems.Ui.XifEditorSystem.IsOpen(xif))
         {
             session.GetComponent<AnimatorHover>() = AnimatorHover.None;
+
+            // A part edited on its bone: the preview under the see-through editor still zooms and pans.
+            if (!session.GetComponent<AnimatorNewClipDialog>().Open &&
+                xif.GetComponent<Xanadu.Ui.Ecs.Ui.XifEditor>().Host.Placement is not null)
+            {
+                PointerInput over = pointer.Read();
+                Rect2 under = AnimatorGeometry.PanelArea(session.GetComponent<AnimatorUi>().Preview);
+                ref AnimatorPreviewView moved = ref session.GetComponent<AnimatorPreviewView>();
+                _nav.Zoom(session, ref moved, under, over);
+                _nav.Pan(ref moved, under, over);
+            }
             return;
         }
 

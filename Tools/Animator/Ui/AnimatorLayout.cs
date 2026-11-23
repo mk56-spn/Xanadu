@@ -11,9 +11,9 @@ namespace Xanadu.Tools.Animator.Ui;
 public static partial class AnimatorLayout
 {
     // Input-capable panels draw at z 1, so the overlay canvases sit above them
-    // (grid under the SVG art) and the file menu layer above the overlays.
+    // (grid under the art) and the file menu layer above the overlays.
     public const int GridZ = 2;
-    public const int SvgZ = 3;
+    public const int ArtZ = 3;
     public const int PreviewZ = 4;
     public const int TimelineZ = 5;
 
@@ -54,7 +54,6 @@ public static partial class AnimatorLayout
     /// <summary>The header's room for the status message, between undo and redo and the preview button.</summary>
     private const float StatusButtonWidth = 44f;
     private const float ClipLabelWidth = 48f;
-    private const float PreviewButtonWidth = 110f;
     private const float HeaderControl = EditorShellMetrics.HeaderControlHeight;
     private const float HistoryButton = HeaderControl;
     private const float TimelineButtonGap = 4f;
@@ -69,6 +68,13 @@ public static partial class AnimatorLayout
     private const float StripPadding = (EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2;
     private static readonly Color Clear = new(0, 0, 0, 0);
 
+    /// <summary>
+    /// The animator's shell: the tabs and properties sit left, beside the tool
+    /// strip, so the rig tree has the whole right panel.
+    /// </summary>
+    public static EditorShellRects Shell(Vector2 screen) =>
+        EditorShell.Compute(screen, new EditorShellOptions(EditorFooterHeight.Animator, PropertiesLeft: true));
+
     /// <summary>Creates every panel and returns the entities the systems drive.</summary>
     public static AnimatorUi Build(
         EntityStore store,
@@ -76,8 +82,7 @@ public static partial class AnimatorLayout
         IVisualItemFactory? visuals = null)
     {
         var refs = new Refs();
-        EditorShellRects shell = EditorShell.Compute(
-            screen, new EditorShellOptions(EditorFooterHeight.Animator));
+        EditorShellRects shell = Shell(screen);
         float mainHeight = shell.ToolStrip.Size.Y;
         UiBuilder ui = UiBuilder.Begin(store, visuals).Layer(UiLayers.Base);
         ui.RectEntity(screen / 2, screen, UiTheme.Background);
@@ -89,6 +94,7 @@ public static partial class AnimatorLayout
             spacing: Gap, color: Clear);
         refs.Ui.MainRow = ui.Current;
         BuildToolStrip(ui, mainHeight, ref refs);
+        BuildPropertiesPanel(ui, shell, ref refs);
         BuildViewport(ui, shell, ref refs);
         BuildRightPanel(ui, shell, ref refs);
         ui.End();
@@ -105,27 +111,27 @@ public static partial class AnimatorLayout
         // so menus opened over the preview still draw above them.
         BuildTabBodies(menu, shell, ref refs);
         BuildViewBar(menu, shell, ref refs);
-        BuildInspector(menu, screen, ref refs);
-        BuildBoneCard(menu, ref refs);
+        BuildTryoutBar(menu, shell, ref refs);
         BuildFileMenu(menu, refs.FileButton);
         BuildConfigMenu(menu, refs.ConfigButton);
         BuildClipLengthPanel(menu, ref refs);
         BuildBoneMenu(menu, ref refs);
         BuildKeyMenu(menu, ref refs);
         BuildOverrideMenu(menu, ref refs);
-        BuildSvgMenu(menu, ref refs);
-        BuildChainInspector(menu, ref refs);
-        BuildClothInspector(menu, ref refs);
-        BuildEventInspector(menu, ref refs);
         BuildNewClipDialog(menu, screen, ref refs);
         BuildInfoPanel(menu, screen, ref refs);
+        BuildShortcutsPanel(menu, screen, ref refs);
         refs.Ui.EasePicker = EasePickerPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             new Commands.AnimatorEasePickerHost(store));
+        UiBuilder xif = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXif);
+        UiBuilder xifLines = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXifLines);
         refs.Ui.XifEditor = XifEditorPanel.Build(
-            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
-            XifEditorCenter(screen),
-            new Commands.AnimatorXifHost(store));
+            UiNode.Wrap(xif.Current, visuals),
+            XifEditorArea(screen),
+            new Commands.AnimatorXifHost(store),
+            screen,
+            UiNode.Wrap(xifLines.Current, visuals));
         refs.Ui.ParticleEditor = ParticleEditorPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             ParticleEditorCenter(screen),
@@ -146,12 +152,30 @@ public static partial class AnimatorLayout
             (TopHeight - HeaderControl) / 2);
         ui.Container(Vector2.Zero, new Vector2(TitleWidth, HeaderControl),
             color: UiTheme.PanelAlt);
-        ui.Text("XAF ANIMATOR", new Vector2(TitleWidth - 10, HeaderControl), UiType.Label,
+        ui.Text("ANIMATOR", new Vector2(TitleWidth - 10, HeaderControl), UiType.Label,
             UiTheme.Accent);
         ui.End();
         var history = new Vector2(HistoryButton, HistoryButton);
         IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
         IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
+
+        // The three workspaces exclude each other, so they are one three-way
+        // switch: rig building, animating, watching. No one-letter shortcut for
+        // RIG; Tab and Esc go in and out of PREVIEW.
+        ui.Container(Vector2.Zero, new Vector2(4, HeaderControl), spacing: 2, color: Clear, autoWidth: true);
+        var workspaces = new Entity[3];
+        foreach (AnimatorWorkspace workspace in new[] { AnimatorWorkspace.Rig, AnimatorWorkspace.Animate, AnimatorWorkspace.Preview })
+        {
+            Entity button = ui.Button(workspace.ToString().ToUpperInvariant(), new Vector2(WorkspaceButtonWidth, HeaderControl),
+                fontSize: UiTheme.SmallFontSize);
+            button.AddComponent(ToolAction.Of(ToolActionKind.Workspace, workspace.ToString()));
+            AnimatorTooltips.Attach(button, ToolActionKind.Workspace, workspace.ToString());
+            workspaces[(int)workspace] = button;
+        }
+        ui.End();
+        refs.Ui.WorkspaceButtons = workspaces;
+        refs.Ui.PreviewButton = workspaces[(int)AnimatorWorkspace.Preview];
+        Action(ui, "KEYS ?", ToolActionKind.ToggleShortcuts, new Vector2(70f, HeaderControl), UiTheme.SmallFontSize);
 
         // The unsaved flag, shared with the level editor's header; action messages are toasts.
         refs.Ui.StatusLabels = ShellStatus.Add(UiNode.Wrap(ui.Current, ui.Visuals), HeaderControl);
@@ -165,8 +189,6 @@ public static partial class AnimatorLayout
         // list floats on the menu layer and drops over the preview. The slot is
         // horizontal on purpose: a vertical container makes room for an open
         // dropdown's list, which would push the button out of the header.
-        refs.Ui.PreviewButton = Action(ui, "PREVIEW", ToolActionKind.TogglePreviewMode,
-            new Vector2(PreviewButtonWidth, HeaderControl), UiTheme.SmallFontSize);
         ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
         ui.Container(Vector2.Zero, new Vector2(ClipWidth, HeaderControl), color: Clear);
         refs.Ui.ClipList = ui.Current;
@@ -176,8 +198,8 @@ public static partial class AnimatorLayout
         refs.FileButton = ui.Button("FILE ▾", new Vector2(FileMenuWidth, HeaderControl));
         refs.FileButton.AddComponent(new UiTooltip("Save, load, or start a new skeleton or clip"));
 
-        refs.Ui.ConfigButton = ui.Button("CONFIG ▾", new Vector2(ConfigMenuWidth, HeaderControl));
-        refs.Ui.ConfigButton.AddComponent(new UiTooltip("Clip length, delete, and the file's info"));
+        refs.Ui.ConfigButton = ui.Button("CLIP ▾", new Vector2(ConfigMenuWidth, HeaderControl));
+        refs.Ui.ConfigButton.AddComponent(new UiTooltip("New clip, the clip's length, delete it"));
         refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
         ui.End();
@@ -191,8 +213,10 @@ public static partial class AnimatorLayout
     /// </summary>
     private static void BuildViewBar(UiBuilder menu, EditorShellRects shell, ref Refs refs)
     {
+        // Sized to its buttons, so it closes up round the ones the mode hides.
         UiNode bar = UiNode.Wrap(menu.Current, menu.Visuals).Row()
             .Size(ViewBarSize)
+            .AutoWidth()
             .Gap(6)
             .Pad(4)
             .Solid()
@@ -208,19 +232,41 @@ public static partial class AnimatorLayout
             "Snap dragged joints, art and IK targets to the grid; hold Shift while dragging to stay free",
             on: false);
         ViewBarSeparator(bar);
-        Entity align = bar.Button(AlignLabel, UiTheme.SmallFontSize).Size(toggle).Entity;
-        align.AddComponent(new Toggle(AlignLabel, AlignLabel, true));
-        align.AddComponent(new ModeToggle(AnimatorMode.Align));
-        AnimatorTooltips.Attach(align, ToolActionKind.ToggleMode, nameof(AnimatorMode.Align));
+        ViewToggle(bar, AlignLabel, AnimatorMode.Align, on: true);
+        ViewBarSeparator(bar);
+        ViewToggle(bar, "ONION", AnimatorMode.Onion);
+        ViewToggle(bar, "KITES", AnimatorMode.Kites, on: true);
+        ViewToggle(bar, "HANDLES", AnimatorMode.Handles, on: true);
+        ViewToggle(bar, "PATHS", AnimatorMode.MotionPaths);
+        ViewBarSeparator(bar);
+        var frame = new Vector2(ViewBarActionWidth, ViewBarControl);
+        foreach ((string label, ToolActionKind kind) in new[] { ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview) })
+        {
+            Entity button = bar.Button(label, UiTheme.SmallFontSize).Size(frame).Entity;
+            button.AddComponent(ToolAction.Of(kind));
+            AnimatorTooltips.Attach(button, kind);
+        }
+    }
+
+    /// <summary>A view bar toggle for a display mode, lit while it is on.</summary>
+    private static void ViewToggle(UiNode bar, string label, AnimatorMode mode, bool on = false)
+    {
+        Entity button = bar.Button(label, UiTheme.SmallFontSize).Size(new Vector2(ViewBarToggleWidth, ViewBarControl)).Entity;
+        button.AddComponent(new Toggle(label, label, on));
+        button.AddComponent(new ModeToggle(mode));
+        AnimatorTooltips.Attach(button, ToolActionKind.ToggleMode, mode.ToString());
     }
 
     private const string AlignLabel = "ALIGN";
+    private const float WorkspaceButtonWidth = 84f;
     private const float ViewBarControl = 28f;
     private const float ViewBarToggleWidth = 64f;
+    private const float ViewBarActionWidth = 40f;
     private const float ViewBarTop = 6f;
 
-    /// <summary>Three toggles, two separators, the gaps between them and the padding.</summary>
-    public static readonly Vector2 ViewBarSize = new(3 * ViewBarToggleWidth + 2 * 1f + 4 * 6f + 2 * 4f, 36f);
+    /// <summary>Eight toggles, two framing buttons, four separators, the gaps between them and the padding.</summary>
+    public static readonly Vector2 ViewBarSize = new(
+        8 * ViewBarToggleWidth + 2 * ViewBarActionWidth + 4 * 1f + 13 * 6f + 2 * 4f, 36f);
 
     /// <summary>Centred over the preview, just under the header.</summary>
     public static Vector2 ViewBarCenter(EditorShellRects shell) => new(
@@ -272,13 +318,6 @@ public static partial class AnimatorLayout
         ui.Container(Vector2.Zero, line, spacing: 12, color: UiTheme.Panel,
             padding: 4, main: StackMainAlignment.Start);
         refs.Ui.StatusLine = ui.Current;
-
-        // Framing belongs to the viewport, so it sits on the viewport's own line.
-        EdgeGroup(ui, new Vector2(1, 0.5f), line.Y, 4, 2);
-        var frame = new Vector2(StatusButtonWidth, line.Y - 4);
-        Action(ui, "FIT", ToolActionKind.FitPreview, frame, UiTheme.SmallFontSize);
-        Action(ui, "1:1", ToolActionKind.ResetPreview, frame, UiTheme.SmallFontSize);
-        ui.End();
         ui.End();
         ui.End();
     }
@@ -286,6 +325,8 @@ public static partial class AnimatorLayout
     /// <summary>
     /// The editing modes are the tools, so they run down the shell's tool
     /// strip at the left edge: two letters each, lit while the mode is on.
+    /// Only things that change what a drag does live here; what the preview
+    /// shows is on the view bar, and auto-key sits with the transport.
     /// </summary>
     private static void BuildToolStrip(UiBuilder ui, float height, ref Refs refs)
     {
@@ -294,15 +335,9 @@ public static partial class AnimatorLayout
             color: UiTheme.Panel, padding: StripPadding, takesInput: true,
             main: StackMainAlignment.Start);
         refs.Ui.ToolStrip = ui.Current;
-        ModeButton(ui, "AK", AnimatorMode.AutoKey);
-        ModeButton(ui, "ON", AnimatorMode.Onion);
-        ModeButton(ui, "RS", AnimatorMode.Rest);
-        ModeButton(ui, "SV", AnimatorMode.Svg);
+        ModeButton(ui, "PT", AnimatorMode.Parts);
         ModeButton(ui, "IK", AnimatorMode.Ik);
         ModeButton(ui, "PN", AnimatorMode.Pin);
-        ModeButton(ui, "KT", AnimatorMode.Kites, on: true);
-        ModeButton(ui, "HD", AnimatorMode.Handles, on: true);
-        ModeButton(ui, "MP", AnimatorMode.MotionPaths);
         ui.End();
     }
 

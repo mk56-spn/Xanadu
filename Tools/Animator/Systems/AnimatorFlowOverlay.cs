@@ -82,19 +82,19 @@ public sealed class AnimatorFlowOverlay(IRectCanvas canvas, Handle target)
     }
 
     /// <summary>The hand-over into a step: its fade's span shaded and its weight curve rising across it.</summary>
-    private void DrawFade(XafPackage package, string from, string to, float x, float scale, Rect2 track)
+    private void DrawFade(RigPackage package, string from, string to, float x, float scale, Rect2 track)
     {
         if (from == to)
             return;
 
-        if (!XafTransitions.Allows(package, from, to))
+        if (!RigTransitions.Allows(package, from, to))
         {
             // The game refuses this one; mark the boundary rather than a fade.
             canvas.DrawRect(target, new Rect2(x - 2, track.Position.Y, 4, track.Size.Y), Blocked);
             return;
         }
 
-        (float fade, XafFadeCurve curve) = XafTransitions.Blend(package, from, to);
+        (float fade, RigFadeCurve curve) = RigTransitions.Blend(package, from, to);
         float width = fade * scale;
         if (width < 1f)
         {
@@ -107,7 +107,7 @@ public sealed class AnimatorFlowOverlay(IRectCanvas canvas, Handle target)
         for (int i = 0; i <= CurveSegments; i++)
         {
             float t = (float)i / CurveSegments;
-            float weight = XafTransitions.Weight(curve, t);
+            float weight = RigTransitions.Weight(curve, t);
             points.Add(new Vector2(x + t * width, track.End.Y - weight * track.Size.Y));
         }
         canvas.DrawPolyline(target, points.ToArray(), Curve, 2f);

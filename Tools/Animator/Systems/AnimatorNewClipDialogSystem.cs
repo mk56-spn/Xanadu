@@ -92,17 +92,17 @@ public sealed class AnimatorNewClipDialogSystem(IPointerInputSource pointer)
     /// <summary>Fills the fields with the defaults for the duplicate toggle's current value.</summary>
     private void Seed(Entity session, AnimatorUi ui)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        XafClip? current = AnimatorSession.CurrentClip(
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigClip? current = AnimatorSession.CurrentClip(
             session.GetComponent<AnimatorDocument>());
         bool duplicate = Duplicate(ui);
 
         string name = duplicate && current is not null
-            ? XafClipAuthoring.UniqueId(package, current.Id)
-            : XafClipAuthoring.UniqueId(package, "clip");
+            ? RigClipAuthoring.UniqueId(package, current.Id)
+            : RigClipAuthoring.UniqueId(package, "clip");
         float length = duplicate && current is not null
             ? current.Duration
-            : XafClipAuthoring.DefaultDuration;
+            : RigClipAuthoring.DefaultDuration;
 
         SetField(ui.NewClipName, name);
         SetField(ui.NewClipLength,

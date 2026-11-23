@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Items;
 using Xanadu.Model.Animation;
 using Xanadu.Core.Layering;
 using Xanadu.Core.Maths;
@@ -7,21 +8,21 @@ using Xanadu.Tools.Animator.Ecs;
 
 namespace Xanadu.Tools.Animator.Commands;
 
-/// <summary>Attachments: the rigid SVG groups that hang off a bone.</summary>
+/// <summary>Parts: nodes bound to a bone, drawn from their polygons.</summary>
 public static class AnimatorAttachmentCommands
 {
     /// <summary>
-    /// Adds an SVG file's group to a bone as a rigid attachment at the bone's
-    /// origin, selects it and rebuilds the rig, as one undo step. The file and
-    /// group come from <see cref="AnimatorSvgChoice"/>, so the group exists.
+    /// Adds a part to a bone at the bone's origin, with a starting square to
+    /// draw from in the polygon editor, selects it and rebuilds the rig, as one
+    /// undo step. It is named after the bone.
     /// </summary>
-    public static void Add(Entity session, string svgPath, string group, int bone) =>
-        AnimatorHistoryCommands.Edit(session, () => AddCore(session, svgPath, group, bone));
+    public static void Add(Entity session, int bone) =>
+        AnimatorHistoryCommands.Edit(session, () => AddCore(session, bone));
 
-    private static void AddCore(Entity session, string svgPath, string group, int bone)
+    private static void AddCore(Entity session, int bone)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         if (bone < 0 || bone >= package.Skeleton.Bones.Count)
         {
             AnimatorSession.SetStatus(session, "SELECT A BONE FIRST");
@@ -29,28 +30,25 @@ public static class AnimatorAttachmentCommands
         }
 
         string boneId = package.Skeleton.Bones[bone].Id;
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = svgPath,
-            Group = group,
-            BoneId = boneId,
-            Transform = Transform2D.Identity,
-        });
+        var part = new RigAttachment { BoneId = boneId, Transform = Transform2D.Identity };
+        part.Id = package.UniqueId(boneId);
+        XifEditing.AddPolygon(part.Node);
+        package.Add(part);
         AnimatorSession.RigChanged(session);
 
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        selection.SelectOnlyAttachment(package.Attachments.Count - 1);
+        selection.SelectOnlyAttachment(package.Attachments.IndexOf(part));
         selection.HasKey = false;
-        AnimatorSession.SetStatus(session, $"ADDED {group} TO {boneId}");
+        AnimatorSession.SetStatus(session, $"ADDED {part.Id} TO {boneId} · DRAW IT IN THE ART EDITOR");
     }
 
     /// <summary>
-    /// The attachments the layer commands act on: the selected SVG, or every
-    /// SVG on the selected bones, so a whole limb can be moved at once.
+    /// The attachments the layer commands act on: the selected part, or every
+    /// part on the selected bones, so a whole limb can be moved at once.
     /// </summary>
     public static List<int> LayerTargets(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         var targets = new List<int>();
         if (selection.Attachment >= 0 && selection.Attachment < package.Attachments.Count)
@@ -77,7 +75,7 @@ public static class AnimatorAttachmentCommands
     /// <summary>The draw layer the targets share, or false when there are none or they differ.</summary>
     public static bool TryGetLayer(Entity session, out int layer)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         List<int> targets = LayerTargets(session);
         int first = targets.Count > 0 ? package.Attachments[targets[0]].ZOrder : 0;
         layer = first;
@@ -85,7 +83,7 @@ public static class AnimatorAttachmentCommands
     }
 
     /// <summary>
-    /// Sets the draw layer of the selected SVG, or of every SVG on the selected
+    /// Sets the draw layer of the selected part, or of every part on the selected
     /// bones. Higher layers draw in front; equal ones keep their list order.
     /// </summary>
     public static void SetLayer(Entity session, int layer) =>
@@ -94,11 +92,11 @@ public static class AnimatorAttachmentCommands
             List<int> targets = LayerTargets(session);
             if (targets.Count == 0)
             {
-                AnimatorSession.SetStatus(session, "SELECT A BONE OR SVG WITH ART FIRST");
+                AnimatorSession.SetStatus(session, "SELECT A BONE OR PART WITH ART FIRST");
                 return;
             }
 
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             int clamped = DrawOrder.ClampLayer(layer);
             foreach (int index in targets)
                 package.Attachments[index].ZOrder = clamped;
@@ -107,6 +105,6 @@ public static class AnimatorAttachmentCommands
             AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(
                 session,
-                targets.Count == 1 ? $"LAYER {clamped}" : $"LAYER {clamped} ON {targets.Count} SVGS");
+                targets.Count == 1 ? $"LAYER {clamped}" : $"LAYER {clamped} ON {targets.Count} PARTS");
         });
 }

@@ -10,8 +10,8 @@ namespace Xanadu.Tools.Animator.Ecs;
 /// </summary>
 public struct AnimatorChains : IComponent
 {
-    public XafChainSimulation Simulation;
-    public XafPackage? Package;
+    public RigChainSimulation Simulation;
+    public RigPackage? Package;
 
     /// <summary>Which bone the selected chain is waiting to be given by the next click, if any.</summary>
     public AnimatorChainPick Picking;
@@ -24,8 +24,8 @@ public struct AnimatorChains : IComponent
 /// </summary>
 public struct AnimatorCloths : IComponent
 {
-    public XafClothSimulation Simulation;
-    public XafPackage? Package;
+    public RigClothSimulation Simulation;
+    public RigPackage? Package;
     public AnimatorClothPick Picking;
 }
 

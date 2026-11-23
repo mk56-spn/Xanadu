@@ -39,13 +39,11 @@ public struct AnimatorUi : IComponent
     /// <summary>The LAYERS tab's rows; the layer panel system fills it.</summary>
     public Entity LayerList;
     public Entity ChainList;
-    public Entity EffectList;
 
     /// <summary>The collapsible sections of the rig list, titled with their counts.</summary>
     public Entity BoneSection;
     public Entity AttachmentSection;
     public Entity ChainSection;
-    public Entity EffectSection;
     public Entity ClothSection;
     public Entity ClothList;
 
@@ -54,6 +52,12 @@ public struct AnimatorUi : IComponent
 
     /// <summary>The EFFECT tab's title: the selected effect and its bone.</summary>
     public Entity EffectCaption;
+
+    /// <summary>The selected part's card in the SELECTED tab: art, keying at the playhead, mesh.</summary>
+    public Entity PartCard;
+
+    /// <summary>The limb overrides card in the SELECTED tab, shown with a bone.</summary>
+    public Entity OverrideCard;
 
     /// <summary>
     /// The shell's regions, which preview mode hides, resizes and recolours:
@@ -66,11 +70,20 @@ public struct AnimatorUi : IComponent
     public Entity ViewportColumn;
     public Entity StatusLine;
     public Entity RightPanel;
+
+    /// <summary>The keyframe bar's controls row (transport, caption, easing, view, clip name, loop); hidden in EDIT RIG.</summary>
+    public Entity TimelineHeader;
+
+    /// <summary>The panel left of the preview holding the tab strip; the tab bodies float over it.</summary>
+    public Entity PropertiesPanel;
     public Entity PreviewBar;
     public Entity PreviewCaption;
 
     /// <summary>The header button that enters and leaves preview mode.</summary>
     public Entity PreviewButton;
+
+    /// <summary>The header's three-way workspace switch, indexed by <see cref="AnimatorWorkspace"/>.</summary>
+    public Entity[]? WorkspaceButtons;
 
     /// <summary>The shared XIF editor, shown beside the inspector while an effect is selected.</summary>
     public Entity XifEditor;
@@ -123,6 +136,14 @@ public struct AnimatorUi : IComponent
     /// <summary>The file info popup, its dimmer, and the readout under the path field.</summary>
     public Entity InfoBackdrop;
     public Entity InfoPanel;
+
+    /// <summary>The SHORTCUTS sheet and the dimmer behind it.</summary>
+    public Entity ShortcutsBackdrop;
+    public Entity ShortcutsPanel;
+
+    /// <summary>The ease bar under the preview during the quick test after keying, and its ease buttons in <c>AnimatorKeyTryoutCommands.Offered</c> order.</summary>
+    public Entity TryoutBar;
+    public Entity[]? TryoutEases;
     public Entity InfoText;
     public Entity NewClipDuplicate;
     public Entity NewClipName;
@@ -136,11 +157,11 @@ public struct AnimatorUi : IComponent
 
     /// <summary>Floating bone context menu and the field used to rename a bone.</summary>
     public Entity BoneMenu;
-    public Entity BoneNameField;
 
-    /// <summary>The ADD SVG picker and the list its choices are built into.</summary>
-    public Entity SvgMenu;
-    public Entity SvgMenuList;
+    /// <summary>The right-click menu of a part, chain or cloth row in the rig tree, and its delete button.</summary>
+    public Entity RowMenu;
+    public Entity RowMenuDelete;
+    public Entity BoneNameField;
 
     /// <summary>Floating transform inspector over the preview, and its fields.</summary>
     public Entity Inspector;
@@ -151,6 +172,12 @@ public struct AnimatorUi : IComponent
 
     /// <summary>The bone card under the inspector, and its joint toggles, lit while on.</summary>
     public Entity BoneCard;
+
+    /// <summary>The rig-building rows of the bone and part cards, shown only while EDIT RIG is on, and the hint shown in their place.</summary>
+    public Entity BoneRigRows;
+    public Entity BoneRigHint;
+    public Entity PartRigRows;
+    public Entity PartRigHint;
     public Entity BoneMoveButton;
     public Entity BoneBendButton;
     public Entity BoneLimitButton;
@@ -179,12 +206,11 @@ public struct AnimatorUi : IComponent
     public Entity ClothBoneButton;
     public Entity ClothPinsButton;
     public Entity ClothCollidersButton;
-    public Entity ClothFill;
+    public Entity ClothArtButton;
 
     /// <summary>The cloth inspector's number fields, in <see cref="Commands.AnimatorClothCommands.Setting"/> order.</summary>
     public Entity[] ClothFields;
     public Entity ChainTitle;
-    public Entity ChainArtButton;
     public Entity ChainBoneButton;
 
     /// <summary>Shows and toggles whether the selected chain draws as one sheet or as pieces.</summary>

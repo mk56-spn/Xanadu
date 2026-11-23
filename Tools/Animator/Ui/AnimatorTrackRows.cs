@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System.Collections.Generic;
 using Xanadu.Model.Animation;
 using Xanadu.Tools.Animator.Ecs;
@@ -8,143 +9,158 @@ namespace Xanadu.Tools.Animator.Ui;
 /// One row of the keyframe dope sheet: a target's merged key set, or, when the
 /// target is expanded, one of its channels.
 /// </summary>
-public readonly record struct AnimatorTrackRow(XafTrack Track, XafChannelProperty? Property, bool IsOverride = false)
+public readonly record struct AnimatorTrackRow(RigTrack Track, RigChannelProperty? Property, bool IsOverride = false)
 {
-    public AnimatorTrackRow(XafTrack track)
+    public AnimatorTrackRow(RigTrack track)
         : this(track, null, false)
     {
     }
 
-    public XafChannelTarget Target => Track.Target;
+    public RigChannelTarget Target => Track.Target;
     public string Id => Track.Id;
     public bool IsChannel => Property.HasValue;
 
-    /// <summary>Compact channel name shown on a child row.</summary>
-    public static string PropertyLabel(XafChannelProperty property) => property switch
+    /// <summary>Compact channel name shown on a child row: the label its module declares.</summary>
+    public static string PropertyLabel(RigChannelProperty property)
     {
-        XafChannelProperty.TranslationX => "pos x",
-        XafChannelProperty.TranslationY => "pos y",
-        XafChannelProperty.Rotation => "rot",
-        XafChannelProperty.ScaleX => "scl x",
-        XafChannelProperty.ScaleY => "scl y",
-        XafChannelProperty.Depth => "depth",
-        XafChannelProperty.Opacity => "alpha",
-        XafChannelProperty.Art => "art",
-        XafChannelProperty.Layer => "layer",
-        _ => "show",
-    };
+        string name = RigChannels.Name(property);
+        foreach (KeyField field in RigChannels.PartFields)
+        {
+            if (field.Name == name)
+                return field.Shown;
+        }
+        foreach (KeyField field in RigChannels.BoneFields)
+        {
+            if (field.Name == name)
+                return field.Shown;
+        }
+        return name;
+    }
 
-    public static implicit operator AnimatorTrackRow(XafTrack track) => new(track);
+    public static implicit operator AnimatorTrackRow(RigTrack track) => new(track);
 }
 
 /// <summary>Builds and reads the dope sheet rows, including expanded channel rows.</summary>
 public static class AnimatorTrackRows
 {
-    private static readonly XafChannelProperty[] Order =
-    {
-        XafChannelProperty.TranslationX,
-        XafChannelProperty.TranslationY,
-        XafChannelProperty.Rotation,
-        XafChannelProperty.ScaleX,
-        XafChannelProperty.ScaleY,
-        XafChannelProperty.Depth,
-        XafChannelProperty.Visible,
-        XafChannelProperty.Opacity,
-        XafChannelProperty.Art,
-        XafChannelProperty.Layer,
-    };
-
     /// <summary>
     /// The targets that have keys plus the selected one. An expanded target is
     /// followed by a row per channel it actually animates.
     /// </summary>
     public static List<AnimatorTrackRow> Build(
-        XafPackage package,
-        XafClip clip,
-        XafTrack? selected,
-        IReadOnlySet<XafTrack>? expanded)
+        RigPackage package,
+        RigClip clip,
+        RigTrack? selected,
+        IReadOnlySet<RigTrack>? expanded)
     {
         var rows = new List<AnimatorTrackRow>();
-        foreach (XafTrack track in XafTracks.Of(package, clip, selected))
+        foreach (RigTrack track in RigTracks.Of(package, clip, selected))
         {
             rows.Add(new AnimatorTrackRow(track));
             if (expanded is null || !expanded.Contains(track))
                 continue;
 
-            foreach (XafChannelProperty property in Channels(clip, track))
+            foreach (RigChannelProperty property in Channels(clip, track))
                 rows.Add(new AnimatorTrackRow(track, property));
         }
         return rows;
     }
 
     /// <summary>A row per bone with overrides, pins and ellipses, in the order they were added; they hold bars, not keys.</summary>
-    public static List<AnimatorTrackRow> Overrides(XafClip clip)
+    public static List<AnimatorTrackRow> Overrides(RigClip clip)
     {
         var rows = new List<AnimatorTrackRow>();
-        foreach (XafLimbTarget target in clip.Targets)
+        foreach (RigLimbTarget target in clip.Targets)
         {
-            var row = new AnimatorTrackRow(new XafTrack(XafChannelTarget.Bone, target.BoneId), null, true);
+            var row = new AnimatorTrackRow(new RigTrack(RigChannelTarget.Bone, target.BoneId), null, true);
             if (!rows.Contains(row))
                 rows.Add(row);
         }
         return rows;
     }
 
-    /// <summary>The channels that have any key for a target, in a stable order.</summary>
-    public static List<XafChannelProperty> Channels(XafClip clip, XafTrack track)
+    /// <summary>The channels that have any key for a target, in the order its module declares its fields.</summary>
+    public static List<RigChannelProperty> Channels(RigClip clip, RigTrack track)
     {
-        var channels = new List<XafChannelProperty>();
-        foreach (XafChannelProperty property in Order)
+        var channels = new List<RigChannelProperty>();
+        KeyTarget target = RigChannels.TargetOf(track.Target, track.Id);
+        foreach (KeyField field in KeyRows.Fields(clip, target, RigChannels.FieldsOf(track.Target)))
         {
-            foreach (XafChannel channel in clip.Channels)
-            {
-                if (channel.Target == track.Target &&
-                    channel.TargetId == track.Id &&
-                    channel.Property == property &&
-                    channel.Keyframes.Count > 0)
-                {
-                    channels.Add(property);
-                    break;
-                }
-            }
+            if (RigChannels.TryProperty(field.Name, out RigChannelProperty property))
+                channels.Add(property);
         }
         return channels;
     }
 
-    public static bool HasChannels(XafClip clip, XafTrack track) =>
+    /// <summary>
+    /// The full view for a selected bone or part: the target, its pins and
+    /// ellipses (a bone's), every field it can key, keyed or not, and for a
+    /// bone each part on it with that part's fields. A bone that cannot move
+    /// leaves out x and y.
+    /// </summary>
+    public static List<AnimatorTrackRow> Full(RigPackage package, RigClip clip, RigTrack selected)
+    {
+        var rows = new List<AnimatorTrackRow>();
+        AddFull(rows, package, clip, selected);
+        if (selected.Target == RigChannelTarget.Bone)
+        {
+            foreach (RigAttachment part in package.Attachments)
+            {
+                if (part.BoneId == selected.Id)
+                    AddFull(rows, package, clip, new RigTrack(RigChannelTarget.Attachment, part.Id));
+            }
+        }
+        return rows;
+    }
+
+    private static void AddFull(List<AnimatorTrackRow> rows, RigPackage package, RigClip clip, RigTrack track)
+    {
+        rows.Add(new AnimatorTrackRow(track));
+        if (track.Target == RigChannelTarget.Bone)
+        {
+            foreach (RigLimbTarget target in clip.Targets)
+            {
+                if (target.BoneId == track.Id)
+                {
+                    rows.Add(new AnimatorTrackRow(track, null, true));
+                    break;
+                }
+            }
+        }
+
+        foreach (RigChannelProperty property in Keyable(package, track))
+            rows.Add(new AnimatorTrackRow(track, property));
+    }
+
+    /// <summary>Every field a target can key, in the order its module declares them.</summary>
+    public static List<RigChannelProperty> Keyable(RigPackage package, RigTrack track)
+    {
+        var properties = new List<RigChannelProperty>();
+        bool fixedBone = track.Target == RigChannelTarget.Bone &&
+                         RigRig.FindBone(package, track.Id) is int bone && bone >= 0 &&
+                         !package.Skeleton.Bones[bone].CanTranslate;
+        foreach (KeyField field in RigChannels.FieldsOf(track.Target))
+        {
+            if (!RigChannels.TryProperty(field.Name, out RigChannelProperty property))
+                continue;
+            if (fixedBone && property is RigChannelProperty.TranslationX or RigChannelProperty.TranslationY)
+                continue;
+            properties.Add(property);
+        }
+        return properties;
+    }
+
+    public static bool HasChannels(RigClip clip, RigTrack track) =>
         Channels(clip, track).Count > 0;
 
     /// <summary>Key times of one row: a channel's own keys, or every channel's for a set row.</summary>
-    public static List<float> KeyTimes(XafClip clip, AnimatorTrackRow row)
+    public static List<float> KeyTimes(RigClip clip, AnimatorTrackRow row)
     {
         if (row.IsOverride)
             return new List<float>();
 
-        if (row.Property is not { } property)
-            return XafTracks.KeyTimes(clip, row.Track);
-
-        var times = new List<float>();
-        foreach (XafChannel channel in clip.Channels)
-        {
-            if (channel.Target != row.Target ||
-                channel.TargetId != row.Id ||
-                channel.Property != property)
-            {
-                continue;
-            }
-
-            foreach (XafKeyframe key in channel.Keyframes)
-                times.Add(key.Time);
-        }
-
-        times.Sort();
-        var distinct = new List<float>();
-        foreach (float time in times)
-        {
-            if (distinct.Count == 0 || time - distinct[^1] > XafTracks.TimeTolerance)
-                distinct.Add(time);
-        }
-        return distinct;
+        return KeyRows.KeyTimes(clip, RigChannels.TargetOf(row.Target, row.Id),
+            row.Property is { } property ? RigChannels.Name(property) : null);
     }
 
     /// <summary>The row a hit test selects: the target row or its channel child.</summary>

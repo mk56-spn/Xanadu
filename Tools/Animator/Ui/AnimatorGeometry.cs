@@ -142,19 +142,12 @@ public static class AnimatorGeometry
     }
 
     /// <summary>The pose shown in the preview: the rest pose in rest mode, else the runtime pose.</summary>
-    public static XafPose PreviewPose(in AnimatorDocument document, in AnimatorModes modes)
+    public static RigPose PreviewPose(in AnimatorDocument document, in AnimatorModes modes)
     {
         if (!modes.Rest)
             return document.Runtime.Pose;
 
-        XafPackage package = document.Package;
-        var pose = new XafPose(package.Skeleton.Bones.Count, package.Attachments.Count, package.Effects.Count);
-        for (int i = 0; i < pose.Bones.Length; i++)
-            pose.Bones[i] = XafTransform.From(package.Skeleton.Bones[i].Rest);
-        for (int i = 0; i < pose.Attachments.Length; i++)
-            pose.Attachments[i] = XafTransform.From(package.Attachments[i].Transform);
-        for (int i = 0; i < pose.Effects.Length; i++)
-            pose.Effects[i] = XafEffectState.Rest(package.Effects[i]);
-        return pose;
+        RigPackage package = document.Package;
+        return RigClothLayout.RestPose(package);
     }
 }

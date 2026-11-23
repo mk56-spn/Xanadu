@@ -61,13 +61,13 @@ public sealed class AnimatorEasePickerHost(EntityStore store) : IEasePickerHost
     public static EasePreset? CurrentPreset(Entity session)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         if (clip is null || !selection.HasKey)
             return null;
 
         return selection.KeyProperty is { } property
-            ? XafEasing.Read(clip, selection.KeyTarget, selection.KeyId, property, selection.KeyTime)
-            : XafEasing.Read(clip, selection.KeyTarget, selection.KeyId, selection.KeyTime);
+            ? RigEasing.Read(clip, selection.KeyTarget, selection.KeyId, property, selection.KeyTime)
+            : RigEasing.Read(clip, selection.KeyTarget, selection.KeyId, selection.KeyTime);
     }
 
     /// <summary>The key that sets the curve, for the five that have one.</summary>

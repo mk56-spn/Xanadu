@@ -19,21 +19,21 @@ public static class AnimatorClipCommands
     public static bool Create(Entity session, string name, float duration, bool duplicate)
     {
         string trimmed = (name ?? "").Trim();
-        XafPackage package = Package(session);
+        RigPackage package = Package(session);
         if (trimmed.Length == 0 || package.Clips.Exists(clip => clip.Id == trimmed))
             return false;
 
         bool created = false;
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip? source = duplicate ? Current(session) : null;
-            XafClip clip = source is null
-                ? XafClipAuthoring.Add(package, trimmed)
-                : XafClipAuthoring.Duplicate(package, source);
-            if (!XafClipAuthoring.Rename(package, clip, trimmed))
+            RigClip? source = duplicate ? Current(session) : null;
+            RigClip clip = source is null
+                ? RigClipAuthoring.Add(package, trimmed)
+                : RigClipAuthoring.Duplicate(package, source);
+            if (!RigClipAuthoring.Rename(package, clip, trimmed))
                 return;
 
-            float actual = XafClipAuthoring.SetDuration(clip, duration);
+            float actual = RigClipAuthoring.SetDuration(clip, duration);
             Show(session, clip.Id);
             created = true;
             AnimatorSession.SetStatus(session, $"NEW CLIP {clip.Id} {actual:0.00}s");
@@ -44,11 +44,11 @@ public static class AnimatorClipCommands
     public static void Duplicate(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip? source = Current(session);
+            RigClip? source = Current(session);
             if (source is null)
                 return;
 
-            XafClip copy = XafClipAuthoring.Duplicate(Package(session), source);
+            RigClip copy = RigClipAuthoring.Duplicate(Package(session), source);
             Show(session, copy.Id);
             AnimatorSession.SetStatus(session, $"COPIED TO {copy.Id}");
         });
@@ -56,13 +56,13 @@ public static class AnimatorClipCommands
     public static void Delete(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = Package(session);
-            XafClip? clip = Current(session);
+            RigPackage package = Package(session);
+            RigClip? clip = Current(session);
             if (clip is null)
                 return;
 
             int index = package.Clips.IndexOf(clip);
-            if (!XafClipAuthoring.Delete(package, clip))
+            if (!RigClipAuthoring.Delete(package, clip))
             {
                 AnimatorSession.SetStatus(session, "CANNOT DELETE THE LAST CLIP");
                 return;
@@ -72,15 +72,33 @@ public static class AnimatorClipCommands
             AnimatorSession.SetStatus(session, $"DELETED {clip.Id}");
         });
 
+    /// <summary>
+    /// Drops every key of the current clip, so it plays the rest pose again.
+    /// Its length, loop, events and limb paths stay. One undo step.
+    /// </summary>
+    public static void ClearKeys(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            RigClip? clip = Current(session);
+            if (clip is null)
+                return;
+
+            int count = 0;
+            foreach (var channel in clip.Channels)
+                count += channel.Keys.Count;
+            clip.Channels.Clear();
+            AnimatorSession.SetStatus(session, count == 0 ? $"{clip.Id} HAS NO KEYS" : $"CLEARED {count} KEYS FROM {clip.Id}");
+        });
+
     /// <summary>Renames the clip with the given id; false when the name is empty or taken.</summary>
     public static bool Rename(Entity session, string clipId, string newId)
     {
         bool renamed = false;
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = Package(session);
-            XafClip? clip = XafAuthoring.FindClip(package, clipId);
-            if (clip is null || !XafClipAuthoring.Rename(package, clip, newId))
+            RigPackage package = Package(session);
+            RigClip? clip = RigAuthoring.FindClip(package, clipId);
+            if (clip is null || !RigClipAuthoring.Rename(package, clip, newId))
                 return;
 
             renamed = true;
@@ -97,12 +115,12 @@ public static class AnimatorClipCommands
     public static void StepDuration(Entity session, float delta) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip? clip = Current(session);
+            RigClip? clip = Current(session);
             if (clip is null)
                 return;
 
             float wanted = clip.Duration + delta;
-            float actual = XafClipAuthoring.SetDuration(clip, wanted);
+            float actual = RigClipAuthoring.SetDuration(clip, wanted);
             AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
             if (runtime.CurrentTime > actual)
                 runtime.Seek(actual);
@@ -118,11 +136,11 @@ public static class AnimatorClipCommands
     public static void SetDuration(Entity session, float seconds) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip? clip = Current(session);
+            RigClip? clip = Current(session);
             if (clip is null)
                 return;
 
-            float actual = XafClipAuthoring.SetDuration(clip, seconds);
+            float actual = RigClipAuthoring.SetDuration(clip, seconds);
             AnimatorRuntime runtime = session.GetComponent<AnimatorDocument>().Runtime;
             if (runtime.CurrentTime > actual)
                 runtime.Seek(actual);
@@ -137,18 +155,18 @@ public static class AnimatorClipCommands
     public static void ToggleLoop(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafClip? clip = Current(session);
+            RigClip? clip = Current(session);
             if (clip is null)
                 return;
 
-            XafClipAuthoring.SetLoop(clip, !clip.Loop);
+            RigClipAuthoring.SetLoop(clip, !clip.Loop);
             AnimatorSession.SetStatus(session, $"LOOP {(clip.Loop ? "ON" : "OFF")}");
         });
 
-    private static XafPackage Package(Entity session) =>
+    private static RigPackage Package(Entity session) =>
         session.GetComponent<AnimatorDocument>().Package;
 
-    private static XafClip? Current(Entity session) =>
+    private static RigClip? Current(Entity session) =>
         AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
 
     /// <summary>Rebuilds the runtime for the changed clip list and shows a clip from its start.</summary>

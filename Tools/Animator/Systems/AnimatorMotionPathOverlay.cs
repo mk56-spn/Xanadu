@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Xanadu.Model.Animation;
@@ -107,7 +108,7 @@ public sealed class AnimatorMotionPathOverlay(IRectCanvas canvas, Handle target)
     }
 
     /// <summary>Everything a path depends on: the clip's keys, the rig's rest pose, and which bones.</summary>
-    private static int Fingerprint(XafPackage package, XafClip clip, List<int> bones)
+    private static int Fingerprint(RigPackage package, RigClip clip, List<int> bones)
     {
         var hash = new HashCode();
         hash.Add(clip.Id);
@@ -117,21 +118,21 @@ public sealed class AnimatorMotionPathOverlay(IRectCanvas canvas, Handle target)
         hash.Add(clip.LoopEnd);
         foreach (int bone in bones)
             hash.Add(bone);
-        foreach (XafBone bone in package.Skeleton.Bones)
+        foreach (RigBone bone in package.Skeleton.Bones)
         {
             hash.Add(bone.Parent);
             hash.Add(bone.Rest);
             hash.Add(bone.CanTranslate);
         }
-        foreach (XafChannel channel in clip.Channels)
+        foreach (KeyChannel channel in clip.Channels)
         {
             hash.Add(channel.TargetId);
             hash.Add(channel.Property);
-            foreach (XafKeyframe key in channel.Keyframes)
+            foreach (Keyframe key in channel.Keys)
             {
                 hash.Add(key.Time);
                 hash.Add(key.Value);
-                hash.Add(key.Interpolation);
+                hash.Add(key.Ease);
                 hash.Add(key.TangentIn);
                 hash.Add(key.TangentOut);
             }

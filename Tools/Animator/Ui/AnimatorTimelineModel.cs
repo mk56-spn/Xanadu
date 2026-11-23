@@ -43,15 +43,15 @@ public sealed class AnimatorTimelineModel
     public const float RowBarWidth = 8f;
     public const float MinRowThumb = 16f;
 
-    private static readonly HashSet<XafTrack> EmptyExpanded = new();
+    private static readonly HashSet<RigTrack> EmptyExpanded = new();
     public const float MinLabelPixels = 70f;
     public const float MinSnapPixels = 12f;
 
     private AnimatorTimelineModel(
         Rect2 panel,
-        XafClip clip,
+        RigClip clip,
         List<AnimatorTrackRow> tracks,
-        IReadOnlySet<XafTrack> expanded,
+        IReadOnlySet<RigTrack> expanded,
         int firstRow,
         TimeWindow window,
         float zoom)
@@ -74,11 +74,11 @@ public sealed class AnimatorTimelineModel
     }
 
     public Rect2 Panel { get; }
-    public XafClip Clip { get; }
+    public RigClip Clip { get; }
     public IReadOnlyList<AnimatorTrackRow> Tracks { get; }
 
     /// <summary>Targets whose channel rows are shown.</summary>
-    public IReadOnlySet<XafTrack> Expanded { get; }
+    public IReadOnlySet<RigTrack> Expanded { get; }
     public TimeWindow Window { get; }
 
     /// <summary>The window laid across <see cref="Ruler"/>: how the shared painter places time.</summary>
@@ -88,6 +88,21 @@ public sealed class AnimatorTimelineModel
     public List<TimelineTick> Ticks() => TimelineTicks.Seconds(Axis, MinLabelPixels, MinSnapPixels);
 
     public float Zoom { get; }
+
+    /// <summary>Whether the rows are the full view of <see cref="Root"/> rather than the summary.</summary>
+    public bool Full { get; private init; }
+
+    /// <summary>The selected target the full view is of.</summary>
+    public RigTrack? Root { get; private init; }
+
+    /// <summary>How far in a row's label sits in the full view: the root's rows, then its parts' one step further.</summary>
+    public int Depth(AnimatorTrackRow row)
+    {
+        if (!Full)
+            return row.IsChannel ? 1 : 0;
+        int depth = Root is { } root && row.Track != root ? 1 : 0;
+        return depth + (row.IsChannel || row.IsOverride ? 1 : 0);
+    }
     /// <summary>Where time runs: the clip's start to its end. It stops <see cref="EndMargin"/> short of the rows.</summary>
     public Rect2 Ruler { get; }
 
@@ -111,9 +126,9 @@ public sealed class AnimatorTimelineModel
     {
         AnimatorUi ui = session.GetComponent<AnimatorUi>();
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
-        // A hidden panel has no timeline to draw or to hit.
-        if (clip is null || ui.Timeline.IsNull || !ui.Timeline.Enabled)
+        RigClip? clip = AnimatorSession.CurrentClip(document);
+        // A hidden panel has no timeline to draw or to hit, and the rest pose has no keys.
+        if (clip is null || ui.Timeline.IsNull || !ui.Timeline.Enabled || session.GetComponent<AnimatorModes>().Rest)
             return null;
 
         Rect2 panel = AnimatorGeometry.PanelArea(ui.Timeline);
@@ -122,11 +137,22 @@ public sealed class AnimatorTimelineModel
         long timeMs = (long)Math.Round(document.Runtime.CurrentTime * 1000.0);
         TimeWindow window = TimeWindow.Of(view, timeMs, durationMs);
 
-        XafTrack? selected = SelectedTrack(session, document.Package);
-        IReadOnlySet<XafTrack> expanded =
+        RigTrack? selected = SelectedTrack(session, document.Package);
+        IReadOnlySet<RigTrack> expanded =
             session.GetComponent<AnimatorTracks>().Expanded ?? EmptyExpanded;
-        List<AnimatorTrackRow> tracks = AnimatorTrackRows.Overrides(clip);
-        tracks.AddRange(AnimatorTrackRows.Build(document.Package, clip, selected, expanded));
+        // The full view needs something selected; with nothing, it shows the summary.
+        bool full = session.GetComponent<AnimatorModes>().FullKeys && selected is not null;
+        List<AnimatorTrackRow> tracks;
+        if (full)
+        {
+            tracks = AnimatorTrackRows.Full(document.Package, clip, selected!.Value);
+        }
+        else
+        {
+            tracks = AnimatorTrackRows.Overrides(clip);
+            tracks.AddRange(AnimatorTrackRows.Build(document.Package, clip, selected, expanded));
+        }
+
         return new AnimatorTimelineModel(
             panel,
             clip,
@@ -134,19 +160,21 @@ public sealed class AnimatorTimelineModel
             expanded,
             session.GetComponent<AnimatorTracks>().FirstRow,
             window,
-            view.Zoom);
+            view.Zoom)
+        {
+            Full = full,
+            Root = full ? selected : null,
+        };
     }
 
-    /// <summary>The track of the selected bone, attachment or effect, if any.</summary>
-    public static XafTrack? SelectedTrack(Entity session, XafPackage package)
+    /// <summary>The track of the selected bone or part, if any.</summary>
+    public static RigTrack? SelectedTrack(Entity session, RigPackage package)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
         if (selection.Bone >= 0 && selection.Bone < package.Skeleton.Bones.Count)
-            return new XafTrack(XafChannelTarget.Bone, package.Skeleton.Bones[selection.Bone].Id);
+            return new RigTrack(RigChannelTarget.Bone, package.Skeleton.Bones[selection.Bone].Id);
         if (selection.Attachment >= 0 && selection.Attachment < package.Attachments.Count)
-            return new XafTrack(XafChannelTarget.Attachment, package.Attachments[selection.Attachment].Group);
-        if (selection.Effect >= 0 && selection.Effect < package.Effects.Count)
-            return new XafTrack(XafChannelTarget.Effect, package.Effects[selection.Effect].Id);
+            return new RigTrack(RigChannelTarget.Attachment, package.Attachments[selection.Attachment].Id);
         return null;
     }
 
@@ -187,6 +215,19 @@ public sealed class AnimatorTimelineModel
     public float RowsBottom =>
         Rows.Position.Y + Math.Max(0, LastRow - FirstRow) * RowHeight;
 
+    /// <summary>The time scrollbar's height; it lives in the panel's bottom padding, under the rows.</summary>
+    public const float TimeBarHeight = 8f;
+    public const float MinTimeThumb = 24f;
+
+    /// <summary>The time scrollbar under the rows: drawn across the time axis, taken anywhere in the bottom padding below it.</summary>
+    public TimelineTimeBar TimeBar => new(
+        new Rect2(Ruler.Position.X, Rows.End.Y + (Padding - TimeBarHeight) / 2, Ruler.Size.X, TimeBarHeight),
+        new Rect2(Ruler.Position.X, Rows.End.Y, Ruler.Size.X, Panel.End.Y - Rows.End.Y),
+        MinTimeThumb);
+
+    /// <summary>Whether the window shows less than the whole clip, so the time scrollbar shows.</summary>
+    public bool HasTimeBar => TimelineTimeBar.Shows(Axis, Clip.Duration * 1000.0);
+
     /// <summary>Whether there are more rows than fit, so the scrollbar shows.</summary>
     public bool HasRowBar => Tracks.Count > VisibleRows;
 
@@ -204,7 +245,7 @@ public sealed class AnimatorTimelineModel
         Panel.End.X - Rows.End.X,
         VisibleRows * RowHeight);
 
-    public VerticalSlider RowSlider => new(
+    public ScrollSlider RowSlider => new(
         RowBar.Position.Y,
         RowBar.End.Y,
         Tracks.Count > 0 ? (float)VisibleRows / Tracks.Count : 1f,
@@ -235,7 +276,7 @@ public sealed class AnimatorTimelineModel
 
     public AnimatorTrackRow TrackAt(int screenRow) => Tracks[FirstRow + screenRow];
 
-    public bool IsExpanded(XafTrack track) => Expanded.Contains(track);
+    public bool IsExpanded(RigTrack track) => Expanded.Contains(track);
 
     /// <summary>Whether the point presses the expand arrow at the start of a target row.</summary>
     public bool IsExpandArrow(Vector2 point, int screenRow)
@@ -244,7 +285,7 @@ public sealed class AnimatorTimelineModel
             return false;
 
         AnimatorTrackRow row = Tracks[FirstRow + screenRow];
-        return !row.IsChannel && !row.IsOverride &&
+        return !Full && !row.IsChannel && !row.IsOverride &&
                point.X >= Labels.Position.X &&
                point.X <= Labels.Position.X + 16f &&
                AnimatorTrackRows.HasChannels(Clip, row.Track);
@@ -273,7 +314,7 @@ public sealed class AnimatorTimelineModel
     public const float OverrideGripRadius = 6f;
 
     /// <summary>The override whose bar is under the point, and whether the press took an end or its body.</summary>
-    public bool TryPickOverride(Vector2 point, out XafLimbTarget? picked, out TimelineGrabPart grab)
+    public bool TryPickOverride(Vector2 point, out RigLimbTarget? picked, out TimelineGrabPart grab)
     {
         picked = null;
         grab = TimelineGrabPart.Body;
@@ -282,7 +323,7 @@ public sealed class AnimatorTimelineModel
             return false;
 
         string bone = TrackAt(row).Id;
-        foreach (XafLimbTarget target in Clip.Targets)
+        foreach (RigLimbTarget target in Clip.Targets)
         {
             if (target.BoneId != bone ||
                 TimelineGrab.Span(Axis, target.From * 1000.0, target.To * 1000.0, point.X, OverrideGripRadius) is not { } part)

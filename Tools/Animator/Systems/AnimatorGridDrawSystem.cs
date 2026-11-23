@@ -9,7 +9,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
-/// Draws the preview grid behind the SVG art, with its axes through the
+/// Draws the preview grid behind the art, with its axes through the
 /// skeleton origin. Redraws only when the preview panel moves or resizes, or
 /// when the shared <see cref="ViewportGrid"/> switch changes.
 /// </summary>

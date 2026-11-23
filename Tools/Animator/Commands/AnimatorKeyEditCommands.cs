@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -18,14 +19,14 @@ public static class AnimatorKeyEditCommands
     /// <summary>Changes smaller than this are rounding, not an edit.</summary>
     private const float Epsilon = 1e-5f;
 
-    private static readonly XafChannelProperty[] TransformChannels =
+    private static readonly RigChannelProperty[] TransformChannels =
     {
-        XafChannelProperty.TranslationX,
-        XafChannelProperty.TranslationY,
-        XafChannelProperty.Rotation,
-        XafChannelProperty.ScaleX,
-        XafChannelProperty.ScaleY,
-        XafChannelProperty.Depth,
+        RigChannelProperty.TranslationX,
+        RigChannelProperty.TranslationY,
+        RigChannelProperty.Rotation,
+        RigChannelProperty.ScaleX,
+        RigChannelProperty.ScaleY,
+        RigChannelProperty.Depth,
     };
 
     /// <summary>
@@ -40,39 +41,39 @@ public static class AnimatorKeyEditCommands
             return 0;
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         if (clip is null)
             return 0;
 
-        XafPackage package = document.Package;
-        XafPose before = XafSampler.Sample(package, clip, document.Runtime.CurrentTime);
-        XafPose after = document.Runtime.Pose;
+        RigPackage package = document.Package;
+        RigPose before = RigSampler.Sample(package, clip, document.Runtime.CurrentTime);
+        RigPose after = document.Runtime.Pose;
 
         // Every write below is planned against the clip as it was, so keys
         // that share a time do not see each other's changes.
         var writes = new List<Write>();
-        var sampled = new Dictionary<float, XafPose>();
-        var edited = new HashSet<(XafChannelTarget, string, float)>();
+        var sampled = new Dictionary<float, RigPose>();
+        var edited = new HashSet<(RigChannelTarget, string, float)>();
         foreach (AnimatorKeyRef key in selection.Keys())
         {
-            if (!Transforms(package, before, after, key.Target, key.Id, out XafTransform was, out XafTransform now,
+            if (!Transforms(package, before, after, key.Target, key.Id, out RigTransform was, out RigTransform now,
                     out bool canTranslate))
                 continue;
 
-            foreach (XafChannelProperty property in TransformChannels)
+            foreach (RigChannelProperty property in TransformChannels)
             {
                 if (key.Property is { } only && only != property)
                     continue;
-                if (XafSampler.IsTranslation(property) && !canTranslate)
+                if (RigSampler.IsTranslation(property) && !canTranslate)
                     continue;
 
                 float delta = Get(now, property) - Get(was, property);
                 if (Math.Abs(delta) < Epsilon)
                     continue;
 
-                XafChannel? channel = Find(clip, key.Target, key.Id, property);
-                XafKeyframe? existing = channel?.Keyframes.Find(
-                    frame => Math.Abs(frame.Time - key.Time) <= XafTracks.TimeTolerance);
+                KeyChannel? channel = Find(clip, key.Target, key.Id, property);
+                Keyframe? existing = channel?.Keys.Find(
+                    frame => Math.Abs(frame.Time - key.Time) <= RigTracks.TimeTolerance);
 
                 // A key the channel lacks at that time is made from what the clip gives there.
                 float value = existing?.Value ?? ValueAt(package, clip, sampled, key, property);
@@ -89,7 +90,7 @@ public static class AnimatorKeyEditCommands
             if (write.Existing is not null)
                 write.Existing.Value = write.Value;
             else
-                XafAuthoring.SetChannel(clip, write.Key.Target, write.Key.Id, write.Property, write.Key.Time, write.Value);
+                RigAuthoring.SetChannel(clip, write.Key.Target, write.Key.Id, write.Property, write.Key.Time, write.Value);
         }
 
         return edited.Count;
@@ -97,43 +98,37 @@ public static class AnimatorKeyEditCommands
 
     private readonly record struct Write(
         AnimatorKeyRef Key,
-        XafChannelProperty Property,
-        XafKeyframe? Existing,
+        RigChannelProperty Property,
+        Keyframe? Existing,
         float Value);
 
     /// <summary>The target's transform before and after the edit, and whether it may translate.</summary>
     private static bool Transforms(
-        XafPackage package,
-        XafPose before,
-        XafPose after,
-        XafChannelTarget target,
+        RigPackage package,
+        RigPose before,
+        RigPose after,
+        RigChannelTarget target,
         string id,
-        out XafTransform was,
-        out XafTransform now,
+        out RigTransform was,
+        out RigTransform now,
         out bool canTranslate)
     {
         was = now = default;
         canTranslate = true;
         switch (target)
         {
-            case XafChannelTarget.Bone:
+            case RigChannelTarget.Bone:
                 int bone = package.Skeleton.Bones.FindIndex(candidate => candidate.Id == id);
                 if (bone < 0 || bone >= after.Bones.Length)
                     return false;
                 (was, now) = (before.Bones[bone], after.Bones[bone]);
                 canTranslate = package.Skeleton.Bones[bone].CanTranslate;
                 return true;
-            case XafChannelTarget.Attachment:
-                int attachment = package.Attachments.FindIndex(candidate => candidate.Group == id);
+            case RigChannelTarget.Attachment:
+                int attachment = package.Attachments.FindIndex(candidate => candidate.Id == id);
                 if (attachment < 0 || attachment >= after.Attachments.Length)
                     return false;
                 (was, now) = (before.Attachments[attachment], after.Attachments[attachment]);
-                return true;
-            case XafChannelTarget.Effect:
-                int effect = package.Effects.FindIndex(candidate => candidate.Id == id);
-                if (effect < 0 || effect >= after.Effects.Length)
-                    return false;
-                (was, now) = (before.Effects[effect].Transform, after.Effects[effect].Transform);
                 return true;
             default:
                 return false;
@@ -141,32 +136,32 @@ public static class AnimatorKeyEditCommands
     }
 
     private static float ValueAt(
-        XafPackage package,
-        XafClip clip,
-        Dictionary<float, XafPose> sampled,
+        RigPackage package,
+        RigClip clip,
+        Dictionary<float, RigPose> sampled,
         AnimatorKeyRef key,
-        XafChannelProperty property)
+        RigChannelProperty property)
     {
-        if (!sampled.TryGetValue(key.Time, out XafPose? pose))
-            sampled[key.Time] = pose = XafSampler.Sample(package, clip, key.Time);
+        if (!sampled.TryGetValue(key.Time, out RigPose? pose))
+            sampled[key.Time] = pose = RigSampler.Sample(package, clip, key.Time);
 
-        return Transforms(package, pose, pose, key.Target, key.Id, out XafTransform transform, out _, out _)
+        return Transforms(package, pose, pose, key.Target, key.Id, out RigTransform transform, out _, out _)
             ? Get(transform, property)
             : 0f;
     }
 
-    private static XafChannel? Find(XafClip clip, XafChannelTarget target, string id, XafChannelProperty property) =>
+    private static KeyChannel? Find(RigClip clip, RigChannelTarget target, string id, RigChannelProperty property) =>
         clip.Channels.Find(channel =>
             channel.Target == target && channel.TargetId == id && channel.Property == property);
 
-    private static float Get(XafTransform transform, XafChannelProperty property) => property switch
+    private static float Get(RigTransform transform, RigChannelProperty property) => property switch
     {
-        XafChannelProperty.TranslationX => transform.Translation.X,
-        XafChannelProperty.TranslationY => transform.Translation.Y,
-        XafChannelProperty.Rotation => transform.Rotation,
-        XafChannelProperty.ScaleX => transform.Scale.X,
-        XafChannelProperty.ScaleY => transform.Scale.Y,
-        XafChannelProperty.Depth => transform.Depth,
+        RigChannelProperty.TranslationX => transform.Translation.X,
+        RigChannelProperty.TranslationY => transform.Translation.Y,
+        RigChannelProperty.Rotation => transform.Rotation,
+        RigChannelProperty.ScaleX => transform.Scale.X,
+        RigChannelProperty.ScaleY => transform.Scale.Y,
+        RigChannelProperty.Depth => transform.Depth,
         _ => 0f,
     };
 }

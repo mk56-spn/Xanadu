@@ -19,7 +19,8 @@ public static partial class AnimatorLayout
             ("SAVE", ToolActionKind.Save),
             ("LOAD", ToolActionKind.Load),
             ("NEW", ToolActionKind.NewSkeleton),
-            ("NEW CLIP…", ToolActionKind.OpenNewClip),
+            ("FILE INFO…", ToolActionKind.OpenInfo),
+            ("CLOSE EDITOR", ToolActionKind.CloseEditor),
         });
 
     /// <summary>
@@ -30,10 +31,10 @@ public static partial class AnimatorLayout
     private static void BuildConfigMenu(UiBuilder menu, Entity configButton) =>
         BuildActionMenu(menu, configButton, new[]
         {
+            ("NEW CLIP…", ToolActionKind.OpenNewClip),
             ("LENGTH…", ToolActionKind.OpenClipLength),
-            ("DELETE", ToolActionKind.DeleteClip),
-            ("FILE INFO…", ToolActionKind.OpenInfo),
-            ("CLOSE EDITOR", ToolActionKind.CloseEditor),
+            ("CLEAR KEYS", ToolActionKind.ClearClipKeys),
+            ("DELETE CLIP", ToolActionKind.DeleteClip),
         });
 
     /// <summary>
@@ -203,9 +204,13 @@ public static partial class AnimatorLayout
             screen.X - Margin - RightPanelWidth - Gap - InspectorWidth - 12f,
             Margin + TopHeight + Gap + 12f);
 
-    /// <summary>Where the XIF editor is centred while an effect is selected: just left of the inspector, level with it.</summary>
-    public static Vector2 XifEditorCenter(Vector2 screen) =>
-        InspectorTopLeft(screen) + new Vector2(-8f - XifEditorPanel.Width / 2, XifEditorPanel.Height / 2);
+    /// <summary>Where the XIF editor sits when it is open: over the whole window below the header, with a margin.</summary>
+    public static Rect2 XifEditorArea(Vector2 screen)
+    {
+        const float inset = 40f;
+        var corner = new Vector2(inset, TopHeight + inset / 2f);
+        return new Rect2(corner, new Vector2(screen.X - inset * 2f, screen.Y - corner.Y - inset));
+    }
 
     /// <summary>Where the particle editor is centred while a particle effect is selected: in the XIF editor's place.</summary>
     public static Vector2 ParticleEditorCenter(Vector2 screen) =>
@@ -223,17 +228,8 @@ public static partial class AnimatorLayout
     /// <summary>Size of the key menu opened by right-clicking a timeline track row.</summary>
     public static readonly Vector2 KeyMenuSize = new(150, 3 * 28 + 2 * 2 + 8);
 
-    /// <summary>Width of the ADD SVG picker; its height follows the number of choices.</summary>
-    public const float SvgMenuWidth = 240f;
-
-    /// <summary>Most choices the picker shows at once; the rest scroll.</summary>
-    public const int SvgMenuRows = 10;
-
-    public const float SvgRowHeight = 24f;
-
-    /// <summary>Height of the picker for <paramref name="rows"/> rows: rows, gaps and padding.</summary>
-    public static float SvgMenuHeight(int rows) =>
-        Math.Max(1, rows) * SvgRowHeight + (Math.Max(1, rows) - 1) * 2 + 8;
+    /// <summary>Width of a picker panel beside the inspector.</summary>
+    public const float PickerWidth = 240f;
 
     /// <summary>
     /// The bone context menu and its rename field float above the panels and
@@ -246,7 +242,7 @@ public static partial class AnimatorLayout
             ("RENAME", ToolActionKind.RenameBone),
             ("REPARENT", ToolActionKind.ReparentBone),
             ("CHILD", ToolActionKind.AddBone),
-            ("SVG", ToolActionKind.AddSvg),
+            ("PART", ToolActionKind.AddPart),
             ("CHAIN", ToolActionKind.AddChain),
             ("DEL", ToolActionKind.DeleteBone),
         };
@@ -266,29 +262,21 @@ public static partial class AnimatorLayout
 
         refs.Ui.BoneNameField = TextInput(menu, BoneNameSize);
         UiLayout.SetHidden(refs.Ui.BoneNameField, true);
+
+        // The menu for a part, chain or cloth row of the rig tree: the bone
+        // menu system writes the delete that fits the row on its one button.
+        menu.Container(Vector2.Zero, RowMenuSize, StackDirection.Vertical,
+            spacing: 2, color: UiTheme.Panel, padding: 4, takesInput: true);
+        UiLayout.SetHidden(menu.Current, true);
+        refs.Ui.RowMenu = menu.Current;
+        refs.Ui.RowMenuDelete = menu.Button("DELETE", new Vector2(RowMenuSize.X - 8, 28),
+            fontSize: UiTheme.SmallFontSize);
+        refs.Ui.RowMenuDelete.AddComponent(ToolAction.Of(ToolActionKind.DeleteChain));
+        menu.End();
     }
 
-    /// <summary>
-    /// The ADD SVG picker starts hidden with an empty scrolling list; the SVG
-    /// menu system fills it with the project's groups and moves it into place.
-    /// </summary>
-    private static void BuildSvgMenu(UiBuilder menu, ref Refs refs)
-    {
-        var size = new Vector2(SvgMenuWidth, SvgMenuHeight(SvgMenuRows));
-        menu.Container(Vector2.Zero, size, StackDirection.Vertical,
-            color: UiTheme.Panel, padding: 4, takesInput: true, clip: true,
-            main: StackMainAlignment.Start);
-        UiLayout.SetHidden(menu.Current, true);
-        refs.Ui.SvgMenu = menu.Current;
-        menu.Container(Vector2.Zero, new Vector2(SvgMenuWidth - 8, 4),
-            StackDirection.Vertical, spacing: 2, color: Clear,
-            cross: StackCrossAlignment.Start, autoHeight: true,
-            main: StackMainAlignment.Start);
-        refs.Ui.SvgMenuList = menu.Current;
-        menu.End();
-        refs.Ui.SvgMenu.AddComponent(new ScrollView());
-        menu.End();
-    }
+    /// <summary>Size of the menu a part, chain or cloth row of the rig tree opens on right-click.</summary>
+    public static readonly Vector2 RowMenuSize = new(150, 28 + 8);
 
     /// <summary>
     /// A floating explanation for the hovered button. It sits on the menu
@@ -350,55 +338,34 @@ public static partial class AnimatorLayout
     }
 
     /// <summary>
-    /// The transform inspector floats over the preview's top-right corner: the
-    /// selected bone or attachment's position, rotation and scale, plus reset.
+    /// The transform inspector, first card of the SELECTED tab: the selected
+    /// bone or attachment's position, rotation and scale, plus reset.
     /// </summary>
-    private static void BuildInspector(UiBuilder menu, Vector2 screen, ref Refs refs)
+    private static void BuildInspector(UiBuilder menu, ref Refs refs)
     {
         const float width = InspectorWidth;
         const float height = InspectorHeight;
         const float row = 26f;
         const float inner = width - 16f;
         var size = new Vector2(width, height);
-        Vector2 topLeft = InspectorTopLeft(screen);
 
-        menu.Container(topLeft + size / 2, size, StackDirection.Vertical,
+        menu.Container(Vector2.Zero, size, StackDirection.Vertical,
             spacing: 6, color: UiTheme.Panel, padding: 8, takesInput: true,
-            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+            cross: StackCrossAlignment.Start, autoHeight: true, main: StackMainAlignment.Start);
         refs.Ui.Inspector = menu.Current;
         refs.Ui.InspectorTitle = menu.Text("NOTHING SELECTED",
             new Vector2(inner, InspectorTitleHeight), InspectorTitleFontSize, UiTheme.Accent, TextAlign.Left);
         refs.Ui.InspectorSubtitle = menu.Text("",
             new Vector2(inner, InspectorSubtitleHeight), UiTheme.SmallFontSize, UiTheme.TextDim, TextAlign.Left);
 
-        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("POS", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
-        refs.Ui.InspectPosX = NumericField(menu, new Vector2(64, 22));
-        refs.Ui.InspectPosY = NumericField(menu, new Vector2(64, 22));
-        menu.End();
-
-        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("ROT °", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
-        refs.Ui.InspectRotation = NumericField(menu, new Vector2(72, 22));
-        menu.End();
-        refs.Ui.InspectRotationSlider = InspectorSlider(menu, inner,
-            -180f, 180f, 0f,
-            "Drag to turn the selection; right-click puts it back to 0°");
-
-        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("SCALE", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
-        refs.Ui.InspectScaleX = NumericField(menu, new Vector2(64, 22));
-        refs.Ui.InspectScaleY = NumericField(menu, new Vector2(64, 22));
-        menu.End();
-        refs.Ui.InspectScaleSlider = InspectorSlider(menu, inner,
-            0.1f, 3f, 1f,
-            "Drag to scale the selection, keeping its stretch; right-click puts it back to 1×");
-
-        menu.Container(Vector2.Zero, new Vector2(inner, row), spacing: 4, color: Clear);
-        menu.Text("LAYER", new Vector2(48, 20), 11, UiTheme.TextDim, TextAlign.Left);
-        refs.Ui.InspectLayer = NumericField(menu, new Vector2(64, 22));
-        refs.Ui.InspectLayer.AddComponent(new UiTooltip("Draw order of the SVG art: higher layers draw in front"));
-        menu.End();
+        refs.Ui.InspectPosX = Field(menu, "POSITION", new AnimatorValueBinding(AnimatorFieldKind.Position),
+            UiValueShape.Vector(2), [0f, 0f], (-200f, 200f), "Where the selection sits, in its parent's space", inner);
+        refs.Ui.InspectRotation = Field(menu, "ROTATION °", new AnimatorValueBinding(AnimatorFieldKind.Rotation),
+            UiValueShape.Float, [0f], (-180f, 180f), "How far the selection is turned", inner);
+        refs.Ui.InspectScaleX = Field(menu, "SCALE", new AnimatorValueBinding(AnimatorFieldKind.Scale),
+            UiValueShape.Vector(2), [1f, 1f], (0.1f, 3f), "The selection's stretch along and across", inner);
+        refs.Ui.InspectLayer = Field(menu, "LAYER", new AnimatorValueBinding(AnimatorFieldKind.Layer),
+            UiValueShape.Int, [0f], null, "Draw order of the art: higher layers draw in front", inner);
 
         Entity reset = menu.Button("RESET", new Vector2(inner, row),
             fontSize: UiTheme.SmallFontSize);
@@ -407,7 +374,7 @@ public static partial class AnimatorLayout
         menu.End();
     }
 
-    private const float InspectorSliderRow = 18f;
+    private const float InspectorSliderRow = UiNode.ControlRow;
 
     /// <summary>Width of the bone card, which hangs under the inspector as one panel with it.</summary>
     private const float BoneCardInner = InspectorWidth - 16f;
@@ -415,7 +382,7 @@ public static partial class AnimatorLayout
     /// <summary>Subheads, slider rows and button rows of the bone card, with its spacing and padding.</summary>
     public static readonly Vector2 BoneCardSize = new(
         InspectorWidth,
-        3 * CaptionHeight + 3 * RowHeight + 4 * RowHeight + 9 * 6f + 16f);
+        3 * CaptionHeight + 3 * RowHeight + 5 * RowHeight + 10 * 6f + 16f);
 
     /// <summary>Where the bone card is centred: straight under the transform inspector.</summary>
     public static Vector2 BoneCardCenter(Vector2 screen) =>
@@ -432,7 +399,7 @@ public static partial class AnimatorLayout
         const float inner = BoneCardInner;
         menu.Container(Vector2.Zero, BoneCardSize, StackDirection.Vertical,
             spacing: 6, color: UiTheme.Panel, padding: 8, takesInput: true,
-            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+            cross: StackCrossAlignment.Start, autoHeight: true, main: StackMainAlignment.Start);
         UiLayout.SetHidden(menu.Current, true);
         refs.Ui.BoneCard = menu.Current;
 
@@ -440,7 +407,13 @@ public static partial class AnimatorLayout
         SliderRow(menu, "DEPTH", AnimatorSliderValue.Depth, -60f, 60f, 0f, "0",
             "Move the joint toward (right) or away from the viewer; keyed when let go", inner);
         CardRow(menu, inner, ("KEY BONE", ToolActionKind.KeyBone));
+        refs.Ui.BoneRigHint = RigHint(menu, inner, "JOINT, PARTS AND CHILDREN: EDIT RIG");
 
+        // Joint and bone building change the rig, so they only show while EDIT RIG is on.
+        menu.Container(Vector2.Zero, new Vector2(inner, 4), StackDirection.Vertical,
+            spacing: 6, color: Clear, cross: StackCrossAlignment.Start, autoHeight: true,
+            main: StackMainAlignment.Start);
+        refs.Ui.BoneRigRows = menu.Current;
         CardSubhead(menu, "JOINT");
         Entity[] joint = CardRow(menu, inner,
             ("MOVE", ToolActionKind.ToggleMovable),
@@ -450,23 +423,33 @@ public static partial class AnimatorLayout
         refs.Ui.BoneBendButton = joint[1];
         refs.Ui.BoneLimitButton = joint[2];
         SliderRow(menu, "MIN \u00b0", AnimatorSliderValue.LimitMin, -180f, 180f,
-            -float.RadiansToDegrees(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
+            -float.RadiansToDegrees(Xanadu.Model.Animation.RigJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the negative way from rest; turn LIMIT on first", inner);
         SliderRow(menu, "MAX \u00b0", AnimatorSliderValue.LimitMax, -180f, 180f,
-            float.RadiansToDegrees(Xanadu.Model.Animation.XafJointLocks.DefaultLimit), "0",
+            float.RadiansToDegrees(Xanadu.Model.Animation.RigJointLocks.DefaultLimit), "0",
             "The furthest the bone may turn the positive way from rest; turn LIMIT on first", inner);
 
         CardSubhead(menu, "BONE");
         CardRow(menu, inner,
             ("+ CHILD", ToolActionKind.AddBone),
-            ("+ SVG", ToolActionKind.AddSvg),
+            ("+ PART", ToolActionKind.AddPart),
             ("+ CHAIN", ToolActionKind.AddChain));
+        CardRow(menu, inner,
+            ("+ STREAK", ToolActionKind.AddEffect),
+            ("+ PARTICLES", ToolActionKind.AddParticles),
+            ("+ CLOTH", ToolActionKind.AddCloth));
         CardRow(menu, inner,
             ("RENAME", ToolActionKind.RenameBone),
             ("PARENT", ToolActionKind.ReparentBone),
             ("DELETE", ToolActionKind.DeleteBone));
         menu.End();
+        menu.End();
     }
+
+    /// <summary>A dim line saying where the hidden rig-building rows went.</summary>
+    private static Entity RigHint(UiBuilder ui, float width, string text) =>
+        ui.Text(text, new Vector2(width, CaptionHeight), UiTheme.SmallFontSize,
+            UiTheme.TextDim, TextAlign.Left);
 
     private static void CardSubhead(UiBuilder ui, string title) =>
         ui.Text(title, new Vector2(BoneCardInner, CaptionHeight), UiTheme.SmallFontSize,
@@ -497,19 +480,7 @@ public static partial class AnimatorLayout
         float rest,
         string tooltip)
     {
-        menu.Container(Vector2.Zero, new Vector2(width, InspectorSliderRow), color: Clear,
-            main: StackMainAlignment.Start);
-        var track = new Vector2(width, 10f);
-        Entity slider = menu.RectEntity(Vector2.Zero, track, Palette.Muted, takesInput: true);
-
-        // The slider system lays its fill over the track.
-        Entity fill = menu.RectEntity(Vector2.Zero, track, Palette.PrimaryMuted, "");
-        fill.AddTag<LayoutIgnore>();
-        menu.End();
-
-        slider.AddComponent(new UiSlider(fill, default, min, max, rest, defaultValue: rest));
-        slider.AddComponent(new UiTooltip(tooltip));
-        return slider;
+        return UiNode.Wrap(menu.Current, menu.Visuals).Slider("", min, max, rest, width, readout: false, tooltip: tooltip).Entity;
     }
 
     /// <summary>A text field that only accepts the characters a number needs.</summary>

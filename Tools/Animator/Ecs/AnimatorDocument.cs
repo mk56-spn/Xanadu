@@ -9,7 +9,7 @@ namespace Xanadu.Tools.Animator.Ecs;
 /// <summary>The package being edited together with its playback state.</summary>
 public struct AnimatorDocument : IComponent
 {
-    public XafPackage Package;
+    public RigPackage Package;
     public AnimatorRuntime Runtime;
     public AnimatorPlayback Playback;
     public IAnimatorFiles Files;
@@ -29,7 +29,7 @@ public struct AnimatorDocument : IComponent
 public struct AnimatorFile : IComponent
 {
     public string Path;
-    public XafPackage? Saved;
+    public RigPackage? Saved;
     public bool Dirty;
 
     /// <summary>Set after Load or New refused to discard unsaved changes; a repeat confirms.</summary>
@@ -46,7 +46,7 @@ public struct AnimatorFile : IComponent
 public struct AnimatorTracks : IComponent
 {
     public int FirstRow;
-    public HashSet<XafTrack>? Expanded;
+    public HashSet<RigTrack>? Expanded;
 }
 
 /// <summary>
@@ -65,7 +65,7 @@ public struct AnimatorSessionState : IComponent
 /// <summary>A copied pose, by bone id, waiting to be pasted.</summary>
 public struct AnimatorClipboard
 {
-    public System.Collections.Generic.Dictionary<string, XafTransform>? Pose;
+    public System.Collections.Generic.Dictionary<string, RigTransform>? Pose;
 }
 
 /// <summary>Latest status line message shown in the header.</summary>
@@ -81,7 +81,7 @@ public struct AnimatorStatus : IComponent
 /// One undo state: the package, plus the pose on screen and where in which clip
 /// it was, since an unkeyed pose edit lives only in the runtime.
 /// </summary>
-public readonly record struct AnimatorSnapshot(XafPackage Package, XafPose Pose, string Clip, float Time);
+public readonly record struct AnimatorSnapshot(RigPackage Package, RigPose Pose, string Clip, float Time);
 
 /// <summary>Document snapshots for undo/redo, on the shared <see cref="UndoHistory{T}"/>.</summary>
 public struct AnimatorHistory

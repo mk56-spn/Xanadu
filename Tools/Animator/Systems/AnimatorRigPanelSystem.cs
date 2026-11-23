@@ -8,51 +8,42 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
-/// Keeps the right panel in step with the rig: each section of the rig list
-/// shows how many it holds, the EFFECT tab names the selected effect, and the
-/// tabs follow the selection, so picking an effect opens its tab and picking
-/// anything else afterwards goes back to POSE.
+/// Keeps the right panel in step with the selection: the part card shows and names the selected part,
+/// and a new selection opens the SELECTED tab.
 /// </summary>
 public sealed class AnimatorRigPanelSystem : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private int _effect = -1;
+    private (int, int, int, int, int) _selected = (-1, -1, -1, -1, -1);
 
     protected override void OnUpdate()
     {
         foreach (Entity session in Query.ToEntityList())
         {
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
 
-            UiCollapsibleControl.SetTitle(ui.BoneSection, Counted("SKELETON", package.Skeleton.Bones.Count));
-            UiCollapsibleControl.SetTitle(ui.AttachmentSection, Counted("ATTACHMENTS", package.Attachments.Count));
-            UiCollapsibleControl.SetTitle(ui.ChainSection, Counted("CHAINS", package.Chains.Count));
-            UiCollapsibleControl.SetTitle(ui.EffectSection, Counted("EFFECTS", package.Effects.Count));
-            UiCollapsibleControl.SetTitle(ui.ClothSection, Counted("CLOTH", package.Cloths.Count));
 
-            int effect = Commands.AnimatorEffectCommands.Selected(session);
-            UiText.Set(ui.EffectCaption, effect >= 0
-                ? $"{package.Effects[effect].Id.ToUpperInvariant()}  on {package.Effects[effect].BoneId}"
-                : "NO EFFECT SELECTED");
-            Follow(ui.Tabs, effect);
+            int part = Commands.AnimatorEffectCommands.Selected(session);
+            UiText.Set(ui.EffectCaption, part >= 0
+                ? $"{package.Attachments[part].Id.ToUpperInvariant()}  on {package.Attachments[part].BoneId}"
+                : "NO PART SELECTED");
+            UiLayout.SetHidden(ui.PartCard, part < 0);
+            Follow(session, ui.Tabs);
         }
     }
 
-    private static string Counted(string title, int count) => $"{title}  ·  {count}";
-
-    /// <summary>Switches tabs only on a new selection, so a tab the user picks stays picked.</summary>
-    private void Follow(Entity strip, int effect)
+    /// <summary>
+    /// Opens the SELECTED tab when something new is selected, so its card is
+    /// in view; a tab the user picks afterwards stays picked.
+    /// </summary>
+    private void Follow(Entity session, Entity strip)
     {
-        bool picked = effect >= 0 && effect != _effect;
-        bool dropped = effect < 0 && _effect >= 0;
-        _effect = effect;
-        if (strip.IsNull || !strip.HasComponent<UiTabs>())
-            return;
-
-        ref UiTabs tabs = ref strip.GetComponent<UiTabs>();
-        if (picked)
-            tabs.Selected = AnimatorLayout.EffectTab;
-        else if (dropped && tabs.Selected == AnimatorLayout.EffectTab)
-            tabs.Selected = AnimatorLayout.PoseTab;
+        AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
+        var now = (selection.Bone, Commands.AnimatorEffectCommands.Selected(session), selection.Chain,
+            Commands.AnimatorClothCommands.Selected(session), Commands.AnimatorEventCommands.Selected(session, out _));
+        bool picked = now != _selected && (now.Item1 >= 0 || now.Item2 >= 0 || now.Item3 >= 0 || now.Item4 >= 0 || now.Item5 >= 0);
+        _selected = now;
+        if (picked && !strip.IsNull && strip.HasComponent<UiTabs>())
+            strip.GetComponent<UiTabs>().Selected = AnimatorLayout.SelectedTab;
     }
 }

@@ -30,9 +30,9 @@ public static partial class AnimatorLayout
         TargetRow(menu, ("FROM HERE", "from"), ("TO HERE", "to"));
         TargetRow(menu, ("EASE", "ease"));
         Subhead(menu, "ELLIPSE SHAPE");
-        SliderRow(menu, "WIDE", AnimatorSliderValue.TargetRadiusX, Xanadu.Model.Animation.XafLimbTarget.MinRadius, 120f,
+        SliderRow(menu, "WIDE", AnimatorSliderValue.TargetRadiusX, Xanadu.Model.Animation.RigLimbTarget.MinRadius, 120f,
             Commands.AnimatorTargetCommands.DefaultRadiusX, "0", TargetTooltip("rx")!);
-        SliderRow(menu, "TALL", AnimatorSliderValue.TargetRadiusY, Xanadu.Model.Animation.XafLimbTarget.MinRadius, 120f,
+        SliderRow(menu, "TALL", AnimatorSliderValue.TargetRadiusY, Xanadu.Model.Animation.RigLimbTarget.MinRadius, 120f,
             Commands.AnimatorTargetCommands.DefaultRadiusY, "0", TargetTooltip("ry")!);
         SliderRow(menu, "TILT \u00b0", AnimatorSliderValue.TargetTilt, -180f, 180f, 0f, "0", TargetTooltip("tilt")!);
         Subhead(menu, "ELLIPSE PATH");

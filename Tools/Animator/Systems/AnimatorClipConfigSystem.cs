@@ -96,7 +96,7 @@ public sealed class AnimatorClipConfigSystem(IPointerInputSource pointer)
         if (field.IsNull || !field.HasComponent<TextField>())
             return;
 
-        XafClip? clip = AnimatorSession.CurrentClip(
+        RigClip? clip = AnimatorSession.CurrentClip(
             session.GetComponent<AnimatorDocument>());
         bool editing = field.Tags.Has<TextFieldFocused>();
         ref TextField text = ref field.GetComponent<TextField>();

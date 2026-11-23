@@ -23,7 +23,7 @@ public static partial class AnimatorLayout
         const float inner = ChainInspectorWidth - 16f;
         menu.Container(Vector2.Zero, EventInspectorSize, StackDirection.Vertical,
             spacing: ChainSpacing, color: UiTheme.Panel, padding: 8, takesInput: true,
-            cross: StackCrossAlignment.Start, main: StackMainAlignment.Start);
+            cross: StackCrossAlignment.Start, autoHeight: true, main: StackMainAlignment.Start);
         UiLayout.SetHidden(menu.Current, true);
         refs.Ui.EventInspector = menu.Current;
         refs.Ui.EventTitle = menu.Text("EVENT",
@@ -36,7 +36,8 @@ public static partial class AnimatorLayout
             "What the game is told when playback passes this moment, such as hit or step"));
         menu.End();
 
-        refs.Ui.EventTime = ChainField(menu, "TIME", inner, "Where in the clip the event sits, in seconds");
+        refs.Ui.EventTime = Field(menu, "TIME", new AnimatorValueBinding(AnimatorFieldKind.EventTime),
+            UiValueShape.Float, [0f], null, "Where in the clip the event sits, in seconds", inner);
 
         Entity delete = menu.Button("DELETE EVENT", new Vector2(inner, ChainRow),
             fontSize: UiTheme.SmallFontSize);

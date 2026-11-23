@@ -22,7 +22,7 @@ public static class AnimatorSnap
     /// <paramref name="radius"/> is the snap distance in skeleton units.
     /// </summary>
     public static Vector2 Align(
-        XafPackage package,
+        RigPackage package,
         Transform2D[] world,
         int bone,
         Vector2 wanted,
@@ -31,7 +31,7 @@ public static class AnimatorSnap
         AlignPoint(wanted, Joints(package, world, bone, keepRoot: false), radius, out guides);
 
     /// <summary>The origins of every bone outside the subtree that is moving; the subtree's root can stay as a target.</summary>
-    public static List<Vector2> Joints(XafPackage package, Transform2D[] world, int movingRoot, bool keepRoot)
+    public static List<Vector2> Joints(RigPackage package, Transform2D[] world, int movingRoot, bool keepRoot)
     {
         HashSet<int> moving = Subtree(package, movingRoot);
         if (keepRoot)
@@ -142,7 +142,7 @@ public static class AnimatorSnap
     }
 
     /// <summary>The bone and everything below it.</summary>
-    public static HashSet<int> Subtree(XafPackage package, int bone)
+    public static HashSet<int> Subtree(RigPackage package, int bone)
     {
         var set = new HashSet<int> { bone };
         bool grew = true;

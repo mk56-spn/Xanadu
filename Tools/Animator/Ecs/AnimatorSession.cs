@@ -14,7 +14,7 @@ public static class AnimatorSession
 {
     public static Entity Create(
         EntityStore store,
-        XafPackage package,
+        RigPackage package,
         IAnimatorFiles files,
         string path)
     {
@@ -29,17 +29,17 @@ public static class AnimatorSession
                 Files = files,
             },
             AnimatorSelection.None,
-            new AnimatorModes { Kites = true, Handles = true, AutoKey = true, Align = true },
+            new AnimatorModes { Kites = true, Handles = true, Align = true },
             new AnimatorDrag(),
             new AnimatorStatus { Message = "" },
             new AnimatorFile
             {
                 Path = path,
-                Saved = XafPackageCopy.Clone(package),
+                Saved = RigPackageCopy.Clone(package),
                 Dirty = false,
             },
             new TimelineView(1f),
-            new AnimatorTracks { Expanded = new HashSet<XafTrack>() },
+            new AnimatorTracks { Expanded = new HashSet<RigTrack>() },
             AnimatorBoneMenu.Closed,
             new AnimatorSessionState { Event = AnimatorEventSelection.None });
         session.AddComponent(new TimelineHost(new AnimatorTimelineHost(session)));
@@ -47,8 +47,9 @@ public static class AnimatorSession
         session.AddComponent(new AnimatorClipLength());
         session.AddComponent(new AnimatorNewClipDialog());
         session.AddComponent(new AnimatorInfoPanel());
+        session.AddComponent(new AnimatorShortcutsPanel());
+        session.AddComponent(new AnimatorKeyTryout { Clip = "", Targets = new() });
         session.AddComponent(new AnimatorEasingWindow());
-        session.AddComponent(new AnimatorSvgMenu { Choices = new() });
         session.AddComponent(AnimatorHover.None);
         session.AddComponent(AnimatorPreviewView.Default);
         session.AddComponent(new AnimatorSequence());
@@ -56,8 +57,8 @@ public static class AnimatorSession
         session.AddComponent(AnimatorMetronome.Default);
         session.AddComponent(new AnimatorFlow { Target = "" });
         session.AddComponent(new AnimatorSnapGuides());
-        session.AddComponent(new AnimatorChains { Simulation = new XafChainSimulation() });
-        session.AddComponent(new AnimatorCloths { Simulation = new XafClothSimulation() });
+        session.AddComponent(new AnimatorChains { Simulation = new RigChainSimulation() });
+        session.AddComponent(new AnimatorCloths { Simulation = new RigClothSimulation() });
         session.AddComponent(new AnimatorPreviewMode());
         session.AddComponent(new AnimatorMeshPick());
         session.AddComponent(AnimatorWeightPaint.Default);
@@ -82,7 +83,7 @@ public static class AnimatorSession
     }
 
     /// <summary>Swaps in a new package and resets selection and playback to match.</summary>
-    public static void Replace(Entity session, XafPackage package)
+    public static void Replace(Entity session, RigPackage package)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         document.Package = package;
@@ -95,7 +96,6 @@ public static class AnimatorSession
         session.GetComponent<AnimatorKeyMenu>() = new AnimatorKeyMenu();
         session.GetComponent<AnimatorClipLength>() = new AnimatorClipLength();
         session.GetComponent<AnimatorNewClipDialog>() = new AnimatorNewClipDialog();
-        session.GetComponent<AnimatorSvgMenu>() = new AnimatorSvgMenu { Choices = new() };
         session.GetComponent<AnimatorSessionState>().Event = AnimatorEventSelection.None;
         session.GetComponent<AnimatorMeshPick>() = new AnimatorMeshPick();
         session.GetComponent<AnimatorPlants>().Held.Clear();
@@ -139,10 +139,10 @@ public static class AnimatorSession
     }
 
     /// <summary>The clip currently driving the runtime, if any.</summary>
-    public static XafClip? CurrentClip(in AnimatorDocument document)
+    public static RigClip? CurrentClip(in AnimatorDocument document)
     {
         string id = document.Runtime.CurrentClip;
-        foreach (XafClip clip in document.Package.Clips)
+        foreach (RigClip clip in document.Package.Clips)
         {
             if (clip.Id == id)
                 return clip;

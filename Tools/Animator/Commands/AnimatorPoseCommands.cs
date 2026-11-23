@@ -18,14 +18,14 @@ public static class AnimatorPoseCommands
     public static void KeyPose(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            if (!TryCurrentClip(session, out XafClip clip))
+            if (!TryCurrentClip(session, out RigClip clip))
                 return;
 
             ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
             float time = document.Runtime.CurrentTime;
-            XafPose pose = document.Runtime.Pose;
+            RigPose pose = document.Runtime.Pose;
             for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
-                XafAuthoring.KeyBoneTransform(document.Package, clip, i, time, pose.Bones[i]);
+                RigAuthoring.KeyBoneTransform(document.Package, clip, i, time, pose.Bones[i]);
             AnimatorSession.SetStatus(session, $"KEYED POSE AT {time:0.00}s");
         });
 
@@ -33,7 +33,7 @@ public static class AnimatorPoseCommands
     public static void CopyPose(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        var pose = new Dictionary<string, XafTransform>();
+        var pose = new Dictionary<string, RigTransform>();
         for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
             pose[document.Package.Skeleton.Bones[i].Id] = document.Runtime.Pose.Bones[i];
 
@@ -48,7 +48,7 @@ public static class AnimatorPoseCommands
     /// </summary>
     public static void PastePose(Entity session)
     {
-        Dictionary<string, XafTransform>? copied = session.GetComponent<AnimatorSessionState>().Clipboard.Pose;
+        Dictionary<string, RigTransform>? copied = session.GetComponent<AnimatorSessionState>().Clipboard.Pose;
         if (copied is null)
         {
             AnimatorSession.SetStatus(session, "COPY A POSE FIRST");
@@ -63,7 +63,7 @@ public static class AnimatorPoseCommands
         var pasted = new List<int>();
         for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
         {
-            if (!copied.TryGetValue(document.Package.Skeleton.Bones[i].Id, out XafTransform transform))
+            if (!copied.TryGetValue(document.Package.Skeleton.Bones[i].Id, out RigTransform transform))
                 continue;
 
             document.Runtime.Pose.Bones[i] = transform;
@@ -72,13 +72,13 @@ public static class AnimatorPoseCommands
 
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            if (!TryCurrentClip(session, out XafClip clip))
+            if (!TryCurrentClip(session, out RigClip clip))
                 return;
 
             ref AnimatorDocument edited = ref session.GetComponent<AnimatorDocument>();
             float time = edited.Runtime.CurrentTime;
             foreach (int bone in pasted)
-                XafAuthoring.KeyBoneTransform(edited.Package, clip, bone, time, edited.Runtime.Pose.Bones[bone]);
+                RigAuthoring.KeyBoneTransform(edited.Package, clip, bone, time, edited.Runtime.Pose.Bones[bone]);
             AnimatorSession.SetStatus(session, $"PASTED POSE AND KEYED {pasted.Count} BONES AT {time:0.00}s");
         });
     }
@@ -94,12 +94,12 @@ public static class AnimatorPoseCommands
 
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         document.Runtime.SetPaused(true);
-        List<XafBone> bones = document.Package.Skeleton.Bones;
-        XafTransform[] before = (XafTransform[])document.Runtime.Pose.Bones.Clone();
+        List<RigBone> bones = document.Package.Skeleton.Bones;
+        RigTransform[] before = (RigTransform[])document.Runtime.Pose.Bones.Clone();
         for (int i = 0; i < bones.Count; i++)
         {
-            int twin = XafRig.FindBone(document.Package, MirrorId(bones[i].Id));
-            XafTransform source = before[twin >= 0 ? twin : i];
+            int twin = RigRig.FindBone(document.Package, MirrorId(bones[i].Id));
+            RigTransform source = before[twin >= 0 ? twin : i];
             source.Rotation = -source.Rotation;
             // Fixed-length bones keep their own offset; only movable ones are shifted.
             source.Translation = bones[i].CanTranslate
@@ -143,7 +143,7 @@ public static class AnimatorPoseCommands
         AnimatorSession.SetStatus(session, status);
     }
 
-    private static bool TryCurrentClip(Entity session, out XafClip clip)
+    private static bool TryCurrentClip(Entity session, out RigClip clip)
     {
         clip = null!;
         if (session.GetComponent<AnimatorModes>().Rest)
@@ -152,7 +152,7 @@ public static class AnimatorPoseCommands
             return false;
         }
 
-        XafClip? current = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? current = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         if (current is null)
             return false;
         clip = current;

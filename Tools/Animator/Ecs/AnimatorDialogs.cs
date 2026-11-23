@@ -30,6 +30,12 @@ public struct AnimatorEasingWindow : IComponent
     public bool Open;
 }
 
+/// <summary>The SHORTCUTS sheet, centred over a dimmer; a click outside it, or F1 again, closes it.</summary>
+public struct AnimatorShortcutsPanel : IComponent
+{
+    public bool Open;
+}
+
 /// <summary>The file info popup, centred over a dimmer; a click outside it closes it.</summary>
 public struct AnimatorInfoPanel : IComponent
 {
@@ -48,10 +54,10 @@ public struct AnimatorKeyMenu : IComponent
     public Vector2 Anchor;
 
     /// <summary>The bone or attachment whose row was clicked.</summary>
-    public XafTrack Track;
+    public RigTrack Track;
 
     /// <summary>The channel row clicked, or null for the target's merged row.</summary>
-    public XafChannelProperty? Property;
+    public RigChannelProperty? Property;
 
     /// <summary>Seconds into the clip under the pointer, snapped, or the time of the key clicked.</summary>
     public float Time;
@@ -60,5 +66,5 @@ public struct AnimatorKeyMenu : IComponent
     public bool OverrideOpen;
 
     /// <summary>The override whose bar was right-clicked.</summary>
-    public XafLimbTarget? Override;
+    public RigLimbTarget? Override;
 }

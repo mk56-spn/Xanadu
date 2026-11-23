@@ -65,16 +65,16 @@ public sealed class AnimatorInfoPanelSystem(IPointerInputSource pointer)
     private static List<(string Label, string Value)> Lines(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigPackage package = document.Package;
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         return new List<(string, string)>
         {
             ("BONES", $"{package.Skeleton.Bones.Count}"),
             ("CLIPS", $"{package.Clips.Count}" +
                       (clip is null ? "" : $"   ·   editing {clip.Id}, {clip.Duration:0.00} s")),
-            ("ATTACHMENTS", $"{package.Attachments.Count}"),
+            ("PARTS", $"{package.Attachments.Count}"),
             ("CHAINS", $"{package.Chains.Count}"),
-            ("EFFECTS", $"{package.Effects.Count}"),
+            ("CLOTH", $"{package.Cloths.Count}"),
             ("STATE", session.GetComponent<AnimatorFile>().Dirty ? "● unsaved changes" : "saved"),
         };
     }

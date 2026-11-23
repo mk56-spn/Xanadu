@@ -17,26 +17,28 @@ namespace Xanadu.Tools.Animator.Systems;
 #pragma warning disable RS0030
 
 /// <summary>
-/// Rebuilds the bone, attachment, chain, effect and clip lists when the package changes and
-/// highlights the selected entries.
+/// Rebuilds the rig tree (bones with their parts, chains and cloth) and the
+/// clip dropdown when the package changes, refreshes the tree when the clip or
+/// its pins and ellipses change (they mark the bones they drive), and shows the selection in the tree.
 /// </summary>
 public sealed class AnimatorHierarchySystem(
     IVisualItemFactory visuals,
     IPointerInputSource? pointer = null)
     : QuerySystem<AnimatorDocument, AnimatorUi>
 {
-    private static readonly Vector2 ItemSize = new(AnimatorLayout.EntryWidth, UiTheme.TreeRowHeight);
     private static readonly Vector2 ClipDropdownSize = new(AnimatorLayout.ClipWidth, EditorShellMetrics.HeaderControlHeight);
     private static readonly Color Selected = Palette.Selected;
 
     private int _version = -1;
+    private int _treeVersion = -1;
+    private int? _treeOwners;
 
     protected override void OnUpdate()
     {
         foreach (Entity session in Query.ToEntityList())
         {
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             int version = session.GetComponent<AnimatorDocument>().Version;
             if (version != _version)
             {
@@ -44,72 +46,30 @@ public sealed class AnimatorHierarchySystem(
                 Rebuild(session, ui, package);
             }
 
+            AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+            RigClip? clip = AnimatorSession.CurrentClip(document);
+            int owners = AnimatorRigTree.OwnersKey(clip);
+            if (version != _treeVersion || owners != _treeOwners)
+            {
+                _treeVersion = version;
+                _treeOwners = owners;
+                UiBuilder.Begin(Query.Store, visuals).SetTreeItems(ui.BoneList, AnimatorRigTree.Items(package, clip));
+            }
+
             SyncBoneTree(session, ui.BoneList, package, pointer?.Read().Shift ?? false);
-            AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
             SyncClipDropdown(session.GetComponent<AnimatorUi>().ClipDropdown,
                 session.GetComponent<AnimatorDocument>().Runtime.CurrentClip);
-            Highlight(ui.AttachmentList, entry =>
-                entry.Kind == ToolActionKind.SelectAttachment &&
-                entry.Argument == selection.Attachment.ToString());
-            Highlight(ui.ChainList, entry =>
-                entry.Kind == ToolActionKind.SelectChain &&
-                entry.Argument == selection.Chain.ToString());
-            Highlight(ui.EffectList, entry =>
-                entry.Kind == ToolActionKind.SelectEffect &&
-                entry.Argument == selection.Effect.ToString());
-            Highlight(ui.ClothList, entry =>
-                entry.Kind == ToolActionKind.SelectCloth &&
-                entry.Argument == selection.Cloth.ToString());
         }
     }
 
-    private void Rebuild(Entity session, AnimatorUi ui, XafPackage package)
+    private void Rebuild(Entity session, AnimatorUi ui, RigPackage package)
     {
-        Clear(ui.AttachmentList);
-        Clear(ui.ChainList);
-        Clear(ui.EffectList);
-        Clear(ui.ClothList);
-
         // The old dropdown's list and options float on the menu layer, outside
         // the header slot, so they have to be removed along with its button.
         List<Entity> floating = ClipDropdownParts(ui.ClipDropdown);
         Clear(ui.ClipList);
         foreach (Entity part in floating)
             UiLayout.DeleteSubtree(part);
-
-        var bones = new List<UiTreeItem>();
-        foreach (XafBone bone in package.Skeleton.Bones)
-        {
-            string? parent = bone.Parent >= 0
-                ? package.Skeleton.Bones[bone.Parent].Id
-                : null;
-            bones.Add(new UiTreeItem(bone.Id, parent, bone.Id));
-        }
-        UiBuilder.Begin(Query.Store, visuals).SetTreeItems(ui.BoneList, bones);
-
-        for (int i = 0; i < package.Attachments.Count; i++)
-        {
-            AddEntry(ui.AttachmentList, package.Attachments[i].Group,
-                ToolActionKind.SelectAttachment, ItemSize, i.ToString());
-        }
-
-        for (int i = 0; i < package.Chains.Count; i++)
-        {
-            AddEntry(ui.ChainList, package.Chains[i].Id,
-                ToolActionKind.SelectChain, ItemSize, i.ToString());
-        }
-
-        for (int i = 0; i < package.Effects.Count; i++)
-        {
-            AddEntry(ui.EffectList, $"{package.Effects[i].Id}  on {package.Effects[i].BoneId}",
-                ToolActionKind.SelectEffect, ItemSize, i.ToString());
-        }
-
-        for (int i = 0; i < package.Cloths.Count; i++)
-        {
-            AddEntry(ui.ClothList, $"{package.Cloths[i].Id}  on {package.Cloths[i].BoneId}",
-                ToolActionKind.SelectCloth, ItemSize, i.ToString());
-        }
 
         session.GetComponent<AnimatorUi>().ClipDropdown = AddClipDropdown(ui, package);
     }
@@ -120,13 +80,13 @@ public sealed class AnimatorHierarchySystem(
     /// Each option carries the same action as a clip button, so the action
     /// system switches clips.
     /// </summary>
-    private Entity AddClipDropdown(AnimatorUi ui, XafPackage package)
+    private Entity AddClipDropdown(AnimatorUi ui, RigPackage package)
     {
         if (ui.ClipList.IsNull || ui.MenuLayer.IsNull)
             return default;
 
         var labels = new List<string>();
-        foreach (XafClip clip in package.Clips)
+        foreach (RigClip clip in package.Clips)
             labels.Add(clip.Id.ToUpperInvariant());
 
         Entity button = UiBuilder.Begin(Query.Store, visuals).Use(ui.ClipList)
@@ -190,7 +150,7 @@ public sealed class AnimatorHierarchySystem(
     private static void SyncBoneTree(
         Entity session,
         Entity tree,
-        XafPackage package,
+        RigPackage package,
         bool shift)
     {
         if (tree.IsNull)
@@ -200,20 +160,25 @@ public sealed class AnimatorHierarchySystem(
         {
             tree.RemoveComponent<UiTreeChanged>();
             ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
-            if (session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None)
+            if (AnimatorRigTree.IsOther(changed.Id))
+            {
+                // A part, chain or cloth row: picking or reparenting wants a bone, so it only selects.
+                AnimatorCommands.Run(session, AnimatorRigTree.Select(changed.Id));
+            }
+            else if (session.GetComponent<AnimatorChains>().Picking != AnimatorChainPick.None)
             {
                 // A chain inspector button is waiting for a bone, and the tree is a way to give one.
-                AnimatorChainPlacementCommands.PickBone(session, XafRig.FindBone(package, changed.Id));
+                AnimatorChainPlacementCommands.PickBone(session, RigRig.FindBone(package, changed.Id));
             }
             else if (menu.Reparenting >= 0)
             {
                 int child = menu.Reparenting;
                 menu.Reparenting = -1;
-                AnimatorEditing.ReparentBone(session, child, XafRig.FindBone(package, changed.Id));
+                AnimatorEditing.ReparentBone(session, child, RigRig.FindBone(package, changed.Id));
             }
             else if (shift)
             {
-                ToggleBone(session, XafRig.FindBone(package, changed.Id), package);
+                ToggleBone(session, RigRig.FindBone(package, changed.Id), package);
             }
             else
             {
@@ -223,10 +188,7 @@ public sealed class AnimatorHierarchySystem(
             }
         }
 
-        int bone = session.GetComponent<AnimatorSelection>().Bone;
-        string id = bone >= 0 && bone < package.Skeleton.Bones.Count
-            ? package.Skeleton.Bones[bone].Id
-            : "";
+        string id = AnimatorRigTree.Selected(session.GetComponent<AnimatorSelection>(), package);
 
         // Only on a real change: revealing every frame would stop the user
         // collapsing a branch that holds the selection.
@@ -240,7 +202,7 @@ public sealed class AnimatorHierarchySystem(
     private static void HighlightGroup(
         Entity session,
         Entity tree,
-        XafPackage package,
+        RigPackage package,
         string primaryId)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
@@ -258,7 +220,7 @@ public sealed class AnimatorHierarchySystem(
         UiTreeControl.SetMultiSelected(tree, extras);
     }
 
-    private static void ToggleBone(Entity session, int bone, XafPackage package)
+    private static void ToggleBone(Entity session, int bone, RigPackage package)
     {
         if (bone < 0)
             return;
@@ -273,51 +235,11 @@ public sealed class AnimatorHierarchySystem(
                 : $"SELECTED {package.Skeleton.Bones[bone].Id}");
     }
 
-    private void AddEntry(
-        Entity list,
-        string label,
-        ToolActionKind kind,
-        Vector2 size,
-        string argument)
-    {
-        if (list.IsNull)
-            return;
-
-        UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Use(list);
-        // Styled like a tree row, so the four sections of the list read as one list.
-        Entity entry = ui.Button(label, size, UiTheme.PanelAlt);
-        entry.AddComponent(new TextAlignment(TextAlign.Left));
-        entry.AddComponent(ToolAction.Of(kind, argument));
-        AnimatorTooltips.Attach(entry, kind, argument);
-    }
-
     private static void Clear(Entity list)
     {
         if (list.IsNull)
             return;
 
         UiLayout.DeleteChildren(list);
-    }
-
-    private static void Highlight(Entity list, System.Func<ToolAction, bool> isSelected)
-    {
-        if (list.IsNull)
-            return;
-
-        foreach (Entity child in list.ChildEntities)
-        {
-            if (!child.HasToolAction() || !child.HasComponent<ButtonVisual>())
-                continue;
-
-            Color target = isSelected(child.GetToolAction())
-                ? Selected
-                : UiTheme.PanelAlt;
-            ref ButtonVisual visual = ref child.GetComponent<ButtonVisual>();
-            if (visual.Normal == target)
-                continue;
-
-            visual.Normal = target;
-            visual.Hover = target.Lerp(Colors.White, 0.16f);
-        }
     }
 }

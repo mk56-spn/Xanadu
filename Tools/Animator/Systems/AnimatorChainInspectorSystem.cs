@@ -23,33 +23,11 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
 {
     private static readonly Color PickingColor = Palette.Warning;
 
-    private readonly bool[] _wasFocused = new bool[Fields];
-    private int _editChain = -1;
-
-    /// <summary>The number of typed fields; they are listed in <see cref="FieldsOf"/>.</summary>
-    private const int Fields = 12;
-
     protected override void OnUpdate()
     {
         foreach (Entity session in Query.ToEntityList())
             Update(session);
     }
-
-    private static (Entity Field, Setting Setting)[] FieldsOf(AnimatorUi ui) =>
-    [
-        (ui.ChainOffsetX, Setting.OffsetX),
-        (ui.ChainOffsetY, Setting.OffsetY),
-        (ui.ChainSegments, Setting.Segments),
-        (ui.ChainLength, Setting.Length),
-        (ui.ChainWidth, Setting.Width),
-        (ui.ChainGravity, Setting.Gravity),
-        (ui.ChainLean, Setting.Lean),
-        (ui.ChainDamping, Setting.Damping),
-        (ui.ChainColliderX, Setting.ColliderX),
-        (ui.ChainColliderY, Setting.ColliderY),
-        (ui.ChainCollide, Setting.Collide),
-        (ui.ChainLayer, Setting.Layer),
-    ];
 
     private void Update(Entity session)
     {
@@ -65,19 +43,18 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
             return;
         }
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         int selected = session.GetComponent<AnimatorSelection>().Chain;
         bool shown = selected >= 0 && selected < package.Chains.Count;
-        XafChain? chain = shown ? package.Chains[selected] : null;
+        RigChain? chain = shown ? package.Chains[selected] : null;
 
-        AnimatorMenuPlacement.Place(ui.ChainInspector, AnimatorLayout.ChainInspectorTopLeft(ui.ScreenSize) + AnimatorLayout.ChainInspectorSize / 2, shown: shown);
+        UiLayout.SetHidden(ui.ChainInspector, !shown);
 
         // The transform inspector has nothing to show for a chain or a cloth, so it gives up its spot.
-        AnimatorMenuPlacement.Place(ui.Inspector, AnimatorLayout.InspectorCenter(ui.ScreenSize), shown: !(shown || AnimatorClothCommands.Selected(session) >= 0));
+        UiLayout.SetHidden(ui.Inspector, shown || AnimatorClothCommands.Selected(session) >= 0);
 
         UiText.Set(ui.ChainTitle, chain is null ? "NO CHAIN" : chain.Id + "  CHAIN");
         AnimatorChainPick picking = session.GetComponent<AnimatorChains>().Picking;
-        SetButton(ui.ChainArtButton, chain is null ? "" : ArtLabel(chain), UiTheme.Button);
         SetButton(ui.ChainSheetButton, chain is null ? "" : chain.Sheet ? "SHEET" : "PIECES", UiTheme.Button);
         SetButton(ui.ChainBoneButton, chain?.BoneId ?? "",
             picking == AnimatorChainPick.Anchor ? PickingColor : UiTheme.Button,
@@ -86,66 +63,7 @@ public sealed class AnimatorChainInspectorSystem : QuerySystem<AnimatorDocument,
             picking == AnimatorChainPick.Collider ? PickingColor : UiTheme.Button,
             picking == AnimatorChainPick.Collider ? "CLICK A BONE" : null);
 
-        (Entity Field, Setting Setting)[] fields = FieldsOf(ui);
-        for (int i = 0; i < fields.Length; i++)
-            Sync(session, fields[i].Field, i, fields[i].Setting, chain);
     }
-
-    private void Sync(Entity session, Entity field, int index, Setting setting, XafChain? chain)
-    {
-        if (field.IsNull || !field.HasComponent<TextField>())
-            return;
-
-        bool focused = field.Tags.Has<TextFieldFocused>();
-        ref TextField text = ref field.GetComponent<TextField>();
-        if (focused && !_wasFocused[index])
-            _editChain = session.GetComponent<AnimatorSelection>().Chain;
-        else if (!focused && _wasFocused[index])
-            Commit(session, setting, text.Value);
-
-        if (!focused)
-            text.Value = chain is null ? "" : Format(chain, setting);
-        _wasFocused[index] = focused;
-    }
-
-    /// <summary>Applies a typed value, unless the selection moved to another chain while typing.</summary>
-    private void Commit(Entity session, Setting setting, string typed)
-    {
-        if (session.GetComponent<AnimatorSelection>().Chain != _editChain)
-            return;
-
-        if (!float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
-        {
-            AnimatorSession.SetStatus(session, "NOT A NUMBER");
-            return;
-        }
-
-        AnimatorChainCommands.Set(session, setting, value);
-    }
-
-    private static string Format(XafChain chain, Setting setting) => setting switch
-    {
-        Setting.Segments => chain.Segments.ToString(CultureInfo.InvariantCulture),
-        Setting.Length => Number(chain.SegmentLength),
-        Setting.Width => Number(chain.Width),
-        Setting.Layer => chain.Layer?.ToString(CultureInfo.InvariantCulture) ?? "",
-        Setting.Gravity => Number(chain.Gravity),
-        Setting.Lean => Number(chain.Lean),
-        Setting.Collide => Number(chain.CollideRadius),
-        Setting.OffsetX => Number(chain.Offset.X),
-        Setting.OffsetY => Number(chain.Offset.Y),
-        Setting.ColliderX => Number(chain.CollideOffset.X),
-        Setting.ColliderY => Number(chain.CollideOffset.Y),
-        _ => Number(chain.Damping),
-    };
-
-    /// <summary>The art as the picker names it: the file, plus the group when it differs; NONE without art.</summary>
-    public static string ArtLabel(XafChain chain) =>
-        chain.HasArt
-            ? new AnimatorSvgChoice(chain.SvgPath, chain.Group).Label
-            : "NONE";
-
-    private static string Number(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
     /// <summary>Writes a button's current value, or a prompt while it waits for a click, and lights it then.</summary>
     private static void SetButton(Entity button, string value, Color color, string? prompt = null)

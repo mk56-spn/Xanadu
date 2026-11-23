@@ -42,7 +42,7 @@ public static class AnimatorFlowCommands
     }
 
     /// <summary>The selected target clip, if it still exists and is not the clip itself.</summary>
-    public static XafClip? Target(Entity session)
+    public static RigClip? Target(Entity session)
     {
         string target = session.GetComponent<AnimatorFlow>().Target ?? "";
         if (target.Length == 0 || target == From(session))
@@ -51,9 +51,9 @@ public static class AnimatorFlowCommands
     }
 
     /// <summary>The rule from the clip being edited into the selected target, if there is one.</summary>
-    public static XafTransition? Rule(Entity session) =>
+    public static RigTransition? Rule(Entity session) =>
         Target(session) is { } target
-            ? XafTransitions.Find(session.GetComponent<AnimatorDocument>().Package, From(session), target.Id)
+            ? RigTransitions.Find(session.GetComponent<AnimatorDocument>().Package, From(session), target.Id)
             : null;
 
     /// <summary>The playback speed of every preview: a quarter while SLOW is on.</summary>
@@ -61,12 +61,12 @@ public static class AnimatorFlowCommands
         session.TryGetComponent(out AnimatorFlow flow) ? flow.Speed : 1f;
 
     /// <summary>The hand-overs the game's motion system can ask this rig for.</summary>
-    public static List<(string From, string To)> GameTransitions(XafPackage package) =>
+    public static List<(string From, string To)> GameTransitions(RigPackage package) =>
         CharacterTransitions.Transitions(package).ConvertAll(pair => (pair.From.Id(), pair.To.Id()));
 
     public static void Select(Entity session, string target)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (!package.Clips.Exists(clip => clip.Id == target) || target == From(session))
             return;
 
@@ -81,26 +81,26 @@ public static class AnimatorFlowCommands
     /// </summary>
     public static void Toggle(Entity session, string target)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         string from = From(session);
         if (!package.Clips.Exists(clip => clip.Id == target) || target == from)
             return;
 
         session.GetComponent<AnimatorFlow>().Target = target;
-        bool wasOpen = XafTransitions.IsOpen(package);
-        bool allowed = XafTransitions.Find(package, from, target) is null;
+        bool wasOpen = RigTransitions.IsOpen(package);
+        bool allowed = RigTransitions.Find(package, from, target) is null;
         AnimatorHistoryCommands.Edit(session, () =>
         {
             if (allowed)
-                XafTransitions.Allow(package, from, target);
+                RigTransitions.Allow(package, from, target);
             else
-                XafTransitions.Forbid(package, from, target);
+                RigTransitions.Forbid(package, from, target);
         });
 
         string message = allowed ? $"{Pair(from, target)} ALLOWED" : $"{Pair(from, target)} FORBIDDEN";
         if (allowed && wasOpen)
             message += ": OTHER HAND-OVERS NOW NEED A RULE";
-        else if (!allowed && XafTransitions.IsOpen(package))
+        else if (!allowed && RigTransitions.IsOpen(package))
             message += ": NO RULES LEFT, ANY CLIP CAN FOLLOW ANY";
         AnimatorSession.SetStatus(session, message);
     }
@@ -114,8 +114,8 @@ public static class AnimatorFlowCommands
         }
 
         // Snap to the step grid, so a few presses land on round values.
-        float steps = MathF.Round(rule.Fade / XafTransitions.FadeStep);
-        float fade = XafTransitions.ClampFade((steps + MathF.Sign(delta)) * XafTransitions.FadeStep);
+        float steps = MathF.Round(rule.Fade / RigTransitions.FadeStep);
+        float fade = RigTransitions.ClampFade((steps + MathF.Sign(delta)) * RigTransitions.FadeStep);
         AnimatorHistoryCommands.Edit(session, () => rule.Fade = fade);
         AnimatorSession.SetStatus(session, $"{Pair(rule.From, rule.To)} FADE {fade:0.00} S");
     }
@@ -129,14 +129,14 @@ public static class AnimatorFlowCommands
             return;
         }
 
-        float fade = XafTransitions.ClampFade(seconds);
+        float fade = RigTransitions.ClampFade(seconds);
         AnimatorHistoryCommands.Edit(session, () => rule.Fade = fade);
         AnimatorSession.SetStatus(session, $"{Pair(rule.From, rule.To)} FADE {fade:0.00} S");
     }
 
     public static void SetCurve(Entity session, string argument)
     {
-        if (!Enum.TryParse(argument, out XafFadeCurve curve))
+        if (!Enum.TryParse(argument, out RigFadeCurve curve))
             return;
         if (Rule(session) is not { } rule)
         {
@@ -162,17 +162,17 @@ public static class AnimatorFlowCommands
             return;
         }
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         AnimatorFlow flow = session.GetComponent<AnimatorFlow>();
         AnimatorSequenceCommands.Start(session, Steps(package, from, target.Id), "FLOW", flow.Loop);
-        if (!XafTransitions.Allows(package, from, target.Id))
+        if (!RigTransitions.Allows(package, from, target.Id))
             AnimatorSession.SetStatus(session, $"{Pair(from, target.Id)} NOT ALLOWED: PREVIEWING THE DEFAULT FADE");
     }
 
     /// <summary>The two steps of a hand-over preview: lead in on the old clip, settle on the new.</summary>
-    public static List<AnimatorSequenceStep> Steps(XafPackage package, string from, string to)
+    public static List<AnimatorSequenceStep> Steps(RigPackage package, string from, string to)
     {
-        (float fade, _) = XafTransitions.Blend(package, from, to);
+        (float fade, _) = RigTransitions.Blend(package, from, to);
         float lead = Math.Min(MaxLeadSeconds, AnimatorSequenceCommands.FullSeconds(package, from));
         float hold = Math.Max(
             fade + SettleSeconds,
@@ -207,20 +207,20 @@ public static class AnimatorFlowCommands
     /// </summary>
     public static (float Distance, string BoneId)? Gap(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        XafClip? from = package.Clips.Find(clip => clip.Id == From(session));
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigClip? from = package.Clips.Find(clip => clip.Id == From(session));
         if (from is null || Target(session) is not { } target)
             return null;
 
         float lead = Math.Min(MaxLeadSeconds, AnimatorSequenceCommands.FullSeconds(package, from.Id));
-        return XafTransitions.Gap(package, from, AnimatorRuntime.WrapTime(from, lead), target);
+        return RigTransitions.Gap(package, from, AnimatorRuntime.WrapTime(from, lead), target);
     }
 
-    public static string CurveName(XafFadeCurve curve) => curve switch
+    public static string CurveName(RigFadeCurve curve) => curve switch
     {
-        XafFadeCurve.Smooth => "SMOOTH",
-        XafFadeCurve.EaseIn => "EASE IN",
-        XafFadeCurve.EaseOut => "EASE OUT",
+        RigFadeCurve.Smooth => "SMOOTH",
+        RigFadeCurve.EaseIn => "EASE IN",
+        RigFadeCurve.EaseOut => "EASE OUT",
         _ => "LINEAR",
     };
 

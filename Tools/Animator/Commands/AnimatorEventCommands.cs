@@ -8,7 +8,7 @@ namespace Xanadu.Tools.Animator.Commands;
 public static class AnimatorEventCommands
 {
     /// <summary>The selected event's index in the open clip, or -1.</summary>
-    public static int Selected(Entity session, out XafClip? clip)
+    public static int Selected(Entity session, out RigClip? clip)
     {
         clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         AnimatorEventSelection selection = session.GetComponent<AnimatorSessionState>().Event;
@@ -30,7 +30,7 @@ public static class AnimatorEventCommands
                 return;
 
             document.Runtime.SetPaused(true);
-            int index = XafEventAuthoring.Add(clip, document.Runtime.CurrentTime);
+            int index = RigEventAuthoring.Add(clip, document.Runtime.CurrentTime);
             if (index < 0)
                 return;
             Select(session, clip.Id, index);
@@ -41,7 +41,7 @@ public static class AnimatorEventCommands
     public static void Delete(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            int index = Selected(session, out XafClip? clip);
+            int index = Selected(session, out RigClip? clip);
             if (index < 0 || clip is null)
             {
                 AnimatorSession.SetStatus(session, "PICK AN EVENT ON THE RULER FIRST");
@@ -49,7 +49,7 @@ public static class AnimatorEventCommands
             }
 
             string name = clip.Events[index].Name;
-            XafEventAuthoring.Remove(clip, index);
+            RigEventAuthoring.Remove(clip, index);
             session.GetComponent<AnimatorSessionState>().Event = AnimatorEventSelection.None;
             AnimatorSession.SetStatus(session, $"DELETED EVENT {name.ToUpperInvariant()}");
         });
@@ -57,8 +57,8 @@ public static class AnimatorEventCommands
     public static void Rename(Entity session, string name) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            int index = Selected(session, out XafClip? clip);
-            if (index >= 0 && clip is not null && XafEventAuthoring.Rename(clip, index, name))
+            int index = Selected(session, out RigClip? clip);
+            if (index >= 0 && clip is not null && RigEventAuthoring.Rename(clip, index, name))
                 AnimatorSession.SetStatus(session, $"EVENT NAMED {clip.Events[index].Name.ToUpperInvariant()}");
             else
                 AnimatorSession.SetStatus(session, "AN EVENT NEEDS A NAME");
@@ -68,11 +68,11 @@ public static class AnimatorEventCommands
     public static void Retime(Entity session, float time) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            int index = Selected(session, out XafClip? clip);
+            int index = Selected(session, out RigClip? clip);
             if (index < 0 || clip is null)
                 return;
 
-            int moved = XafEventAuthoring.Move(clip, index, time);
+            int moved = RigEventAuthoring.Move(clip, index, time);
             Select(session, clip.Id, moved);
             AnimatorSession.SetStatus(session,
                 $"EVENT {clip.Events[moved].Name.ToUpperInvariant()} AT {clip.Events[moved].Time:0.00} S");

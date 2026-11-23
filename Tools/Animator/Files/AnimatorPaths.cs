@@ -8,11 +8,10 @@ namespace Xanadu.Tools.Animator.Files;
 public static class AnimatorPaths
 {
     /// <summary>The package the animator opens.</summary>
-    public const string DefaultPackage = "Tools/Animator/Animations/Characters/contact.xaf";
+    public const string DefaultPackage = "Tools/Animator/Animations/Characters/contact.xif";
 
     /// <summary>Folder swept for art.</summary>
     public const string Assets = "Tools/Animator/Assets";
 
     /// <summary>Folder the default package's art comes from.</summary>
-    public const string Svg = Assets + "/SVG";
 }

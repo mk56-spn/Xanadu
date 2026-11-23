@@ -9,7 +9,7 @@ namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
 /// Decides what a press in the preview grabs: a pending pick, the weight
-/// brush, a target or chain handle, a bone joint, or an SVG attachment.
+/// brush, a target or chain handle, a bone joint, or an part.
 /// </summary>
 internal static class AnimatorPreviewGrab
 {
@@ -18,12 +18,15 @@ internal static class AnimatorPreviewGrab
         if (!area.HasPoint(pointer))
             return;
 
+        // Grabbing mid-replay would pose (and key) at a time between the keys.
+        AnimatorKeyTryoutCommands.Settle(session);
+
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        XafPackage package = document.Package;
-        XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
-        Transform2D[] world = XafRig.WorldBones(package, pose);
+        RigPackage package = document.Package;
+        RigPose pose = AnimatorGeometry.PreviewPose(document, modes);
+        Transform2D[] world = RigRig.WorldBones(package, pose);
         AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
         Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
         string suffix = modes.Rest ? " (REST)" : "";
@@ -86,6 +89,20 @@ internal static class AnimatorPreviewGrab
             return;
         }
 
+        // Double-clicking a limb's art opens the XIF editor on it, in any mode.
+        if (AnimatorArtPick.DoubleClick(pointer))
+        {
+            Transform2D[] placed = RigRig.WorldAttachments(package, pose, world);
+            int part = AnimatorArtPick.PartAt(package, pose, placed, placement, pointer);
+            if (part >= 0)
+            {
+                selection.SelectOnlyAttachment(part);
+                selection.Chain = -1;
+                AnimatorArtCommands.EditXif(session);
+                return;
+            }
+        }
+
         // So are the selected target's handles.
         if (!modes.Rest && AnimatorTargetCommands.TryBegin(session, pointer, placement, world))
             return;
@@ -97,9 +114,9 @@ internal static class AnimatorPreviewGrab
         if (AnimatorTipHandles.TryBegin(session, pointer, placement, pose, world))
             return;
 
-        // Bone movement and SVG placement are separate modes, so a click only
+        // Bone movement and part placement are separate modes, so a click only
         // ever considers one kind of target.
-        if (!modes.Svg)
+        if (!modes.Parts)
         {
             int bone = AnimatorGeometry.PickNearest(
                 world, placement, pointer, AnimatorGeometry.BoneHitRadius);
@@ -133,7 +150,7 @@ internal static class AnimatorPreviewGrab
             return;
         }
 
-        Transform2D[] attachments = XafRig.WorldAttachments(package, pose, world);
+        Transform2D[] attachments = RigRig.WorldAttachments(package, pose, world);
         int attachment = AnimatorGeometry.PickNearest(
             attachments, placement, pointer, AnimatorGeometry.AttachmentHitRadius);
         if (attachment < 0)
@@ -142,8 +159,8 @@ internal static class AnimatorPreviewGrab
         selection.SelectOnlyAttachment(attachment);
         document.Runtime.SetPaused(true);
         AnimatorHistoryCommands.BeginGesture(session);
-        XafAttachment owner = package.Attachments[attachment];
-        int parent = XafRig.FindBone(package, owner.BoneId);
+        RigAttachment owner = package.Attachments[attachment];
+        int parent = RigRig.FindBone(package, owner.BoneId);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
         {
             Kind = AnimatorDragKind.Attachment,
@@ -151,7 +168,7 @@ internal static class AnimatorPreviewGrab
             StartValue = modes.Rest ? owner.Transform.Origin : pose.Attachments[attachment].Translation,
             ParentWorld = parent >= 0 ? world[parent] : Transform2D.Identity,
         };
-        AnimatorSession.SetStatus(session, $"SELECTED {owner.Group}{suffix}");
+        AnimatorSession.SetStatus(session, $"SELECTED {owner.Id}{suffix}");
     }
 
     /// <summary>Adds or removes one bone from the group and says how many are selected.</summary>
@@ -170,14 +187,13 @@ internal static class AnimatorPreviewGrab
     /// Starts sliding a joint off its rest spot. A fixed-length bone is made
     /// movable first, inside the same undo step, so the offset can be keyed.
     /// </summary>
-    private static void BeginOffset(Entity session, Vector2 pointer, int bone, XafPose pose, Transform2D[] world)
+    private static void BeginOffset(Entity session, Vector2 pointer, int bone, RigPose pose, Transform2D[] world)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        XafBone rig = document.Package.Skeleton.Bones[bone];
+        RigBone rig = document.Package.Skeleton.Bones[bone];
         document.Runtime.SetPaused(true);
         selection.Attachment = -1;
-        selection.Effect = -1;
         AnimatorHistoryCommands.BeginGesture(session);
 
         bool unlocked = !rig.AllowTranslation;
@@ -196,7 +212,7 @@ internal static class AnimatorPreviewGrab
     }
 
     /// <summary>What a plain grab of this joint does under these modes.</summary>
-    private static AnimatorDragKind JointKind(XafPackage package, int bone, AnimatorModes modes)
+    private static AnimatorDragKind JointKind(RigPackage package, int bone, AnimatorModes modes)
     {
         if (modes.Ik && !modes.Rest && AnimatorPreviewChain.TryGet(package, bone, out _, out _))
             return AnimatorDragKind.Ik;
@@ -211,7 +227,7 @@ internal static class AnimatorPreviewGrab
         Vector2 pointer,
         int bone,
         AnimatorModes modes,
-        XafPose pose,
+        RigPose pose,
         Transform2D[] world)
     {
         bool usedIk = session.GetComponent<AnimatorDrag>().FollowsModes &&
@@ -242,14 +258,14 @@ internal static class AnimatorPreviewGrab
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         if (drag.Grabbed < 0 || drag.Grabbed >= package.Skeleton.Bones.Count)
             return;
 
         if (JointKind(package, drag.Grabbed, modes) != drag.Kind || drag.Rest != modes.Rest)
         {
-            XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
-            StartJoint(session, pointer, drag.Grabbed, modes, pose, XafRig.WorldBones(package, pose));
+            RigPose pose = AnimatorGeometry.PreviewPose(document, modes);
+            StartJoint(session, pointer, drag.Grabbed, modes, pose, RigRig.WorldBones(package, pose));
             return;
         }
 
@@ -266,15 +282,14 @@ internal static class AnimatorPreviewGrab
         Vector2 pointer,
         int bone,
         bool rest,
-        XafPose pose,
+        RigPose pose,
         Transform2D[] world)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        XafBone rig = document.Package.Skeleton.Bones[bone];
+        RigBone rig = document.Package.Skeleton.Bones[bone];
         document.Runtime.SetPaused(true);
         selection.Attachment = -1;
-        selection.Effect = -1;
 
         if (rest || rig.CanTranslate)
         {

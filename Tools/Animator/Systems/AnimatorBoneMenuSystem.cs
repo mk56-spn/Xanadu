@@ -53,10 +53,14 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
             if (secondary && !AnimatorPreviewModeCommands.IsOn(session))
                 RightClick(session, input.Position);
             else if (primary)
+            {
                 session.GetComponent<AnimatorBoneMenu>().Open = false;
+                session.GetComponent<AnimatorBoneMenu>().RowOpen = false;
+            }
 
             AnimatorBoneMenu menu = session.GetComponent<AnimatorBoneMenu>();
             AnimatorMenuPlacement.Place(ui.BoneMenu, menu.Anchor + AnimatorLayout.BoneMenuSize / 2, shown: menu.Open);
+            AnimatorMenuPlacement.Place(ui.RowMenu, menu.Anchor + AnimatorLayout.RowMenuSize / 2, shown: menu.RowOpen);
             Rename(session, ui.BoneNameField, input.Pressed);
         }
     }
@@ -65,10 +69,23 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
     {
         ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
         menu.Open = false;
+        menu.RowOpen = false;
         menu.Reparenting = -1;
 
         AnimatorUi ui = session.GetComponent<AnimatorUi>();
         string? id = AnimatorGeometry.TreeLabelAt(ui.BoneList, pointer);
+        if (AnimatorRigTree.IsOther(id))
+        {
+            // A part, chain or cloth row: select it and offer to delete it.
+            AnimatorCommands.Run(session, AnimatorRigTree.Select(id!));
+            (string label, ToolActionKind kind) = AnimatorRigTree.Delete(id!);
+            UiText.Set(ui.RowMenuDelete, label);
+            ui.RowMenuDelete.AddComponent(ToolAction.Of(kind));
+            AnimatorTooltips.Attach(ui.RowMenuDelete, kind);
+            menu.RowOpen = true;
+            menu.Anchor = pointer;
+            return;
+        }
         bool fromTree = id is not null;
         if (id is null)
         {
@@ -96,8 +113,8 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
     private static Transform2D[] PreviewWorld(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPose pose = AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>());
-        return XafRig.WorldBones(document.Package, pose);
+        RigPose pose = AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>());
+        return RigRig.WorldBones(document.Package, pose);
     }
 
     /// <summary>
@@ -111,7 +128,7 @@ public sealed class AnimatorBoneMenuSystem(IPointerInputSource pointer)
             return;
 
         ref AnimatorBoneMenu menu = ref session.GetComponent<AnimatorBoneMenu>();
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (menu.Renaming < 0 || menu.Renaming >= package.Skeleton.Bones.Count)
         {
             // Undo, load or a rig change can drop the bone mid-rename.

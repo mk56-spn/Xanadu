@@ -9,7 +9,7 @@ namespace Xanadu.Tools.Animator.Commands;
 /// <summary>Save, load and new-skeleton commands, the file path and the unsaved-changes state.</summary>
 public static class AnimatorFileCommands
 {
-    public const string Extension = ".xaf";
+    public const string Extension = ".xif";
 
     /// <summary>Trims the path and adds the extension when it has none; empty stays empty.</summary>
     public static string NormalizePath(string path)
@@ -45,12 +45,12 @@ public static class AnimatorFileCommands
         }
 
         // The file must never hold keys older than the targets beside them.
-        XafTargets.BakeAll(document.Package);
+        RigTargets.BakeAll(document.Package);
         try
         {
             document.Files.Save(path, document.Package);
         }
-        catch (Exception exception) when (exception is XafFormatException or
+        catch (Exception exception) when (exception is RigFormatException or
                                               System.IO.IOException or
                                               UnauthorizedAccessException)
         {
@@ -59,6 +59,7 @@ public static class AnimatorFileCommands
         }
 
         SetBaseline(session);
+        document.Files.DropRecovery(path);
         // A pose left unkeyed is not in the file; say so now, while it can still be keyed.
         int unkeyed = AnimatorUnkeyed.Count(session);
         AnimatorSession.SetStatus(session, unkeyed == 0
@@ -73,7 +74,7 @@ public static class AnimatorFileCommands
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         string path = session.GetComponent<AnimatorFile>().Path;
-        XafPackage? package = document.Files.Load(path);
+        RigPackage? package = document.Files.Load(path);
         if (package is null)
         {
             AnimatorSession.SetStatus(session, $"LOAD FAILED: {path}");
@@ -92,7 +93,7 @@ public static class AnimatorFileCommands
         if (!ConfirmDiscard(session))
             return;
 
-        AnimatorSession.Replace(session, XafRigAuthoring.CreateEmptyPackage());
+        AnimatorSession.Replace(session, RigRigAuthoring.CreateEmptyPackage());
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         selection.SelectOnlyBone(0);
         session.GetComponent<AnimatorModes>().Rest = false;
@@ -114,8 +115,8 @@ public static class AnimatorFileCommands
     public static void RefreshDirty(Entity session)
     {
         ref AnimatorFile file = ref session.GetComponent<AnimatorFile>();
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        file.Dirty = file.Saved is null || !XafPackageCopy.AreEqual(file.Saved, package);
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+        file.Dirty = file.Saved is null || !RigPackageCopy.AreEqual(file.Saved, package);
     }
 
     /// <summary>
@@ -127,6 +128,8 @@ public static class AnimatorFileCommands
         ref AnimatorFile file = ref session.GetComponent<AnimatorFile>();
         if (!file.Dirty || file.DiscardArmed)
         {
+            if (file.DiscardArmed)
+                session.GetComponent<AnimatorDocument>().Files.DropRecovery(file.Path);
             file.DiscardArmed = false;
             return true;
         }
@@ -140,12 +143,12 @@ public static class AnimatorFileCommands
     private static void SetBaseline(Entity session)
     {
         ref AnimatorFile file = ref session.GetComponent<AnimatorFile>();
-        file.Saved = XafPackageCopy.Clone(session.GetComponent<AnimatorDocument>().Package);
+        file.Saved = RigPackageCopy.Clone(session.GetComponent<AnimatorDocument>().Package);
         file.Dirty = false;
         file.DiscardArmed = false;
     }
 
     /// <summary>The saved file's package, or the placeholder rig when there is none.</summary>
-    public static XafPackage LoadOrDefault(IAnimatorFiles files, string path) =>
+    public static RigPackage LoadOrDefault(IAnimatorFiles files, string path) =>
         files.Load(path) ?? AnimatorDefaultPackage.Create();
 }

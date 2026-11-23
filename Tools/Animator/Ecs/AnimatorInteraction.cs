@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 
@@ -37,6 +38,9 @@ public enum AnimatorDragKind
 
     /// <summary>Drags the scrollbar beside the track rows.</summary>
     RowScroll,
+
+    /// <summary>Dragging the time scrollbar under the rows.</summary>
+    TimeScroll,
 
     /// <summary>Drags a box over the timeline to select the keys it covers.</summary>
     KeyBox,
@@ -135,6 +139,9 @@ public struct AnimatorHover : IComponent
 public struct AnimatorBoneMenu : IComponent
 {
     public bool Open;
+
+    /// <summary>The menu of a part, chain or cloth row is open instead (at the same anchor).</summary>
+    public bool RowOpen;
 
     /// <summary>Screen point the menu opens at.</summary>
     public Vector2 Anchor;

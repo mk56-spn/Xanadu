@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
@@ -28,17 +29,20 @@ public static class AnimatorPreviewCommands
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
-        XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
-        Transform2D[] bones = XafRig.WorldBones(document.Package, pose);
-        Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, bones);
+        RigPose pose = AnimatorGeometry.PreviewPose(document, modes);
+        Transform2D[] bones = RigRig.WorldBones(document.Package, pose);
+        Transform2D[] attachments = RigRig.WorldAttachments(document.Package, pose, bones);
 
         if (bones.Length == 0 && attachments.Length == 0)
             return false;
 
-        Rect2 bounds = Bounds(bones, attachments).Grow(FitMargin);
+        // With something selected, F frames that (and the bones it hangs off
+        // into); with nothing, the whole rig.
+        Rect2? selected = SelectionBounds(document.Package, session.GetComponent<AnimatorSelection>(), bones, attachments);
+        Rect2 bounds = (selected ?? Bounds(bones, attachments)).Grow(FitMargin);
         ref AnimatorPreviewView view = ref session.GetComponent<AnimatorPreviewView>();
         view.Fit(bounds, area);
-        AnimatorSession.SetStatus(session, $"FIT VIEW  x{view.Zoom:0.0}");
+        AnimatorSession.SetStatus(session, selected is null ? $"FIT VIEW  x{view.Zoom:0.0}" : $"FIT SELECTION  x{view.Zoom:0.0}");
         return true;
     }
 
@@ -48,6 +52,46 @@ public static class AnimatorPreviewCommands
         ref AnimatorPreviewView view = ref session.GetComponent<AnimatorPreviewView>();
         view = AnimatorPreviewView.Default;
         AnimatorSession.SetStatus(session, "VIEW 1:1");
+    }
+
+    /// <summary>
+    /// The smallest framed span when fitting a selection, in skeleton units,
+    /// so one joint does not zoom all the way in.
+    /// </summary>
+    public const float MinSelectionSpan = 120f;
+
+    /// <summary>
+    /// Bounds of the selected bones (each joint and its children's joints, so
+    /// the bone's length shows) and the selected part; null with nothing selected.
+    /// </summary>
+    private static Rect2? SelectionBounds(RigPackage package, AnimatorSelection selection, Transform2D[] bones, Transform2D[] attachments)
+    {
+        var points = new List<Vector2>();
+        foreach (int bone in selection.Bones())
+        {
+            if (bone < 0 || bone >= bones.Length)
+                continue;
+            points.Add(bones[bone].Origin);
+            for (int i = 0; i < package.Skeleton.Bones.Count && i < bones.Length; i++)
+            {
+                if (package.Skeleton.Bones[i].Parent == bone)
+                    points.Add(bones[i].Origin);
+            }
+        }
+        if (selection.Attachment >= 0 && selection.Attachment < attachments.Length)
+            points.Add(attachments[selection.Attachment].Origin);
+        if (points.Count == 0)
+            return null;
+
+        Vector2 min = points[0], max = points[0];
+        foreach (Vector2 point in points)
+        {
+            min = Vector2.Min(min, point);
+            max = Vector2.Max(max, point);
+        }
+        Vector2 size = Vector2.Max(max - min, new Vector2(MinSelectionSpan));
+        Vector2 centre = (min + max) / 2;
+        return new Rect2(centre - size / 2, size);
     }
 
     /// <summary>Skeleton-space bounds of the joints and attachment origins.</summary>

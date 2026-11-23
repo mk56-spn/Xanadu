@@ -20,24 +20,26 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Handle gridCanvas,
         Handle previewCanvas,
         Handle timelineCanvas,
-        IAttachmentVisuals attachments,
+        AnimatorArt attachments,
         IVisualItemFactory visuals,
-        IAnimatorSvgCatalog svgCatalog,
         IPointerInputSource pointer,
         IWheelSource wheel,
         IKeyPressSource keys,
         IAnimatorClick? click = null,
-        ToastSystem? toasts = null) : base("Animator")
+        ToastSystem? toasts = null,
+        Handle heldCanvas = default) : base("Animator")
     {
         Add(new AnimatorClipConfigSystem(pointer));
         Add(new AnimatorActionSystem());
         Add(new AnimatorNewClipDialogSystem(pointer));
         Add(new AnimatorInfoPanelSystem(pointer));
+        Add(new AnimatorShortcutsPanelSystem(pointer));
+        Add(new AnimatorAutosaveSystem());
+        Add(new AnimatorKeyTryoutSystem());
         Add(new XifEditorSystem(pointer, visuals));
         Add(new ParticleEditorSystem());
         Add(new AnimatorModeSystem());
         Add(new AnimatorBoneMenuSystem(pointer));
-        Add(new AnimatorSvgMenuSystem(svgCatalog, visuals, pointer));
         Add(new AnimatorKeyMenuSystem(pointer));
         Add(new TimelineSystemGroup(pointer, wheel));
         Add(new AnimatorPreviewInputSystem(pointer, wheel));
@@ -52,6 +54,7 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorLayerPanelSystem(visuals));
         Add(new AnimatorFlowSystem(visuals));
         Add(new AnimatorPreviewModeSystem());
+        Add(new AnimatorWorkspaceSystem());
         Add(new AnimatorEasingWindowSystem());
         Add(new EasePickerSystem());
         Add(new AnimatorClipHeaderSystem());
@@ -59,16 +62,14 @@ public sealed class AnimatorSystemGroup : SystemGroup
         Add(new AnimatorChainInspectorSystem());
         Add(new AnimatorClothInspectorSystem());
         Add(new AnimatorBoneCardSystem());
-        Add(new AnimatorValueSliderSystem());
-        Add(new AnimatorSelfModulateSystem());
+        Add(new AnimatorValueFieldSystem());
         Add(new AnimatorEventInspectorSystem());
         Add(new AnimatorFileHeaderSystem());
         Add(new AnimatorStatusSystem(toasts));
         Add(new AnimatorTooltipSystem(pointer));
         Add(new AnimatorGridDrawSystem(canvas, gridCanvas));
         Add(new AnimatorChainSimulationSystem());
-        Add(new AnimatorSvgWatchSystem(svgCatalog));
-        Add(new AnimatorPreviewDrawSystem(canvas, previewCanvas, attachments));
+        Add(new AnimatorPreviewDrawSystem(canvas, previewCanvas, attachments, heldCanvas));
         Add(new AnimatorTimelineDrawSystem(canvas, timelineCanvas));
     }
 }

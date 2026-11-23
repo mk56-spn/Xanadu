@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -27,18 +28,18 @@ public static class AnimatorTargetCommands
         kind is AnimatorDragKind.TargetCenter or AnimatorDragKind.TargetRadiusX or AnimatorDragKind.TargetRadiusY;
 
     /// <summary>The target on the selected bone or a limb it bends, the one at the playhead if there are several.</summary>
-    public static XafLimbTarget? Selected(Entity session)
+    public static RigLimbTarget? Selected(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         int bone = session.GetComponent<AnimatorSelection>().Bone;
         if (bone < 0 || AnimatorSession.CurrentClip(document) is not { } clip)
             return null;
 
-        XafLimbTarget? found = null;
-        foreach (XafLimbTarget target in clip.Targets)
+        RigLimbTarget? found = null;
+        foreach (RigLimbTarget target in clip.Targets)
         {
-            if (XafRig.FindBone(document.Package, target.BoneId) != bone &&
-                !XafTargets.Channels(document.Package, target).Exists(channel => channel.Bone == bone))
+            if (RigRig.FindBone(document.Package, target.BoneId) != bone &&
+                !RigTargets.Channels(document.Package, target).Exists(channel => channel.Bone == bone))
             {
                 continue;
             }
@@ -72,15 +73,15 @@ public static class AnimatorTargetCommands
 
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafLimbTarget target = Selected(session)!;
+            RigLimbTarget target = Selected(session)!;
             float now = session.GetComponent<AnimatorDocument>().Runtime.CurrentTime;
             switch (parts[0])
             {
                 case "rx":
-                    target.RadiusX = Math.Max(XafLimbTarget.MinRadius, target.RadiusX + step * RadiusStep);
+                    target.RadiusX = Math.Max(RigLimbTarget.MinRadius, target.RadiusX + step * RadiusStep);
                     break;
                 case "ry":
-                    target.RadiusY = Math.Max(XafLimbTarget.MinRadius, target.RadiusY + step * RadiusStep);
+                    target.RadiusY = Math.Max(RigLimbTarget.MinRadius, target.RadiusY + step * RadiusStep);
                     break;
                 case "tilt":
                     target.Tilt += step * AngleStep;
@@ -129,14 +130,14 @@ public static class AnimatorTargetCommands
 
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafLimbTarget target = Selected(session)!;
+            RigLimbTarget target = Selected(session)!;
             switch (verb)
             {
                 case "rx":
-                    target.RadiusX = Math.Max(XafLimbTarget.MinRadius, value);
+                    target.RadiusX = Math.Max(RigLimbTarget.MinRadius, value);
                     break;
                 case "ry":
-                    target.RadiusY = Math.Max(XafLimbTarget.MinRadius, value);
+                    target.RadiusY = Math.Max(RigLimbTarget.MinRadius, value);
                     break;
                 case "tilt":
                     target.Tilt = value;
@@ -153,18 +154,18 @@ public static class AnimatorTargetCommands
     }
 
     /// <summary>Gives a target a new span, dropping the keys it baked over the time it no longer covers.</summary>
-    private static void SetSpan(Entity session, XafLimbTarget target, float from, float to)
+    private static void SetSpan(Entity session, RigLimbTarget target, float from, float to)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         float oldFrom = target.From;
         float oldTo = target.To;
         target.From = from;
         target.To = to;
-        XafTargets.DropKeysLeftBehind(document.Package, AnimatorSession.CurrentClip(document)!, target, oldFrom, oldTo);
+        RigTargets.DropKeysLeftBehind(document.Package, AnimatorSession.CurrentClip(document)!, target, oldFrom, oldTo);
     }
 
     /// <summary>Re-bakes after a finished edit, saying so if it had to overwrite keys the edit made on a driven limb.</summary>
-    public static void AfterEdit(Entity session, XafPackage before)
+    public static void AfterEdit(Entity session, RigPackage before)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         if (AnimatorSession.CurrentClip(document) is not { Targets.Count: > 0 } clip)
@@ -183,8 +184,8 @@ public static class AnimatorTargetCommands
     }
 
     /// <summary>Shorter than an override can be made, so too short to see or grab on the timeline.</summary>
-    public static bool IsSliver(XafLimbTarget target) =>
-        target.To - target.From < AnimatorOverrideCommands.MinDuration - XafTracks.TimeTolerance;
+    public static bool IsSliver(RigLimbTarget target) =>
+        target.To - target.From < AnimatorOverrideCommands.MinDuration - RigTracks.TimeTolerance;
 
     /// <summary>Bakes the open clip and shows the result on the limbs it drives; the rest of the pose is left as posed.</summary>
     public static void Rebake(Entity session)
@@ -193,38 +194,38 @@ public static class AnimatorTargetCommands
         if (AnimatorSession.CurrentClip(document) is not { Targets.Count: > 0 } clip)
             return;
 
-        XafTargets.Bake(document.Package, clip);
-        XafPose sampled = XafSampler.Sample(document.Package, clip, document.Runtime.CurrentTime);
-        foreach (XafLimbTarget target in clip.Targets)
+        RigTargets.Bake(document.Package, clip);
+        RigPose sampled = RigSampler.Sample(document.Package, clip, document.Runtime.CurrentTime);
+        foreach (RigLimbTarget target in clip.Targets)
         {
-            if (!XafTargets.IsValid(document.Package, target) || !target.Covers(document.Runtime.CurrentTime))
+            if (!RigTargets.IsValid(document.Package, target) || !target.Covers(document.Runtime.CurrentTime))
                 continue;
-            foreach ((int bone, _) in XafTargets.Channels(document.Package, target))
+            foreach ((int bone, _) in RigTargets.Channels(document.Package, target))
                 document.Runtime.Pose.Bones[bone] = sampled.Bones[bone];
         }
     }
 
     /// <summary>The selected target's ellipse in rig space now, for drawing and grabbing.</summary>
-    public static Transform2D AnchorWorld(XafPackage package, XafLimbTarget target, Transform2D[] world)
+    public static Transform2D AnchorWorld(RigPackage package, RigLimbTarget target, Transform2D[] world)
     {
-        int anchor = target.AnchorId.Length > 0 ? XafRig.FindBone(package, target.AnchorId) : -1;
+        int anchor = target.AnchorId.Length > 0 ? RigRig.FindBone(package, target.AnchorId) : -1;
         return anchor >= 0 ? world[anchor] : Transform2D.Identity;
     }
 
     /// <summary>Starts dragging the selected target's handle under the pointer: its centre, or an ellipse's radii.</summary>
     public static bool TryBegin(Entity session, Vector2 pointer, Transform2D placement, Transform2D[] world)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-        if (Selected(session) is not { } target || !XafTargets.IsValid(package, target))
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+        if (Selected(session) is not { } target || !RigTargets.IsValid(package, target))
             return false;
 
         Transform2D toScreen = placement * AnchorWorld(package, target, world);
         AnimatorDragKind kind = AnimatorDragKind.None;
         if ((toScreen * target.Center).DistanceTo(pointer) <= HandleRadius)
             kind = AnimatorDragKind.TargetCenter;
-        else if (target.Shape == XafTargetShape.Ellipse && (toScreen * RadiusXHandle(target)).DistanceTo(pointer) <= HandleRadius)
+        else if (target.Shape == RigTargetShape.Ellipse && (toScreen * RadiusXHandle(target)).DistanceTo(pointer) <= HandleRadius)
             kind = AnimatorDragKind.TargetRadiusX;
-        else if (target.Shape == XafTargetShape.Ellipse && (toScreen * RadiusYHandle(target)).DistanceTo(pointer) <= HandleRadius)
+        else if (target.Shape == RigTargetShape.Ellipse && (toScreen * RadiusYHandle(target)).DistanceTo(pointer) <= HandleRadius)
             kind = AnimatorDragKind.TargetRadiusY;
         if (kind == AnimatorDragKind.None)
             return false;
@@ -242,7 +243,7 @@ public static class AnimatorTargetCommands
         if (Selected(session) is not { } target)
             return;
 
-        Transform2D[] world = XafRig.WorldBones(document.Package, document.Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(document.Package, document.Runtime.Pose);
         Vector2 rig = placement.AffineInverse() * pointer;
         Transform2D anchor = AnchorWorld(document.Package, target, world);
         switch (session.GetComponent<AnimatorDrag>().Kind)
@@ -254,28 +255,28 @@ public static class AnimatorTargetCommands
                 break;
             case AnimatorDragKind.TargetRadiusX:
                 Vector2 along = anchor.AffineInverse() * rig - target.Center;
-                target.RadiusX = Math.Max(XafLimbTarget.MinRadius, along.Length());
+                target.RadiusX = Math.Max(RigLimbTarget.MinRadius, along.Length());
                 target.Tilt = along.Angle();
                 break;
             case AnimatorDragKind.TargetRadiusY:
                 Vector2 across = anchor.AffineInverse() * rig - target.Center;
-                target.RadiusY = Math.Max(XafLimbTarget.MinRadius, across.Length());
+                target.RadiusY = Math.Max(RigLimbTarget.MinRadius, across.Length());
                 break;
         }
         Rebake(session);
     }
 
-    public static Vector2 RadiusXHandle(XafLimbTarget target) =>
+    public static Vector2 RadiusXHandle(RigLimbTarget target) =>
         target.Center + new Vector2(target.RadiusX, 0f).Rotated(target.Tilt);
 
-    public static Vector2 RadiusYHandle(XafLimbTarget target) =>
+    public static Vector2 RadiusYHandle(RigLimbTarget target) =>
         target.Center + new Vector2(0f, target.RadiusY).Rotated(target.Tilt);
 
     /// <summary>Puts an ellipse on the selected foot or hand, or a bone free to move, starting where it already is.</summary>
     private static void AddOrbit(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         if (AnimatorSession.CurrentClip(document) is not { } clip || clip.Duration <= 0f ||
             session.GetComponent<AnimatorModes>().Rest)
         {
@@ -304,20 +305,20 @@ public static class AnimatorTargetCommands
 
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, from));
-            bool limb = XafTargets.DrivesLimb(package, bone);
+            Transform2D[] world = RigRig.WorldBones(package, RigSampler.Sample(package, clip, from));
+            bool limb = RigTargets.DrivesLimb(package, bone);
             int above = limb ? package.Skeleton.Bones[package.Skeleton.Bones[bone].Parent].Parent : bone;
             int anchorBone = package.Skeleton.Bones[above].Parent;
-            var target = new XafLimbTarget
+            var target = new RigLimbTarget
             {
                 BoneId = id,
                 AnchorId = anchorBone > 0 ? package.Skeleton.Bones[anchorBone].Id : "",
-                Shape = XafTargetShape.Ellipse,
+                Shape = RigTargetShape.Ellipse,
                 RadiusX = DefaultRadiusX,
                 RadiusY = DefaultRadiusY,
                 From = from,
                 To = to,
-                BendPositive = limb && XafTargets.CurrentBend(package, world, bone),
+                BendPositive = limb && RigTargets.CurrentBend(package, world, bone),
             };
 
             // It starts where the bone is, with the ellipse on the side towards the limb's top, so
@@ -344,38 +345,38 @@ public static class AnimatorTargetCommands
     };
 
     /// <summary>Moves to the next bone above the limb, then back to fixed in the rig; the target stays where it is at its start.</summary>
-    private static void NextAnchor(Entity session, XafLimbTarget target)
+    private static void NextAnchor(Entity session, RigLimbTarget target)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
-        int bone = XafRig.FindBone(package, target.BoneId);
+        RigPackage package = document.Package;
+        int bone = RigRig.FindBone(package, target.BoneId);
         if (bone < 0 || AnimatorSession.CurrentClip(document) is not { } clip)
             return;
 
         var options = new List<string> { "" };
-        int above = XafTargets.DrivesLimb(package, bone)
+        int above = RigTargets.DrivesLimb(package, bone)
             ? package.Skeleton.Bones[package.Skeleton.Bones[bone].Parent].Parent
             : bone;
         for (int up = package.Skeleton.Bones[above].Parent; up >= 0; up = package.Skeleton.Bones[up].Parent)
             options.Add(package.Skeleton.Bones[up].Id);
 
-        Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, target.From));
+        Transform2D[] world = RigRig.WorldBones(package, RigSampler.Sample(package, clip, target.From));
         Vector2 center = AnchorWorld(package, target, world) * target.Center;
         target.AnchorId = options[(options.IndexOf(target.AnchorId) + 1) % options.Count];
         target.Center = AnchorWorld(package, target, world).AffineInverse() * center;
     }
 
-    private static bool TouchedOwnedKeys(XafPackage package, XafClip? before, XafClip clip)
+    private static bool TouchedOwnedKeys(RigPackage package, RigClip? before, RigClip clip)
     {
         if (before is null)
             return false;
 
-        foreach (XafLimbTarget target in clip.Targets)
+        foreach (RigLimbTarget target in clip.Targets)
         {
             // Only a target that was there already owned anything to touch.
-            if (!before.Targets.Contains(target) || !XafTargets.IsValid(package, target))
+            if (!before.Targets.Contains(target) || !RigTargets.IsValid(package, target))
                 continue;
-            foreach ((int bone, XafChannelProperty property) in XafTargets.Channels(package, target))
+            foreach ((int bone, RigChannelProperty property) in RigTargets.Channels(package, target))
             {
                 string id = package.Skeleton.Bones[bone].Id;
                 if (!SameKeys(Keys(before, id, property, target), Keys(clip, id, property, target)))
@@ -385,11 +386,11 @@ public static class AnimatorTargetCommands
         return false;
     }
 
-    private static List<XafKeyframe> Keys(XafClip clip, string bone, XafChannelProperty property, XafLimbTarget target) =>
-        clip.Channels.Find(channel => channel.Target == XafChannelTarget.Bone && channel.TargetId == bone && channel.Property == property)
-            ?.Keyframes.FindAll(key => target.Covers(key.Time)) ?? new List<XafKeyframe>();
+    private static List<Keyframe> Keys(RigClip clip, string bone, RigChannelProperty property, RigLimbTarget target) =>
+        clip.Channels.Find(channel => channel.Target == RigChannelTarget.Bone && channel.TargetId == bone && channel.Property == property)
+            ?.Keys.FindAll(key => target.Covers(key.Time)) ?? new List<Keyframe>();
 
-    private static bool SameKeys(List<XafKeyframe> a, List<XafKeyframe> b)
+    private static bool SameKeys(List<Keyframe> a, List<Keyframe> b)
     {
         if (a.Count != b.Count)
             return false;

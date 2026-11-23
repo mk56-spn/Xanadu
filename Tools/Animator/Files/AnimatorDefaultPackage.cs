@@ -1,9 +1,11 @@
+using Xanadu.Core.Keys;
+using Xanadu.Core.Items;
 using Xanadu.Model.Animation;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Tools.Animator.Files;
 
-/// <summary>Placeholder rig shown when no XAF file exists yet.</summary>
+/// <summary>Placeholder rig shown when no rig file exists yet: plain boxes to redraw.</summary>
 public static class AnimatorDefaultPackage
 {
     private const float TorsoHeight = -80f;
@@ -13,9 +15,9 @@ public static class AnimatorDefaultPackage
     private const float LimbSegment = 40f;
 
     /// <summary>Standard humanoid: torso, head, two arms and two legs.</summary>
-    public static XafPackage Create()
+    public static RigPackage Create()
     {
-        var package = new XafPackage();
+        var package = new RigPackage();
         AddBone(package, "root", -1, Vector2.Zero);
         AddBone(package, "torso", 0, new Vector2(0, TorsoHeight));
         AddBone(package, "head", 1, new Vector2(0, -70));
@@ -35,30 +37,31 @@ public static class AnimatorDefaultPackage
                 new Vector2(0, LimbSegment));
         }
 
-        AddAttachment(package, "torso", "torso", "torso", new Vector2(0, -35), 0);
-        AddAttachment(package, "head", "head", "head", new Vector2(0, -5), 2);
+        AddAttachment(package, "torso", "torso", new Vector2(0, -35), 0, new Vector2(40, 80), new Color("#4b5563"));
+        AddAttachment(package, "head", "head", new Vector2(0, -5), 2, new Vector2(36, 40), new Color("#d6b49a"));
         foreach (string side in new[] { "l", "r" })
         {
             Vector2 mid = new(0, LimbSegment / 2);
-            AddAttachment(package, "arm_segment", "arm_segment", $"upper_arm_{side}", mid, 1);
-            AddAttachment(package, "arm_segment", "arm_segment", $"forearm_{side}", mid, 1);
-            AddAttachment(package, "leg_segment", "leg_segment", $"thigh_{side}", mid, -1);
-            AddAttachment(package, "leg_segment", "leg_segment", $"shin_{side}", mid, -1);
+            var limb = new Vector2(12, LimbSegment + 6);
+            AddAttachment(package, $"upper_arm_{side}", $"upper_arm_{side}", mid, 1, limb, new Color("#6b7280"));
+            AddAttachment(package, $"forearm_{side}", $"forearm_{side}", mid, 1, limb, new Color("#6b7280"));
+            AddAttachment(package, $"thigh_{side}", $"thigh_{side}", mid, -1, limb, new Color("#374151"));
+            AddAttachment(package, $"shin_{side}", $"shin_{side}", mid, -1, limb, new Color("#374151"));
         }
-        package.Clips.Add(Clip("idle", "torso", XafChannelProperty.Rotation, 0f, 0.06f, 2f));
-        package.Clips.Add(Clip("jumping", "root", XafChannelProperty.TranslationY, 0f, -60f, 1.2f));
-        package.Clips.Add(Clip("landing", "root", XafChannelProperty.TranslationY, -60f, 0f, 1.2f));
-        package.Clips.Add(Clip("death", "root", XafChannelProperty.Rotation, 0f, 1.5f, 2f));
+        package.Clips.Add(Clip("idle", "torso", RigChannelProperty.Rotation, 0f, 0.06f, 2f));
+        package.Clips.Add(Clip("jumping", "root", RigChannelProperty.TranslationY, 0f, -60f, 1.2f));
+        package.Clips.Add(Clip("landing", "root", RigChannelProperty.TranslationY, -60f, 0f, 1.2f));
+        package.Clips.Add(Clip("death", "root", RigChannelProperty.Rotation, 0f, 1.5f, 2f));
         return package;
     }
 
     private static int AddBone(
-        XafPackage package,
+        RigPackage package,
         string id,
         int parent,
         Vector2 offset)
     {
-        package.Skeleton.Bones.Add(new XafBone
+        package.Skeleton.Bones.Add(new RigBone
         {
             Id = id,
             Parent = parent,
@@ -67,39 +70,39 @@ public static class AnimatorDefaultPackage
         return package.Skeleton.Bones.Count - 1;
     }
 
+    /// <summary>A part on a bone: one box of <paramref name="size"/> centred on it.</summary>
     private static void AddAttachment(
-        XafPackage package,
-        string file,
-        string group,
-        string bone,
-        Vector2 offset,
-        int zOrder) =>
-        package.Attachments.Add(new XafAttachment
-        {
-            SvgPath = $"{AnimatorPaths.Svg}/{file}.svg",
-            Group = group,
-            BoneId = bone,
-            Transform = new Transform2D(0f, offset),
-            ZOrder = zOrder,
-        });
-
-    private static XafClip Clip(
+        RigPackage package,
         string id,
         string bone,
-        XafChannelProperty property,
+        Vector2 offset,
+        int zOrder,
+        Vector2 size,
+        Color fill)
+    {
+        var part = new RigAttachment { BoneId = bone, Transform = new Transform2D(0f, offset), ZOrder = zOrder };
+        part.Id = id;
+        Vector2 half = size / 2;
+        part.Geometry.Polygons.Add(new XifPolygon
+        {
+            Points = { new Vector2(-half.X, -half.Y), new Vector2(half.X, -half.Y), new Vector2(half.X, half.Y), new Vector2(-half.X, half.Y) },
+            Fill = fill,
+        });
+        package.Add(part);
+    }
+
+    private static RigClip Clip(
+        string id,
+        string bone,
+        RigChannelProperty property,
         float start,
         float end,
         float duration)
     {
-        var clip = new XafClip { Id = id, Duration = duration };
-        var channel = new XafChannel
-        {
-            Target = XafChannelTarget.Bone,
-            TargetId = bone,
-            Property = property,
-        };
-        channel.Keyframes.Add(new XafKeyframe { Time = 0f, Value = start });
-        channel.Keyframes.Add(new XafKeyframe { Time = duration, Value = end });
+        var clip = new RigClip { Id = id, Duration = duration };
+        KeyChannel channel = RigChannels.New(RigChannelTarget.Bone, bone, property);
+        channel.Keys.Add(new Keyframe { Time = 0f, Value = start });
+        channel.Keys.Add(new Keyframe { Time = duration, Value = end });
         clip.Channels.Add(channel);
         return clip;
     }

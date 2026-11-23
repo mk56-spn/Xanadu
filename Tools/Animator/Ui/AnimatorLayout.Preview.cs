@@ -64,13 +64,20 @@ public static partial class AnimatorLayout
         ui.End();
     }
 
-    /// <summary>A value as text, then its - and + buttons; returns the text, which the preview system fills.</summary>
+    /// <summary>A value as text, then its - and + buttons (the shared stepper row); returns the text, which the preview system fills.</summary>
     private static Entity PreviewStepper(UiBuilder ui, float width, ToolActionKind down, ToolActionKind up)
     {
-        Entity label = ui.Text("", new Vector2(width, PreviewControl), UiTheme.SmallFontSize, UiTheme.Text);
-        PreviewAction(ui, "-", down, PreviewControl);
-        PreviewAction(ui, "+", up, PreviewControl);
-        return label;
+        float buttons = 2 * (UiNode.ControlRow * 1.5f + UiMetrics.Space.Sm);
+        UiStepper parts = UiNode.Wrap(ui.Current, ui.Visuals).Stepper("", "", width + buttons, UiTheme.SmallFontSize)
+            .Entity.GetComponent<UiStepper>();
+        foreach ((Entity button, ToolActionKind kind) in new[] { (parts.Less, down), (parts.More, up) })
+        {
+            button.AddComponent(ToolAction.Of(kind));
+            button.AddTag<AnimatorPreviewBarButton>();
+            AnimatorTooltips.Attach(button, kind);
+        }
+
+        return parts.Value;
     }
 
     private static Entity PreviewAction(UiBuilder ui, string label, ToolActionKind kind, float width, string argument = "")

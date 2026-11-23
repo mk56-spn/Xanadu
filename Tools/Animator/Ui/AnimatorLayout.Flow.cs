@@ -45,18 +45,18 @@ public static partial class AnimatorLayout
 
         refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth, FlowTextHeight),
             UiTheme.SmallFontSize, UiTheme.Text, TextAlign.Left);
-        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Xanadu.Model.Animation.XafTransitions.MaxFade,
-            Xanadu.Model.Animation.XafTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
+        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Xanadu.Model.Animation.RigTransitions.MaxFade,
+            Xanadu.Model.Animation.RigTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
 
         menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 4, color: Clear);
         // The two long names get the room; IN and OUT share what is left.
         float word = (ButtonWidth - 12) * 0.3f;
         var wide = new Vector2(word, FlowControlHeight);
         var narrow = new Vector2((ButtonWidth - 12 - word * 2) / 2, FlowControlHeight);
-        FlowButton(menu, "LINEAR", ToolActionKind.TransitionCurve, wide, nameof(XafFadeCurve.Linear));
-        FlowButton(menu, "SMOOTH", ToolActionKind.TransitionCurve, wide, nameof(XafFadeCurve.Smooth));
-        FlowButton(menu, "IN", ToolActionKind.TransitionCurve, narrow, nameof(XafFadeCurve.EaseIn));
-        FlowButton(menu, "OUT", ToolActionKind.TransitionCurve, narrow, nameof(XafFadeCurve.EaseOut));
+        FlowButton(menu, "LINEAR", ToolActionKind.TransitionCurve, wide, nameof(RigFadeCurve.Linear));
+        FlowButton(menu, "SMOOTH", ToolActionKind.TransitionCurve, wide, nameof(RigFadeCurve.Smooth));
+        FlowButton(menu, "IN", ToolActionKind.TransitionCurve, narrow, nameof(RigFadeCurve.EaseIn));
+        FlowButton(menu, "OUT", ToolActionKind.TransitionCurve, narrow, nameof(RigFadeCurve.EaseOut));
         menu.End();
 
         refs.Ui.FlowGap = menu.Text("", new Vector2(ListWidth, FlowTextHeight), UiTheme.SmallFontSize,

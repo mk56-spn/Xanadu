@@ -44,7 +44,7 @@ public static class AnimatorNewClipDialogCommands
             return;
         }
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (package.Clips.Exists(clip => clip.Id == name))
         {
             Error(session, ui, "NAME ALREADY USED");
@@ -64,9 +64,9 @@ public static class AnimatorNewClipDialogCommands
             return;
         }
 
-        if (length < XafClipAuthoring.MinDuration)
+        if (length < RigClipAuthoring.MinDuration)
         {
-            Error(session, ui, $"LENGTH AT LEAST {XafClipAuthoring.MinDuration:0.00}s");
+            Error(session, ui, $"LENGTH AT LEAST {RigClipAuthoring.MinDuration:0.00}s");
             return;
         }
 

@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 
 namespace Xanadu.Tools.Animator.Ecs;
 
-/// <summary>A value a panel slider shows and sets; <see cref="Systems.AnimatorValueSliderSystem"/> binds each.</summary>
+/// <summary>A number a panel value field shows and sets; <see cref="Systems.AnimatorValueFieldSystem"/> binds each.</summary>
 public enum AnimatorSliderValue
 {
     /// <summary>The selected joints' depth toward the viewer; keyed on release.</summary>
@@ -31,13 +31,4 @@ public enum AnimatorSliderValue
     TransitionFade,
 }
 
-/// <summary>
-/// Binds a <see cref="Xanadu.Ui.Ecs.Ui.UiSlider"/> track to a value. The
-/// readout beside it shows the value, or a dash when nothing it applies to
-/// is selected.
-/// </summary>
-public struct AnimatorValueSlider(AnimatorSliderValue value, Entity readout) : IComponent
-{
-    public AnimatorSliderValue Value = value;
-    public Entity Readout = readout;
-}
+

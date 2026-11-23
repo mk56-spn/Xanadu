@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Timeline;
 using Xanadu.Tools.Animator.Ecs;
@@ -18,8 +19,8 @@ public static class AnimatorTooltips
         ToolActionKind.Play => "Play from the playhead (Space)",
         ToolActionKind.Stop => "Stop playback (Space); when stopped, return to the start",
         ToolActionKind.TogglePlay => "Play or pause (Space)",
-        ToolActionKind.Save => "Save the XAF package (Ctrl+S)",
-        ToolActionKind.Load => "Load the XAF package (Ctrl+O)",
+        ToolActionKind.Save => "Save the rig (Ctrl+S)",
+        ToolActionKind.Load => "Load a rig (Ctrl+O)",
         ToolActionKind.NewSkeleton => "Start an empty skeleton (Ctrl+N)",
         ToolActionKind.Undo => "Undo the last edit (Ctrl+Z)",
         ToolActionKind.TogglePathWindow => "Motion paths for the whole clip, or one second around the playhead (Shift+N)",
@@ -27,6 +28,12 @@ public static class AnimatorTooltips
         ToolActionKind.CloseInfo => "Close the file info",
         ToolActionKind.CloseEditor => "Quit the animator (Ctrl+Q); with unsaved changes, press again to discard them",
         ToolActionKind.TogglePreviewMode => "Hide the editing panels and watch the clip (Tab)",
+        ToolActionKind.Workspace => argument switch
+        {
+            nameof(AnimatorWorkspace.Rig) => "Build the rig: bones, parts and the rest pose every clip starts from. Changes here move every clip",
+            nameof(AnimatorWorkspace.Preview) => "Hide the editing panels and watch the clip (Tab)",
+            _ => "Animate the clip: pose and key it",
+        },
         ToolActionKind.ExitPreviewMode => "Back to editing (Esc)",
         ToolActionKind.Redo => "Redo the last undone edit (Ctrl+Y)",
         ToolActionKind.RotateLeft => "Turn selected bones -0.25 rad (Q)",
@@ -40,16 +47,16 @@ public static class AnimatorTooltips
         ToolActionKind.CopyPose => "Copy the whole pose (Ctrl+C)",
         ToolActionKind.PastePose => "Paste the copied pose (Ctrl+V)",
         ToolActionKind.MirrorPose => "Mirror the pose left to right (M)",
-        ToolActionKind.AddArt => "Give the selected SVG more art it can switch to, such as a fist for an open hand",
-        ToolActionKind.DropArt => "Remove the alternate art the selected SVG shows at the playhead; keys on it go back to its own art (Ctrl+Shift+A)",
-        ToolActionKind.PreviousArt => "Key the selected SVG's previous art at the playhead; it switches exactly there (Shift+[)",
-        ToolActionKind.NextArt => "Key the selected SVG's next art at the playhead; it switches exactly there (Shift+])",
-        ToolActionKind.LayerDownKey => "Key the selected SVG one layer further back from the playhead on, to pass behind the body (Shift+,)",
-        ToolActionKind.LayerUpKey => "Key the selected SVG one layer further forward from the playhead on (Shift+.)",
-        ToolActionKind.OpenArtFile => "Open the selected SVG's file in your system's app for SVGs",
-        ToolActionKind.ToggleArtVisible => "Key the selected SVG hidden from the playhead on, or shown again (Shift+U)",
+        ToolActionKind.EditXif => "Draw the selected part: opens the XIF editor over everything on its art (the alternate it shows at the playhead, if any), or on the selected chain's art. Esc or DONE closes it",
+        ToolActionKind.AddArt => "Give the selected part more art it can switch to, such as a fist for an open hand: starts as a copy of its own",
+        ToolActionKind.DropArt => "Remove the alternate art the selected part shows at the playhead; keys on it go back to its own art (Ctrl+Shift+A)",
+        ToolActionKind.PreviousArt => "Key the selected part's previous art at the playhead; it switches exactly there (Shift+[)",
+        ToolActionKind.NextArt => "Key the selected part's next art at the playhead; it switches exactly there (Shift+])",
+        ToolActionKind.LayerDownKey => "Key the selected part one layer further back from the playhead on, to pass behind the body (Shift+,)",
+        ToolActionKind.LayerUpKey => "Key the selected part one layer further forward from the playhead on (Shift+.)",
+        ToolActionKind.ToggleArtVisible => "Key the selected part hidden from the playhead on, or shown again (Shift+U)",
         ToolActionKind.ToggleMesh =>
-            "Draw the selected SVG as a mesh that bends with its bone and the ones below, so joints have no hard seam; again for rigid (Shift+G)",
+            "Draw the selected part as a mesh that bends with its bone and the ones below, so joints have no hard seam; again for rigid (Shift+G)",
         ToolActionKind.PickMeshBones => "Then click bones to let them bend the selected mesh, or stop them; click nothing to finish",
         ToolActionKind.MeshDetailDown => "Fewer mesh cells: cheaper, bends more coarsely (Ctrl+[)",
         ToolActionKind.MeshDetailUp => "More mesh cells: smoother bends (Ctrl+])",
@@ -65,7 +72,7 @@ public static class AnimatorTooltips
         ToolActionKind.DepthToward =>
             "Bring the selected joints toward you, out of the screen's plane: the bones either side of each foreshorten (Ctrl+Shift+.)",
         ToolActionKind.AutoWeights =>
-            "Trace the selected SVG's outline into a skin mesh and weight it to the bones that bend it, by heat diffusion; replaces painted weights (Ctrl+Shift+W)",
+            "Trace the selected part's outline into a skin mesh and weight it to the bones that bend it, by heat diffusion; replaces painted weights (Ctrl+Shift+W)",
         ToolActionKind.PaintWeights =>
             "Paint the selected skin's weights: click a joint to choose its bone, drag to add its weight, Ctrl-drag to take it away (Ctrl+W)",
         ToolActionKind.BrushSmaller => "A smaller weight brush (Ctrl+Shift+-)",
@@ -83,10 +90,8 @@ public static class AnimatorTooltips
         ToolActionKind.DeleteBone => "Delete the selected bone and its keys (Shift+Delete)",
         ToolActionKind.RenameBone => "Rename this bone (F2)",
         ToolActionKind.ReparentBone => "Move this bone under another bone",
-        ToolActionKind.AddSvg => "Attach an SVG group to this bone",
-        ToolActionKind.AttachSvg => "Attach this SVG group to the bone",
+        ToolActionKind.AddPart => "Add a part to this bone, then draw it in the art editor",
         ToolActionKind.AddChain => "Hang a Verlet chain off the selected bone, for hair or a tail (V)",
-        ToolActionKind.PickChainArt => "Choose the SVG group drawn on every segment of the chain",
         ToolActionKind.PickChainBone => "Then click the bone the chain hangs from; the chain stays where it is",
         ToolActionKind.PickColliderBone => "Then click the bone the collider follows; the collider stays where it is",
         ToolActionKind.SelectChain => "Select this Verlet chain",
@@ -102,7 +107,6 @@ public static class AnimatorTooltips
         ToolActionKind.AddEffect => "Hang a speed streak off the selected bone, shown for 0.15 s from the playhead (W)",
         ToolActionKind.AddParticles =>
             "Hang a particle stream off the selected bone, flowing for 0.5 s from the playhead; key it on and off like a streak",
-        ToolActionKind.SelectEffect => "Select this effect; key it like a bone, show or hide it with U",
         ToolActionKind.DeleteEffect => "Delete the selected effect and its keys (Shift+W)",
         ToolActionKind.ToggleEffectVisible => "Key the selected effect shown, or hidden if it is showing, at the playhead (U)",
         ToolActionKind.EffectOpacityDown => "Key the selected effect 25% more see-through at the playhead (9)",
@@ -116,6 +120,13 @@ public static class AnimatorTooltips
         ToolActionKind.OpenClipLength => "Type the clip's length or step it with the arrows (Ctrl+L)",
         ToolActionKind.DuplicateClip => "Duplicate the current clip (Ctrl+D)",
         ToolActionKind.DeleteClip => "Delete the current clip (Ctrl+Shift+Delete)",
+        ToolActionKind.TryoutEase => System.Enum.TryParse(argument, out EasePreset eased)
+            ? $"Ease the move into this key: {EaseNames.Describe(eased)}"
+            : "Ease the move into this key",
+        ToolActionKind.TryoutReplay => "Restart the looping move into this key from the previous key",
+        ToolActionKind.TryoutClose => "Hide this bar",
+        ToolActionKind.ToggleShortcuts => "Show every shortcut (F1 or ?)",
+        ToolActionKind.ClearClipKeys => "Remove every key, so the clip plays the rest pose again; undo brings them back",
         ToolActionKind.DurationDown => "Shorten the clip by 0.1 s (Ctrl+-)",
         ToolActionKind.DurationUp => "Lengthen the clip by 0.1 s (Ctrl+=)",
         ToolActionKind.ToggleLoop => "Loop the clip; drag the teal handles to set the range (L)",
@@ -148,12 +159,12 @@ public static class AnimatorTooltips
         ToolActionKind.SelectAllKeys => "Select every key in the clip (Ctrl+A)",
         ToolActionKind.RemoveOverride => "Remove this override and the keys it made; the limb goes back to its own keys",
         ToolActionKind.DetachOverride => "Remove this override but keep the keys it made, as ordinary keys",
-        ToolActionKind.FitPreview => "Frame the whole rig in the viewport (F)",
+        ToolActionKind.FitPreview => "Frame the selection, or the whole rig with nothing selected (F)",
         ToolActionKind.ResetPreview => "Reset the viewport to 1:1 (Shift+F)",
         ToolActionKind.ResetTransform => "Clear the selected pose back to rest (Shift+R)",
         ToolActionKind.Clip => $"Edit clip {argument.ToUpperInvariant()}",
         ToolActionKind.SelectBone => "Select this bone",
-        ToolActionKind.SelectAttachment => "Select this SVG attachment",
+        ToolActionKind.SelectAttachment => "Select this part",
         ToolActionKind.MoveLayerForward => "Draw this art in front of the one above it (Ctrl+Shift+])",
         ToolActionKind.MoveLayerBack => "Draw this art behind the one below it (Ctrl+Shift+[)",
         ToolActionKind.Interpolate => System.Enum.TryParse(argument, out EasePreset preset)
@@ -162,16 +173,18 @@ public static class AnimatorTooltips
         ToolActionKind.ToggleEasingWindow => "Choose how the selected keys ease into the next ones, from every curve (Ctrl+E)",
         ToolActionKind.ToggleMode => argument switch
         {
-            nameof(AnimatorMode.AutoKey) => "Key every edit automatically (A)",
+            nameof(AnimatorMode.AutoKey) => "Key every pose edit at the playhead; off, edits only preview until you key them (K, Shift+K)",
             nameof(AnimatorMode.Onion) => "Show poses just before and after (O)",
-            nameof(AnimatorMode.Rest) => "Edit the rest pose instead of the animation (R)",
-            nameof(AnimatorMode.Svg) => "Place SVG attachments instead of bones; their squares only show in this mode (G)",
+            nameof(AnimatorMode.Rest) => "Edit the rig itself: the rest pose every clip starts from. Changes here move every clip",
+            nameof(AnimatorMode.Parts) => "Place parts instead of bones; their squares only show in this mode (G)",
             nameof(AnimatorMode.Pin) => "In the rest pose, moving a bone leaves the bones below it where they are (H)",
             nameof(AnimatorMode.Kites) => "Show each bone as a filled kite; off leaves only joints and labels (X)",
             nameof(AnimatorMode.Handles) => "Show joint dots and bone labels; off leaves just the art (J)",
             nameof(AnimatorMode.Ik) => "Drag a joint as a two-bone IK chain (I)",
             nameof(AnimatorMode.Align) =>
                 "Line dragged joints up with the other joints; hold Shift while dragging to stay free",
+            nameof(AnimatorMode.FullKeys) =>
+                "Keyframe rows: SUMMARY shows what has keys; FULL shows everything the selection can key (its fields, pins and ellipses, and its parts), unkeyed fields dimmed",
             nameof(AnimatorMode.MotionPaths) =>
                 "Show where joints travel: the selected bones, the extremities in preview; red marks sharp turns (N, Shift+N for around the playhead only)",
             _ => "Toggle this editing mode",

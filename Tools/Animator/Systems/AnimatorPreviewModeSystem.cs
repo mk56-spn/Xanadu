@@ -40,8 +40,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
 
     private static void Apply(Entity session, AnimatorUi ui, ref AnimatorPreviewMode mode, bool on)
     {
-        EditorShellRects shell = EditorShell.Compute(
-            ui.ScreenSize, new EditorShellOptions(EditorFooterHeight.Animator));
+        EditorShellRects shell = AnimatorLayout.Shell(ui.ScreenSize);
         Vector2 line = shell.StatusLine.Size;
         float width = ui.ScreenSize.X;
         float main = on
@@ -51,6 +50,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
         Vector2 status = new(area.X, line.Y);
 
         SetShown(ui.ToolStrip, !on);
+        SetShown(ui.PropertiesPanel, !on);
         SetShown(ui.RightPanel, !on);
         SetShown(ui.Timeline, !on);
         SetShown(ui.PreviewBar, on);
@@ -63,8 +63,6 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
         Paint(ui.Header, on ? AnimatorLayout.PreviewChrome : UiTheme.Panel);
         Paint(ui.StatusLine, on ? AnimatorLayout.PreviewChrome : UiTheme.Panel);
         Paint(ui.Preview, on ? AnimatorLayout.PreviewBackdrop : Palette.SurfaceDeep);
-        UiText.Set(ui.PreviewButton, on ? "EXIT PREVIEW" : "PREVIEW");
-        Tint(ui.PreviewButton, on ? AnimatorLayout.PreviewButton : UiTheme.Button);
 
         // Only the art: the bone kites and handles are for editing.
         ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
@@ -83,7 +81,7 @@ public sealed class AnimatorPreviewModeSystem : QuerySystem<AnimatorPreviewMode,
     private static void Present(Entity session, AnimatorUi ui)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         bool slow = session.GetComponent<AnimatorFlow>().Slow;
         string caption = clip is null
             ? "NO CLIP"

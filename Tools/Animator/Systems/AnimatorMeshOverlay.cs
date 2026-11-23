@@ -9,7 +9,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Tools.Animator.Systems;
 
 /// <summary>
-/// Outlines the selected SVG's mesh where it is drawn, so its bending can be
+/// Outlines the selected part's mesh where it is drawn, so its bending can be
 /// seen, and while bones are being picked for it rings the ones that bend it.
 /// Nothing is drawn in preview mode.
 /// </summary>
@@ -25,7 +25,7 @@ public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Handle target)
     /// While painting: each skin point where it is drawn, from blue (none of the
     /// painted bone) to red (all of it), the painted bone ringed, and the brush.
     /// </summary>
-    private void DrawWeights(IAttachmentVisuals visuals, XafPackage package, int index, AnimatorWeightPaint paint,
+    private void DrawWeights(AnimatorArt visuals, RigPackage package, int index, AnimatorWeightPaint paint,
         Transform2D[] world, Transform2D placement)
     {
         if (package.Attachments[index].Mesh?.Skin is not { } skin ||
@@ -48,7 +48,7 @@ public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Handle target)
         canvas.DrawCircleOutline(target, paint.Pointer, paint.Radius, Brush, 1.5f, 40);
     }
 
-    public void Draw(Entity session, IAttachmentVisuals visuals, XafPackage package, Transform2D[] world,
+    public void Draw(Entity session, AnimatorArt visuals, RigPackage package, Transform2D[] world,
         Transform2D placement)
     {
         AnimatorWeightPaint paint = session.GetComponent<AnimatorWeightPaint>();
@@ -77,7 +77,7 @@ public sealed class AnimatorMeshOverlay(IRectCanvas canvas, Handle target)
 
         if (!session.GetComponent<AnimatorMeshPick>().Active)
             return;
-        foreach (int bone in XafSkinWeights.Influences(package, package.Attachments[index]))
+        foreach (int bone in RigSkinWeights.Influences(package, package.Attachments[index]))
         {
             if (bone < world.Length)
                 canvas.DrawCircleOutline(target, placement * world[bone].Origin, 11f, Bending, 2f, 24);

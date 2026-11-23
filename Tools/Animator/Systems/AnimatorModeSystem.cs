@@ -8,10 +8,15 @@ namespace Xanadu.Tools.Animator.Systems;
 /// <summary>
 /// Keeps mode toggles and <see cref="AnimatorModes"/> in step. Whichever side
 /// moved away from the last agreed value wins: a click on the toggle sets the
-/// mode, and a mode changed by a command moves the toggle.
+/// mode, and a mode changed by a command moves the toggle. A toggle shows only
+/// while its mode applies (<see cref="AnimatorModes.Applies"/>): PIN CHILDREN
+/// while EDIT RIG is on, ONION and PATHS while it is off.
 /// </summary>
 public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
 {
+    // A hidden toggle still has to be found, to show it again.
+    public AnimatorModeSystem() => Filter.WithDisabled();
+
     protected override void OnUpdate()
     {
         Entity session = AnimatorSession.Find(Query.Store);
@@ -38,6 +43,7 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
             }
 
             binding.Synced = toggle.Value;
+            UiLayout.SetHidden(entity, !modes.Applies(binding.Mode));
         }
     }
 
@@ -47,13 +53,13 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
         if (mode == AnimatorMode.Rest)
         {
             session.GetComponent<AnimatorDocument>().Runtime.SetPaused(true);
-            AnimatorSession.SetStatus(session, value ? "REST POSE" : "ANIMATION POSE");
+            AnimatorSession.SetStatus(session, value ? "EDITING THE RIG: CHANGES MOVE EVERY CLIP" : "ANIMATING");
         }
         else
         {
-            if (mode == AnimatorMode.Svg)
+            if (mode == AnimatorMode.Parts)
             {
-                AnimatorSession.SetStatus(session, value ? "SVG PLACEMENT" : "BONE MOVEMENT");
+                AnimatorSession.SetStatus(session, value ? "PART PLACEMENT" : "BONE MOVEMENT");
                 return;
             }
 
@@ -65,6 +71,7 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
                 AnimatorMode.Kites => "BONE KITES",
                 AnimatorMode.Handles => "HANDLES",
                 AnimatorMode.Align => "ALIGN TO JOINTS",
+                AnimatorMode.FullKeys => "FULL KEY VIEW",
                 _ => "ONION",
             };
             AnimatorSession.SetStatus(session, $"{name} {(value ? "ON" : "OFF")}");

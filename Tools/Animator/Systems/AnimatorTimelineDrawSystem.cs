@@ -22,18 +22,22 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
 {
     private static readonly Color RulerBackground = Palette.SurfaceInset;
     private static readonly Color RowEven = Palette.SurfaceDeep;
-    private static readonly Color RowOdd = new("#131d33");
+    private static readonly Color RowOdd = new("#171717");
     private static readonly Color RowSelected = new("#164e63");
     private static readonly Color RowSelectedExtra = new("#115e59");
     private static readonly Color RowSelectedChannel = Palette.SelectedDeep;
     private static readonly Color Grid = Palette.SurfaceAlt;
     private static readonly Color Tick = Palette.BorderSubtle;
     private static readonly Color Dim = Palette.TextDim;
+    private static readonly Color RestNote = Palette.Warning;
+
+    /// <summary>A field the full view lists that has no keys yet.</summary>
+    private static readonly Color Unkeyed = new(Palette.TextDim, 0.45f);
     private static readonly Color Text = Palette.Text;
     private static readonly Color KeyColor = Palette.Info;
     private static readonly Color DrivenBand = new(Palette.Warning, 0.16f);
-    private XafPackage? _package;
-    private XafLimbTarget? _selectedOverride;
+    private RigPackage? _package;
+    private RigLimbTarget? _selectedOverride;
     private static readonly Color EaseLineQuiet = new(Palette.TextDim, 0.45f);
     private static readonly Color EaseReverse = Palette.Danger;
     private static readonly Color Playhead = Palette.Accent;
@@ -48,17 +52,41 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
         canvas.Clear(target);
         foreach (Entity session in Query.ToEntityList())
         {
+            // EDIT RIG: the rest pose has no keys, so the bar's controls go and a note takes the rows' place.
+            bool rest = session.GetComponent<AnimatorModes>().Rest;
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            if (!ui.TimelineHeader.IsNull && UiLayout.IsHidden(ui.TimelineHeader) != rest)
+                UiLayout.SetHidden(ui.TimelineHeader, rest);
+            if (rest)
+            {
+                DrawRestNote(ui);
+                continue;
+            }
+
             AnimatorTimelineModel? model = AnimatorTimelineModel.Create(session);
             if (model is not null)
                 Draw(session, model);
         }
     }
 
+    private void DrawRestNote(AnimatorUi ui)
+    {
+        if (ui.Timeline.IsNull || !ui.Timeline.Enabled)
+            return;
+        Rect2 panel = AnimatorGeometry.PanelArea(ui.Timeline);
+        canvas.DrawTextStyledLeft(
+            target,
+            new Rect2(panel.Position.X + 24, panel.Position.Y + panel.Size.Y / 2 - 10, panel.Size.X - 48, 20),
+            "EDITING THE RIG: the rest pose has no keyframes. Leave EDIT RIG to animate.",
+            RestNote,
+            14);
+    }
+
     private void Draw(Entity session, AnimatorTimelineModel model)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-        XafTrack? selected = AnimatorTimelineModel.SelectedTrack(session, document.Package);
+        RigTrack? selected = AnimatorTimelineModel.SelectedTrack(session, document.Package);
 
         WriteCaption(session, model, document.Runtime);
         DrawRuler(model);
@@ -69,6 +97,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
         DrawPlayhead(model, document.Runtime.CurrentTime);
         DrawEvents(model, AnimatorEventCommands.Selected(session, out _));
         DrawRowBar(model, session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.RowScroll);
+        DrawTimeBar(model, session.GetComponent<AnimatorDrag>().Kind == AnimatorDragKind.TimeScroll);
 
         // The box being dragged to select keys, over everything else.
         if (session.TryGetComponent(out UiMarqueeBox box) && box.Active &&
@@ -85,11 +114,28 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
             return;
 
         Rect2 bar = model.RowBar;
-        VerticalSlider slider = model.RowSlider;
+        ScrollSlider slider = model.RowSlider;
         canvas.DrawRect(target, bar, RowEven);
         canvas.DrawRect(
             target,
-            new Rect2(bar.Position.X, slider.ThumbTop(model.RowValue), bar.Size.X, slider.ThumbLength),
+            new Rect2(bar.Position.X, slider.ThumbStart(model.RowValue), bar.Size.X, slider.ThumbLength),
+            dragging ? Text : Tick);
+    }
+
+    /// <summary>The scrollbar along time under the rows, only while zoomed in past the whole clip.</summary>
+    private void DrawTimeBar(AnimatorTimelineModel model, bool dragging)
+    {
+        if (!model.HasTimeBar)
+            return;
+
+        TimelineTimeBar timeBar = model.TimeBar;
+        double duration = model.Clip.Duration * 1000.0;
+        Rect2 bar = timeBar.Bar;
+        ScrollSlider slider = timeBar.Slider(model.Axis, duration);
+        canvas.DrawRect(target, bar, RowEven);
+        canvas.DrawRect(
+            target,
+            new Rect2(slider.ThumbStart(TimelineTimeBar.Value(model.Axis, duration)), bar.Position.Y, slider.ThumbLength, bar.Size.Y),
             dragging ? Text : Tick);
     }
 
@@ -134,8 +180,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
     private void DrawRows(
         AnimatorTimelineModel model,
         AnimatorSelection selection,
-        XafTrack? selected,
-        XafPackage package)
+        RigTrack? selected,
+        RigPackage package)
     {
         if (model.Tracks.Count == 0)
         {
@@ -156,8 +202,10 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
 
             AnimatorTrackRow track = model.Tracks[index];
             Rect2 row = model.RowRect(screenRow);
-            bool primary = selected is { } chosen && chosen == track.Track;
-            bool anySelected = IsSelectedTrack(selection, package, track.Track);
+            // The full view is all one target: only its own row is lit, so the stripes still part the rest.
+            bool sub = model.Full && (track.IsChannel || track.IsOverride);
+            bool primary = !sub && selected is { } chosen && chosen == track.Track;
+            bool anySelected = !sub && IsSelectedTrack(selection, package, track.Track);
             Color background = anySelected
                 ? primary
                     ? track.IsChannel ? RowSelectedChannel : RowSelected
@@ -166,37 +214,35 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
             canvas.DrawRect(target, row, background);
 
             string label;
-            float labelX;
+            float labelX = model.Labels.Position.X + 6 + model.Depth(track) * 12;
+            bool unkeyed = false;
             if (track.Property is { } property)
             {
                 label = AnimatorTrackRow.PropertyLabel(property);
-                labelX = model.Labels.Position.X + 18;
+                unkeyed = model.Full && AnimatorTrackRows.KeyTimes(model.Clip, track).Count == 0;
+            }
+            else if (model.Full && track.IsOverride)
+            {
+                label = "pins / ellipses";
             }
             else
             {
                 label = track.IsOverride ? $"{track.Id}  (override)" : track.Target switch
                 {
-                    XafChannelTarget.Attachment => $"{track.Id}  (svg)",
-                    XafChannelTarget.Effect => $"{track.Id}  (fx)",
+                    RigChannelTarget.Attachment => $"{track.Id}  (part)",
                     _ => track.Id,
                 };
-                bool hasChannels = !track.IsOverride && AnimatorTrackRows.HasChannels(model.Clip, track.Track);
-                if (hasChannels)
-                {
+                if (!model.Full && !track.IsOverride && AnimatorTrackRows.HasChannels(model.Clip, track.Track))
                     label = (model.IsExpanded(track.Track) ? "▾ " : "▸ ") + label;
-                    labelX = model.Labels.Position.X + 6;
-                }
-                else
-                {
-                    labelX = model.Labels.Position.X + 6;
-                }
             }
 
+            Color ink = unkeyed ? Unkeyed
+                : primary ? Colors.White : anySelected ? Text : track.IsChannel || track.IsOverride ? Dim : Text;
             canvas.DrawTextStyledLeft(
                 target,
-                new Rect2(labelX, row.Position.Y + 2, AnimatorTimelineModel.LabelWidth - 8, row.Size.Y - 4),
+                new Rect2(labelX, row.Position.Y + 2, AnimatorTimelineModel.LabelWidth - 8 - (labelX - model.Labels.Position.X - 6), row.Size.Y - 4),
                 label,
-                primary ? Colors.White : anySelected ? Text : track.IsChannel ? Dim : Text,
+                ink,
                 11);
         }
 
@@ -226,8 +272,8 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
         foreach (float time in AnimatorTrackRows.KeyTimes(model.Clip, track))
         {
             EasePreset? ease = track.Property is { } property
-                ? XafEasing.Read(model.Clip, track.Target, track.Id, property, time)
-                : XafEasing.Read(model.Clip, track.Target, track.Id, time);
+                ? RigEasing.Read(model.Clip, track.Target, track.Id, property, time)
+                : RigEasing.Read(model.Clip, track.Target, track.Id, time);
             painter.Key(model.Axis, row, time * 1000.0, KeyColor, ease ?? EasePreset.Linear, selection.IsKeySelected(track, time));
         }
     }
@@ -235,15 +281,15 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
     /// <summary>A band over the time a target owns this row's keys, so edits that will not stick can be seen coming.</summary>
     private void DrawDrivenSpans(AnimatorTimelineModel model, AnimatorTrackRow track, Rect2 row)
     {
-        if (track.Target != XafChannelTarget.Bone)
+        if (track.Target != RigChannelTarget.Bone)
             return;
 
-        XafPackage package = _package!;
-        int bone = XafRig.FindBone(package, track.Id);
-        foreach (XafLimbTarget limb in model.Clip.Targets)
+        RigPackage package = _package!;
+        int bone = RigRig.FindBone(package, track.Id);
+        foreach (RigLimbTarget limb in model.Clip.Targets)
         {
-            if (!XafTargets.IsValid(package, limb) ||
-                !XafTargets.Channels(package, limb).Exists(channel => channel.Bone == bone &&
+            if (!RigTargets.IsValid(package, limb) ||
+                !RigTargets.Channels(package, limb).Exists(channel => channel.Bone == bone &&
                     (track.Property is null || track.Property == channel.Property)))
             {
                 continue;
@@ -260,13 +306,13 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
         var painter = new TimelinePainter(canvas, target);
         for (int i = 0; i + 1 < keys.Count; i++)
         {
-            XafEaseSegment segment = XafEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
+            RigEaseSegment segment = RigEasing.ReadSegment(model.Clip, track.Target, track.Id, track.Property, keys[i]);
             painter.Span(model.Axis, row, keys[i] * 1000.0, keys[i + 1] * 1000.0, segment.Preset, EaseColor(segment), EaseReverse);
         }
     }
 
     /// <summary>Each easing's colour; named curves take the colour of their direction.</summary>
-    private static Color EaseColor(XafEaseSegment segment) => segment.Preset switch
+    private static Color EaseColor(RigEaseSegment segment) => segment.Preset switch
     {
         null => EaseLineQuiet,
         EasePreset.Step => Palette.Warning,
@@ -284,15 +330,12 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
     /// <summary>Whether a track belongs to any selected bone, attachment or effect, not just the primary.</summary>
     private static bool IsSelectedTrack(
         AnimatorSelection selection,
-        XafPackage package,
-        XafTrack track)
+        RigPackage package,
+        RigTrack track)
     {
-        if (track.Target == XafChannelTarget.Bone)
-            return selection.IsBoneSelected(XafRig.FindBone(package, track.Id));
-        if (track.Target == XafChannelTarget.Effect)
-            return selection.Effect >= 0 && selection.Effect == package.Effects.FindIndex(effect => effect.Id == track.Id);
-
-        int attachment = package.Attachments.FindIndex(candidate => candidate.Group == track.Id);
+        if (track.Target == RigChannelTarget.Bone)
+            return selection.IsBoneSelected(RigRig.FindBone(package, track.Id));
+        int attachment = package.Attachments.FindIndex(candidate => candidate.Id == track.Id);
         return selection.Attachment >= 0 && selection.Attachment == attachment;
     }
 
@@ -325,7 +368,7 @@ public sealed class AnimatorTimelineDrawSystem(IRectCanvas canvas, Handle target
         Rect2 ruler = model.Ruler;
         for (int i = 0; i < model.Clip.Events.Count; i++)
         {
-            XafEvent item = model.Clip.Events[i];
+            RigEvent item = model.Clip.Events[i];
             float x = model.XForSeconds(item.Time);
             if (x < ruler.Position.X - 1 || x > ruler.End.X + 1)
                 continue;

@@ -29,7 +29,7 @@ public static class AnimatorSessionCommands
 
     internal static void SelectBone(Entity session, string boneId)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         int index = package.Skeleton.Bones.FindIndex(bone => bone.Id == boneId);
         if (index < 0)
             return;
@@ -45,62 +45,6 @@ public static class AnimatorSessionCommands
         AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
         AnimatorKeyCommands.AddKeyAt(
             session, new AnimatorTrackRow(menu.Track, menu.Property), menu.Time);
-    }
-
-    /// <summary>
-    /// Opens the ADD SVG picker beside the bone menu, on the selected bone.
-    /// The picker system lists the project's groups and places the panel.
-    /// </summary>
-    internal static void OpenSvgMenu(Entity session)
-    {
-        int bone = SelectedBone(session);
-        if (bone < 0)
-        {
-            AnimatorSession.SetStatus(session, "SELECT A BONE FIRST");
-            return;
-        }
-
-        ref AnimatorSvgMenu menu = ref session.GetComponent<AnimatorSvgMenu>();
-        menu.Open = true;
-        menu.ForChain = false;
-        menu.ForArt = false;
-        menu.Bone = bone;
-        menu.Anchor = OpenAnchor(session);
-    }
-
-    /// <summary>
-    /// Where the picker starts: just right of the bone menu that opened it, or
-    /// left of the inspector when the bone card's + SVG did.
-    /// </summary>
-    internal static Vector2 OpenAnchor(Entity session)
-    {
-        if (!session.GetComponent<AnimatorBoneMenu>().Open && session.HasComponent<AnimatorUi>())
-            return AnimatorLayout.ChainPickerAnchor(session.GetComponent<AnimatorUi>().ScreenSize);
-
-        Vector2 boneMenu = session.GetComponent<AnimatorBoneMenu>().Anchor;
-        var offset = new Vector2(AnimatorLayout.BoneMenuSize.X + 4, 0);
-        return boneMenu + offset;
-    }
-
-    /// <summary>Adds the picker row the argument indexes, keeping the picker open.</summary>
-    internal static void AttachSvgFromMenu(Entity session, string argument)
-    {
-        AnimatorSvgMenu menu = session.GetComponent<AnimatorSvgMenu>();
-        if (menu.Choices is null ||
-            !int.TryParse(argument, out int index) ||
-            index < 0 ||
-            index >= menu.Choices.Count)
-        {
-            return;
-        }
-
-        AnimatorSvgChoice choice = menu.Choices[index];
-        if (menu.ForArt)
-            AnimatorArtCommands.AddArt(session, choice);
-        else if (menu.ForChain)
-            AnimatorChainPlacementCommands.SetArt(session, choice);
-        else
-            AnimatorAttachmentCommands.Add(session, choice.Path, choice.Group, menu.Bone);
     }
 
     /// <summary>Stops playback; pressed again once stopped, it returns to the clip's start.</summary>
@@ -141,6 +85,14 @@ public static class AnimatorSessionCommands
             return;
 
         ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
+        if (!modes.Applies(mode))
+        {
+            AnimatorSession.SetStatus(session, modes.Rest
+                ? "THAT SHOWS MOTION: LEAVE EDIT RIG FOR IT"
+                : "PIN CHILDREN WORKS WHILE EDITING THE RIG");
+            return;
+        }
+
         bool value = !modes.Get(mode);
         modes.Set(mode, value);
         AnimatorModeSystem.Announce(session, mode, value);
@@ -164,7 +116,7 @@ public static class AnimatorSessionCommands
         if (bone < 0)
             return;
 
-        XafBone rig = session.GetComponent<AnimatorDocument>().Package.Skeleton.Bones[bone];
+        RigBone rig = session.GetComponent<AnimatorDocument>().Package.Skeleton.Bones[bone];
         if (rig.Parent < 0)
         {
             AnimatorSession.SetStatus(session, "ROOT CANNOT BE REPARENTED");
@@ -191,7 +143,7 @@ public static class AnimatorSessionCommands
 
     internal static void SelectAttachment(Entity session, string argument)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (!int.TryParse(argument, out int index) ||
             index < 0 ||
             index >= package.Attachments.Count)
@@ -203,6 +155,6 @@ public static class AnimatorSessionCommands
         selection.SelectOnlyAttachment(index);
         AnimatorSession.SetStatus(
             session,
-            $"SELECTED {package.Attachments[index].Group}");
+            $"SELECTED {package.Attachments[index].Id}");
     }
 }

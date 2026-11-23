@@ -37,8 +37,8 @@ public sealed class AnimatorChainSimulationSystem : QuerySystem<AnimatorDocument
                 cloths.Simulation.Reset();
             }
 
-            XafPose pose = AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>());
-            Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+            RigPose pose = AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>());
+            Transform2D[] world = RigRig.WorldBones(document.Package, pose);
             // Slowed with the bones, so hair and cloth keep up with them in slow motion.
             float step = delta * AnimatorFlowCommands.Speed(session);
             chains.Simulation.Update(document.Package, world, step);

@@ -24,7 +24,7 @@ public static class AnimatorChainHandles
     /// and the collider centre when it has one. False without a selected chain.
     /// </summary>
     public static bool TryGet(
-        XafPackage package,
+        RigPackage package,
         int chain,
         Transform2D[] world,
         out Vector2 root,
@@ -35,13 +35,13 @@ public static class AnimatorChainHandles
         if (chain < 0 || chain >= package.Chains.Count)
             return false;
 
-        XafChain selected = package.Chains[chain];
-        Vector2? anchor = XafChainSimulation.Anchor(package, selected, world);
+        RigChain selected = package.Chains[chain];
+        Vector2? anchor = RigChainSimulation.Anchor(package, selected, world);
         if (anchor is null)
             return false;
 
         root = anchor.Value;
-        collider = XafChainSimulation.Collider(package, selected, world);
+        collider = RigChainSimulation.Collider(package, selected, world);
         return true;
     }
 
@@ -51,7 +51,7 @@ public static class AnimatorChainHandles
     /// </summary>
     public static bool TryBegin(Entity session, Vector2 pointer, Transform2D placement, Transform2D[] world)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         int index = session.GetComponent<AnimatorSelection>().Chain;
         if (!TryGet(package, index, world, out Vector2 root, out Vector2? collider))
             return false;
@@ -77,21 +77,21 @@ public static class AnimatorChainHandles
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorDragKind kind = session.GetComponent<AnimatorDrag>().Kind;
         int index = session.GetComponent<AnimatorSelection>().Chain;
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         if (index < 0 || index >= package.Chains.Count)
             return;
 
-        XafChain chain = package.Chains[index];
-        Transform2D[] world = XafRig.WorldBones(
+        RigChain chain = package.Chains[index];
+        Transform2D[] world = RigRig.WorldBones(
             package, AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>()));
-        int bone = XafRig.FindBone(package, kind == AnimatorDragKind.ChainRoot ? chain.BoneId : chain.CollideBoneId);
+        int bone = RigRig.FindBone(package, kind == AnimatorDragKind.ChainRoot ? chain.BoneId : chain.CollideBoneId);
         if (bone < 0)
             return;
 
         Vector2 local = world[bone].AffineInverse() * (placement.AffineInverse() * pointer);
         if (kind == AnimatorDragKind.ChainRoot)
-            XafChainAuthoring.SetOffset(package, index, local);
+            RigChainAuthoring.SetOffset(package, index, local);
         else
-            XafChainAuthoring.SetCollideOffset(package, index, local);
+            RigChainAuthoring.SetCollideOffset(package, index, local);
     }
 }

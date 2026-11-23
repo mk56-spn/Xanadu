@@ -45,6 +45,40 @@ public static class AnimatorTransformCommands
     public static void SetScaleProportional(Entity session, float scale) =>
         Set(session, "SCALE SET", transform => transform with { Scale = Proportional(transform.Scale, scale) });
 
+    /// <summary>
+    /// Applies a change to the selection with no status and no key, as a value
+    /// field does while it is edited; <see cref="FinishDrag"/> keys and reports.
+    /// </summary>
+    public static void Quiet(Entity session, System.Func<RigTransform, RigTransform> change, bool posesFixed = true) =>
+        Set(session, "", change, posesFixed, quiet: true);
+
+    /// <summary>The selected bone's or part's transform in the mode being edited (rest or pose), if anything is selected.</summary>
+    public static bool TryTransform(Entity session, out RigTransform transform)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
+        bool rest = session.GetComponent<AnimatorModes>().Rest;
+        transform = RigTransform.Identity;
+
+        if (selection.Bone >= 0 && selection.Bone < document.Package.Skeleton.Bones.Count)
+        {
+            transform = rest
+                ? RigTransform.From(document.Package.Skeleton.Bones[selection.Bone].Rest)
+                : document.Runtime.Pose.Bones[selection.Bone];
+            return true;
+        }
+
+        if (selection.Attachment >= 0 && selection.Attachment < document.Package.Attachments.Count)
+        {
+            transform = rest
+                ? RigTransform.From(document.Package.Attachments[selection.Attachment].Transform)
+                : document.Runtime.Pose.Attachments[selection.Attachment];
+            return true;
+        }
+
+        return false;
+    }
+
     /// <summary>Keys and reports a finished slider drag; run inside <see cref="AnimatorHistoryCommands.EndGesture"/>.</summary>
     public static void FinishDrag(Entity session, string label)
     {
@@ -79,7 +113,7 @@ public static class AnimatorTransformCommands
     private static void Set(
         Entity session,
         string label,
-        System.Func<XafTransform, XafTransform> change,
+        System.Func<RigTransform, RigTransform> change,
         bool posesFixed = true,
         bool quiet = false) =>
         AnimatorHistoryCommands.Edit(session, () =>
@@ -97,8 +131,8 @@ public static class AnimatorTransformCommands
                 AnimatorRestPin.Pinned? pinned = AnimatorRestPin.Capture(session, edited);
                 foreach (int index in edited)
                 {
-                    XafBone bone = document.Package.Skeleton.Bones[index];
-                    bone.Rest = change(XafTransform.From(bone.Rest)).ToTransform();
+                    RigBone bone = document.Package.Skeleton.Bones[index];
+                    bone.Rest = change(RigTransform.From(bone.Rest)).ToTransform();
                     changed++;
                 }
                 AnimatorRestPin.Restore(session, pinned);
@@ -113,7 +147,7 @@ public static class AnimatorTransformCommands
                         continue;
                     }
 
-                    ref XafTransform pose = ref document.Runtime.Pose.Bones[index];
+                    ref RigTransform pose = ref document.Runtime.Pose.Bones[index];
                     pose = change(pose);
                     changed++;
                 }
@@ -126,19 +160,16 @@ public static class AnimatorTransformCommands
             {
                 if (modes.Rest)
                 {
-                    XafAttachment attachment = document.Package.Attachments[selection.Attachment];
-                    attachment.Transform = change(XafTransform.From(attachment.Transform)).ToTransform();
+                    RigAttachment attachment = document.Package.Attachments[selection.Attachment];
+                    attachment.Transform = change(RigTransform.From(attachment.Transform)).ToTransform();
                 }
                 else
                 {
-                    ref XafTransform pose = ref document.Runtime.Pose.Attachments[selection.Attachment];
+                    ref RigTransform pose = ref document.Runtime.Pose.Attachments[selection.Attachment];
                     pose = change(pose);
                 }
                 changed = 1;
             }
-
-            if (changed == 0 && EditEffect(session, change))
-                changed = 1;
 
             if (quiet)
                 return;
@@ -186,33 +217,24 @@ public static class AnimatorTransformCommands
             string name = "";
             foreach (int index in Bones(session, selection))
             {
-                XafBone bone = document.Package.Skeleton.Bones[index];
-                document.Runtime.Pose.Bones[index] = XafTransform.From(bone.Rest);
+                RigBone bone = document.Package.Skeleton.Bones[index];
+                document.Runtime.Pose.Bones[index] = RigTransform.From(bone.Rest);
                 name = bone.Id;
                 changed++;
             }
 
             if (changed == 0 && selection.Attachment >= 0)
             {
-                XafAttachment attachment = document.Package.Attachments[selection.Attachment];
+                RigAttachment attachment = document.Package.Attachments[selection.Attachment];
                 document.Runtime.Pose.Attachments[selection.Attachment] =
-                    XafTransform.From(attachment.Transform);
-                name = attachment.Group;
-                changed = 1;
-            }
-
-            if (changed == 0 && AnimatorEffectCommands.Selected(session) is var effect and >= 0 &&
-                effect < document.Runtime.Pose.Effects.Length)
-            {
-                XafEffect rested = document.Package.Effects[effect];
-                document.Runtime.Pose.Effects[effect].Transform = XafTransform.From(rested.Transform);
-                name = rested.Id;
+                    RigTransform.From(attachment.Transform);
+                name = attachment.Id;
                 changed = 1;
             }
 
             if (changed == 0)
             {
-                AnimatorSession.SetStatus(session, "SELECT A BONE, ATTACHMENT OR EFFECT FIRST");
+                AnimatorSession.SetStatus(session, "SELECT A BONE OR PART FIRST");
                 return;
             }
 
@@ -221,32 +243,6 @@ public static class AnimatorTransformCommands
                 session,
                 (changed == 1 ? $"RESET {name} TO REST" : $"RESET {changed} BONES TO REST") + keyed);
         });
-
-    /// <summary>
-    /// Changes the selected effect's transform: its resting place on the bone
-    /// in rest mode, its pose otherwise. False when no effect is selected.
-    /// </summary>
-    private static bool EditEffect(Entity session, System.Func<XafTransform, XafTransform> change)
-    {
-        int index = AnimatorEffectCommands.Selected(session);
-        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-        if (index < 0)
-            return false;
-
-        if (session.GetComponent<AnimatorModes>().Rest)
-        {
-            XafEffect effect = document.Package.Effects[index];
-            effect.Transform = change(XafTransform.From(effect.Transform)).ToTransform();
-            return true;
-        }
-
-        if (index >= document.Runtime.Pose.Effects.Length)
-            return false;
-
-        ref XafEffectState state = ref document.Runtime.Pose.Effects[index];
-        state.Transform = change(state.Transform);
-        return true;
-    }
 
     /// <summary>The selected bones still inside the skeleton.</summary>
     private static List<int> Bones(Entity session, AnimatorSelection selection)

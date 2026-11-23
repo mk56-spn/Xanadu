@@ -86,7 +86,7 @@ public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
         if (row < 0)
             return;
 
-        if (model.TryPickOverride(input.Position, out XafLimbTarget? overriding, out _))
+        if (model.TryPickOverride(input.Position, out RigLimbTarget? overriding, out _))
         {
             menu.Override = overriding;
             menu.OverrideOpen = true;

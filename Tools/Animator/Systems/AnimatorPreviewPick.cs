@@ -24,12 +24,12 @@ internal static class AnimatorPreviewPick
         AnimatorModes modes = session.GetComponent<AnimatorModes>();
         AnimatorPreviewView view = session.GetComponent<AnimatorPreviewView>();
         Transform2D placement = AnimatorGeometry.PreviewPlacement(area, view);
-        XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
-        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        RigPose pose = AnimatorGeometry.PreviewPose(document, modes);
+        Transform2D[] world = RigRig.WorldBones(document.Package, pose);
 
-        if (modes.Svg)
+        if (modes.Parts)
         {
-            Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
+            Transform2D[] attachments = RigRig.WorldAttachments(document.Package, pose, world);
             hover = new AnimatorHover
             {
                 Bone = -1,

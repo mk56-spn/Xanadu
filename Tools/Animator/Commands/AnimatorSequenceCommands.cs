@@ -26,7 +26,7 @@ public static class AnimatorSequenceCommands
     private const float MinSeconds = 0.1f;
 
     /// <summary>Jump, fall, land and settle to idle, using the clips the rig has and the game's own fallbacks.</summary>
-    public static List<AnimatorSequenceStep> GameSteps(XafPackage package)
+    public static List<AnimatorSequenceStep> GameSteps(RigPackage package)
     {
         var steps = new List<AnimatorSequenceStep>();
         if (package.Has(ContactClip.Jumping))
@@ -47,23 +47,23 @@ public static class AnimatorSequenceCommands
     }
 
     /// <summary>Every clip in the file in turn, each for one full play.</summary>
-    public static List<AnimatorSequenceStep> AllSteps(XafPackage package)
+    public static List<AnimatorSequenceStep> AllSteps(RigPackage package)
     {
         var steps = new List<AnimatorSequenceStep>();
-        foreach (XafClip clip in package.Clips)
+        foreach (RigClip clip in package.Clips)
             Add(steps, clip.Id, FullSeconds(package, clip.Id));
         return steps;
     }
 
     public static void StartGame(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         Start(session, GameSteps(package), "GAME CHAIN", strict: true);
     }
 
     public static void StartAll(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         Start(session, AllSteps(package), "ALL CLIPS");
     }
 
@@ -167,7 +167,7 @@ public static class AnimatorSequenceCommands
 
         string from = steps[sequence.Index - 1].Clip;
         string clip = steps[sequence.Index].Clip;
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (sequence.Strict && !runtime.Transition(clip))
         {
             // As in the game: the old clip plays on through the refused step.
@@ -179,7 +179,7 @@ public static class AnimatorSequenceCommands
 
         if (!sequence.Strict)
         {
-            (float fade, XafFadeCurve curve) = XafTransitions.Blend(package, from, clip);
+            (float fade, RigFadeCurve curve) = RigTransitions.Blend(package, from, clip);
             runtime.Play(clip, fade, curve);
         }
         AnimatorSession.SetStatus(session, Describe(sequence.Name, steps, sequence.Index));
@@ -209,9 +209,9 @@ public static class AnimatorSequenceCommands
     }
 
     /// <summary>One full play of a clip: its length, or one pass of the loop range when it loops.</summary>
-    public static float FullSeconds(XafPackage package, string id)
+    public static float FullSeconds(RigPackage package, string id)
     {
-        XafClip? clip = package.Clips.Find(candidate => candidate.Id == id);
+        RigClip? clip = package.Clips.Find(candidate => candidate.Id == id);
         if (clip is null)
             return MinSeconds;
         return Math.Max(MinSeconds, clip.Loop ? clip.LoopEnd - clip.LoopStart : clip.Duration);

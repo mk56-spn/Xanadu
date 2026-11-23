@@ -35,7 +35,7 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
             if (ui.FlowList.IsNull)
                 continue;
 
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             string from = AnimatorFlowCommands.From(session);
             List<(string From, string To)> game = AnimatorFlowCommands.GameTransitions(package);
             string signature = Signature(package, from);
@@ -53,13 +53,13 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
 
     private void Rebuild(
         Entity list,
-        XafPackage package,
+        RigPackage package,
         string from,
         List<(string From, string To)> game)
     {
         UiLayout.DeleteChildren(list);
 
-        foreach (XafClip clip in package.Clips)
+        foreach (RigClip clip in package.Clips)
         {
             if (clip.Id == from)
                 continue;
@@ -91,12 +91,12 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
     /// </summary>
     private static void SyncRows(
         Entity list,
-        XafPackage package,
+        RigPackage package,
         string from,
         List<(string From, string To)> game,
         string target)
     {
-        bool open = XafTransitions.IsOpen(package);
+        bool open = RigTransitions.IsOpen(package);
         foreach (Entity row in list.ChildEntities)
         {
             foreach (Entity button in row.ChildEntities)
@@ -105,7 +105,7 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
                     continue;
 
                 string to = action.Argument;
-                XafTransition? rule = XafTransitions.Find(package, from, to);
+                RigTransition? rule = RigTransitions.Find(package, from, to);
                 bool usedByGame = game.Contains((from, to));
                 if (action.Kind == ToolActionKind.AllowTransition)
                 {
@@ -122,7 +122,7 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
     }
 
     /// <summary>A row's text: the clip, its fade and curve when allowed, and a mark when the game asks for it.</summary>
-    public static string Label(string clip, XafTransition? rule, bool usedByGame)
+    public static string Label(string clip, RigTransition? rule, bool usedByGame)
     {
         var label = new StringBuilder(clip.ToUpperInvariant());
         if (rule is not null)
@@ -132,33 +132,33 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
         return label.ToString();
     }
 
-    private static string Short(XafFadeCurve curve) => curve switch
+    private static string Short(RigFadeCurve curve) => curve switch
     {
-        XafFadeCurve.Smooth => "SMO",
-        XafFadeCurve.EaseIn => "IN",
-        XafFadeCurve.EaseOut => "OUT",
+        RigFadeCurve.Smooth => "SMO",
+        RigFadeCurve.EaseIn => "IN",
+        RigFadeCurve.EaseOut => "OUT",
         _ => "LIN",
     };
 
     private void SyncReadouts(
         Entity session,
         AnimatorUi ui,
-        XafPackage package,
+        RigPackage package,
         string from,
         List<(string From, string To)> game)
     {
         AnimatorFlow flow = session.GetComponent<AnimatorFlow>();
-        int missing = game.FindAll(pair => pair.From == from && !XafTransitions.Allows(package, pair.From, pair.To)).Count;
+        int missing = game.FindAll(pair => pair.From == from && !RigTransitions.Allows(package, pair.From, pair.To)).Count;
         string title = $"FROM {from.ToUpperInvariant()}";
         if (missing > 0)
             title += $"  •  {missing} GAME MISSING";
         UiText.Set(ui.FlowTitle, title);
 
-        XafClip? target = AnimatorFlowCommands.Target(session);
-        XafTransition? rule = AnimatorFlowCommands.Rule(session);
+        RigClip? target = AnimatorFlowCommands.Target(session);
+        RigTransition? rule = AnimatorFlowCommands.Rule(session);
         if (target is null)
         {
-            UiText.Set(ui.FlowRule, XafTransitions.IsOpen(package)
+            UiText.Set(ui.FlowRule, RigTransitions.IsOpen(package)
                 ? "NO RULES: ANY CLIP CAN FOLLOW ANY. PICK ONE"
                 : "PICK A CLIP TO EDIT ITS FADE");
             UiText.Set(ui.FlowFade, "FADE");
@@ -169,8 +169,8 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
             string pair = AnimatorFlowCommands.Pair(from, target.Id);
             UiText.Set(ui.FlowRule, rule is not null
                 ? pair
-                : XafTransitions.IsOpen(package) ? $"{pair} (OPEN TABLE)" : $"{pair} NOT ALLOWED");
-            (float fade, XafFadeCurve curve) = XafTransitions.Blend(package, from, target.Id);
+                : RigTransitions.IsOpen(package) ? $"{pair} (OPEN TABLE)" : $"{pair} NOT ALLOWED");
+            (float fade, RigFadeCurve curve) = RigTransitions.Blend(package, from, target.Id);
             UiText.Set(ui.FlowFade, rule is not null
                 ? $"{fade:0.00} s  {AnimatorFlowCommands.CurveName(curve)}"
                 : $"{fade:0.00} s DEFAULT");
@@ -205,7 +205,7 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
     /// hide it: small jumps read as smooth whatever the fade, big ones pop
     /// unless the fade is long enough to carry them.
     /// </summary>
-    private static void SyncGap(Entity session, Entity label, float fade, XafFadeCurve curve)
+    private static void SyncGap(Entity session, Entity label, float fade, RigFadeCurve curve)
     {
         if (AnimatorFlowCommands.Gap(session) is not { } gap)
         {
@@ -227,7 +227,7 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
     /// A jump the fade spreads over its length: what moves in one 60 Hz frame
     /// at the curve's steepest is what the eye reads as a pop.
     /// </summary>
-    public static (string Rating, Color Color) Rate(float distance, float fade, XafFadeCurve curve)
+    public static (string Rating, Color Color) Rate(float distance, float fade, RigFadeCurve curve)
     {
         if (distance < AnimatorFlowCommands.SmallGap)
             return ("SMOOTH", Palette.Lime);
@@ -241,17 +241,17 @@ public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem
     }
 
     /// <summary>The steepest the curve's weight climbs, as a multiple of a linear fade's.</summary>
-    private static float PeakSlope(XafFadeCurve curve) => curve switch
+    private static float PeakSlope(RigFadeCurve curve) => curve switch
     {
-        XafFadeCurve.Smooth => 1.5f,
-        XafFadeCurve.EaseIn or XafFadeCurve.EaseOut => 2f,
+        RigFadeCurve.Smooth => 1.5f,
+        RigFadeCurve.EaseIn or RigFadeCurve.EaseOut => 2f,
         _ => 1f,
     };
 
-    private static string Signature(XafPackage package, string from)
+    private static string Signature(RigPackage package, string from)
     {
         var text = new StringBuilder(from).Append('|');
-        foreach (XafClip clip in package.Clips)
+        foreach (RigClip clip in package.Clips)
             text.Append(clip.Id).Append(',');
         return text.ToString();
     }

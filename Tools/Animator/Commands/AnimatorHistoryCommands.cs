@@ -26,6 +26,7 @@ public static class AnimatorHistoryCommands
             return;
         }
 
+        AnimatorKeyTryoutCommands.Settle(session);
         AnimatorSnapshot before = Snapshot(session);
         history.Depth++;
         try
@@ -42,8 +43,11 @@ public static class AnimatorHistoryCommands
         AnimatorFileCommands.RefreshDirty(session);
     }
 
-    public static void BeginGesture(Entity session) =>
+    public static void BeginGesture(Entity session)
+    {
+        AnimatorKeyTryoutCommands.Settle(session);
         session.GetComponent<AnimatorSessionState>().History.Gesture = Snapshot(session);
+    }
 
     /// <summary>
     /// Runs an edit as part of the open gesture: it is not recorded on its own,
@@ -117,20 +121,19 @@ public static class AnimatorHistoryCommands
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         return new AnimatorSnapshot(
-            XafPackageCopy.Clone(document.Package),
+            RigPackageCopy.Clone(document.Package),
             document.Runtime.Pose.Clone(),
             document.Runtime.CurrentClip,
             document.Runtime.CurrentTime);
     }
 
     private static bool AreEqual(AnimatorSnapshot before, AnimatorSnapshot after) =>
-        XafPackageCopy.AreEqual(before.Package, after.Package) && SamePose(before.Pose, after.Pose);
+        RigPackageCopy.AreEqual(before.Package, after.Package) && SamePose(before.Pose, after.Pose);
 
-    private static bool SamePose(XafPose a, XafPose b) =>
+    private static bool SamePose(RigPose a, RigPose b) =>
         a.Bones.AsSpan().SequenceEqual(b.Bones) &&
         a.Attachments.AsSpan().SequenceEqual(b.Attachments) &&
-        a.AttachmentStates.AsSpan().SequenceEqual(b.AttachmentStates) &&
-        a.Effects.AsSpan().SequenceEqual(b.Effects);
+        a.AttachmentStates.AsSpan().SequenceEqual(b.AttachmentStates);
 
     /// <summary>
     /// Puts a stored snapshot back, copying so the history keeps its own. A step
@@ -140,10 +143,10 @@ public static class AnimatorHistoryCommands
     /// </summary>
     private static void Restore(Entity session, AnimatorSnapshot snapshot)
     {
-        bool poseOnly = XafPackageCopy.AreEqual(session.GetComponent<AnimatorDocument>().Package, snapshot.Package);
+        bool poseOnly = RigPackageCopy.AreEqual(session.GetComponent<AnimatorDocument>().Package, snapshot.Package);
         if (!poseOnly)
         {
-            session.GetComponent<AnimatorDocument>().Package = XafPackageCopy.Clone(snapshot.Package);
+            session.GetComponent<AnimatorDocument>().Package = RigPackageCopy.Clone(snapshot.Package);
             AnimatorSession.RigChanged(session);
         }
 
@@ -158,29 +161,25 @@ public static class AnimatorHistoryCommands
         if (runtime.CurrentClip == snapshot.Clip && runtime.CurrentTime == snapshot.Time)
             CopyPose(snapshot.Pose, runtime.Pose);
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         selection.ClampBones(package.Skeleton.Bones.Count);
         if (selection.Attachment >= package.Attachments.Count)
             selection.Attachment = -1;
         if (selection.Chain >= package.Chains.Count)
             selection.Chain = -1;
-        if (selection.Effect >= package.Effects.Count)
-            selection.Effect = -1;
         selection.HasKey = false;
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag();
     }
 
-    private static void CopyPose(XafPose from, XafPose to)
+    private static void CopyPose(RigPose from, RigPose to)
     {
         if (from.Bones.Length != to.Bones.Length ||
-            from.Attachments.Length != to.Attachments.Length ||
-            from.Effects.Length != to.Effects.Length)
+            from.Attachments.Length != to.Attachments.Length)
             return;
 
         from.Bones.CopyTo(to.Bones, 0);
         from.Attachments.CopyTo(to.Attachments, 0);
         from.AttachmentStates.CopyTo(to.AttachmentStates, 0);
-        from.Effects.CopyTo(to.Effects, 0);
     }
 }

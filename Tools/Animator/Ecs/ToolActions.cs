@@ -25,6 +25,9 @@ public enum ToolActionKind
     /// <summary>Duplicates the current clip directly; the NEW CLIP dialog can also copy it.</summary>
     DuplicateClip,
     DeleteClip,
+
+    /// <summary>Removes every key of the current clip, so it plays the rest pose again; length, loop and events stay.</summary>
+    ClearClipKeys,
     DurationDown,
     DurationUp,
     ToggleLoop,
@@ -45,7 +48,7 @@ public enum ToolActionKind
     ToggleMovable,
     LockBend,
 
-    /// <summary>Traces the selected SVG into a skin mesh and weights it to its bones by heat diffusion.</summary>
+    /// <summary>Traces the selected part into a skin mesh and weights it to its bones by heat diffusion.</summary>
     AutoWeights,
 
     /// <summary>Starts or stops painting the selected skin's weights in the preview.</summary>
@@ -71,6 +74,9 @@ public enum ToolActionKind
     DeleteEvent,
     AddArt,
     DropArt,
+
+    /// <summary>Opens the XIF editor over everything on the selected part's art (or the selected chain's).</summary>
+    EditXif,
     PreviousArt,
     NextArt,
     LayerDownKey,
@@ -78,9 +84,6 @@ public enum ToolActionKind
     MoveLayerForward,
     MoveLayerBack,
     ToggleArtVisible,
-
-    /// <summary>Asks the system to open the SVG file the selected attachment is showing.</summary>
-    OpenArtFile,
     ToggleMesh,
     PickMeshBones,
     MeshDetailDown,
@@ -99,11 +102,8 @@ public enum ToolActionKind
     AddKey,
     DeleteKey,
 
-    /// <summary>Opens the ADD SVG picker on the selected bone; no argument.</summary>
-    AddSvg,
-
-    /// <summary>Attaches one picker choice, by its index in the open picker.</summary>
-    AttachSvg,
+    /// <summary>Adds a part with a starting square to the selected bone, to draw with the polygon editor; no argument.</summary>
+    AddPart,
 
     /// <summary>Plays if stopped, stops if playing, as the PLAY and STOP buttons do.</summary>
     TogglePlay,
@@ -146,9 +146,6 @@ public enum ToolActionKind
 
     /// <summary>Draws the selected chain as one sheet along it, or as a piece per segment again.</summary>
     ToggleChainSheet,
-
-    /// <summary>Opens the SVG picker to choose the art of the selected chain; no argument.</summary>
-    PickChainArt,
 
     /// <summary>The next bone clicked becomes the one the selected chain hangs from; no argument.</summary>
     PickChainBone,
@@ -207,7 +204,7 @@ public enum ToolActionKind
     /// <summary>Lengthens the selected transition's fade by one step.</summary>
     TransitionFadeUp,
 
-    /// <summary>Sets the selected transition's fade curve; the argument names the <see cref="XafFadeCurve"/>.</summary>
+    /// <summary>Sets the selected transition's fade curve; the argument names the <see cref="RigFadeCurve"/>.</summary>
     TransitionCurve,
 
     /// <summary>Plays the current clip into the selected one with its fade, as the game would.</summary>
@@ -224,9 +221,6 @@ public enum ToolActionKind
 
     /// <summary>Hangs a particle stream off the selected bone, flowing from the playhead; no argument.</summary>
     AddParticles,
-
-    /// <summary>Selects an effect, by its index in the package.</summary>
-    SelectEffect,
 
     /// <summary>Deletes the selected effect and its keys; no argument.</summary>
     DeleteEffect,
@@ -252,8 +246,23 @@ public enum ToolActionKind
     /// <summary>Leaves preview mode; does nothing while editing.</summary>
     ExitPreviewMode,
 
+    /// <summary>Switches workspace; the argument is an <see cref="AnimatorWorkspace"/> name (RIG, ANIMATE, PREVIEW).</summary>
+    Workspace,
+
     /// <summary>Opens the file info popup: the file's path and what it holds.</summary>
     OpenInfo,
+
+    /// <summary>Opens or closes the SHORTCUTS sheet listing every key; no argument.</summary>
+    ToggleShortcuts,
+
+    /// <summary>Eases the move into the key just set; the argument names the <c>EasePreset</c>.</summary>
+    TryoutEase,
+
+    /// <summary>Plays the move into the key just set again; no argument.</summary>
+    TryoutReplay,
+
+    /// <summary>Ends the quick test after keying; no argument.</summary>
+    TryoutClose,
 
     /// <summary>Closes the file info popup.</summary>
     CloseInfo,

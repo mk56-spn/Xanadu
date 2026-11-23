@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -49,7 +50,8 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
 
     public double StepOriginMs => 0;
 
-    public bool Blocked => session.GetComponent<AnimatorNewClipDialog>().Open;
+    /// <summary>A dialog is up, or EDIT RIG is on: the rest pose has no keys to step through or drag.</summary>
+    public bool Blocked => session.GetComponent<AnimatorNewClipDialog>().Open || session.GetComponent<AnimatorModes>().Rest;
 
     public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
     {
@@ -61,13 +63,13 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
 
     public IEnumerable<double> MarkerTimesMs()
     {
-        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         if (clip is null)
             yield break;
 
-        foreach (XafChannel channel in clip.Channels)
+        foreach (KeyChannel channel in clip.Channels)
         {
-            foreach (XafKeyframe key in channel.Keyframes)
+            foreach (Keyframe key in channel.Keys)
                 yield return key.Time * 1000.0;
         }
     }
@@ -94,7 +96,7 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
         if (model is null)
             return null;
 
-        XafClip clip = model.Clip;
+        RigClip clip = model.Clip;
         var scene = new TimelineScene
         {
             Surface = session.GetComponent<AnimatorUi>().Timeline,
@@ -113,6 +115,7 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
                 model.RowBar,
                 model.RowBarHit,
                 AnimatorTimelineModel.MinRowThumb),
+            TimeBar = model.TimeBar,
             Selection = session.GetComponent<AnimatorSelection>().Keys().ConvertAll(key => (object)key),
         };
 
@@ -155,10 +158,10 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
     private void AddRow(TimelineScene scene, AnimatorTimelineModel model, int lane)
     {
         AnimatorTrackRow row = model.Tracks[lane];
-        XafClip clip = model.Clip;
+        RigClip clip = model.Clip;
         if (row.IsOverride)
         {
-            foreach (XafLimbTarget target in clip.Targets)
+            foreach (RigLimbTarget target in clip.Targets)
             {
                 if (target.BoneId != row.Id)
                     continue;
@@ -198,6 +201,9 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
                 break;
             case TimelineGestureKind.RowScroll:
                 drag = new AnimatorDrag { Kind = AnimatorDragKind.RowScroll };
+                break;
+            case TimelineGestureKind.TimeScroll:
+                drag = new AnimatorDrag { Kind = AnimatorDragKind.TimeScroll };
                 break;
             case TimelineGestureKind.Box:
                 drag = new AnimatorDrag { Kind = AnimatorDragKind.KeyBox };
@@ -275,7 +281,7 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
                 AnimatorSession.SetStatus(session, end.Start ? "LOOP START" : "LOOP END");
                 break;
 
-            case XafLimbTarget target:
+            case RigLimbTarget target:
                 _overrideDrag = AnimatorOverrideCommands.Begin(session, target);
                 break;
 
@@ -315,13 +321,13 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
 
             case LoopEnd end when AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>()) is { } clip:
                 if (end.Start)
-                    XafClipAuthoring.SetLoopStart(clip, (float)(fromMs / 1000.0));
+                    RigClipAuthoring.SetLoopStart(clip, (float)(fromMs / 1000.0));
                 else
-                    XafClipAuthoring.SetLoopEnd(clip, (float)(fromMs / 1000.0));
+                    RigClipAuthoring.SetLoopEnd(clip, (float)(fromMs / 1000.0));
                 ReportLoop(clip);
                 break;
 
-            case XafLimbTarget when _overrideDrag is { } dragged:
+            case RigLimbTarget when _overrideDrag is { } dragged:
                 AnimatorOverrideCommands.Drag(session, dragged, fromMs / 1000.0, toMs / 1000.0);
                 break;
 
@@ -334,7 +340,7 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
 
     public void ItemReleased(in TimelineItem item, bool remove)
     {
-        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         switch (item.Ref)
         {
             case AnimatorKeyRef key:
@@ -347,7 +353,7 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
                 AnimatorHistoryCommands.EndGesture(session);
                 break;
 
-            case XafLimbTarget when _overrideDrag is { } dragged && clip is not null:
+            case RigLimbTarget when _overrideDrag is { } dragged && clip is not null:
                 AnimatorOverrideCommands.End(session, clip, dragged);
                 break;
 
@@ -373,14 +379,14 @@ public sealed class AnimatorTimelineHost(Entity session) : ITimelineHost, ITimel
         AnimatorKeyCommands.SelectKeys(session, keys);
     }
 
-    private void ReportLoop(XafClip clip) =>
+    private void ReportLoop(RigClip clip) =>
         AnimatorSession.SetStatus(session, $"LOOP {clip.LoopStart:0.00}–{clip.LoopEnd:0.00}s");
 
     /// <summary>Shows or hides a target's per-channel rows, and selects it as well.</summary>
     private void ToggleExpanded(AnimatorTrackRow row)
     {
         ref AnimatorTracks tracks = ref session.GetComponent<AnimatorTracks>();
-        HashSet<XafTrack> expanded = tracks.Expanded ??= new HashSet<XafTrack>();
+        HashSet<RigTrack> expanded = tracks.Expanded ??= new HashSet<RigTrack>();
         bool open = expanded.Add(row.Track);
         if (!open)
         {

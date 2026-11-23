@@ -9,13 +9,13 @@ namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>
 /// Planting: a foot or hand stays at one spot on the rig from the playhead on. A
-/// plant is a <see cref="XafLimbTarget"/> from the moment it is made, so it is in
+/// plant is a <see cref="RigLimbTarget"/> from the moment it is made, so it is in
 /// the file, in undo and in the baked keys; there is nothing to release first.
 /// </summary>
 public static class AnimatorPlantCommands
 {
     /// <summary>How far, in rig units, a released foot may stray between its keys before another is added.</summary>
-    public const float DriftTolerance = XafTargets.DriftTolerance;
+    public const float DriftTolerance = RigTargets.DriftTolerance;
 
     /// <summary>How far a solved foot may sit from its spot before it counts as out of reach.</summary>
     private const float ReachTolerance = 0.5f;
@@ -42,10 +42,10 @@ public static class AnimatorPlantCommands
 
         float now = document.Runtime.CurrentTime;
         string id = document.Package.Skeleton.Bones[bone].Id;
-        XafLimbTarget? existing = clip.Targets.Find(target => target.BoneId == id && target.Covers(now));
+        RigLimbTarget? existing = clip.Targets.Find(target => target.BoneId == id && target.Covers(now));
         if (existing is null)
             Plant(session, clip, bone);
-        else if (existing.Shape == XafTargetShape.Spot)
+        else if (existing.Shape == RigTargetShape.Spot)
             EndPlant(session, clip, existing);
         else
             AnimatorSession.SetStatus(session, $"{id} ALREADY HAS AN OVERRIDE THERE");
@@ -60,19 +60,19 @@ public static class AnimatorPlantCommands
         if (session.GetComponent<AnimatorModes>().Rest || AnimatorSession.CurrentClip(document) is not { } clip)
             return;
 
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         float now = document.Runtime.CurrentTime;
-        foreach (XafLimbTarget target in clip.Targets)
+        foreach (RigLimbTarget target in clip.Targets)
         {
-            if (target.Shape != XafTargetShape.Spot || !target.Covers(now) || !XafTargets.IsValid(package, target))
+            if (target.Shape != RigTargetShape.Spot || !target.Covers(now) || !RigTargets.IsValid(package, target))
                 continue;
 
             // Playing shows the keys, as the game will; only a paused pose has unbaked moves to hold against.
             bool paused = document.Runtime.Paused;
-            float missed = paused ? XafTargets.Apply(package, document.Runtime.Pose, target, now) : 0f;
-            Transform2D[] world = XafRig.WorldBones(package, document.Runtime.Pose);
-            int bone = XafRig.FindBone(package, target.BoneId);
-            Vector2 at = XafTargets.WorldAt(package, target, world, now);
+            float missed = paused ? RigTargets.Apply(package, document.Runtime.Pose, target, now) : 0f;
+            Transform2D[] world = RigRig.WorldBones(package, document.Runtime.Pose);
+            int bone = RigRig.FindBone(package, target.BoneId);
+            Vector2 at = RigTargets.WorldAt(package, target, world, now);
             if (!paused)
                 missed = world[bone].Origin.DistanceTo(at) - DriftTolerance;
             held.Add(new AnimatorPlant { Bone = bone, At = at, OutOfReach = missed > ReachTolerance });
@@ -90,7 +90,7 @@ public static class AnimatorPlantCommands
         if (session.GetComponent<AnimatorModes>().Rest || AnimatorSession.CurrentClip(document) is not { } clip)
             return 0;
 
-        Transform2D[] world = XafRig.WorldBones(document.Package, document.Runtime.Pose);
+        Transform2D[] world = RigRig.WorldBones(document.Package, document.Runtime.Pose);
         int turned = 0;
         foreach (int bone in bones)
         {
@@ -126,19 +126,19 @@ public static class AnimatorPlantCommands
         return true;
     }
 
-    private static XafLimbTarget? HeldFacing(XafPackage package, XafClip clip, int bone, float now)
+    private static RigLimbTarget? HeldFacing(RigPackage package, RigClip clip, int bone, float now)
     {
         if (bone < 0 || bone >= package.Skeleton.Bones.Count)
             return null;
         string id = package.Skeleton.Bones[bone].Id;
         return clip.Targets.Find(target => target.BoneId == id && target.HoldFacing && target.Covers(now) &&
-                                           XafTargets.IsValid(package, target));
+                                           RigTargets.IsValid(package, target));
     }
 
     /// <summary>The bone a selection plants: itself if it ends a limb, or the bone at its end, as clicking a foot selects the shin.</summary>
-    public static int Target(XafPackage package, int selected)
+    public static int Target(RigPackage package, int selected)
     {
-        List<XafBone> bones = package.Skeleton.Bones;
+        List<RigBone> bones = package.Skeleton.Bones;
         if (selected < 0 || selected >= bones.Count)
             return -1;
 
@@ -155,16 +155,16 @@ public static class AnimatorPlantCommands
     }
 
     /// <summary>Adds the plant from the playhead to the end of the loop or clip, or to the bone's next target.</summary>
-    private static void Plant(Entity session, XafClip clip, int bone)
+    private static void Plant(Entity session, RigClip clip, int bone)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         AnimatorRuntime runtime = document.Runtime;
         runtime.SetPaused(true);
         float now = runtime.CurrentTime;
         string id = package.Skeleton.Bones[bone].Id;
         float to = clip.Loop && now < clip.LoopEnd ? clip.LoopEnd : clip.Duration;
-        foreach (XafLimbTarget other in clip.Targets)
+        foreach (RigLimbTarget other in clip.Targets)
         {
             if (other.BoneId == id && other.From > now)
                 to = Math.Min(to, other.From);
@@ -176,43 +176,43 @@ public static class AnimatorPlantCommands
             return;
         }
 
-        XafPose live = runtime.Pose.Clone();
-        Transform2D[] world = XafRig.WorldBones(package, live);
-        var plant = new XafLimbTarget
+        RigPose live = runtime.Pose.Clone();
+        Transform2D[] world = RigRig.WorldBones(package, live);
+        var plant = new RigLimbTarget
         {
             BoneId = id,
-            Shape = XafTargetShape.Spot,
+            Shape = RigTargetShape.Spot,
             Center = world[bone].Origin,
             From = now,
             To = to,
             HoldFacing = true,
             Facing = world[bone].Rotation,
-            BendPositive = XafTargets.CurrentBend(package, world, bone),
+            BendPositive = RigTargets.CurrentBend(package, world, bone),
         };
         AnimatorHistoryCommands.Edit(session, () =>
         {
             clip.Targets.Add(plant);
-            XafTargets.Bake(package, clip);
+            RigTargets.Bake(package, clip);
             KeepPose(runtime, live, now);
         });
         AnimatorSession.SetStatus(session, $"{id} PINNED");
     }
 
     /// <summary>Ends the plant at the playhead; at its first moment that removes it, leaving its keys as ordinary keys.</summary>
-    private static void EndPlant(Entity session, XafClip clip, XafLimbTarget plant)
+    private static void EndPlant(Entity session, RigClip clip, RigLimbTarget plant)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         AnimatorRuntime runtime = document.Runtime;
         runtime.SetPaused(true);
         float now = runtime.CurrentTime;
-        if (plant.To - now <= XafTracks.TimeTolerance)
+        if (plant.To - now <= RigTracks.TimeTolerance)
         {
             AnimatorSession.SetStatus(session, $"{plant.BoneId} PIN ENDS HERE · DETACH REMOVES IT");
             return;
         }
 
-        XafTargets.Apply(document.Package, runtime.Pose, plant, now);
-        XafPose live = runtime.Pose.Clone();
+        RigTargets.Apply(document.Package, runtime.Pose, plant, now);
+        RigPose live = runtime.Pose.Clone();
         float oldTo = plant.To;
         // Too short a pin left over would own keys with no bar to show for it.
         bool remove = now - plant.From < AnimatorOverrideCommands.MinDuration;
@@ -223,16 +223,16 @@ public static class AnimatorPlantCommands
             else
             {
                 plant.To = now;
-                XafTargets.DropKeysLeftBehind(document.Package, clip, plant, plant.From, oldTo);
+                RigTargets.DropKeysLeftBehind(document.Package, clip, plant, plant.From, oldTo);
             }
-            XafTargets.Bake(document.Package, clip);
+            RigTargets.Bake(document.Package, clip);
             KeepPose(runtime, live, now);
         });
         AnimatorSession.SetStatus(session, remove ? $"{plant.BoneId} UNPINNED · KEYS KEPT" : $"{plant.BoneId} PIN ENDS HERE");
     }
 
     /// <summary>Puts back the playhead's pose after a bake, as dragged but unkeyed moves there would not survive a seek.</summary>
-    private static void KeepPose(AnimatorRuntime runtime, XafPose live, float now)
+    private static void KeepPose(AnimatorRuntime runtime, RigPose live, float now)
     {
         runtime.Seek(now);
         live.Bones.CopyTo(runtime.Pose.Bones, 0);

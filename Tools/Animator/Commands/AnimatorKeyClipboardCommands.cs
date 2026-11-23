@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -17,7 +18,7 @@ public static class AnimatorKeyClipboardCommands
     public static void Copy(Entity session)
     {
         AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-        XafClip? clip = CurrentClip(session);
+        RigClip? clip = CurrentClip(session);
         List<AnimatorKeyRef> keys = selection.Keys();
         if (clip is null || keys.Count == 0)
         {
@@ -54,7 +55,7 @@ public static class AnimatorKeyClipboardCommands
     public static void Paste(Entity session)
     {
         AnimatorKeyClipboard clipboard = session.GetComponent<AnimatorSessionState>().KeyClipboard;
-        XafClip? clip = CurrentClip(session);
+        RigClip? clip = CurrentClip(session);
         if (clip is null || clipboard.Keys is not { Count: > 0 } samples)
         {
             AnimatorSession.SetStatus(session, "COPY KEYS FIRST");
@@ -66,7 +67,7 @@ public static class AnimatorKeyClipboardCommands
             runtime.CurrentTime,
             0f,
             Math.Max(0f, clip.Duration - clipboard.Length));
-        var pasted = new HashSet<(XafChannelTarget Target, string Id, XafChannelProperty? Property, float Time)>();
+        var pasted = new HashSet<(RigChannelTarget Target, string Id, RigChannelProperty? Property, float Time)>();
 
         AnimatorHistoryCommands.Edit(session, () =>
         {
@@ -76,17 +77,17 @@ public static class AnimatorKeyClipboardCommands
                     continue;
 
                 float time = start + sample.Offset;
-                if (time > clip.Duration + XafTracks.TimeTolerance)
+                if (time > clip.Duration + RigTracks.TimeTolerance)
                     continue;
 
-                XafAuthoring.SetKeyCurve(
+                RigAuthoring.SetKeyCurve(
                     clip,
                     sample.Target,
                     sample.Id,
                     sample.Property,
                     time,
                     sample.Value,
-                    sample.Interpolation,
+                    sample.Ease,
                     sample.TangentIn,
                     sample.TangentOut);
                 AnimatorKeyRef? source = SourceOf(clipboard, sample);
@@ -105,7 +106,7 @@ public static class AnimatorKeyClipboardCommands
         }
 
         var refs = new List<AnimatorKeyRef>();
-        foreach ((XafChannelTarget target, string id, XafChannelProperty? property, float time) in pasted)
+        foreach ((RigChannelTarget target, string id, RigChannelProperty? property, float time) in pasted)
             refs.Add(new AnimatorKeyRef(target, id, time, property));
         refs.Sort((a, b) => a.Time.CompareTo(b.Time));
         AnimatorKeyCommands.SelectKeys(session, refs);
@@ -115,13 +116,13 @@ public static class AnimatorKeyClipboardCommands
     /// <summary>Selects every key set of the current clip, so bulk moves and copies have a start.</summary>
     public static void SelectAll(Entity session)
     {
-        XafClip? clip = CurrentClip(session);
+        RigClip? clip = CurrentClip(session);
         if (clip is null)
             return;
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        IReadOnlySet<XafTrack> expanded =
-            session.GetComponent<AnimatorTracks>().Expanded ?? new HashSet<XafTrack>();
+        IReadOnlySet<RigTrack> expanded =
+            session.GetComponent<AnimatorTracks>().Expanded ?? new HashSet<RigTrack>();
         var keys = new List<AnimatorKeyRef>();
         foreach (AnimatorTrackRow row in AnimatorTrackRows.Build(
                      document.Package, clip, null, expanded))
@@ -142,21 +143,21 @@ public static class AnimatorKeyClipboardCommands
     }
 
     private static void Collect(
-        XafClip clip,
+        RigClip clip,
         AnimatorKeyRef key,
         float anchor,
         List<AnimatorKeySample> samples)
     {
-        foreach (XafChannel channel in clip.Channels)
+        foreach (KeyChannel channel in clip.Channels)
         {
             if (channel.Target != key.Target || channel.TargetId != key.Id)
                 continue;
             if (key.Property is { } property && channel.Property != property)
                 continue;
 
-            foreach (XafKeyframe frame in channel.Keyframes)
+            foreach (Keyframe frame in channel.Keys)
             {
-                if (Math.Abs(frame.Time - key.Time) > XafTracks.TimeTolerance)
+                if (Math.Abs(frame.Time - key.Time) > RigTracks.TimeTolerance)
                     continue;
 
                 samples.Add(new AnimatorKeySample(
@@ -165,7 +166,7 @@ public static class AnimatorKeyClipboardCommands
                     channel.Property,
                     frame.Time - anchor,
                     frame.Value,
-                    frame.Interpolation,
+                    frame.Ease,
                     frame.TangentIn,
                     frame.TangentOut));
             }
@@ -184,7 +185,7 @@ public static class AnimatorKeyClipboardCommands
                 continue;
             if (reference.Property is { } property && property != sample.Property)
                 continue;
-            if (Math.Abs(reference.Time - clipboard.Anchor - sample.Offset) <= XafTracks.TimeTolerance)
+            if (Math.Abs(reference.Time - clipboard.Anchor - sample.Offset) <= RigTracks.TimeTolerance)
                 return reference;
         }
         return null;
@@ -192,15 +193,14 @@ public static class AnimatorKeyClipboardCommands
 
     private static bool TargetExists(Entity session, AnimatorKeySample sample)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         return sample.Target switch
         {
-            XafChannelTarget.Bone => package.Skeleton.Bones.Exists(bone => bone.Id == sample.Id),
-            XafChannelTarget.Effect => package.Effects.Exists(effect => effect.Id == sample.Id),
-            _ => package.Attachments.Exists(attachment => attachment.Group == sample.Id),
+            RigChannelTarget.Bone => package.Skeleton.Bones.Exists(bone => bone.Id == sample.Id),
+            _ => package.Attachments.Exists(attachment => attachment.Id == sample.Id),
         };
     }
 
-    private static XafClip? CurrentClip(Entity session) =>
+    private static RigClip? CurrentClip(Entity session) =>
         AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
 }

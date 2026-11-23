@@ -6,16 +6,16 @@ using Xanadu.Core.Storage;
 
 namespace Xanadu.Tools.Animator.Files;
 
-/// <summary>Reads and writes XAF files at game-folder, <c>user://</c> or absolute paths.</summary>
+/// <summary>Reads and writes rigs (XIF files) at game-folder, <c>user://</c> or absolute paths.</summary>
 public sealed class AnimatorFiles : IAnimatorFiles
 {
-    public XafPackage? Load(string path)
+    public RigPackage? Load(string path)
     {
         try
         {
-            return XafFiles.Load(path);
+            return RigFiles.Load(path);
         }
-        catch (Exception exception) when (exception is XafFormatException or
+        catch (Exception exception) when (exception is RigFormatException or
                                               System.IO.IOException or
                                               UnauthorizedAccessException)
         {
@@ -23,22 +23,45 @@ public sealed class AnimatorFiles : IAnimatorFiles
         }
     }
 
-    public void Save(string path, XafPackage package) => XafFiles.Save(path, package);
+    public void Save(string path, RigPackage package) => RigFiles.Save(path, package);
 
-    /// <summary>Opens the file with the desktop's default app (an SVG in the art editor).</summary>
-    public bool OpenInSystem(string path) =>
-        SDL.SDL_OpenURL(new Uri(System.IO.Path.GetFullPath(GamePaths.Full(path))).AbsoluteUri);
-
-    public string? ReadText(string path)
+    // Recovery is best effort: a failed autosave or a bad recovery file must
+    // never stop the animator, so these swallow the same errors Load does.
+    public void SaveRecovery(string path, RigPackage package)
     {
-        string full = GamePaths.Full(path);
         try
         {
-            return System.IO.File.Exists(full) ? System.IO.File.ReadAllText(full) : null;
+            RigFiles.SaveRecovery(path, package);
+        }
+        catch (Exception exception) when (exception is RigFormatException or
+                                              System.IO.IOException or
+                                              UnauthorizedAccessException)
+        {
+        }
+    }
+
+    public (RigPackage Package, DateTime Written)? LoadRecovery(string path)
+    {
+        try
+        {
+            return RigFiles.LoadRecovery(path);
+        }
+        catch (Exception exception) when (exception is RigFormatException or
+                                              System.IO.IOException or
+                                              UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    public void DropRecovery(string path)
+    {
+        try
+        {
+            RigFiles.DropRecovery(path);
         }
         catch (Exception exception) when (exception is System.IO.IOException or UnauthorizedAccessException)
         {
-            return null;
         }
     }
 }

@@ -26,12 +26,12 @@ public static class AnimatorLayerCommands
     public static List<AnimatorLayerRow> Rows(Entity session)
     {
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         var rows = new List<AnimatorLayerRow>(package.Attachments.Count + package.Cloths.Count);
         for (int i = 0; i < package.Attachments.Count; i++)
         {
-            XafAttachment attachment = package.Attachments[i];
-            rows.Add(new AnimatorLayerRow(false, i, Showing(document, i).LayerOf(attachment), attachment.Group));
+            RigAttachment attachment = package.Attachments[i];
+            rows.Add(new AnimatorLayerRow(false, i, Showing(document, i).LayerOf(attachment), attachment.Id));
         }
 
         for (int i = 0; i < package.Cloths.Count; i++)
@@ -89,7 +89,7 @@ public static class AnimatorLayerCommands
     {
         layer = DrawOrder.ClampLayer(layer);
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         if (row.IsCloth)
         {
             package.Cloths[row.Index].ZOrder = layer;
@@ -105,13 +105,13 @@ public static class AnimatorLayerCommands
 
         document.Runtime.SetPaused(true);
         float time = document.Runtime.CurrentTime;
-        XafAttachmentAuthoring.KeyLayer(package, clip, row.Index, time, layer);
+        RigAttachmentAuthoring.KeyLayer(package, clip, row.Index, time, layer);
         document.Runtime.Seek(time);
     }
 
-    private static XafAttachmentState Showing(in AnimatorDocument document, int index)
+    private static RigAttachmentState Showing(in AnimatorDocument document, int index)
     {
-        XafPose pose = document.Runtime.Pose;
+        RigPose pose = document.Runtime.Pose;
         return index < pose.AttachmentStates.Length ? pose.AttachmentStates[index] : default;
     }
 }

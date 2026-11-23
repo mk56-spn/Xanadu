@@ -36,7 +36,7 @@ public static class AnimatorRestPin
             return null;
 
         var edited = new HashSet<int>(editedBones);
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         Transform2D[] world = RestWorld(package);
         var children = new List<(int, Transform2D)>();
         for (int i = 0; i < package.Skeleton.Bones.Count; i++)
@@ -55,11 +55,11 @@ public static class AnimatorRestPin
         if (pinned is null)
             return;
 
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         Transform2D[] world = RestWorld(package);
         foreach ((int child, Transform2D wanted) in pinned.Children)
         {
-            XafBone bone = package.Skeleton.Bones[child];
+            RigBone bone = package.Skeleton.Bones[child];
             Transform2D parentWorld = bone.Parent >= 0 ? world[bone.Parent] : Transform2D.Identity;
             Transform2D local = parentWorld.AffineInverse() * wanted;
             bone.Rest = new Transform2D(local.Rotation, local.Scale, 0f, local.Origin);
@@ -70,11 +70,11 @@ public static class AnimatorRestPin
     }
 
     /// <summary>Every bone's rest transform in skeleton space.</summary>
-    public static Transform2D[] RestWorld(XafPackage package)
+    public static Transform2D[] RestWorld(RigPackage package)
     {
-        var pose = new XafPose(package.Skeleton.Bones.Count, 0);
+        var pose = new RigPose(package.Skeleton.Bones.Count, 0);
         for (int i = 0; i < pose.Bones.Length; i++)
-            pose.Bones[i] = XafTransform.From(package.Skeleton.Bones[i].Rest);
-        return XafRig.WorldBones(package, pose);
+            pose.Bones[i] = RigTransform.From(package.Skeleton.Bones[i].Rest);
+        return RigRig.WorldBones(package, pose);
     }
 }

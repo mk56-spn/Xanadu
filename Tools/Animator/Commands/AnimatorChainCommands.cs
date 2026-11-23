@@ -34,9 +34,9 @@ public static class AnimatorChainCommands
 
     private static void AddCore(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        int index = XafChainAuthoring.Add(package, selection.Bone);
+        int index = RigChainAuthoring.Add(package, selection.Bone);
         if (index < 0)
         {
             AnimatorSession.SetStatus(session, "SELECT A BONE FIRST");
@@ -53,7 +53,7 @@ public static class AnimatorChainCommands
     public static void ToggleSheet(Entity session) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             int index = session.GetComponent<AnimatorSelection>().Chain;
             if (index < 0 || index >= package.Chains.Count)
             {
@@ -61,7 +61,7 @@ public static class AnimatorChainCommands
                 return;
             }
 
-            XafChain chain = package.Chains[index];
+            RigChain chain = package.Chains[index];
             chain.Sheet = !chain.Sheet;
             AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(session, $"{chain.Id} DRAWS AS {(chain.Sheet ? "ONE SHEET" : "PIECES")}");
@@ -73,7 +73,7 @@ public static class AnimatorChainCommands
 
     private static void DeleteCore(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         int index = selection.Chain;
         if (index < 0 || index >= package.Chains.Count)
@@ -82,19 +82,19 @@ public static class AnimatorChainCommands
             return;
         }
 
-        XafChain chain = package.Chains[index];
+        RigChain chain = package.Chains[index];
         string id = chain.Id;
-        XafChainAuthoring.Delete(package, index);
+        RigChainAuthoring.Delete(package, index);
 
         // Leave the bone it hung from selected, so the next step has somewhere to go.
-        selection.SelectOnlyBone(Math.Max(XafRig.FindBone(package, chain.BoneId), 0));
+        selection.SelectOnlyBone(Math.Max(RigRig.FindBone(package, chain.BoneId), 0));
         AnimatorSession.RigChanged(session);
         AnimatorSession.SetStatus(session, $"DELETED {id}");
     }
 
     public static void Select(Entity session, int index)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         if (index < 0 || index >= package.Chains.Count)
             return;
 
@@ -104,31 +104,58 @@ public static class AnimatorChainCommands
         AnimatorSession.SetStatus(session, $"SELECTED {package.Chains[index].Id}");
     }
 
+    /// <summary>One setting of the selected chain; false when no chain is selected.</summary>
+    public static bool TryGet(Entity session, Setting setting, out float value)
+    {
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+        int index = session.GetComponent<AnimatorSelection>().Chain;
+        value = 0f;
+        if (index < 0 || index >= package.Chains.Count)
+            return false;
+        RigChain chain = package.Chains[index];
+        value = setting switch
+        {
+            Setting.Segments => chain.Segments,
+            Setting.Length => chain.SegmentLength,
+            Setting.Width => chain.Width,
+            Setting.Layer => chain.Layer ?? 0,
+            Setting.Gravity => chain.Gravity,
+            Setting.Lean => chain.Lean,
+            Setting.Collide => chain.CollideRadius,
+            Setting.OffsetX => chain.Offset.X,
+            Setting.OffsetY => chain.Offset.Y,
+            Setting.ColliderX => chain.CollideOffset.X,
+            Setting.ColliderY => chain.CollideOffset.Y,
+            _ => chain.Damping,
+        };
+        return true;
+    }
+
     /// <summary>Sets one setting of the selected chain, as one undo step.</summary>
     public static void Set(Entity session, Setting setting, float value) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             int index = session.GetComponent<AnimatorSelection>().Chain;
-            XafChain? chain = index >= 0 && index < package.Chains.Count ? package.Chains[index] : null;
+            RigChain? chain = index >= 0 && index < package.Chains.Count ? package.Chains[index] : null;
             bool changed = setting switch
             {
                 Setting.OffsetX when chain is not null =>
-                    XafChainAuthoring.SetOffset(package, index, new Vector2(value, chain.Offset.Y)),
+                    RigChainAuthoring.SetOffset(package, index, new Vector2(value, chain.Offset.Y)),
                 Setting.OffsetY when chain is not null =>
-                    XafChainAuthoring.SetOffset(package, index, new Vector2(chain.Offset.X, value)),
+                    RigChainAuthoring.SetOffset(package, index, new Vector2(chain.Offset.X, value)),
                 Setting.ColliderX when chain is not null =>
-                    XafChainAuthoring.SetCollideOffset(package, index, new Vector2(value, chain.CollideOffset.Y)),
+                    RigChainAuthoring.SetCollideOffset(package, index, new Vector2(value, chain.CollideOffset.Y)),
                 Setting.ColliderY when chain is not null =>
-                    XafChainAuthoring.SetCollideOffset(package, index, new Vector2(chain.CollideOffset.X, value)),
-                Setting.Segments => XafChainAuthoring.SetSegments(package, index, (int)MathF.Round(value)),
-                Setting.Length => XafChainAuthoring.SetSegmentLength(package, index, value),
-                Setting.Width => XafChainAuthoring.SetWidth(package, index, value),
-                Setting.Layer => XafChainAuthoring.SetLayer(package, index, (int)MathF.Round(value)),
-                Setting.Gravity => XafChainAuthoring.SetGravity(package, index, value),
-                Setting.Lean => XafChainAuthoring.SetLean(package, index, value),
-                Setting.Collide => XafChainAuthoring.SetCollideRadius(package, index, value),
-                _ => XafChainAuthoring.SetDamping(package, index, value),
+                    RigChainAuthoring.SetCollideOffset(package, index, new Vector2(chain.CollideOffset.X, value)),
+                Setting.Segments => RigChainAuthoring.SetSegments(package, index, (int)MathF.Round(value)),
+                Setting.Length => RigChainAuthoring.SetSegmentLength(package, index, value),
+                Setting.Width => RigChainAuthoring.SetWidth(package, index, value),
+                Setting.Layer => RigChainAuthoring.SetLayer(package, index, (int)MathF.Round(value)),
+                Setting.Gravity => RigChainAuthoring.SetGravity(package, index, value),
+                Setting.Lean => RigChainAuthoring.SetLean(package, index, value),
+                Setting.Collide => RigChainAuthoring.SetCollideRadius(package, index, value),
+                _ => RigChainAuthoring.SetDamping(package, index, value),
             };
             if (changed && setting == Setting.Layer)
                 AnimatorSession.RigChanged(session);

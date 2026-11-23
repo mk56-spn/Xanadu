@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System.Collections.Generic;
 using Xanadu.Model.Animation;
 
@@ -8,12 +9,12 @@ namespace Xanadu.Tools.Animator.Ecs;
 /// earliest copied key so a paste can put the whole set down at the playhead.
 /// </summary>
 public readonly record struct AnimatorKeySample(
-    XafChannelTarget Target,
+    RigChannelTarget Target,
     string Id,
-    XafChannelProperty Property,
+    RigChannelProperty Property,
     float Offset,
     float Value,
-    XafInterpolation Interpolation,
+    KeyEase Ease,
     float TangentIn,
     float TangentOut);
 

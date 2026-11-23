@@ -2,17 +2,20 @@ using Xanadu.Model.Animation;
 
 namespace Xanadu.Tools.Animator.Files;
 
-/// <summary>Reads and writes XAF packages at a path.</summary>
+/// <summary>Reads and writes rigs (XIF files) at a path.</summary>
 public interface IAnimatorFiles
 {
     /// <summary>Loads the package at the path, or returns null when none can be read.</summary>
-    XafPackage? Load(string path);
+    RigPackage? Load(string path);
 
-    void Save(string path, XafPackage package);
+    void Save(string path, RigPackage package);
 
-    /// <summary>Asks the system to open the file in its own app; false when it could not.</summary>
-    bool OpenInSystem(string path);
+    /// <summary>Keeps unsaved work on <paramref name="path"/> where a crash cannot lose it.</summary>
+    void SaveRecovery(string path, RigPackage package) { }
 
-    /// <summary>A text file's contents, such as an SVG's; null when it cannot be read.</summary>
-    string? ReadText(string path) => null;
+    /// <summary>The unsaved work kept for <paramref name="path"/>, or null.</summary>
+    (RigPackage Package, System.DateTime Written)? LoadRecovery(string path) => null;
+
+    /// <summary>Forgets the unsaved work kept for <paramref name="path"/>.</summary>
+    void DropRecovery(string path) { }
 }

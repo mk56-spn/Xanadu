@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -13,8 +14,11 @@ public static class AnimatorEditing
     public const float RotationStep = 0.25f;
     public const float ScaleStep = 0.1f;
 
-    public static void KeySelected(Entity session) =>
+    public static void KeySelected(Entity session)
+    {
         AnimatorHistoryCommands.Edit(session, () => Key(session));
+        AnimatorKeyTryoutCommands.Start(session);
+    }
 
     /// <summary>
     /// Records a pose edit in the clip. Selected keys of what was edited take
@@ -29,6 +33,7 @@ public static class AnimatorEditing
         {
             string note = keys == 1 ? " · KEY EDITED" : $" · {keys} KEYS EDITED";
             AnimatorSession.SetStatus(session, note.TrimStart(' ', '·'));
+            AnimatorKeyTryoutCommands.Start(session);
             return note;
         }
 
@@ -49,12 +54,12 @@ public static class AnimatorEditing
             return;
         }
 
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         if (clip is null)
             return;
 
         float time = document.Runtime.CurrentTime;
-        XafPose pose = document.Runtime.Pose;
+        RigPose pose = document.Runtime.Pose;
         List<int> bones = selection.Bones();
         for (int i = bones.Count - 1; i >= 0; i--)
         {
@@ -66,7 +71,7 @@ public static class AnimatorEditing
         {
             foreach (int bone in bones)
             {
-                XafAuthoring.KeyBoneTransform(
+                RigAuthoring.KeyBoneTransform(
                     document.Package, clip, bone, time, pose.Bones[bone]);
             }
 
@@ -77,7 +82,7 @@ public static class AnimatorEditing
         }
         else if (selection.Attachment >= 0)
         {
-            XafAuthoring.KeyAttachmentTransform(
+            RigAuthoring.KeyAttachmentTransform(
                 document.Package,
                 clip,
                 selection.Attachment,
@@ -85,12 +90,7 @@ public static class AnimatorEditing
                 pose.Attachments[selection.Attachment]);
             AnimatorSession.SetStatus(
                 session,
-                $"KEYED {document.Package.Attachments[selection.Attachment].Group}");
-        }
-        else if (AnimatorEffectCommands.Selected(session) is var effect and >= 0 && effect < pose.Effects.Length)
-        {
-            XafAuthoring.KeyEffect(document.Package, clip, effect, time, pose.Effects[effect]);
-            AnimatorSession.SetStatus(session, $"KEYED {document.Package.Effects[effect].Id}");
+                $"KEYED {document.Package.Attachments[selection.Attachment].Id}");
         }
     }
 
@@ -99,13 +99,13 @@ public static class AnimatorEditing
         AnimatorHistoryCommands.Edit(session, () =>
         {
             ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-            XafClip? clip = AnimatorSession.CurrentClip(document);
+            RigClip? clip = AnimatorSession.CurrentClip(document);
             if (clip is null || session.GetComponent<AnimatorModes>().Rest)
                 return;
 
             foreach (int bone in bones)
             {
-                XafAuthoring.KeyBoneTransform(document.Package, clip, bone,
+                RigAuthoring.KeyBoneTransform(document.Package, clip, bone,
                     document.Runtime.CurrentTime, document.Runtime.Pose.Bones[bone]);
             }
             AnimatorSession.SetStatus(session, $"KEYED {bones.Length} BONES");
@@ -200,16 +200,11 @@ public static class AnimatorEditing
                 if (bone < document.Runtime.Pose.Bones.Length)
                     Apply(ref document.Runtime.Pose.Bones[bone], rotation, scale);
             }
-            XafJointLocks.Apply(document.Package, document.Runtime.Pose);
+            RigJointLocks.Apply(document.Package, document.Runtime.Pose);
         }
         else if (selection.Attachment >= 0)
         {
             Apply(ref document.Runtime.Pose.Attachments[selection.Attachment], rotation, scale);
-        }
-        else if (AnimatorEffectCommands.Selected(session) is var effect and >= 0 &&
-                 effect < document.Runtime.Pose.Effects.Length)
-        {
-            Apply(ref document.Runtime.Pose.Effects[effect].Transform, rotation, scale);
         }
         else
         {
@@ -229,25 +224,25 @@ public static class AnimatorEditing
     private static void LockBendCore(Entity session)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
-        Transform2D[] world = XafRig.WorldBones(package, document.Runtime.Pose);
+        RigPackage package = document.Package;
+        Transform2D[] world = RigRig.WorldBones(package, document.Runtime.Pose);
         string status = "SELECT A KNEE OR ELBOW BONE FIRST";
         foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
         {
             if (index < 0 || index >= package.Skeleton.Bones.Count)
                 continue;
 
-            XafBone bone = package.Skeleton.Bones[index];
+            RigBone bone = package.Skeleton.Bones[index];
             if (bone.Bend != 0)
             {
                 bone.Bend = 0;
                 status = $"{bone.Id} BENDS FREELY";
             }
-            else if (!XafJointLocks.TryBend(package, world, index, out float bend))
+            else if (!RigJointLocks.TryBend(package, world, index, out float bend))
             {
                 status = $"{bone.Id} HAS NO JOINT TO LOCK";
             }
-            else if (Math.Abs(bend) < XafJointLocks.Straight)
+            else if (Math.Abs(bend) < RigJointLocks.Straight)
             {
                 status = $"BEND {bone.Id} THE RIGHT WAY FIRST";
             }
@@ -274,22 +269,22 @@ public static class AnimatorEditing
     private static void ToggleLimitCore(Entity session)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         string status = "SELECT A BONE FIRST";
         foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
         {
             if (index < 0 || index >= package.Skeleton.Bones.Count)
                 continue;
 
-            XafBone bone = package.Skeleton.Bones[index];
+            RigBone bone = package.Skeleton.Bones[index];
             bone.Limited = !bone.Limited;
             if (bone.Limited)
             {
                 float turn = index < document.Runtime.Pose.Bones.Length
-                    ? XafJointLocks.Turn(package, document.Runtime.Pose, index)
+                    ? RigJointLocks.Turn(package, document.Runtime.Pose, index)
                     : 0f;
-                bone.LimitMin = MathF.Min(-XafJointLocks.DefaultLimit, turn);
-                bone.LimitMax = MathF.Max(XafJointLocks.DefaultLimit, turn);
+                bone.LimitMin = MathF.Min(-RigJointLocks.DefaultLimit, turn);
+                bone.LimitMax = MathF.Max(RigJointLocks.DefaultLimit, turn);
             }
             status = bone.Limited ? LimitStatus(bone) : $"{bone.Id} TURNS FREELY";
         }
@@ -305,14 +300,14 @@ public static class AnimatorEditing
 
     private static void StepLimitCore(Entity session, bool max, int direction)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         string status = "LIMIT A BONE FIRST";
         foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
         {
             if (index < 0 || index >= package.Skeleton.Bones.Count || !package.Skeleton.Bones[index].Limited)
                 continue;
 
-            XafBone bone = package.Skeleton.Bones[index];
+            RigBone bone = package.Skeleton.Bones[index];
             float step = LimitStep * direction;
             if (max)
                 bone.LimitMax = Math.Clamp(bone.LimitMax + step, bone.LimitMin, MathF.PI);
@@ -330,14 +325,14 @@ public static class AnimatorEditing
     public static void SetLimit(Entity session, bool max, float radians) =>
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             string status = "LIMIT A BONE FIRST";
             foreach (int index in session.GetComponent<AnimatorSelection>().Bones())
             {
                 if (index < 0 || index >= package.Skeleton.Bones.Count || !package.Skeleton.Bones[index].Limited)
                     continue;
 
-                XafBone bone = package.Skeleton.Bones[index];
+                RigBone bone = package.Skeleton.Bones[index];
                 if (max)
                     bone.LimitMax = Math.Clamp(radians, bone.LimitMin, MathF.PI);
                 else
@@ -347,7 +342,7 @@ public static class AnimatorEditing
             AnimatorSession.SetStatus(session, status);
         });
 
-    private static string LimitStatus(XafBone bone) =>
+    private static string LimitStatus(RigBone bone) =>
         $"{bone.Id} TURNS {float.RadiansToDegrees(bone.LimitMin):0}\u00b0 TO {float.RadiansToDegrees(bone.LimitMax):0}\u00b0";
 
     /// <summary>Lets the selected bone translate, or locks it back to its rest length.</summary>
@@ -356,7 +351,7 @@ public static class AnimatorEditing
 
     private static void ToggleMovableCore(Entity session)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         List<int> bones = session.GetComponent<AnimatorSelection>().Bones();
         int changed = 0;
         bool movable = false;
@@ -366,7 +361,7 @@ public static class AnimatorEditing
             if (index < 0 || index >= package.Skeleton.Bones.Count)
                 continue;
 
-            XafBone bone = package.Skeleton.Bones[index];
+            RigBone bone = package.Skeleton.Bones[index];
             if (bone.Parent < 0)
                 continue;
 
@@ -404,7 +399,7 @@ public static class AnimatorEditing
             id = $"bone-{number++}";
         } while (document.Package.Skeleton.Bones.Exists(bone => bone.Id == id));
 
-        int created = XafRigAuthoring.AddBone(
+        int created = RigRigAuthoring.AddBone(
             document.Package,
             parent,
             id,
@@ -434,7 +429,7 @@ public static class AnimatorEditing
         }
 
         int parent = document.Package.Skeleton.Bones[selection.Bone].Parent;
-        if (!XafRigAuthoring.DeleteBone(document.Package, selection.Bone))
+        if (!RigRigAuthoring.DeleteBone(document.Package, selection.Bone))
         {
             AnimatorSession.SetStatus(session, "CANNOT DELETE BONE");
             return;
@@ -451,8 +446,8 @@ public static class AnimatorEditing
         bool renamed = false;
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
-            if (!XafRigAuthoring.RenameBone(package, index, id))
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+            if (!RigRigAuthoring.RenameBone(package, index, id))
                 return;
 
             renamed = true;
@@ -471,7 +466,7 @@ public static class AnimatorEditing
         bool moved = false;
         AnimatorHistoryCommands.Edit(session, () =>
         {
-            XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
             if (index < 0 || index >= package.Skeleton.Bones.Count ||
                 parent < 0 || parent >= package.Skeleton.Bones.Count)
             {
@@ -480,13 +475,13 @@ public static class AnimatorEditing
 
             string id = package.Skeleton.Bones[index].Id;
             string parentId = package.Skeleton.Bones[parent].Id;
-            if (!XafRigAuthoring.ReparentBone(package, index, parent))
+            if (!RigRigAuthoring.ReparentBone(package, index, parent))
                 return;
 
             // Reparenting may reorder the bones, so find the moved one again.
             moved = true;
             ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-            selection.SelectOnlyBone(XafRig.FindBone(package, id));
+            selection.SelectOnlyBone(RigRig.FindBone(package, id));
             AnimatorSession.RigChanged(session);
             AnimatorSession.SetStatus(session, $"{id} NOW UNDER {parentId}");
         });
@@ -497,7 +492,7 @@ public static class AnimatorEditing
     }
 
     private static void NudgeRest(
-        XafPackage package,
+        RigPackage package,
         AnimatorSelection selection,
         float rotation,
         float scale)
@@ -510,19 +505,14 @@ public static class AnimatorEditing
                 if (index < 0 || index >= package.Skeleton.Bones.Count)
                     continue;
 
-                XafBone bone = package.Skeleton.Bones[index];
+                RigBone bone = package.Skeleton.Bones[index];
                 bone.Rest = Nudged(bone.Rest, rotation, scale);
             }
         }
         else if (selection.Attachment >= 0)
         {
-            XafAttachment attachment = package.Attachments[selection.Attachment];
+            RigAttachment attachment = package.Attachments[selection.Attachment];
             attachment.Transform = Nudged(attachment.Transform, rotation, scale);
-        }
-        else if (selection.Effect >= 0 && selection.Effect < package.Effects.Count)
-        {
-            XafEffect effect = package.Effects[selection.Effect];
-            effect.Transform = Nudged(effect.Transform, rotation, scale);
         }
     }
 
@@ -535,7 +525,7 @@ public static class AnimatorEditing
         0f,
         transform.Origin);
 
-    private static void Apply(ref XafTransform transform, float rotation, float scale)
+    private static void Apply(ref RigTransform transform, float rotation, float scale)
     {
         transform.Rotation += rotation;
         transform.Scale += new Vector2(scale, scale);

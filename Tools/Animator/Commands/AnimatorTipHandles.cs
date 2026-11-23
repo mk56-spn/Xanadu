@@ -26,15 +26,15 @@ public static class AnimatorTipHandles
     /// <summary>Closer to the joint than this, in screen pixels, the pointer's angle is only noise.</summary>
     private const float DeadZone = 4f;
 
-    /// <summary>The handles are bone tools: they follow the joint dots and give way to SVG placement.</summary>
-    public static bool Shown(in AnimatorModes modes) => modes.Handles && !modes.Svg;
+    /// <summary>The handles are bone tools: they follow the joint dots and give way to part placement.</summary>
+    public static bool Shown(in AnimatorModes modes) => modes.Handles && !modes.Parts;
 
     /// <summary>Which bones have no children, and so carry a handle.</summary>
-    public static bool[] Childless(XafPackage package)
+    public static bool[] Childless(RigPackage package)
     {
         var childless = new bool[package.Skeleton.Bones.Count];
         System.Array.Fill(childless, true);
-        foreach (XafBone bone in package.Skeleton.Bones)
+        foreach (RigBone bone in package.Skeleton.Bones)
         {
             if (bone.Parent >= 0 && bone.Parent < childless.Length)
                 childless[bone.Parent] = false;
@@ -44,10 +44,10 @@ public static class AnimatorTipHandles
     }
 
     /// <summary>Screen position of the dot on a bone's stem.</summary>
-    public static Vector2 Tip(XafPackage package, int bone, Transform2D[] world, Transform2D placement)
+    public static Vector2 Tip(RigPackage package, int bone, Transform2D[] world, Transform2D placement)
     {
         // Along the bone's own tip when it has one, else on down the limb.
-        XafBone owner = package.Skeleton.Bones[bone];
+        RigBone owner = package.Skeleton.Bones[bone];
         Vector2 limb = owner.Tip.LengthSquared() > 0.0001f ? owner.Tip : owner.Rest.Origin;
         Vector2 local = limb.LengthSquared() > 0.0001f ? limb : Vector2.Right;
         Vector2 direction = placement.BasisXform(world[bone].BasisXform(local));
@@ -61,7 +61,7 @@ public static class AnimatorTipHandles
     /// The bone whose dot is under the pointer, or -1. A joint nearer the pointer
     /// than the dot wins, so a crowded, zoomed-out rig keeps its joints reachable.
     /// </summary>
-    public static int Pick(XafPackage package, Transform2D[] world, Transform2D placement, Vector2 pointer)
+    public static int Pick(RigPackage package, Transform2D[] world, Transform2D placement, Vector2 pointer)
     {
         bool[] childless = Childless(package);
         int hit = -1;
@@ -86,7 +86,7 @@ public static class AnimatorTipHandles
         Entity session,
         Vector2 pointer,
         Transform2D placement,
-        XafPose pose,
+        RigPose pose,
         Transform2D[] world)
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
@@ -100,7 +100,6 @@ public static class AnimatorTipHandles
         document.Runtime.SetPaused(true);
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
         selection.Attachment = -1;
-        selection.Effect = -1;
         selection.SelectOnlyBone(bone);
         AnimatorHistoryCommands.BeginGesture(session);
         session.GetComponent<AnimatorDrag>() = new AnimatorDrag
@@ -125,10 +124,10 @@ public static class AnimatorTipHandles
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         bool rest = session.GetComponent<AnimatorModes>().Rest;
         ref AnimatorDrag drag = ref session.GetComponent<AnimatorDrag>();
-        XafPackage package = document.Package;
+        RigPackage package = document.Package;
         int index = drag.Joint;
-        XafBone bone = package.Skeleton.Bones[index];
-        Transform2D[] world = XafRig.WorldBones(
+        RigBone bone = package.Skeleton.Bones[index];
+        Transform2D[] world = RigRig.WorldBones(
             package, AnimatorGeometry.PreviewPose(document, session.GetComponent<AnimatorModes>()));
         Vector2 joint = world[index].Origin;
         if ((placement * joint).DistanceTo(pointer) < DeadZone)
@@ -154,7 +153,7 @@ public static class AnimatorTipHandles
         }
 
         document.Runtime.Pose.Bones[index].Rotation = rotation;
-        XafJointLocks.Apply(package, document.Runtime.Pose);
+        RigJointLocks.Apply(package, document.Runtime.Pose);
 
         // A pinned foot or hand turns its pin with it, as dragging the pin's spot moves it.
         if (AnimatorPlantCommands.Reface(session, [index]) > 0)

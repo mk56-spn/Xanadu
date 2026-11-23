@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -12,11 +13,12 @@ using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Tools.Animator.Systems;
 
-/// <summary>Draws the skeleton, Verlet chains, onion-skin ghosts, selection markers and SVG attachments.</summary>
+/// <summary>Draws the skeleton, Verlet chains, onion-skin ghosts, selection markers and parts.</summary>
 public sealed class AnimatorPreviewDrawSystem(
     IRectCanvas canvas,
     Handle target,
-    IAttachmentVisuals visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
+    AnimatorArt visuals,
+    Handle held = default) : QuerySystem<AnimatorDocument, AnimatorUi>
 {
     private static readonly Color BoneColor = Palette.Accent;
     private static readonly Color BoneFill = new(Palette.Info, 0.30f);
@@ -75,7 +77,7 @@ public sealed class AnimatorPreviewDrawSystem(
         else if (document.EffectsVersion != _effectsVersion)
         {
             _effectsVersion = document.EffectsVersion;
-            visuals.ReloadEffects(document.Package);
+            visuals.Reload(document.Package);
         }
 
         canvas.Clear(target);
@@ -89,12 +91,12 @@ public sealed class AnimatorPreviewDrawSystem(
             Palette.Muted,
             1);
 
-        XafPose pose = AnimatorGeometry.PreviewPose(document, modes);
-        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        RigPose pose = AnimatorGeometry.PreviewPose(document, modes);
+        Transform2D[] world = RigRig.WorldBones(document.Package, pose);
 
         if (modes.Onion && !modes.Rest)
         {
-            XafClip? clip = AnimatorSession.CurrentClip(document);
+            RigClip? clip = AnimatorSession.CurrentClip(document);
             if (clip is not null)
             {
                 float time = document.Runtime.CurrentTime;
@@ -143,7 +145,7 @@ public sealed class AnimatorPreviewDrawSystem(
         var labels = new System.Collections.Generic.List<Rect2>();
         for (int i = 0; modes.Handles && i < world.Length; i++)
         {
-            XafBone bone = document.Package.Skeleton.Bones[i];
+            RigBone bone = document.Package.Skeleton.Bones[i];
             Vector2 point = placement * world[i].Origin;
             bool primary = i == selection.Bone;
             bool selected = selection.IsBoneSelected(i);
@@ -175,18 +177,20 @@ public sealed class AnimatorPreviewDrawSystem(
         DrawTarget(session, document, world, placement);
         DrawSnapGuides(session.GetComponent<AnimatorSnapGuides>(), placement, area);
 
-        Transform2D[] attachments = XafRig.WorldAttachments(document.Package, pose, world);
-        visuals.Apply(attachments, placement);
-        visuals.ApplyStates(document.Package, pose, world, attachments, placement);
+        Transform2D[] attachments = RigRig.WorldAttachments(document.Package, pose, world);
+        // A part the XIF editor holds on its bone draws above the editor's dimming, not under it.
+        int heldPart = Commands.AnimatorXifHost.HeldOnBone(session);
+        visuals.Draw(canvas, document.Package, pose, world, attachments,
+            session.GetComponent<AnimatorChains>().Simulation, session.GetComponent<AnimatorCloths>().Simulation, placement, heldPart);
+        if (held.IsValid && Commands.AnimatorXifHost.Boxed(session) is { } boxed)
+            visuals.DrawBoxed(canvas, held, boxed.Item, boxed.Shown);
+        else if (held.IsValid)
+            visuals.DrawHeld(canvas, held, document.Package, pose, world, attachments, placement, heldPart);
         _mesh.Draw(session, visuals, document.Package, world, placement);
-        visuals.ApplyChains(document.Package, session.GetComponent<AnimatorChains>().Simulation, placement);
-        visuals.ApplyCloths(document.Package, session.GetComponent<AnimatorCloths>().Simulation, placement);
-        Transform2D[] effects = XafRig.WorldEffects(document.Package, pose, world);
-        visuals.ApplyEffects(pose, effects, placement);
-        DrawSelectedEffect(document.Package, pose, selection, effects, placement);
+        DrawSelectedPart(document.Package, pose, selection, attachments, placement);
 
         // The squares are the handles for placing art, so they only show while placing it.
-        for (int i = 0; modes.Svg && i < attachments.Length; i++)
+        for (int i = 0; modes.Parts && i < attachments.Length; i++)
         {
             Vector2 point = placement * attachments[i].Origin;
             bool selected = i == selection.Attachment;
@@ -222,6 +226,20 @@ public sealed class AnimatorPreviewDrawSystem(
                 14);
         }
 
+        List<string> noStart = AnimatorUnkeyed.MissingStartKey(session);
+        if (noStart.Count > 0)
+        {
+            canvas.DrawTextStyledLeft(
+                target,
+                new Rect2(area.Position + new Vector2(12, unkeyedCount > 0 ? 52 : 32), new Vector2(600, 20)),
+                AnimatorUnkeyed.MissingStartNote(noStart),
+                UnkeyedColor,
+                14);
+        }
+
+        if (modes.Rest)
+            DrawRigFrame(area);
+
         canvas.DrawTextStyledLeft(
             target,
             new Rect2(area.Position + new Vector2(12, 12), new Vector2(300, 20)),
@@ -232,15 +250,35 @@ public sealed class AnimatorPreviewDrawSystem(
     }
 
     /// <summary>
+    /// While the rig is being edited the preview gets an orange frame and a
+    /// caption along its bottom, so it never passes for posing a clip.
+    /// </summary>
+    private void DrawRigFrame(Rect2 area)
+    {
+        const float edge = 4f;
+        Vector2 p = area.Position, s = area.Size;
+        canvas.DrawRect(target, new Rect2(p, new Vector2(s.X, edge)), UnkeyedColor);
+        canvas.DrawRect(target, new Rect2(p + new Vector2(0, s.Y - edge), new Vector2(s.X, edge)), UnkeyedColor);
+        canvas.DrawRect(target, new Rect2(p, new Vector2(edge, s.Y)), UnkeyedColor);
+        canvas.DrawRect(target, new Rect2(p + new Vector2(s.X - edge, 0), new Vector2(edge, s.Y)), UnkeyedColor);
+        canvas.DrawTextStyledLeft(
+            target,
+            new Rect2(p + new Vector2(12, s.Y - 30), new Vector2(700, 20)),
+            "EDITING THE RIG · CHANGES MOVE EVERY CLIP · EDIT RIG AGAIN TO GO BACK TO ANIMATING",
+            UnkeyedColor,
+            14);
+    }
+
+    /// <summary>
     /// A selected bone with an angle limit shows the turn it is allowed: a fan
     /// round its joint from the low end to the high, set against its parent,
     /// so it moves with the pose.
     /// </summary>
-    private void DrawLimits(XafPackage package, XafPose pose, AnimatorSelection selection, Transform2D[] world, Transform2D placement)
+    private void DrawLimits(RigPackage package, RigPose pose, AnimatorSelection selection, Transform2D[] world, Transform2D placement)
     {
         for (int i = 0; i < world.Length && i < pose.Bones.Length; i++)
         {
-            XafBone bone = package.Skeleton.Bones[i];
+            RigBone bone = package.Skeleton.Bones[i];
             if (!bone.Limited || !selection.IsBoneSelected(i))
                 continue;
 
@@ -263,7 +301,7 @@ public sealed class AnimatorPreviewDrawSystem(
             if (now.LengthSquared() < 1e-6f)
                 continue;
             now = now.Normalized();
-            float current = XafJointLocks.Turn(package, pose, i);
+            float current = RigJointLocks.Turn(package, pose, i);
             float sense = world[i].Determinant() * placement.Determinant() < 0f ? -1f : 1f;
             Vector2 Edge(float turn) => joint + now.Rotated((turn - current) * sense) * LimitRadius;
 
@@ -283,11 +321,11 @@ public sealed class AnimatorPreviewDrawSystem(
     /// A joint slid off its rest spot shows where it belongs: a hollow ring
     /// at the rest spot on its parent, tethered to where the joint is now.
     /// </summary>
-    private void DrawJointOffsets(XafPackage package, XafPose pose, Transform2D[] world, Transform2D placement)
+    private void DrawJointOffsets(RigPackage package, RigPose pose, Transform2D[] world, Transform2D placement)
     {
         for (int i = 0; i < world.Length; i++)
         {
-            XafBone bone = package.Skeleton.Bones[i];
+            RigBone bone = package.Skeleton.Bones[i];
             if (bone.Parent < 0 || !bone.AllowTranslation ||
                 pose.Bones[i].Translation.DistanceTo(bone.Rest.Origin) < JointOffsetMinimum)
             {
@@ -313,7 +351,7 @@ public sealed class AnimatorPreviewDrawSystem(
             return;
 
         string next = steps[Math.Min(sequence.Index + 1, steps.Count - 1)].Clip;
-        XafClip? clip = document.Package.Clips.Find(candidate => candidate.Id == next);
+        RigClip? clip = document.Package.Clips.Find(candidate => candidate.Id == next);
         if (sequence.Index == 0 && clip is not null)
             DrawGhost(document.Package, clip, 0f, FlowGhost, placement, modes.Kites, modes.Handles);
     }
@@ -324,12 +362,12 @@ public sealed class AnimatorPreviewDrawSystem(
     /// </summary>
     private void DrawChains(
         Entity session,
-        XafPackage package,
+        RigPackage package,
         AnimatorSelection selection,
         Transform2D placement)
     {
-        XafChainSimulation simulation = session.GetComponent<AnimatorChains>().Simulation;
-        Span<Vector2> line = stackalloc Vector2[XafChain.MaxSegments + 1];
+        RigChainSimulation simulation = session.GetComponent<AnimatorChains>().Simulation;
+        Span<Vector2> line = stackalloc Vector2[RigChain.MaxSegments + 1];
         for (int i = 0; i < package.Chains.Count; i++)
         {
             System.Collections.Generic.IReadOnlyList<Vector2> points = simulation.Points(i);
@@ -356,7 +394,7 @@ public sealed class AnimatorPreviewDrawSystem(
     /// collider, which the pointer can drag along their bones.
     /// </summary>
     private void DrawChainHandles(
-        XafPackage package,
+        RigPackage package,
         AnimatorSelection selection,
         Transform2D[] world,
         Transform2D placement)
@@ -364,7 +402,7 @@ public sealed class AnimatorPreviewDrawSystem(
         if (!AnimatorChainHandles.TryGet(package, selection.Chain, world, out Vector2 root, out Vector2? collider))
             return;
 
-        XafChain chain = package.Chains[selection.Chain];
+        RigChain chain = package.Chains[selection.Chain];
         if (collider is { } center)
         {
             Vector2 screen = placement * center;
@@ -381,21 +419,22 @@ public sealed class AnimatorPreviewDrawSystem(
     /// The selected effect's outline, solid while it shows and faint
     /// while hidden, so it can be placed at a time it is not on screen.
     /// </summary>
-    private void DrawSelectedEffect(
-        XafPackage package,
-        XafPose pose,
+    /// <summary>The selected part's outline, dim while the pose hides it, so a hidden streak can still be found.</summary>
+    private void DrawSelectedPart(
+        RigPackage package,
+        RigPose pose,
         AnimatorSelection selection,
-        Transform2D[] effects,
+        Transform2D[] attachments,
         Transform2D placement)
     {
-        int index = selection.Effect;
-        if (index < 0 || index >= effects.Length || index >= package.Effects.Count)
+        int index = selection.Attachment;
+        if (index < 0 || index >= attachments.Length || index >= package.Attachments.Count)
             return;
 
-        bool visible = index < pose.Effects.Length && pose.Effects[index].Visible;
+        bool visible = index < pose.AttachmentStates.Length && pose.AttachmentStates[index].Alpha > 0f;
         Color color = visible ? EffectOutline : new Color(EffectOutline, 0.35f);
-        Transform2D toScreen = placement * effects[index];
-        foreach (XifPrimitive primitive in package.Effects[index].Item.Primitives)
+        Transform2D toScreen = placement * attachments[index];
+        foreach (XifPolygon primitive in package.Attachments[index].Node.Polygons)
         {
             int count = primitive.Points.Count;
             if (count < 2)
@@ -410,8 +449,8 @@ public sealed class AnimatorPreviewDrawSystem(
     }
 
     private void DrawGhost(
-        XafPackage package,
-        XafClip clip,
+        RigPackage package,
+        RigClip clip,
         float time,
         Color color,
         Transform2D placement,
@@ -419,7 +458,7 @@ public sealed class AnimatorPreviewDrawSystem(
         bool handles)
     {
         time = Math.Clamp(time, 0f, Math.Max(0.001f, clip.Duration));
-        Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, time));
+        Transform2D[] world = RigRig.WorldBones(package, RigSampler.Sample(package, clip, time));
         for (int i = 0; i < world.Length; i++)
         {
             Vector2 point = placement * world[i].Origin;
@@ -450,7 +489,7 @@ public sealed class AnimatorPreviewDrawSystem(
 
     /// <summary>The stem and dot that turn each childless bone; over the labels, so a name never hides one.</summary>
     private void DrawTipHandles(
-        XafPackage package,
+        RigPackage package,
         AnimatorModes modes,
         AnimatorSelection selection,
         AnimatorHover hover,
@@ -477,7 +516,7 @@ public sealed class AnimatorPreviewDrawSystem(
     private void DrawTarget(Entity session, in AnimatorDocument document, Transform2D[] world, Transform2D placement)
     {
         if (AnimatorPreviewModeCommands.IsOn(session) || session.GetComponent<AnimatorModes>().Rest ||
-            AnimatorTargetCommands.Selected(session) is not { } limb || !XafTargets.IsValid(document.Package, limb))
+            AnimatorTargetCommands.Selected(session) is not { } limb || !RigTargets.IsValid(document.Package, limb))
         {
             return;
         }
@@ -485,17 +524,17 @@ public sealed class AnimatorPreviewDrawSystem(
         Transform2D toScreen = placement * AnimatorTargetCommands.AnchorWorld(document.Package, limb, world);
         Vector2 center = toScreen * limb.Center;
         canvas.DrawRect(target, new Rect2(center - new Vector2(5f, 5f), new Vector2(10f, 10f)), TargetColor);
-        if (limb.Shape != XafTargetShape.Ellipse)
+        if (limb.Shape != RigTargetShape.Ellipse)
             return;
 
         // Red where the limb cannot reach: the baked motion goes flat there.
         Transform2D anchor = AnimatorTargetCommands.AnchorWorld(document.Package, limb, world);
-        int bone = XafRig.FindBone(document.Package, limb.BoneId);
+        int bone = RigRig.FindBone(document.Package, limb.BoneId);
         Vector2 previous = limb.OnEllipse(limb.StartAngle);
         for (int i = 1; i <= TargetPathPoints; i++)
         {
             Vector2 next = limb.OnEllipse(limb.StartAngle + limb.Sweep * i / TargetPathPoints);
-            bool reached = XafTargets.CanReach(document.Package, world, bone, anchor * next);
+            bool reached = RigTargets.CanReach(document.Package, world, bone, anchor * next);
             canvas.DrawLine(target, toScreen * previous, toScreen * next, reached ? TargetColor : Palette.Rose, 2);
             previous = next;
         }

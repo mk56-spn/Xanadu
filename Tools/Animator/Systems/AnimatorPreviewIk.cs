@@ -21,13 +21,13 @@ internal static class AnimatorPreviewIk
         if (!AnimatorPreviewChain.TryGet(document.Package, joint, out int parent, out int grandparent))
             return;
 
-        XafPose pose = document.Runtime.Pose;
-        Transform2D[] world = XafRig.WorldBones(document.Package, pose);
+        RigPose pose = document.Runtime.Pose;
+        Transform2D[] world = RigRig.WorldBones(document.Package, pose);
         Vector2 root = world[grandparent].Origin;
         Vector2 elbow = world[parent].Origin;
         Vector2 end = world[joint].Origin;
         Vector2 reach = end - root;
-        bool bendPositive = XafJointLocks.BendPositive(document.Package, parent) ??
+        bool bendPositive = RigJointLocks.BendPositive(document.Package, parent) ??
                             new Vector2(-reach.Y, reach.X).Dot(elbow - root) >= 0f;
         Vector2 target = placement.AffineInverse() * pointer;
         ref AnimatorSnapGuides guides = ref session.GetComponent<AnimatorSnapGuides>();
@@ -48,14 +48,14 @@ internal static class AnimatorPreviewIk
                 target = AnimatorSnap.ToGrid(target, guides);
         }
 
-        Vector2[] solved = XafFabrik.Solve(new[] { root, elbow, end }, target, bendPositive);
+        Vector2[] solved = RigFabrik.Solve(new[] { root, elbow, end }, target, bendPositive);
 
         Aim(document.Package, pose, grandparent, parent, solved[1]);
         Aim(document.Package, pose, parent, joint, solved[2]);
-        XafJointLocks.Apply(document.Package, pose);
+        RigJointLocks.Apply(document.Package, pose);
     }
 
     /// <summary>Turns a bone about its origin so its child joint points at a skeleton-space target.</summary>
-    private static void Aim(XafPackage package, XafPose pose, int bone, int child, Vector2 target) =>
-        XafTargets.Aim(package, pose, bone, child, target);
+    private static void Aim(RigPackage package, RigPose pose, int bone, int child, Vector2 target) =>
+        RigTargets.Aim(package, pose, bone, child, target);
 }

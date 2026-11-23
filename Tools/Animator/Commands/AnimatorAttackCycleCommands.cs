@@ -10,7 +10,7 @@ namespace Xanadu.Tools.Animator.Commands;
 /// <summary>
 /// Cycles the contact rig's attacks in context, on a metronome. Each attack
 /// fires on a beat the way the classic game's attack system did
-/// fires one on a note hit (<see cref="XafStrike"/>: from its contact frame,
+/// fires one on a note hit (<see cref="RigStrike"/>: from its contact frame,
 /// over the base, fading back out), so the hit can be judged against the click.
 /// </summary>
 public static class AnimatorAttackCycleCommands
@@ -27,7 +27,7 @@ public static class AnimatorAttackCycleCommands
     };
 
     /// <summary>The attacks the rig has whose base it also has, in play order.</summary>
-    public static List<ContactClip> Order(XafPackage package)
+    public static List<ContactClip> Order(RigPackage package)
     {
         var order = new List<ContactClip>();
         foreach (ContactClip attack in Attacks)
@@ -43,7 +43,7 @@ public static class AnimatorAttackCycleCommands
     /// What the game plays under an attack: idle on the ground; in the air the
     /// fall, or the jump pose a rig without a falling clip keeps instead.
     /// </summary>
-    public static string? Base(XafPackage package, ContactClip attack)
+    public static string? Base(RigPackage package, ContactClip attack)
     {
         bool air = attack is ContactClip.AttackAirHigh or ContactClip.AttackAirMid or ContactClip.AttackAirLow;
         ContactClip[] candidates = air
@@ -143,7 +143,7 @@ public static class AnimatorAttackCycleCommands
             return AnimatorBeat.None;
 
         if (Clip(document.Package, order[cycle.Index]) is { } playing)
-            XafStrike.Step(runtime, playing);
+            RigStrike.Step(runtime, playing);
 
         AnimatorMetronome metronome = session.GetComponent<AnimatorMetronome>();
         cycle.BeatClock += delta;
@@ -198,17 +198,17 @@ public static class AnimatorAttackCycleCommands
         }
         else if (!OnBase(runtime, baseClip))
         {
-            (float fade, XafFadeCurve curve) = XafTransitions.Blend(document.Package, runtime.CurrentClip, baseClip);
+            (float fade, RigFadeCurve curve) = RigTransitions.Blend(document.Package, runtime.CurrentClip, baseClip);
             runtime.Play(baseClip, fade, curve);
         }
 
         if (Clip(document.Package, attack) is { } clip)
-            XafStrike.Start(runtime, clip);
+            RigStrike.Start(runtime, clip);
         AnimatorSession.SetStatus(session,
             $"ATTACKS {cycle.Index + 1}/{order.Count}: {attack.Id().ToUpperInvariant()} OVER {baseClip.ToUpperInvariant()}");
     }
 
-    private static XafClip? Clip(XafPackage package, ContactClip attack) =>
+    private static RigClip? Clip(RigPackage package, ContactClip attack) =>
         package.Clips.Find(clip => clip.Id == attack.Id());
 
     /// <summary>Clears the cycle and takes its layer off the runtime it was on; returns what it was.</summary>

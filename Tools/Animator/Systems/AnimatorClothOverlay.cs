@@ -26,13 +26,13 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Handle target)
     private static readonly Color Tethered = Palette.Cyan;
     private static readonly Color Reach = new(Palette.Cyan, 0.35f);
 
-    public void Draw(Entity session, XafPackage package, Transform2D[] world, Transform2D placement)
+    public void Draw(Entity session, RigPackage package, Transform2D[] world, Transform2D placement)
     {
         int index = AnimatorClothCommands.Selected(session);
         if (index < 0 || AnimatorPreviewModeCommands.IsOn(session))
             return;
 
-        XafCloth cloth = package.Cloths[index];
+        RigCloth cloth = package.Cloths[index];
         AnimatorCloths cloths = session.GetComponent<AnimatorCloths>();
         IReadOnlyList<Vector2> points = cloths.Simulation.Points(index);
         if (points.Count != cloth.Count)
@@ -69,9 +69,9 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Handle target)
         float scale = placement.X.Length();
         if (pinning)
             DrawTethers(package, cloth, world, placement, points, scale);
-        foreach (XafClothCollider collider in cloth.Colliders)
+        foreach (RigClothCollider collider in cloth.Colliders)
         {
-            if (XafClothLayout.Capsule(package, collider, world) is not { } capsule)
+            if (RigClothLayout.Capsule(package, collider, world) is not { } capsule)
                 continue;
 
             DrawCapsule(placement * capsule.From, placement * capsule.To, collider.Radius * scale,
@@ -80,17 +80,17 @@ public sealed class AnimatorClothOverlay(IRectCanvas canvas, Handle target)
     }
 
     /// <summary>Each tether's anchor on its bone, its reach around that, and a line to the point.</summary>
-    private void DrawTethers(XafPackage package, XafCloth cloth, Transform2D[] world, Transform2D placement,
+    private void DrawTethers(RigPackage package, RigCloth cloth, Transform2D[] world, Transform2D placement,
         IReadOnlyList<Vector2> points, float scale)
     {
         if (cloth.Tethers.Count == 0)
             return;
 
-        Transform2D[] rest = XafRig.WorldBones(package, XafClothLayout.RestPose(package));
-        Vector2[] laidOut = XafClothLayout.RestPoints(package, cloth, rest);
-        foreach (XafClothTether tether in cloth.Tethers)
+        Transform2D[] rest = RigRig.WorldBones(package, RigClothLayout.RestPose(package));
+        Vector2[] laidOut = RigClothLayout.RestPoints(package, cloth, rest);
+        foreach (RigClothTether tether in cloth.Tethers)
         {
-            int bone = XafRig.FindBone(package, tether.BoneId);
+            int bone = RigRig.FindBone(package, tether.BoneId);
             int point = cloth.Index(tether.Column, tether.Row);
             if (bone < 0 || bone >= world.Length || point >= points.Count)
                 continue;

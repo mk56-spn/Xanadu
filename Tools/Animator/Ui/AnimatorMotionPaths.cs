@@ -44,7 +44,7 @@ public static class AnimatorMotionPaths
     private const float StillDistance = 0.25f;
 
     /// <summary>The bones that get a path: the selection while editing, the extremities while previewing.</summary>
-    public static List<int> Bones(XafPackage package, AnimatorSelection selection, bool preview)
+    public static List<int> Bones(RigPackage package, AnimatorSelection selection, bool preview)
     {
         if (!preview)
         {
@@ -54,7 +54,7 @@ public static class AnimatorMotionPaths
         }
 
         var parents = new HashSet<int>();
-        foreach (XafBone bone in package.Skeleton.Bones)
+        foreach (RigBone bone in package.Skeleton.Bones)
             parents.Add(bone.Parent);
 
         var leaves = new List<int>();
@@ -67,7 +67,7 @@ public static class AnimatorMotionPaths
     }
 
     /// <summary>Samples the clip once per tick and reads every requested joint from the same pose.</summary>
-    public static List<AnimatorMotionPath> Build(XafPackage package, XafClip clip, IReadOnlyList<int> bones)
+    public static List<AnimatorMotionPath> Build(RigPackage package, RigClip clip, IReadOnlyList<int> bones)
     {
         var paths = new List<AnimatorMotionPath>();
         if (bones.Count == 0)
@@ -84,7 +84,7 @@ public static class AnimatorMotionPaths
             points[b] = new Vector2[count];
         for (int i = 0; i < count; i++)
         {
-            Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, times[i]));
+            Transform2D[] world = RigRig.WorldBones(package, RigSampler.Sample(package, clip, times[i]));
             for (int b = 0; b < bones.Count; b++)
                 points[b][i] = world[bones[b]].Origin;
         }
@@ -142,12 +142,12 @@ public static class AnimatorMotionPaths
     }
 
     /// <summary>The keys that can move a joint are on its bone or any bone above it.</summary>
-    private static void AddKeys(XafPackage package, XafClip clip, AnimatorMotionPath path)
+    private static void AddKeys(RigPackage package, RigClip clip, AnimatorMotionPath path)
     {
         var times = new SortedSet<float>();
         for (int bone = path.Bone; bone >= 0; bone = package.Skeleton.Bones[bone].Parent)
         {
-            foreach (float time in XafTracks.KeyTimes(clip, new XafTrack(XafChannelTarget.Bone, package.Skeleton.Bones[bone].Id)))
+            foreach (float time in RigTracks.KeyTimes(clip, new RigTrack(RigChannelTarget.Bone, package.Skeleton.Bones[bone].Id)))
                 times.Add(time);
         }
 
@@ -156,10 +156,10 @@ public static class AnimatorMotionPaths
         float last = float.NegativeInfinity;
         foreach (float time in times)
         {
-            if (time - last <= XafTracks.TimeTolerance)
+            if (time - last <= RigTracks.TimeTolerance)
                 continue;
             last = time;
-            Transform2D[] world = XafRig.WorldBones(package, XafSampler.Sample(package, clip, time));
+            Transform2D[] world = RigRig.WorldBones(package, RigSampler.Sample(package, clip, time));
             keys.Add(world[path.Bone].Origin);
             keyTimes.Add(time);
         }

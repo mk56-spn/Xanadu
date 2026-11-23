@@ -5,22 +5,53 @@ using Xanadu.Core.Timeline;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Tools.Animator.Systems;
 
+using Xanadu.Ui.Systems.Ui;
+
 namespace Xanadu.Tools.Animator.Commands;
 
 /// <summary>Executes <see cref="ToolAction"/> requests against the session entity.</summary>
 public static class AnimatorCommands
 {
+    /// <summary>
+    /// Actions that build or rebuild the rig itself (bones, joints, parts,
+    /// art, mesh, chains, cloth, effects). They only run while EDIT RIG is on,
+    /// so animating can never change the rig by accident.
+    /// </summary>
+    public static bool ChangesRig(ToolActionKind kind) => kind is
+        ToolActionKind.ToggleMovable or ToolActionKind.LockBend or ToolActionKind.ToggleLimit
+        or ToolActionKind.LimitMinDown or ToolActionKind.LimitMinUp or ToolActionKind.LimitMaxDown or ToolActionKind.LimitMaxUp
+        or ToolActionKind.AutoWeights or ToolActionKind.PaintWeights
+        or ToolActionKind.BrushSmaller or ToolActionKind.BrushLarger or ToolActionKind.BrushWeaker or ToolActionKind.BrushStronger
+        or ToolActionKind.AddArt or ToolActionKind.DropArt or ToolActionKind.EditXif
+        or ToolActionKind.PreviousArt or ToolActionKind.NextArt
+        or ToolActionKind.ToggleMesh or ToolActionKind.PickMeshBones
+        or ToolActionKind.MeshDetailDown or ToolActionKind.MeshDetailUp or ToolActionKind.MeshBlendDown or ToolActionKind.MeshBlendUp
+        or ToolActionKind.AddBone or ToolActionKind.DeleteBone or ToolActionKind.RenameBone or ToolActionKind.ReparentBone
+        or ToolActionKind.AddPart or ToolActionKind.AddChain or ToolActionKind.DeleteChain or ToolActionKind.ToggleChainSheet
+        or ToolActionKind.PickChainBone or ToolActionKind.PickColliderBone
+        or ToolActionKind.AddCloth or ToolActionKind.DeleteCloth or ToolActionKind.PickClothBone
+        or ToolActionKind.PinClothPoints or ToolActionKind.PickClothColliders
+        or ToolActionKind.AddEffect or ToolActionKind.AddParticles or ToolActionKind.DeleteEffect;
+
     public static void Run(Entity session, ToolAction action)
     {
         AnimatorPendingPicks.Dismiss(session, action.Kind);
+        if (ChangesRig(action.Kind) && !session.GetComponent<AnimatorModes>().Rest)
+        {
+            AnimatorSession.SetStatus(session, "THAT CHANGES THE RIG · TURN ON EDIT RIG FIRST");
+            return;
+        }
 
         switch (action.Kind)
         {
             case ToolActionKind.AddArt:
-                AnimatorArtCommands.OpenArtPicker(session);
+                AnimatorArtCommands.AddArt(session);
                 break;
             case ToolActionKind.DropArt:
                 AnimatorArtCommands.DropArt(session);
+                break;
+            case ToolActionKind.EditXif:
+                AnimatorArtCommands.EditXif(session);
                 break;
             case ToolActionKind.PreviousArt:
                 AnimatorArtCommands.StepArt(session, -1);
@@ -39,9 +70,6 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.LayerUpKey:
                 AnimatorArtCommands.StepLayer(session, 1);
-                break;
-            case ToolActionKind.OpenArtFile:
-                AnimatorArtCommands.OpenFile(session);
                 break;
             case ToolActionKind.ToggleArtVisible:
                 AnimatorArtCommands.ToggleVisible(session);
@@ -117,10 +145,10 @@ public static class AnimatorCommands
                 AnimatorFlowCommands.Select(session, action.Argument);
                 break;
             case ToolActionKind.TransitionFadeDown:
-                AnimatorFlowCommands.StepFade(session, -XafTransitions.FadeStep);
+                AnimatorFlowCommands.StepFade(session, -RigTransitions.FadeStep);
                 break;
             case ToolActionKind.TransitionFadeUp:
-                AnimatorFlowCommands.StepFade(session, XafTransitions.FadeStep);
+                AnimatorFlowCommands.StepFade(session, RigTransitions.FadeStep);
                 break;
             case ToolActionKind.TransitionCurve:
                 AnimatorFlowCommands.SetCurve(session, action.Argument);
@@ -140,10 +168,6 @@ public static class AnimatorCommands
             case ToolActionKind.AddParticles:
                 AnimatorEffectCommands.AddParticles(session);
                 break;
-            case ToolActionKind.SelectEffect:
-                if (int.TryParse(action.Argument, out int effect))
-                    AnimatorEffectCommands.Select(session, effect);
-                break;
             case ToolActionKind.DeleteEffect:
                 AnimatorEffectCommands.Delete(session);
                 break;
@@ -159,11 +183,18 @@ public static class AnimatorCommands
             case ToolActionKind.Clip:
                 AnimatorSessionCommands.PlayClip(session, action.Argument);
                 break;
+            case ToolActionKind.Workspace:
+                AnimatorWorkspaceCommands.Set(session, action.Argument);
+                break;
             case ToolActionKind.TogglePreviewMode:
                 AnimatorPreviewModeCommands.Set(session, !session.GetComponent<AnimatorPreviewMode>().On);
                 break;
             case ToolActionKind.ExitPreviewMode:
-                AnimatorPreviewModeCommands.Set(session, false);
+                // Esc closes the XIF editor first, when it is open.
+                if (XifEditorSystem.IsOpen(session.GetComponent<AnimatorUi>().XifEditor))
+                    XifEditorSystem.Close(session.GetComponent<AnimatorUi>().XifEditor);
+                else
+                    AnimatorPreviewModeCommands.Set(session, false);
                 break;
             case ToolActionKind.Undo:
                 AnimatorHistoryCommands.Undo(session);
@@ -190,6 +221,19 @@ public static class AnimatorCommands
                 ref AnimatorEasingWindow easing = ref session.GetComponent<AnimatorEasingWindow>();
                 easing.Open = !easing.Open;
                 break;
+            case ToolActionKind.TryoutEase:
+                if (System.Enum.TryParse(action.Argument, out EasePreset tried))
+                    AnimatorKeyTryoutCommands.Ease(session, tried);
+                break;
+            case ToolActionKind.TryoutReplay:
+                AnimatorKeyTryoutCommands.Replay(session);
+                break;
+            case ToolActionKind.TryoutClose:
+                AnimatorKeyTryoutCommands.Close(session);
+                break;
+            case ToolActionKind.ToggleShortcuts:
+                session.GetComponent<AnimatorShortcutsPanel>().Open ^= true;
+                break;
             case ToolActionKind.OpenInfo:
                 session.GetComponent<AnimatorInfoPanel>().Open = true;
                 break;
@@ -214,6 +258,9 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.DeleteClip:
                 AnimatorClipCommands.Delete(session);
+                break;
+            case ToolActionKind.ClearClipKeys:
+                AnimatorClipCommands.ClearKeys(session);
                 break;
             case ToolActionKind.DurationDown:
                 AnimatorClipCommands.StepDuration(session, -AnimatorSessionCommands.DurationStep(action.Argument));
@@ -302,11 +349,8 @@ public static class AnimatorCommands
             case ToolActionKind.DeleteKey:
                 AnimatorKeyCommands.DeleteSelected(session);
                 break;
-            case ToolActionKind.AddSvg:
-                AnimatorSessionCommands.OpenSvgMenu(session);
-                break;
-            case ToolActionKind.AttachSvg:
-                AnimatorSessionCommands.AttachSvgFromMenu(session, action.Argument);
+            case ToolActionKind.AddPart:
+                AnimatorAttachmentCommands.Add(session, AnimatorSessionCommands.SelectedBone(session));
                 break;
             case ToolActionKind.AddChain:
                 AnimatorChainCommands.Add(session);
@@ -320,9 +364,6 @@ public static class AnimatorCommands
                 break;
             case ToolActionKind.DeleteChain:
                 AnimatorChainCommands.Delete(session);
-                break;
-            case ToolActionKind.PickChainArt:
-                AnimatorChainPlacementCommands.OpenArtPicker(session);
                 break;
             case ToolActionKind.PickChainBone:
                 AnimatorChainPlacementCommands.BeginPick(session, AnimatorChainPick.Anchor);

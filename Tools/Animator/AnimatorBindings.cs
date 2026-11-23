@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Tools.Animator.Ecs;
@@ -30,6 +31,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.TogglePreviewMode), Key.F5),
         new(new ToolAction(ToolActionKind.ExitPreviewMode), Key.Escape),
         new(new ToolAction(ToolActionKind.OpenInfo), Key.I, Ctrl: true),
+        new(new ToolAction(ToolActionKind.ToggleShortcuts), Key.F1),
+        new(new ToolAction(ToolActionKind.ToggleShortcuts), Key.Slash, Shift: true),
         new(new ToolAction(ToolActionKind.CloseEditor), Key.Q, Ctrl: true),
         new(new ToolAction(ToolActionKind.TransitionFadeDown), Key.Minus, Shift: true),
         new(new ToolAction(ToolActionKind.TransitionFadeUp), Key.Equal, Shift: true),
@@ -106,10 +109,8 @@ public static class AnimatorBindings
         new(new ToolAction(ToolActionKind.ResetPreview), Key.F, Shift: true),
 
         // Editing modes.
-        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.AutoKey)), Key.A),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Onion)), Key.O),
-        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Rest)), Key.R),
-        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Svg)), Key.G),
+        new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Parts)), Key.G),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Ik)), Key.I),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Pin)), Key.H),
         new(new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Kites)), Key.X),

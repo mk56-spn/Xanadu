@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,25 +16,18 @@ public static class AnimatorKeyCommands
     /// <summary>Selects the bone, attachment or effect a track animates.</summary>
     public static void SelectTrack(Entity session, AnimatorTrackRow row)
     {
-        XafPackage package = session.GetComponent<AnimatorDocument>().Package;
+        RigPackage package = session.GetComponent<AnimatorDocument>().Package;
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        if (row.Target == XafChannelTarget.Bone)
+        if (row.Target == RigChannelTarget.Bone)
         {
             int bone = package.Skeleton.Bones.FindIndex(candidate => candidate.Id == row.Id);
             if (bone < 0)
                 return;
             selection.SelectOnlyBone(bone);
         }
-        else if (row.Target == XafChannelTarget.Effect)
-        {
-            int effect = package.Effects.FindIndex(candidate => candidate.Id == row.Id);
-            if (effect < 0)
-                return;
-            selection.SelectOnlyEffect(effect);
-        }
         else
         {
-            int attachment = package.Attachments.FindIndex(candidate => candidate.Group == row.Id);
+            int attachment = package.Attachments.FindIndex(candidate => candidate.Id == row.Id);
             if (attachment < 0)
                 return;
             selection.SelectOnlyAttachment(attachment);
@@ -42,7 +36,7 @@ public static class AnimatorKeyCommands
         AnimatorSession.SetStatus(session, $"SELECTED {row.Id}");
     }
 
-    public static void SelectTrack(Entity session, XafTrack track) =>
+    public static void SelectTrack(Entity session, RigTrack track) =>
         SelectTrack(session, new AnimatorTrackRow(track));
 
     /// <summary>Selects one row's key at a time and puts the playhead there.</summary>
@@ -58,7 +52,7 @@ public static class AnimatorKeyCommands
         AnimatorSession.SetStatus(session, "KEY SELECTED • DRAG TO RETIME • DELETE TO REMOVE");
     }
 
-    public static void SelectKey(Entity session, XafTrack track, float time) =>
+    public static void SelectKey(Entity session, RigTrack track, float time) =>
         SelectKey(session, new AnimatorTrackRow(track), time);
 
     /// <summary>
@@ -106,7 +100,7 @@ public static class AnimatorKeyCommands
         AnimatorSession.SetStatus(session, $"{keys.Count} KEYS SELECTED");
     }
 
-    public static void ToggleKey(Entity session, XafTrack track, float time) =>
+    public static void ToggleKey(Entity session, RigTrack track, float time) =>
         ToggleKey(session, new AnimatorTrackRow(track), time);
 
     /// <summary>
@@ -133,14 +127,14 @@ public static class AnimatorKeyCommands
         runtime.SetPaused(true);
     }
 
-    public static void MakePrimary(Entity session, XafTrack track, float time) =>
+    public static void MakePrimary(Entity session, RigTrack track, float time) =>
         MakePrimary(session, new AnimatorTrackRow(track), time);
 
     /// <summary>Whether a key on a row is in the selection, as the primary key or beside it.</summary>
     public static bool IsSelected(Entity session, AnimatorTrackRow row, float time) =>
         session.GetComponent<AnimatorSelection>().IsKeySelected(row, time);
 
-    public static bool IsSelected(Entity session, XafTrack track, float time) =>
+    public static bool IsSelected(Entity session, RigTrack track, float time) =>
         IsSelected(session, new AnimatorTrackRow(track), time);
 
     /// <summary>Writes a key list into the selection: the first is the primary key, the rest go in <see cref="AnimatorSelection.Extra"/>.</summary>
@@ -159,16 +153,16 @@ public static class AnimatorKeyCommands
     }
 
     /// <summary>The clip and the key selection as a key drag began.</summary>
-    public sealed record KeyDragOrigin(XafClip Clip, List<AnimatorKeyRef> Keys);
+    public sealed record KeyDragOrigin(RigClip Clip, List<AnimatorKeyRef> Keys);
 
     /// <summary>Captures what a key drag starts from, or null when no key is selected.</summary>
     public static KeyDragOrigin? BeginKeyDrag(Entity session)
     {
-        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         List<AnimatorKeyRef> keys = session.GetComponent<AnimatorSelection>().Keys();
         return clip is null || keys.Count == 0
             ? null
-            : new KeyDragOrigin(XafPackageCopy.Clone(clip), keys);
+            : new KeyDragOrigin(RigPackageCopy.Clone(clip), keys);
     }
 
     /// <summary>
@@ -189,7 +183,7 @@ public static class AnimatorKeyCommands
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         if (clip is null)
             return;
 
@@ -214,9 +208,9 @@ public static class AnimatorKeyCommands
         {
             AnimatorKeyRef key = keys[index];
             any |= key.Property is { } property
-                ? XafAuthoring.MoveKey(
+                ? RigAuthoring.MoveKey(
                     clip, key.Target, key.Id, property, key.Time, moved[index].Time)
-                : XafAuthoring.MoveKeysAt(
+                : RigAuthoring.MoveKeysAt(
                     clip, key.Target, key.Id, key.Time, moved[index].Time);
         }
 
@@ -236,12 +230,12 @@ public static class AnimatorKeyCommands
     /// Puts a clip's channels back to a copy's keys. Channels that still exist
     /// keep their identity, so nothing holding one goes stale.
     /// </summary>
-    private static void Restore(XafClip clip, XafClip origin)
+    private static void Restore(RigClip clip, RigClip origin)
     {
-        var channels = new List<XafChannel>();
-        foreach (XafChannel saved in XafPackageCopy.Clone(origin).Channels)
+        var channels = new List<KeyChannel>();
+        foreach (KeyChannel saved in RigPackageCopy.Clone(origin).Channels)
         {
-            XafChannel? live = clip.Channels.Find(candidate =>
+            KeyChannel? live = clip.Channels.Find(candidate =>
                 candidate.Target == saved.Target &&
                 candidate.TargetId == saved.TargetId &&
                 candidate.Property == saved.Property);
@@ -251,7 +245,7 @@ public static class AnimatorKeyCommands
                 continue;
             }
 
-            live.Keyframes = saved.Keyframes;
+            live.Keys = saved.Keys;
             channels.Add(live);
         }
 
@@ -264,7 +258,7 @@ public static class AnimatorKeyCommands
         AnimatorHistoryCommands.Edit(session, () =>
         {
             AnimatorSelection selection = session.GetComponent<AnimatorSelection>();
-            XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+            RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
             if (clip is null || !selection.HasKey)
             {
                 AnimatorSession.SetStatus(session, "SELECT A KEY ON THE TIMELINE FIRST");
@@ -275,12 +269,12 @@ public static class AnimatorKeyCommands
             {
                 if (key.Property is { } property)
                 {
-                    XafEasing.Apply(
+                    RigEasing.Apply(
                         clip, key.Target, key.Id, property, key.Time, preset);
                 }
                 else
                 {
-                    XafEasing.Apply(clip, key.Target, key.Id, key.Time, preset);
+                    RigEasing.Apply(clip, key.Target, key.Id, key.Time, preset);
                 }
             }
             AnimatorSession.SetStatus(session, $"KEY {preset.ToString().ToUpperInvariant()}");
@@ -294,25 +288,41 @@ public static class AnimatorKeyCommands
     public static void AddKeyAt(Entity session, AnimatorTrackRow row, float seconds) =>
         AnimatorHistoryCommands.Edit(session, () => AddKeyAtCore(session, row, seconds));
 
-    public static void AddKeyAt(Entity session, XafTrack track, float seconds) =>
+    public static void AddKeyAt(Entity session, RigTrack track, float seconds) =>
         AddKeyAt(session, new AnimatorTrackRow(track), seconds);
 
     private static void AddKeyAtCore(Entity session, AnimatorTrackRow row, float seconds)
     {
-        XafClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        RigClip? clip = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
         if (clip is null)
             return;
 
         float time = Math.Clamp(seconds, 0f, clip.Duration);
         if (AnimatorTrackRows.KeyTimes(clip, row)
-            .Exists(key => Math.Abs(key - time) <= XafTracks.TimeTolerance))
+            .Exists(key => Math.Abs(key - time) <= RigTracks.TimeTolerance))
         {
             SelectKey(session, row, time);
             AnimatorSession.SetStatus(session, "KEY ALREADY HERE");
             return;
         }
 
-        foreach (XafChannel channel in clip.Channels.ToArray())
+        // A field with no keys yet (the full view lists them): its first key holds the pose as it is now.
+        if (row.Property is { } unkeyed && clip.Find(RigChannels.At(row.Target, row.Id, unkeyed)) is not { Keys.Count: > 0 })
+        {
+            if (PoseValue(session.GetComponent<AnimatorDocument>(), row.Target, row.Id, unkeyed) is not { } value)
+            {
+                AnimatorSession.SetStatus(session, "KEY THIS FIELD FROM THE SELECTED CARD");
+                return;
+            }
+
+            bool step = unkeyed is RigChannelProperty.Visible or RigChannelProperty.Art or RigChannelProperty.Layer;
+            RigAuthoring.SetChannel(clip, row.Target, row.Id, unkeyed, time, value, step ? KeyEase.Step : KeyEase.Linear);
+            SelectKey(session, row, time);
+            AnimatorSession.SetStatus(session, $"KEY ADDED AT {time:0.00}s");
+            return;
+        }
+
+        foreach (KeyChannel channel in clip.Channels.ToArray())
         {
             if (channel.Target != row.Target || channel.TargetId != row.Id)
                 continue;
@@ -320,30 +330,65 @@ public static class AnimatorKeyCommands
                 continue;
 
             // Visibility is held, so a new key keeps what shows there and stays a switch.
-            bool held = channel.Property == XafChannelProperty.Visible;
-            XafAuthoring.SetChannel(
+            bool held = channel.Property == RigChannelProperty.Visible;
+            RigAuthoring.SetChannel(
                 clip,
                 row.Target,
                 row.Id,
                 channel.Property,
                 time,
-                held ? XafSampler.SampleHeld(channel, time) : XafSampler.SampleChannel(channel, time),
-                held ? XafInterpolation.Step : InterpolationBefore(channel, time));
+                held ? channel.SampleHeld(time) : channel.Sample(time),
+                held ? KeyEase.Step : InterpolationBefore(channel, time));
         }
 
         SelectKey(session, row, time);
         AnimatorSession.SetStatus(session, $"KEY ADDED AT {time:0.00}s");
     }
 
-    /// <summary>How the segment a new key lands in was easing, so splitting it keeps its character.</summary>
-    private static XafInterpolation InterpolationBefore(XafChannel channel, float time)
+    /// <summary>A field's value in the pose on screen, or null for one the pose does not hold.</summary>
+    private static float? PoseValue(in AnimatorDocument document, RigChannelTarget target, string id, RigChannelProperty property)
     {
-        XafInterpolation interpolation = XafInterpolation.Linear;
-        foreach (XafKeyframe key in channel.Keyframes)
+        RigPose pose = document.Runtime.Pose;
+        if (target == RigChannelTarget.Bone)
+        {
+            int bone = RigRig.FindBone(document.Package, id);
+            return bone < 0 || bone >= pose.Bones.Length ? null : Transform(pose.Bones[bone], property);
+        }
+
+        int part = document.Package.Attachments.FindIndex(attachment => attachment.Id == id);
+        if (part < 0 || part >= pose.Attachments.Length)
+            return null;
+        RigAttachmentState state = pose.AttachmentStates[part];
+        return property switch
+        {
+            RigChannelProperty.Opacity => state.HasOpacity ? state.Opacity : 1f,
+            RigChannelProperty.Visible => state.Hidden ? 0f : 1f,
+            RigChannelProperty.Art => state.Art,
+            RigChannelProperty.Layer => state.LayerOf(document.Package.Attachments[part]),
+            _ => Transform(pose.Attachments[part], property),
+        };
+    }
+
+    private static float? Transform(in RigTransform transform, RigChannelProperty property) => property switch
+    {
+        RigChannelProperty.TranslationX => transform.Translation.X,
+        RigChannelProperty.TranslationY => transform.Translation.Y,
+        RigChannelProperty.Rotation => transform.Rotation,
+        RigChannelProperty.ScaleX => transform.Scale.X,
+        RigChannelProperty.ScaleY => transform.Scale.Y,
+        RigChannelProperty.Depth => transform.Depth,
+        _ => null,
+    };
+
+    /// <summary>How the segment a new key lands in was easing, so splitting it keeps its character.</summary>
+    private static KeyEase InterpolationBefore(KeyChannel channel, float time)
+    {
+        KeyEase interpolation = KeyEase.Linear;
+        foreach (Keyframe key in channel.Keys)
         {
             if (key.Time >= time)
                 break;
-            interpolation = key.Interpolation;
+            interpolation = key.Ease;
         }
         return interpolation;
     }
@@ -355,7 +400,7 @@ public static class AnimatorKeyCommands
     {
         ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
         ref AnimatorSelection selection = ref session.GetComponent<AnimatorSelection>();
-        XafClip? clip = AnimatorSession.CurrentClip(document);
+        RigClip? clip = AnimatorSession.CurrentClip(document);
         if (clip is null)
             return;
 
@@ -370,12 +415,12 @@ public static class AnimatorKeyCommands
         {
             if (key.Property is { } property)
             {
-                XafAuthoring.RemoveKey(
+                RigAuthoring.RemoveKey(
                     clip, key.Target, key.Id, property, key.Time);
             }
             else
             {
-                XafAuthoring.RemoveKeysAt(clip, key.Target, key.Id, key.Time);
+                RigAuthoring.RemoveKeysAt(clip, key.Target, key.Id, key.Time);
             }
         }
         selection.HasKey = false;

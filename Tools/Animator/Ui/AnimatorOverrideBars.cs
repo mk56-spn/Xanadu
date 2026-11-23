@@ -17,7 +17,7 @@ public static class AnimatorOverrideBars
     /// <summary>The narrowest a bar is drawn, so even a very short override shows and can be grabbed.</summary>
     private const float MinWidth = GripWidth * 2 + 4f;
 
-    public static void Draw(IRectCanvas canvas, Handle target, AnimatorTimelineModel model, XafLimbTarget? selected)
+    public static void Draw(IRectCanvas canvas, Handle target, AnimatorTimelineModel model, RigLimbTarget? selected)
     {
         for (int screenRow = 0; screenRow < model.LastRow - model.FirstRow; screenRow++)
         {
@@ -26,7 +26,7 @@ public static class AnimatorOverrideBars
                 continue;
 
             Rect2 row = model.RowRect(screenRow);
-            foreach (XafLimbTarget item in model.Clip.Targets)
+            foreach (RigLimbTarget item in model.Clip.Targets)
             {
                 if (item.BoneId == track.Id)
                     DrawBar(canvas, target, model, row, item, ReferenceEquals(item, selected));
@@ -39,7 +39,7 @@ public static class AnimatorOverrideBars
         Handle target,
         AnimatorTimelineModel model,
         Rect2 row,
-        XafLimbTarget item,
+        RigLimbTarget item,
         bool selected)
     {
         float left = model.XForSeconds(item.From);
@@ -56,7 +56,7 @@ public static class AnimatorOverrideBars
         if (right <= left)
             return;
 
-        Color color = item.Shape == XafTargetShape.Spot ? Palette.Lime : Palette.Violet;
+        Color color = item.Shape == RigTargetShape.Spot ? Palette.Lime : Palette.Violet;
         var bar = new Rect2(left, row.Position.Y + Inset, right - left, row.Size.Y - Inset * 2);
         canvas.DrawRect(target, bar, new Color(color, selected ? 0.55f : 0.3f));
         canvas.DrawRect(target, new Rect2(bar.Position, new Vector2(GripWidth, bar.Size.Y)), color);

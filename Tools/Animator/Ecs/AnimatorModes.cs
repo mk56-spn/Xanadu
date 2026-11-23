@@ -8,8 +8,8 @@ public enum AnimatorMode
     Onion,
     Rest,
 
-    /// <summary>Preview picks and drags SVG attachments instead of bones.</summary>
-    Svg,
+    /// <summary>Preview picks and drags parts instead of bones.</summary>
+    Parts,
 
     /// <summary>Dragging a joint bends its parent and grandparent to reach the pointer.</summary>
     Ik,
@@ -28,6 +28,9 @@ public enum AnimatorMode
 
     /// <summary>A dragged joint lines up with the other joints, with guide lines; Shift drags freely.</summary>
     Align,
+
+    /// <summary>The keyframe sheet shows everything the selection can key, not just what it has keyed.</summary>
+    FullKeys,
 }
 
 /// <summary>Binds a <c>Toggle</c> entity to one animator editing mode.</summary>
@@ -44,7 +47,7 @@ public struct AnimatorModes : IComponent
     public bool Rest;
     public bool AutoKey;
     public bool Onion;
-    public bool Svg;
+    public bool Parts;
     public bool Ik;
 
     /// <summary>Rest-pose edits leave the bones below the edited one where they are.</summary>
@@ -65,18 +68,34 @@ public struct AnimatorModes : IComponent
     /// <summary>Motion paths show only the second around the playhead, not the whole clip.</summary>
     public bool PathWindow;
 
+    /// <summary>The keyframe sheet's full view (<see cref="AnimatorMode.FullKeys"/>).</summary>
+    public bool FullKeys;
+
+    /// <summary>
+    /// Whether a mode does anything in the workspace the animator is in: pin
+    /// children only in the rest pose; onion skins and motion paths, which are
+    /// about time, only while animating. A toggle that does not apply is hidden.
+    /// </summary>
+    public readonly bool Applies(AnimatorMode mode) => mode switch
+    {
+        AnimatorMode.Pin => Rest,
+        AnimatorMode.Onion or AnimatorMode.MotionPaths => !Rest,
+        _ => true,
+    };
+
     /// <summary>Whether one editing mode is on.</summary>
     public readonly bool Get(AnimatorMode mode) => mode switch
     {
         AnimatorMode.AutoKey => AutoKey,
         AnimatorMode.Onion => Onion,
-        AnimatorMode.Svg => Svg,
+        AnimatorMode.Parts => Parts,
         AnimatorMode.Ik => Ik,
         AnimatorMode.Pin => Pin,
         AnimatorMode.Kites => Kites,
         AnimatorMode.Handles => Handles,
         AnimatorMode.MotionPaths => MotionPaths,
         AnimatorMode.Align => Align,
+        AnimatorMode.FullKeys => FullKeys,
         _ => Rest,
     };
 
@@ -91,8 +110,8 @@ public struct AnimatorModes : IComponent
             case AnimatorMode.Onion:
                 Onion = value;
                 break;
-            case AnimatorMode.Svg:
-                Svg = value;
+            case AnimatorMode.Parts:
+                Parts = value;
                 break;
             case AnimatorMode.Ik:
                 Ik = value;
@@ -111,6 +130,9 @@ public struct AnimatorModes : IComponent
                 break;
             case AnimatorMode.MotionPaths:
                 MotionPaths = value;
+                break;
+            case AnimatorMode.FullKeys:
+                FullKeys = value;
                 break;
             default:
                 Rest = value;
