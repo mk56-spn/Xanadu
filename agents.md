@@ -60,6 +60,31 @@
     is null, so check `IsNull`; `entity.Store` gets the store. Components live in
     archetypes, not in the handle.
 
+### Components are data, not ideas
+
+A component is a **shape of data named for what the data is** (`Open`,
+`Position`, `Outline`, `FilePath`), never for the feature that owns it
+(`AnimatorInfoPanel { bool Open }` is the mistake). What the data is *about*
+comes from the entity it sits on: its tags, its links, its place in the tree.
+Two features storing the same thing share one component. Plan, vocabulary and
+inventory: `Docs/data-centric-ecs.md`.
+
+- A component with only a bool, or no fields, is a tag.
+- Before adding a component, look for the atom that already holds that data
+  (`Docs/data-centric-ecs.md` §10). Same shape is a prompt to check; same
+  meaning means reuse.
+- "Which one" is a link or a tag, never an index into a C# list or a string id.
+- Intents are typed Friflo signals (`entity.EmitSignal(new Pick(...))`, handled
+  with `AddSignalHandler<T>` by the subject's owner), not envelopes (a kind enum
+  plus loosely typed slots), not C# interfaces held in a component.
+- An enum on a component is a value (keep it), a variant (one tag each), a verb
+  (one signal payload each) or a selector (store `Tags` or a component type
+  reference instead); see `Docs/data-centric-ecs.md` §11.
+- No handle bags: children come from the entity tree, a tag, or an incoming link.
+- Friflo's own event mechanics (signals, `OnComponentChanged`, `OnTagsChanged`,
+  `EventRecorder`) are the ECS. "Don't skirt around the ECS" bans our own
+  side channels, not these.
+
 ### Finding a specific entity
 
 **Use an indexed component, never `UniqueEntity`.** Friflo's `UniqueEntity` /
@@ -116,7 +141,7 @@ tree of specs (`Xanadu.Ui.Tree`: `new Column(gap: Space.Md) { a, b }`, added wit
 `parent.Add(spec)`) so the code has the screen's shape, and change it afterwards
 through the built nodes (`UiNode`); see `Docs/ui-best-practices.md`. `UiBuilder` is the low-level factory behind it; the direct callers
 left are the F2 shader tuner (a debug overlay) and the older animator panels
-(`Tools/Animator`), which are not to be copied.
+(`Screens/Animator`), which are not to be copied.
 
 There is no widget toolkit: every control is ECS UI. Opening and saving files
 is the one thing handed to the OS, through the host's native dialog

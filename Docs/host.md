@@ -428,6 +428,16 @@ compute expand stage and a depth buffer.
   a frame, creates it when the editor opens and closes it when another scene
   opens.
 - **F12** saves a PNG to `user://screenshots` and shows a toast.
+- **Terminal (Ctrl+`):** every host exe has it. The drop-down and its line
+  editing are UI's (`UI/Terminal`: `TerminalCommands` parses a line once into
+  typed arguments, `TerminalSystem` draws and edits it, last in `UiRoot`).
+  The host owns the registry (`HostApp.Terminal`) and adds `vsync`, `maxfps`,
+  `fps`, `window`, `screenshot` and `quit` (`HostTerminal`); `TabbedToolApp`
+  adds `tab`; any exe adds more. While it's down it has the keyboard: it takes
+  focus from fields and editors, and exes gate their shortcuts on
+  `TerminalOpen`. `XANADU_TERMINAL="vsync off;fps"` runs lines at launch and
+  leaves it down. Commands act on the running window; the settings screen still
+  saves choices. Plain ` stays the game's docs.
 - The window isn't resizable, and the pointer scale is fixed from the start
   size.
 - Synthetic input for manual checks: `SDL_VIDEODRIVER=x11` plus `xdotool`
@@ -436,8 +446,15 @@ compute expand stage and a depth buffer.
 ### 5.9 Tools
 
 - **Animator** (`Tools/Animator`): `AnimatorTool` derives from `HostApp`.
-  Paths are relative to the game folder here too; its content lives under
-  `Tools/Animator/...` (`Files/AnimatorPaths.cs`). Flags: `--shot`,
+  The exe is wiring only (tool, system group, scripted pointer, metronome);
+  the animator itself lives in the role projects under an `Animator` owner
+  folder: `Model/Animator` (session components, selection, modes, timeline
+  model, handle geometry), `Logic/Animator` (commands, file access, input and
+  playback systems), `Drawers/Animator` (preview, timeline, grid, overlays)
+  and `Screens/Animator` (layout, panels, inspectors, menus). It does not
+  reference the game's wiring. Paths are relative to the game folder here
+  too; its content lives under `Tools/Animator/...`
+  (`Logic/Animator/AnimatorPaths.cs`). Flags: `--shot`,
   `--shot-frames`, `--shot-seconds`, `--flow`, `--clip` and more. The
   metronome writes its ticks once to `user://animator/*.wav` and plays them
   through miniaudio.

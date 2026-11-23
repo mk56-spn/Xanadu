@@ -5,6 +5,10 @@
     Every other project of ours gets the banned-API analyzer with RS0030 as an
     error; UI, its showcase, the tests and External are left alone.
   -->
+  <!-- The .editorconfig code-style rules (IDE*) are reported by dotnet build too, not only in an editor; External keeps its own style. -->
+  <PropertyGroup Condition="!$(MSBuildProjectDirectory.Contains('External'))">
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
   <PropertyGroup>
     <XanaduBansPointer Condition="'$(XanaduBansPointer)' == ''">false</XanaduBansPointer>
     <XanaduBansPointer Condition="'$(MSBuildProjectName)' == 'Xanadu' Or '$(MSBuildProjectName)' == 'Xanadu.Host' Or '$(MSBuildProjectName)' == 'Xanadu.HostCore' Or '$(MSBuildProjectName)' == 'Xanadu.AnimatorTool' Or '$(MSBuildProjectName)' == 'Xanadu.Labs' Or '$(MSBuildProjectName)' == 'Xanadu.DevTools' Or '$(MSBuildProjectName)' == 'Xanadu.Core' Or '$(MSBuildProjectName)' == 'Xanadu.Model' Or '$(MSBuildProjectName)' == 'Xanadu.Logic' Or '$(MSBuildProjectName)' == 'Xanadu.Screens' Or '$(MSBuildProjectName)' == 'Xanadu.Slang'">true</XanaduBansPointer>

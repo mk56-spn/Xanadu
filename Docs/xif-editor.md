@@ -78,7 +78,7 @@ undo that swaps the item for a snapshot is picked up without telling it.
    tool's own pointer and key handling off (the animator lets Esc, Z and Y
    through and closes the editor on Esc).
 
-`Tools/Animator/Commands/AnimatorXifHost.cs` is the reference host. It edits
+`Logic/Animator/Commands/AnimatorXifHost.cs` is the reference host. It edits
 a part on its bone: opacity 0 (nothing dims the preview), placement = preview
 placement × the part's world transform, and since a placed item is the host's
 own drawing (shader and all) the editor draws only its field lines over it, and the preview still zooms (wheel) and pans (middle drag)

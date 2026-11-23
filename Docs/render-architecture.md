@@ -197,7 +197,7 @@ Before step 1 the animator had this (and the editor had none of it):
   tiebreak.
 - `ArtDrawOrder.Of(layer, order)`: the banded draw index. Gone since step 1;
   `DrawOrder.Banded` (`Core/Layering/`) replaced it.
-- `AnimatorLayerCommands.Rows` / `Move` (`Tools/Animator/Commands/AnimatorLayerCommands.cs`):
+- `AnimatorLayerCommands.Rows` / `Move` (`Logic/Animator/Commands/AnimatorLayerCommands.cs`):
   the front-first row list, and moving forward/back (swap layers with a
   neighbour on another layer, step past one on the same layer).
 - Per-pose layer keys (`RigAttachmentState.LayerOf`). These stay **animator-only** (D4).

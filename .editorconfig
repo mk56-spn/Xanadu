@@ -32,7 +32,8 @@ dotnet_separate_import_directive_groups = false
 
 # Types and members
 # Prefer primary constructors when they stay readable; use a normal constructor when it needs logic.
-csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_primary_constructors = true:warning
+dotnet_diagnostic.IDE0290.severity = warning
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 csharp_style_var_for_built_in_types = false:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
