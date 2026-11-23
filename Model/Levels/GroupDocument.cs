@@ -16,13 +16,13 @@ public sealed class GroupDocument
     public string Name = "group";
 
     /// <summary>The ids of the items the group holds (their Xif ids).</summary>
-    public List<string> Members = new();
+    public List<string> Members = [];
 
     public KeyClip Clip = new() { Clock = KeyClock.Song };
 
     public GroupDocument Copy()
     {
-        var copy = new GroupDocument { Name = Name, Members = new List<string>(Members) };
+        var copy = new GroupDocument { Name = Name, Members = [.. Members] };
         copy.Clip.Id = Clip.Id;
         copy.Clip.Clock = Clip.Clock;
         copy.Clip.Duration = Clip.Duration;

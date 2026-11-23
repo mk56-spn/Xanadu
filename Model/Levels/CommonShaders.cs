@@ -9,7 +9,7 @@ public static class CommonShaders
 {
     /// <summary>Resource paths of the game's common canvas shaders.</summary>
     public static readonly string[] Paths =
-    {
+    [
         "Assets/Shaders/Items/rainbow.slang",
         Playfields.Decos.FlareShader,
         Playfields.DashStops.Shader,
@@ -26,7 +26,7 @@ public static class CommonShaders
         Playfields.NoteLooks.PopShader,
         Playfields.NoteLooks.DashPopShader,
         "Assets/Shaders/Items/sdf.slang",
-    };
+    ];
 
     /// <summary>
     /// Small common shaders made to be stacked over others (<c>XifShader.Layers</c>):
@@ -34,12 +34,12 @@ public static class CommonShaders
     /// be a layer; these are the ones the editor offers first.
     /// </summary>
     public static readonly string[] Layers =
-    {
+    [
         SwayLayer,
         GradientLayer,
         TintLayer,
         DissolveLayer,
-    };
+    ];
 
     public const string SwayLayer = "Assets/Shaders/Layers/sway.slang";
     public const string GradientLayer = "Assets/Shaders/Layers/gradient.slang";

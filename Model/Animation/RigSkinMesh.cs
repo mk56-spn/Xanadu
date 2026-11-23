@@ -19,16 +19,16 @@ public sealed class RigSkinMesh
     /// <summary>The art's size, in its own units: the view box the points are laid over.</summary>
     public Vector2 ArtSize;
 
-    public Vector2[] Points = Array.Empty<Vector2>();
+    public Vector2[] Points = [];
 
     /// <summary>Three point indices per triangle.</summary>
-    public int[] Triangles = Array.Empty<int>();
+    public int[] Triangles = [];
 
     /// <summary>The bones the weights are over, by id, in the order of each point's weight row.</summary>
-    public List<string> Bones = new();
+    public List<string> Bones = [];
 
     /// <summary>One row per point, one weight per bone in <see cref="Bones"/>, summing to one.</summary>
-    public float[][] Weights = Array.Empty<float[]>();
+    public float[][] Weights = [];
 
     /// <summary>Counts edits to the weights, so whatever caches them knows to look again. Not saved.</summary>
     public int Version;
@@ -38,7 +38,7 @@ public sealed class RigSkinMesh
         ArtSize = ArtSize,
         Points = (Vector2[])Points.Clone(),
         Triangles = (int[])Triangles.Clone(),
-        Bones = new List<string>(Bones),
+        Bones = [.. Bones],
         Weights = Array.ConvertAll(Weights, row => (float[])row.Clone()),
     };
 

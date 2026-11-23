@@ -1,5 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Ecs.Components;
@@ -48,10 +49,10 @@ public struct PlaySession(
 
     public Entity SkipButton = skipButton;
     public bool Skipped;
-
-    /// <summary>The skip key went down; <c>PlaySkipSystem</c> takes it on its next update.</summary>
-    public bool SkipRequested;
 }
+
+/// <summary>Signal on the play session: the skip key went down; <c>PlaySkipSystem</c> skips if it can.</summary>
+public readonly struct SkipAsked;
 
 /// <summary>
 /// The player character's box. A play scene stores it in screen pixels for the
@@ -148,7 +149,7 @@ public struct NotePop(
 {
     public Note Note = note;
 
-    /// <summary>The note's place in the run's chart (<see cref="ChartIndex"/>), for effects drawn from it; -1 for none.</summary>
+    /// <summary>The note's place in the run's chart (its <see cref="ListIndex"/>), for effects drawn from it; -1 for none.</summary>
     public int ChartIndex = chartIndex;
     public Vector2 Position = position;
     public Color Color = color;
@@ -157,19 +158,6 @@ public struct NotePop(
     public float Lifetime = lifetime;
 }
 
-/// <summary>
-/// A note's place in the run's chart (<c>ShaderChart</c>, <c>notes[i]</c> in
-/// shaders): set on each note when a level is played, so judging it can write
-/// its result there.
-/// </summary>
-public struct ChartIndex(int index) : IComponent
-{
-    public int Index = index;
-
-    /// <summary>The note's place in the chart, or -1 for a note that isn't in it.</summary>
-    public static int Of(Entity note) =>
-        !note.IsNull && note.TryGetComponent(out ChartIndex chart) ? chart.Index : -1;
-}
 
 /// <summary>Marks a play note that has already passed its timing window.</summary>
 public struct NoteMissed : ITag { }

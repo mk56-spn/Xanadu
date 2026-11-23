@@ -45,8 +45,8 @@ public sealed class HudItemLayout(
 
     public bool Initialized;
     public Entity Handle;
-    public readonly List<Entity> Members = new();
-    public readonly List<Vector2> BasePositions = new();
+    public readonly List<Entity> Members = [];
+    public readonly List<Vector2> BasePositions = [];
 
     /// <summary>Its box where it has been moved to, unturned and unscaled.</summary>
     public Rect2 Moved => new(Bounds.Position + Offset, Bounds.Size);
@@ -171,7 +171,7 @@ public struct HudLayout : IComponent
 {
     public HudLayout() { }
 
-    public List<HudItemLayout> Items = new();
+    public List<HudItemLayout> Items = [];
     public bool Editing;
 
     public HudItemLayout Add(

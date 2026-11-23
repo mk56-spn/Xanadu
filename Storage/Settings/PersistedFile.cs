@@ -13,19 +13,13 @@ namespace Xanadu.Storage.Settings;
 /// <c>user://</c> resolution and an in-memory-only mode for tests.
 /// </para>
 /// </summary>
-public sealed class PersistedFile<T> where T : class
+/// <param name="path">The target path, or null to use <paramref name="defaultPath"/>.</param>
+/// <param name="defaultPath">Used when <paramref name="path"/> is null.</param>
+/// <param name="persist">When false, <see cref="Save"/> is a no-op.</param>
+public sealed class PersistedFile<T>(string? path, string defaultPath, bool persist) where T : class
 {
-    private readonly string _path;
-    private readonly bool _persist;
-
-    /// <param name="path">The target path, or null to use <paramref name="defaultPath"/>.</param>
-    /// <param name="defaultPath">Used when <paramref name="path"/> is null.</param>
-    /// <param name="persist">When false, <see cref="Save"/> is a no-op.</param>
-    public PersistedFile(string? path, string defaultPath, bool persist)
-    {
-        _path = path ?? defaultPath;
-        _persist = persist;
-    }
+    private readonly string _path = path ?? defaultPath;
+    private readonly bool _persist = persist;
 
     /// <summary>The stored document, or null when absent or unreadable.</summary>
     public T? Load()

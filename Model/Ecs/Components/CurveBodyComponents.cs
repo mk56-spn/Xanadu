@@ -127,7 +127,7 @@ public struct BodyTrace() : IComponent
     /// <summary>A new point is laid once the body is this far from the last one, playfield units.</summary>
     public const float Spacing = 6f;
 
-    public List<Vector2> Points = new();
+    public List<Vector2> Points = [];
 }
 
 /// <summary>One reading of the body's velocity, at a song time (ms), playfield units a second.</summary>
@@ -142,5 +142,5 @@ public struct SpeedGraph() : IComponent
     /// <summary>How much song time the graph keeps, ms.</summary>
     public const double WindowMs = 6000d;
 
-    public List<SpeedSample> Samples = new();
+    public List<SpeedSample> Samples = [];
 }

@@ -52,13 +52,13 @@ public struct EditorHud(
 /// The note-key bar inside the left panel. It shows while placing notes or dash
 /// notes, the two kinds that carry a key, and leaves the layout otherwise.
 /// </summary>
-public struct EditorNoteBarPanel : IComponent;
+public struct EditorNoteBarPanel : ITag;
 
 /// <summary>
 /// The level info panel's song name. Changing the song is rare, so the name
 /// and its CHANGE button live there rather than in the header.
 /// </summary>
-public struct EditorSongLabel : IComponent;
+public struct EditorSongLabel : ITag;
 
 /// <summary>The left panel holding the current tool's settings.</summary>
 public struct EditorLeftMenu(Entity panel) : IComponent

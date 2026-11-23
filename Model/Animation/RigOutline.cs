@@ -36,7 +36,7 @@ public static class RigOutline
         foreach (Core.Items.XifPolygon polygon in geometry.Polygons)
         {
             if (polygon.Points.Count >= 3)
-                polygons.Add(polygon.Points.ToArray());
+                polygons.Add([.. polygon.Points]);
         }
         return polygons;
     }

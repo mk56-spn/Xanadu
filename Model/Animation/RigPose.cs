@@ -1,26 +1,19 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 
 namespace Xanadu.Model.Animation;
 
 /// <summary>Per-bone and per-part values for one sampled pose.</summary>
-public sealed class RigPose
+public sealed class RigPose(int boneCount, int attachmentCount)
 {
-    public RigTransform[] Bones;
-    public RigTransform[] Attachments;
+    public RigTransform[] Bones = new RigTransform[boneCount];
+    public RigTransform[] Attachments = new RigTransform[attachmentCount];
 
     /// <summary>One per part: the art, layer, opacity and visibility clips key.</summary>
-    public RigAttachmentState[] AttachmentStates;
-
-    public RigPose(int boneCount, int attachmentCount)
-    {
-        Bones = new RigTransform[boneCount];
-        Attachments = new RigTransform[attachmentCount];
-        AttachmentStates = new RigAttachmentState[attachmentCount];
-    }
+    public RigAttachmentState[] AttachmentStates = new RigAttachmentState[attachmentCount];
 
     /// <summary>A pose with every part's state as authored: hidden parts start hidden.</summary>
     public static RigPose For(RigPackage package)

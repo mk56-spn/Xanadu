@@ -105,7 +105,7 @@ public static class RigSkinBuilder
     private static bool EdgeOnOutline(int i, int j, int k, int edgePoints, IReadOnlyList<Vector2[]> outline,
         List<Vector2> points, float spacing)
     {
-        int[] corners = { i, j, k };
+        int[] corners = [i, j, k];
         int outside = 0;
         for (int s = 0; s < 3; s++)
         {
@@ -172,7 +172,7 @@ public static class RigSkinBuilder
     {
         int n = points.Count;
         if (n < 3)
-            return Array.Empty<int>();
+            return [];
 
         var all = new List<Vector2>(points);
         Rect2 bounds = new(points[0], Vector2.Zero);
@@ -221,7 +221,7 @@ public static class RigSkinBuilder
             if (a < n && b < n && c < n)
                 result.AddRange(new[] { a, b, c });
         }
-        return result.ToArray();
+        return [.. result];
     }
 
     /// <summary>A triangle's corners in a fixed winding, so the in-circle test reads the same way for all.</summary>

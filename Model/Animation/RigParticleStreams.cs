@@ -26,7 +26,7 @@ namespace Xanadu.Model.Animation;
 /// </remarks>
 public sealed class RigParticleStreams(Handle canvas, Handle held = default) : ICanvasMount
 {
-    private readonly List<Stream> _streams = new();
+    private readonly List<Stream> _streams = [];
     private readonly HeldMount _heldMount = new();
     private readonly XifDrawer _drawer = new();
     private readonly ServerRectCanvas _looks = new();
@@ -129,7 +129,7 @@ public sealed class RigParticleStreams(Handle canvas, Handle held = default) : I
     /// <summary>Lists only the held part's stream, over the held canvas.</summary>
     private sealed class HeldMount : ICanvasMount
     {
-        public List<Stream> Streams = new();
+        public List<Stream> Streams = [];
         public int Part = -1;
 
         public void Collect(ICanvasCollector into)

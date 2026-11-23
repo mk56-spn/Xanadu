@@ -8,4 +8,4 @@ namespace Xanadu.Model.Ecs.Components;
 /// each frame its shader gets a four-component <c>energy</c> uniform, the
 /// loudness of four slices of the spectrum, lowest frequencies first.
 /// </summary>
-public struct SpectrumEnergy : IComponent;
+public struct SpectrumEnergy : ITag;

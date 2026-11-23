@@ -43,7 +43,7 @@ public static class RigHeatWeights
         var nearest = new List<int>[n];
         for (int p = 0; p < n; p++)
         {
-            nearest[p] = new List<int>();
+            nearest[p] = [];
             double best = double.MaxValue;
             for (int b = 0; b < bones.Count; b++)
             {
@@ -152,7 +152,7 @@ public static class RigHeatWeights
         var area = new double[n];
         for (int t = 0; t < triangles.Length; t += 3)
         {
-            int[] corner = { triangles[t], triangles[t + 1], triangles[t + 2] };
+            int[] corner = [triangles[t], triangles[t + 1], triangles[t + 2]];
             double triangleArea = Math.Abs((double)(points[corner[1]] - points[corner[0]]).Cross(points[corner[2]] - points[corner[0]])) / 2;
             if (triangleArea < 1e-9)
                 continue;
@@ -174,7 +174,7 @@ public static class RigHeatWeights
 
         var rows = new List<(int, double)>[n];
         for (int i = 0; i < n; i++)
-            rows[i] = new List<(int, double)>();
+            rows[i] = [];
         foreach (var ((i, j), value) in entries)
             rows[i].Add((j, value));
         return (rows, area);

@@ -40,7 +40,7 @@ public sealed class SongDocument
     public int BeatsPerBar { get; set; } = 4;
 
     /// <summary>Later tempo sections, each from its moment on (the song timing screen edits them).</summary>
-    public List<TempoChangeDocument> TempoChanges { get; set; } = new();
+    public List<TempoChangeDocument> TempoChanges { get; set; } = [];
 
     /// <summary>SHA-256 of the source audio. Recorded only; duplicate imports are allowed.</summary>
     public string ContentHash { get; set; } = "";
@@ -48,7 +48,7 @@ public sealed class SongDocument
     /// <summary>The song's whole timing as one map.</summary>
     public TempoMap Tempo() => TempoMap.From(
         new TempoPoint(OffsetMs, Bpm, BeatsPerBar),
-        (TempoChanges ?? new List<TempoChangeDocument>()).Select(change => change.Point));
+        (TempoChanges ?? []).Select(change => change.Point));
 }
 
 /// <summary>A BPM change: from <see cref="TimeMs"/> on, a new tempo and bar length.</summary>

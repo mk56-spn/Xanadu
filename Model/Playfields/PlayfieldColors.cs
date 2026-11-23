@@ -38,11 +38,11 @@ public static class PlayfieldColors
 
     /// <summary>The three action colours, one per action key; they only need to be told apart at a glance.</summary>
     private static readonly Color[] ActionColors =
-    {
+    [
         Palette.Pink,
         Palette.Accent,
         Palette.Lime,
-    };
+    ];
 
     /// <summary>A note's colour: its key's, or the neutral colour for a dash, which any direction key hits.</summary>
     public static Color ColorFor(Note note) =>

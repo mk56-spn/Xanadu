@@ -1,4 +1,3 @@
-using Xanadu.Core.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -6,6 +5,7 @@ using System.Runtime.InteropServices;
 using Xanadu.Core.Items;
 using Xanadu.Core.Layering;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems.Canvas;
 
@@ -62,26 +62,26 @@ public sealed partial class XifDrawer
     /// <summary>Keeps a copy's place across from reaching 1, so its whole part stays the copy's number.</summary>
     private const float AcrossTop = 0.999f;
 
-    private ConditionalWeakTable<XifGeometry, ArtMesh> _meshes = new();
+    private ConditionalWeakTable<XifGeometry, ArtMesh> _meshes = [];
 
-    private readonly List<Batch> _batches = new();
-    private readonly List<Vector2> _points = new();
-    private readonly List<Color> _colors = new();
-    private readonly List<Vector2> _uvs = new();
+    private readonly List<Batch> _batches = [];
+    private readonly List<Vector2> _points = [];
+    private readonly List<Color> _colors = [];
+    private readonly List<Vector2> _uvs = [];
 
     /// <summary>Per point, the curve tag of its triangle (<see cref="ArtMesh.Curves"/>); 0 for plain.</summary>
-    private readonly List<byte> _tags = new();
-    private readonly List<byte> _batchTags = new();
-    private readonly List<XifInstance> _copies = new();
+    private readonly List<byte> _tags = [];
+    private readonly List<byte> _batchTags = [];
+    private readonly List<XifInstance> _copies = [];
 
     /// <summary>Drops every triangulation and bent mesh kept, after geometry was edited in place.</summary>
     public void Forget()
     {
-        _meshes = new ConditionalWeakTable<XifGeometry, ArtMesh>();
-        _centred = new ConditionalWeakTable<XifGeometry, ArtMesh>();
-        _dense = new ConditionalWeakTable<XifGeometry, Dictionary<int, ArtMesh>>();
-        _cuts = new ConditionalWeakTable<XifGeometry, Dictionary<(int, int), RigClothArt.Cut>>();
-        _bent = new ConditionalWeakTable<XifGeometry, MeshCache>();
+        _meshes = [];
+        _centred = [];
+        _dense = [];
+        _cuts = [];
+        _bent = [];
         _drawnMeshes.Clear();
     }
 
@@ -130,7 +130,7 @@ public sealed partial class XifDrawer
     /// </summary>
     public readonly record struct PartFilter(int Only = -1, int Skip = -1)
     {
-        public PartFilter() : this(-1, -1) { }
+        public PartFilter() : this(-1) { }
     }
 
     /// <summary>
@@ -299,7 +299,7 @@ public sealed partial class XifDrawer
         }
     }
 
-    private ConditionalWeakTable<XifGeometry, Dictionary<(int, int), RigClothArt.Cut>> _cuts = new();
+    private ConditionalWeakTable<XifGeometry, Dictionary<(int, int), RigClothArt.Cut>> _cuts = [];
 
     /// <summary>A geometry cut along a cloth grid, kept per grid size while the geometry lives.</summary>
     private RigClothArt.Cut CutOf(XifGeometry geometry, int columns, int rows)
@@ -426,7 +426,7 @@ public sealed partial class XifDrawer
         };
     }
 
-    private readonly Dictionary<string, (string Name, Vector4 Default, int Channels)[]> _fitted = new();
+    private readonly Dictionary<string, (string Name, Vector4 Default, int Channels)[]> _fitted = [];
 
     /// <summary>The settings a shader tags <c>[Fit]</c>, with their defaults, as the host's compiler reports them; kept per shader.</summary>
     private (string Name, Vector4 Default, int Channels)[] FittedOf(string shader)
@@ -442,7 +442,7 @@ public sealed partial class XifDrawer
                     found.Add((param.Name, param.Default, param.Channels));
             }
         }
-        return _fitted[shader] = found.ToArray();
+        return _fitted[shader] = [.. found];
     }
 
     /// <summary>
@@ -477,8 +477,8 @@ public sealed partial class XifDrawer
         return new Vector2(copy + Math.Clamp(uv.X, 0f, AcrossTop), uv.Y);
     }
 
-    private ConditionalWeakTable<XifGeometry, ArtMesh> _centred = new();
-    private ConditionalWeakTable<XifGeometry, Dictionary<int, ArtMesh>> _dense = new();
+    private ConditionalWeakTable<XifGeometry, ArtMesh> _centred = [];
+    private ConditionalWeakTable<XifGeometry, Dictionary<int, ArtMesh>> _dense = [];
 
     private ArtMesh CentredOf(XifGeometry geometry) => _centred.GetValue(geometry, g => MeshOf(g).Centred());
 

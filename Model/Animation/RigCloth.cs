@@ -55,9 +55,9 @@ public sealed class RigCloth : RigNodeModule
     /// <summary>Draw layer, as for attachments: higher draws in front.</summary>
     public int ZOrder = 2;
 
-    public List<RigClothPin> Pins = new();
-    public List<RigClothTether> Tethers = new();
-    public List<RigClothCollider> Colliders = new();
+    public List<RigClothPin> Pins = [];
+    public List<RigClothTether> Tethers = [];
+    public List<RigClothCollider> Colliders = [];
 
     public int Count => Columns * Rows;
 
@@ -187,6 +187,6 @@ public static class RigClothLayout
                 triangles.AddRange(new[] { a, b, d, a, d, c });
             }
         }
-        return triangles.ToArray();
+        return [.. triangles];
     }
 }

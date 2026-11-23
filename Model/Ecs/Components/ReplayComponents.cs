@@ -18,10 +18,10 @@ public struct ReplayRecorder : IComponent
 
     public static ReplayRecorder Create() => new()
     {
-        Events = new List<ReplayEvent>(),
+        Events = [],
         Down = new bool[KeybindActions.All.Length],
         SkipFromMs = -1,
-        Offsets = new List<ReplayOffset>(),
+        Offsets = [],
     };
 }
 

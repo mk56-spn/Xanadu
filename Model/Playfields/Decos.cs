@@ -49,11 +49,11 @@ public static class Decos
                     new XifPolygon
                     {
                         Fill = new Color(0.36f, 0.72f, 0.34f),
-                        Points = new List<Vector2>
-                        {
+                        Points =
+                        [
                             new(-4f, 0f), new(-3.6f, -22f), new(-2.6f, -42f), new(-1.2f, -58f), new(0.6f, -70f),
                             new(1.4f, -57f), new(2.6f, -41f), new(3.6f, -21f), new(4f, 0f),
-                        },
+                        ],
                     },
                 },
             },
@@ -83,7 +83,7 @@ public static class Decos
                     {
                         Fill = Colors.White,
                         Kind = XifShapeKind.Quad,
-                        Points = new List<Vector2> { new(-160f, -160f), new(160f, -160f), new(160f, 160f), new(-160f, 160f) },
+                        Points = [new(-160f, -160f), new(160f, -160f), new(160f, 160f), new(-160f, 160f)],
                     },
                 },
             },

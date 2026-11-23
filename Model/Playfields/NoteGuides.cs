@@ -27,9 +27,9 @@ public static class NoteGuides
 
     public sealed class Layout
     {
-        public List<Segment> Guides { get; } = new();
-        public List<Segment> Spokes { get; } = new();
-        public List<Hub> Hubs { get; } = new();
+        public List<Segment> Guides { get; } = [];
+        public List<Segment> Spokes { get; } = [];
+        public List<Hub> Hubs { get; } = [];
     }
 
     public static Layout Build(IEnumerable<Point> notes, float noteRadius)

@@ -1,8 +1,8 @@
-using Xanadu.Core.Keys;
-using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
+using Xanadu.Model.Settings;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Storage.Settings;
@@ -12,7 +12,7 @@ public sealed class KeybindSettings
 {
     private const string DefaultPath = "user://keybinds.json";
 
-    private readonly Dictionary<KeybindAction, Key> _keys = new();
+    private readonly Dictionary<KeybindAction, Key> _keys = [];
     private readonly PersistedFile<Dictionary<string, int>> _file;
 
     public KeybindSettings(string? path = null, bool persist = true)

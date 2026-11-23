@@ -1,10 +1,10 @@
-using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Xanadu.Model.Scoring;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Storage.Profiles;
 
@@ -17,7 +17,7 @@ public sealed class UserProfile
     /// <summary>The colour of the notes in this player's art, as a hex string.</summary>
     public string NoteTint { get; set; } = ProfileStore.DefaultNoteTint;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, ScoreRecord> Scores { get; set; } = new();
+    public Dictionary<string, ScoreRecord> Scores { get; set; } = [];
 }
 
 /// <summary>One play result attached to a profile and level path.</summary>
@@ -50,7 +50,7 @@ public sealed class ProfileStore
             Load();
     }
 
-    public List<UserProfile> Profiles { get; private set; } = new();
+    public List<UserProfile> Profiles { get; private set; } = [];
 
     public string ActiveProfileId { get; private set; } = "";
 
@@ -179,10 +179,10 @@ public sealed class ProfileStore
         if (data is null)
             return;
 
-        Profiles = data.Profiles ?? new List<UserProfile>();
+        Profiles = data.Profiles ?? [];
         foreach (UserProfile profile in Profiles)
         {
-            profile.Scores ??= new Dictionary<string, ScoreRecord>();
+            profile.Scores ??= [];
             profile.NoteTint ??= DefaultNoteTint;
         }
 
@@ -216,7 +216,7 @@ public sealed class ProfileStore
     private sealed class ProfileData
     {
         public string ActiveProfileId { get; set; } = "";
-        public List<UserProfile> Profiles { get; set; } = new();
+        public List<UserProfile> Profiles { get; set; } = [];
     }
 }
 

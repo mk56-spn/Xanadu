@@ -1,4 +1,3 @@
-using Xanadu.Serialisation.Levels;
 using System;
 using System.IO;
 using System.Linq;
@@ -7,6 +6,7 @@ using System.Text;
 using Xanadu.Core.Diagnostics;
 using Xanadu.Core.Storage;
 using Xanadu.Model.Levels;
+using Xanadu.Serialisation.Levels;
 
 namespace Xanadu.Storage.Editor;
 
@@ -96,7 +96,7 @@ public sealed class LevelRecoveryStore(string directory)
         LevelDocument copy = LevelSerializer.Deserialize(LevelSerializer.Serialize(level));
         copy.Id = "";
         copy.Slug = "";
-        copy.Notes = copy.Notes.OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y).ThenBy(n => n.Target).ToList();
+        copy.Notes = [.. copy.Notes.OrderBy(n => n.TimeMs).ThenBy(n => n.X).ThenBy(n => n.Y).ThenBy(n => n.Target)];
         return Convert.ToHexString(SHA256.HashData(LevelSerializer.Serialize(copy)));
     }
 

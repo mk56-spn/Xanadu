@@ -3,12 +3,6 @@ using Xanadu.Model.Animation;
 
 namespace Xanadu.Model.Ecs.Components;
 
-/// <summary>Rig (XIF file) to load and draw as this player's character.</summary>
-public struct CharacterRigSource(string path) : IComponent
-{
-    public string Path = path;
-}
-
 /// <summary>A loaded, animating character rig.</summary>
 public struct CharacterRig(AnimatorRuntime runtime) : IComponent
 {
@@ -18,11 +12,8 @@ public struct CharacterRig(AnimatorRuntime runtime) : IComponent
 /// <summary>The rig's art is on screen, so the plain player box is not drawn.</summary>
 public struct CharacterRigVisible : ITag;
 
-/// <summary>Which way a rigged player faces; the art is drawn facing right until a leftward dash or a hit on the left flips it.</summary>
-public struct CharacterFacing : IComponent
-{
-    public bool Left;
-}
+/// <summary>Faces left: drawn mirrored. Art is authored facing right.</summary>
+public struct FacingLeft : ITag;
 
 /// <summary>What a rigged player is doing, which picks the clip it plays.</summary>
 public enum CharacterMotionState

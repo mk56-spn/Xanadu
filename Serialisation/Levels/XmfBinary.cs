@@ -1,11 +1,11 @@
-using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Xanadu.Core.Storage;
-using Xanadu.Serialisation.Items;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Model.Settings;
+using Xanadu.Serialisation.Items;
 
 namespace Xanadu.Serialisation.Levels;
 
@@ -116,25 +116,25 @@ public static class XmfBinary
             LevelDocument document = ReadMeta(file.Get((uint)XmfChunk.Meta, Format), strings);
             document.Notes = file.TryGet((uint)XmfChunk.Notes, out Chunk notes)
                 ? XmfRecords.ReadList(notes, MaxNotes, "note", ReadNote)
-                : new List<NoteDocument>();
+                : [];
             document.Chords = file.TryGet((uint)XmfChunk.Chords, out Chunk chords)
                 ? XmfRecords.ReadList(chords, MaxNotes, "chord", ReadChord)
-                : new List<ChordDocument>();
+                : [];
             document.Pads = file.TryGet((uint)XmfChunk.Pads, out Chunk pads)
                 ? XmfRecords.ReadList(pads, MaxNotes, "pad", ReadPad)
-                : new List<PadDocument>();
+                : [];
             document.Drafts = file.TryGet((uint)XmfChunk.Drafts, out Chunk drafts)
                 ? XmfRecords.ReadList(drafts, MaxNotes, "draft", ReadDraft)
-                : new List<DraftDocument>();
+                : [];
             document.DashStops = file.TryGet((uint)XmfChunk.DashStops, out Chunk stops)
                 ? XmfRecords.ReadList(stops, MaxNotes, "dash ender", ReadDashStop)
-                : new List<DashStopDocument>();
+                : [];
             document.Decos = file.TryGet((uint)XmfChunk.Decos, out Chunk decos)
                 ? XmfRecords.ReadList(decos, MaxNotes, "deco", r => ReadDeco(r, strings))
-                : new List<DecoDocument>();
+                : [];
             document.Groups = file.TryGet((uint)XmfChunk.Groups, out Chunk groups)
                 ? XmfRecords.ReadList(groups, MaxNotes, "group", r => ReadGroup(r, strings))
-                : new List<GroupDocument>();
+                : [];
             return document;
         }
         catch (Exception exception) when (exception is FormatException or IOException)

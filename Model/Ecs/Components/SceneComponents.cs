@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -127,11 +128,8 @@ public struct SongSelectState(
 /// <summary>Marks a song-select list the pointer is dragging, so its scroll stops easing.</summary>
 public struct SongSelectDragging : ITag { }
 
-/// <summary>A clickable level slot in the song-select grid.</summary>
-public struct SongSelectTile(int index) : IComponent
-{
-    public int Index = index;
-}
+/// <summary>A clickable level slot in the song-select grid; its <see cref="ListIndex"/> is the level's row.</summary>
+public struct SongSelectTile : ITag;
 
 /// <summary>Scene leave confirmation popup state.</summary>
 public struct SceneConfirmation(

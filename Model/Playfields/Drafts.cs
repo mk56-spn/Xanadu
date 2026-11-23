@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using Xanadu.Core.Items;
-using System;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Model.Playfields;
@@ -17,7 +17,7 @@ public static class Drafts
     /// <summary>The shader that draws a draft's look.</summary>
     public const string Shader = "Assets/Shaders/Items/draft.slang";
 
-    private static readonly Dictionary<float, Xif> Looks = new();
+    private static readonly Dictionary<float, Xif> Looks = [];
 
     /// <summary>
     /// What a draft of <paramref name="height"/> looks like: a quad from the top
@@ -44,7 +44,7 @@ public static class Drafts
                         {
                             Fill = Colors.White,
                             Kind = XifShapeKind.Quad,
-                            Points = new List<Vector2> { new(-half, -reach), new(half, -reach), new(half, foot), new(-half, foot) },
+                            Points = [new(-half, -reach), new(half, -reach), new(half, foot), new(-half, foot)],
                         },
                     },
                 },

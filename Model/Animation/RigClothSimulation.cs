@@ -23,12 +23,12 @@ public sealed partial class RigClothSimulation
     /// <summary>Constraint passes per step; enough for the default grid to hang without stretching.</summary>
     public const int Iterations = 16;
 
-    private readonly List<Entry> _entries = new();
+    private readonly List<Entry> _entries = [];
     private RigFixedClock _clock;
 
     /// <summary>The points to draw, row by row from the top edge; empty before the first update or for a bad index.</summary>
     public IReadOnlyList<Vector2> Points(int cloth) =>
-        cloth >= 0 && cloth < _entries.Count ? _entries[cloth].Render : Array.Empty<Vector2>();
+        cloth >= 0 && cloth < _entries.Count ? _entries[cloth].Render : [];
 
     /// <summary>Drops all motion; the cloths hang from their bones again on the next update.</summary>
     public void Reset()
@@ -146,8 +146,8 @@ public sealed partial class RigClothSimulation
         private readonly float[] _leastArea;
         private readonly Pinned[] _pins;
         private readonly Tethered[] _tethers;
-        private float[] _tetherRadii = Array.Empty<float>();
-        private Transform2D[] _world = Array.Empty<Transform2D>();
+        private float[] _tetherRadii = [];
+        private Transform2D[] _world = [];
         private Vector2 _gravity;
         private float _damping;
 
@@ -175,7 +175,7 @@ public sealed partial class RigClothSimulation
                 pins.Add(new Pinned(point, bone, rest[bone].AffineInverse() * _points[point]));
                 _fixed[point] = true;
             }
-            _pins = pins.ToArray();
+            _pins = [.. pins];
 
             var tethers = new List<Tethered>();
             foreach (RigClothTether tether in cloth.Tethers)
@@ -191,7 +191,7 @@ public sealed partial class RigClothSimulation
                 if (!_fixed[point])
                     tethers.Add(new Tethered(point, bone, rest[bone].AffineInverse() * _points[point]));
             }
-            _tethers = tethers.ToArray();
+            _tethers = [.. tethers];
             _links = Links(cloth, _points);
             _triangles = RigClothLayout.Triangles(cloth.Columns, cloth.Rows);
             _leastArea = new float[_triangles.Length / 3];
@@ -434,7 +434,7 @@ public sealed partial class RigClothSimulation
                     Add(column, row, column, row + 2, -0.5f, slack: false);
                 }
             }
-            return links.ToArray();
+            return [.. links];
         }
     }
 }

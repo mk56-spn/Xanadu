@@ -1,6 +1,6 @@
 using Friflo.Engine.ECS;
-using Xanadu.Core.Maths;
 using Xanadu.Audio;
+using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Ecs.Components;
 
@@ -70,11 +70,6 @@ public struct EditorPanel(EditorPanelKind kind, Vector2 home) : IComponent
     }
 }
 
-/// <summary>A native editor panel/dialog request raised by an ECS button.</summary>
-public struct EditorUiRequest(EditorButtonKind kind = EditorButtonKind.None) : IComponent
-{
-    public EditorButtonKind Kind = kind;
-}
 
 /// <summary>Editor-specific binding for a generic dropdown.</summary>
 public struct EditorDropdownControl(EditorDropdownKind kind) : IComponent
@@ -88,10 +83,13 @@ public struct EditorMetronome(bool enabled) : IComponent
     public bool Enabled = enabled;
 }
 
-/// <summary>Pending warning message to show in the editor warning popup.</summary>
-public struct WarningRequest(string message) : IComponent
+/// <summary>
+/// Signal emitted on the editor entity to show a message in its warning popup.
+/// Not a component: the popup listens with <c>AddSignalHandler</c>.
+/// </summary>
+public readonly struct WarningRaised(string message)
 {
-    public string Message = message;
+    public readonly string Message = message;
 }
 
 /// <summary>State and child entities of the ECS warning popup.</summary>

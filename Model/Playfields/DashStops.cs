@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using Xanadu.Core.Items;
-using System;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Model.Playfields;
@@ -38,7 +38,7 @@ public static class DashStops
                         {
                             Fill = Colors.White,
                             Kind = XifShapeKind.Quad,
-                            Points = new List<Vector2> { new(-room.X, -room.Y), new(room.X, -room.Y), new(room.X, room.Y), new(-room.X, room.Y) },
+                            Points = [new(-room.X, -room.Y), new(room.X, -room.Y), new(room.X, room.Y), new(-room.X, room.Y)],
                         },
                     },
                 },

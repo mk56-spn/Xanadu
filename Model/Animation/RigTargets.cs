@@ -1,6 +1,6 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Model.Animation;
@@ -94,7 +94,7 @@ public static class RigTargets
         int grandparent = package.Skeleton.Bones[parent].Parent;
         Transform2D[] world = RigRig.WorldBones(package, pose);
         bool bend = RigJointLocks.BendPositive(package, parent) ?? bendPositive;
-        Vector2[] solved = RigFabrik.Solve(new[] { world[grandparent].Origin, world[parent].Origin, world[bone].Origin }, at, bend);
+        Vector2[] solved = RigFabrik.Solve([world[grandparent].Origin, world[parent].Origin, world[bone].Origin], at, bend);
         Aim(package, pose, grandparent, parent, solved[1]);
         Aim(package, pose, parent, bone, solved[2]);
         RigJointLocks.Apply(package, pose);

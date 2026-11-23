@@ -43,7 +43,7 @@ public static class GameParticles
     public const string Thrust = "thrust";
 
     /// <summary>Every name above, which the library must hold for gameplay to look right.</summary>
-    public static readonly string[] All = { Landing, Dash, Hit, DashStreak, Shatter, Ember, DashLeaf, Thrust };
+    public static readonly string[] All = [Landing, Dash, Hit, DashStreak, Shatter, Ember, DashLeaf, Thrust];
 }
 
 /// <summary>

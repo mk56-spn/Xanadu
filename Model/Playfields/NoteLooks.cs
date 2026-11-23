@@ -87,11 +87,11 @@ public static class NoteLooks
                     {
                         Fill = Colors.White,
                         Kind = XifShapeKind.Quad,
-                        Points = new List<Vector2>
-                        {
+                        Points =
+                        [
                             middle + new Vector2(-half.X, -half.Y), middle + new Vector2(half.X, -half.Y),
                             middle + new Vector2(half.X, half.Y), middle + new Vector2(-half.X, half.Y),
-                        },
+                        ],
                     },
                 },
             },

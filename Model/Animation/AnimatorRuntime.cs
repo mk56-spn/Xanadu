@@ -23,8 +23,8 @@ public sealed partial class AnimatorRuntime
     /// place of a clip so the new fade starts from what was shown, not a pop.
     /// </summary>
     private RigPose? _frozen;
-    private readonly List<AdditiveLayer> _additives = new();
-    private readonly List<RigFiredEvent> _fired = new();
+    private readonly List<AdditiveLayer> _additives = [];
+    private readonly List<RigFiredEvent> _fired = [];
 
     // A clip that has just begun also reports an event sitting on its first instant.
     private bool _currentStarted;

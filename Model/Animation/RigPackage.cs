@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Xanadu.Core.Items;
 using Xanadu.Core.Keys;
-using Xanadu.Core.Particles;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 
 namespace Xanadu.Model.Animation;
 
@@ -20,7 +20,7 @@ public sealed class RigPackage
     private readonly RigView<RigAttachment> _attachments = new();
     private readonly RigView<RigChain> _chains = new();
     private readonly RigView<RigCloth> _cloths = new();
-    private readonly List<int> _attachmentParents = new();
+    private readonly List<int> _attachmentParents = [];
 
     public RigPackage() : this(new Xif { Name = "rig" })
     {
@@ -161,7 +161,7 @@ public sealed class RigPackage
 /// <summary>A read-only, flat view of the modules of one kind in a rig's tree.</summary>
 public sealed class RigView<T> : IReadOnlyList<T>
 {
-    internal readonly List<T> Items = new();
+    internal readonly List<T> Items = [];
 
     public T this[int index] => Items[index];
 
@@ -225,7 +225,7 @@ public sealed class RigSkeleton : XifModule, IKeyable
 
     public IEnumerable<string> Parts => Bones.ConvertAll(bone => bone.Id);
 
-    public List<RigBone> Bones = new();
+    public List<RigBone> Bones = [];
 
     public override XifModule Copy() => new RigSkeleton { Bones = Bones.ConvertAll(bone => bone.Copy()) };
 
@@ -236,10 +236,10 @@ public sealed class RigSkeleton : XifModule, IKeyable
 /// <summary>A node's clips and the transitions between them.</summary>
 public sealed class XifClips : XifModule
 {
-    public List<RigClip> Clips = new();
+    public List<RigClip> Clips = [];
 
     /// <summary>Which clips may fade into which, and how; see <see cref="RigTransitions"/>.</summary>
-    public List<RigTransition> Transitions = new();
+    public List<RigTransition> Transitions = [];
 
     public override XifModule Copy() => new XifClips
     {
@@ -256,7 +256,7 @@ public sealed class XifClips : XifModule
 /// <summary>Other geometry a part can show instead of its own, such as a fist for an open hand.</summary>
 public sealed class XifVariants : XifModule
 {
-    public List<XifGeometry> Alternates = new();
+    public List<XifGeometry> Alternates = [];
 
     public override XifModule Copy() => new XifVariants { Alternates = Alternates.ConvertAll(geometry => (XifGeometry)geometry.Copy()) };
 
@@ -318,7 +318,7 @@ public sealed class RigAttachment : RigNodeModule, IKeyable
 {
     public IReadOnlyList<KeyField> KeyFields => RigChannels.PartFields;
 
-    private static readonly List<XifGeometry> NoAlternates = new();
+    private static readonly List<XifGeometry> NoAlternates = [];
 
     public string BoneId = "";
     public Transform2D Transform = Transform2D.Identity;
@@ -463,10 +463,10 @@ public sealed class RigChain : RigNodeModule
 public sealed class RigClip : KeyClip
 {
     /// <summary>Named moments the game is told about as playback passes them; see <see cref="RigEvent"/>.</summary>
-    public List<RigEvent> Events = new();
+    public List<RigEvent> Events = [];
 
     /// <summary>Paths limb ends follow, baked into this clip's channels; see <see cref="RigLimbTarget"/>.</summary>
-    public List<RigLimbTarget> Targets = new();
+    public List<RigLimbTarget> Targets = [];
 }
 
 public enum RigChannelTarget

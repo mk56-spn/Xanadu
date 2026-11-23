@@ -29,11 +29,10 @@ public enum EditorDialogKind
 public struct EditorDialog(EditorDialogKind kind) : IComponent
 {
     public EditorDialogKind Kind = kind;
-
-    /// <summary>Asks for it to open on the next update, with <see cref="Arg"/>.</summary>
-    public bool OpenRequested;
-    public int Arg;
 }
+
+/// <summary>Signal on a dialog's root: open it (<c>EditorDialogSystem</c> fills and shows it).</summary>
+public readonly struct DialogOpenAsked;
 
 public enum EditorDialogAction
 {
@@ -75,7 +74,7 @@ public struct EditorDialogs() : IComponent
     /// holding the editor, until one is chosen; its way out leaves the editor.
     /// </summary>
     public bool SongRequired;
-    public List<LoadedSong> Songs = new();
+    public List<LoadedSong> Songs = [];
     public int Song = -1;
 
     public Entity RecoveryMessage;
@@ -105,30 +104,26 @@ public struct EditorDialogs() : IComponent
         return default;
     }
 
-    /// <summary>Asks for a dialog to open on the next update.</summary>
-    public static void Open(EntityStore store, EditorDialogKind kind, int arg = 0)
+    /// <summary>Opens a dialog (emits <see cref="DialogOpenAsked"/> on it).</summary>
+    public static void Open(EntityStore store, EditorDialogKind kind)
     {
         Entity dialog = Find(store, kind);
-        if (dialog.IsNull)
-            return;
-
-        ref EditorDialog state = ref dialog.GetComponent<EditorDialog>();
-        state.OpenRequested = true;
-        state.Arg = arg;
+        if (!dialog.IsNull)
+            dialog.EmitSignal(new DialogOpenAsked());
     }
 
     public static bool IsOpen(EntityStore store, EditorDialogKind kind)
     {
         Entity dialog = Find(store, kind);
-        return !dialog.IsNull && (!UiLayout.IsHidden(dialog) || dialog.GetComponent<EditorDialog>().OpenRequested);
+        return !dialog.IsNull && !UiLayout.IsHidden(dialog);
     }
 
-    /// <summary>Whether any dialog is open or about to be, which takes the keyboard and the pointer.</summary>
+    /// <summary>Whether any dialog is open, which takes the keyboard and the pointer.</summary>
     public static bool AnyOpen(EntityStore store)
     {
         foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().Entities)
         {
-            if (!UiLayout.IsHidden(entity) || entity.GetComponent<EditorDialog>().OpenRequested)
+            if (!UiLayout.IsHidden(entity))
                 return true;
         }
 
@@ -145,12 +140,11 @@ public struct EditorDialogs() : IComponent
         bool songRequired = IsSongRequired(store);
         foreach (Entity entity in store.Query<EditorDialog>().WithDisabled().ToEntityList())
         {
-            ref EditorDialog dialog = ref entity.GetComponent<EditorDialog>();
+            EditorDialog dialog = entity.GetComponent<EditorDialog>();
             if (dialog.Kind == EditorDialogKind.Recovery ||
                 (dialog.Kind == EditorDialogKind.Song && songRequired))
                 continue;
 
-            dialog.OpenRequested = false;
             UiLayout.SetHidden(entity, true);
         }
     }

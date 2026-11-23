@@ -88,9 +88,4 @@ public struct PlayerFriction : IComponent
     }
 }
 
-/// <summary>Marks an entity as a character with a mass in kilograms.</summary>
-public struct Character(float mass) : IComponent
-{
-    public float Mass = mass;
-}
 

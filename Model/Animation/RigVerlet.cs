@@ -129,21 +129,13 @@ public sealed class RigVerletChain : RigFixedBody
 }
 
 /// <summary>Single pendulum-like attachment that swings from a bone.</summary>
-public sealed class RigPendulum : RigFixedBody
+public sealed class RigPendulum(Vector2 anchor, Vector2 position, float length) : RigFixedBody
 {
-    private Vector2 _previous;
+    private Vector2 _previous = position;
 
-    public RigPendulum(Vector2 anchor, Vector2 position, float length)
-    {
-        Anchor = anchor;
-        Position = position;
-        _previous = position;
-        Length = Math.Max(0.001f, length);
-    }
-
-    public Vector2 Anchor { get; set; }
-    public Vector2 Position { get; private set; }
-    public float Length { get; set; }
+    public Vector2 Anchor { get; set; } = anchor;
+    public Vector2 Position { get; private set; } = position;
+    public float Length { get; set; } = Math.Max(0.001f, length);
     public Vector2 Gravity { get; set; } = new(0, 900);
     public float Damping { get; set; } = 0.97f;
 

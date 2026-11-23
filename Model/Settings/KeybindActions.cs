@@ -7,7 +7,7 @@ public static class KeybindActions
 {
     /// <summary>Every playfield key, directions first.</summary>
     public static readonly KeybindAction[] All =
-    {
+    [
         KeybindAction.Left,
         KeybindAction.Right,
         KeybindAction.Up,
@@ -15,15 +15,15 @@ public static class KeybindActions
         KeybindAction.Action1,
         KeybindAction.Action2,
         KeybindAction.Action3,
-    };
+    ];
 
     /// <summary>The three action keys, in bar order.</summary>
     public static readonly KeybindAction[] ActionKeys =
-    {
+    [
         KeybindAction.Action1,
         KeybindAction.Action2,
         KeybindAction.Action3,
-    };
+    ];
 
     /// <summary>Whether the key steers rather than hits.</summary>
     public static bool IsDirection(KeybindAction action) => action is

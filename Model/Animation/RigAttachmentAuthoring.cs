@@ -1,5 +1,5 @@
-using Xanadu.Core.Keys;
 using System;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Layering;
 
 namespace Xanadu.Model.Animation;

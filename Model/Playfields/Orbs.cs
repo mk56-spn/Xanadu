@@ -1,6 +1,6 @@
+using System;
 using Xanadu.Core.Items;
 using Xanadu.Core.Keys;
-using System;
 using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Model.Playfields;
@@ -44,7 +44,7 @@ public static class Orbs
                         {
                             Fill = Colors.White,
                             Kind = XifShapeKind.Quad,
-                            Points = new System.Collections.Generic.List<Vector2> { new(-room, -room), new(room, -room), new(room, room), new(-room, room) },
+                            Points = [new(-room, -room), new(room, -room), new(room, room), new(-room, room)],
                         },
                     },
                 },
@@ -180,6 +180,6 @@ public static class Orbs
         keys.RemoveAll(k => k.OffsetMs == offsetMs);
         keys.Add(new OrbKey(offsetMs, rise));
         keys.Sort(static (a, b) => a.OffsetMs.CompareTo(b.OffsetMs));
-        return keys.ToArray();
+        return [.. keys];
     }
 }

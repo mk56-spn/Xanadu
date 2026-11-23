@@ -46,7 +46,7 @@ public sealed class TempoMap
 
     /// <summary>One tempo for the whole song.</summary>
     public static TempoMap Single(double bpm, double offsetMs, int beatsPerBar = 4) =>
-        new(new[] { new TempoPoint(offsetMs, ClampBpm(bpm), ClampBar(beatsPerBar)) });
+        new([new TempoPoint(offsetMs, ClampBpm(bpm), ClampBar(beatsPerBar))]);
 
     /// <summary>
     /// A map from a first point and later changes. Changes at or before the
@@ -80,7 +80,7 @@ public sealed class TempoMap
                 points.Add(snapped);
         }
 
-        return new TempoMap(points.ToArray());
+        return new TempoMap([.. points]);
     }
 
     public static double BeatMs(double bpm) => 60_000.0 / ClampBpm(bpm);

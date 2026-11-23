@@ -85,7 +85,7 @@ public static class RigClothArt
                 }
             }
         }
-        return new Cut(cells.ToArray(), inCell.ToArray(), colors.ToArray(), uvs.ToArray(), triangles.ToArray(), mesh.Bounds);
+        return new Cut([.. cells], [.. inCell], [.. colors], [.. uvs], [.. triangles], mesh.Bounds);
     }
 
     /// <summary>Where a vertex of a cut lands on the simulated sheet: its cell's four corners, mixed by its place in the cell.</summary>

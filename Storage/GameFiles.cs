@@ -12,8 +12,5 @@ namespace Xanadu.Storage;
 /// </summary>
 public static class GameFiles
 {
-    public static void Install()
-    {
-        ParticleLibrary.Use(new ParticleLibraryFile());
-    }
+    public static void Install() => ParticleLibrary.Use(new ParticleLibraryFile());
 }

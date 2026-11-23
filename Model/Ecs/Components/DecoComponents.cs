@@ -26,5 +26,5 @@ public struct LevelGroups(System.Collections.Generic.List<Xanadu.Model.Levels.Gr
 {
     public System.Collections.Generic.List<Xanadu.Model.Levels.GroupDocument> Groups = groups;
 
-    public System.Collections.Generic.Dictionary<string, Xanadu.Model.Levels.GroupLayer> Layers = new();
+    public System.Collections.Generic.Dictionary<string, Xanadu.Model.Levels.GroupLayer> Layers = [];
 }

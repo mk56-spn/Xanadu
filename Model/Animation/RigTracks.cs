@@ -1,6 +1,6 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 
 namespace Xanadu.Model.Animation;
 
@@ -25,9 +25,11 @@ public static class RigTracks
     {
         var animated = new HashSet<RigTrack>();
         foreach (KeyTarget target in KeyRows.Animated(clip))
+        {
             animated.Add(target.Part.Length > 0
                 ? new RigTrack(RigChannelTarget.Bone, target.Part)
                 : new RigTrack(RigChannelTarget.Attachment, target.Node));
+        }
 
         if (alwaysInclude is { } extra)
             animated.Add(extra);

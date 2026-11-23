@@ -1,8 +1,8 @@
-using Xanadu.Model.Replays;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
 
 namespace Xanadu.Serialisation.Replays;

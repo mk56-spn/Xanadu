@@ -1,7 +1,7 @@
-using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Serialisation.Levels;
 
@@ -26,17 +26,17 @@ public static class LevelSerializer
         document.Name ??= "Untitled";
         document.SongId ??= "";
 
-        document.Notes ??= new();
+        document.Notes ??= [];
         document.Notes.RemoveAll(note => note is null);
-        document.Chords ??= new();
+        document.Chords ??= [];
         document.Chords.RemoveAll(chord => chord is null);
-        document.Pads ??= new();
+        document.Pads ??= [];
         document.Pads.RemoveAll(pad => pad is null);
-        document.Drafts ??= new();
+        document.Drafts ??= [];
         document.Drafts.RemoveAll(draft => draft is null);
-        document.DashStops ??= new();
+        document.DashStops ??= [];
         document.DashStops.RemoveAll(stop => stop is null);
-        document.Decos ??= new();
+        document.Decos ??= [];
         document.Decos.RemoveAll(deco => deco?.Xif is null);
         return document;
     }

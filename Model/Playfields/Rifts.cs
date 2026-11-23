@@ -63,7 +63,7 @@ public static class Rifts
                         {
                             Fill = Colors.White,
                             Kind = XifShapeKind.Quad,
-                            Points = new List<Vector2> { new(low, low), new(high, low), new(high, high), new(low, high) },
+                            Points = [new(low, low), new(high, low), new(high, high), new(low, high)],
                         },
                     },
                 },

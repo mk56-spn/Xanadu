@@ -31,10 +31,10 @@ public sealed partial class RigClothSimulation
         /// <summary>For each edge point, the point at the other end of its row.</summary>
         private readonly int[] _opposite;
 
-        private readonly List<Capsule> _capsules = new();
+        private readonly List<Capsule> _capsules = [];
 
         /// <summary>Per edge point and capsule: -1 or 1 for the side of the leg it was last clear on, 0 if never.</summary>
-        private sbyte[] _sides = Array.Empty<sbyte>();
+        private sbyte[] _sides = [];
 
         private static (int[] Edges, int[] Opposite) Edges(RigCloth cloth)
         {

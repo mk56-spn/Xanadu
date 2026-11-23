@@ -1,9 +1,9 @@
-using Xanadu.Core.Particles;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Particles;
 using Xanadu.Core.Storage;
 
 namespace Xanadu.Serialisation.Particles;

@@ -10,10 +10,10 @@ namespace Xanadu.Model.Animation;
 /// <summary>Parts drawn as meshes bent by their bones: a grid over the art, or a stored skin, weighted once and bent every frame.</summary>
 public sealed partial class XifDrawer
 {
-    private ConditionalWeakTable<XifGeometry, MeshCache> _bent = new();
+    private ConditionalWeakTable<XifGeometry, MeshCache> _bent = [];
 
     /// <summary>Where each skinned part was last drawn, by part index, for an editor to outline.</summary>
-    private readonly Dictionary<int, (Vector2[] Points, int[] Triangles)> _drawnMeshes = new();
+    private readonly Dictionary<int, (Vector2[] Points, int[] Triangles)> _drawnMeshes = [];
 
     /// <summary>
     /// The target-space points and triangles a skinned part was last drawn
@@ -27,8 +27,8 @@ public sealed partial class XifDrawer
             triangles = drawn.Triangles;
             return true;
         }
-        points = Array.Empty<Vector2>();
-        triangles = Array.Empty<int>();
+        points = [];
+        triangles = [];
         return false;
     }
 
@@ -120,9 +120,9 @@ public sealed partial class XifDrawer
     private sealed record MeshCache(int Detail, Vector2[] Local, Color[] Colors, int[] Triangles, int Columns, int Rows,
         bool[]? Covered)
     {
-        public Vector2[] Drawn { get; set; } = Array.Empty<Vector2>();
+        public Vector2[] Drawn { get; set; } = [];
 
-        public Vector2[] RestPoints { get; set; } = Array.Empty<Vector2>();
+        public Vector2[] RestPoints { get; set; } = [];
 
         public float[][]? Weights { get; set; }
 

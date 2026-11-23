@@ -33,22 +33,22 @@ public sealed class LevelDocument
 
     public int PlayfieldHeight { get; set; } = DefaultFieldSize;
 
-    public List<NoteDocument> Notes { get; set; } = new();
+    public List<NoteDocument> Notes { get; set; } = [];
 
-    public List<ChordDocument> Chords { get; set; } = new();
+    public List<ChordDocument> Chords { get; set; } = [];
 
-    public List<PadDocument> Pads { get; set; } = new();
+    public List<PadDocument> Pads { get; set; } = [];
 
-    public List<DraftDocument> Drafts { get; set; } = new();
+    public List<DraftDocument> Drafts { get; set; } = [];
 
     /// <summary>Dash enders: a dash entering one ends there.</summary>
-    public List<DashStopDocument> DashStops { get; set; } = new();
+    public List<DashStopDocument> DashStops { get; set; } = [];
 
     /// <summary>Placed Xifs that only look: grass, flares.</summary>
-    public List<DecoDocument> Decos { get; set; } = new();
+    public List<DecoDocument> Decos { get; set; } = [];
 
     /// <summary>The level's groups: sets of items, by id, and the keys over song beats that move and fade them.</summary>
-    public List<GroupDocument> Groups { get; set; } = new();
+    public List<GroupDocument> Groups { get; set; } = [];
 }
 
 /// <summary>A deco as saved: its origin and its own Xif tree.</summary>

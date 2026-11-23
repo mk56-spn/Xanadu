@@ -24,7 +24,7 @@ public sealed class RigMesh : XifModule
     /// The bones the points may follow. Empty means the attachment's own bone
     /// and the bones hanging from it, which is what a limb segment wants.
     /// </summary>
-    public List<string> Bones = new();
+    public List<string> Bones = [];
 
     /// <summary>
     /// How wide, in pixels, the zone is where a point follows two bones at once;
@@ -39,7 +39,7 @@ public sealed class RigMesh : XifModule
     public RigSkinMesh? Skin;
 
     public override XifModule Copy() =>
-        new RigMesh { Detail = Detail, Blend = Blend, Bones = new List<string>(Bones), Skin = Skin?.Clone() };
+        new RigMesh { Detail = Detail, Blend = Blend, Bones = [.. Bones], Skin = Skin?.Clone() };
 
     public override bool Same(XifModule other) =>
         other is RigMesh b && Detail == b.Detail && Blend == b.Blend && Bones.SequenceEqualTo(b.Bones) &&

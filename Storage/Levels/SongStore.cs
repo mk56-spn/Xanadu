@@ -1,5 +1,3 @@
-using Xanadu.Storage.Settings;
-using Xanadu.Model.Levels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +7,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xanadu.Core.Storage;
+using Xanadu.Model.Levels;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Storage.Levels;
 
@@ -22,7 +22,7 @@ namespace Xanadu.Storage.Levels;
 /// Everything else asks <see cref="Shared"/>: <see cref="Open"/> for a song to
 /// play, <see cref="Find"/> for its details.
 /// </summary>
-public sealed class SongStore
+public sealed class SongStore(string? root = null, string? catalogPath = null)
 {
     public const string LibraryFolder = "user://songs";
     public const string CatalogFile = "Assets/song-catalog.json";
@@ -33,8 +33,8 @@ public sealed class SongStore
 
     private static SongStore? _shared;
 
-    private string? _root;
-    private readonly string? _catalogPath;
+    private string? _root = root;
+    private readonly string? _catalogPath = catalogPath;
     private SongDocument[]? _catalog;
 
     /// <summary>
@@ -45,12 +45,6 @@ public sealed class SongStore
     {
         get => _shared ??= new SongStore();
         set => _shared = value;
-    }
-
-    public SongStore(string? root = null, string? catalogPath = null)
-    {
-        _root = root;
-        _catalogPath = catalogPath;
     }
 
     public string Root => _root ??=
@@ -99,25 +93,25 @@ public sealed class SongStore
     private SongDocument[] ReadCatalog()
     {
         if (!File.Exists(CatalogPath))
-            return Array.Empty<SongDocument>();
+            return [];
 
         try
         {
             SongDocument[]? catalog =
                 JsonFileStore.Load<SongDocument[]>(CatalogPath);
             if (catalog is null)
-                return Array.Empty<SongDocument>();
+                return [];
             return Sorted(catalog.Where(song => !string.IsNullOrWhiteSpace(song.Id)));
         }
         catch (Exception)
         {
             // A broken catalog should not take down the game.
-            return Array.Empty<SongDocument>();
+            return [];
         }
     }
 
     private static SongDocument[] Sorted(IEnumerable<SongDocument> songs) =>
-        songs.OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase).ToArray();
+        [.. songs.OrderBy(song => song.Title, StringComparer.OrdinalIgnoreCase)];
 
     /// <summary>
     /// Copies <paramref name="sourcePath"/> into the song library as a new song.
@@ -186,18 +180,18 @@ public sealed class SongStore
         if (string.IsNullOrWhiteSpace(song.Id))
             throw new InvalidOperationException("Song is missing its id.");
 
-        SongDocument[] songs = LoadAll().ToArray();
+        SongDocument[] songs = [.. LoadAll()];
         int index = Array.FindIndex(songs, item => item.Id == song.Id);
         if (index >= 0)
             songs[index] = song;
         else
-            songs = songs.Append(song).ToArray();
+            songs = [.. songs, song];
         WriteCatalog(Sorted(songs));
     }
 
     public void Delete(SongDocument song)
     {
-        WriteCatalog(LoadAll().Where(item => item.Id != song.Id).ToArray());
+        WriteCatalog([.. LoadAll().Where(item => item.Id != song.Id)]);
         string directory = GetDirectory(song);
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);

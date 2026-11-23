@@ -131,7 +131,7 @@ public static class RigSkinWeights
     {
         var neighbours = new List<int>[columns * rows];
         for (int i = 0; i < neighbours.Length; i++)
-            neighbours[i] = new List<int>();
+            neighbours[i] = [];
 
         for (int row = 0; row < rows - 1; row++)
         {
@@ -139,8 +139,8 @@ public static class RigSkinWeights
             {
                 if (!covered[row * (columns - 1) + column])
                     continue;
-                int[] corners = { row * columns + column, row * columns + column + 1,
-                    (row + 1) * columns + column, (row + 1) * columns + column + 1 };
+                int[] corners = [ row * columns + column, row * columns + column + 1,
+                    (row + 1) * columns + column, (row + 1) * columns + column + 1 ];
                 foreach (int a in corners)
                 {
                     foreach (int b in corners)

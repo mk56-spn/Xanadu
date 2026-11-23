@@ -61,15 +61,15 @@ public static class RigEffects
     /// The outline of a speed streak: a long sliver pointing back along the
     /// bone's +x, widest at its head and tapering to a point at its tail.
     /// </summary>
-    public static List<Vector2> StreakOutline() => new()
-    {
+    public static List<Vector2> StreakOutline() =>
+    [
         new Vector2(0, -6),
         new Vector2(24, -10),
         new Vector2(120, -2),
         new Vector2(120, 2),
         new Vector2(24, 10),
         new Vector2(0, 6),
-    };
+    ];
 
     /// <summary>A white streak drawn as one polygon, slightly see-through so the art shows under it.</summary>
     public static Xif Streak() => new()

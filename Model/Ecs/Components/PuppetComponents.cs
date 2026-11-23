@@ -22,9 +22,6 @@ public struct Puppet() : IComponent
     /// <summary>Every part's world transform in rig space, in the package's part order.</summary>
     public Transform2D[] Parts = [];
 
-    /// <summary>Facing left: drawn mirrored.</summary>
-    public bool FacingLeft;
-
     /// <summary>The clip it is in (or fading to), for checking.</summary>
     public string Clip = "";
 }

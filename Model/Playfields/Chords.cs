@@ -96,7 +96,7 @@ public static class Chords
     public static Chord? At(EntityStore store, long timeMs)
     {
         Chord? found = null;
-        foreach (Chord chord in All(store, _scratch ??= new List<Chord>()))
+        foreach (Chord chord in All(store, _scratch ??= []))
         {
             if (chord.TimeMs > timeMs)
                 break;

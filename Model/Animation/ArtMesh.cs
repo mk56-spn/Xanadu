@@ -58,8 +58,8 @@ public sealed record ArtMesh(Vector2[] Points, Color[] Colors, int[] Triangles, 
                 if (polygon.Points.Count < 3)
                     continue;
                 Vector2[] outline = spacing > 0f
-                    ? RigSkinBuilder.Resample(polygon.Points.ToArray(), spacing).ToArray()
-                    : polygon.Points.ToArray();
+                    ? [.. RigSkinBuilder.Resample(polygon.Points.ToArray(), spacing)]
+                    : [.. polygon.Points];
                 int[] local = Triangulate.Polygon(outline);
                 if (local.Length == 0)
                     continue;
@@ -74,9 +74,9 @@ public sealed record ArtMesh(Vector2[] Points, Color[] Colors, int[] Triangles, 
             }
         }
         bool curved = curves.Exists(static tag => tag != 0);
-        return new ArtMesh(points.ToArray(), colors.ToArray(), triangles.ToArray(), BoundsOf(geometry))
+        return new ArtMesh([.. points], [.. colors], [.. triangles], BoundsOf(geometry))
         {
-            Curves = curved ? curves.ToArray() : [],
+            Curves = curved ? [.. curves] : [],
         };
     }
 

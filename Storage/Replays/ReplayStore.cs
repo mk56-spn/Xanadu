@@ -1,9 +1,9 @@
-using Xanadu.Serialisation.Replays;
-using Xanadu.Model.Replays;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using Xanadu.Core.Storage;
+using Xanadu.Model.Replays;
+using Xanadu.Serialisation.Replays;
 
 namespace Xanadu.Storage.Replays;
 
@@ -54,9 +54,7 @@ public sealed class ReplayStore(string directory)
 
     private static string SafeName(string name)
     {
-        string safe = new(name
-            .Where(c => char.IsLetterOrDigit(c) || c is '-' or '_')
-            .ToArray());
+        string safe = new([.. name.Where(c => char.IsLetterOrDigit(c) || c is '-' or '_')]);
         return safe.Length == 0 ? "replay" : safe;
     }
 }

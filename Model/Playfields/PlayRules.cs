@@ -55,7 +55,7 @@ public static class PlayRules
     public const double ExitSettleTargetMs = 150d;
 
     /// <summary>The beat divisions the exit settle may take (the editor's snap divisions).</summary>
-    private static readonly int[] SettleDivisions = { 1, 2, 3, 4, 6, 8, 12 };
+    private static readonly int[] SettleDivisions = [1, 2, 3, 4, 6, 8, 12];
 
     /// <summary>
     /// How long the body takes to settle on a curve's exit speed after the curve

@@ -1,6 +1,6 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Layering;
 
 namespace Xanadu.Model.Animation;

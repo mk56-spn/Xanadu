@@ -33,7 +33,7 @@ public static class Beams
                     {
                         Fill = Colors.White,
                         Kind = XifShapeKind.Quad,
-                        Points = new List<Vector2> { new(0f, -1f), new(1f, -1f), new(1f, 1f), new(0f, 1f) },
+                        Points = [new(0f, -1f), new(1f, -1f), new(1f, 1f), new(0f, 1f)],
                     },
                 },
             },

@@ -66,7 +66,7 @@ public static class RigSkinGrid
                 triangles.AddRange(new[] { a, b, d, a, d, c });
             }
         }
-        return triangles.ToArray();
+        return [.. triangles];
     }
 
     /// <summary>Samples taken across a cell, each way, to find whether the art covers any of it.</summary>

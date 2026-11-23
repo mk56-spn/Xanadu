@@ -47,7 +47,7 @@ public static class EditorTimelineNotes
 
             if (!byTime.TryGetValue(time, out List<Entity>? notes))
             {
-                notes = new List<Entity>();
+                notes = [];
                 byTime.Add(time, notes);
             }
 

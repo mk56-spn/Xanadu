@@ -93,7 +93,7 @@ public static class RigChainArt
         }
         curve.Add(points[^1]);
 
-        var along = new float[curve.Count];
+        float[] along = new float[curve.Count];
         for (int i = 1; i < curve.Count; i++)
             along[i] = along[i - 1] + curve[i].DistanceTo(curve[i - 1]);
         float total = Math.Max(along[^1], 0.0001f);

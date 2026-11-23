@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
-using Xanadu.Ui.Systems.Ui;
 using Xanadu.Ui.Systems.Interaction;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Model.Ecs.Components;
 
@@ -55,12 +55,6 @@ public struct NoteSelection : IComponent
     }
 
     public void Clear() => _selection.Clear();
-}
-
-/// <summary>Current level file path for Save (empty until saved).</summary>
-public struct LevelFile(string path) : IComponent
-{
-    public string Path = path;
 }
 
 /// <summary>

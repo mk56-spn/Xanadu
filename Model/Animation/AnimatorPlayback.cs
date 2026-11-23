@@ -1,15 +1,10 @@
 namespace Xanadu.Model.Animation;
 
 /// <summary>Play/pause controls shared by the animator tool and preview hosts.</summary>
-public sealed class AnimatorPlayback
+public sealed class AnimatorPlayback(AnimatorRuntime runtime)
 {
-	public AnimatorPlayback(AnimatorRuntime runtime)
-	{
-		Runtime = runtime;
-	}
-
-	public AnimatorRuntime Runtime { get; private set; }
-	public bool IsPlaying => !Runtime.Paused;
+    public AnimatorRuntime Runtime { get; private set; } = runtime;
+    public bool IsPlaying => !Runtime.Paused;
 
 	public void Play()
 	{

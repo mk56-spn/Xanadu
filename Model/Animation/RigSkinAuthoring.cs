@@ -172,7 +172,7 @@ public static class RigSkinAuthoring
     {
         RigAttachment attachment = package.Attachments[attachmentIndex];
         if (attachment.Mesh?.Skin is not { } skin)
-            return Array.Empty<Vector2>();
+            return [];
 
         RigPose rest = RigClothLayout.RestPose(package);
         Transform2D[] restBones = RigRig.WorldBones(package, rest);
@@ -181,7 +181,7 @@ public static class RigSkinAuthoring
         Transform2D placed = RigRig.WorldAttachments(package, pose, bones)[attachmentIndex];
         List<int> influences = RigSkinWeights.Influences(package, attachment);
         if (influences.Count == 0)
-            return Array.Empty<Vector2>();
+            return [];
 
         var restPoints = new Vector2[skin.Points.Length];
         for (int i = 0; i < restPoints.Length; i++)

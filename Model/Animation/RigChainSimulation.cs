@@ -15,7 +15,7 @@ public sealed class RigChainSimulation
 {
     public const float FixedStep = RigFixedClock.Step;
 
-    private readonly List<Entry> _entries = new();
+    private readonly List<Entry> _entries = [];
     private RigFixedClock _clock;
 
     /// <summary>
@@ -27,7 +27,7 @@ public sealed class RigChainSimulation
     public IReadOnlyList<Vector2> Points(int chain) =>
         chain >= 0 && chain < _entries.Count
             ? _entries[chain].Render
-            : Array.Empty<Vector2>();
+            : [];
 
     /// <summary>Drops all motion; the chains hang from their bones again on the next update.</summary>
     public void Reset()

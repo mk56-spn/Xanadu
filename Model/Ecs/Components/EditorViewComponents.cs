@@ -18,9 +18,7 @@ public struct EditorViewNavigation(Vector2 fieldSize) : IComponent
     /// <summary>Zoom notches asked for since the last frame, positive in and negative out, about the pointer.</summary>
     public int ZoomSteps;
 
-    /// <summary>Asks for the whole field to be fitted in view.</summary>
-    public bool FitRequested;
-
     /// <summary>Where the pointer was last frame while panning, or null when not panning.</summary>
     public Vector2? PanFrom;
 }
+
