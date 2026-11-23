@@ -226,6 +226,7 @@ public static partial class AnimatorLayout
             UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left);
 
         menu.Collapsible("KEY AT PLAYHEAD", ButtonWidth);
+        refs.Ui.HiddenInRig = [.. refs.Ui.HiddenInRig ?? [], menu.Current.Parent];
         SmallRow(menu, ("SHOW / HIDE", ToolActionKind.ToggleEffectVisible));
         SliderRow(menu, "OPACITY", AnimatorSliderValue.EffectOpacity, 0f, 100f, 100f, "0",
             "Key the selected part's opacity, in percent, at the playhead");

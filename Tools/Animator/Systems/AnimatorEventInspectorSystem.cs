@@ -33,7 +33,8 @@ public sealed class AnimatorEventInspectorSystem : QuerySystem<AnimatorDocument,
 
         int index = AnimatorEventCommands.Selected(session, out RigClip? clip);
         RigEvent? selected = index >= 0 && clip is not null ? clip.Events[index] : null;
-        bool shown = selected is not null && !AnimatorPreviewModeCommands.IsOn(session);
+        bool shown = selected is not null && !AnimatorPreviewModeCommands.IsOn(session) &&
+                     !session.GetComponent<AnimatorModes>().Rest;
         UiLayout.SetHidden(ui.EventInspector, !shown);
 
         UiText.Set(ui.EventTitle, selected is null ? "EVENT" : $"EVENT IN {clip!.Id.ToUpperInvariant()}");

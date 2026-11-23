@@ -1,5 +1,7 @@
+using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Tools.Animator.Commands;
 using Xanadu.Tools.Animator.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
@@ -10,7 +12,7 @@ namespace Xanadu.Tools.Animator.Systems;
 /// moved away from the last agreed value wins: a click on the toggle sets the
 /// mode, and a mode changed by a command moves the toggle. A toggle shows only
 /// while its mode applies (<see cref="AnimatorModes.Applies"/>): PIN CHILDREN
-/// while EDIT RIG is on, ONION and PATHS while it is off.
+/// while EDIT RIG is on, ONION and PATHS while it is off, only ONION in PREVIEW.
 /// </summary>
 public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
 {
@@ -23,6 +25,7 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
         if (session.IsNull)
             return;
 
+        AnimatorUi ui = session.GetComponent<AnimatorUi>();
         foreach (Entity entity in Query.ToEntityList())
         {
             ref Toggle toggle = ref entity.GetComponent<Toggle>();
@@ -43,7 +46,9 @@ public sealed class AnimatorModeSystem : QuerySystem<Toggle, ModeToggle>
             }
 
             binding.Synced = toggle.Value;
-            UiLayout.SetHidden(entity, !modes.Applies(binding.Mode));
+            bool preview = AnimatorPreviewModeCommands.IsOn(session);
+            UiLayout.SetHidden(entity, !modes.Applies(binding.Mode, preview) ||
+                                       (preview && Array.IndexOf(ui.HiddenInPreview ?? [], entity) >= 0));
         }
     }
 

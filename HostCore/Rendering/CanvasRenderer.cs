@@ -350,7 +350,7 @@ internal sealed class CanvasRenderer : IDisposable
             {
                 Format = ShaderFormat.SPIRV,
                 NumReadonlyStorageBuffers = 3,
-                NumReadWriteStorageBuffers = 3,
+                NumReadWriteStorageBuffers = 2,
                 NumUniformBuffers = 1,
                 ThreadCountX = 64,
                 ThreadCountY = 1,

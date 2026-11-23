@@ -156,8 +156,8 @@ public static partial class AnimatorLayout
             UiTheme.Accent);
         ui.End();
         var history = new Vector2(HistoryButton, HistoryButton);
-        IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
-        IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
+        Entity undo = IconAction(ui, "UN", "undo", ToolActionKind.Undo, history);
+        Entity redo = IconAction(ui, "RE", "redo", ToolActionKind.Redo, history);
 
         // The three workspaces exclude each other, so they are one three-way
         // switch: rig building, animating, watching. No one-letter shortcut for
@@ -189,7 +189,7 @@ public static partial class AnimatorLayout
         // list floats on the menu layer and drops over the preview. The slot is
         // horizontal on purpose: a vertical container makes room for an open
         // dropdown's list, which would push the button out of the header.
-        ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
+        Entity clipsLabel = ui.Text("CLIPS", new Vector2(ClipLabelWidth, 20), UiTheme.SmallFontSize, UiTheme.Accent);
         ui.Container(Vector2.Zero, new Vector2(ClipWidth, HeaderControl), color: Clear);
         refs.Ui.ClipList = ui.Current;
         ui.End();
@@ -203,6 +203,11 @@ public static partial class AnimatorLayout
         refs.ConfigButton = refs.Ui.ConfigButton;
         ui.End();
         ui.End();
+
+        // What a workspace has no use for: the rest pose does not depend on the clip,
+        // and nothing is edited while watching.
+        refs.Ui.HiddenInRig = [clipsLabel, refs.Ui.ClipList, refs.Ui.ConfigButton];
+        refs.Ui.HiddenInPreview = [undo, redo, refs.Ui.ConfigButton];
     }
 
     /// <summary>
@@ -227,17 +232,20 @@ public static partial class AnimatorLayout
         var toggle = new Vector2(ViewBarToggleWidth, ViewBarControl);
         ViewportGrid.Attach(bar.Button(ViewportGrid.Label, UiTheme.SmallFontSize).Size(toggle).Entity);
         ViewBarSeparator(bar);
-        ViewportSnap.Attach(
+        // SNAP and ALIGN only change drags, so PREVIEW hides them with the separators round
+        // them; it hides PATHS here too, as the preview bar has its own.
+        Entity snap = ViewportSnap.Attach(
             bar.Button(ViewportSnap.Label, UiTheme.SmallFontSize).Size(toggle).Entity,
             "Snap dragged joints, art and IK targets to the grid; hold Shift while dragging to stay free",
             on: false);
-        ViewBarSeparator(bar);
+        Entity between = ViewBarSeparator(bar);
         ViewToggle(bar, AlignLabel, AnimatorMode.Align, on: true);
-        ViewBarSeparator(bar);
+        Entity after = ViewBarSeparator(bar);
+        refs.Ui.HiddenInPreview = [.. refs.Ui.HiddenInPreview ?? [], snap, between, after];
         ViewToggle(bar, "ONION", AnimatorMode.Onion);
         ViewToggle(bar, "KITES", AnimatorMode.Kites, on: true);
         ViewToggle(bar, "HANDLES", AnimatorMode.Handles, on: true);
-        ViewToggle(bar, "PATHS", AnimatorMode.MotionPaths);
+        refs.Ui.HiddenInPreview = [.. refs.Ui.HiddenInPreview, ViewToggle(bar, "PATHS", AnimatorMode.MotionPaths)];
         ViewBarSeparator(bar);
         var frame = new Vector2(ViewBarActionWidth, ViewBarControl);
         foreach ((string label, ToolActionKind kind) in new[] { ("FIT", ToolActionKind.FitPreview), ("1:1", ToolActionKind.ResetPreview) })
@@ -249,12 +257,13 @@ public static partial class AnimatorLayout
     }
 
     /// <summary>A view bar toggle for a display mode, lit while it is on.</summary>
-    private static void ViewToggle(UiNode bar, string label, AnimatorMode mode, bool on = false)
+    private static Entity ViewToggle(UiNode bar, string label, AnimatorMode mode, bool on = false)
     {
         Entity button = bar.Button(label, UiTheme.SmallFontSize).Size(new Vector2(ViewBarToggleWidth, ViewBarControl)).Entity;
         button.AddComponent(new Toggle(label, label, on));
         button.AddComponent(new ModeToggle(mode));
         AnimatorTooltips.Attach(button, ToolActionKind.ToggleMode, mode.ToString());
+        return button;
     }
 
     private const string AlignLabel = "ALIGN";
@@ -273,8 +282,8 @@ public static partial class AnimatorLayout
         shell.Viewport.Position.X + shell.Viewport.Size.X / 2f,
         shell.Viewport.Position.Y + ViewBarTop + ViewBarSize.Y / 2f);
 
-    private static void ViewBarSeparator(UiNode bar) =>
-        bar.Rect(Palette.BorderStrong, size: new Vector2(1, 22));
+    private static Entity ViewBarSeparator(UiNode bar) =>
+        bar.Rect(Palette.BorderStrong, size: new Vector2(1, 22)).Entity;
 
     /// <summary>
     /// A row that sizes to its children and docks to one edge of its parent, so

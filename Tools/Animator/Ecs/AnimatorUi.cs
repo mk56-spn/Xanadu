@@ -82,6 +82,20 @@ public struct AnimatorUi : IComponent
     /// <summary>The header button that enters and leaves preview mode.</summary>
     public Entity PreviewButton;
 
+    /// <summary>
+    /// Items PREVIEW hides on top of what <see cref="AnimatorModes.Applies"/> hides: undo, redo
+    /// and CLIP ▾ (nothing is edited), SNAP and the separators round SNAP and ALIGN (nothing is
+    /// dragged), the view bar's PATHS (the preview bar has its own).
+    /// </summary>
+    public Entity[]? HiddenInPreview;
+
+    /// <summary>
+    /// Items RIG hides: the clip picker and CLIP ▾ (the rest pose does not depend on the clip),
+    /// the bone card's POSE rows and the part card's KEY AT PLAYHEAD (the rest pose has no keys).
+    /// The KEYS and FLOW tabs and the override and event cards are hidden by their own systems.
+    /// </summary>
+    public Entity[]? HiddenInRig;
+
     /// <summary>The header's three-way workspace switch, indexed by <see cref="AnimatorWorkspace"/>.</summary>
     public Entity[]? WorkspaceButtons;
 

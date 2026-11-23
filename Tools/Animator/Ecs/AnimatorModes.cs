@@ -74,14 +74,18 @@ public struct AnimatorModes : IComponent
     /// <summary>
     /// Whether a mode does anything in the workspace the animator is in: pin
     /// children only in the rest pose; onion skins and motion paths, which are
-    /// about time, only while animating. A toggle that does not apply is hidden.
+    /// about time, only while animating. In <paramref name="preview"/> only those
+    /// two are left: nothing is dragged or keyed, and kites and handles are off.
+    /// A toggle that does not apply is hidden.
     /// </summary>
-    public readonly bool Applies(AnimatorMode mode) => mode switch
-    {
-        AnimatorMode.Pin => Rest,
-        AnimatorMode.Onion or AnimatorMode.MotionPaths => !Rest,
-        _ => true,
-    };
+    public readonly bool Applies(AnimatorMode mode, bool preview) => preview
+        ? mode is AnimatorMode.Onion or AnimatorMode.MotionPaths
+        : mode switch
+        {
+            AnimatorMode.Pin => Rest,
+            AnimatorMode.Onion or AnimatorMode.MotionPaths => !Rest,
+            _ => true,
+        };
 
     /// <summary>Whether one editing mode is on.</summary>
     public readonly bool Get(AnimatorMode mode) => mode switch

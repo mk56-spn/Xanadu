@@ -85,10 +85,11 @@ public static class AnimatorSessionCommands
             return;
 
         ref AnimatorModes modes = ref session.GetComponent<AnimatorModes>();
-        if (!modes.Applies(mode))
+        bool preview = AnimatorPreviewModeCommands.IsOn(session);
+        if (!modes.Applies(mode, preview))
         {
-            AnimatorSession.SetStatus(session, modes.Rest
-                ? "THAT SHOWS MOTION: LEAVE EDIT RIG FOR IT"
+            AnimatorSession.SetStatus(session, preview ? "PREVIEW IS FOR WATCHING: ANIMATE TO EDIT"
+                : modes.Rest ? "THAT SHOWS MOTION: LEAVE EDIT RIG FOR IT"
                 : "PIN CHILDREN WORKS WHILE EDITING THE RIG");
             return;
         }

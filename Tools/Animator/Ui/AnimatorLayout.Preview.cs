@@ -57,9 +57,8 @@ public static partial class AnimatorLayout
         PreviewAction(ui, "FLOW", ToolActionKind.PreviewTransition, 64);
         PreviewAction(ui, "LOOP", ToolActionKind.ToggleLoop, 64);
         PreviewAction(ui, "SLOW", ToolActionKind.ToggleSlow, 64);
+        // No way out here: the header's RIG | ANIMATE | PREVIEW switch (or Esc) leaves.
         PreviewAction(ui, "PATHS", ToolActionKind.ToggleMode, 64, nameof(AnimatorMode.MotionPaths));
-        ui.RectEntity(Vector2.Zero, new Vector2(TimelineGroupGap, PreviewControl), Clear);
-        PreviewAction(ui, "EDIT  (ESC)", ToolActionKind.ExitPreviewMode, 110);
         ui.End();
         ui.End();
     }

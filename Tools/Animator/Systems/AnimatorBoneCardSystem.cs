@@ -41,7 +41,8 @@ public sealed class AnimatorBoneCardSystem : QuerySystem<AnimatorDocument, Anima
         ShowRig(ui.PartRigRows, ui.PartRigHint, editingRig);
 
         UiLayout.SetHidden(ui.BoneCard, !shown);
-        UiLayout.SetHidden(ui.OverrideCard, !shown);
+        // Pins and ellipses belong to a clip; the rest pose has none.
+        UiLayout.SetHidden(ui.OverrideCard, !shown || editingRig);
         if (!shown)
             return;
 

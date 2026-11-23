@@ -403,10 +403,16 @@ public static partial class AnimatorLayout
         UiLayout.SetHidden(menu.Current, true);
         refs.Ui.BoneCard = menu.Current;
 
+        // Posing and keying the bone: the rest pose has no keys, so RIG hides them.
+        menu.Container(Vector2.Zero, new Vector2(inner, 4), StackDirection.Vertical,
+            spacing: 6, color: Clear, cross: StackCrossAlignment.Start, autoHeight: true,
+            main: StackMainAlignment.Start);
+        refs.Ui.HiddenInRig = [.. refs.Ui.HiddenInRig ?? [], menu.Current];
         CardSubhead(menu, "POSE");
         SliderRow(menu, "DEPTH", AnimatorSliderValue.Depth, -60f, 60f, 0f, "0",
             "Move the joint toward (right) or away from the viewer; keyed when let go", inner);
         CardRow(menu, inner, ("KEY BONE", ToolActionKind.KeyBone));
+        menu.End();
         refs.Ui.BoneRigHint = RigHint(menu, inner, "JOINT, PARTS AND CHILDREN: EDIT RIG");
 
         // Joint and bone building change the rig, so they only show while EDIT RIG is on.
