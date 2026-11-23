@@ -32,7 +32,7 @@ internal static class AutopsyDump
         }
         var children = new List<int>[autopsy.Tracks.Count];
         for (int i = 0; i < children.Length; i++)
-            children[i] = new List<int>();
+            children[i] = [];
         for (int i = 0; i < autopsy.Tracks.Count; i++)
             if (autopsy.Tracks[i].Parent >= 0)
                 children[autopsy.Tracks[i].Parent].Add(i);
@@ -88,7 +88,7 @@ internal static class AutopsyDump
             return;
 
         long first = kept.Where(f => f.Number > 0).Min(f => f.Start);
-        int[] leaves = Enumerable.Range(2, Math.Max(0, autopsy.Tracks.Count - 2)).Where(t => children[t].Count == 0).ToArray();
+        int[] leaves = [.. Enumerable.Range(2, Math.Max(0, autopsy.Tracks.Count - 2)).Where(t => children[t].Count == 0)];
         foreach (AutopsyFrame frame in hitches.Take(HitchRows))
         {
             float total = Ms(frame, FrameAutopsy.CpuRoot);

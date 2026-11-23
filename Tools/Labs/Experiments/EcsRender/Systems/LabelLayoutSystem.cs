@@ -12,7 +12,7 @@ namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 /// </summary>
 internal sealed class LabelLayoutSystem(HostText text, DrawList list) : QuerySystem<Label, LabelGlyphs>
 {
-    private readonly List<HostText.Placed> _placed = new();
+    private readonly List<HostText.Placed> _placed = [];
 
     protected override void OnUpdate()
     {

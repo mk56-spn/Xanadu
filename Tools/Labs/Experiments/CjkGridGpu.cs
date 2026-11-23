@@ -58,8 +58,8 @@ internal sealed class CjkGridGpu : IDisposable
     private readonly Shader _vertex, _fragment;
     private readonly GraphicsPipeline _draw;
     private readonly Sampler _sampler;
-    private readonly List<HostText.Placed> _placed = new();
-    private readonly List<(uint Cell, uint Character)> _pending = new();
+    private readonly List<HostText.Placed> _placed = [];
+    private readonly List<(uint Cell, uint Character)> _pending = [];
 
     private readonly uint[] _mirror = new uint[MaxCells];
     private readonly Glyph[] _table;

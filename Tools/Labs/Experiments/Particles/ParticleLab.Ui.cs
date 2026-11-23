@@ -42,7 +42,7 @@ internal sealed partial class ParticleLab
         private readonly Button[] _emitterTabs = new Button[ParticleScene.EmitterCount];
         private Column _emitterCard = null!, _moduleCard = null!, _worldCard = null!;
         private PooledList _modules = null!;
-        private readonly List<ModuleRow> _moduleRows = new();
+        private readonly List<ModuleRow> _moduleRows = [];
         private Meter _pool = null!;
         private Label _alive = null!, _flow = null!, _events = null!;
         private UiNode _body;
@@ -297,7 +297,7 @@ internal sealed partial class ParticleLab
         private sealed class ModuleRow() : UiSpec(grow: 1, stretch: true)
         {
             private readonly Button _toggle = new("OFF", UiType.Caption, cmd: Cmd(LabCommand.ModuleToggle), width: 52, tip: "Switch this module on or off");
-            private readonly Button _name = new("", UiType.Label, cmd: Cmd(LabCommand.ModulePick), grow: 1, tip: "Edit it under the view");
+            private readonly Button _name = new("", cmd: Cmd(LabCommand.ModulePick), grow: 1, tip: "Edit it under the view");
 
             public UiNode Toggle => _toggle.Node;
             public UiNode Name => _name.Node;

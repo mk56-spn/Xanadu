@@ -4,11 +4,11 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Theme;
+using Xanadu.Host.Tools;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 using BlendFactor = Xanadu.Core.Rendering.BlendFactor;
 using BlendOp = Xanadu.Core.Rendering.BlendOp;
-using Xanadu.Host.Tools;
-using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Labs.Experiments;
 

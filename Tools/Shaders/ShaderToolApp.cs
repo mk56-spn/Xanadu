@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
-using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
@@ -49,7 +49,7 @@ internal sealed class ShaderToolApp : HostApp
     /// frames when the tool opens or the file is saved, then left as it is. By file index:
     /// the texture the thumbnail shows, and the offscreen item drawing it while it's live.
     /// </summary>
-    private readonly Dictionary<int, (Texture Target, Handle Root, int Left)> _stills = new();
+    private readonly Dictionary<int, (Texture Target, Handle Root, int Left)> _stills = [];
     private const float StatusHeight = 32;
 
     /// <summary>The preview column's width at first, and the least the code and the column can be dragged to.</summary>
@@ -62,11 +62,11 @@ internal sealed class ShaderToolApp : HostApp
     private const int StageZ = UiLayers.Base + 1;
 
     private readonly List<ShaderFile> _files;
-    private readonly List<Entity> _rows = new();
-    private readonly List<Entity> _thumbs = new();
+    private readonly List<Entity> _rows = [];
+    private readonly List<Entity> _thumbs = [];
 
     /// <summary>Edited text not yet saved, by file; a file without an entry is as on disk.</summary>
-    private readonly Dictionary<ShaderFile, string> _unsaved = new();
+    private readonly Dictionary<ShaderFile, string> _unsaved = [];
 
     private Entity _title, _save, _revert, _note, _new, _trianglesButton, _uvButton;
 
@@ -76,7 +76,7 @@ internal sealed class ShaderToolApp : HostApp
     private UiNode _list;
     private Entity _body, _side, _preview;
     private Entity _codeSlot, _barSlot, _sideSlot, _dividerSlot;
-    private readonly HashSet<long> _held = new();
+    private readonly HashSet<long> _held = [];
 
     private int _picked = -1;
     private int _wanted;
@@ -95,7 +95,7 @@ internal sealed class ShaderToolApp : HostApp
 
     public ShaderToolApp(HostWindowOptions window, string? open) : base("Xanadu Shaders", window)
     {
-        _files = ShaderFiles.All().ToList();
+        _files = [.. ShaderFiles.All()];
         _wanted = Math.Max(0, _files.FindIndex(file => file.Name == open || file.Path == open));
         Build();
     }

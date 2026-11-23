@@ -30,24 +30,17 @@ internal sealed record DevToolTab(string Name) : IToolTab
 /// meant to be, drawn by hand on an open board; CLOCK measures the song clock
 /// judging reads.
 /// </summary>
-internal sealed class DevToolsApp : TabbedToolApp, ICodeLinks
+internal sealed class DevToolsApp(HostWindowOptions window, DevToolsOptions options) : TabbedToolApp("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("ARCH"), new DevToolTab("CLOCK")], options.Tab), ICodeLinks
 {
     public const int AtlasTab = 0, AutopsyTab = 1, ArchTab = 2, ClockTab = 3;
 
-    private readonly DevToolsOptions _options;
+    private readonly DevToolsOptions _options = options;
 
     /// <summary>Read in the background from the start: Autopsy's links need it, and Atlas opens on it.</summary>
-    private readonly Task<CodeMap> _map;
+    private readonly Task<CodeMap> _map = Task.Run(() => CodeMap.Read(options.Root));
 
     /// <summary>A type Atlas should go to when it is next built.</summary>
     private string? _pendingFocus;
-
-    public DevToolsApp(HostWindowOptions window, DevToolsOptions options)
-        : base("Xanadu Dev Tools", window, [new DevToolTab("ATLAS"), new DevToolTab("AUTOPSY"), new DevToolTab("ARCH"), new DevToolTab("CLOCK")], options.Tab)
-    {
-        _options = options;
-        _map = Task.Run(() => CodeMap.Read(options.Root));
-    }
 
     /// <summary>Looking at captures shouldn't make one of its own.</summary>
     protected override bool RecordsAutopsy => false;

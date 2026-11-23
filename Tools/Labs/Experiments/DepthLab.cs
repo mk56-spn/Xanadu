@@ -8,12 +8,12 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Ui.Ecs.Ui;
-using Mw = MoonWorks.Graphics;
-using Color = Xanadu.Core.Maths.Color;
-using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using Color = Xanadu.Core.Maths.Color;
+using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -421,7 +421,7 @@ internal sealed class DepthLab : ILabExperiment
         private readonly bool _depthReadable;
         private readonly Sampler _sampler;
         private readonly Shader _quadVertex, _quadFragment, _fullVertex, _showDepth, _flat;
-        private readonly Dictionary<State, GraphicsPipeline> _pipelines = new();
+        private readonly Dictionary<State, GraphicsPipeline> _pipelines = [];
         private readonly GraphicsPipeline _stencilEqual, _stencilAbove;
         private readonly GraphicsPipeline? _depthView;
         private readonly Handle _item, _shown;

@@ -19,8 +19,8 @@ internal sealed class LabPanel
     public const float RowHeight = 28;
     public const float LabelWidth = 130;
 
-    private readonly HashSet<long> _held = new();
-    private readonly List<LabStepper> _steppers = new();
+    private readonly HashSet<long> _held = [];
+    private readonly List<LabStepper> _steppers = [];
 
     public static UiNode Row(UiNode panel) =>
         panel.Row().Size(Inner, RowHeight).Gap(4).Cross(StackCrossAlignment.Center);

@@ -41,13 +41,13 @@ internal sealed record CodeNode(int Id, string Name, string FullName, string Nam
     public NodeKind Kind { get; set; } = NodeKind.Class;
 
     /// <summary>Links from this type, by kind, to node ids.</summary>
-    public readonly Dictionary<LinkKind, SortedSet<int>> Out = new();
+    public readonly Dictionary<LinkKind, SortedSet<int>> Out = [];
 
     /// <summary>Links to this type, by kind, from node ids.</summary>
-    public readonly Dictionary<LinkKind, SortedSet<int>> In = new();
+    public readonly Dictionary<LinkKind, SortedSet<int>> In = [];
 
     /// <summary>Its instance fields, name and full type (generic arguments kept), in declaration order.</summary>
-    public readonly List<(string Name, string Type)> Fields = new();
+    public readonly List<(string Name, string Type)> Fields = [];
 }
 
 /// <summary>
@@ -67,10 +67,10 @@ internal sealed class CodeMap
 
     private readonly Dictionary<string, int> _byFullName = new(StringComparer.Ordinal);
 
-    public List<CodeNode> Nodes { get; } = new();
+    public List<CodeNode> Nodes { get; } = [];
 
     /// <summary>Each assembly read and when it was built.</summary>
-    public List<(string Name, DateTime Built)> Assemblies { get; } = new();
+    public List<(string Name, DateTime Built)> Assemblies { get; } = [];
 
     /// <summary>The project assemblies each one references directly.</summary>
     private readonly Dictionary<string, List<string>> _references = new(StringComparer.Ordinal);
@@ -140,10 +140,9 @@ internal sealed class CodeMap
             string name = meta.GetString(meta.GetAssemblyDefinition().Name);
             readers.Add((pe, meta, name));
             map.Assemblies.Add((name, file.LastWriteTime));
-            map._references[name] = meta.AssemblyReferences
+            map._references[name] = [.. meta.AssemblyReferences
                 .Select(handle => meta.GetString(meta.GetAssemblyReference(handle).Name))
-                .Where(reference => reference.StartsWith("Xanadu", StringComparison.Ordinal))
-                .ToList();
+                .Where(reference => reference.StartsWith("Xanadu", StringComparison.Ordinal))];
         }
 
         // Nodes first, so links between assemblies find both ends.
@@ -164,7 +163,7 @@ internal sealed class CodeMap
     // ---- nodes ----------------------------------------------------------------------
 
     /// <summary>What a type's base type and interfaces are named, until every assembly is read and kinds can be settled.</summary>
-    private readonly Dictionary<int, (string? Base, bool ValueType, bool Interface, bool Enum, List<string> Interfaces)> _shape = new();
+    private readonly Dictionary<int, (string? Base, bool ValueType, bool Interface, bool Enum, List<string> Interfaces)> _shape = [];
 
     private void AddNodes(MetadataReader meta, string assembly)
     {
@@ -369,7 +368,7 @@ internal sealed class CodeMap
     private static void Add(Dictionary<LinkKind, SortedSet<int>> links, LinkKind kind, int id)
     {
         if (!links.TryGetValue(kind, out var set))
-            links[kind] = set = new SortedSet<int>();
+            links[kind] = set = [];
         set.Add(id);
     }
 
@@ -442,7 +441,7 @@ internal sealed class CodeMap
             case HandleKind.TypeReference:
                 return FullName(meta, (TypeReferenceHandle)handle);
             case HandleKind.TypeSpecification:
-                var names = new Names(meta, args ?? new List<string>()) { Arguments = args };
+                var names = new Names(meta, args ?? []) { Arguments = args };
                 return meta.GetTypeSpecification((TypeSpecificationHandle)handle).DecodeSignature(names, null);
             default:
                 return "";

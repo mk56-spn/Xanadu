@@ -1,20 +1,23 @@
-using Xanadu.Core.Timeline;
 using System;
+using System.Globalization;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Model.Animation;
+using Xanadu.Core;
 using Xanadu.Core.Items;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Timeline;
+using Xanadu.Drawers.Animator;
 using Xanadu.Host;
-using Xanadu.Ui.Systems;
-using Xanadu.Tools.Animator.Commands;
-using Xanadu.Tools.Animator.Ecs;
-using Xanadu.Tools.Animator.Files;
-using Xanadu.Tools.Animator.Ui;
+using Xanadu.Logic.Animator;
+using Xanadu.Logic.Animator.Commands;
+using Xanadu.Model.Animation;
+using Xanadu.Model.Animator;
+using Xanadu.Model.Animator.Intents;
+using Xanadu.Screens.Animator;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Tools.Animator.Systems;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Ui;
 
@@ -36,6 +39,9 @@ internal sealed class AnimatorTool : HostApp
     private readonly AnimatorArt _attachments;
     private readonly Entity _session;
     private bool _fitted;
+
+    /// <summary>CLOSE EDITOR was confirmed (<see cref="CloseAsked"/>); quit on the next tick.</summary>
+    private bool _closing;
     /// <summary>
     /// Holds the grid, the art and the bone overlay, clipped to the preview, so
     /// no part of the character ever draws over the panels or their buttons.
@@ -47,88 +53,36 @@ internal sealed class AnimatorTool : HostApp
     private readonly Handle _preview;
     private readonly Handle _artCanvas;
     private readonly Handle _timelineCanvas;
-    private readonly Handle _heldCanvas;
 
-    /// <summary>Set by <c>--shot=path</c>: capture the frame there after <see cref="_shotAt"/> frames, then quit.</summary>
+    /// <summary>The command-line set-up, applied on the second frame.</summary>
+    private readonly AnimatorLaunch _launch;
+
+    /// <summary>Where <see cref="AnimatorLaunch.ShotPath"/> still waits to be captured; cleared once taken.</summary>
     private string? _shotPath;
-    private bool _openLayers;
-    private bool _editRig;
-    private bool _shortcuts;
-    private bool _keyNow;
-    private int _addCurve = -1;
-    private int _shotAt = 60;
     private int _frames;
-
-    /// <summary>Set by <c>--shot-seconds=s</c>: capture once this much time has passed, in place of a frame count.</summary>
-    private float _shotSeconds = -1f;
     private float _elapsed;
-
-    /// <summary>Set by <c>--flow=from&gt;to</c>: open the FLOW tab on that hand-over and preview it.</summary>
-    private string? _flow;
-
-    /// <summary>Set by <c>--attacks</c>: start cycling the attacks on opening.</summary>
-    private bool _attacks;
-
-    /// <summary>Set by <c>--easing</c>: open the EASING window on opening.</summary>
-    private bool _easing;
-
-    /// <summary>Set by <c>--clip=name@seconds</c>: open that clip paused at that time.</summary>
-    private string? _clip;
-
-    /// <summary>Set by <c>--streak=bone</c>: hang a streak off that bone and hold the playhead where it shows.</summary>
-    private string? _streak;
-    private string? _sparks;
-
-    /// <summary>Set by <c>--edit-xif=part</c> (or <c>part@shader path</c>): select that part (empty: the first with art) and open the XIF editor on it.</summary>
-    private string? _editXif;
-
-    /// <summary>Set by <c>--preview</c>: open in preview mode.</summary>
-    private bool _startInPreview;
-
-    /// <summary>Set by <c>--paths=bone,bone</c>: motion paths on, with those bones selected.</summary>
-    private string? _paths;
-
-    /// <summary>Set by <c>--dress=bone</c>: a dress hanging from that bone, selected.</summary>
-    private string? _dress;
-    private string? _cloth;
-    private string? _part;
-
-    /// <summary>Set by <c>--paint=bone</c>: paint the weights of the part <c>--part</c> selects, for that bone.</summary>
-    private string? _paint;
-
-    /// <summary>Set by <c>--plant=bone,bone</c>: plant those bones on opening.</summary>
-    private string? _plant;
-
-    /// <summary>Set by <c>--orbit=bone,bone</c>: send those bones round an ellipse on opening, unsaved.</summary>
-    private string? _orbit;
-
-    /// <summary>Set by <c>--zoom=x</c>: the preview's zoom once it has been fitted, to check what spills past its edges.</summary>
-    private float _zoom = -1f;
-
-    /// <summary>Set by <c>--timeline-zoom=x</c>: the key timeline's zoom, so its time scrollbar shows in a capture.</summary>
-    private float _timelineZoom = -1f;
-
-    /// <summary>Set by <c>--full-keys</c>: the keyframe sheet opens in its full view.</summary>
-    private bool _fullKeys;
 
     private readonly MiniaudioAnimatorClick _click = new();
 
     /// <summary>The pointer the animator's systems read; <c>--perf-drag</c> takes it over.</summary>
     private readonly AnimatorScriptedPointer _pointer;
 
-    /// <summary>Set by <c>--perf-drag=bone</c>: drag that joint in a circle and print what each system cost.</summary>
-    private string? _perfDrag;
-
     private int _perfFrame = -1;
-    private bool _perfIk;
-    private readonly System.Collections.Generic.List<float> _perfDeltas = new();
+    private readonly System.Collections.Generic.List<float> _perfDeltas = [];
     private readonly System.Diagnostics.Stopwatch _perfClock = new();
 
     /// <summary>The animator's own systems; the host's UI steps them.</summary>
     private readonly SystemRoot _systems;
 
-    public AnimatorTool(string[] args) : base("Xanadu Animator", WindowOptions(args), HostUi.NoTooltips)
+    public AnimatorTool(string[] args) : this(AnimatorLaunch.Read(args))
     {
+    }
+
+    private AnimatorTool(AnimatorLaunch launch)
+        : base("Xanadu Animator", new HostWindowOptions(launch.Width, launch.Height, null, 0), HostUi.NoTooltips)
+    {
+        _launch = launch;
+        _shotPath = launch.ShotPath;
         IRectCanvas canvas = UiCanvas;
 
         _stage = CreateCanvas(AnimatorLayout.GridZ);
@@ -137,8 +91,8 @@ internal sealed class AnimatorTool : HostApp
         _preview = CreateCanvas(AnimatorLayout.PreviewZ - AnimatorLayout.GridZ, _stage);
         _timelineCanvas = CreateCanvas(AnimatorLayout.TimelineZ);
         // The part the XIF editor holds on its bone: over the editor's dimming, under its field lines.
-        _heldCanvas = CreateCanvas(UiLayers.AnimatorXifItem);
-        _attachments = new AnimatorArt(_artCanvas, _heldCanvas);
+        Handle heldCanvas = CreateCanvas(UiLayers.AnimatorXifItem);
+        _attachments = new AnimatorArt(_artCanvas, heldCanvas);
 
         var screen = new Vector2(Width, Height);
         var toasts = new ToastSystem(Entities, screen, HostPlatform.Visuals);
@@ -156,44 +110,25 @@ internal sealed class AnimatorTool : HostApp
             _keys,
             _click,
             toasts,
-            _heldCanvas));
+            heldCanvas));
         _systems.Add(toasts);
         UseSystems(_systems);
 
         var files = new AnimatorFiles();
-        _session = AnimatorSession.Create(
+        _session = AnimatorSessionSetup.Create(
             Entities,
             AnimatorFileCommands.LoadOrDefault(files, DefaultPath),
             files,
             DefaultPath);
         _session.AddComponent(AnimatorLayout.Build(Entities, screen));
-        ReadArguments(args);
-    }
-
-    /// <summary>The window size from <c>--resolution=WxH</c>; the animator times its own shots.</summary>
-    private static HostWindowOptions WindowOptions(string[] args)
-    {
-        uint width = 1600, height = 900;
-        foreach (string argument in args)
-        {
-            if (!argument.StartsWith("--resolution=", StringComparison.Ordinal))
-                continue;
-            string[] size = argument["--resolution=".Length..].Split('x');
-            width = uint.Parse(size[0]);
-            height = uint.Parse(size[1]);
-        }
-
-        return new HostWindowOptions(width, height, null, 0);
+        _session.AddSignalHandler<CloseAsked>(_ => _closing = true);
     }
 
     /// <summary>Selects a cloth or a part by id (empty: the first part with art, else the first chain) and opens the XIF editor on it.</summary>
-    private void EditXifOn(string id)
+    private void EditXifOn(AnimatorLaunch.XifTarget target)
     {
-        // "part@Assets/Shaders/x.slang" also points the art at that common shader, to check its settings;
-        // "+Assets/Shaders/Layers/y.slang" after it stacks layers over it.
-        string? shader = null;
-        if (id.IndexOf('@') is int at and >= 0)
-            (id, shader) = (id[..at], id[(at + 1)..]);
+        string id = target.Item;
+        bool shader = target.Shader is not null || target.Layers.Length > 0;
         RigPackage package = _session.GetComponent<AnimatorDocument>().Package;
         int cloth = id.Length > 0 ? package.Cloths.FindIndex(c => c.Id == id) : -1;
         if (cloth >= 0)
@@ -201,12 +136,12 @@ internal sealed class AnimatorTool : HostApp
             ref AnimatorSelection picked = ref _session.GetComponent<AnimatorSelection>();
             picked.SelectOnlyCloth(cloth);
             picked.Chain = -1;
-            if (shader is not null)
-                PointAt(package.Cloths[cloth].Node, shader);
+            if (shader)
+                PointAt(package.Cloths[cloth].Node, target);
             AnimatorArtCommands.EditXif(_session);
             return;
         }
-        var parts = package.Attachments;
+        RigView<RigAttachment> parts = package.Attachments;
         int index = id.Length > 0
             ? parts.FindIndex(part => part.Id == id)
             : parts.FindIndex(part => part.Node.Polygons.Count > 0);
@@ -226,18 +161,17 @@ internal sealed class AnimatorTool : HostApp
         {
             return;
         }
-        if (shader is not null && index >= 0)
-            PointAt(parts[index].Node, shader);
+        if (shader && index >= 0)
+            PointAt(parts[index].Node, target);
         AnimatorArtCommands.EditXif(_session);
     }
 
-    /// <summary>"base.slang+layer.slang+…": the node's shader, then layers stacked over it (an empty base keeps none).</summary>
-    private static void PointAt(Xif node, string shaders)
+    /// <summary>Points the node at the target's common shader, if it names one, then stacks its layers over it.</summary>
+    private static void PointAt(Xif node, AnimatorLaunch.XifTarget target)
     {
-        string[] stack = shaders.Split('+');
-        if (stack[0].Length > 0)
-            XifEditing.SetShader(node, XifShaderRef.OfCommon(stack[0]));
-        foreach (string layer in stack.Skip(1))
+        if (target.Shader is not null)
+            XifEditing.SetShader(node, XifShaderRef.OfCommon(target.Shader));
+        foreach (string layer in target.Layers)
             XifEditing.AddLayer(node, layer);
     }
 
@@ -246,14 +180,14 @@ internal sealed class AnimatorTool : HostApp
         // Over the XIF editor only Esc (close it) and undo and redo reach the animator's shortcuts.
         bool xif = XifEditorSystem.IsOpen(_session.GetComponent<AnimatorUi>().XifEditor);
         Keyboard.FeedPresses(Inputs.Keyboard, _keys, key =>
-            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape) &&
+            !TerminalOpen && key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape) &&
             (!xif || key is Key.Escape or Key.Z or Key.Y));
     }
 
     protected override void Tick(float delta, float time)
     {
 
-        if (_session.GetComponent<AnimatorFile>().CloseRequested)
+        if (_closing)
         {
             Quit();
             return;
@@ -265,81 +199,22 @@ internal sealed class AnimatorTool : HostApp
         if (!_fitted && AnimatorPreviewCommands.Fit(_session))
         {
             _fitted = true;
-            if (_zoom > 0f)
-                _session.GetComponent<AnimatorPreviewView>().Zoom = _zoom;
-            if (_timelineZoom > 0f)
-                _session.GetComponent<TimelineView>().Zoom = _timelineZoom;
+            if (_launch.Zoom is > 0f and var zoom)
+                _session.GetComponent<AnimatorPreviewView>().Zoom = zoom;
+            if (_launch.TimelineZoom is > 0f and var timelineZoom)
+                _session.GetComponent<TimelineView>().Zoom = timelineZoom;
         }
 
         _frames++;
         if (_frames > 2)
             _elapsed += delta;
-        if (_frames == 2 && _flow is not null)
-            StartFlow(_flow);
-        if (_frames == 2 && _clip is not null)
-            OpenClipAt(_clip);
-        if (_frames == 2 && _easing)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.ToggleEasingWindow));
-        if (_frames == 2 && _attacks)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.CycleAttacks));
-        if (_frames == 2 && _streak is not null)
-            AddStreak(_streak);
-        if (_frames == 2 && _sparks is not null)
-            AddSparks(_sparks);
-        if (_frames == 2 && _dress is not null)
-        {
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, _dress));
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddCloth));
-        }
-        // After --dress, so "--edit-xif=dress" finds the cloth it adds.
-        if (_frames == 2 && _editXif is not null)
-            EditXifOn(_editXif);
-        if (_frames == 2 && _part is not null)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectAttachment, _part));
-        if (_frames == 2 && _paint is not null)
-        {
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PaintWeights));
-            int bone = RigRig.FindBone(_session.GetComponent<AnimatorDocument>().Package, _paint);
-            if (bone >= 0)
-                AnimatorWeightCommands.PickBone(_session, bone);
-        }
-        if (_frames == 2 && _cloth is not null)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectCloth, _cloth));
-        if (_frames == 2 && _paths is not null)
-            ShowPaths(_paths);
-        if (_frames == 2 && _addCurve >= 0)
-            AddCurveTo(_addCurve);
-        if (_frames == 3 && _keyNow)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.KeyBone));
-        if (_frames == 2 && _shortcuts)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.ToggleShortcuts));
-        if (_frames == 2 && _editRig)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Rest)));
-        if (_frames == 2 && _openLayers)
-            Entities.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
-        if (_frames == 2 && _fullKeys)
-            _session.GetComponent<AnimatorModes>().FullKeys = true;
-        if (_frames == 2 && _plant is not null)
-        {
-            foreach (string bone in _plant.Split(','))
-            {
-                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
-                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PlantBone));
-            }
-        }
-        if (_frames == 2 && _orbit is not null)
-        {
-            foreach (string bone in _orbit.Split(','))
-            {
-                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
-                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.LimbTarget, "orbit"));
-            }
-        }
-        if (_perfDrag is not null)
-            PerfDrag();
-        if (_frames == 2 && _startInPreview)
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.TogglePreviewMode));
-        bool due = _shotSeconds >= 0f ? _elapsed >= _shotSeconds : _frames == _shotAt;
+        if (_frames == 2)
+            ApplyLaunch();
+        if (_frames == 3 && _launch.KeyNow)
+            _session.EmitSignal(new KeyBone());
+        if (_launch.Perf is { } perf)
+            PerfDrag(perf);
+        bool due = _launch.ShotSeconds is { } seconds ? _elapsed >= seconds : _frames == _launch.ShotFrames;
         if (_shotPath is not null && due)
         {
             RequestShot(_shotPath);
@@ -347,36 +222,102 @@ internal sealed class AnimatorTool : HostApp
         }
     }
 
+    /// <summary>The command-line set-up, once the layout exists; rig names are looked up here.</summary>
+    private void ApplyLaunch()
+    {
+        if (_launch.Flow is { } flow)
+            StartFlow(flow);
+        if (_launch.Clip is { } clip)
+            OpenClipAt(clip);
+        if (_launch.Easing)
+            _session.EmitSignal(new ToggleEasingWindow());
+        if (_launch.Attacks)
+            _session.EmitSignal(new CycleAttacks());
+        if (_launch.Streak is { } streak)
+            AddOnBone(streak, new AddEffect(), 0.05f);
+        if (_launch.Sparks is { } sparks)
+            AddOnBone(sparks, new AddParticles(), 0.2f);
+        if (_launch.Dress is { } dress)
+        {
+            SelectBone(dress);
+            _session.EmitSignal(new AddCloth());
+        }
+        // After --dress, so "--edit-xif=dress" finds the cloth it adds.
+        if (_launch.EditXif is { } xif)
+            EditXifOn(xif);
+        if (_launch.Part is { } part)
+            _session.EmitSignal(new SelectPart(part));
+        if (_launch.Paint is { } paint)
+        {
+            _session.EmitSignal(new PaintWeights());
+            int bone = Bone(paint);
+            if (bone >= 0)
+                AnimatorWeightCommands.PickBone(_session, bone);
+        }
+        if (_launch.Cloth is { } cloth)
+            _session.EmitSignal(new SelectCloth(cloth));
+        if (_launch.Paths is { } paths)
+            ShowPaths(paths);
+        if (_launch.AddCurve is { } curvePart)
+            AddCurveTo(curvePart);
+        if (_launch.Shortcuts)
+            _session.EmitSignal(new ToggleShortcuts());
+        if (_launch.EditRig)
+            _session.EmitSignal(new ToggleMode(AnimatorMode.Rest));
+        if (_launch.Layers)
+            Entities.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
+        if (_launch.FullKeys)
+            _session.SetTag<FullKeys>(true);
+        foreach (string bone in _launch.Plant)
+        {
+            SelectBone(bone);
+            _session.EmitSignal(new PlantBone());
+        }
+        foreach (string bone in _launch.Orbit)
+        {
+            SelectBone(bone);
+            _session.EmitSignal(new AddOrbit());
+        }
+        if (_launch.Preview)
+            _session.EmitSignal(new TogglePreviewMode());
+    }
+
+    /// <summary>A bone's index in the loaded rig, by the name it was given on the command line; -1 if there is none.</summary>
+    private int Bone(string name) => RigRig.FindBone(_session.GetComponent<AnimatorDocument>().Package, name);
+
+    private void SelectBone(string name) =>
+        _session.EmitSignal(new SelectBone(Bone(name)));
+
     private const int PerfStart = 30;
     private const int PerfFrames = 300;
-    private static readonly float PerfRadius = float.TryParse(Environment.GetEnvironmentVariable("PERF_RADIUS"), out float r) ? r : 80f;
+    private static readonly float PerfRadius = float.TryParse(Environment.GetEnvironmentVariable("PERF_RADIUS"), CultureInfo.InvariantCulture, out float r) ? r : 80f;
 
     /// <summary>
     /// <c>--perf-drag=bone</c>: from frame 30, holds the joint and drags it
     /// round a circle for 300 frames, then prints the frame times and each
     /// animator system's share. Pair it with <c>--shot-frames=400</c> to quit.
     /// </summary>
-    private void PerfDrag()
+    private void PerfDrag(AnimatorLaunch.PerfDrag perf)
     {
         if (_frames < PerfStart || _perfFrame >= PerfFrames)
             return;
 
         RigPackage package = _session.GetComponent<AnimatorDocument>().Package;
-        int bone = RigRig.FindBone(package, _perfDrag!);
+        int bone = RigRig.FindBone(package, perf.Bone);
         Rect2 area = AnimatorGeometry.PanelArea(_session.GetComponent<AnimatorUi>().Preview);
         if (bone < 0)
         {
-            Console.WriteLine($"perf-drag: no bone '{_perfDrag}'");
+            Console.WriteLine($"perf-drag: no bone '{perf.Bone}'");
             _perfFrame = PerfFrames;
             return;
         }
 
-        RigPose pose = AnimatorGeometry.PreviewPose(_session.GetComponent<AnimatorDocument>(), _session.GetComponent<AnimatorModes>());
+        RigPose pose = AnimatorGeometry.PreviewPose(_session.GetComponent<AnimatorDocument>(), AnimatorModes.Of(_session));
         Transform2D placement = AnimatorGeometry.PreviewPlacement(area, _session.GetComponent<AnimatorPreviewView>());
         if (_perfFrame < 0)
         {
-            if (_perfIk)
-                AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.ToggleMode, nameof(AnimatorMode.Ik)));
+            if (perf.Ik)
+                _session.EmitSignal(new ToggleMode(AnimatorMode.Ik));
             Vector2 joint = placement * RigRig.WorldBones(package, pose)[bone].Origin;
             _pointer.Override = new PointerInput(joint, true);
             var begin = System.Diagnostics.Stopwatch.StartNew();
@@ -385,7 +326,7 @@ internal sealed class AnimatorTool : HostApp
             AppStep.MonitorAll(_systems);
             _perfClock.Restart();
             _perfFrame = 0;
-            Console.WriteLine($"perf-drag: holding {_perfDrag}, drag kind {_session.GetComponent<AnimatorDrag>().Kind}");
+            Console.WriteLine($"perf-drag: holding {perf.Bone}, drag kind {_session.GetComponent<AnimatorDrag>().Kind}");
             return;
         }
 
@@ -413,97 +354,6 @@ internal sealed class AnimatorTool : HostApp
     }
 
     /// <summary>
-    /// Reads the capture flags, so an agent can check the tool without a
-    /// desktop capture: <c>--shot=path</c>, <c>--shot-frames=n</c> or
-    /// <c>--shot-seconds=s</c> (counted from the flow preview's start), and
-    /// <c>--flow=from&gt;to</c>, <c>--streak=bone</c>, <c>--edit-xif=part</c> (or <c>part@shader path</c>), <c>--layers</c>, <c>--preview</c>, <c>--attacks</c>, <c>--easing</c>, <c>--clip=name@seconds</c> and
-    /// <c>--paths=bone,bone</c> (motion paths on, those bones selected; empty for none),
-    /// with <c>@clip</c> after the bones to open that clip paused at its middle,
-    /// <c>--dress=bone</c> (adds a dress hanging from that bone and selects it)
-    /// <c>--cloth=index</c> (selects an existing cloth, so its overlay shows) and
-    /// <c>--part=index</c> (selects an attachment, so its mesh outline shows) and
-    /// <c>--timeline-zoom=x</c> (zooms the key timeline), <c>--full-keys</c> (the keyframe sheet's full view) and
-    /// <c>--perf-drag=bone</c> or <c>--perf-drag=bone,ik</c> (drags that joint round
-    /// for 300 frames and prints frame times and each system's cost; circle
-    /// radius from PERF_RADIUS, default 80 px).
-    /// </summary>
-    private void ReadArguments(string[] args)
-    {
-        foreach (string argument in args)
-        {
-            if (argument.StartsWith("--shot=", StringComparison.Ordinal))
-                _shotPath = System.IO.Path.GetFullPath(argument["--shot=".Length..]);
-            else if (argument.StartsWith("--shot-frames=", StringComparison.Ordinal) &&
-                     int.TryParse(argument["--shot-frames=".Length..], out int frames))
-                _shotAt = Math.Max(2, frames);
-            else if (argument.StartsWith("--shot-seconds=", StringComparison.Ordinal) &&
-                     float.TryParse(argument["--shot-seconds=".Length..],
-                         System.Globalization.NumberStyles.Float,
-                         System.Globalization.CultureInfo.InvariantCulture, out float seconds))
-                _shotSeconds = Math.Max(0f, seconds);
-            else if (argument.StartsWith("--timeline-zoom=", StringComparison.Ordinal) &&
-                     float.TryParse(argument["--timeline-zoom=".Length..],
-                         System.Globalization.NumberStyles.Float,
-                         System.Globalization.CultureInfo.InvariantCulture, out float timelineZoom))
-                _timelineZoom = timelineZoom;
-            else if (argument.StartsWith("--zoom=", StringComparison.Ordinal) &&
-                     float.TryParse(argument["--zoom=".Length..],
-                         System.Globalization.NumberStyles.Float,
-                         System.Globalization.CultureInfo.InvariantCulture, out float zoom))
-                _zoom = zoom;
-            else if (argument.StartsWith("--flow=", StringComparison.Ordinal))
-                _flow = argument["--flow=".Length..];
-            else if (argument.StartsWith("--streak=", StringComparison.Ordinal))
-                _streak = argument["--streak=".Length..];
-            else if (argument.StartsWith("--sparks=", StringComparison.Ordinal))
-                _sparks = argument["--sparks=".Length..];
-            else if (argument.StartsWith("--edit-xif=", StringComparison.Ordinal))
-                _editXif = argument["--edit-xif=".Length..];
-            else if (argument == "--layers")
-                _openLayers = true;
-            else if (argument == "--full-keys")
-                _fullKeys = true;
-            else if (argument == "--rig")
-                _editRig = true;
-            else if (argument == "--shortcuts")
-                _shortcuts = true;
-            else if (argument == "--key")
-                _keyNow = true;
-            else if (argument.StartsWith("--add-curve=", StringComparison.Ordinal))
-                _addCurve = int.TryParse(argument["--add-curve=".Length..], out int curvePart) ? curvePart : -1;
-            else if (argument.StartsWith("--plant=", StringComparison.Ordinal))
-                _plant = argument["--plant=".Length..];
-            else if (argument.StartsWith("--orbit=", StringComparison.Ordinal))
-                _orbit = argument["--orbit=".Length..];
-            else if (argument.StartsWith("--perf-drag=", StringComparison.Ordinal))
-            {
-                _perfDrag = argument["--perf-drag=".Length..];
-                _perfIk = _perfDrag.EndsWith(",ik", StringComparison.Ordinal);
-                if (_perfIk)
-                    _perfDrag = _perfDrag[..^3];
-            }
-            else if (argument.StartsWith("--clip=", StringComparison.Ordinal))
-                _clip = argument["--clip=".Length..];
-            else if (argument == "--easing")
-                _easing = true;
-            else if (argument == "--attacks")
-                _attacks = true;
-            else if (argument == "--preview")
-                _startInPreview = true;
-            else if (argument.StartsWith("--paths=", StringComparison.Ordinal))
-                _paths = argument["--paths=".Length..];
-            else if (argument.StartsWith("--dress=", StringComparison.Ordinal))
-                _dress = argument["--dress=".Length..];
-            else if (argument.StartsWith("--part=", StringComparison.Ordinal))
-                _part = argument["--part=".Length..];
-            else if (argument.StartsWith("--paint=", StringComparison.Ordinal))
-                _paint = argument["--paint=".Length..];
-            else if (argument.StartsWith("--cloth=", StringComparison.Ordinal))
-                _cloth = argument["--cloth=".Length..];
-        }
-    }
-
-    /// <summary>
     /// For <c>--add-curve=N</c>: gives part N a curve shape over its art, two
     /// sides bulging out and two bending in, then frames it, to look at the GPU curve fill.
     /// </summary>
@@ -520,7 +370,7 @@ internal sealed class AnimatorTool : HostApp
             geometry.Polygons.Add(new XifPolygon
             {
                 Kind = XifShapeKind.Curve,
-                Fill = new Color(0.95f, 0.55f, 0.2f, 1f),
+                Fill = new Color(0.95f, 0.55f, 0.2f),
                 Points =
                 [
                     new Vector2(40, -40), new Vector2(75, 0),
@@ -534,51 +384,42 @@ internal sealed class AnimatorTool : HostApp
             node.Modules.Add(geometry);
             AnimatorSession.RigChanged(_session);
         });
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectAttachment, part.ToString()));
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.FitPreview));
+        _session.EmitSignal(new SelectPart(part));
+        _session.EmitSignal(new FitPreview());
     }
 
-    private void StartFlow(string flow)
+    private void StartFlow(AnimatorLaunch.Handover flow)
     {
-        string[] clips = flow.Split('>');
-        if (clips.Length != 2)
-            return;
-
         foreach (Entity strip in Entities.Query<UiTabs>().Entities)
             strip.GetComponent<UiTabs>().Selected = 2;
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, clips[0]));
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectTransition, clips[1]));
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.PreviewTransition));
+        _session.EmitSignal(new PlayClip(flow.From));
+        _session.EmitSignal(new SelectTransition(flow.To));
+        _session.EmitSignal(new PreviewTransition());
     }
 
-    private void OpenClipAt(string spec)
+    private void OpenClipAt(AnimatorLaunch.ClipAt clip)
     {
-        string[] parts = spec.Split('@');
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, parts[0]));
+        _session.EmitSignal(new PlayClip(clip.Clip));
         AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
         runtime.SetPaused(true);
-        if (parts.Length == 2 && float.TryParse(parts[1], System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out float time))
-            runtime.Seek(time);
+        if (clip.Seconds is { } seconds)
+            runtime.Seek(seconds);
     }
 
-    private void ShowPaths(string bones)
+    private void ShowPaths(AnimatorLaunch.MotionPaths paths)
     {
-        _session.GetComponent<AnimatorModes>().MotionPaths = true;
-        string[] parts = bones.Split('@');
-        if (parts.Length == 2)
+        _session.SetTag<ShowMotionPaths>(true);
+        if (paths.Clip is { } clip)
         {
-            AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.Clip, parts[1]));
+            _session.EmitSignal(new PlayClip(clip));
             AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
             runtime.SetPaused(true);
             runtime.Seek(runtime.CurrentDuration / 2);
         }
 
-        RigPackage package = _session.GetComponent<AnimatorDocument>().Package;
-        string[] ids = parts[0].Split(',', StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 0; i < ids.Length; i++)
+        for (int i = 0; i < paths.Bones.Length; i++)
         {
-            int bone = RigRig.FindBone(package, ids[i]);
+            int bone = Bone(paths.Bones[i]);
             if (bone < 0)
                 continue;
             ref AnimatorSelection selection = ref _session.GetComponent<AnimatorSelection>();
@@ -589,25 +430,15 @@ internal sealed class AnimatorTool : HostApp
         }
     }
 
-    private void AddStreak(string bone)
+    /// <summary>Hangs a streak or particle stream off a bone from the start, paused a little in, for a screenshot of it.</summary>
+    private void AddOnBone(string bone, IIntent add, float showAt)
     {
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
+        SelectBone(bone);
         AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
         runtime.SetPaused(true);
         runtime.Seek(0f);
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddEffect));
-        _session.GetComponent<AnimatorDocument>().Runtime.Seek(0.05f);
-    }
-
-    /// <summary>Hangs a particle stream off a bone, flowing from the start, paused a little in, for a screenshot of it.</summary>
-    private void AddSparks(string bone)
-    {
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.SelectBone, bone));
-        AnimatorRuntime runtime = _session.GetComponent<AnimatorDocument>().Runtime;
-        runtime.SetPaused(true);
-        runtime.Seek(0f);
-        AnimatorCommands.Run(_session, new ToolAction(ToolActionKind.AddParticles));
-        _session.GetComponent<AnimatorDocument>().Runtime.Seek(0.2f);
+        add.EmitOn(_session);
+        _session.GetComponent<AnimatorDocument>().Runtime.Seek(showAt);
     }
 
     protected override void Shutdown()

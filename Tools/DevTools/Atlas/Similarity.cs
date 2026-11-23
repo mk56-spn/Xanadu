@@ -1,7 +1,7 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Xanadu.Core.Keys;
 
 namespace Xanadu.Tools.DevTools.Atlas;
 
@@ -53,19 +53,19 @@ internal readonly record struct Match(int A, int B, float Shape, float Users, fl
 internal sealed class Similarity
 {
     private readonly CodeMap _map;
-    private readonly Dictionary<int, HashSet<int>> _users = new();
-    private readonly Dictionary<int, HashSet<int>> _uses = new();
-    private readonly Dictionary<int, Dictionary<string, int>> _shapes = new();
-    private readonly Dictionary<(int Id, int Pool), List<Match>> _like = new();
-    private readonly Dictionary<int, List<Match>> _pairs = new();
+    private readonly Dictionary<int, HashSet<int>> _users = [];
+    private readonly Dictionary<int, HashSet<int>> _uses = [];
+    private readonly Dictionary<int, Dictionary<string, int>> _shapes = [];
+    private readonly Dictionary<(int Id, int Pool), List<Match>> _like = [];
+    private readonly Dictionary<int, List<Match>> _pairs = [];
 
     public Similarity(CodeMap map)
     {
         _map = map;
         foreach (CodeNode node in map.Nodes)
         {
-            _users[node.Id] = node.In.Values.SelectMany(set => set).ToHashSet();
-            _uses[node.Id] = node.Out.Values.SelectMany(set => set).ToHashSet();
+            _users[node.Id] = [.. node.In.Values.SelectMany(set => set)];
+            _uses[node.Id] = [.. node.Out.Values.SelectMany(set => set)];
             _shapes[node.Id] = node.Fields.GroupBy(f => f.Type).ToDictionary(g => g.Key, g => g.Count());
         }
     }
@@ -79,8 +79,8 @@ internal sealed class Similarity
         int key = Key(pool);
         if (!_like.TryGetValue((id, key), out var list))
         {
-            list = Neighbours(id, pool).Select(other => Compare(id, other))
-                .Where(m => m.Score > 0).OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.B].Name, StringComparer.OrdinalIgnoreCase).ToList();
+            list = [.. Neighbours(id, pool).Select(other => Compare(id, other))
+                .Where(m => m.Score > 0).OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.B].Name, StringComparer.OrdinalIgnoreCase)];
             _like[(id, key)] = list;
         }
 
@@ -110,7 +110,7 @@ internal sealed class Similarity
                 }
             }
 
-            pairs = all.OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.A].Name, StringComparer.OrdinalIgnoreCase).Take(count).ToList();
+            pairs = [.. all.OrderByDescending(m => m.Score).ThenBy(m => _map.Nodes[m.A].Name, StringComparer.OrdinalIgnoreCase).Take(count)];
             _pairs[key] = pairs;
         }
 
@@ -145,13 +145,13 @@ internal sealed class Similarity
     {
         if (_byFieldType is null)
         {
-            _byFieldType = new Dictionary<string, List<int>>();
+            _byFieldType = [];
             foreach (var (id, shape) in _shapes)
             {
                 foreach (string type in shape.Keys)
                 {
                     if (!_byFieldType.TryGetValue(type, out var ids))
-                        _byFieldType[type] = ids = new List<int>();
+                        _byFieldType[type] = ids = [];
                     ids.Add(id);
                 }
             }

@@ -41,7 +41,7 @@ internal sealed class DrawList(Vector2 stage)
     public int Culled, LaidOut;
 
     /// <summary>Runs of instances drawn with one call, with the atlas page they need.</summary>
-    public readonly List<(uint Start, uint Count, short Page)> Draws = new();
+    public readonly List<(uint Start, uint Count, short Page)> Draws = [];
 
     public void Begin()
     {

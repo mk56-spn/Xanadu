@@ -1,19 +1,19 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Ui.Ecs.Ui;
-using Mw = MoonWorks.Graphics;
-using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
+using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -59,7 +59,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
         _indirect = LabPanel.Toggle(flags, "INDIRECT", "DIRECT", true, 196,
             "INDIRECT: the compute pass writes how many instances to draw. DIRECT: the CPU draws every stored key and the vertex shader throws away the old ones");
         _trail = LabPanel.Slider(panel, "TRAIL", 0.5f, 20, 6, "How many seconds of path to draw", "0.0");
-        _delay = LabPanel.Slider(panel, "GHOST DELAY", 0, 10, 0.5f, "How far behind the gold ring is, in seconds", "0.00");
+        _delay = LabPanel.Slider(panel, "GHOST DELAY", 0, 10, 0.5f, "How far behind the gold ring is, in seconds");
         _halfLife = LabPanel.Slider(panel, "SMOOTHING", 0.01f, 1, 0.15f, "Half-life of the green diamond's average over the path, in seconds");
         _rate = LabPanel.Slider(panel, "CHASE RATE", 1, 40, 12, "How fast each link of the chain closes the gap (per second)", "0.0");
         _spring = LabPanel.Slider(panel, "SPRING", 0, 1, 0, "0 = a plain frame-rate independent lerp; above, a damped spring that overshoots more as it rises");
@@ -77,17 +77,9 @@ internal sealed class PointerHistoryLab : ILabExperiment
 
     /// <summary>One key: x, y in stage pixels, the lab's time it was at, unused.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct Key
+    private struct Key(Vector2 at, float time)
     {
-        public float X, Y, Time, Pad;
-
-        public Key(Vector2 at, float time)
-        {
-            X = at.X;
-            Y = at.Y;
-            Time = time;
-            Pad = 0;
-        }
+        public float X = at.X, Y = at.Y, Time = time, Pad = 0;
 
         public readonly Vector2 At => new(X, Y);
     }
@@ -118,7 +110,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
     /// </summary>
     private sealed class Keyframer
     {
-        private readonly List<Key> _since = new();
+        private readonly List<Key> _since = [];
         private Key _last;
         private bool _started;
 
@@ -190,7 +182,7 @@ internal sealed class PointerHistoryLab : ILabExperiment
         private readonly GraphicsPipeline _back, _trail, _dots, _markers;
 
         private readonly Keyframer _keyframer = new();
-        private readonly List<Key> _emitted = new();
+        private readonly List<Key> _emitted = [];
         private readonly float[] _times = new float[RingSize];
         private Key _head;
         private float _delta;

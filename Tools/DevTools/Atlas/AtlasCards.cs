@@ -13,7 +13,7 @@ internal sealed partial class AtlasStage
     private sealed class TypeCard(AtlasCommand press, float grow = 0, float? width = null) : UiSpec(width, grow: grow)
     {
         private readonly Box _stripe = new(width: UiMetrics.Space.Xs);
-        private readonly Label _name = new("", UiType.Body, grow: 1, fit: true);
+        private readonly Label _name = new(grow: 1, fit: true);
 
         public UiNode Box => Node;
         public UiNode Stripe => _stripe.Node;
@@ -63,18 +63,18 @@ internal sealed partial class AtlasStage
     {
         public PooledList List = null!;
         public Label Foot = null!, Empty = null!;
-        public readonly List<(Label Heading, TypeCard Card)> Rows = new();
-        public readonly List<UiNode> Lines = new();
+        public readonly List<(Label Heading, TypeCard Card)> Rows = [];
+        public readonly List<UiNode> Lines = [];
     }
 
     private sealed class CompareColumn
     {
         public PooledList List = null!;
         public Label Foot = null!;
-        public readonly List<TypeCard> Rows = new();
+        public readonly List<TypeCard> Rows = [];
 
         /// <summary>A line per row to the first card, and one to the second (only the shared column uses both).</summary>
-        public readonly List<UiNode> ToA = new(), ToB = new();
+        public readonly List<UiNode> ToA = [], ToB = [];
     }
 
     private readonly record struct SimilarRow(TypeCard A, TypeCard B, Label Score, Label Breakdown, Label Fields);

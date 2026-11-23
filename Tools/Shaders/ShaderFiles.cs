@@ -24,12 +24,11 @@ internal static class ShaderFiles
     {
         string root = GamePaths.Full(Root);
         string library = System.IO.Path.Combine(root, "Library");
-        return Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
+        return [.. Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories)
             .Where(file => !file.StartsWith(library, StringComparison.Ordinal))
             .Select(file => System.IO.Path.GetRelativePath(root, file).Replace('\\', '/'))
             .Order(StringComparer.Ordinal)
-            .Select(relative => new ShaderFile($"{Root}/{relative}", relative[..^".slang".Length]))
-            .ToArray();
+            .Select(relative => new ShaderFile($"{Root}/{relative}", relative[..^".slang".Length]))];
     }
 
     /// <summary>What NEW starts from: a level effect with one tunable colour.</summary>

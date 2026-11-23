@@ -75,7 +75,7 @@ internal sealed class EmitterSettings
     public float Jitter;
     public float Stretch;
     public ParticleLook Look;
-    public Color Born = new(1, 1, 1, 1);
+    public Color Born = new(1, 1, 1);
     public Color Dies = new(1, 1, 1, 0);
     public float HueJitter;
     public float FadeIn;
@@ -129,8 +129,8 @@ internal sealed class WorldSettings
     /// <summary>How much of a cell spreads into its neighbours each frame, 0..1.</summary>
     public float FieldSpread = 0.2f;
     public float FieldGain = 0;
-    public Color FieldTint = new(0.3f, 0.9f, 0.6f, 1);
-    public Color Background = new(0.02f, 0.02f, 0.035f, 1);
+    public Color FieldTint = new(0.3f, 0.9f, 0.6f);
+    public Color Background = new(0.02f, 0.02f, 0.035f);
 
     public WorldSettings Copy() => (WorldSettings)MemberwiseClone();
 }
@@ -144,7 +144,7 @@ internal sealed class ParticleScene
     public string Name = "";
     public WorldSettings World = new();
     public EmitterSettings[] Emitters = [new(), new(), new(), new()];
-    public List<ModuleSettings> Modules = new();
+    public List<ModuleSettings> Modules = [];
 
     public ParticleScene Copy()
     {

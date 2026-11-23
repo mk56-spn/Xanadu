@@ -39,6 +39,7 @@ internal static class LabExperiments
         new Experiments.DepthLab(),
         new Experiments.RadianceLab(),
         new Experiments.TransparencyLab(),
+        new Experiments.GlassLab(),
         new Experiments.PointerHistoryLab(),
         new Experiments.IndirectDrawLab(),
         Experiments.ShaderEditor.Spawner(),

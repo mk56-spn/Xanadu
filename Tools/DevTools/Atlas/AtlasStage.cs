@@ -270,10 +270,10 @@ internal sealed partial class AtlasStage : IToolStage
             _ => nodes.OrderBy(_ => 0),
         };
         // Ties go A to Z, unless it's the name being flipped.
-        return (flip && _sort == SortMode.Name
+        return [.. (flip && _sort == SortMode.Name
                 ? ordered.ThenByDescending(n => n.Name, StringComparer.OrdinalIgnoreCase)
                 : ordered.ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
-            .Select(n => n.Id).ToList();
+            .Select(n => n.Id)];
     }
 
     private static IOrderedEnumerable<CodeNode> By<T>(IEnumerable<CodeNode> nodes, Func<CodeNode, T> key, bool descending, IComparer<T>? comparer = null) =>

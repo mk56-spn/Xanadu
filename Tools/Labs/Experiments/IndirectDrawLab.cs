@@ -6,12 +6,12 @@ using MoonWorks.Graphics;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Ui.Ecs.Ui;
-using Mw = MoonWorks.Graphics;
-using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
+using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -50,7 +50,7 @@ internal sealed class IndirectDrawLab : ILabExperiment
         UiNode flags = LabPanel.Row(panel);
         _indirect = LabPanel.Toggle(flags, "INDIRECT", "DIRECT", true, 196,
             "INDIRECT: the GPU culls, packs and sizes the draw. DIRECT: every shape is drawn and the vertex shader throws away the culled ones");
-        _zoom = LabPanel.Slider(panel, "ZOOM OUT", 0.25f, 8, 1, "World units per stage pixel: zoom out until everything is on screen", "0.00");
+        _zoom = LabPanel.Slider(panel, "ZOOM OUT", 0.25f, 8, 1, "World units per stage pixel: zoom out until everything is on screen");
         _inset = LabPanel.Slider(panel, "CULL INSET", -200, 400, 120,
             "How far inside the stage's edges the cull frame sits, so you can watch shapes vanish at it (gold)", "0");
         _size = LabPanel.Slider(panel, "SIZE", 0.25f, 4, 1, "Every shape's size ×");

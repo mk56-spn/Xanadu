@@ -39,7 +39,7 @@ internal sealed class AutopsyStage : CanvasToolStage
     private FrameAutopsy? _autopsy;
     private string? _error;
     private List<int>[] _children = [];
-    private readonly List<AutopsyFrame> _recent = new(), _worstCpu = new(), _worstGpu = new();
+    private readonly List<AutopsyFrame> _recent = [], _worstCpu = [], _worstGpu = [];
     private AutopsyFrame? _mean, _frame;
     private int _worstCpuIndex = -1, _worstGpuIndex = -1;
     private readonly int[] _focus = [FrameAutopsy.CpuRoot, FrameAutopsy.GpuRoot];
@@ -56,7 +56,7 @@ internal sealed class AutopsyStage : CanvasToolStage
     private readonly ICodeLinks? _links;
 
     /// <summary>Each CPU track's type, once worked out for the open capture (null: not a system or group).</summary>
-    private readonly Dictionary<int, CodeLink?> _types = new();
+    private readonly Dictionary<int, CodeLink?> _types = [];
 
     // Pointer, and what this frame's drawing found under it.
     private Vector2 _mouse;
@@ -94,7 +94,7 @@ internal sealed class AutopsyStage : CanvasToolStage
 
         _children = new List<int>[_autopsy.Tracks.Count];
         for (int i = 0; i < _children.Length; i++)
-            _children[i] = new List<int>();
+            _children[i] = [];
         for (int i = 0; i < _autopsy.Tracks.Count; i++)
         {
             int parent = _autopsy.Tracks[i].Parent;

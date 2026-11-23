@@ -7,12 +7,12 @@ using MoonWorks.Graphics;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Rendering;
-using Xanadu.Ui.Ecs.Ui;
-using Mw = MoonWorks.Graphics;
-using Color = Xanadu.Core.Maths.Color;
-using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Slang;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
+using Color = Xanadu.Core.Maths.Color;
+using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -50,7 +50,7 @@ internal sealed class RadianceLab : ILabExperiment
     /// more steps on long rays through open space.
     /// </summary>
     private const uint FloodReach = 64;
-    private static readonly string[] CascadeNames = Enumerable.Range(0, MaxCascades).Select(n => $"cascade {n}").ToArray();
+    private static readonly string[] CascadeNames = [.. Enumerable.Range(0, MaxCascades).Select(n => $"cascade {n}")];
 
     private readonly LabPanel _ui = new();
     private int _brush;
@@ -77,7 +77,7 @@ internal sealed class RadianceLab : ILabExperiment
         _radius = LabPanel.Slider(panel, "BRUSH SIZE", 2, 60, 10, "The brush radius in pixels", "0");
         _interval = LabPanel.Slider(panel, "BASE INTERVAL", 0.5f, 16, 2, "Cascade 0's ray length in pixels; each cascade above reaches four times further", "0.0");
         _exposure = LabPanel.Slider(panel, "EXPOSURE", 0.5f, 30, 2.5f, "Scales the light before tone mapping", "0.0");
-        _albedo = LabPanel.Slider(panel, "WALL ALBEDO", 0, 0.95f, 0.6f, "How much of the light on a wall it bounces on; 0 is no bounce", "0.00");
+        _albedo = LabPanel.Slider(panel, "WALL ALBEDO", 0, 0.95f, 0.6f, "How much of the light on a wall it bounces on; 0 is no bounce");
 
         _ui.Stepper(panel, "MERGE", () => _merge, i => _merge = i, Merges.Length, i => Merges[i].Name);
 

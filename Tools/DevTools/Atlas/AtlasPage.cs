@@ -41,14 +41,14 @@ internal sealed partial class AtlasStage
 
     // Header.
     private readonly Button[] _views = new Button[3];
-    private readonly List<KindChip> _kinds = new();
+    private readonly List<KindChip> _kinds = [];
     private readonly Button[] _sorts = new Button[Sorts.Length];
     private Field _search = null!;
 
     // The list.
     private PooledList _list = null!;
     private Label _listFoot = null!;
-    private readonly List<(Label Used, TypeCard Card)> _listRows = new();
+    private readonly List<(Label Used, TypeCard Card)> _listRows = [];
 
     // The chart's views, and what it says when it has nothing to show.
     private Row _focusView = null!;
@@ -70,7 +70,7 @@ internal sealed partial class AtlasStage
     // SIMILAR.
     private Label _similarTitle = null!, _similarFoot = null!;
     private PooledList _similarList = null!;
-    private readonly List<SimilarRow> _similarRows = new();
+    private readonly List<SimilarRow> _similarRows = [];
 
     private void BuildPage(UiNode body)
     {
@@ -100,7 +100,7 @@ internal sealed partial class AtlasStage
         return new Row(gap: Space.Sm)
         {
             new Label("ATLAS", UiType.Heading, ink: Ink.Accent),
-            (_views[0] = new Button("FOCUS", cmd: Cmd(AtlasCommand.View, (int)View.Focus), tip: "one type: what points at it, and what it points at")),
+            (_views[0] = new Button("FOCUS", cmd: Cmd(AtlasCommand.View), tip: "one type: what points at it, and what it points at")),
             (_views[1] = new Button("COMPARE", cmd: Cmd(AtlasCommand.View, (int)View.Compare),
                 tip: "two types side by side: what each touches alone, and what both touch; the list then picks the second")),
             (_views[2] = new Button("SIMILAR", cmd: Cmd(AtlasCommand.View, (int)View.Similar),
@@ -172,7 +172,7 @@ internal sealed partial class AtlasStage
 
     private Column Side(FocusSide side, bool incoming) => new(width: SideWidth, cross: Cross.Stretch, gap: Space.Xs)
     {
-        (side.Empty = new Label("", UiType.Body, ink: Ink.Dim, align: Align.Center, stretch: true)),
+        (side.Empty = new Label(ink: Ink.Dim, align: Align.Center, stretch: true)),
         (side.List = new PooledList(CardHeight, CardGap, changed: () => FillSide(side, incoming), grow: 1)
         {
             Row = _ =>
@@ -254,7 +254,7 @@ internal sealed partial class AtlasStage
                     var row = new SimilarRow(
                         new TypeCard(AtlasCommand.Pair, width: SimilarCardWidth),
                         new TypeCard(AtlasCommand.Pair, width: SimilarCardWidth),
-                        new Label("", UiType.Body, width: ScoreWidth),
+                        new Label(width: ScoreWidth),
                         new Label("", UiType.Small, ink: Ink.Dim, width: BreakdownWidth, fit: true),
                         new Label("", UiType.Small, ink: Ink.Dim, grow: 1, fit: true));
                     _similarRows.Add(row);

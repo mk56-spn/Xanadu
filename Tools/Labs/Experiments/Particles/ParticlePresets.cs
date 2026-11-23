@@ -38,7 +38,7 @@ internal static class ParticlePresets
         {
             On = true, Shape = EmitterShape.Point, Position = new(0, 300), Rate = 2500,
             Direction = -90, Spread = 18, Speed = new(520, 640), Life = new(2.2f, 3), SizeRange = new(5, 2),
-            Look = ParticleLook.Glow, Born = new(0.5f, 0.8f, 1, 1), Dies = new(0.1f, 0.3f, 1, 0), HueJitter = 0.04f,
+            Look = ParticleLook.Glow, Born = new(0.5f, 0.8f, 1), Dies = new(0.1f, 0.3f, 1, 0), HueJitter = 0.04f,
             Trail = 6, TrailWidth = 0.6f, Stretch = 0.01f,
         };
         s.Modules.Add(Module(ModuleKind.Force, set: [(1, 520)]));
@@ -57,20 +57,20 @@ internal static class ParticlePresets
         {
             On = true, Shape = EmitterShape.Line, Position = new(0, 360), Size = new(900, 0), Rate = 1.6f,
             Direction = -90, Spread = 12, Speed = new(560, 700), Life = new(1.1f, 1.5f), SizeRange = new(5, 4),
-            Look = ParticleLook.Glow, Born = new(1, 0.75f, 0.4f, 1), Dies = new(1, 0.5f, 0.2f, 1),
+            Look = ParticleLook.Glow, Born = new(1, 0.75f, 0.4f), Dies = new(1, 0.5f, 0.2f),
             Trail = 12, TrailWidth = 0.5f, Child = 1, Children = 220,
         };
         // B: the shells, sparks that each crackle into C at the end.
         s.Emitters[1] = new EmitterSettings
         {
             On = true, Shape = EmitterShape.Point, Spread = 360, Speed = new(40, 300), Life = new(1.3f, 2.2f),
-            SizeRange = new(4, 1.5f), Look = ParticleLook.Glow, Born = new(1, 0.35f, 0.6f, 1), Dies = new(0.4f, 0.1f, 1, 0),
+            SizeRange = new(4, 1.5f), Look = ParticleLook.Glow, Born = new(1, 0.35f, 0.6f), Dies = new(0.4f, 0.1f, 1, 0),
             HueJitter = 0.5f, Inherit = 0.2f, Trail = 8, TrailWidth = 0.7f, Child = 2, Children = 2,
         };
         s.Emitters[2] = new EmitterSettings
         {
             On = true, Shape = EmitterShape.Point, Spread = 360, Speed = new(10, 60), Life = new(0.15f, 0.4f),
-            SizeRange = new(5, 0), Look = ParticleLook.Spark, Born = new(1, 1, 0.85f, 1), Dies = new(1, 0.9f, 0.6f, 0),
+            SizeRange = new(5, 0), Look = ParticleLook.Spark, Born = new(1, 1, 0.85f), Dies = new(1, 0.9f, 0.6f, 0),
         };
         s.Modules.Add(Module(ModuleKind.Force, 0b111, set: [(1, 200)]));
         s.Modules.Add(Module(ModuleKind.Drag, 0b110, set: [(0, 1.1f)]));
@@ -84,7 +84,7 @@ internal static class ParticlePresets
         s.World.FieldFade = 5;
         s.World.FieldSpread = 0.6f;
         s.World.FieldGain = 0.25f;
-        s.World.FieldTint = new Color(1, 0.75f, 0.3f, 1);
+        s.World.FieldTint = new Color(1, 0.75f, 0.3f);
         s.Emitters[0] = new EmitterSettings
         {
             On = true, Shape = EmitterShape.Disc, Size = new(340, 340), Burst = 150000, Spread = 360,

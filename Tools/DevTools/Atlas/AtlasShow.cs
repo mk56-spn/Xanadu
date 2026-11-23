@@ -10,10 +10,10 @@ namespace Xanadu.Tools.DevTools.Atlas;
 /// <summary>Showing the state: the header's choices, the list, and whichever chart view is open, each list filled as it scrolls.</summary>
 internal sealed partial class AtlasStage
 {
-    private List<int> _listIds = new();
-    private readonly List<(int Id, LinkKind Kind)> _inRows = new(), _outRows = new();
-    private List<int> _onlyAIds = new(), _sharedIds = new(), _onlyBIds = new();
-    private List<Match> _matches = new();
+    private List<int> _listIds = [];
+    private readonly List<(int Id, LinkKind Kind)> _inRows = [], _outRows = [];
+    private List<int> _onlyAIds = [], _sharedIds = [], _onlyBIds = [];
+    private List<Match> _matches = [];
 
     /// <summary>Everything, after a press: the chart's columns go back to the top.</summary>
     private void Show()
@@ -131,7 +131,7 @@ internal sealed partial class AtlasStage
 
     private void ShowCompare(CodeNode a, CodeNode b)
     {
-        HashSet<int> Near(CodeNode n) => Visible(n.In.Values.Concat(n.Out.Values).SelectMany(set => set)).Where(id => id != a.Id && id != b.Id).ToHashSet();
+        HashSet<int> Near(CodeNode n) => [.. Visible(n.In.Values.Concat(n.Out.Values).SelectMany(set => set)).Where(id => id != a.Id && id != b.Id)];
         HashSet<int> aNear = Near(a), bNear = Near(b);
         _sharedIds = Sorted(aNear.Intersect(bNear));
         _onlyAIds = Sorted(aNear.Except(bNear));

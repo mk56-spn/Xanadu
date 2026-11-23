@@ -24,10 +24,10 @@ internal sealed partial class ParticleLab
         private static readonly string[] Children = ["NONE", "A", "B", "C", "D"];
 
         /// <summary>Value fields built but not yet bound: bound once the tree they are in exists.</summary>
-        private readonly List<(ValueField Spec, Action<float[]> Set)> _knobs = new();
+        private readonly List<(ValueField Spec, Action<float[]> Set)> _knobs = [];
 
         /// <summary>Dropdowns built but not yet bound, and the label each shows once chosen.</summary>
-        private readonly List<(UiSpec Spec, string[] Options, Action<int> Chosen)> _choices = new();
+        private readonly List<(UiSpec Spec, string[] Options, Action<int> Chosen)> _choices = [];
 
         /// <summary>Button labels to change once the UI has run (a choice lands mid-playback).</summary>
 
@@ -38,7 +38,7 @@ internal sealed partial class ParticleLab
             ["FIELD COLOUR"] = false,
         };
 
-        private readonly List<(string Title, Entity Section)> _sections = new();
+        private readonly List<(string Title, Entity Section)> _sections = [];
 
         // ---- the cards ----------------------------------------------------------------
 
@@ -99,7 +99,7 @@ internal sealed partial class ParticleLab
         {
             if (_module < 0 || _module >= _scene.Modules.Count)
             {
-                yield return new Label("Pick a module in the stack, or ADD one.", UiType.Body, ink: Ink.Dim);
+                yield return new Label("Pick a module in the stack, or ADD one.", ink: Ink.Dim);
                 yield break;
             }
 
@@ -157,7 +157,7 @@ internal sealed partial class ParticleLab
         /// <summary>A folding section, open or shut as it was last left.</summary>
         private Custom Section(string title, float width, params UiSpec[] children) => new(p =>
         {
-            UiNode section = p.Collapsible(title, width, out UiNode body, _open.GetValueOrDefault(title, true), Space.Sm);
+            UiNode section = p.Collapsible(title, width, out UiNode body, _open.GetValueOrDefault(title, true));
             foreach (UiSpec child in children)
                 body.Add(child);
             _sections.Add((title, section.Entity));
@@ -203,14 +203,7 @@ internal sealed partial class ParticleLab
 
             foreach ((UiSpec spec, string[] options, Action<int> chosen) in _choices)
             {
-                Entity button = spec.Node.Entity;
-                button.OnComponentChanged += change =>
-                {
-                    if (change.Type != typeof(DropdownChanged) || change.Action == ComponentChangedAction.Remove)
-                        return;
-                    int value = Math.Clamp(change.Component<DropdownChanged>().Value, 0, options.Length - 1);
-                    chosen(value);
-                };
+                spec.Node.Entity.OnPicked(value => chosen(Math.Clamp(value, 0, options.Length - 1)));
             }
 
             _choices.Clear();

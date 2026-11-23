@@ -6,12 +6,12 @@ using System.Text.RegularExpressions;
 using MoonWorks.Graphics;
 using Xanadu.Core.Maths;
 using Xanadu.Host.Rendering;
-using Xanadu.Host.Tools.ShaderEditing;
-using Mw = MoonWorks.Graphics;
-using Xanadu.Slang;
 using Xanadu.Host.Tools;
+using Xanadu.Host.Tools.ShaderEditing;
+using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
+using Mw = MoonWorks.Graphics;
 
 namespace Xanadu.Labs.Experiments;
 

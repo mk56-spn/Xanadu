@@ -19,8 +19,8 @@ internal sealed class MethodProfile
     /// <summary>One sample: when (EventPipe timestamp) and its stack as method ids, innermost first.</summary>
     private readonly record struct Sample(long Time, double Ms, int[] Stack);
 
-    private readonly List<Sample> _samples = new();
-    private readonly List<string> _methods = new();
+    private readonly List<Sample> _samples = [];
+    private readonly List<string> _methods = [];
 
     public IReadOnlyList<string> Methods => _methods;
 
@@ -39,7 +39,7 @@ internal sealed class MethodProfile
     public (long First, long Last) Span => _samples.Count == 0 ? (0, 0) : (_samples[0].Time, _samples[^1].Time);
 
     /// <summary>Each thread's sample count, busiest first: which threads ran managed code at all.</summary>
-    public List<(long Thread, int Samples)> Threads { get; } = new();
+    public List<(long Thread, int Samples)> Threads { get; } = [];
 
     public static MethodProfile Read(AutopsyCapture capture, long mainThread)
     {
@@ -95,10 +95,10 @@ internal sealed class MethodProfile
                 stack.Add(id);
             }
             if (!perThread.TryGetValue(sample.ThreadID, out List<Sample>? list))
-                perThread[sample.ThreadID] = list = new List<Sample>();
+                perThread[sample.ThreadID] = list = [];
             // The raw EventPipe stamp: on Linux the monotonic clock in ns, as Stopwatch ticks are, so frames line up with samples.
 #pragma warning disable CS0618
-            list.Add(new Sample(sample.TimeStampQPC, sample.TimeStampRelativeMSec, stack.ToArray()));
+            list.Add(new Sample(sample.TimeStampQPC, sample.TimeStampRelativeMSec, [.. stack]));
 #pragma warning restore CS0618
         }
 
