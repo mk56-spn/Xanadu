@@ -11,20 +11,14 @@ namespace Xanadu.Ui.Systems.Ui;
 /// wedge under the cursor, click to select it, and keep selecting by angle
 /// while the pointer is dragged around the wheel.
 /// </summary>
-public sealed class UiWheelSystem : QuerySystem<UiWheel, Drawable>
+public sealed class UiWheelSystem(
+    EntityStore entities,
+    IPointerInputSource pointer) : QuerySystem<UiWheel, Drawable>
 {
-    private readonly EntityStore _entities;
-    private readonly IPointerInputSource _pointer;
+    private readonly EntityStore _entities = entities;
+    private readonly IPointerInputSource _pointer = pointer;
 
     private int _activeWheelId;
-
-    public UiWheelSystem(
-        EntityStore entities,
-        IPointerInputSource pointer)
-    {
-        _entities = entities;
-        _pointer = pointer;
-    }
 
     protected override void OnUpdate()
     {

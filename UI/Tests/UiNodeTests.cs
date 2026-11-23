@@ -291,7 +291,6 @@ public sealed class UiNodeTests
         builder.Container(
             Vector2.Zero,
             new Vector2(400, 40),
-            StackDirection.Horizontal,
             spacing: 8,
             color: Transparent,
             cross: StackCrossAlignment.Center,

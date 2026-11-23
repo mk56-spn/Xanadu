@@ -7,14 +7,12 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Ui.Systems.Rendering;
 
 /// <summary>Redraws every bar graph each frame, since its values change continuously.</summary>
-public sealed class BarGraphDrawSystem : QuerySystem<UiBarGraph, Drawable, VisualItem>
+public sealed class BarGraphDrawSystem(IRectCanvas canvas) : QuerySystem<UiBarGraph, Drawable, VisualItem>
 {
     private const float CapHeight = 3;
     private const float MinHeight = 2;
 
-    private readonly IRectCanvas _canvas;
-
-    public BarGraphDrawSystem(IRectCanvas canvas) => _canvas = canvas;
+    private readonly IRectCanvas _canvas = canvas;
 
     protected override void OnUpdate()
     {

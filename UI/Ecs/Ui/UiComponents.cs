@@ -37,10 +37,11 @@ public struct TextStyle(int fontSize, Color color, bool bold = false) : ICompone
 }
 
 /// <summary>
-/// Soft glow drawn behind an entity's text: a gaussian-blurred copy of the
-/// text in <see cref="Color"/>. Works on any entity with <see cref="Text"/>.
+/// Soft glow drawn behind what the entity draws: a gaussian-blurred copy of
+/// its <see cref="Text"/> or its <see cref="UiShape"/> (fill and stroke) in
+/// <see cref="Color"/>.
 /// </summary>
-public struct TextGlow(Color color, float radius = 12f, float intensity = 1.5f) : IComponent
+public struct Glow(Color color, float radius = 12f, float intensity = 1.5f) : IComponent
 {
     public Color Color = color;
     public float Radius = radius;
@@ -164,7 +165,7 @@ public struct UiContainer(
 /// node's <see cref="Rectangle"/> and never touches <see cref="Natural"/>, so
 /// it settles the same way however often it runs. Grids ignore it.
 /// </summary>
-public struct UiFlex : IComponent
+public struct UiFlex(Vector2 natural) : IComponent
 {
     /// <summary>Weight of the main-axis room left over this child takes; zero keeps its natural size.</summary>
     public float Grow;
@@ -179,12 +180,7 @@ public struct UiFlex : IComponent
     public Vector2 Max;
 
     /// <summary>The size the node asks for before growing or stretching.</summary>
-    public Vector2 Natural;
-
-    public UiFlex(Vector2 natural)
-    {
-        Natural = natural;
-    }
+    public Vector2 Natural = natural;
 
     /// <summary><paramref name="size"/> held inside the min and max.</summary>
     public readonly Vector2 Clamp(Vector2 size) => new(Clamp(size.X, Min.X, Max.X), Clamp(size.Y, Min.Y, Max.Y));
@@ -214,10 +210,10 @@ public struct Layer(int zIndex) : IIndexedComponent<int>
 }
 
 /// <summary>
-/// Opacity of a whole layer, everything under it included. Set it through
-/// <see cref="UiLayout.SetLayerOpacity"/>.
+/// Opacity of the entity and everything under it. Today only layers carry it;
+/// set it through <see cref="UiLayout.SetLayerOpacity"/>.
 /// </summary>
-public struct LayerOpacity(float value) : IComponent
+public struct Opacity(float value) : IComponent
 {
     public float Value = value;
 }
@@ -233,13 +229,14 @@ public struct VisualItem : IComponent
 }
 
 /// <summary>
-/// Vertical ECS scroll viewport; its first child is the content. The content
-/// hangs from the viewport's top edge; both heights are read from their rectangles
+/// How far a viewport's content is scrolled, in pixels: it makes the entity a
+/// vertical scroll viewport whose first child is the content. The content hangs
+/// from the viewport's top edge; both heights are read from their rectangles
 /// every frame, so content that grows or shrinks keeps scrolling.
 /// </summary>
-public struct ScrollView : IComponent
+public struct ScrollOffset : IComponent
 {
-    public float Offset;
+    public float Value;
 }
 
 
@@ -259,7 +256,7 @@ public struct UiAnchor(Vector2 anchor, Vector2 pivot, float margin = 0) : ICompo
 }
 
 /// <summary>Marks a full-screen backdrop that must draw below sibling UI.</summary>
-public struct UiBackground : IComponent;
+public struct UiBackground : ITag;
 
 /// <summary>Marks a floating panel that must draw above ordinary sibling UI.</summary>
 public struct UiOverlay : ITag;

@@ -114,9 +114,9 @@ public sealed class ArchetypeTable
     /// <summary>Rows shown per page.</summary>
     public int PageSize { get; set; } = 20;
 
-    private readonly List<ArchetypeRow> _rows = new();
-    private readonly List<ArchetypeRow> _view = new();
-    private readonly Dictionary<Archetype, ArchetypeRow> _byArchetype = new();
+    private readonly List<ArchetypeRow> _rows = [];
+    private readonly List<ArchetypeRow> _view = [];
+    private readonly Dictionary<Archetype, ArchetypeRow> _byArchetype = [];
     private ArchetypeRow? _selected;
     private long _nextSampleMs;
     private int _active;

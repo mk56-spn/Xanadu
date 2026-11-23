@@ -54,7 +54,7 @@ public sealed class BoardState
 
     public bool HasItem;
 
-    public readonly HashSet<int> Selected = new();
+    public readonly HashSet<int> Selected = [];
     public BoardLink? SelectedLink;
 
     /// <summary>The box whose text is being typed, or 0.</summary>
@@ -77,7 +77,7 @@ public sealed class BoardState
     public int Target;
 
     /// <summary>Each moving box's rect when the press began.</summary>
-    public readonly Dictionary<int, Rect2> Starts = new();
+    public readonly Dictionary<int, Rect2> Starts = [];
 
     /// <summary>The press moved past the drag threshold.</summary>
     public bool Dragged;
@@ -91,7 +91,7 @@ public sealed class BoardState
     /// <summary>The board before the gesture or edit under way, kept for undo if it changes anything.</summary>
     public Board? Before;
 
-    public readonly List<Board> Undo = new(), Redo = new();
+    public readonly List<Board> Undo = [], Redo = [];
 
     public Vector2 ToBoard(Vector2 screen) => Pan + (screen - Area.Position) / Zoom;
 

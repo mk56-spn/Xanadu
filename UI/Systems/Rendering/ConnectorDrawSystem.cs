@@ -11,11 +11,9 @@ namespace Xanadu.Ui.Systems.Rendering;
 /// boxes, since either can move or hide without the connector hearing of it.
 /// It runs after the rectangles, whose redraw would clear its canvas item.
 /// </summary>
-public sealed class ConnectorDrawSystem : QuerySystem<UiConnector, Drawable, VisualItem>
+public sealed class ConnectorDrawSystem(IRectCanvas canvas) : QuerySystem<UiConnector, Drawable, VisualItem>
 {
-    private readonly IRectCanvas _canvas;
-
-    public ConnectorDrawSystem(IRectCanvas canvas) => _canvas = canvas;
+    private readonly IRectCanvas _canvas = canvas;
 
     protected override void OnUpdate()
     {

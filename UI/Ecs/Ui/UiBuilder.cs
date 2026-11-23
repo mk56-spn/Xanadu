@@ -11,12 +11,12 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Chainable builder for layers, containers, and rectangles.</summary>
-public sealed partial class UiBuilder
+public sealed partial class UiBuilder(EntityStore entities, IVisualItemFactory visuals)
 {
     private static readonly Color DefaultContainerColor = Palette.SurfaceAlt;
 
-    private readonly EntityStore _entities;
-    private readonly IVisualItemFactory _visuals;
+    private readonly EntityStore _entities = entities;
+    private readonly IVisualItemFactory _visuals = visuals;
 
     /// <summary>
     /// The factory this builder creates canvas items with. Exposed so a tree can
@@ -29,12 +29,6 @@ public sealed partial class UiBuilder
     private Entity _current;
     private Entity _layer;
     private int _layerZIndex;
-
-    public UiBuilder(EntityStore entities, IVisualItemFactory visuals)
-    {
-        _entities = entities;
-        _visuals = visuals;
-    }
 
     /// <summary>
     /// Used when a builder is begun without a factory. Unit tests set it to a

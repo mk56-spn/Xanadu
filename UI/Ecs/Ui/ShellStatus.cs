@@ -24,7 +24,7 @@ public static class ShellStatus
     /// <summary>Adds the flag to a header row, one control tall.</summary>
     public static ShellStatusLabels Add(UiNode row, float height)
     {
-        Entity flag = row.Text("", UiTheme.SmallFontSize, FlagColor, TextAlign.Left)
+        Entity flag = row.Text("", UiTheme.SmallFontSize, FlagColor)
             .Size(FlagWidth, height)
             .Entity;
         return new ShellStatusLabels(flag);

@@ -59,7 +59,6 @@ public sealed class UiBuilderTests
         builder.Container(
             new Vector2(100, 50),
             new Vector2(200, 100),
-            StackDirection.Horizontal,
             spacing: 8,
             clip: true);
 

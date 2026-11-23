@@ -161,7 +161,7 @@ public static class EasePickerPanel
         if (preset == EasePreset.Step)
         {
             Vector2 half = size / 2;
-            return new[] { new Vector2(-half.X, half.Y), new Vector2(half.X, half.Y), new Vector2(half.X, -half.Y) };
+            return [new Vector2(-half.X, half.Y), new Vector2(half.X, half.Y), new Vector2(half.X, -half.Y)];
         }
 
         var values = new float[steps + 1];
@@ -187,7 +187,7 @@ public static class EasePickerPanel
 
     private static Entity Float(UiNode shape) => shape.IgnoreLayout().Overlay().Hidden();
 
-    private static Vector2[] Line(Vector2 to) => new[] { Vector2.Zero, to };
+    private static Vector2[] Line(Vector2 to) => [Vector2.Zero, to];
 
     private static Vector2[] Circle(float radius)
     {

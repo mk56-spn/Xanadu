@@ -86,10 +86,10 @@ public readonly record struct TextLineMark(Color Tint, Color Colour, int Underli
 public sealed class TextLineDecor
 {
     /// <summary>Colour runs in column order, not overlapping.</summary>
-    public readonly List<TextRun> Runs = new();
+    public readonly List<TextRun> Runs = [];
 
     /// <summary>Inlays in column order.</summary>
-    public readonly List<TextInlay> Inlays = new();
+    public readonly List<TextInlay> Inlays = [];
 
     public TextLineMark? Mark;
 
@@ -154,7 +154,7 @@ public static class TextEditorIndent
 /// and the rows drawn last frame (a line, or the note under a marked line).
 /// Turns points into places in the text and back.
 /// </summary>
-public sealed class TextEditorLayout
+public sealed class TextEditorLayout(Rect2 area)
 {
     public const int FontSize = 14;
     public const float LineHeight = 20;
@@ -166,16 +166,10 @@ public sealed class TextEditorLayout
 
     private readonly TextLineDecor _scratch = new();
 
-    public TextEditorLayout(Rect2 area)
-    {
-        Area = area;
-        CharWidth = UiTextMetrics.MonoCharWidth(FontSize);
-    }
-
-    public Rect2 Area { get; set; }
+    public Rect2 Area { get; set; } = area;
 
     /// <summary>One character's width in the monospaced face.</summary>
-    public float CharWidth { get; }
+    public float CharWidth { get; } = UiTextMetrics.MonoCharWidth(FontSize);
 
     /// <summary>The first line shown.</summary>
     public int Scroll { get; set; }
@@ -189,7 +183,7 @@ public sealed class TextEditorLayout
     public float TextLeft => Area.Position.X + Gutter + Inset;
 
     /// <summary>The rows drawn last frame, top to bottom: their top, their line, and for a note row the marked column.</summary>
-    internal List<(float Top, int Line, int? NoteColumn)> Rows { get; } = new();
+    internal List<(float Top, int Line, int? NoteColumn)> Rows { get; } = [];
 
     /// <summary>
     /// The line and column under a point (a note row gives its mark's place), or null outside the text.

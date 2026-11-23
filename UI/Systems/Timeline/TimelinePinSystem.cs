@@ -9,27 +9,27 @@ namespace Xanadu.Ui.Systems.Timeline;
 /// playing past its end or by a seek, so the view goes back to following the
 /// playhead. A playhead that stays put, or moves within the window, keeps it.
 /// </summary>
-public sealed class TimelinePinSystem : QuerySystem<TimelineHost, TimelineView>
+public sealed class TimelinePinSystem : QuerySystem<TimelineFrame, TimelineView>
 {
     protected override void OnUpdate()
     {
         Query.Each(new FollowPins());
     }
 
-    private readonly record struct FollowPins : IEach<TimelineHost, TimelineView>
+    private readonly record struct FollowPins : IEach<TimelineFrame, TimelineView>
     {
-        public void Execute(ref TimelineHost timeline, ref TimelineView view)
+        public void Execute(ref TimelineFrame timeline, ref TimelineView view)
         {
             if (!view.Pinned)
                 return;
 
-            long now = (long)System.Math.Round(timeline.Host.NowMs);
+            long now = (long)System.Math.Round(timeline.NowMs);
             if (now == view.PinNowMs)
                 return;
 
             TimeWindow window = TimeWindow.Starting(
                 view.PinStartMs,
-                (long)System.Math.Round(timeline.Host.DurationMs),
+                (long)System.Math.Round(timeline.DurationMs),
                 view.Zoom);
             if (window.Contains(now))
                 view.PinNowMs = now;

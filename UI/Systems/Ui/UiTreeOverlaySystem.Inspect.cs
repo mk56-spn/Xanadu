@@ -17,10 +17,10 @@ namespace Xanadu.Ui.Systems.Ui;
 /// <summary>Picking what is under the cursor, and the inspector's live listing of the inspected entity.</summary>
 public sealed partial class UiTreeOverlaySystem
 {
-    private readonly List<(Entity Entity, int Z)> _hits = new();
-    private readonly List<(Label Name, Label Value)> _propRows = new();
-    private readonly List<(string Name, string Value)> _props = new();
-    private readonly Dictionary<Type, MemberInfo[]> _members = new();
+    private readonly List<(Entity Entity, int Z)> _hits = [];
+    private readonly List<(Label Name, Label Value)> _propRows = [];
+    private readonly List<(string Name, string Value)> _props = [];
+    private readonly Dictionary<Type, MemberInfo[]> _members = [];
 
     // ---- picking --------------------------------------------------------------------
 
@@ -155,7 +155,7 @@ public sealed partial class UiTreeOverlaySystem
             if (property.GetIndexParameters().Length == 0 && property.CanRead && property.DeclaringType == type)
                 list.Add(property);
         }
-        return _members[type] = list.ToArray();
+        return _members[type] = [.. list];
     }
 
     private static object? Read(MemberInfo member, object? owner)

@@ -27,7 +27,7 @@ public enum MarqueeEnd
 /// </summary>
 public sealed class UiMarquee<T>(float threshold = 4f)
 {
-    private readonly List<T> _basis = new();
+    private readonly List<T> _basis = [];
 
     /// <summary>Pressed on empty space; dragging past the threshold turns it into a box.</summary>
     public bool Armed { get; private set; }

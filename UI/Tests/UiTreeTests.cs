@@ -18,6 +18,9 @@ public sealed class UiTreeTests : EcsSystemTest
 {
     private Entity _tree;
 
+    /// <summary>Every id the tree said was picked (<see cref="TreeNodeSelected"/>), in order.</summary>
+    private readonly List<string> _picked = [];
+
     private static readonly UiTreeItem[] Items =
     {
         new("root", null, "Root"),
@@ -39,6 +42,8 @@ public sealed class UiTreeTests : EcsSystemTest
             StackDirection.Vertical,
             cross: StackCrossAlignment.Start);
         _tree = ui.Tree(240);
+        _picked.Clear();
+        _tree.OnSelected(_picked.Add);
         ui.SetTreeItems(_tree, Items);
         Frame(3);
     }
@@ -176,18 +181,18 @@ public sealed class UiTreeTests : EcsSystemTest
         Click(Label("head"));
 
         Assert.That(UiTreeControl.Selected(_tree), Is.EqualTo("head"));
-        Assert.That(_tree.GetComponent<UiTreeChanged>().Id, Is.EqualTo("head"));
+        Assert.That(_picked, Is.EqualTo(new[] { "head" }));
     }
 
     [Test]
     public void ReselectingTheSameNodeRaisesNothing()
     {
         Click(Label("head"));
-        _tree.RemoveComponent<UiTreeChanged>();
+        _picked.Clear();
 
         Click(Label("head"));
 
-        Assert.That(_tree.HasComponent<UiTreeChanged>(), Is.False);
+        Assert.That(_picked, Is.Empty);
     }
 
     [Test]
@@ -215,7 +220,7 @@ public sealed class UiTreeTests : EcsSystemTest
 
         Assert.That(Visible("head"), Is.True);
         Assert.That(UiTreeControl.Selected(_tree), Is.EqualTo("head"));
-        Assert.That(_tree.HasComponent<UiTreeChanged>(), Is.False);
+        Assert.That(_picked, Is.Empty);
     }
 
     [Test]

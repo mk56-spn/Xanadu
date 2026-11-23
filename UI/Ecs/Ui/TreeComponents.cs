@@ -66,10 +66,14 @@ public struct UiTreeDisclosure : ITag;
 /// <summary>Marks the label button that selects a node.</summary>
 public struct UiTreeLabel : ITag;
 
-/// <summary>Set on the tree entity when the user selects a node; the consumer removes it.</summary>
-public struct UiTreeChanged(string id) : IComponent
+/// <summary>
+/// Signal emitted on the tree entity when a node is selected with
+/// <c>raiseChanged</c> (a user click). Not a component: listen with
+/// <see cref="UiTreeControl.OnSelected"/>.
+/// </summary>
+public readonly struct TreeNodeSelected(string id)
 {
-    public string Id = id;
+    public readonly string Id = id;
 }
 
 /// <summary>Marks the entity inspected in the F4 UI tree, for the bounds overlay to colour.</summary>

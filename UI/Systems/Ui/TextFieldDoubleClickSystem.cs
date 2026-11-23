@@ -16,7 +16,7 @@ public sealed class TextFieldDoubleClickSystem : QuerySystem<TextField>
     /// <summary>The longest gap between the two presses of a double click, in seconds.</summary>
     public const float Window = 0.4f;
 
-    private readonly HashSet<int> _held = new();
+    private readonly HashSet<int> _held = [];
     private int _lastField = -1;
     private float _lastPressAt = float.NegativeInfinity;
     private float _clock;

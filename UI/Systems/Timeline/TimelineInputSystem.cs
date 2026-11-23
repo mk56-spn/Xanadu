@@ -15,11 +15,11 @@ namespace Xanadu.Ui.Systems.Timeline;
 /// time scrollbar, the row scrollbar and the wheel over the rows, fixed handles (event flags, loop
 /// ends), scrubbing the ruler, track labels, items on the rows, and a box over
 /// empty row space. The tool describes its timeline as a
-/// <see cref="TimelineScene"/> and is told what each gesture meant through
-/// <see cref="ITimelineInput"/>; it never sees the pointer.
+/// <see cref="TimelineScene"/> in its <see cref="TimelineFrame"/> and is told what
+/// each gesture meant through the timeline signals; it never sees the pointer.
 /// </summary>
 public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSource wheel)
-    : QuerySystem<TimelineHost, TimelineView>
+    : QuerySystem<TimelineFrame, TimelineView>
 {
     /// <summary>How far a Shift-press on a selected item may move and still count as a click that takes it out.</summary>
     public const float ClickSlop = 3f;
@@ -27,17 +27,14 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
     protected override void OnUpdate()
     {
         foreach (Entity entity in Query.ToEntityList())
-        {
-            if (entity.GetComponent<TimelineHost>().Host is ITimelineInput input)
-                Update(entity, input);
-        }
+            Update(entity, new Owner(entity));
     }
 
-    private void Update(Entity entity, ITimelineInput input)
+    private void Update(Entity entity, Owner input)
     {
-        ITimelineHost host = entity.GetComponent<TimelineHost>().Host;
-        TimelineGesture gesture = entity.GetComponent<TimelineHost>().Gesture;
-        TimelineScene? scene = host.Blocked ? null : input.Scene();
+        TimelineFrame frame = entity.GetComponent<TimelineFrame>();
+        TimelineGesture gesture = frame.Gesture;
+        TimelineScene? scene = frame.Blocked ? null : frame.Scene;
         if (scene is null)
         {
             if (gesture.Active)
@@ -68,7 +65,7 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
             Drag(entity, input, gesture, scene, press);
     }
 
-    private static void Begin(Entity entity, ITimelineInput input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
+    private static void Begin(Entity entity, Owner input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
     {
         Vector2 point = press.Position;
         gesture.Clear();
@@ -139,7 +136,7 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
 
     private static void Take(
         Entity entity,
-        ITimelineInput input,
+        Owner input,
         TimelineGesture gesture,
         TimelineScene scene,
         TimelineItem item,
@@ -158,13 +155,13 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
         input.ItemPressed(item, pick, part);
     }
 
-    private static void Start(ITimelineInput input, TimelineGesture gesture, TimelineGestureKind kind)
+    private static void Start(Owner input, TimelineGesture gesture, TimelineGestureKind kind)
     {
         gesture.Kind = kind;
         input.GestureStarted(kind);
     }
 
-    private void Drag(Entity entity, ITimelineInput input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
+    private void Drag(Entity entity, Owner input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
     {
         Vector2 point = press.Position;
         switch (gesture.Kind)
@@ -214,16 +211,16 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
         float value = bar.Slider(scene.Axis, scene.DurationMs).ValueAt(x, grab);
         ref TimelineView view = ref entity.GetComponent<TimelineView>();
         view.PinStartMs = TimelineTimeBar.StartFor(scene.Axis, scene.DurationMs, value);
-        view.PinNowMs = (long)Math.Round(entity.GetComponent<TimelineHost>().Host.NowMs);
+        view.PinNowMs = (long)Math.Round(entity.GetComponent<TimelineFrame>().NowMs);
         view.Pinned = true;
     }
 
     /// <summary>Sends the playhead to the time under the pointer, kept on the axis when the pointer runs off it.</summary>
-    private static void Scrub(ITimelineInput input, TimelineScene scene, float x, bool free) =>
+    private static void Scrub(Owner input, TimelineScene scene, float x, bool free) =>
         input.Scrub(scene.ScrubAt(Math.Clamp(x, scene.Axis.Left, scene.Axis.Right), free));
 
     /// <summary>Retimes the taken item once the press has moved past its slop.</summary>
-    private static void MoveItem(ITimelineInput input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
+    private static void MoveItem(Owner input, TimelineGesture gesture, TimelineScene scene, PointerInput press)
     {
         Vector2 point = press.Position;
         TimelineItem item = gesture.Item;
@@ -253,7 +250,7 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
         input.ItemMoved(item, from, to);
     }
 
-    private static void End(Entity entity, ITimelineInput input, TimelineGesture gesture, Vector2 point)
+    private static void End(Entity entity, Owner input, TimelineGesture gesture, Vector2 point)
     {
         TimelineGestureKind kind = gesture.Kind;
         if (kind == TimelineGestureKind.Item)
@@ -368,5 +365,23 @@ public sealed class TimelineInputSystem(IPointerInputSource pointer, IWheelSourc
         }
 
         return hits;
+    }
+
+    /// <summary>The owner of one timeline, reached through signals on its entity.</summary>
+    private readonly record struct Owner(Entity Timeline)
+    {
+        /// <summary>Has the owner describe the timeline again (after a scroll or pan) and reads it.</summary>
+        public TimelineScene? Scene() => TimelineFrame.Refresh(Timeline).Scene;
+
+        public void GestureStarted(TimelineGestureKind kind) => Timeline.EmitSignal(new TimelineGestureStarted(kind));
+        public void GestureEnded(TimelineGestureKind kind) => Timeline.EmitSignal(new TimelineGestureEnded(kind));
+        public void ScrollRows(int first) => Timeline.EmitSignal(new TimelineRowsScrolled(first));
+        public void Scrub(double ms) => Timeline.EmitSignal(new TimelineScrubbed(ms));
+        public void LabelPressed(int lane, Vector2 point) => Timeline.EmitSignal(new TimelineLabelPressed(lane, point));
+        public void LanePressed(int lane, double ms, bool additive) => Timeline.EmitSignal(new TimelineLanePressed(lane, ms, additive));
+        public void ItemPressed(in TimelineItem item, TimelinePick pick, TimelineGrabPart part) => Timeline.EmitSignal(new TimelineItemPressed(item, pick, part));
+        public void ItemMoved(in TimelineItem item, double fromMs, double toMs) => Timeline.EmitSignal(new TimelineItemMoved(item, fromMs, toMs));
+        public void ItemReleased(in TimelineItem item, bool remove) => Timeline.EmitSignal(new TimelineItemReleased(item, remove));
+        public void BoxSelected(IReadOnlyList<object> selection) => Timeline.EmitSignal(new TimelineBoxSelected(selection));
     }
 }

@@ -68,11 +68,11 @@ internal sealed class UiShowcase : HostApp
             new Row(gap: Space.Md, cross: Cross.End)
             {
                 new Label("Label", UiType.Label),
-                new Label("Body", UiType.Body),
+                new Label("Body"),
                 new Label("Small", UiType.Small),
                 new Label("Caption", UiType.Caption),
-                new Label("dim", UiType.Body, ink: Ink.Dim),
-                new Label("accent", UiType.Body, ink: Ink.Accent),
+                new Label("dim", ink: Ink.Dim),
+                new Label("accent", ink: Ink.Accent),
             },
 
             Caption("BUTTONS"),
@@ -119,7 +119,7 @@ internal sealed class UiShowcase : HostApp
         var screen = new Vector2(Width, Height);
         UiNode page = UiNode.Layer(Entities, default, UiLayers.Base).Page(screen).Pad(32).Gap(16).Backing();
         page.Text("VALUE FIELDS", UiType.Heading).AccentText();
-        UiNode echo = page.Text("drag a slot sideways, click to type, right-click to reset", UiType.Body).DimText().Size(900, 24);
+        UiNode echo = page.Text("drag a slot sideways, click to type, right-click to reset").DimText().Size(900, 24);
 
         UiNode columns = page.Row().Gap(32).Cross(StackCrossAlignment.Start);
         UiNode left = columns.Column().Gap(14).Cross(StackCrossAlignment.Start);
@@ -192,12 +192,11 @@ internal sealed class UiShowcase : HostApp
         Entity glowing = ui.RectEntity(new Vector2(705, 250), new Vector2(260, 70),
             new Color(0, 0, 0, 0), "GLOWING TEXT");
         Style(glowing, 34, new Color("#fef9c3"));
-        glowing.AddComponent(new TextGlow(new Color(0.98f, 0.8f, 0.08f, 0.5f)));
+        glowing.AddComponent(new Glow(new Color(0.98f, 0.8f, 0.08f, 0.5f)));
 
         ui.Container(
             new Vector2(300, 170),
             new Vector2(520, 120),
-            StackDirection.Horizontal,
             spacing: 12,
             color: Palette.Surface,
             padding: 16);
@@ -268,14 +267,14 @@ internal sealed class UiShowcase : HostApp
             Style(row, 13, Palette.TextDim);
         }
         ui.End();
-        scrollViewport.AddComponent(new ScrollView());
+        scrollViewport.AddComponent(new ScrollOffset());
         ui.End();
 
         ui.RectEntity(new Vector2(300, 520), new Vector2(520, 180),
             Palette.Surface);
         Entity track = ui.RectEntity(
             new Vector2(300, 570), new Vector2(380, 18),
-            Palette.Muted, null, takesInput: true);
+            Palette.Muted, takesInput: true);
         Entity sliderFill = ui.RectEntity(
             new Vector2(205, 570), new Vector2(190, 18),
             Palette.Info, "");

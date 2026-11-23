@@ -31,11 +31,14 @@ public enum UiTreeCommand
 /// the root. UP climbs to the root's parent, ALL lists every root.
 /// </summary>
 /// <remarks>The query is what picking hit-tests: everything with a box.</remarks>
-public sealed partial class UiTreeOverlaySystem : QuerySystem<Rectangle, Position>
+public sealed partial class UiTreeOverlaySystem(
+    IOverlayToggleSource toggle,
+    IVisualItemFactory? visuals = null,
+    IPointerInputSource? pointer = null) : QuerySystem<Rectangle, Position>
 {
-    private readonly IVisualItemFactory? _visuals;
-    private readonly IPointerInputSource? _pointer;
-    private readonly OverlayLatch _latch;
+    private readonly IVisualItemFactory? _visuals = visuals;
+    private readonly IPointerInputSource? _pointer = pointer;
+    private readonly OverlayLatch _latch = new OverlayLatch(toggle);
     private readonly Queue<UiCommand> _commands = new();
     private System.IDisposable? _listening;
 
@@ -45,16 +48,6 @@ public sealed partial class UiTreeOverlaySystem : QuerySystem<Rectangle, Positio
     private Entity _inspected;
     private Entity _hovered;
     private bool _picking;
-
-    public UiTreeOverlaySystem(
-        IOverlayToggleSource toggle,
-        IVisualItemFactory? visuals = null,
-        IPointerInputSource? pointer = null)
-    {
-        _latch = new OverlayLatch(toggle);
-        _visuals = visuals;
-        _pointer = pointer;
-    }
 
     /// <summary>Whether the panel is waiting for a click on the screen.</summary>
     public bool Picking => _picking;

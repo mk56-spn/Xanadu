@@ -263,7 +263,7 @@ public interface IRectCanvas
         int fontSize,
         TextAlign align,
         bool bold,
-        TextGlow glow,
+        Glow glow,
         TextOutline? outline = null)
     {
         if (outline is { } line)
@@ -281,7 +281,7 @@ public interface IRectCanvas
         bool closed,
         bool filled,
         float strokeWidth,
-        ShapeGlow glow)
+        Glow glow)
     {
     }
 

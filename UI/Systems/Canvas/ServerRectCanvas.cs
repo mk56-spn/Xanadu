@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using Xanadu.Core.Rendering;
 using System;
+using System.Collections.Generic;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Rendering;
 
 namespace Xanadu.Ui.Systems.Canvas;
 
@@ -15,7 +15,7 @@ public class ServerRectCanvas : IRectCanvas
 {
     protected static ICanvasServer Server => CanvasServer.Current;
 
-    private readonly Dictionary<(string, BlendMode), CanvasMaterial> _materials = new();
+    private readonly Dictionary<(string, BlendMode), CanvasMaterial> _materials = [];
     private CanvasMaterial? _material;
     private Dictionary<string, Vector4>? _values;
 
@@ -43,10 +43,10 @@ public class ServerRectCanvas : IRectCanvas
     }
 
     /// <summary>A value for the shaded draws that follow, in the current run.</summary>
-    public void SetShaderValue(string param, Vector4 value, int size) => (_values ??= new Dictionary<string, Vector4>())[param] = value;
+    public void SetShaderValue(string param, Vector4 value, int size) => (_values ??= [])[param] = value;
 
     /// <summary>Starts a new run even with the same shader, so values set now reach only the draws that follow.</summary>
-    public void NewRun() => _values = new Dictionary<string, Vector4>();
+    public void NewRun() => _values = [];
 
     /// <summary>Puts the item's next draws in the selected run, before every draw.</summary>
     protected void Route(Handle canvas) => Server.SelectRun(canvas, _material, _values);
@@ -100,10 +100,10 @@ public class ServerRectCanvas : IRectCanvas
         Vector2 bottomLeft = new(bounds.Position.X, bounds.End.Y);
         Server.AddPolygon(
             canvas,
-            new[] { bounds.Position, topRight, bounds.End, bottomLeft },
+            [bounds.Position, topRight, bounds.End, bottomLeft],
             horizontal
-                ? new[] { start, end, end, start }
-                : new[] { start, start, end, end });
+                ? [start, end, end, start]
+                : [start, start, end, end]);
     }
 
     public void DrawPolygon(Handle canvas, ReadOnlySpan<Vector2> points, Color color)
@@ -179,7 +179,7 @@ public class ServerRectCanvas : IRectCanvas
         }
 
         // A negative width is the renderer's plain one-pixel line, its cheapest kind.
-        Server.AddMultiline(canvas, points, new[] { color }, -1f);
+        Server.AddMultiline(canvas, points, [color], -1f);
     }
 
     public void DrawPolyline(

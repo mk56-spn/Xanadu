@@ -175,7 +175,7 @@ public sealed class UiTreeOverlaySystemTests : EcsSystemTest
         Press(Command(UiTreeCommand.PickHere));
         Assert.That(Rows().Length, Is.EqualTo(2));
 
-        Press(Command(UiTreeCommand.Toggle, 0));
+        Press(Command(UiTreeCommand.Toggle));
 
         Assert.That(Rows().Length, Is.EqualTo(1));
         Assert.That(Rows()[0], Does.EndWith("(1)"));

@@ -15,7 +15,8 @@ namespace Xanadu.Ui.Tests;
 [TestFixture]
 public sealed class TimelineShortcutsTests
 {
-    private sealed class Host : ITimelineHost
+    /// <summary>A timeline owner: writes its frame from these fields and hears the timeline's signals.</summary>
+    private sealed class Host
     {
         public double NowMs { get; set; } = 1_000;
         public double DurationMs { get; set; } = 5_000;
@@ -24,21 +25,37 @@ public sealed class TimelineShortcutsTests
         public bool Blocked { get; set; }
         public Rect2 Panel = new(0, 0, 100, 100);
         public Rect2 Ruler = new(0, 0, 100, 10);
-        public double[] Markers = { 500, 1_000, 2_000 };
+        public double[] Markers = [500, 1_000, 2_000];
         public int Toggles;
         public int Missed;
 
-        public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
+        /// <summary>Makes <paramref name="timeline"/> this host's, with a frame written already.</summary>
+        public Entity Own(Entity timeline)
         {
-            panel = Panel;
-            ruler = Ruler;
-            return true;
+            timeline.AddComponent(new TimelineFrame());
+            timeline.AddSignalHandler<TimelineFrameDue>(signal =>
+            {
+                ref TimelineFrame frame = ref signal.Entity.GetComponent<TimelineFrame>();
+                frame.NowMs = NowMs;
+                frame.DurationMs = DurationMs;
+                frame.StepMs = StepMs;
+                frame.StepOriginMs = StepOriginMs;
+                frame.Blocked = Blocked;
+                frame.Shown = true;
+                frame.Panel = Panel;
+                frame.Ruler = Ruler;
+                frame.Markers.Clear();
+                frame.Markers.AddRange(Markers);
+            });
+            timeline.AddSignalHandler<TimelineSeek>(signal => NowMs = signal.Event.Ms);
+            timeline.AddSignalHandler<TimelineTogglePlay>(_ => Toggles++);
+            timeline.AddSignalHandler<TimelineNoMarker>(signal => Missed = signal.Event.Direction);
+            TimelineFrame.Refresh(timeline);
+            return timeline;
         }
 
-        public IEnumerable<double> MarkerTimesMs() => Markers;
-        public void SeekMs(double ms) => NowMs = ms;
-        public void TogglePlay() => Toggles++;
-        public void NoMarker(int direction) => Missed = direction;
+        /// <summary>A timeline of its own, in a store of its own.</summary>
+        public Entity Timeline() => Own(new EntityStore().CreateEntity());
     }
 
     private sealed class Wheel : IWheelSource
@@ -58,7 +75,7 @@ public sealed class TimelineShortcutsTests
     private static double After(TimelineCommand command, Host? given = null)
     {
         Host host = given ?? new Host();
-        TimelineShortcuts.Run(host, command);
+        TimelineShortcuts.Run(host.Timeline(), command);
         return host.NowMs;
     }
 
@@ -91,7 +108,7 @@ public sealed class TimelineShortcutsTests
     {
         var host = new Host { NowMs = 2_000 };
 
-        TimelineShortcuts.Run(host, TimelineCommand.NextKey);
+        TimelineShortcuts.Run(host.Timeline(), TimelineCommand.NextKey);
 
         Assert.That(host.NowMs, Is.EqualTo(2_000));
         Assert.That(host.Missed, Is.EqualTo(1));
@@ -102,7 +119,7 @@ public sealed class TimelineShortcutsTests
     {
         var host = new Host();
 
-        TimelineShortcuts.Run(host, TimelineShortcuts.Find(new KeyChord(Key.Space))!.Value);
+        TimelineShortcuts.Run(host.Timeline(), TimelineShortcuts.Find(new KeyChord(Key.Space))!.Value);
 
         Assert.That(host.Toggles, Is.EqualTo(1));
     }
@@ -114,12 +131,12 @@ public sealed class TimelineShortcutsTests
     private static (float Zoom, int Left) Scroll(Host host, Vector2 pointer, bool control)
     {
         var store = new EntityStore();
-        Entity timeline = store.CreateEntity(new TimelineView(2f), new TimelineHost(host));
+        Entity timeline = host.Own(store.CreateEntity(new TimelineView(2f)));
         var wheel = new Wheel { Notches = 1, Control = control };
         var root = new SystemRoot(store);
         root.Add(
             new TimelineSystemGroup(
-                new FakePointerInput { Current = new PointerInput(pointer, false, false, false, false) },
+                new FakePointerInput { Current = new PointerInput(pointer, false) },
                 wheel));
         root.Update(new UpdateTick(0.016f, 0.016f));
         return (timeline.GetComponent<TimelineView>().Zoom, wheel.Notches);

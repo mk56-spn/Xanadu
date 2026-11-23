@@ -19,7 +19,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// the wheel scrolls. The owner's <see cref="ITextEditorHost"/> sees keys, typing
 /// and presses first.
 /// </summary>
-public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
+public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboardState keyboard, IWheelSource? wheel = null) : QuerySystem<TextEditor>
 {
     private const float RepeatDelay = 0.4f, RepeatEvery = 0.033f;
 
@@ -43,25 +43,18 @@ public sealed class TextEditorInputSystem : QuerySystem<TextEditor>
     /// <summary>Keys the editor itself does nothing with, passed to its owner once per press.</summary>
     private static readonly Key[] OwnersOnly = [Key.Escape, Key.F2, Key.F12];
 
-    private readonly IPointerInputSource _pointer;
-    private readonly IKeyboardState _keyboard;
-    private readonly IWheelSource? _wheel;
+    private readonly IPointerInputSource _pointer = pointer;
+    private readonly IKeyboardState _keyboard = keyboard;
+    private readonly IWheelSource? _wheel = wheel;
 
     /// <summary>Keys down last frame, for presses; how long each repeating key has been held.</summary>
-    private readonly HashSet<Key> _down = new();
-    private readonly HashSet<Key> _pressed = new();
-    private readonly Dictionary<Key, float> _held = new();
+    private readonly HashSet<Key> _down = [];
+    private readonly HashSet<Key> _pressed = [];
+    private readonly Dictionary<Key, float> _held = [];
 
     private bool _wasHeld;
     private bool _claimed;
     private float _clock;
-
-    public TextEditorInputSystem(IPointerInputSource pointer, IKeyboardState keyboard, IWheelSource? wheel = null)
-    {
-        _pointer = pointer;
-        _keyboard = keyboard;
-        _wheel = wheel;
-    }
 
     protected override void OnUpdate()
     {

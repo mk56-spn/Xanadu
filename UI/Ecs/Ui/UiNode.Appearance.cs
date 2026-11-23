@@ -66,7 +66,7 @@ public readonly partial struct UiNode
     }
 
     /// <summary>Draws below the node's siblings, for full-screen backdrops.</summary>
-    public UiNode Below() => With(new UiBackground());
+    public UiNode Below() => Tag<UiBackground>();
 
     /// <summary>Marks the node as part of a floating overlay.</summary>
     public UiNode Overlay()
@@ -176,7 +176,7 @@ public readonly partial struct UiNode
 
     /// <summary>A soft glow behind the node's text.</summary>
     public UiNode Glow(Color color, float radius = 12f, float intensity = 1.5f) =>
-        With(new TextGlow(color, radius, intensity));
+        With(new Glow(color, radius, intensity));
 
     /// <summary>An outline under the node's text fill.</summary>
     public UiNode Outline(Color color, int size = 4) =>

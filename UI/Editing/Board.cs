@@ -43,8 +43,8 @@ public sealed class Board
 
     private const int MaxDetours = 16, MaxLanes = 6;
 
-    public readonly List<BoardBox> Boxes = new();
-    public readonly List<BoardLink> Links = new();
+    public readonly List<BoardBox> Boxes = [];
+    public readonly List<BoardLink> Links = [];
 
     /// <summary>The id the next new box takes.</summary>
     public int NextId = 1;
@@ -143,7 +143,7 @@ public sealed class Board
     /// </summary>
     public List<List<Vector2>?> Paths()
     {
-        List<BoardBox> solid = Boxes.Where(box => !IsFrame(box)).ToList();
+        List<BoardBox> solid = [.. Boxes.Where(box => !IsFrame(box))];
         var lanes = new Dictionary<int, int>();
         var paths = new List<List<Vector2>?>(Links.Count);
         var blocks = new List<Block>();

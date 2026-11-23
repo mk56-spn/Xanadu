@@ -19,7 +19,7 @@ public sealed partial class BoardInputSystem
     private static readonly Key[] Watched =
         [Key.Backspace, Key.Delete, Key.Enter, Key.KpEnter, Key.Escape, Key.F2, Key.V, Key.Y, Key.Z, .. Digits];
 
-    private readonly HashSet<Key> _down = new(), _pressed = new();
+    private readonly HashSet<Key> _down = [], _pressed = [];
     private float _backspaceHeld, _backspaceNext;
 
     private void ReadKeys()

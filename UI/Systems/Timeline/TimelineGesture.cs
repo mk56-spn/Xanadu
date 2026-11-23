@@ -5,7 +5,7 @@ namespace Xanadu.Ui.Systems.Timeline;
 
 /// <summary>
 /// One timeline's press or drag in progress, kept on its
-/// <see cref="TimelineHost"/> rather than as a component
+/// <see cref="TimelineFrame"/> rather than as a component
 /// of its own (the Animator is close to Friflo's component cap).
 /// </summary>
 public sealed class TimelineGesture
@@ -49,7 +49,7 @@ public sealed class TimelineGesture
     public static List<object> Selected(TimelineScene scene)
     {
         if (scene.Selection is { } given)
-            return new List<object>(given);
+            return [.. given];
 
         var selected = new List<object>();
         foreach (TimelineItem item in scene.Items)

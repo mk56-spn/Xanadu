@@ -12,21 +12,21 @@ namespace Xanadu.Ui.Editing;
 /// An owner changing the text over many frames (a drag) holds the history
 /// (<see cref="Hold"/>, <see cref="LetGo"/>): everything in between is one step.
 /// </summary>
-public sealed class TextHistory
+public sealed class TextHistory(TextBuffer buffer)
 {
     /// <summary>A pause this long ends a run of typing.</summary>
     private const float RunPause = 1f;
 
-    private readonly TextBuffer _buffer;
-    private readonly UndoHistory<TextSnapshot> _history;
+    private readonly TextBuffer _buffer = buffer;
+    private readonly UndoHistory<TextSnapshot> _history = new UndoHistory<TextSnapshot>((a, b) => a.Text == b.Text, buffer.Restore);
 
     /// <summary>The buffer as it was at the end of the last frame (text from the last change, caret kept current).</summary>
-    private TextSnapshot _latest;
+    private TextSnapshot _latest = buffer.Snapshot();
 
     /// <summary>Where the open run of typing began; null when none is open.</summary>
     private TextSnapshot? _runStart;
 
-    private int _seenVersion;
+    private int _seenVersion = buffer.Version;
     private float _idle;
 
     /// <summary>Held: every change runs into one step until <see cref="LetGo"/>.</summary>
@@ -34,15 +34,6 @@ public sealed class TextHistory
 
     /// <summary>Let go since the last frame: the held step closes once the last change is seen.</summary>
     private bool _closing;
-
-    public TextHistory(TextBuffer buffer)
-    {
-        _buffer = buffer;
-        // Caret-only differences are not steps.
-        _history = new UndoHistory<TextSnapshot>((a, b) => a.Text == b.Text, buffer.Restore);
-        _latest = buffer.Snapshot();
-        _seenVersion = buffer.Version;
-    }
 
     /// <summary>Called once a frame after the input is handled; <paramref name="typing"/> says the frame's edits were plain typing.</summary>
     public void After(bool typing, float delta)

@@ -1,5 +1,5 @@
-using Xanadu.Core.Timeline;
 using System;
+using Xanadu.Core.Timeline;
 
 namespace Xanadu.Ui.Ecs.Ui;
 
@@ -12,7 +12,7 @@ public static class EaseNames
     public static readonly CurveDirection[] Directions = Enum.GetValues<CurveDirection>();
 
     /// <summary>The first row: the three curves that are not a family.</summary>
-    public static readonly EasePreset[] Basics = { EasePreset.Step, EasePreset.Linear, EasePreset.Ease };
+    public static readonly EasePreset[] Basics = [EasePreset.Step, EasePreset.Linear, EasePreset.Ease];
 
     public static string Label(EasePreset preset) => preset switch
     {

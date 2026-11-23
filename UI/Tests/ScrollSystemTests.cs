@@ -22,7 +22,7 @@ public sealed class ScrollSystemTests
         Entity viewport = store.CreateEntity(
             new Position(new Vector2(500, 300)),
             new Rectangle(new Rect2(-100, -100, 200, 200)),
-            new ScrollView());
+            new ScrollOffset());
         viewport.AddChild(content);
 
         var pointer = new Pointer();
@@ -32,7 +32,7 @@ public sealed class ScrollSystemTests
         pointer.Notches = -1;
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(viewport.GetComponent<ScrollView>().Offset,
+        Assert.That(viewport.GetComponent<ScrollOffset>().Value,
             Is.EqualTo(48));
         Assert.That(content.GetComponent<Position>().Value.Y,
             Is.EqualTo(352));
@@ -40,7 +40,7 @@ public sealed class ScrollSystemTests
         pointer.Notches = -30;
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(viewport.GetComponent<ScrollView>().Offset,
+        Assert.That(viewport.GetComponent<ScrollOffset>().Value,
             Is.EqualTo(800));
         Assert.That(content.GetComponent<Position>().Value.Y,
             Is.EqualTo(-400));
@@ -61,8 +61,8 @@ public sealed class ScrollSystemTests
         pointer.Notches = -1;
         root.Update(new UpdateTick(1f / 60f, 0));
 
-        Assert.That(first.GetComponent<ScrollView>().Offset, Is.EqualTo(firstZ > secondZ ? 48 : 0));
-        Assert.That(second.GetComponent<ScrollView>().Offset, Is.EqualTo(secondZ > firstZ ? 48 : 0));
+        Assert.That(first.GetComponent<ScrollOffset>().Value, Is.EqualTo(firstZ > secondZ ? 48 : 0));
+        Assert.That(second.GetComponent<ScrollOffset>().Value, Is.EqualTo(secondZ > firstZ ? 48 : 0));
     }
 
     [Test]
@@ -91,7 +91,7 @@ public sealed class ScrollSystemTests
         root.Update(new UpdateTick(1f / 60f, 0));
 
         Assert.That(pointer.Notches, Is.EqualTo(-1));
-        Assert.That(viewport.GetComponent<ScrollView>().Offset, Is.Zero);
+        Assert.That(viewport.GetComponent<ScrollOffset>().Value, Is.Zero);
     }
 
     private sealed class Pointer : IPointerInputSource, IWheelSource
@@ -123,7 +123,7 @@ public sealed class ScrollSystemTests
         Entity viewport = store.CreateEntity(
             new Position(new Vector2(500, 300)),
             new Rectangle(new Rect2(-100, -100, 200, 200)),
-            new ScrollView());
+            new ScrollOffset());
         viewport.AddChild(content);
         layer.AddChild(viewport);
         return viewport;

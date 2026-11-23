@@ -41,10 +41,10 @@ public sealed partial class DebugPressedOverlaySystem
             return;
 
         int count = _phases.Phases.Count;
-        panel.Text("WHERE THE FRAME GOES", UiType.Caption, DebugPalette.Header, TextAlign.Left)
+        panel.Text("WHERE THE FRAME GOES", UiType.Caption, DebugPalette.Header)
             .Size(PhaseNameWidth + PhaseCellWidth * 2, CaptionHeight);
         UiNode header = panel.Row().Main(StackMainAlignment.Start);
-        header.Text("part", FontSize, DebugPalette.Header, TextAlign.Left).Size(PhaseNameWidth, DebugTable.RowHeight);
+        header.Text("part", FontSize, DebugPalette.Header).Size(PhaseNameWidth, DebugTable.RowHeight);
         header.Text("live ms", FontSize, DebugPalette.Header, TextAlign.Right).Size(PhaseCellWidth, DebugTable.RowHeight);
         header.Text("avg ms", FontSize, DebugPalette.Header, TextAlign.Right).Size(PhaseCellWidth, DebugTable.RowHeight);
 
@@ -57,8 +57,8 @@ public sealed partial class DebugPressedOverlaySystem
             UiNode row = panel.Row().Main(StackMainAlignment.Start);
             float indent = phase.Depth * PhaseIndent;
             if (indent > 0)
-                row.Text("", FontSize, DebugPalette.Text, TextAlign.Left).Size(indent, DebugTable.RowHeight);
-            _phaseNames[i] = row.Text(phase.Name, FontSize, DebugPalette.Text, TextAlign.Left)
+                row.Text("", FontSize, DebugPalette.Text).Size(indent, DebugTable.RowHeight);
+            _phaseNames[i] = row.Text(phase.Name, FontSize, DebugPalette.Text)
                 .Size(PhaseNameWidth - indent, DebugTable.RowHeight).Entity;
             _phaseLive[i] = row.Text("-", FontSize, DebugPalette.Text, TextAlign.Right)
                 .Size(PhaseCellWidth, DebugTable.RowHeight).Entity;

@@ -88,9 +88,7 @@ public sealed class UiColorDragSystem : BaseSystem
             Entity target = Under(input.Position, swatches: false);
             if (!target.IsNull && target != _source)
             {
-                ref UiColorDrop drop = ref target.GetComponent<UiColorDrop>();
-                drop.Pending = true;
-                drop.Color = fill.Value;
+                target.EmitSignal(new ColorDropped(fill.Value));
             }
         }
 
@@ -130,7 +128,7 @@ public sealed class UiColorDragSystem : BaseSystem
         Entity found = default;
         EntityList candidates = swatches
             ? entities.Query<FillColor>().AllTags(Tags.Get<UiColorSwatch>()).ToEntityList()
-            : entities.Query<UiColorDrop>().ToEntityList();
+            : entities.Query().AllTags(Tags.Get<UiColorDrop>()).ToEntityList();
         foreach (Entity entity in candidates)
         {
             if (!entity.TryGetComponent(out Rectangle rect) || !entity.TryGetComponent(out Position position) ||

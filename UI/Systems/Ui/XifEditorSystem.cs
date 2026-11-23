@@ -326,7 +326,7 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             for (int i = layers.Count - 1; i >= 0; i--)
             {
                 UiNode row = column.Row().Gap(4);
-                row.Text(LayerLabel(editor.Host, layers[i]), UiType.Caption, UiTheme.Text, TextAlign.Left)
+                row.Text(LayerLabel(editor.Host, layers[i]), UiType.Caption, UiTheme.Text)
                     .Size(name, XifEditorPanel.ShapeRowHeight);
                 row.Button("▲", UiTheme.SmallFontSize).Size(small, XifEditorPanel.ShapeRowHeight)
                     .With(UiCommand.Of(XifEditorActionKind.LayerUp, arg: i, owner: panel))
@@ -339,19 +339,29 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
                     .Tooltip("Take this layer off the stack");
             }
         }
+    }
 
-        Entity add = editor.Parts.LayerAdd;
-        if (add.IsNull || !add.TryGetComponent(out DropdownChanged picked))
+    /// <summary>
+    /// A pick in the + LAYER list (<see cref="UiDropdowns.OnPicked"/> on
+    /// <see cref="XifEditorParts.LayerAdd"/>): stacks that shader over the open item.
+    /// </summary>
+    public static void AddLayer(Entity panel, int pick)
+    {
+        if (panel.IsNull || !panel.HasComponent<XifEditor>())
             return;
-        add.RemoveComponent<DropdownChanged>();
+
+        ref XifEditor editor = ref panel.GetComponent<XifEditor>();
+        Xif? item = editor.Open ? editor.Host.Item : null;
         IReadOnlyList<XifShaderChoice> choices = editor.Host.Layers;
-        if (picked.Value < 0 || picked.Value >= choices.Count)
+        if (item is null || pick < 0 || pick >= choices.Count)
             return;
-        string path = choices[picked.Value].Shader.Path;
-        string chosen = choices[picked.Value].Label;
+        string path = choices[pick].Shader.Path;
+        string chosen = choices[pick].Label;
         bool added = false;
         editor.Host.Edit(() => added = XifEditing.AddLayer(item, path));
+        editor = ref panel.GetComponent<XifEditor>();
         editor.Status = added ? $"LAYER {chosen} ADDED" : $"{chosen} IS ALREADY IN THE STACK";
+        Entity add = editor.Parts.LayerAdd;
         if (!add.TryGetComponent(out Text shown) || shown.Value != XifEditorPanel.AddLayerText)
             UiText.Set(add, XifEditorPanel.AddLayerText);
     }
@@ -1001,7 +1011,7 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
         Place(entity, Vector2.Zero);
         UiLayout.SetHidden(entity, false);
         ref UiShape shape = ref entity.GetComponent<UiShape>();
-        shape.Points = points.ToArray();
+        shape.Points = [.. points];
         shape.Closed = closed;
         entity.AddTag<Dirty>();
     }

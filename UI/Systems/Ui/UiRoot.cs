@@ -7,6 +7,7 @@ using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Groups;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Rendering;
+using Xanadu.Ui.Terminal;
 
 namespace Xanadu.Ui.Systems.Ui;
 
@@ -17,7 +18,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// <item>App: the app's own root (<see cref="Run"/>), reacting to this frame's clicks.</item>
 /// <item>Layout: what the UI and the app made or moved this frame is laid out.</item>
 /// <item>Draw.</item>
-/// <item>Overlays: F1 frame rate, F3 ECS and systems, F4 UI tree, last so they see everything.</item>
+/// <item>Overlays: F1 frame rate, F3 ECS and systems, F4 UI tree, last so they see everything; then the Ctrl+` terminal.</item>
 /// </list>
 /// The app's root runs on the same store; its systems are its own business.
 /// </summary>
@@ -38,23 +39,26 @@ public sealed class UiRoot : SystemRoot, IDisposable
         IWheelSource? wheel = null,
         IVisualItemFactory? visuals = null,
         bool tooltips = true,
-        bool overlays = true) : base(entities, "Ui")
+        bool overlays = true,
+        TerminalCommands? terminal = null) : base(entities, "Ui")
     {
         // Deleted UI (F1 and F4 rebuild theirs each time they open) has to take its canvas items with it.
         _visuals = new VisualItemRelease(entities);
         Canvas = HostPlatform.NewCanvas();
 
-        var input = new SystemGroup("UiInput");
-        input.Add(new UiInteractionSystemGroup(
+        var input = new SystemGroup("UiInput")
+        {
+            new UiInteractionSystemGroup(
             entities,
             pointer,
             new ScrollSystem(pointer, wheel),
             keyboard,
             visuals,
             screen,
-            tooltips: tooltips));
-        input.Add(new TextEditorInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel));
-        input.Add(new BoardInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel));
+            tooltips: tooltips),
+            new TextEditorInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel),
+            new BoardInputSystem(pointer, keyboard ?? HostPlatform.Keyboard, wheel)
+        };
         Add(input);
 
         Add(_app);
@@ -63,10 +67,12 @@ public sealed class UiRoot : SystemRoot, IDisposable
         _mount = new UiCanvasMount(entities);
         CanvasServer.Current.Mount(parentCanvas, _mount);
 
-        var draw = new SystemGroup("UiDraw");
-        draw.Add(new PresentationSystemGroup(Canvas));
-        draw.Add(new TextEditorDrawSystem(Canvas));
-        draw.Add(new BoardDrawSystem(Canvas));
+        var draw = new SystemGroup("UiDraw")
+        {
+            new PresentationSystemGroup(Canvas),
+            new TextEditorDrawSystem(Canvas),
+            new BoardDrawSystem(Canvas)
+        };
         Add(draw);
 
         if (overlays)
@@ -83,10 +89,19 @@ public sealed class UiRoot : SystemRoot, IDisposable
                 pointer);
             Add(_overlays);
         }
+
+        if (terminal is not null)
+        {
+            Terminal = new TerminalSystem(entities, terminal, keyboard);
+            Add(Terminal);
+        }
     }
 
     /// <summary>The canvas the UI draws with, for app systems that draw alongside it.</summary>
     public IRectCanvas Canvas { get; }
+
+    /// <summary>The text terminal (Ctrl+`), when the host gave the UI its commands; it runs last, over everything.</summary>
+    public TerminalSystem? Terminal { get; }
 
     /// <summary>The app's root, stepped between UI input and layout; null runs the UI alone.</summary>
     public SystemRoot? App => _app.Root;

@@ -118,11 +118,11 @@ public readonly struct TimelinePainter(IRectCanvas canvas, Handle target)
                 canvas.DrawRect(target, new Rect2(center - new Vector2(radius, radius), new Vector2(radius * 2, radius * 2)), color);
                 break;
             case EasePreset.Linear:
-                canvas.DrawPolygon(target, new[]
-                {
+                canvas.DrawPolygon(target,
+                [
                     center + new Vector2(0, -radius), center + new Vector2(radius, 0),
                     center + new Vector2(0, radius), center + new Vector2(-radius, 0),
-                }, color);
+                ], color);
                 break;
             default:
                 canvas.DrawCircle(target, center, radius, color);

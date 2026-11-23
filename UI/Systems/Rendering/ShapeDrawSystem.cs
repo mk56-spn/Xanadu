@@ -29,7 +29,7 @@ public sealed class ShapeDrawSystem : QuerySystem<Drawable, VisualItem, UiShape>
         {
             Canvas.Clear(visual.Value);
 
-            if (Store.GetEntityById(id).TryGetComponent(out ShapeGlow glow))
+            if (Store.GetEntityById(id).TryGetComponent(out Glow glow))
             {
                 Canvas.DrawShapeGlow(
                     visual.Value,

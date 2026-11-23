@@ -27,6 +27,9 @@ public static class DebugKeys
     /// <summary>F5: preview what the open tool is editing; Shift is its variant.</summary>
     public const Key Preview = Key.F5;
 
+    /// <summary>Ctrl+`: the text terminal, dropped down over any screen (plain ` is the game's docs).</summary>
+    public const Key Terminal = Key.Quoteleft;
+
     /// <summary>F12: save a screenshot.</summary>
     public const Key Screenshot = Key.F12;
 

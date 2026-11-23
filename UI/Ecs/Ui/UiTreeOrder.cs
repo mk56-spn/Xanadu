@@ -24,7 +24,7 @@ public static class UiTreeOrder
             if (item.Parent is { } parent && byId.ContainsKey(parent) && parent != item.Id)
             {
                 if (!children.TryGetValue(parent, out List<UiTreeItem>? list))
-                    children[parent] = list = new List<UiTreeItem>();
+                    children[parent] = list = [];
                 list.Add(item);
             }
             else

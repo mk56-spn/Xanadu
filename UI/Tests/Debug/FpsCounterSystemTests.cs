@@ -27,7 +27,7 @@ public sealed class FpsCounterSystemTests : EcsSystemTest
         Root.Add(new FpsCounterSystem(_toggle, Store, _fps, new FakeVisualRidFactory()));
     }
 
-    private Entity Label => Store.Query<TextGlow>().Entities.Single();
+    private Entity Label => Store.Query<Glow>().Entities.Single();
 
     private void Toggle()
     {
@@ -76,13 +76,13 @@ public sealed class FpsCounterSystemTests : EcsSystemTest
     public void TheToggleShowsAndRemovesIt()
     {
         Frame();
-        Assert.That(Store.Query<TextGlow>().Count, Is.EqualTo(0), "off until asked for");
+        Assert.That(Store.Query<Glow>().Count, Is.EqualTo(0), "off until asked for");
 
         Toggle();
         Assert.That(Label.GetComponent<Text>().Value, Is.EqualTo("240 FPS"));
 
         Toggle();
-        Assert.That(Store.Query<TextGlow>().Count, Is.EqualTo(0));
+        Assert.That(Store.Query<Glow>().Count, Is.EqualTo(0));
         Assert.That(Store.Query().WithDisabled().AllTags(Tags.Get<DebugUi>()).Count, Is.EqualTo(0));
     }
 
@@ -95,8 +95,8 @@ public sealed class FpsCounterSystemTests : EcsSystemTest
 
         Assert.That(Label.GetComponent<Text>().Value, Is.EqualTo("45 FPS"));
         Assert.That(Label.GetComponent<TextStyle>().Color, Is.EqualTo(DebugPalette.FpsRed));
-        Assert.That(Label.GetComponent<TextGlow>().Color.R, Is.EqualTo(DebugPalette.FpsRed.R));
-        Assert.That(Label.GetComponent<TextGlow>().Color.A, Is.LessThan(1f), "the glow stays subtle");
+        Assert.That(Label.GetComponent<Glow>().Color.R, Is.EqualTo(DebugPalette.FpsRed.R));
+        Assert.That(Label.GetComponent<Glow>().Color.A, Is.LessThan(1f), "the glow stays subtle");
     }
 
     [Test]

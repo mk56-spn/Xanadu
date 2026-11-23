@@ -51,8 +51,8 @@ public sealed class EditorShellTests
 
         Assert.That(rects.ToolStrip.Size.X, Is.Zero);
         Assert.That(rects.RightPanel.Size.X, Is.Zero);
-        Assert.That(rects.RightTree.Size.Y, Is.Zero);
-        Assert.That(rects.RightTabs.Size.Y, Is.Zero);
+        Assert.That(rects.Tree.Size.Y, Is.Zero);
+        Assert.That(rects.Tabs.Size.Y, Is.Zero);
         Assert.That(rects.Viewport.Size.X, Is.EqualTo(1920f));
     }
 
@@ -61,11 +61,11 @@ public sealed class EditorShellTests
     {
         EditorShellRects rects = Animator();
 
-        Assert.That(rects.RightTree.Position.Y, Is.EqualTo(rects.RightPanel.Position.Y));
-        Assert.That(rects.RightTabs.Position.Y, Is.EqualTo(rects.RightTree.End.Y));
-        Assert.That(rects.RightBody.Position.Y, Is.EqualTo(rects.RightTabs.End.Y));
-        Assert.That(rects.RightBody.End.Y, Is.EqualTo(rects.RightPanel.End.Y));
-        Assert.That(rects.RightTree.Size.Y, Is.EqualTo(328f));
+        Assert.That(rects.Tree.Position.Y, Is.EqualTo(rects.RightPanel.Position.Y));
+        Assert.That(rects.Tabs.Position.Y, Is.EqualTo(rects.Tree.End.Y));
+        Assert.That(rects.Properties.Position.Y, Is.EqualTo(rects.Tabs.End.Y));
+        Assert.That(rects.Properties.End.Y, Is.EqualTo(rects.RightPanel.End.Y));
+        Assert.That(rects.Tree.Size.Y, Is.EqualTo(328f));
     }
 
     [Test]
@@ -88,9 +88,9 @@ public sealed class EditorShellTests
 
         Vector2 last = EditorShell.ToolButtonPosition(rects, capacity - 1);
 
-        Assert.That(capacity, Is.EqualTo(13));
+        Assert.That(capacity, Is.EqualTo(14));
         Assert.That(last.Y + EditorShellMetrics.ToolButton, Is.LessThanOrEqualTo(rects.ToolStrip.End.Y));
-        Assert.That(EditorShell.ToolButtonPosition(rects, 0).X, Is.EqualTo(4f));
+        Assert.That(EditorShell.ToolButtonPosition(rects, 0).X, Is.EqualTo((EditorShellMetrics.ToolStripWidth - EditorShellMetrics.ToolButton) / 2), "centred in the strip");
     }
 
     [Test]
@@ -101,8 +101,8 @@ public sealed class EditorShellTests
 
         foreach (Rect2 rect in new[]
                  {
-                     rects.Viewport, rects.StatusLine, rects.Footer, rects.RightTree,
-                     rects.RightTabs, rects.RightBody, rects.ToolStrip,
+                     rects.Viewport, rects.StatusLine, rects.Footer, rects.Tree,
+                     rects.Tabs, rects.Properties, rects.ToolStrip,
                  })
         {
             Assert.That(rect.Size.X, Is.GreaterThanOrEqualTo(0f));

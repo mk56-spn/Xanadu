@@ -114,7 +114,7 @@ public sealed class UiSpecTreeTests
         var names = new System.Collections.Generic.List<Label>();
         PooledList list = Layer().Add(new PooledList(24, 4)
         {
-            Row = _ => [new Box(width: 4), Remember(names, new Label("", fit: true, grow: 1))],
+            Row = _ => [new Box(width: 4), Remember(names, new Label(fit: true, grow: 1))],
         });
 
         int pool = UiLists.Pool(list.Node);

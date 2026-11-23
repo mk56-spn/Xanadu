@@ -17,6 +17,7 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
     private readonly ButtonPress _buttonPresses = new();
     private readonly ButtonPress _optionPresses = new();
     private readonly ArchetypeQuery<Dropdown, DropdownShowsPick, Text> _picks;
+    private readonly List<(Entity Button, int Value)> _picked = [];
 
     public UiDropdownSystem(EntityStore entities)
     {
@@ -93,8 +94,8 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
             ref Dropdown dropdown = ref option.Owner.GetComponent<Dropdown>();
             dropdown.Selected = option.Value;
             dropdown.Open = false;
-            buffer.AddComponent(option.Owner.Id, new DropdownChanged(option.Value));
             LayOut(option.Owner, ref dropdown, buffer);
+            _picked.Add((option.Owner, option.Value));
         }
 
         // A choice reads its pick, however the pick was made.
@@ -109,6 +110,15 @@ public sealed class UiDropdownSystem : QuerySystem<Dropdown>
                 buffer.AddTag<Dirty>(ids.Ids[i]);
             }
         }
+
+        // Listeners run last, once this frame's layout is recorded: a handler may rebuild its panel.
+        foreach ((Entity button, int value) in _picked)
+        {
+            if (!button.IsNull)
+                button.EmitSignal(new DropdownPicked(value));
+        }
+
+        _picked.Clear();
     }
 
     private void LayOut(Entity button, ref Dropdown dropdown, CommandBuffer buffer)

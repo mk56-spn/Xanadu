@@ -46,9 +46,9 @@ public enum MaterialOverlay
 /// </remarks>
 public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mix, string? instance = null)
 {
-    private readonly Dictionary<string, Vector4> _values = new();
-    private readonly Dictionary<string, Handle> _textures = new();
-    private readonly Dictionary<string, Matrix4x4> _matrices = new();
+    private readonly Dictionary<string, Vector4> _values = [];
+    private readonly Dictionary<string, Handle> _textures = [];
+    private readonly Dictionary<string, Matrix4x4> _matrices = [];
 
     /// <summary>
     /// The effect's path, such as <c>Assets/Shaders/note_background.slang</c>;

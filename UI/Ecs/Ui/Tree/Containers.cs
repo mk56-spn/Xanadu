@@ -37,7 +37,7 @@ public abstract class StackSpec(
     Action<UiNode>? style)
     : UiSpec(width, height, size, grow > 0 ? grow : layout.Grow, stretch || layout.Stretch, tone, cmd, tip), IEnumerable
 {
-    private readonly UiChildren _children = new();
+    private readonly UiChildren _children = [];
     private readonly StackCrossAlignment? _cross = cross ?? layout.Cross;
 
     public void Add(UiSpec? child) => _children.Add(child);
@@ -175,7 +175,7 @@ public sealed class Scroll(
 
     protected override void Built(UiNode node)
     {
-        node.Clip().Cross(StackCrossAlignment.Stretch).Main(StackMainAlignment.Start).With(new ScrollView());
+        node.Clip().Cross(StackCrossAlignment.Stretch).Main(StackMainAlignment.Start).With(new ScrollOffset());
         if (_content is not null)
             node.Add(_content);
     }

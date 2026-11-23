@@ -24,10 +24,29 @@ public struct Dropdown(
     public readonly Entity GetIndexedValue() => List;
 }
 
-/// <summary>Set for one frame when the user chooses a dropdown option.</summary>
-public struct DropdownChanged(int value) : IComponent
+/// <summary>
+/// Signal emitted on a dropdown's button when the user picks an option (not
+/// when code sets <see cref="Dropdown.Selected"/>). Not a component: listen
+/// with <see cref="UiDropdowns.OnPicked"/>.
+/// </summary>
+public readonly struct DropdownPicked(int value)
 {
-    public int Value = value;
+    public readonly int Value = value;
+}
+
+/// <summary>Listening to dropdown picks through the entity's native signals.</summary>
+public static class UiDropdowns
+{
+    /// <summary>
+    /// Calls <paramref name="picked"/> with the option's value each time the user
+    /// picks one on <paramref name="button"/> (Friflo's <c>AddSignalHandler</c>
+    /// for <see cref="DropdownPicked"/>; the handler goes with the entity).
+    /// </summary>
+    public static Entity OnPicked(this Entity button, System.Action<int> picked)
+    {
+        button.AddSignalHandler<DropdownPicked>(signal => picked(signal.Event.Value));
+        return button;
+    }
 }
 
 /// <summary>

@@ -45,7 +45,7 @@ public static class ParticleEditorPanel
         UiNode panel = layer.Panel().Size(Width, Height).Gap(Gap).Hidden()
             .Main(StackMainAlignment.Start);
         Entity editor = panel;
-        var parts = new ParticleEditorParts { Sliders = new List<Entity>() };
+        var parts = new ParticleEditorParts { Sliders = [] };
 
         parts.Title = panel.Text("", UiType.Label, UiTheme.Accent).Size(Inner, Row);
 

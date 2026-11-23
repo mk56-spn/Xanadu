@@ -65,7 +65,7 @@ public static class XifEditorPanel
         UiNode floating = lines.IsNull ? panel.LayerNode : lines;
         var parts = new XifEditorParts
         {
-            Fills = new List<Entity>(), Backdrop = backdrop, Screen = screen, Lines = floating,
+            Fills = [], Backdrop = backdrop, Screen = screen, Lines = floating,
         };
 
         UiNode header = panel.Row().Size(inner, Header).Gap(gap);
@@ -116,6 +116,7 @@ public static class XifEditorPanel
         IReadOnlyList<XifShaderChoice> layers = host.Layers;
         parts.LayerAdd = side.Dropdown(AddLayerText, layers.Select(layer => layer.Label).ToList(), 0, new Vector2(SideWidth, Row))
             .Button.Tooltip("Stack a shader over the item's: it moves or colours what the ones under it gave");
+        parts.LayerAdd.OnPicked(pick => Systems.Ui.XifEditorSystem.AddLayer(editor, pick));
         UiLayout.SetHidden(parts.LayersCaption, layers.Count == 0);
         UiLayout.SetHidden(parts.LayerAdd, layers.Count == 0);
         parts.SettingsCaption = side.Text("SETTINGS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;
@@ -148,12 +149,12 @@ public static class XifEditorPanel
             Point = 0,
             HoverPoint = -1,
             Parts = parts,
-            Handles = new(),
+            Handles = [],
             Status = "",
             SettingsFor = "",
             LayersFor = "",
-            ShapeRows = new(),
-            SettingFields = new(),
+            ShapeRows = [],
+            SettingFields = [],
         });
         return editor;
     }
@@ -184,13 +185,13 @@ public static class XifEditorPanel
             .With(new XifEditorField(kind, editor))
             .Tooltip(tooltip);
 
-    private static Vector2[] Square() => new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1) };
+    private static Vector2[] Square() => [new Vector2(-1, -1), new Vector2(1, -1), new Vector2(1, 1)];
 
-    private static Vector2[] Diamond() => new[] { new Vector2(0, -5), new Vector2(5, 0), new Vector2(0, 5), new Vector2(-5, 0) };
+    private static Vector2[] Diamond() => [new Vector2(0, -5), new Vector2(5, 0), new Vector2(0, 5), new Vector2(-5, 0)];
 
     /// <summary>A plus at the item's origin, where it attaches to whatever carries it.</summary>
-    private static Vector2[] Cross() => new[]
-    {
+    private static Vector2[] Cross() =>
+    [
         new Vector2(-8, 0), new Vector2(8, 0), new Vector2(0, 0), new Vector2(0, -8), new Vector2(0, 8),
-    };
+    ];
 }

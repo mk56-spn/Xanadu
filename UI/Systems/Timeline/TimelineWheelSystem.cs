@@ -14,7 +14,7 @@ namespace Xanadu.Ui.Systems.Timeline;
 /// other notch stays for the tool's own wheel.
 /// </summary>
 public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSource wheel)
-    : QuerySystem<TimelineHost, TimelineView>
+    : QuerySystem<TimelineFrame, TimelineView>
 {
     protected override void OnUpdate()
     {
@@ -24,15 +24,17 @@ public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSourc
         Vector2 position = pointer.Read().Position;
         foreach (Entity entity in Query.Entities)
         {
-            ITimelineHost host = entity.GetComponent<TimelineHost>().Host;
-            if (host.Blocked || !host.TryGetArea(out Rect2 panel, out Rect2 ruler) ||
+            TimelineFrame frame = entity.GetComponent<TimelineFrame>();
+            Rect2 panel = frame.Panel;
+            Rect2 ruler = frame.Ruler;
+            if (frame.Blocked || !frame.Shown ||
                 !panel.HasPoint(position) || !(wheel.Control || ruler.HasPoint(position)))
             {
                 continue;
             }
 
             ref TimelineView view = ref entity.GetComponent<TimelineView>();
-            ZoomAbout(ref view, host, ruler.Size.X > 0 ? ruler : panel, position.X, wheel.TakeWheel());
+            ZoomAbout(ref view, frame, ruler.Size.X > 0 ? ruler : panel, position.X, wheel.TakeWheel());
             return;
         }
     }
@@ -41,10 +43,10 @@ public sealed class TimelineWheelSystem(IPointerInputSource pointer, IWheelSourc
     /// Steps the zoom by <paramref name="notches"/>, keeping the time under
     /// <paramref name="x"/> still; <paramref name="axis"/> is where time runs.
     /// </summary>
-    public static void ZoomAbout(ref TimelineView view, ITimelineHost host, Rect2 axis, float x, int notches)
+    public static void ZoomAbout(ref TimelineView view, in TimelineFrame frame, Rect2 axis, float x, int notches)
     {
-        long duration = (long)Math.Round(host.DurationMs);
-        long now = (long)Math.Round(host.NowMs);
+        long duration = (long)Math.Round(frame.DurationMs);
+        long now = (long)Math.Round(frame.NowMs);
         TimeWindow before = TimeWindow.Of(view, now, duration);
         float zoom = TimelineZoom.Step(view.Zoom, notches);
 

@@ -117,4 +117,7 @@ public static class UiLayers
     public const int DebugUiTree = 1002;
     public const int ShaderTuner = 1003;
     public const int FpsCounter = 1004;
+
+    /// <summary>The text terminal (Ctrl+`), over everything, the debug views included.</summary>
+    public const int Terminal = 1005;
 }

@@ -21,42 +21,6 @@ public enum TimelineCommand
     End,
 }
 
-/// <summary>What a tool gives the shared timeline behaviour to work on. Times are in milliseconds.</summary>
-public interface ITimelineHost
-{
-    double NowMs { get; }
-    double DurationMs { get; }
-
-    /// <summary>One snap step, and where the step grid starts.</summary>
-    double StepMs { get; }
-    double StepOriginMs { get; }
-
-    /// <summary>Something modal is up, so the timeline leaves the wheel alone.</summary>
-    bool Blocked { get; }
-
-    /// <summary>The whole timeline and its ruler on screen; false while it is hidden.</summary>
-    bool TryGetArea(out Rect2 panel, out Rect2 ruler);
-
-    /// <summary>The times of everything on the timeline, in any order.</summary>
-    IEnumerable<double> MarkerTimesMs();
-
-    void SeekMs(double ms);
-
-    void TogglePlay();
-
-    /// <summary>A jump found nothing that way: below zero is earlier, above is later.</summary>
-    void NoMarker(int direction);
-}
-
-/// <summary>Marks an entity's <see cref="TimelineView"/> as a timeline with this host.</summary>
-public struct TimelineHost(ITimelineHost host) : IComponent
-{
-    public ITimelineHost Host = host;
-
-    /// <summary>The press or drag under way on this timeline; <see cref="TimelineInputSystem"/> keeps it.</summary>
-    public TimelineGesture Gesture = new();
-}
-
 /// <summary>The keys every timeline answers to the same way; a tool's own table holds the rest.</summary>
 public static class TimelineShortcuts
 {
@@ -87,65 +51,70 @@ public static class TimelineShortcuts
         return null;
     }
 
-    public static void Run(ITimelineHost host, TimelineCommand command)
+    /// <summary>Runs <paramref name="command"/> on <paramref name="timeline"/>, from the frame its owner last wrote.</summary>
+    public static void Run(Entity timeline, TimelineCommand command)
     {
+        if (timeline.IsNull || !timeline.HasComponent<TimelineFrame>())
+            return;
+
+        TimelineFrame frame = timeline.GetComponent<TimelineFrame>();
         switch (command)
         {
             case TimelineCommand.TogglePlay:
-                host.TogglePlay();
+                timeline.EmitSignal(new TimelineTogglePlay());
                 break;
             case TimelineCommand.StepBack:
-                Step(host, -1);
+                Step(timeline, frame, -1);
                 break;
             case TimelineCommand.StepForward:
-                Step(host, 1);
+                Step(timeline, frame, 1);
                 break;
             case TimelineCommand.SeekBack:
-                SeekTo(host, host.NowMs - SeekMs);
+                SeekTo(timeline, frame, frame.NowMs - SeekMs);
                 break;
             case TimelineCommand.SeekForward:
-                SeekTo(host, host.NowMs + SeekMs);
+                SeekTo(timeline, frame, frame.NowMs + SeekMs);
                 break;
             case TimelineCommand.PreviousKey:
-                Jump(host, -1);
+                Jump(timeline, frame, -1);
                 break;
             case TimelineCommand.NextKey:
-                Jump(host, 1);
+                Jump(timeline, frame, 1);
                 break;
             case TimelineCommand.Start:
-                SeekTo(host, 0);
+                SeekTo(timeline, frame, 0);
                 break;
             case TimelineCommand.End:
-                SeekTo(host, host.DurationMs);
+                SeekTo(timeline, frame, frame.DurationMs);
                 break;
         }
     }
 
-    private static void SeekTo(ITimelineHost host, double ms) =>
-        host.SeekMs(Math.Clamp(ms, 0, Math.Max(0, host.DurationMs)));
+    private static void SeekTo(Entity timeline, in TimelineFrame frame, double ms) =>
+        timeline.EmitSignal(new TimelineSeek(Math.Clamp(ms, 0, Math.Max(0, frame.DurationMs))));
 
     /// <summary>Moves one snap step, landing on the step grid.</summary>
-    private static void Step(ITimelineHost host, int direction)
+    private static void Step(Entity timeline, in TimelineFrame frame, int direction)
     {
-        double index = Math.Round((host.NowMs - host.StepOriginMs) / host.StepMs) + direction;
-        SeekTo(host, host.StepOriginMs + index * host.StepMs);
+        double index = Math.Round((frame.NowMs - frame.StepOriginMs) / frame.StepMs) + direction;
+        SeekTo(timeline, frame, frame.StepOriginMs + index * frame.StepMs);
     }
 
     /// <summary>Goes to the nearest marker before or after the playhead.</summary>
-    private static void Jump(ITimelineHost host, int direction)
+    private static void Jump(Entity timeline, in TimelineFrame frame, int direction)
     {
         double? best = null;
-        foreach (double time in host.MarkerTimesMs())
+        foreach (double time in frame.Markers)
         {
-            double offset = (time - host.NowMs) * direction;
-            if (offset > MarkerToleranceMs && (best is null || offset < (best.Value - host.NowMs) * direction))
+            double offset = (time - frame.NowMs) * direction;
+            if (offset > MarkerToleranceMs && (best is null || offset < (best.Value - frame.NowMs) * direction))
                 best = time;
         }
 
         if (best is { } target)
-            SeekTo(host, target);
+            SeekTo(timeline, frame, target);
         else
-            host.NoMarker(direction);
+            timeline.EmitSignal(new TimelineNoMarker(direction));
     }
 
     /// <summary>A marker this close counts as under the playhead, so a jump moves past it.</summary>

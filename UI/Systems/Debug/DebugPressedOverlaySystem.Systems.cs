@@ -42,10 +42,10 @@ public sealed partial class DebugPressedOverlaySystem
         public readonly string[] Cells = ["-", "-", "0"];
     }
 
-    private readonly Dictionary<BaseSystem, SystemWindow> _windows = new();
-    private readonly Dictionary<string, BaseSystem> _byId = new();
-    private readonly HashSet<string> _known = new();
-    private readonly List<UiTreeItem> _systemItems = new();
+    private readonly Dictionary<BaseSystem, SystemWindow> _windows = [];
+    private readonly Dictionary<string, BaseSystem> _byId = [];
+    private readonly HashSet<string> _known = [];
+    private readonly List<UiTreeItem> _systemItems = [];
     private Entity _systemTree;
     private float _liveClock;
     private float _averageClock;
@@ -55,7 +55,7 @@ public sealed partial class DebugPressedOverlaySystem
     {
         float labelWidth = TreeWidth - UiTheme.TreeIndent - TotalCellWidth();
         UiNode header = panel.Row().Main(StackMainAlignment.Start);
-        header.Text("System", FontSize, DebugPalette.Header, TextAlign.Left).Size(labelWidth + UiTheme.TreeIndent, DebugTable.RowHeight);
+        header.Text("System", FontSize, DebugPalette.Header).Size(labelWidth + UiTheme.TreeIndent, DebugTable.RowHeight);
         for (int i = 0; i < CellTitles.Length; i++)
             header.Text(CellTitles[i], FontSize, DebugPalette.Header, TextAlign.Right).Size(CellWidths[i], DebugTable.RowHeight);
 
@@ -78,7 +78,7 @@ public sealed partial class DebugPressedOverlaySystem
             main: StackMainAlignment.Start);
         _systemTree = ui.Tree(TreeWidth, TreeRowHeight, cellWidths: CellWidths);
         ui.End();
-        viewport.AddComponent(new ScrollView());
+        viewport.AddComponent(new ScrollOffset());
         ui.End();
 
         _known.Clear();

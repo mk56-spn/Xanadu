@@ -26,17 +26,35 @@ public sealed class ParticleEditorTests : EcsSystemTest
     private Entity _panel;
     private XpfLibrary _library = null!;
 
+    /// <summary>Holds the selected thing's settings, as a part or emitter would, and counts what the editor asked of it.</summary>
     private sealed class FakeHost : IParticleEditorHost
     {
-        public string? Particle { get; set; }
+        public XpfParticle? Particle { get; set; }
         public string Title => "Emitter";
         public int Uses { get; private set; }
+        public int Edits { get; private set; }
+        public int Gestures { get; private set; }
+        public int Changes { get; private set; }
 
-        public void Use(string name)
+        public void Use(XpfParticle settings)
         {
-            Particle = name;
+            Particle = settings;
             Uses++;
         }
+
+        public void Edit(Action change)
+        {
+            change();
+            Edits++;
+        }
+
+        public void BeginGesture() => Gestures++;
+
+        public void EndGesture()
+        {
+        }
+
+        public void Changed() => Changes++;
     }
 
     protected override void OnEcsSetUp()
@@ -89,7 +107,7 @@ public sealed class ParticleEditorTests : EcsSystemTest
     {
         Assert.That(_panel.Tags.Has<Disabled>(), Is.True);
 
-        _host.Particle = "dust";
+        _host.Particle = new XpfParticle { Name = "mine" };
         Frame();
 
         Assert.That(_panel.Tags.Has<Disabled>(), Is.False);
@@ -97,71 +115,74 @@ public sealed class ParticleEditorTests : EcsSystemTest
     }
 
     [Test]
-    public void TheArrowsPickTheNextEffectThroughTheHost()
+    public void TheArrowsLoadTheNextPresetAsACopyThroughTheHost()
     {
-        _host.Particle = "dust";
+        _host.Particle = _library.Find("dust")!.Clone();
         Frame();
 
         Click(ParticleEditorActionKind.Next);
 
-        Assert.That(_host.Particle, Is.EqualTo("sparks"));
+        Assert.That(_host.Particle!.Name, Is.EqualTo("sparks"));
+        Assert.That(_host.Particle, Is.Not.SameAs(_library.Find("sparks")), "the preset itself stays as stored");
         Assert.That(_host.Uses, Is.EqualTo(1));
     }
 
     [Test]
-    public void DraggingASliderChangesTheLibrarysEffect()
+    public void DraggingASliderChangesTheSelectedSettingsAsOneGesture()
     {
-        _host.Particle = "sparks";
+        _host.Particle = _library.Find("sparks")!.Clone();
         Frame();
-        int version = ParticleLibrary.Version;
 
         SliderOf(XpfField.Amount).GetComponent<UiSlider>().Value = 120f;
         Frame();
 
-        Assert.That(_library.Find("sparks")!.Amount, Is.EqualTo(120));
-        Assert.That(_library.Find("dust")!.Amount, Is.EqualTo(16), "only the selected effect");
-        Assert.That(ParticleLibrary.Unsaved, Is.True);
-        Assert.That(ParticleLibrary.Version, Is.GreaterThan(version));
+        Assert.That(_host.Particle.Amount, Is.EqualTo(120));
+        Assert.That(_library.Find("sparks")!.Amount, Is.Not.EqualTo(120), "the preset is not edited");
+        Assert.That(_host.Gestures, Is.EqualTo(1));
+        Assert.That(_host.Changes, Is.GreaterThan(0));
     }
 
     [Test]
-    public void SlidersFollowTheSelectedEffectWithoutWritingIt()
+    public void SlidersFollowTheSelectionWithoutWritingIt()
     {
-        _library.Find("dust")!.Lifetime = 2f;
-        _host.Particle = "sparks";
+        var slow = new XpfParticle { Name = "slow", Lifetime = 2f };
+        var quick = new XpfParticle { Name = "quick", Lifetime = 0.6f };
+        _host.Particle = quick;
         Frame();
-        _host.Particle = "dust";
+        _host.Particle = slow;
         Frame();
 
         Assert.That(SliderOf(XpfField.Lifetime).GetComponent<UiSlider>().Value, Is.EqualTo(2f));
-        Assert.That(_library.Find("sparks")!.Lifetime, Is.EqualTo(0.6f), "switching does not copy values across");
-        Assert.That(ParticleLibrary.Unsaved, Is.False);
+        Assert.That(quick.Lifetime, Is.EqualTo(0.6f), "switching does not copy values across");
+        Assert.That(_host.Gestures, Is.Zero);
     }
 
     [Test]
-    public void CopyPlaysACopySoOtherUsersKeepTheOriginal()
+    public void StoreKeepsACopyInTheLibraryUnderItsName()
     {
-        _host.Particle = "dust";
+        _host.Particle = new XpfParticle { Name = "mine", Amount = 7 };
         Frame();
 
-        Click(ParticleEditorActionKind.Copy);
+        Click(ParticleEditorActionKind.Store);
 
-        Assert.That(_host.Particle, Is.EqualTo("dust-2"));
-        Assert.That(_library.Find("dust-2"), Is.Not.Null);
-        Assert.That(_library.Find("dust"), Is.Not.Null);
+        XpfParticle? stored = _library.Find("mine");
+        Assert.That(stored, Is.Not.Null);
+        Assert.That(stored, Is.Not.SameAs(_host.Particle));
+        Assert.That(stored!.Amount, Is.EqualTo(7));
+        Assert.That(ParticleLibrary.Unsaved, Is.True);
     }
 
     [Test]
-    public void TheLookButtonsCycleTheEffectsLook()
+    public void TheLookButtonsCycleTheSettingsLookAsEdits()
     {
-        _host.Particle = "dust";
+        _host.Particle = _library.Find("dust")!.Clone();
         Frame();
 
         Click(ParticleEditorActionKind.Texture);
         Click(ParticleEditorActionKind.ScaleCurve);
 
-        XpfParticle dust = _library.Find("dust")!;
-        Assert.That(dust.Texture, Is.EqualTo(XpfTexture.NoteGlyphs));
-        Assert.That(XpfEditing.ScalePreset(dust), Is.EqualTo(XpfScalePreset.Shrink));
+        Assert.That(_host.Particle.Texture, Is.EqualTo(XpfTexture.NoteGlyphs));
+        Assert.That(XpfEditing.ScalePreset(_host.Particle), Is.EqualTo(XpfScalePreset.Shrink));
+        Assert.That(_host.Edits, Is.EqualTo(2));
     }
 }

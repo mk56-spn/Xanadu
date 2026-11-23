@@ -113,7 +113,7 @@ public struct UiCommand : IComponent
     private static ArchetypeQuery<UiCommand> Everything(EntityStore store) =>
         Queries.GetValue(store, static s => s.Query<UiCommand>().WithDisabled());
 
-    private static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<UiCommand>> Queries = new();
+    private static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<UiCommand>> Queries = [];
 
     private static int ToInt<T>(T id)
         where T : struct, Enum

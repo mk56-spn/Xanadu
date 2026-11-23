@@ -19,9 +19,9 @@ namespace Xanadu.Ui.Systems.Layout;
 /// </summary>
 public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiContainer>
 {
-    private readonly List<Entity> _children = new();
-    private readonly List<Vector2> _sizes = new();
-    private readonly List<Entity> _resized = new();
+    private readonly List<Entity> _children = [];
+    private readonly List<Vector2> _sizes = [];
+    private readonly List<Entity> _resized = [];
 
     public ContainerLayoutSystem()
     {
@@ -30,7 +30,7 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
 
     protected override void OnUpdate()
     {
-        List<Entity> containers = Query.ToEntityList().ToList();
+        List<Entity> containers = [.. Query.ToEntityList()];
         if (containers.Count == 0)
             return;
 

@@ -23,8 +23,8 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
     private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7;
 
-    private readonly List<string> _lines = new();
-    private readonly List<BoardBox> _boxes = new();
+    private readonly List<string> _lines = [];
+    private readonly List<BoardBox> _boxes = [];
 
     protected override void OnUpdate()
     {

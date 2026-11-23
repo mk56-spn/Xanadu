@@ -118,7 +118,7 @@ public static class UiTreeControl
 
     /// <summary>
     /// Selects a node. <paramref name="reveal"/> expands its ancestors so it is
-    /// visible; <paramref name="raiseChanged"/> sets <see cref="UiTreeChanged"/>,
+    /// visible; <paramref name="raiseChanged"/> emits <see cref="TreeNodeSelected"/>,
     /// which a caller reflecting its own state into the tree leaves off.
     /// Returns false when the selection was already that node.
     /// </summary>
@@ -137,8 +137,19 @@ public static class UiTreeControl
 
         tree.GetComponent<UiTree>().Selected = id;
         if (raiseChanged)
-            tree.AddComponent(new UiTreeChanged(id));
+            tree.EmitSignal(new TreeNodeSelected(id));
         return true;
+    }
+
+    /// <summary>
+    /// Calls <paramref name="selected"/> with the node id each time the user
+    /// selects a node in <paramref name="tree"/> (Friflo's <c>AddSignalHandler</c>
+    /// for <see cref="TreeNodeSelected"/>; the handler goes with the entity).
+    /// </summary>
+    public static Entity OnSelected(this Entity tree, System.Action<string> selected)
+    {
+        tree.AddSignalHandler<TreeNodeSelected>(signal => selected(signal.Event.Id));
+        return tree;
     }
 
     private static void Reveal(Entity node)

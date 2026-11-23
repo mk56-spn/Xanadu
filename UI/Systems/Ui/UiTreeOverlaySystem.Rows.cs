@@ -16,21 +16,21 @@ namespace Xanadu.Ui.Systems.Ui;
 public sealed partial class UiTreeOverlaySystem
 {
     /// <summary>Components every drawn entity carries; they say nothing about what it is.</summary>
-    private static readonly HashSet<Type> Plumbing = new()
-    {
+    private static readonly HashSet<Type> Plumbing =
+    [
         typeof(Position), typeof(Rectangle), typeof(VisualItem), typeof(Drawable),
         typeof(FillColor), typeof(TreeNode), typeof(EntityName), typeof(Text),
         typeof(TextStyle), typeof(TextAlignment), typeof(UiFlex), typeof(UiCommand),
-    };
+    ];
 
-    private readonly HashSet<int> _expanded = new();
-    private readonly List<(Entity Entity, int Depth)> _listed = new();
-    private readonly List<Entity> _rowEntities = new();
-    private readonly List<RowParts> _rowParts = new();
-    private readonly List<RowLook?> _rowLooks = new();
-    private readonly Dictionary<Archetype, string> _kinds = new();
-    private readonly List<Entity> _roots = new();
-    private readonly HashSet<Entity> _rootSet = new();
+    private readonly HashSet<int> _expanded = [];
+    private readonly List<(Entity Entity, int Depth)> _listed = [];
+    private readonly List<Entity> _rowEntities = [];
+    private readonly List<RowParts> _rowParts = [];
+    private readonly List<RowLook?> _rowLooks = [];
+    private readonly Dictionary<Archetype, string> _kinds = [];
+    private readonly List<Entity> _roots = [];
+    private readonly HashSet<Entity> _rootSet = [];
     private bool _toTop;
     private bool? _everyRoot;
     private bool _revealInspected;

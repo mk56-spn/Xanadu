@@ -46,7 +46,7 @@ public sealed class FpsCounterSystem(
         UiText.Set(_label, $"{current:0} FPS");
 
         ref TextStyle style = ref _label.GetComponent<TextStyle>();
-        ref TextGlow glow = ref _label.GetComponent<TextGlow>();
+        ref Glow glow = ref _label.GetComponent<Glow>();
         if (style.Color == color)
             return;
 

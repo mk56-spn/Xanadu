@@ -57,7 +57,7 @@ public sealed partial class DebugPressedOverlaySystem
         foreach ((string title, (Stat Stat, string Label)[] tiles) in Sections)
         {
             UiNode section = panel.Column().Gap(UiMetrics.Space.Xxs).Cross(StackCrossAlignment.Start);
-            section.Text(title, UiType.Caption, DebugPalette.Header, TextAlign.Left)
+            section.Text(title, UiType.Caption, DebugPalette.Header)
                 .Size(TileWidth * tiles.Length, CaptionHeight);
             UiNode row = section.Row().Gap(UiMetrics.Space.Sm).Main(StackMainAlignment.Start);
             foreach ((Stat stat, string label) in tiles)
@@ -65,9 +65,9 @@ public sealed partial class DebugPressedOverlaySystem
                 // At least the tile width, so numbers line up; wider when the label needs it.
                 float width = Math.Max(TileWidth, UiNode.Measure(label, UiType.Caption).X + UiMetrics.Space.Sm);
                 UiNode tile = row.Column().Cross(StackCrossAlignment.Start);
-                tile.Text(label, UiType.Caption, DebugPalette.TextDim, TextAlign.Left)
+                tile.Text(label, UiType.Caption, DebugPalette.TextDim)
                     .Size(width, CaptionHeight);
-                _stats[(int)stat] = tile.Text("-", FontSize, DebugPalette.Text, TextAlign.Left)
+                _stats[(int)stat] = tile.Text("-", FontSize, DebugPalette.Text)
                     .Size(width, DebugTable.RowHeight)
                     .Entity;
             }

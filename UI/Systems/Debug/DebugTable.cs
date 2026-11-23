@@ -30,7 +30,7 @@ public sealed class DebugTable
     private readonly UiNode _table;
 
     /// <summary>What each row's cells were asked to show, which their text may be a shortened form of.</summary>
-    private readonly List<string[]> _sources = new();
+    private readonly List<string[]> _sources = [];
 
     public DebugTable(UiNode parent, params DebugColumn[] columns)
     {

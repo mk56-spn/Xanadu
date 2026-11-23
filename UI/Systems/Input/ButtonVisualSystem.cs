@@ -1,6 +1,6 @@
-using Xanadu.Core;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Tweens;
 using Xanadu.Ui.Ecs.Ui;
@@ -47,7 +47,7 @@ public sealed class ButtonVisualSystem : QuerySystem<ButtonVisual, FillColor>
             // Colours may change while a layer shows (a toggle lighting up): the layers follow.
             pool.SetValue(target, UiTweenKeys.Hover, Rgba(visual.Hover));
             pool.SetValue(target, UiTweenKeys.Flash, Rgba(visual.Flash));
-            pool.Fade(target, Tween.FadeTo(visual.Hover, Clip.FromNow(HoverSeconds), HoverPriority).Named(UiTweenKeys.Hover), hovered ? 1f : 0f);
+            pool.Fade(target, Tween.FadeTo(visual.Hover, Clip.FromNow(HoverSeconds)).Named(UiTweenKeys.Hover), hovered ? 1f : 0f);
             if (pressed && !visual.WasPressed)
             {
                 pool.Play(target, Tween.FadeTo(visual.Flash, Clip.FromNow(FlashSeconds).Reversed(), FlashPriority)

@@ -65,7 +65,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                         style.FontSize,
                         align);
                 }
-                else if (entity.HasComponent<TextGlow>())
+                else if (entity.HasComponent<Glow>())
                 {
                     Canvas.DrawTextGlow(
                         visual.Value,
@@ -75,7 +75,7 @@ public sealed class TextDrawSystem : QuerySystem<Text, Rectangle, Drawable, Visu
                         style.FontSize,
                         align,
                         style.Bold,
-                        entity.GetComponent<TextGlow>(),
+                        entity.GetComponent<Glow>(),
                         entity.TryGetComponent(out TextOutline glowOutline)
                             ? glowOutline
                             : null);

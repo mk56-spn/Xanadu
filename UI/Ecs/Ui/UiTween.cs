@@ -30,7 +30,7 @@ public static class UiTweenKeys
 /// </summary>
 public static class UiTween
 {
-    private static readonly ConditionalWeakTable<EntityStore, object> Watched = new();
+    private static readonly ConditionalWeakTable<EntityStore, object> Watched = [];
 
     public static TweenPool Pool => TweenPool.Shared;
 

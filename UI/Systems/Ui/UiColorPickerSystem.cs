@@ -23,7 +23,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
         Alpha,
     }
 
-    private readonly List<Entity> _pickers = new();
+    private readonly List<Entity> _pickers = [];
     private Entity _dragged;
     private Region _region;
     private bool _wasPressed;
@@ -127,7 +127,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
         if (!picker.Swatch.IsNull)
             UiText.SetFill(picker.Swatch, color);
         if (!picker.Hex.IsNull)
-            SetHex(picker.Hex, color.A < 1 ? "#" + color.ToHtml(true) : "#" + color.ToHtml(false));
+            SetHex(picker.Hex, color.A < 1 ? "#" + color.ToHtml() : "#" + color.ToHtml(false));
     }
 
     private static void Place(Entity entity, Vector2 position) => UiLayout.Move(entity, position);
@@ -135,7 +135,7 @@ public sealed class UiColorPickerSystem(IPointerInputSource pointer) : QuerySyst
     private static void SetAlphaRamp(Entity entity, Color color)
     {
         ref LinearGradient gradient = ref entity.GetComponent<LinearGradient>();
-        Color end = new(color, 1);
+        Color end = new(color);
         if (gradient.End == end)
             return;
 

@@ -18,12 +18,12 @@ public static class QueryCache
 {
     private static class Of<T1> where T1 : struct, IComponent
     {
-        public static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<T1>> Queries = new();
+        public static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<T1>> Queries = [];
     }
 
     private static class Of<T1, T2> where T1 : struct, IComponent where T2 : struct, IComponent
     {
-        public static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<T1, T2>> Queries = new();
+        public static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<T1, T2>> Queries = [];
     }
 
     public static ArchetypeQuery<T1> Cached<T1>(this EntityStore store) where T1 : struct, IComponent =>

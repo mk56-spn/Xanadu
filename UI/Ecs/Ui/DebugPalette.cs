@@ -35,9 +35,9 @@ public static class DebugPalette
     public static readonly Color ContainerFill = new(1f, 0.8f, 0.2f, 0.10f);
     public static readonly Color ContainerBorder = new(1f, 0.85f, 0.25f, 0.7f);
     public static readonly Color SelectedFill = new(0.2f, 0.9f, 1f, 0.3f);
-    public static readonly Color SelectedBorder = new(0.3f, 0.95f, 1f, 1f);
+    public static readonly Color SelectedBorder = new(0.3f, 0.95f, 1f);
     public static readonly Color HoveredFill = new(0.4f, 1f, 0.5f, 0.22f);
-    public static readonly Color HoveredBorder = new(0.45f, 1f, 0.55f, 1f);
+    public static readonly Color HoveredBorder = new(0.45f, 1f, 0.55f);
     public static readonly Color Pin = new(0.3f, 1f, 0.45f, 0.95f);
     public static readonly Color PinOutline = new(0.05f, 0.2f, 0.08f, 0.95f);
 

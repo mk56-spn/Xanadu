@@ -9,24 +9,13 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// selected body is shown. A floating body is centred on
 /// <see cref="BodyCenter"/>; one in a container's stack is placed by the stack.
 /// </summary>
-public struct UiTabs : IComponent
+public struct UiTabs(Entity[] buttons, Entity[] bodies, Vector2 bodyCenter, int selected = 0) : IComponent
 {
-    public Entity[] Buttons;
-    public Entity[] Bodies;
-    public Vector2 BodyCenter;
-    public int Selected;
-    public bool[] Held;
-    public Color OnColor;
-    public Color OffColor;
-
-    public UiTabs(Entity[] buttons, Entity[] bodies, Vector2 bodyCenter, int selected = 0)
-    {
-        Buttons = buttons;
-        Bodies = bodies;
-        BodyCenter = bodyCenter;
-        Selected = selected;
-        Held = new bool[buttons.Length];
-        OnColor = Palette.Primary;
-        OffColor = Palette.Muted;
-    }
+    public Entity[] Buttons = buttons;
+    public Entity[] Bodies = bodies;
+    public Vector2 BodyCenter = bodyCenter;
+    public int Selected = selected;
+    public bool[] Held = new bool[buttons.Length];
+    public Color OnColor = Palette.Primary;
+    public Color OffColor = Palette.Muted;
 }

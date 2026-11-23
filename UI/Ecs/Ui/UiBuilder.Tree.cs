@@ -150,7 +150,6 @@ public sealed partial class UiBuilder
         Container(
             Vector2.Zero,
             new Vector2(state.Width, state.RowHeight),
-            StackDirection.Horizontal,
             color: new Color(0, 0, 0, 0));
 
         if (row.Depth > 0)

@@ -160,11 +160,11 @@ public static class TimelineEaseBand
         yield return end;
     }
 
-    public static Vector2[] Bar(float from, float to, float middle, float half) => new[]
-    {
+    public static Vector2[] Bar(float from, float to, float middle, float half) =>
+    [
         new Vector2(from, middle - half), new Vector2(to, middle - half),
         new Vector2(to, middle + half), new Vector2(from, middle + half),
-    };
+    ];
 
     private static Vector2[] Close(List<Vector2> top, List<Vector2> bottom)
     {

@@ -159,16 +159,16 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
             float right = railX - centre.X;
             Vector2 zero = EasePickerPanel.Point(0f, 0f, plot, low, high);
             Vector2 one = EasePickerPanel.Point(0f, 1f, plot, low, high);
-            SetPoints(parts.Guides, new[]
-            {
+            SetPoints(parts.Guides,
+            [
                 new Vector2(left, zero.Y), new Vector2(right, zero.Y),
                 new Vector2(right, one.Y), new Vector2(left, one.Y),
-            });
-            SetPoints(parts.Rail, new[]
-            {
+            ]);
+            SetPoints(parts.Rail,
+            [
                 new Vector2(0f, EasePickerPanel.Point(0f, low, plot, low, high).Y),
                 new Vector2(0f, EasePickerPanel.Point(0f, high, plot, low, high).Y),
-            });
+            ]);
         }
 
         float t = Math.Min(1f, picker.Clock / RunSeconds);

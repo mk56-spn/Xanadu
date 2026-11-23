@@ -12,28 +12,25 @@ namespace Xanadu.Ui.Ecs.Ui;
 public struct UiColorSwatch : ITag;
 
 /// <summary>
-/// Somewhere a dragged colour can be dropped. The drag system leaves the
-/// colour here; the owner takes it with <see cref="Take"/> and applies it as
-/// if it had been typed or picked.
+/// Somewhere a dragged colour can be dropped. The drag system emits
+/// <see cref="ColorDropped"/> on it; the owner listens with
+/// <see cref="UiColorDrops.OnColorDropped"/> and applies it as if it had been typed or picked.
 /// </summary>
-public struct UiColorDrop : IComponent
+public struct UiColorDrop : ITag;
+
+/// <summary>Signal: a dragged colour was let go over this <see cref="UiColorDrop"/>.</summary>
+public readonly struct ColorDropped(Color color)
 {
-    public bool Pending;
-    public Color Color;
+    public readonly Color Color = color;
+}
 
-    /// <summary>Hands over a colour dropped on <paramref name="entity"/>, once.</summary>
-    public static bool Take(Entity entity, out Color color)
+/// <summary>Listening to colour drops through the entity's native signals.</summary>
+public static class UiColorDrops
+{
+    /// <summary>Calls <paramref name="dropped"/> with each colour let go over <paramref name="target"/>.</summary>
+    public static Entity OnColorDropped(this Entity target, System.Action<Color> dropped)
     {
-        color = default;
-        if (entity.IsNull || !entity.HasComponent<UiColorDrop>())
-            return false;
-
-        ref UiColorDrop drop = ref entity.GetComponent<UiColorDrop>();
-        if (!drop.Pending)
-            return false;
-
-        drop.Pending = false;
-        color = drop.Color;
-        return true;
+        target.AddSignalHandler<ColorDropped>(signal => dropped(signal.Event.Color));
+        return target;
     }
 }

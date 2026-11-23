@@ -104,8 +104,8 @@ public readonly partial struct UiNode
     /// <summary>
     /// A pick of one of <paramref name="names"/>: a dropdown whose button reads
     /// what is picked (<see cref="DropdownShowsPick"/>). Read and set the pick on
-    /// its <see cref="Dropdown"/>; a pick from the list also adds
-    /// <see cref="DropdownChanged"/>. Returns the button.
+    /// its <see cref="Dropdown"/>; listen to picks from the list with
+    /// <see cref="UiDropdowns.OnPicked"/>. Returns the button.
     /// </summary>
     public UiNode Choice(IReadOnlyList<string> names, int selected, float width, int type = UiType.Caption)
     {

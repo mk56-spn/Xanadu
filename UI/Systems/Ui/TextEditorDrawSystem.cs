@@ -40,7 +40,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
     private static readonly Color IndentGuide = new(1, 1, 1, 0.07f);
     private static readonly Color StrayIndent = new(0.98f, 0.57f, 0.24f, 0.22f);
 
-    private readonly List<TextCell> _boxed = new();
+    private readonly List<TextCell> _boxed = [];
 
     protected override void OnUpdate()
     {

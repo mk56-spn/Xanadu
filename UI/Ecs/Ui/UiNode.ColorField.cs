@@ -4,6 +4,7 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Ui.Ecs.Ui;
 
@@ -18,24 +19,30 @@ public readonly partial struct UiNode
     {
         const float height = 28;
         const float gap = 6;
-        Text(label, UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left).Size(width, 18);
+        Text(label, UiTheme.SmallFontSize, UiTheme.Accent).Size(width, 18);
         Entity picker = FieldPicker(width);
         UiNode row = Row().Size(width, height).Gap(gap).Main(StackMainAlignment.Start);
         // The swatch can be dragged onto another colour, and either half of the
         // field takes one dropped on it.
         UiNode swatch = row.Rect(Colors.White, size: new Vector2(height, height))
             .Input()
-            .With(new UiColorDrop())
+            .Tag<UiColorDrop>()
             .Tooltip("Drag this colour onto another to copy it there");
         swatch.Entity.AddTag<UiColorSwatch>();
-        return row.Rect(Palette.SurfaceInset, "", new Vector2(width - height - gap, height))
+        UiNode field = row.Rect(Palette.SurfaceInset, "", new Vector2(width - height - gap, height))
             .Input()
-            .With(new UiColorDrop())
+            .Tag<UiColorDrop>()
             .With(new TextStyle(13, UiTheme.Text))
             .Align(TextAlign.Left)
             .With(new TextField(""))
             .With(new UiColorField(swatch.Entity) { Picker = picker })
             .Tooltip(tooltip);
+
+        // A colour dragged in, onto either half, lands like a picked one.
+        Entity entity = field.Entity;
+        entity.OnColorDropped(color => UiColorFields.Drop(entity, color));
+        swatch.Entity.OnColorDropped(color => UiColorFields.Drop(entity, color));
+        return field;
     }
 
     /// <summary>
@@ -81,7 +88,7 @@ public readonly partial struct UiNode
             Entity bar = builder.LinearGradientEntity(
                 Vector2.Zero,
                 new Vector2(ColorPickerLayout.Side, ColorPickerLayout.AlphaHeight),
-                new LinearGradient(new Color(initial, 0), new Color(initial, 1)));
+                new LinearGradient(new Color(initial, 0), new Color(initial)));
             state.Alpha = bar;
             state.AlphaCursor = left.Leaf(bar).Cursor(
                 [new(0, -ColorPickerLayout.AlphaHeight / 2 - 3), new(0, ColorPickerLayout.AlphaHeight / 2 + 3)],

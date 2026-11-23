@@ -132,7 +132,6 @@ public readonly partial struct UiNode
         builder.Container(
             Vector2.Zero,
             Vector2.Zero,
-            StackDirection.Horizontal,
             spacing: gap,
             color: Transparent,
             autoWidth: true,
@@ -205,7 +204,7 @@ public readonly partial struct UiNode
             autoHeight: false);
         content = new UiNode(_surface!, builder.Current);
 
-        viewport.AddComponent(new ScrollView());
+        viewport.AddComponent(new ScrollOffset());
         builder.End();
         builder.End();
 

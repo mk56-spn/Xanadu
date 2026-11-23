@@ -182,7 +182,7 @@ public static class UiSpecs
 /// <summary>A stack's children, kept in order; see <see cref="StackSpec"/>.</summary>
 internal sealed class UiChildren : IEnumerable<UiSpec>
 {
-    private readonly List<UiSpec> _specs = new();
+    private readonly List<UiSpec> _specs = [];
 
     public void Add(UiSpec? spec)
     {

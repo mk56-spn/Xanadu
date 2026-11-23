@@ -12,7 +12,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// </summary>
 public static class UiTreeEvents
 {
-    private static readonly ConditionalWeakTable<EntityStore, object> Attached = new();
+    private static readonly ConditionalWeakTable<EntityStore, object> Attached = [];
 
     /// <summary>Attaches the handlers to a store, once.</summary>
     public static void Ensure(EntityStore store)

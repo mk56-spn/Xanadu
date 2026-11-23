@@ -31,7 +31,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private readonly IFramePhaseSource? _phases;
     private readonly IVisualItemFactory? _visuals;
     private readonly OverlayLatch _latch;
-    private readonly Dictionary<BaseSystem, string> _names = new();
+    private readonly Dictionary<BaseSystem, string> _names = [];
     private readonly ArchetypeQuery _debug;
     private readonly ArchetypeQuery _dirty;
     private readonly ArchetypeQuery _moved;
@@ -41,7 +41,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
     private readonly ArchetypeQuery _layoutDirty;
 
     private readonly ArchetypeTable _archetypes = new();
-    private readonly List<int> _sampleIds = new();
+    private readonly List<int> _sampleIds = [];
     private long _elapsedMs;
     private bool _pageUpHeld;
     private bool _pageDownHeld;

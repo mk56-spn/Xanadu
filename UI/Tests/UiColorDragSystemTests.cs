@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using NUnit.Framework;
@@ -24,8 +25,12 @@ public sealed class UiColorDragSystemTests : EcsSystemTest
     private Entity _red;
     private Entity _blue;
 
+    /// <summary>Every <see cref="ColorDropped"/> heard, in order: which swatch, which colour.</summary>
+    private readonly List<(Entity On, Color Color)> _dropped = [];
+
     protected override void OnEcsSetUp()
     {
+        _dropped.Clear();
         _pointer = new Pointer();
         _red = Swatch(new Vector2(100, 100), Colors.Red);
         _blue = Swatch(new Vector2(300, 100), Colors.Blue);
@@ -38,9 +43,10 @@ public sealed class UiColorDragSystemTests : EcsSystemTest
         Entity swatch = Store.CreateEntity(
             new Rectangle(new Rect2(-14, -14, 28, 28)),
             new Position(at),
-            new FillColor(color),
-            new UiColorDrop());
+            new FillColor(color));
         swatch.AddTag<UiColorSwatch>();
+        swatch.AddTag<UiColorDrop>();
+        swatch.OnColorDropped(dropped => _dropped.Add((swatch, dropped)));
         return swatch;
     }
 
@@ -58,10 +64,7 @@ public sealed class UiColorDragSystemTests : EcsSystemTest
         Step(new Vector2(300, 100), true);
         Step(new Vector2(300, 100), false);
 
-        Assert.That(UiColorDrop.Take(_blue, out Color color), Is.True);
-        Assert.That(color, Is.EqualTo(Colors.Red));
-        Assert.That(UiColorDrop.Take(_blue, out _), Is.False, "a drop is handed over once");
-        Assert.That(UiColorDrop.Take(_red, out _), Is.False);
+        Assert.That(_dropped, Is.EqualTo(new[] { (_blue, Colors.Red) }), "one drop, on the swatch let go over");
     }
 
     [Test]
@@ -88,7 +91,7 @@ public sealed class UiColorDragSystemTests : EcsSystemTest
         Step(new Vector2(300, 100), true);
         Step(new Vector2(300, 100), false);
 
-        Assert.That(UiColorDrop.Take(_blue, out _), Is.False);
+        Assert.That(_dropped, Is.Empty);
     }
 
     [Test]
@@ -98,7 +101,6 @@ public sealed class UiColorDragSystemTests : EcsSystemTest
         Step(new Vector2(200, 300), true);
         Step(new Vector2(200, 300), false);
 
-        Assert.That(UiColorDrop.Take(_blue, out _), Is.False);
-        Assert.That(UiColorDrop.Take(_red, out _), Is.False);
+        Assert.That(_dropped, Is.Empty);
     }
 }

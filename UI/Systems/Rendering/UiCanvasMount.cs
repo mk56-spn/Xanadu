@@ -28,8 +28,8 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
 {
     private readonly ArchetypeQuery<Layer, VisualItem> _layers = store.Query<Layer, VisualItem>();
     private readonly ArchetypeQuery<Rectangle, Drawable, VisualItem, Position> _drawn = store.Query<Rectangle, Drawable, VisualItem, Position>();
-    private readonly List<Entity> _order = new();
-    private readonly Dictionary<int, List<Entity>> _loose = new();
+    private readonly List<Entity> _order = [];
+    private readonly Dictionary<int, List<Entity>> _loose = [];
 
     private readonly record struct Base(Transform2D Transform, Color Modulate, int Z, Rect2? Clip);
 
@@ -54,7 +54,7 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
                 continue;
 
             int z = layer.GetComponent<Layer>().ZIndex;
-            float opacity = layer.TryGetComponent(out LayerOpacity fade) ? fade.Value : 1f;
+            float opacity = layer.TryGetComponent(out Opacity fade) ? fade.Value : 1f;
             var under = new Base(Transform2D.Identity, new Color(1f, 1f, 1f, opacity), z, null);
             into.Item(layer.GetComponent<VisualItem>().Value, Transform2D.Identity, under.Modulate, z, null);
             foreach (Entity child in layer.ChildEntities)
@@ -123,7 +123,7 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
     /// <summary>Where an entity draws among its siblings' layer, over its parent's.</summary>
     public static int LocalZIndex(Entity entity)
     {
-        if (entity.HasComponent<UiBackground>())
+        if (entity.Tags.Has<UiBackground>())
             return -1;
 
         // A dropdown floats above whatever it opens over, and its options above
@@ -166,7 +166,7 @@ public sealed class UiCanvasMount(EntityStore store) : ICanvasMount
             }
 
             if (!Into.TryGetValue(drawable.ZIndex, out List<Entity>? list))
-                Into[drawable.ZIndex] = list = new List<Entity>();
+                Into[drawable.ZIndex] = list = [];
             list.Add(entity);
         }
     }

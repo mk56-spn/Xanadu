@@ -35,7 +35,7 @@ public readonly partial struct UiNode
     {
         UiNode field = Column().Gap(SlotGap).Cross(StackCrossAlignment.Start).Width(width);
         if (label.Length > 0)
-            field.Text(label, UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left).Size(width, 18);
+            field.Text(label, UiTheme.SmallFontSize, UiTheme.Accent).Size(width, 18);
 
         var values = new float[shape.Count];
         for (int i = 0; i < values.Length; i++)
@@ -74,7 +74,7 @@ public readonly partial struct UiNode
         {
             UiNode line = field.Row().Gap(SlotGap).Main(StackMainAlignment.Start);
             if (lone)
-                state.Less = line.StepButton("-", "One less", UiTheme.SmallFontSize).Entity;
+                state.Less = line.StepButton("-", "One less").Entity;
 
             for (int column = 0; column < shape.Columns; column++)
             {
@@ -85,7 +85,7 @@ public readonly partial struct UiNode
             }
 
             if (lone)
-                state.More = line.StepButton("+", "One more", UiTheme.SmallFontSize).Entity;
+                state.More = line.StepButton("+", "One more").Entity;
         }
 
         field.Entity.AddComponent(state);
@@ -123,7 +123,7 @@ public readonly partial struct UiNode
         {
             int selected = Math.Clamp((int)MathF.Round(initial.Length > 0 ? initial[0] : 0f), 0, options.Count - 1);
             UiNode column = Column().Gap(SlotGap).Cross(StackCrossAlignment.Start).Width(width);
-            column.Text(label, UiTheme.SmallFontSize, UiTheme.Accent, TextAlign.Left).Size(width, 18);
+            column.Text(label, UiTheme.SmallFontSize, UiTheme.Accent).Size(width, 18);
             return column.Choice(options, selected, width).Tooltip(param.Name);
         }
 

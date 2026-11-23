@@ -16,7 +16,7 @@ namespace Xanadu.Ui.Systems.Input;
 public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
 {
     private readonly IPointerInputSource _source;
-    private readonly List<Candidate> _candidates = new();
+    private readonly List<Candidate> _candidates = [];
 
     private Entity? _pressed;
     private Entity? _hovered;

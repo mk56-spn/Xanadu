@@ -16,31 +16,28 @@ namespace Xanadu.Ui.Tests;
 [TestFixture]
 public sealed class TimelineZoomAboutPointerTests
 {
-    private sealed class Host : ITimelineHost
+    /// <summary>A timeline owner: writes its frame from these fields and hears seeks.</summary>
+    private sealed class Host
     {
         public double NowMs { get; set; } = 5_000;
         public double DurationMs { get; set; } = 10_000;
-        public double StepMs => 250;
-        public double StepOriginMs => 0;
-        public bool Blocked => false;
         public static readonly Rect2 Panel = new(0, 0, 1000, 100);
 
-        public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
+        public Entity Own(Entity timeline)
         {
-            panel = Panel;
-            ruler = default;
-            return true;
-        }
-
-        public IEnumerable<double> MarkerTimesMs() => [];
-        public void SeekMs(double ms) => NowMs = ms;
-
-        public void TogglePlay()
-        {
-        }
-
-        public void NoMarker(int direction)
-        {
+            timeline.AddComponent(new TimelineFrame());
+            timeline.AddSignalHandler<TimelineFrameDue>(signal =>
+            {
+                ref TimelineFrame frame = ref signal.Entity.GetComponent<TimelineFrame>();
+                frame.NowMs = NowMs;
+                frame.DurationMs = DurationMs;
+                frame.StepMs = 250;
+                frame.Shown = true;
+                frame.Panel = Panel;
+                frame.Ruler = default;
+            });
+            timeline.AddSignalHandler<TimelineSeek>(signal => NowMs = signal.Event.Ms);
+            return timeline;
         }
     }
 
@@ -72,7 +69,7 @@ public sealed class TimelineZoomAboutPointerTests
         _host = new Host();
         _wheel = new Wheel();
         _pointer = new FakePointerInput();
-        _timeline = _store.CreateEntity(new TimelineView(1f), new TimelineHost(_host));
+        _timeline = _host.Own(_store.CreateEntity(new TimelineView(1f)));
         _root = new SystemRoot(_store);
         _root.Add(new TimelineSystemGroup(_pointer, _wheel));
     }

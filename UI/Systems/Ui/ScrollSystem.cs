@@ -1,6 +1,6 @@
-using Xanadu.Core;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
@@ -16,7 +16,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// </summary>
 public sealed partial class ScrollSystem(
     IPointerInputSource? pointerSource = null,
-    IWheelSource? wheel = null) : QuerySystem<ScrollView, Rectangle, Position>
+    IWheelSource? wheel = null) : QuerySystem<ScrollOffset, Rectangle, Position>
 {
     protected override void OnUpdate()
     {
@@ -32,7 +32,7 @@ public sealed partial class ScrollSystem(
             if (!target.IsNull && target.HasComponent<UiList>())
                 Scroll(target, wheel.TakeWheel());
             else if (!target.IsNull)
-                target.GetComponent<ScrollView>().Offset -= wheel.TakeWheel() * 48f;
+                target.GetComponent<ScrollOffset>().Value -= wheel.TakeWheel() * 48f;
         }
 
         CommandBuffer buffer = CommandBuffer;
@@ -71,7 +71,7 @@ public sealed partial class ScrollSystem(
     /// <summary>Clamps the offset and hangs the content from the viewport's top edge.</summary>
     private static void Place(Entity viewport, CommandBuffer buffer)
     {
-        ref ScrollView view = ref viewport.GetComponent<ScrollView>();
+        ref ScrollOffset view = ref viewport.GetComponent<ScrollOffset>();
         Entity body = viewport.ChildCount > 0 ? viewport.ChildEntities[0] : default;
         if (body.IsNull ||
             !body.HasComponent<Position>() ||
@@ -82,13 +82,13 @@ public sealed partial class ScrollSystem(
 
         float viewportHeight = viewport.GetComponent<Rectangle>().Bounds.Size.Y;
         float contentHeight = body.GetComponent<Rectangle>().Bounds.Size.Y;
-        view.Offset = Math.Clamp(
-            view.Offset,
+        view.Value = Math.Clamp(
+            view.Value,
             0,
             Math.Max(0, contentHeight - viewportHeight));
 
         ref Position content = ref body.GetComponent<Position>();
-        float y = -viewportHeight / 2 + contentHeight / 2 - view.Offset;
+        float y = -viewportHeight / 2 + contentHeight / 2 - view.Value;
         if (content.Value.Y == y)
             return;
 

@@ -207,7 +207,7 @@ public sealed class TimelineScene
     /// <summary>The scrollbar along time under the rows, or null for none; it shows only while zoomed in.</summary>
     public TimelineTimeBar? TimeBar;
 
-    public readonly List<TimelineItem> Items = new();
+    public readonly List<TimelineItem> Items = [];
 
     public double TimeAt(float x) => Axis.TimeAt(x);
 
@@ -248,53 +248,4 @@ public enum TimelineGestureKind
     TimeScroll,
     Item,
     Box,
-}
-
-/// <summary>
-/// A tool's side of a timeline: it describes the timeline each frame and is
-/// told what presses and drags mean, never where the pointer is. Implemented by
-/// the same object as <see cref="ITimelineHost"/>.
-/// </summary>
-public interface ITimelineInput
-{
-    /// <summary>The timeline this frame, or null when it is hidden.</summary>
-    TimelineScene? Scene();
-
-    /// <summary>A gesture began; the owner can mark itself busy.</summary>
-    void GestureStarted(TimelineGestureKind kind);
-
-    /// <summary>The gesture is over, whatever it was.</summary>
-    void GestureEnded(TimelineGestureKind kind);
-
-    /// <summary>Show rows from <paramref name="first"/> on.</summary>
-    void ScrollRows(int first);
-
-    /// <summary>The playhead goes to a time, already snapped.</summary>
-    void Scrub(double ms);
-
-    /// <summary>A press on a lane's label.</summary>
-    void LabelPressed(int lane, Vector2 point);
-
-    /// <summary>
-    /// A press on empty lane space, at a snapped time; a box may follow. With
-    /// <paramref name="additive"/> the box adds to the selection.
-    /// </summary>
-    void LanePressed(int lane, double ms, bool additive);
-
-    /// <summary>A press took an item, and changed the selection as <paramref name="pick"/> says.</summary>
-    void ItemPressed(in TimelineItem item, TimelinePick pick, TimelineGrabPart part);
-
-    /// <summary>
-    /// The taken item has been dragged: a marker to <paramref name="fromMs"/>
-    /// (both times equal), a span to its new ends. Each is where it was plus
-    /// how far the pointer has moved in time, snapped already; a selected
-    /// marker carries the rest of the selection by the same amount.
-    /// </summary>
-    void ItemMoved(in TimelineItem item, double fromMs, double toMs);
-
-    /// <summary>The press on an item let go; <paramref name="remove"/> when a Shift-click takes it out.</summary>
-    void ItemReleased(in TimelineItem item, bool remove);
-
-    /// <summary>A box made this the selection.</summary>
-    void BoxSelected(IReadOnlyList<object> selection);
 }

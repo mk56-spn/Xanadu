@@ -20,8 +20,8 @@ public sealed class RetainedCanvasDraw(IRectCanvas canvas, Handle target)
 
     private readonly record struct Command(Kind Kind, Rect2 Bounds, Color Color, string? Text = null, float Width = 0);
 
-    private List<Command> _next = new();
-    private List<Command> _drawn = new();
+    private List<Command> _next = [];
+    private List<Command> _drawn = [];
     private bool _isDrawn;
 
     public void Begin() => _next.Clear();

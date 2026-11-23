@@ -7,29 +7,19 @@ using Xanadu.Core.Theme;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>Clickable boolean toggle with configurable on/off labels and colors.</summary>
-public struct Toggle : IComponent
+public struct Toggle(
+    string onText,
+    string offText,
+    bool value,
+    Color? onColor = null,
+    Color? offColor = null) : IComponent
 {
-    public string OnText;
-    public string OffText;
-    public bool Value;
-    public bool Held;
-    public Color OnColor;
-    public Color OffColor;
-
-    public Toggle(
-        string onText,
-        string offText,
-        bool value,
-        Color? onColor = null,
-        Color? offColor = null)
-    {
-        OnText = onText;
-        OffText = offText;
-        Value = value;
-        Held = false;
-        OnColor = onColor ?? Palette.Primary;
-        OffColor = offColor ?? Palette.Muted;
-    }
+    public string OnText = onText;
+    public string OffText = offText;
+    public bool Value = value;
+    public bool Held = false;
+    public Color OnColor = onColor ?? Palette.Primary;
+    public Color OffColor = offColor ?? Palette.Muted;
 }
 
 /// <summary>Listening to a toggle through the store's native component events.</summary>
@@ -85,5 +75,5 @@ public static class UiToggles
     }
 
     /// <summary>Read every frame by the editors' tools, so each store keeps its query.</summary>
-    private static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<UniqueEntity, Toggle>> Switches = new();
+    private static readonly ConditionalWeakTable<EntityStore, ArchetypeQuery<UniqueEntity, Toggle>> Switches = [];
 }

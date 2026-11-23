@@ -30,7 +30,7 @@ public sealed class XifEditorTests : EcsSystemTest
     private Entity _panel;
 
     private XifEditor Editor => _panel.GetComponent<XifEditor>();
-    private XifPrimitive Polygon => _host.Current!.Primitives[Editor.Primitive];
+    private XifPolygon Polygon => _host.Current!.Polygons[Editor.Polygon];
 
     protected override void OnEcsSetUp()
     {
@@ -39,7 +39,8 @@ public sealed class XifEditorTests : EcsSystemTest
         Root.Add(new ContainerLayoutSystem());
         Root.Add(new XifEditorSystem(_pointer, new FakeVisualRidFactory()));
         UiNode layer = UiNode.Layer(Store, default, 5, new FakeVisualRidFactory());
-        _panel = XifEditorPanel.Build(layer, Home, _host);
+        _panel = XifEditorPanel.Build(layer, new Rect2(Home - new Vector2(300, 250), new Vector2(600, 500)), _host, new Vector2(1920, 1080));
+        XifEditorSystem.Open(_panel);
         Frame(2);
     }
 
@@ -100,70 +101,71 @@ public sealed class XifEditorTests : EcsSystemTest
     [Test]
     public void ItsReadoutsDescribeTheItem()
     {
-        Assert.That(Text(Editor.Parts.Title), Is.EqualTo("STREAK ITEM"));
-        Assert.That(Text(Editor.Parts.PrimitiveLabel), Is.EqualTo("POLYGON 1/1"));
-        Assert.That(Text(Editor.Parts.PointLabel), Is.EqualTo("PT 1/4  -16, -16"));
+        Assert.That(Text(Editor.Parts.Title), Is.EqualTo("EDIT XIF · STREAK ITEM"));
+        Assert.That(Text(Editor.Parts.PointLabel), Is.EqualTo("1/4  -16, -16"));
         Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("NONE"));
         Assert.That(Editor.Handles, Has.Count.EqualTo(4));
     }
 
     [Test]
-    public void PolygonsAndPointsAreAddedAndRemovedThroughTheHost()
+    public void ShapesAndPointsAreAddedAndRemovedThroughTheHost()
     {
         Click(XifEditorActionKind.AddPolygon);
-        Assert.That(_host.Current!.Primitives, Has.Count.EqualTo(2));
-        Assert.That(Text(Editor.Parts.PrimitiveLabel), Is.EqualTo("POLYGON 2/2"));
+        Assert.That(_host.Current!.Polygons, Has.Count.EqualTo(2));
+        Assert.That(Editor.Polygon, Is.EqualTo(1));
 
         Click(XifEditorActionKind.InsertPoint);
         Assert.That(Polygon.Points, Has.Count.EqualTo(5));
         Assert.That(Polygon.Points[1], Is.EqualTo(new Vector2(0, -16)), "half way along the edge");
         Assert.That(Editor.Handles, Has.Count.EqualTo(5));
 
-        Click(XifEditorActionKind.RemovePrimitive);
-        Click(XifEditorActionKind.RemovePrimitive);
-        Assert.That(_host.Current!.Primitives, Has.Count.EqualTo(1));
-        Assert.That(Text(Editor.Parts.Status), Is.EqualTo("AN ITEM KEEPS ONE PRIMITIVE"));
+        Click(XifEditorActionKind.RemovePolygon);
+        Click(XifEditorActionKind.RemovePolygon);
+        Assert.That(_host.Current!.Polygons, Has.Count.EqualTo(1));
+        Assert.That(Text(Editor.Parts.Status), Is.EqualTo("AN ITEM KEEPS ONE SHAPE"));
         Assert.That(_host.Edits, Is.EqualTo(3), "a refused edit records nothing");
     }
 
     [Test]
-    public void APolygonKeepsThreePoints()
+    public void AShapeKeepsThreePoints()
     {
         Click(XifEditorActionKind.RemovePoint);
         Click(XifEditorActionKind.RemovePoint);
 
         Assert.That(Polygon.Points, Has.Count.EqualTo(XifEditing.MinPolygonPoints));
-        Assert.That(Text(Editor.Parts.Status), Does.StartWith("A POLYGON KEEPS 3"));
+        Assert.That(Text(Editor.Parts.Status), Is.EqualTo($"A SHAPE KEEPS {XifEditing.MinPolygonPoints} POINTS"));
     }
 
     [Test]
-    public void TypedFieldsApplyWhenTheyLoseFocus()
+    public void AQuadKeepsItsShape()
+    {
+        Click(XifEditorActionKind.AddQuad);
+        Click(XifEditorActionKind.InsertPoint);
+
+        Assert.That(Polygon.Kind, Is.EqualTo(XifShapeKind.Quad));
+        Assert.That(Text(Editor.Parts.Status), Does.EndWith("KEEPS ITS SHAPE · DRAG ITS HANDLES"));
+    }
+
+    [Test]
+    public void TheNameAppliesWhenItsFieldLosesFocus()
     {
         Type(XifEditorFieldKind.Name, "  slash ");
-        Type(XifEditorFieldKind.Fill, "#ff800080");
-        Type(XifEditorFieldKind.Texture, "streak.png");
 
         Assert.That(_host.Current!.Name, Is.EqualTo("slash"));
-        Assert.That(Polygon.Fill, Is.EqualTo(Color.FromHtml("#ff800080")));
-        Assert.That(Polygon.Ref, Is.EqualTo("streak.png"));
-        Assert.That(Text(Editor.Parts.Status), Is.EqualTo("TEXTURE SET"));
-
-        Type(XifEditorFieldKind.Fill, "orange-ish");
-        Assert.That(Polygon.Fill, Is.EqualTo(Color.FromHtml("#ff800080")));
-        Assert.That(Text(Editor.Parts.Status), Is.EqualTo("FILL IS #RRGGBB OR #RRGGBBAA"));
+        Assert.That(Text(Editor.Parts.Status), Is.EqualTo("RENAMED"));
     }
 
     [Test]
     public void TheShaderCyclesThroughWhatTheHostAllows()
     {
         Click(XifEditorActionKind.NextShader);
-        Assert.That(Polygon.Shader.Path, Is.EqualTo("glow.gdshader"));
+        Assert.That(_host.Current!.ShaderRef.Path, Is.EqualTo("glow.gdshader"));
         Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("GLOW"));
 
         Click(XifEditorActionKind.NextShader);
-        Assert.That(Polygon.Shader.IsNone, Is.True);
+        Assert.That(_host.Current!.ShaderRef.IsNone, Is.True);
 
-        Polygon.Shader = XifShaderRef.OfMap(4);
+        XifEditing.SetShader(_host.Current!, XifShaderRef.OfMap(4));
         Frame();
         Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("NOT ALLOWED HERE"));
     }
@@ -206,13 +208,15 @@ public sealed class XifEditorTests : EcsSystemTest
     {
         var item = new Xif();
         int index = XifEditing.AddPolygon(item);
-        XifPrimitive polygon = item.Primitives[index];
+        XifPolygon polygon = item.Polygons[index];
 
         Assert.That(XifEditing.Rename(item, "same"), Is.True);
         Assert.That(XifEditing.Rename(item, " same "), Is.False);
         Assert.That(XifEditing.MovePoint(polygon, 0, new Vector2(float.NaN, 0)), Is.False);
         Assert.That(XifEditing.TryParseFill("#00ff00", out Color green), Is.True);
         Assert.That(XifEditing.FormatFill(green), Is.EqualTo("#00ff00ff"));
+        Assert.That(XifEditing.SetFill(polygon, green), Is.True);
+        Assert.That(XifEditing.SetFill(polygon, green), Is.False, "no change, no edit");
         Assert.That(XifEditing.Bounds(item), Is.EqualTo(new Rect2(-16, -16, 32, 32)));
     }
 
@@ -228,7 +232,7 @@ public sealed class XifEditorTests : EcsSystemTest
         public Xif? Current = new()
         {
             Name = "streak",
-            Primitives = { new XifPrimitive { Kind = XifPrimitive.PolygonKind, Points = XifEditing.DefaultOutline() } },
+            Modules = { new XifGeometry { Polygons = { new XifPolygon { Points = XifEditing.DefaultOutline() } } } },
         };
 
         public int Edits;
@@ -239,13 +243,11 @@ public sealed class XifEditorTests : EcsSystemTest
         public Xif? Item => Current;
         public string Title => $"{Current?.Name} item";
 
-        public IReadOnlyList<XifShaderChoice> Shaders { get; } = new List<XifShaderChoice>
-        {
+        public IReadOnlyList<XifShaderChoice> Shaders { get; } =
+        [
             new("NONE", new XifShaderRef()),
             new("GLOW", XifShaderRef.OfCommon("glow.gdshader")),
-        };
-
-        public bool CanLoad(string path) => path.EndsWith(".png", StringComparison.Ordinal);
+        ];
 
         public void Edit(Action change)
         {

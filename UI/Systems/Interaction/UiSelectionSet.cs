@@ -6,7 +6,7 @@ namespace Xanadu.Ui.Systems.Interaction;
 /// <summary>Generic ordered entity selection used by UI interaction code.</summary>
 public sealed class UiSelectionSet
 {
-    private readonly List<Entity> _items = new();
+    private readonly List<Entity> _items = [];
 
     public Entity Primary => _items.Count > 0 ? _items[0] : default;
 

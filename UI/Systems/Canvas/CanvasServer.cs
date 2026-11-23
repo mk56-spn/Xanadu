@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using Xanadu.Core.Maths;
 
 namespace Xanadu.Ui.Systems.Canvas;
