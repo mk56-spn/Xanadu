@@ -30,6 +30,18 @@ public enum EditorCommandType
     ApplyLevel,
     RecoverLevel,
     SetLevelFile,
+    NewGroup,
+    PickGroup,
+    AddToGroup,
+    RemoveFromGroup,
+    DeleteGroup,
+    KeyGroup,
+    DeleteGroupKeys,
+    StepGroupLoop,
+    RenameGroup,
+    ToggleOneMember,
+    ToggleGroupEase,
+    EaseGroupKeys,
 }
 
 /// <summary>Data-only editor command.</summary>
@@ -40,7 +52,8 @@ public readonly record struct EditorCommand(
     long LongValue = 0,
     LevelDocument? Document = null,
     string? Text2 = null,
-    Color? ColorValue = null)
+    Color? ColorValue = null,
+    float FloatValue = 0f)
 {
     public static EditorCommand SetName(string value) =>
         new(EditorCommandType.SetName, value);
@@ -109,4 +122,41 @@ public readonly record struct EditorCommand(
     public static EditorCommand SetLevelFile(string path) =>
         new(EditorCommandType.SetLevelFile, path);
 
+    /// <summary>A new group holding the selected decos, picked straight away.</summary>
+    public static EditorCommand NewGroup() => new(EditorCommandType.NewGroup);
+
+    /// <summary>Picks the group at <paramref name="index"/> to edit and selects its members.</summary>
+    public static EditorCommand PickGroup(int index) => new(EditorCommandType.PickGroup, IntValue: index);
+
+    public static EditorCommand AddToGroup() => new(EditorCommandType.AddToGroup);
+
+    public static EditorCommand RemoveFromGroup() => new(EditorCommandType.RemoveFromGroup);
+
+    public static EditorCommand DeleteGroup() => new(EditorCommandType.DeleteGroup);
+
+    /// <summary>
+    /// Keys a field of the picked group (its index in <see cref="LevelItemFields.All"/>)
+    /// at the playhead. While <paramref name="live"/> a drag is still going; the
+    /// drag is one undo step, recorded when it ends.
+    /// </summary>
+    public static EditorCommand KeyGroup(int field, float value, bool live) =>
+        new(EditorCommandType.KeyGroup, IntValue: field, LongValue: live ? 1 : 0, FloatValue: value);
+
+    /// <summary>Takes out the picked group's keys at the playhead.</summary>
+    public static EditorCommand DeleteGroupKeys() => new(EditorCommandType.DeleteGroupKeys);
+
+    /// <summary>Steps the picked group's loop through its lengths (off, then 1 to 32 beats); <paramref name="direction"/> is -1 or +1.</summary>
+    public static EditorCommand StepGroupLoop(int direction) => new(EditorCommandType.StepGroupLoop, IntValue: direction);
+
+    public static EditorCommand RenameGroup(string name) => new(EditorCommandType.RenameGroup, name);
+
+    /// <summary>Turns the one-member escape hatch on or off: keys go to the one selected member instead of the whole group.</summary>
+    public static EditorCommand ToggleOneMember() => new(EditorCommandType.ToggleOneMember);
+
+    /// <summary>Opens or closes the ease picker for the picked group's keys at the playhead.</summary>
+    public static EditorCommand ToggleGroupEase(bool open) => new(EditorCommandType.ToggleGroupEase, IntValue: open ? 1 : 0);
+
+    /// <summary>Sets an <see cref="Xanadu.Core.Timeline.EasePreset"/> on the keys at the playhead that the group keys go to.</summary>
+    public static EditorCommand EaseGroupKeys(Xanadu.Core.Timeline.EasePreset preset) =>
+        new(EditorCommandType.EaseGroupKeys, IntValue: (int)preset);
 }

@@ -50,7 +50,7 @@ public static class CharacterTransitions
     public static ContactClip ClipFor(CharacterMotionState state, AnimatorRuntime runtime) =>
         ClipFor(state, runtime.Package);
 
-    public static ContactClip ClipFor(CharacterMotionState state, XafPackage package) => state switch
+    public static ContactClip ClipFor(CharacterMotionState state, RigPackage package) => state switch
     {
         CharacterMotionState.Jumping => First(package, ContactClip.Jumping, ContactClip.Idle),
         CharacterMotionState.Falling => First(package, ContactClip.Falling, ContactClip.Jumping, ContactClip.Idle),
@@ -64,7 +64,7 @@ public static class CharacterTransitions
     /// has. The package's transition table decides whether each one happens
     /// and how it blends; one it does not allow leaves the old clip playing.
     /// </summary>
-    public static List<(ContactClip From, ContactClip To)> Transitions(XafPackage package)
+    public static List<(ContactClip From, ContactClip To)> Transitions(RigPackage package)
     {
         bool landing = package.Has(ContactClip.Landing);
         var pairs = new List<(ContactClip, ContactClip)>();
@@ -86,7 +86,7 @@ public static class CharacterTransitions
         return pairs;
     }
 
-    private static ContactClip First(XafPackage package, params ContactClip[] clips)
+    private static ContactClip First(RigPackage package, params ContactClip[] clips)
     {
         foreach (ContactClip clip in clips)
         {

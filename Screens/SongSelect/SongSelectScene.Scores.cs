@@ -178,10 +178,10 @@ public static partial class SongSelectScene
         Math.Max(0, state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y - ScoreViewHeight);
 
     /// <summary>The scores' scrollbar; without overflow the thumb fills the track.</summary>
-    public static VerticalSlider ScoreSlider(in SongSelectState state)
+    public static ScrollSlider ScoreSlider(in SongSelectState state)
     {
         float content = state.ScoreContent.Entity.GetComponent<Rectangle>().Bounds.Size.Y;
-        return new VerticalSlider(
+        return new ScrollSlider(
             BarTrackTop,
             BarTrackBottom,
             ScoreRange(state) <= 0 ? 1f : ScoreViewHeight / content,
@@ -205,9 +205,9 @@ public static partial class SongSelectScene
         if (state.ScoreViewport.IsNull)
             return;
 
-        VerticalSlider slider = ScoreSlider(state);
+        ScrollSlider slider = ScoreSlider(state);
         float length = slider.ThumbLength;
-        float start = slider.ThumbTop(ScoreValue(state));
+        float start = slider.ThumbStart(ScoreValue(state));
 
         var span = new Vector2(start, length);
         if (state.ScoreThumbSpan == span)

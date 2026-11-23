@@ -50,6 +50,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorNoteTypeBarSystem(entities, commands));
         Add(new EditorToolSectionSystem(entities));
         Add(new EditorButtonSystem(entities, commands));
+        Add(new EditorGroupPanelSystem(entities, commands));
+        Add(new Xanadu.Ui.Systems.Ui.EasePickerSystem());
         Add(new EditorMetadataSystem(entities, commands));
         Add(new EditorHudSystem(entities, toasts));
         Add(new WaveformPreviewSystem());

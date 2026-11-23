@@ -116,18 +116,15 @@ internal sealed class BlendLab : ILabExperiment
             i => Selected.Blend = Selected.Blend with { DstAlpha = Factors[i] }, Factors.Length, i => FactorName(Factors[i]));
 
         UiNode flags = LabPanel.Row(panel);
-        _enabled = flags.Button("", UiType.Caption).Size(140, RowHeight)
-            .With(new Toggle("BLEND ON", "BLEND OFF", true))
-            .Tooltip("Off: the quad replaces what is under it, factors ignored");
+        _enabled = LabPanel.Toggle(flags, "BLEND ON", "BLEND OFF", true, 140,
+            "Off: the quad replaces what is under it, factors ignored");
         flags.Text("WRITE", UiType.Caption, Palette.TextDim).Size(64, RowHeight);
         string[] channels = ["R", "G", "B", "A"];
         for (int i = 0; i < 4; i++)
-            _write[i] = flags.Button("", UiType.Caption).Size(48, RowHeight)
-                .With(new Toggle(channels[i], channels[i], true))
-                .Tooltip("Whether the quad writes the " + channels[i] + " channel at all");
-        _ramp = flags.Button("", UiType.Caption).Size(120, RowHeight)
-            .With(new Toggle("RAMP", "RAMP", false))
-            .Tooltip("Fade the quad's alpha from 0 on its left edge to its colour's alpha on its right");
+            _write[i] = LabPanel.Toggle(flags, channels[i], channels[i], true, 48,
+                "Whether the quad writes the " + channels[i] + " channel at all");
+        _ramp = LabPanel.Toggle(flags, "RAMP", "RAMP", false, 120,
+            "Fade the quad's alpha from 0 on its left edge to its colour's alpha on its right");
 
         string[] rgba = ["RED", "GREEN", "BLUE", "ALPHA"];
         for (int i = 0; i < 4; i++)
@@ -143,9 +140,8 @@ internal sealed class BlendLab : ILabExperiment
         _backdropStepper = _ui.Stepper(panel, "BACKDROP", () => _backdrop, i => _backdrop = i, Backdrops.Length,
             i => Backdrops[i], spare: 148);
         _backdropAlphaSlider = LabPanel.Slider(panel, "BACK ALPHA", 0, 1, 1, "The backdrop's alpha, which the DST ALPHA factors read");
-        _alphaView = _backdropStepper.Row.Button("", UiType.Caption).Size(140, RowHeight)
-            .With(new Toggle("SHOW ALPHA", "SHOW ALPHA", false))
-            .Tooltip("Paint the target's alpha as grey (itself a blend: src × DST ALPHA, dst × ZERO)");
+        _alphaView = LabPanel.Toggle(_backdropStepper.Row, "SHOW ALPHA", "SHOW ALPHA", false, 140,
+            "Paint the target's alpha as grey (itself a blend: src × DST ALPHA, dst × ZERO)");
 
         ShowQuad();
     }

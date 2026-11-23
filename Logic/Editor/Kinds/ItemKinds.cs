@@ -22,12 +22,15 @@ public static class ItemKinds
 
     public static readonly DashStopItemKind DashStops = new();
 
+    public static readonly DecoItemKind Decos = new();
+
     /// <summary>
     /// Every kind, in the order items are made when a level loads or an undo
     /// lands; later items draw over earlier ones on the same layer and z.
     /// </summary>
     public static readonly ItemKind[] All =
     {
+        Decos,
         Chords,
         Drafts,
         DashStops,
@@ -45,6 +48,7 @@ public static class ItemKinds
         DashStops,
         Drafts,
         Chords,
+        Decos,
     };
 
     private static readonly Dictionary<Type, ItemKind> ByComponent = new()
@@ -54,6 +58,7 @@ public static class ItemKinds
         [typeof(Pad)] = Pads,
         [typeof(Draft)] = Drafts,
         [typeof(DashStop)] = DashStops,
+        [typeof(Deco)] = Decos,
     };
 
     /// <summary>The kind an entity is, or null when it is not a placed item.</summary>

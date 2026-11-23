@@ -27,10 +27,9 @@ internal sealed partial class ParticleLab
         private readonly List<(ValueField Spec, Action<float[]> Set)> _knobs = new();
 
         /// <summary>Dropdowns built but not yet bound, and the label each shows once chosen.</summary>
-        private readonly List<(Custom Spec, string[] Options, Action<int> Chosen, string? Fixed)> _choices = new();
+        private readonly List<(UiSpec Spec, string[] Options, Action<int> Chosen)> _choices = new();
 
         /// <summary>Button labels to change once the UI has run (a choice lands mid-playback).</summary>
-        private readonly List<(Entity Button, string Text)> _relabel = new();
 
         /// <summary>Which folding sections were open, by title, so a rebuild keeps them as they were.</summary>
         private readonly Dictionary<string, bool> _open = new()
@@ -143,8 +142,11 @@ internal sealed partial class ParticleLab
         private UiSpec Choice(string caption, string[] options, int selected, float width, Action<int> chosen, string? fixedText = null)
         {
             selected = Math.Clamp(selected, 0, options.Length - 1);
-            var drop = new Custom(p => p.Dropdown(fixedText ?? $"{options[selected]} ▼", options, selected, new Vector2(width, Control.Xs)).Button);
-            _choices.Add((drop, options, chosen, fixedText));
+            // A menu keeps its own text; a pick reads what is picked (the shared choice).
+            UiSpec drop = fixedText is null
+                ? new Choice(options, selected, width)
+                : new Custom(p => p.Dropdown(fixedText, options, selected, new Vector2(width, Control.Xs)).Button);
+            _choices.Add((drop, options, chosen));
             return caption.Length == 0
                 ? drop
                 : new Column(gap: Space.Xs, cross: Cross.Start) { new Label(caption, UiType.Caption, ink: Ink.Accent), drop };
@@ -199,7 +201,7 @@ internal sealed partial class ParticleLab
                 spec.Node.Entity.OnValueChanged((values, _) => set(values));
             _knobs.Clear();
 
-            foreach ((Custom spec, string[] options, Action<int> chosen, string? fixedText) in _choices)
+            foreach ((UiSpec spec, string[] options, Action<int> chosen) in _choices)
             {
                 Entity button = spec.Node.Entity;
                 button.OnComponentChanged += change =>
@@ -208,21 +210,10 @@ internal sealed partial class ParticleLab
                         return;
                     int value = Math.Clamp(change.Component<DropdownChanged>().Value, 0, options.Length - 1);
                     chosen(value);
-                    if (fixedText is null)
-                        _relabel.Add((button, $"{options[value]} ▼"));
                 };
             }
 
             _choices.Clear();
-        }
-
-        /// <summary>Gives chosen dropdowns their new labels, after the UI has run.</summary>
-        private void Relabel()
-        {
-            foreach ((Entity button, string text) in _relabel)
-                if (!button.IsNull)
-                    UiNode.Wrap(button).SetText(text);
-            _relabel.Clear();
         }
 
         private static float[] Channels(Color c) => [c.R, c.G, c.B, c.A];

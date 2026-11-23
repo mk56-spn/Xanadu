@@ -32,14 +32,21 @@ public static class LevelDocumentMapper
         foreach (ItemKind kind in ItemKinds.All)
             kind.CaptureInto(entities, document);
 
+        if (editor.TryGetComponent(out LevelGroups groups))
+            document.Groups = groups.Groups.ConvertAll(group => group.Copy());
+
         return document;
     }
 
     /// <summary>Applies a level document with its song already opened, as a <see cref="LevelEntry"/> carries it.</summary>
     public static void Apply(EntityStore entities, Entity editor, LevelDocument document, LoadedSong? song)
     {
+        LevelItemIds.Fill(document);
         foreach (ItemKind kind in ItemKinds.All)
             kind.ApplyFrom(entities, document);
+        editor.AddComponent(new LevelGroups(document.Groups.ConvertAll(group => group.Copy())));
+        if (editor.HasComponent<EditorGroupEdit>())
+            editor.GetComponent<EditorGroupEdit>() = EditorGroupEdit.None with { Picked = document.Groups.Count > 0 ? 0 : -1 };
 
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         level.LevelId = document.Id ?? "";

@@ -1,7 +1,9 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
+using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 using Position = Xanadu.Core.Position;
 using static Xanadu.Model.Playfields.PlayfieldColors;
@@ -11,16 +13,23 @@ namespace Xanadu.Drawers.Playfields;
 
 public static partial class PlayfieldRenderer
 {
-    /// <summary>The player's beam: a bright line into the judgement line that thins and fades, with a flash where it strikes.</summary>
+    /// <summary>
+    /// The player's beam (<see cref="Beams.Look"/>: a bright line into the judgement
+    /// line that thins and fades, with a flash across its end where it strikes),
+    /// drawn by the Xif drawer stretched from where it starts to where it strikes.
+    /// </summary>
     public static void DrawHitTrail(IRectCanvas canvas, Handle rid, Entity entity)
     {
         HitTrail trail = entity.GetComponent<HitTrail>();
-        float t = Math.Clamp(trail.Age / Math.Max(0.01f, trail.Lifetime), 0f, 1f);
-        float alpha = 1f - t;
-        Color color = trail.Color;
-        canvas.DrawLine(rid, trail.From, trail.Position, new Color(color.R, color.G, color.B, alpha * 0.35f), 14f * (1f - t * 0.6f));
-        canvas.DrawLine(rid, trail.From, trail.Position, new Color(1f, 1f, 1f, alpha), 4f * (1f - t * 0.5f));
-        float flash = 10f + 26f * t;
-        canvas.DrawRect(rid, new Rect2(trail.Position - new Vector2(flash, 3f), new Vector2(flash * 2f, 6f)), new Color(color.R, color.G, color.B, alpha));
+        Vector2 way = trail.Position - trail.From;
+        float length = way.Length();
+        if (length < 0.5f)
+            return;
+
+        Vector2 along = way / length;
+        var across = new Vector2(-along.Y, along.X);
+        Beams.SetState(length, Math.Clamp(trail.Age / Math.Max(0.01f, trail.Lifetime), 0f, 1f), trail.Color);
+        var placement = new Transform2D(along * (length + Beams.Past), across * Beams.HalfWidth, trail.From);
+        XifDrawer.Shared.DrawNode(canvas, rid, Beams.Look, placement, 1f, XifTint.Plain);
     }
 }

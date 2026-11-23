@@ -20,7 +20,7 @@ public readonly record struct EditorToolGroupInfo(string Name, EditorTool[] Tool
 /// <summary>The tool strip's buttons, top to bottom, and the tools each one holds.</summary>
 public static class EditorToolGroups
 {
-    /// <summary>The strip the editor shows: notes, chords, dashes, the entrance, orbs, pads and updrafts.</summary>
+    /// <summary>The strip the editor shows: notes, chords, dashes, the entrance, orbs, pads, updrafts and decor.</summary>
     public static readonly EditorToolGroupInfo[] All =
     {
         new("Notes", new EditorTool[]
@@ -52,6 +52,11 @@ public static class EditorToolGroups
         new("Drafts", new EditorTool[]
         {
             new(EditorPlacementMode.Draft, "W", "Updrafts: click to place an emitter, one fixed width; above it the player is held at its hover height instead of falling. Still selected, click above it to set that height; set several in a row for a long stretch"),
+        }),
+        new("Decor", new EditorTool[]
+        {
+            new(EditorPlacementMode.Grass, "G", "Grass: click to plant a patch, rooted where clicked; one blade copied across a strip, each swaying in the wind on its own. Only for show: play never notices it"),
+            new(EditorPlacementMode.Flare, "F", "Flares: click to place a lens flare centred where clicked. Only for show: play never notices it"),
         }),
     };
 

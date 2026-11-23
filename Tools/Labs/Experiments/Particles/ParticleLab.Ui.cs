@@ -149,7 +149,6 @@ internal sealed partial class ParticleLab
         /// <summary>Shows what the last presses and edits changed.</summary>
         private void ShowPending()
         {
-            Relabel();
             if (_reshow)
             {
                 _reshow = false;

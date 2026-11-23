@@ -219,8 +219,20 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         }
 
         EditorSnapshot before = context.History.Capture();
+        var gone = new HashSet<string>();
         foreach (Entity entity in items)
+        {
+            if (entity.TryGetComponent(out Deco deco))
+                gone.Add(deco.Xif.Id);
             entity.DeleteEntity();
+        }
+
+        // Groups let go of what was deleted in the same step, so undo brings both back.
+        if (gone.Count > 0 && editor.TryGetComponent(out LevelGroups groups))
+        {
+            foreach (GroupDocument group in groups.Groups)
+                group.Forget(gone);
+        }
 
         context.History.Record(before, context.History.Capture());
         selection.Clear();

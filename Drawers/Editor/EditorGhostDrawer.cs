@@ -27,6 +27,18 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
         Vector2 pointer = view.ScreenToPlayfield(ghost.Screen);
         Vector2 at = ViewportSnap.IsOn(surface.Entities) ? PlayfieldGrid.NearestCrossing(pointer, frame.Playfield) : pointer;
         long now = (long)Math.Round(frame.Playhead.ShownMs);
+        if (editor.GetComponent<EditorPlacement>().Mode is EditorPlacementMode.Grass or EditorPlacementMode.Flare)
+        {
+            // The box the deco would cover, its own look drawn faintly in it.
+            Xanadu.Core.Items.Xif xif = editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Grass ? Decos.Grass() : Decos.Flare();
+            var deco = new Deco(at, xif);
+            PlayfieldRenderer.DrawDeco(surface.Canvas, surface.Target, deco, view, selected: false, GhostAlpha);
+            Rect2 box = Decos.Bounds(deco);
+            Vector2 corner = view.PlayfieldToScreen(box.Position);
+            surface.Canvas.DrawBorder(surface.Target, new Rect2(corner, box.Size * view.Scale), Faint(valid ? Palette.Info : Palette.Danger), 1.5f);
+            return;
+        }
+
         if (editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Draft)
         {
             Vector2 centre = view.PlayfieldToScreen(at);

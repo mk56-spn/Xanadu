@@ -38,6 +38,7 @@ public static partial class PlayfieldRenderer
         Action? drawWedge)
     {
         DrawFloor(canvas, rid, frame.View, frame.Playfield);
+        DrawDecos(canvas, rid, entities, frame);
         DrawChords(canvas, rid, entities, frame.View, frame.Playfield, frame.Playhead.ShownMs);
         DrawDrafts(canvas, rid, entities, frame);
         DrawDashStops(canvas, rid, entities, frame);

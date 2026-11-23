@@ -190,6 +190,8 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
             EditorPlacementMode.TimedPad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed, time)),
             EditorPlacementMode.Draft => EditorItems.Place(_entities, new Draft(point, Drafts.DefaultHeight)),
             EditorPlacementMode.DashStop => EditorItems.Place(_entities, new DashStop(point)),
+            EditorPlacementMode.Grass => EditorItems.Place(_entities, new Deco(point, Named(Decos.Grass()))),
+            EditorPlacementMode.Flare => EditorItems.Place(_entities, new Deco(point, Named(Decos.Flare()))),
             _ => EditorItems.Place(_entities, placed),
         };
         _history.Record(before, _history.Capture());
@@ -372,4 +374,13 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         _dragStartPositions.Clear();
     }
 
+
+    /// <summary>A new deco's Xif with an id no deco on the field has, so groups can hold it.</summary>
+    private Xanadu.Core.Items.Xif Named(Xanadu.Core.Items.Xif xif)
+    {
+        var taken = new System.Collections.Generic.HashSet<string>();
+        _entities.Query<Deco>().ForEachEntity((ref Deco deco, Entity _) => taken.Add(deco.Xif.Id));
+        xif.Id = LevelItemIds.Fresh(taken, xif.Name);
+        return xif;
+    }
 }

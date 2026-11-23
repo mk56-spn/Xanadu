@@ -61,10 +61,50 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
         }
     }
 
-    private void Apply(EditorButtonKind kind, Entity editor)
+    private void Apply(EditorButtonKind kind, int arg, Entity editor)
     {
         switch (kind)
         {
+            case EditorButtonKind.GroupPick:
+                _commands.Enqueue(EditorCommand.PickGroup(arg));
+                break;
+
+            case EditorButtonKind.GroupNew:
+                _commands.Enqueue(EditorCommand.NewGroup());
+                break;
+
+            case EditorButtonKind.GroupAdd:
+                _commands.Enqueue(EditorCommand.AddToGroup());
+                break;
+
+            case EditorButtonKind.GroupRemove:
+                _commands.Enqueue(EditorCommand.RemoveFromGroup());
+                break;
+
+            case EditorButtonKind.GroupDelete:
+                _commands.Enqueue(EditorCommand.DeleteGroup());
+                break;
+
+            case EditorButtonKind.GroupLoop when arg != 0:
+                _commands.Enqueue(EditorCommand.StepGroupLoop(arg));
+                break;
+
+            case EditorButtonKind.GroupPage when arg != 0:
+                editor.GetComponent<EditorGroupEdit>().FirstRow += arg * EditorGroupPanel.Rows;
+                break;
+
+            case EditorButtonKind.GroupOneMember:
+                _commands.Enqueue(EditorCommand.ToggleOneMember());
+                break;
+
+            case EditorButtonKind.GroupEase:
+                _commands.Enqueue(EditorCommand.ToggleGroupEase(!editor.GetComponent<EditorGroupEdit>().Easing));
+                break;
+
+            case EditorButtonKind.GroupDeleteKeys:
+                _commands.Enqueue(EditorCommand.DeleteGroupKeys());
+                break;
+
             case EditorButtonKind.Play:
                 _commands.Enqueue(EditorCommand.TogglePlayback());
                 break;
@@ -125,7 +165,7 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
             Entity entity = Store.GetEntityById(id);
 
             if (button.Is(out EditorButtonKind kind) && System._presses.Started(entity))
-                System.Apply(kind, Editor);
+                System.Apply(kind, button.Arg, Editor);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Levels;
 using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Logic.Editor.History;
@@ -30,6 +31,11 @@ public sealed class EditorSnapshotCapture(EntityStore entities)
                 items.Add(copy);
         }
 
-        return new EditorSnapshot(items);
+        // Groups live on the level's entity; the copies keep later edits out of the history.
+        List<GroupDocument>? groups = null;
+        foreach (Entity level in entities.Query<LevelGroups>().Entities)
+            groups = level.GetComponent<LevelGroups>().Groups.ConvertAll(group => group.Copy());
+
+        return new EditorSnapshot(items, groups);
     }
 }

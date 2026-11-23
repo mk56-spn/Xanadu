@@ -1,5 +1,7 @@
 using Xanadu.Ui.Systems.Canvas;
 using System;
+using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
@@ -81,7 +83,122 @@ public sealed class EditorTimelineDrawer
                      _surface.Entities, ruler, windowStart, windowEnd, timeline.Zoom))
             DrawNoteSlot(entity.GetComponent<Note>(), bounds, axis, ruler, frame.Selection.Contains(entity));
 
-        DrawPlayhead(painter, axis, ruler, Math.Clamp((long)Math.Round(playhead.ShownMs), windowStart, windowEnd));
+        long shownMs = Math.Clamp((long)Math.Round(playhead.ShownMs), windowStart, windowEnd);
+        DrawGroupKeys(view, playhead, axis, windowStart, windowEnd, shownMs);
+        DrawPlayhead(painter, axis, ruler, shownMs);
+    }
+
+    /// <summary>
+    /// The picked group's strip above the notes: its name, a diamond at every
+    /// beat one of its keys plays on (a looping group's repeats dimmer), and
+    /// the playhead through it. Nothing while no group is picked.
+    /// </summary>
+    private void DrawGroupKeys(PlayfieldView view, Playhead playhead, TimelineAxis axis, long windowStart, long windowEnd, long shownMs)
+    {
+        GroupDocument? group = null;
+        string? node = null;
+        foreach (Entity level in _surface.Entities.Query<LevelGroups, EditorGroupEdit>().Entities)
+            (group, node) = EditorGroupTarget.Of(level);
+        if (group is null)
+            return;
+
+        IRectCanvas canvas = _surface.Canvas;
+        Handle target = _surface.Target;
+        Rect2 strip = EditorLayout.GroupKeysRect(view);
+        canvas.DrawRect(target, strip, Palette.SurfaceInset);
+        canvas.DrawBorder(target, strip, Palette.WithAlpha(Palette.Gold, 0.35f), 1);
+
+        float middle = strip.GetCenter().Y;
+        double nowBeat = playhead.Tempo.BeatAt(shownMs);
+
+        // Keys a member holds of its own (the escape hatch) show small and dim
+        // under the group's, so they are never invisible; they are edited in one-member mode.
+        if (node is "" && group.HasMemberKeys)
+        {
+            foreach (string member in group.Members)
+            {
+                foreach ((_, double beat) in GroupKeys.Shown(group, playhead.Tempo, windowStart, windowEnd, member))
+                {
+                    float x = axis.ClampedX((long)Math.Round(playhead.Tempo.TimeAt(beat)));
+                    canvas.DrawCircle(target, new Vector2(x, strip.End.Y - 5f), 2.5f, Palette.WithAlpha(Palette.Warning, 0.7f));
+                }
+            }
+        }
+
+        foreach ((float clipTime, double beat) in node is null ? [] : GroupKeys.Shown(group, playhead.Tempo, windowStart, windowEnd, node))
+        {
+            float x = axis.ClampedX((long)Math.Round(playhead.Tempo.TimeAt(beat)));
+            // The loop's first pass is the keys as written; later passes are repeats.
+            bool written = Math.Abs(beat - clipTime) < 0.0001;
+            bool here = Math.Abs(beat - nowBeat) < 0.02;
+            Color colour = here ? Palette.GoldLight : written ? Palette.Gold : Palette.WithAlpha(Palette.Gold, 0.5f);
+            const float r = 6f;
+            Span<Vector2> rim = [new(x, middle - r - 1.5f), new(x + r + 1.5f, middle), new(x, middle + r + 1.5f), new(x - r - 1.5f, middle)];
+            Span<Vector2> shape = [new(x, middle - r), new(x + r, middle), new(x, middle + r), new(x - r, middle)];
+            canvas.DrawPolygon(target, rim, new Color(0f, 0f, 0f, 0.6f));
+            canvas.DrawPolygon(target, shape, colour);
+        }
+
+        // The name sits left of the strip, over the clock, where it covers no key.
+        string label = node switch
+        {
+            null => "SELECT ONE MEMBER",
+            "" => group.Name.ToUpperInvariant(),
+            _ => $"{node.ToUpperInvariant()} ONLY",
+        };
+        if (group.Clip.Loop)
+            label += $" · LOOP {group.Clip.LoopEnd - group.Clip.LoopStart:0.##}";
+        var tag = new Rect2(EditorLayout.Margin, strip.Position.Y, strip.Position.X - EditorLayout.Margin * 2, strip.Size.Y);
+        canvas.DrawTextWeighted(target, tag, label, node is "" ? Palette.Gold : Palette.Warning, UiType.Caption, TextAlign.Right, bold: true);
+
+        float playheadX = axis.ClampedX(shownMs);
+        canvas.DrawLine(target, new Vector2(playheadX, strip.Position.Y), new Vector2(playheadX, strip.End.Y), Colors.White, 1f);
+        if (node is not null)
+            DrawGroupFieldRows(view, playhead, axis, group, node, windowStart, windowEnd, playheadX, nowBeat);
+    }
+
+    /// <summary>
+    /// One row per field the picked group (or the one member) keys, over the
+    /// footer's top edge: the field's name on the left, a small diamond per key
+    /// of that field alone (a loop's repeats dimmer), and the playhead through them.
+    /// </summary>
+    private void DrawGroupFieldRows(
+        PlayfieldView view, Playhead playhead, TimelineAxis axis, GroupDocument group, string node,
+        long windowStart, long windowEnd, float playheadX, double nowBeat)
+    {
+        List<KeyField> fields = GroupKeys.FieldRows(group, node);
+        if (fields.Count == 0)
+            return;
+
+        IRectCanvas canvas = _surface.Canvas;
+        Handle target = _surface.Target;
+        Color accent = node is "" ? Palette.Gold : Palette.Warning;
+        Rect2 panel = EditorLayout.GroupFieldPanelRect(view, fields.Count);
+        canvas.DrawRect(target, panel, Palette.WithAlpha(Palette.Surface, 0.92f));
+        canvas.DrawBorder(target, panel, Palette.WithAlpha(accent, 0.3f), 1);
+        for (int row = 0; row < fields.Count; row++)
+        {
+            Rect2 lane = EditorLayout.GroupFieldRowRect(view, row);
+            canvas.DrawRect(target, lane, Palette.SurfaceInset);
+            var tag = new Rect2(EditorLayout.Margin + 6, lane.Position.Y, lane.Position.X - EditorLayout.Margin - 14, lane.Size.Y);
+            canvas.DrawTextWeighted(target, tag, fields[row].Shown.ToUpperInvariant(), Palette.WithAlpha(accent, 0.85f),
+                UiType.Caption, TextAlign.Right, bold: false);
+
+            float middle = lane.GetCenter().Y;
+            foreach ((float clipTime, double beat) in GroupKeys.Shown(group, playhead.Tempo, windowStart, windowEnd, node, fields[row].Name))
+            {
+                float x = axis.ClampedX((long)Math.Round(playhead.Tempo.TimeAt(beat)));
+                bool written = Math.Abs(beat - clipTime) < 0.0001;
+                bool here = Math.Abs(beat - nowBeat) < 0.02;
+                Color colour = here ? Palette.GoldLight : written ? accent : Palette.WithAlpha(accent, 0.5f);
+                const float r = 4.5f;
+                Span<Vector2> rim = [new(x, middle - r - 1.5f), new(x + r + 1.5f, middle), new(x, middle + r + 1.5f), new(x - r - 1.5f, middle)];
+                Span<Vector2> shape = [new(x, middle - r), new(x + r, middle), new(x, middle + r), new(x - r, middle)];
+                canvas.DrawPolygon(target, rim, new Color(0f, 0f, 0f, 0.6f));
+                canvas.DrawPolygon(target, shape, colour);
+            }
+            canvas.DrawLine(target, new Vector2(playheadX, lane.Position.Y), new Vector2(playheadX, lane.End.Y), Colors.White, 1f);
+        }
     }
 
     /// <summary>

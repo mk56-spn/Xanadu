@@ -130,6 +130,8 @@ public static class EditorSceneSidebar
             .Main(StackMainAlignment.Start)
             .Anchor(new Vector2(1, 0));
         panel.Collapsible("SELECTION", inner, out _);
+        panel.Collapsible("GROUPS", inner, out UiNode groups);
+        EditorGroupPanel.Build(groups, inner);
 
         editor.AddComponent(new EditorSidebar(shell.RightPanel));
     }

@@ -1,3 +1,4 @@
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 
@@ -20,6 +21,7 @@ public static class EditorPlacementKeybinds
         (Key.Key7, Key.Kp7, EditorPlacementMode.TimedPad),
         (Key.Key8, Key.Kp8, EditorPlacementMode.Draft),
         (Key.Key9, Key.Kp9, EditorPlacementMode.DashStop),
+        (Key.Key0, Key.Kp0, EditorPlacementMode.Grass),
     };
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)

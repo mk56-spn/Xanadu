@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Systems.Timeline;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Levels;
 using Xanadu.Logic.Editor.Commands;
 using Xanadu.Logic.Editor.History;
 
@@ -28,6 +30,9 @@ public sealed class EditorTimelineHost(
     private readonly Dictionary<int, long> _startTimes = new();
     private EditorSnapshot _before;
     private bool _moved;
+
+    /// <summary>The picked group's key being dragged: where it sits on the clip now.</summary>
+    private float? _keyTime;
 
     private Playhead Playhead => editor.GetComponent<Playhead>();
 
@@ -89,6 +94,8 @@ public sealed class EditorTimelineHost(
             Selection = ToObjects(selection.AllNotes),
         };
 
+        AddGroupKeys(scene, playhead, start, end);
+
         foreach ((Entity note, Rect2 square) in EditorTimelineNotes.Slots(editor.Store, ruler, start, end, view.Zoom))
         {
             scene.Items.Add(TimelineItem.Marker(note, 0, note.GetComponent<Note>().TimeMs, area: EditorTimelineNotes.HitBounds(square)) with
@@ -102,6 +109,58 @@ public sealed class EditorTimelineHost(
         return scene;
     }
 
+    /// <summary>
+    /// The picked group's keys, as diamonds on the strip above the notes: one
+    /// at each beat a key plays on, so a looping group shows every repeat. A
+    /// press on one goes there; a drag retimes that key in every field. Over the
+    /// footer, one row per keyed field shows that field's keys alone, and a drag
+    /// there retimes only that field's key.
+    /// </summary>
+    private void AddGroupKeys(TimelineScene scene, Playhead playhead, long start, long end)
+    {
+        (GroupDocument? group, string? node) = EditorGroupTarget.Of(editor);
+        if (group is null)
+            return;
+
+        Rect2 strip = EditorLayout.GroupKeysRect(editor.GetComponent<PlayfieldView>());
+        scene.Panel = scene.Panel.Merge(strip);
+        if (node is null)
+            return;
+
+        foreach ((float clipTime, double beat) in GroupKeys.Shown(group, playhead.Tempo, start, end, node))
+        {
+            double ms = playhead.Tempo.TimeAt(beat);
+            scene.Items.Add(TimelineItem.Marker(new GroupKey(clipTime, beat - clipTime), 1, ms, area: strip) with
+            {
+                Role = TimelineItemRole.Handle,
+                Reach = 8f,
+                Size = 6f,
+                Slop = 3f,
+            });
+        }
+
+        PlayfieldView view = editor.GetComponent<PlayfieldView>();
+        List<KeyField> fields = GroupKeys.FieldRows(group, node);
+        if (fields.Count > 0)
+            scene.Panel = scene.Panel.Merge(EditorLayout.GroupFieldPanelRect(view, fields.Count));
+        for (int row = 0; row < fields.Count; row++)
+        {
+            Rect2 lane = EditorLayout.GroupFieldRowRect(view, row);
+            string field = fields[row].Name;
+            foreach ((float clipTime, double beat) in GroupKeys.Shown(group, playhead.Tempo, start, end, node, field))
+            {
+                double ms = playhead.Tempo.TimeAt(beat);
+                scene.Items.Add(TimelineItem.Marker(new GroupKey(clipTime, beat - clipTime, field), 1, ms, area: lane) with
+                {
+                    Role = TimelineItemRole.Handle,
+                    Reach = 6f,
+                    Size = 5f,
+                    Slop = 2f,
+                });
+            }
+        }
+    }
+
     public void GestureStarted(TimelineGestureKind kind)
     {
     }
@@ -111,6 +170,7 @@ public sealed class EditorTimelineHost(
         _startTimes.Clear();
         _moved = false;
         _before = default;
+        _keyTime = null;
     }
 
     public void ScrollRows(int first)
@@ -138,6 +198,15 @@ public sealed class EditorTimelineHost(
     /// </summary>
     public void ItemPressed(in TimelineItem item, TimelinePick pick, TimelineGrabPart part)
     {
+        if (item.Ref is GroupKey key)
+        {
+            editor.GetComponent<Playhead>().SeekRequestMs = (long)Math.Round(item.FromMs);
+            _before = history?.Capture() ?? default;
+            _moved = false;
+            _keyTime = key.ClipTime;
+            return;
+        }
+
         if (item.Ref is not Entity note)
             return;
 
@@ -163,6 +232,12 @@ public sealed class EditorTimelineHost(
     /// <summary>Moves every selected item by as much as the grabbed note moved, each landing on the grid.</summary>
     public void ItemMoved(in TimelineItem item, double fromMs, double toMs)
     {
+        if (item.Ref is GroupKey key)
+        {
+            MoveGroupKey(key, fromMs);
+            return;
+        }
+
         if (item.Ref is not Entity grabbed)
             return;
 
@@ -197,6 +272,27 @@ public sealed class EditorTimelineHost(
             history.Record(_before, history.Capture());
     }
 
+    /// <summary>Retimes the grabbed key to the grid beat under the pointer, kept inside the group's loop.</summary>
+    private void MoveGroupKey(GroupKey key, double ms)
+    {
+        (GroupDocument? group, string? node) = EditorGroupTarget.Of(editor);
+        if (_keyTime is not { } now || group is null || node is null)
+            return;
+
+        ref Playhead playhead = ref editor.GetComponent<Playhead>();
+        long snapped = EditorTiming.Snap((long)Math.Round(ms), playhead);
+        float target = (float)(playhead.Tempo.BeatAt(snapped) - key.Offset);
+        target = group.Clip.Loop
+            ? Math.Clamp(target, group.Clip.LoopStart, group.Clip.LoopEnd)
+            : Math.Max(0f, target);
+        if (!group.Clip.MoveKeys(now, target, node, key.Field))
+            return;
+
+        _keyTime = target;
+        _moved = true;
+        playhead.SeekRequestMs = (long)Math.Round(playhead.Tempo.TimeAt(target + key.Offset));
+    }
+
     public void BoxSelected(IReadOnlyList<object> selection)
     {
         var notes = new List<Entity>(selection.Count);
@@ -217,3 +313,7 @@ public sealed class EditorTimelineHost(
         return list;
     }
 }
+
+/// <summary>A key of the picked group on the timeline: its time on the clip, and the song beat its clip time 0 lands on there.</summary>
+/// <remarks>A key on a field row carries that <see cref="Field"/>, and moving it moves only that field's; null moves every field's.</remarks>
+public readonly record struct GroupKey(float ClipTime, double Offset, string? Field = null);

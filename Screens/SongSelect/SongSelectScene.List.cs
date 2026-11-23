@@ -81,7 +81,7 @@ public static partial class SongSelectScene
     /// its slot, so the thumb is one level's share of the track rather than the
     /// share on screen: any list of two or more levels can be dragged.
     /// </summary>
-    public static VerticalSlider ListSlider(in SongSelectState state) =>
+    public static ScrollSlider ListSlider(in SongSelectState state) =>
         new(TrackTop, TrackBottom, 1f / Math.Max(state.Catalog.Count, 1), MinThumb);
 
     /// <summary>How far down the list is scrolled, from 0 to 1.</summary>
@@ -347,8 +347,8 @@ public static partial class SongSelectScene
             SetGlowColor(TileSong(state, row), Fade(new Color(Gold, 0.6f), missing ? 0f : alpha));
         }
 
-        VerticalSlider slider = ListSlider(state);
-        float start = slider.ThumbTop(ListValue(state));
+        ScrollSlider slider = ListSlider(state);
+        float start = slider.ThumbStart(ListValue(state));
         // An empty list has nothing to scroll, so the thumb collapses to a point.
         Vector2[] span = catalog.Count == 0
             ? [new(TrackX, TrackTop)]

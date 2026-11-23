@@ -154,6 +154,7 @@ public static class EditorSceneMetadata
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.TimedPad),-23}Timed pad tool: click to place at the playhead",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Draft),-23}Updraft tool: click to place, click above to set its hover",
             $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.DashStop),-23}Dash ender tool: click to place",
+            $"{EditorPlacementKeybinds.LabelFor(EditorPlacementMode.Grass),-23}Grass tool: click to plant a patch",
             "DELETE / BACKSPACE     Delete selection",
             "CTRL+Z / CTRL+Y        Undo / redo (or CTRL+SHIFT+Z)",
             "CTRL+S                 Save",

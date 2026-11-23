@@ -25,7 +25,6 @@ public static class SongTimingScene
     /// <summary>The BPM and offset readouts between their step buttons, wider than their text so the buttons stay put.</summary>
     private const float ValueWidth = 500;
 
-    private const float StepWidth = 150;
     private const float ActionWidth = 200;
 
     /// <summary>The BPM changes list: the header and the rows are this wide.</summary>
@@ -46,14 +45,15 @@ public static class SongTimingScene
         ui.Rect(SceneUi.BackgroundColor).Cover().Below();
         UiNode page = ui.Page().Cross(StackCrossAlignment.Center).Pad(Space.Xxl).Gap(Space.Lg);
 
-        Label title, bpm, offset, empty, foot;
+        Label title, empty, foot;
+        Stepper bpm, offset;
         PooledList list;
         var rows = new List<ChangeRowParts>();
         page.Add(
             new Label("SONG TIMING", UiType.Title, ink: Ink.Accent),
             title = new Label(song.Title, UiType.Section, align: Align.Center, width: NoteWidth, fit: true),
-            Stepper(bpm = Readout($"BPM {song.Bpm}"), "-1 BPM", "+1 BPM", SongTimingAdjustKind.Bpm, 1),
-            Stepper(offset = Readout($"OFFSET {song.OffsetMs} MS"), "-10 MS", "+10 MS", SongTimingAdjustKind.Offset, 10),
+            bpm = Adjust($"BPM {song.Bpm}", "-1 BPM", "+1 BPM", SongTimingAdjustKind.Bpm, 1),
+            offset = Adjust($"OFFSET {song.OffsetMs} MS", "-10 MS", "+10 MS", SongTimingAdjustKind.Offset, 10),
 
             // Exact values for the first section: a fractional BPM, its bar length, the offset.
             new Row(gap: Space.Md)
@@ -92,7 +92,7 @@ public static class SongTimingScene
             });
 
         // The rows' parts have nodes now that the tree is built.
-        root.AddComponent(new SongTimingView(title, bpm, offset)
+        root.AddComponent(new SongTimingView(title, bpm.Value, offset.Value)
         {
             List = list,
             Rows = rows.ConvertAll(row => row.Ui).ToArray(),
@@ -120,16 +120,9 @@ public static class SongTimingScene
         return [Caption("AT MS"), at, position, Caption("BPM"), bpm, Caption("BAR"), bar, new Spacer(), remove];
     }
 
-    /// <summary>A live value between its step buttons: down by <paramref name="step"/> on the left, up on the right.</summary>
-    private static Row Stepper(Label value, string down, string up, SongTimingAdjustKind kind, int step) => new(gap: Space.Xl)
-    {
-        new Button(down, UiType.Body, tone: Tone.Secondary, cmd: Cmd(kind, -step), width: StepWidth),
-        value,
-        new Button(up, UiType.Body, tone: Tone.Secondary, cmd: Cmd(kind, step), width: StepWidth),
-    };
-
-    /// <summary>A value the controller rewrites, in a fixed box so the step buttons beside it never move.</summary>
-    private static Label Readout(string text) => new(text, UiType.Heading, align: Align.Center, width: ValueWidth);
+    /// <summary>A live value with its step buttons (the shared stepper row): down by <paramref name="step"/>, then up.</summary>
+    private static Stepper Adjust(string value, string down, string up, SongTimingAdjustKind kind, int step) =>
+        new("", value, ValueWidth, UiType.Heading, Cmd(kind, -step), Cmd(kind, step), down, up);
 
     private static Label Caption(string text) => new(text, UiType.Body, ink: Ink.Dim);
 

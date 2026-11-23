@@ -44,6 +44,8 @@ public static class EditorScene
         editor.AddComponent(new EditorPlacement());
         editor.AddComponent(new EditorPlacementGhost());
         editor.AddComponent(new EditorUiRequest());
+        editor.AddComponent(new LevelGroups(new System.Collections.Generic.List<Xanadu.Model.Levels.GroupDocument>()));
+        editor.AddComponent(EditorGroupEdit.None);
 
         if (parent is { } root)
             root.AddChild(editor);

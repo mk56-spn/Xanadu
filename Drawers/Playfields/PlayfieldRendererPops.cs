@@ -1,7 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Items;
+using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
 using static Xanadu.Model.Playfields.PlayfieldColors;
 using static Xanadu.Model.Playfields.PlayfieldMetrics;
@@ -43,35 +46,23 @@ public static partial class PlayfieldRenderer
         }
 
         float alpha = NotePopAlpha(t);
-        var color = new Color(
-            pop.Color.R,
-            pop.Color.G,
-            pop.Color.B,
-            pop.Color.A * alpha);
+        var color = new Color(pop.Color.R, pop.Color.G, pop.Color.B, pop.Color.A * alpha);
         float radius = NotePopRadius(pop.Radius, t);
 
         if (field is { } bounds)
             DrawHitBar(canvas, rid, pop, bounds);
 
-        DrawNoteBody(canvas, rid, pop.Note, pop.Position, radius, color);
-
+        // The body, the shockwave and the flash, as one look sized to hold the shockwave.
         float swell = PopSwell(t);
-        canvas.DrawCircleOutline(
-            rid,
-            pop.Position,
-            pop.Radius * (1f + RingGrowth * swell),
-            new Color(color.R, color.G, color.B, color.A * 0.8f),
-            Math.Max(1f, 7f * (1f - swell)));
-
-        if (t < FlashShare)
-        {
-            float flash = 1f - t / FlashShare;
-            canvas.DrawCircle(
-                rid,
-                pop.Position,
-                pop.Radius * (0.9f + 0.4f * swell),
-                new Color(1f, 1f, 1f, 0.75f * flash * flash));
-        }
+        float wave = pop.Radius * (1f + RingGrowth * swell);
+        float waveWidth = Math.Max(1f, 7f * (1f - swell));
+        float flash = t < FlashShare ? 1f - t / FlashShare : 0f;
+        Xif look = NoteLooks.Pop;
+        NoteLooks.SetColour(look, color);
+        NoteLooks.Set(look, "pop_shape", radius, wave, waveWidth, 0.75f * flash * flash);
+        NoteLooks.Set(look, "pop_flash", pop.Radius * (0.9f + 0.4f * swell));
+        float half = MathF.Max(radius, wave + waveWidth) + 2f;
+        DrawPopLook(canvas, rid, look, pop.Position, new Vector2(half, half));
     }
 
     /// <summary>
@@ -86,13 +77,19 @@ public static partial class PlayfieldRenderer
         float fade = 1f - t;
         float width = Xanadu.Model.Playfields.Chords.DashSize.X * scale * (1f + 1.6f * swell);
         float height = MathF.Max(1f, 26f * scale * (1f - swell) + 2f);
-        var bar = new Rect2(pop.Position - new Vector2(width, height) / 2f, new Vector2(width, height));
-        canvas.DrawRect(rid, bar, new Color(1f, 1f, 1f, 0.85f * fade * fade));
-
         float reach = width / 2f + 60f * scale * swell;
         float spark = MathF.Max(3f, 10f * scale) * fade;
-        canvas.DrawCircle(rid, pop.Position + new Vector2(reach, 0f), spark, new Color(1f, 1f, 1f, fade));
-        canvas.DrawCircle(rid, pop.Position - new Vector2(reach, 0f), spark, new Color(1f, 1f, 1f, fade));
+        Xif look = NoteLooks.DashPop;
+        NoteLooks.Set(look, "dashpop_shape", width, height, reach, spark);
+        NoteLooks.Set(look, "dashpop_state", fade);
+        DrawPopLook(canvas, rid, look, pop.Position, new Vector2(MathF.Max(width / 2f, reach + spark) + 2f, MathF.Max(height / 2f, spark) + 2f));
+    }
+
+    /// <summary>A pop look, its unit quad stretched to <paramref name="half"/> pixels either way of <paramref name="at"/>.</summary>
+    private static void DrawPopLook(IRectCanvas canvas, Handle rid, Xif look, Vector2 at, Vector2 half)
+    {
+        var placement = new Transform2D(new Vector2(half.X, 0f), new Vector2(0f, half.Y), at);
+        XifDrawer.Shared.DrawNode(canvas, rid, look, placement, 1f, XifTint.Plain);
     }
 
     /// <summary>

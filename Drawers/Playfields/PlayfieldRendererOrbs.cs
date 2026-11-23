@@ -1,6 +1,7 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
+using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
@@ -40,14 +41,8 @@ public static partial class PlayfieldRenderer
         Color colour = missed ? new Color(0.45f, 0.45f, 0.5f, 1f) : OrbColor;
         DrawOrbPath(canvas, rid, orb, frame.View, Math.Max(now, orb.TimeMs), colour with { A = 0.45f * alpha });
         Vector2 at = frame.View.PlayfieldToScreen(Orbs.At(orb, now));
-        float radius = Orbs.Radius * frame.View.Scale;
-        if (!missed && now < orb.TimeMs)
-        {
-            float left = (float)((orb.TimeMs - now) / Orbs.ApproachMs);
-            canvas.DrawCircleOutline(rid, at, radius * (1.2f + 3f * left), colour with { A = alpha * (1f - left) }, 3f);
-        }
-
-        DrawOrbBall(canvas, rid, at, radius, colour, alpha, lit: false);
+        float approach = !missed && now < orb.TimeMs ? (float)((orb.TimeMs - now) / Orbs.ApproachMs) : -1f;
+        DrawOrbBall(canvas, rid, at, frame.View.Scale, colour, alpha, lit: false, approach);
     }
 
     /// <summary>The orb the body grabbed, from its copy on the body, until a little after its tail.</summary>
@@ -67,9 +62,8 @@ public static partial class PlayfieldRenderer
                     continue;
 
                 DrawOrbPath(canvas, rid, orb, view, now, OrbColor with { A = 0.6f * alpha });
-                float radius = Orbs.Radius * view.Scale;
                 Vector2 at = view.PlayfieldToScreen(Orbs.At(orb, now));
-                DrawOrbBall(canvas, rid, at, radius * (body.OnOrb ? 1.25f : 1f), OrbColor, alpha, lit: body.OnOrb);
+                DrawOrbBall(canvas, rid, at, view.Scale * (body.OnOrb ? 1.25f : 1f), OrbColor, alpha, lit: body.OnOrb);
             }
         }
     }
@@ -86,16 +80,16 @@ public static partial class PlayfieldRenderer
         canvas.DrawCircleOutline(rid, view.PlayfieldToScreen(Orbs.At(orb, orb.EndMs)), radius * 0.8f, OrbColor with { A = alpha }, 2f);
 
         Vector2 start = view.PlayfieldToScreen(orb.Position);
-        DrawOrbBall(canvas, rid, start, radius, OrbColor, alpha * 0.6f, lit: false);
+        DrawOrbBall(canvas, rid, start, view.Scale, OrbColor, alpha * 0.6f, lit: false);
         if (live)
-            DrawOrbBall(canvas, rid, view.PlayfieldToScreen(Orbs.At(orb, now)), radius, OrbColor, 1f, lit: false);
+            DrawOrbBall(canvas, rid, view.PlayfieldToScreen(Orbs.At(orb, now)), view.Scale, OrbColor, 1f, lit: false);
         if (selected)
             canvas.DrawCircleOutline(rid, start, radius * 1.6f, SelectedNoteColor, 2f);
     }
 
     /// <summary>Where a click of the orb tool would place or key an orb, faint (red when it can't).</summary>
     public static void DrawOrbGhost(IRectCanvas canvas, Handle rid, Vector2 at, float radius, bool valid) =>
-        DrawOrbBall(canvas, rid, at, radius, valid ? OrbColor : Xanadu.Core.Theme.Palette.Danger, 0.45f, lit: false);
+        DrawOrbBall(canvas, rid, at, radius / Orbs.Radius, valid ? OrbColor : Xanadu.Core.Theme.Palette.Danger, 0.45f, lit: false);
 
     /// <summary>The path from <paramref name="fromMs"/> to the tail, as a line.</summary>
     private static void DrawOrbPath(IRectCanvas canvas, Handle rid, in Note orb, PlayfieldView view, double fromMs, Color colour)
@@ -110,12 +104,16 @@ public static partial class PlayfieldRenderer
         canvas.DrawPolyline(rid, points, colour, MathF.Max(2f, 4f * view.Scale));
     }
 
-    /// <summary>The orb: a soft glow round a bright core; brighter while ridden.</summary>
-    private static void DrawOrbBall(IRectCanvas canvas, Handle rid, Vector2 at, float radius, Color colour, float alpha, bool lit)
+    /// <summary>
+    /// The orb's ball (<see cref="Orbs.Look"/>: a soft glow round a bright core,
+    /// brighter while ridden, with its approach ring) drawn by the Xif drawer at
+    /// <paramref name="scale"/> screen pixels a unit, its colour and state set first.
+    /// </summary>
+    private static void DrawOrbBall(IRectCanvas canvas, Handle rid, Vector2 at, float scale, Color colour, float alpha, bool lit, float approach = -1f)
     {
-        DrawSoftEllipse(canvas, rid, at, radius * 2.6f, radius * 2.6f, colour with { A = (lit ? 0.55f : 0.3f) * alpha });
-        canvas.DrawCircle(rid, at, radius, colour with { A = alpha });
-        canvas.DrawCircle(rid, at, radius * 0.5f, new Color(1f, 1f, 1f, (lit ? 0.95f : 0.6f) * alpha));
+        Orbs.SetState(colour, alpha, lit, approach);
+        var placement = new Transform2D(new Vector2(scale, 0f), new Vector2(0f, scale), at);
+        XifDrawer.Shared.DrawNode(canvas, rid, Orbs.Look, placement, scale, XifTint.Plain);
     }
 
     /// <summary>In over the approach, full through the hold, out over <see cref="Orbs.LingerMs"/> after the tail.</summary>

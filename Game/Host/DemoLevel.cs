@@ -13,7 +13,7 @@ namespace Xanadu.Host;
 /// notes with a playing song without opening the editor. A chord every four
 /// bars, moving along the field, and a note on every beat cycling through the
 /// action keys, every fourth one a dash, after an entrance, with an orb hold
-/// over bars 5 and 6; nothing is saved. <c>XANADU_DEMO_EXIT</c> sets the
+/// over bars 5 and 6, grass along the floor and a flare in the sky; nothing is saved. <c>XANADU_DEMO_EXIT</c> sets the
 /// entrance's onset (fall, dash or orb).
 /// </summary>
 internal static class DemoLevel
@@ -72,6 +72,31 @@ internal static class DemoLevel
         for (int i = 0; i < 3; i++)
             document.Drafts.Add(new DraftDocument { X = document.PlayfieldWidth / 2f + 150f + i * Drafts.Diameter, Y = floor - Drafts.EmitterHeight / 2f, Height = Drafts.DefaultHeight });
 
+        // Grass along the floor, each patch its own scatter, and a flare up in the sky: decos, only for show.
+        var grassPatches = new GroupDocument { Name = "grass" };
+        for (int i = 0; i < 8; i++)
+        {
+            Xanadu.Core.Items.Xif grass = Decos.Grass();
+            grass.Get<Xanadu.Core.Items.XifInstancer>()!.Seed = (uint)(i + 1);
+            grass.Id = $"grass-{i + 1}";
+            grassPatches.Members.Add(grass.Id);
+            document.Decos.Add(new DecoDocument { X = 180f + i * 380f, Y = floor, Xif = grass });
+        }
+        Xanadu.Core.Items.Xif flare = Decos.Flare();
+        flare.Id = "flare-1";
+        document.Decos.Add(new DecoDocument { X = 2500f, Y = 260f, Xif = flare });
+
+        // Groups over them, on the song's beats: the grass rocks a little over
+        // two bars, and the flare swells and dims on every beat.
+        Loop(grassPatches.Clip, 8f);
+        Keys(grassPatches.Clip.Need(new Xanadu.Core.Keys.KeyAddress("", "", "x")), (0f, 0f), (4f, 40f), (8f, 0f));
+        document.Groups.Add(grassPatches);
+        var pulse = new GroupDocument { Name = "flare pulse", Members = { flare.Id } };
+        Loop(pulse.Clip, 1f);
+        Keys(pulse.Clip.Need(new Xanadu.Core.Keys.KeyAddress("", "", "scale")), (0f, 1.35f), (1f, 0.85f));
+        Keys(pulse.Clip.Need(new Xanadu.Core.Keys.KeyAddress("", "", "opacity")), (0f, 1f), (1f, 0.4f));
+        document.Groups.Add(pulse);
+
         // Bars 5 and 6 are one orb hold, rising and falling, with no taps under it.
         const int OrbFrom = 16, OrbTo = 23;
         document.Notes.Add(new NoteDocument
@@ -105,5 +130,20 @@ internal static class DemoLevel
         }
 
         return LevelStore.Entry("", LevelSerializer.Normalize(document));
+    }
+
+    private static void Loop(Xanadu.Core.Keys.KeyClip clip, float beats)
+    {
+        clip.Duration = beats;
+        clip.Loop = true;
+        clip.LoopStart = 0f;
+        clip.LoopEnd = beats;
+    }
+
+    /// <summary>Keys (beat, value) on a channel, eased in and out between them.</summary>
+    private static void Keys(Xanadu.Core.Keys.KeyChannel channel, params (float Beat, float Value)[] keys)
+    {
+        foreach ((float beat, float value) in keys)
+            channel.Keys.Add(new Xanadu.Core.Keys.Keyframe { Time = beat, Value = value, Ease = Xanadu.Core.Keys.KeyEase.SineInOut });
     }
 }

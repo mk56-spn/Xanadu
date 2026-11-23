@@ -51,7 +51,7 @@ public sealed class SongSelectScrollbarSystem(IPointerInputSource pointer, ISong
     }
 
     /// <summary>Takes hold of a bar when its track is pressed and lets go when the press ends.</summary>
-    private void UpdateBar(Bar bar, Entity track, VerticalSlider slider, float value, float y)
+    private void UpdateBar(Bar bar, Entity track, ScrollSlider slider, float value, float y)
     {
         bool pressed = !track.IsNull && track.Tags.Has<Pressed>();
         if (_bar == bar && !pressed)

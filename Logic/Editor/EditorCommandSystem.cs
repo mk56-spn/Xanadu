@@ -19,6 +19,7 @@ public sealed class EditorCommandSystem :
     private readonly EditorCommandContext _context;
     private readonly EditorLevelCommands _levels;
     private readonly EditorSelectionCommands _selection;
+    private readonly EditorGroupCommands _groups;
 
     public EditorCommandSystem(
         EntityStore entities,
@@ -29,6 +30,7 @@ public sealed class EditorCommandSystem :
         _context = new EditorCommandContext(entities, history);
         _levels = new EditorLevelCommands(_context);
         _selection = new EditorSelectionCommands(_context);
+        _groups = new EditorGroupCommands(_context);
     }
 
     protected override void OnUpdate()
@@ -55,6 +57,9 @@ public sealed class EditorCommandSystem :
             });
             return;
         }
+
+        if (_groups.TryApply(command, editor))
+            return;
 
         if (!_levels.TryApply(command, editor, CommandBuffer))
             _selection.TryApply(command, editor, CommandBuffer);

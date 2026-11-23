@@ -17,12 +17,12 @@ namespace Xanadu.Logic.Characters;
 /// </summary>
 public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
 {
-    public const string PackagePath = "Assets/Characters/standin.xaf";
+    public const string PackagePath = "Assets/Characters/standin.xif";
 
     /// <summary>How long the dash pose holds after a dash, ms.</summary>
     private const double DashPoseMs = 180;
 
-    private XafPackage? _package;
+    private RigPackage? _package;
     private bool _loaded;
     private AnimatorRuntime? _runtime;
     private double _lastMs = double.NaN;
@@ -52,10 +52,13 @@ public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
             else if (body.Velocity.X > 1f)
                 _facingLeft = false;
 
+            Transform2D[] bones = RigRig.WorldBones(package, _runtime.Pose);
             var puppet = new Puppet
             {
                 Package = package,
-                Bones = XafRig.WorldBones(package, _runtime.Pose),
+                Pose = _runtime.Pose,
+                Bones = bones,
+                Parts = RigRig.WorldAttachments(package, _runtime.Pose, bones),
                 FacingLeft = _facingLeft,
                 Clip = clip,
             };
@@ -81,18 +84,18 @@ public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
         return MathF.Abs(body.Velocity.X) < 1f ? "stand" : "run";
     }
 
-    private XafPackage? Package()
+    private RigPackage? Package()
     {
         if (_loaded)
             return _package;
         _loaded = true;
         try
         {
-            _package = XafFiles.Load(PackagePath);
+            _package = RigFiles.Load(PackagePath);
             if (_package is null)
                 GameLog.Error($"Puppet rig missing: {PackagePath}");
         }
-        catch (Exception exception) when (exception is XafFormatException or System.IO.IOException)
+        catch (Exception exception) when (exception is RigFormatException or System.IO.IOException)
         {
             GameLog.Error($"Puppet rig unreadable: {exception.Message}");
         }
