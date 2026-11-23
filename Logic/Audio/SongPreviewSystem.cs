@@ -4,10 +4,10 @@ using System.IO;
 using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Audio;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Audio;
 
 namespace Xanadu.Logic.Audio;
 
@@ -17,7 +17,7 @@ namespace Xanadu.Logic.Audio;
 /// spectrum is analysed ahead on another thread, then read at the playback
 /// position, so the bars follow what is actually audible.
 /// </summary>
-public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
+public sealed class SongPreviewSystem(EntityStore entities, ITrackAudio audio) : QuerySystem<SongSelectState>
 {
     /// <summary>How long a selection must hold still before its song starts.</summary>
     private const float Debounce = 0.3f;
@@ -43,9 +43,9 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
     /// <summary>Broad groups average out quieter than single bands, so lift them.</summary>
     private const float EnergyGain = 1.3f;
 
-    private readonly EntityStore _entities;
-    private readonly ITrackAudio _audio;
-    private readonly Dictionary<string, SpectrumData> _cache = new();
+    private readonly EntityStore _entities = entities;
+    private readonly ITrackAudio _audio = audio;
+    private readonly Dictionary<string, SpectrumData> _cache = [];
 
     private string _wanted = "";
     private string _playing = "";
@@ -57,12 +57,6 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
     private readonly float[] _energy = new float[EnergyGroups];
     private float _reactive;
     private float _fade;
-
-    public SongPreviewSystem(EntityStore entities, ITrackAudio audio)
-    {
-        _entities = entities;
-        _audio = audio;
-    }
 
     protected override void OnUpdate()
     {
@@ -203,7 +197,7 @@ public sealed class SongPreviewSystem : QuerySystem<SongSelectState>
 
         _reactive = Math.Clamp(_reactive + (live ? 1 : -1) * ReactiveRate * delta, 0f, 1f);
         var energy = new Vector4(_energy[0], _energy[1], _energy[2], _energy[3]);
-        foreach (Entity entity in _entities.Query<SpectrumEnergy, UiMaterial>().Entities)
+        foreach (Entity entity in _entities.Query<UiMaterial>().AllTags(Tags.Get<SpectrumEnergy>()).Entities)
         {
             CanvasMaterial material = entity.GetComponent<UiMaterial>().Material;
             material.Set("energy", energy);

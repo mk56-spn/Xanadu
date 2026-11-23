@@ -5,9 +5,9 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
@@ -25,17 +25,15 @@ namespace Xanadu.Screens.Editor;
 public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
 {
     private readonly EntityStore _entities;
-    private readonly EditorCommandBus _commands;
-    private readonly HashSet<int> _heard = new();
+    private readonly HashSet<int> _heard = [];
     private readonly float[] _one = new float[1];
     private Entity _picker;
     private bool _nameFocused;
     private int _lastPicked = -1;
 
-    public EditorGroupPanelSystem(EntityStore entities, EditorCommandBus commands)
+    public EditorGroupPanelSystem(EntityStore entities)
     {
         _entities = entities;
-        _commands = commands;
 
         // Hidden rows still have to be found to be shown again.
         Filter.WithDisabled();
@@ -50,7 +48,7 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
         if (_picker.IsNull && !editor.Parent.IsNull)
         {
             UiNode layer = UiNode.Layer(_entities, editor.Parent, UiLayers.EditorEasePicker, null, UiStage.Full);
-            _picker = EasePickerPanel.Build(layer, new EaseHost(_entities, _commands));
+            _picker = EasePickerPanel.Build(layer, new EaseHost(_entities));
         }
 
         LevelGroups groups = editor.GetComponent<LevelGroups>();
@@ -140,13 +138,16 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
         EditorButtons.Tint(row, index == picked, buffer);
     }
 
+    /// <summary>The editor the panel belongs to; null when the scene has none.</summary>
+    private static Entity Editor(EntityStore store) => EditorSceneQuery.First<Playhead, EditorGroupEdit>(store);
+
     /// <summary>The name shows the group's own while unfocused; letting go of focus renames it.</summary>
     private void ShowName(Entity entity, GroupDocument group)
     {
         ref TextField field = ref entity.GetComponent<TextField>();
         bool focused = entity.Tags.Has<TextFieldFocused>();
         if (!focused && _nameFocused && field.Value.Trim() != group.Name && field.Value.Trim().Length > 0)
-            _commands.Enqueue(EditorCommand.RenameGroup(field.Value));
+            Editor(_entities).EmitOnEditor(new RenameGroup(field.Value));
         else if (!focused && field.Value != group.Name)
             field.Value = group.Name;
         _nameFocused = focused;
@@ -177,7 +178,7 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
         {
             int at = index;
             field.OnValueChanged((values, live) =>
-                _commands.Enqueue(EditorCommand.KeyGroup(at, EditorGroupPanel.Kept(at, values[0]), live)));
+                Editor(_entities).EmitOnEditor(new KeyGroup(at, EditorGroupPanel.Kept(at, values[0]), live)));
         }
 
         UiLayout.SetHidden(field, buffer, node is null);
@@ -203,9 +204,9 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
     /// The shared ease picker for the group keys at the playhead: open while EASE
     /// is lit, above the EASE button, showing the curve the keys there leave with.
     /// </summary>
-    private sealed class EaseHost(EntityStore store, EditorCommandBus commands) : IEasePickerHost
+    private sealed class EaseHost(EntityStore store) : IEasePickerHost
     {
-        private Entity Editor => EditorSceneQuery.First<Playhead, EditorGroupEdit>(store);
+        private Entity Editor => EditorGroupPanelSystem.Editor(store);
 
         public bool Open => Editor is { IsNull: false } editor && editor.GetComponent<EditorGroupEdit>().Easing &&
                             EditorGroupTarget.Picked(editor) is not null;
@@ -243,8 +244,8 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
 
         public string EmptyHint => "Move the playhead onto a key";
 
-        public void Pick(EasePreset preset) => commands.Enqueue(EditorCommand.EaseGroupKeys(preset));
+        public void Pick(EasePreset preset) => Editor.EmitOnEditor(new EaseGroupKeys(preset));
 
-        public void Close() => commands.Enqueue(EditorCommand.ToggleGroupEase(false));
+        public void Close() => Editor.EmitOnEditor(new ShowGroupEase(false));
     }
 }

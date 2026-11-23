@@ -69,7 +69,7 @@ public sealed class SongSelectDragSystem(IPointerInputSource pointer, ISongSelec
     {
         _holding = true;
         _dragging = false;
-        _pressedLevel = tile.GetComponent<SongSelectTile>().Index;
+        _pressedLevel = tile.GetComponent<ListIndex>().Value;
         _anchorY = y;
     }
 

@@ -2,12 +2,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Model.Playfields;
-using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Screens.Editor;
 
@@ -22,13 +22,11 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
     private const float Dimming = 0.6f;
 
     private readonly EntityStore _entities;
-    private readonly EditorCommandBus _commands;
     private readonly ButtonPress _presses = new();
 
-    public EditorNoteTypeBarSystem(EntityStore entities, EditorCommandBus commands)
+    public EditorNoteTypeBarSystem(EntityStore entities)
     {
         _entities = entities;
-        _commands = commands;
 
         // A press can land on a control that hides itself the same frame.
         Filter.WithDisabled();
@@ -45,13 +43,13 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
         KeybindAction target = editor.GetComponent<EditorPlacement>().Note;
         CommandBuffer buffer = CommandBuffer;
 
-        foreach (Entity panel in _entities.Query<EditorNoteBarPanel>().WithDisabled().Entities)
+        foreach (Entity panel in _entities.Query().AllTags(Tags.Get<EditorNoteBarPanel>()).WithDisabled().Entities)
         {
             SetShown(panel, visible, buffer);
             Outline(panel, PlayfieldColors.ColorFor(target), buffer);
         }
 
-        Query.EachEntity(new RunNoteTypes(Query.Store, CommandBuffer, _presses, _commands, visible, target));
+        Query.EachEntity(new RunNoteTypes(Query.Store, CommandBuffer, _presses, editor, visible, target));
     }
 
     /// <summary>Action notes carry a key: the bar picks which.</summary>
@@ -103,7 +101,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
     private static void SetShown(Entity panel, bool shown, CommandBuffer buffer) =>
         UiLayout.SetHidden(panel, buffer, !shown);
 
-    private struct RunNoteTypes(EntityStore Store, CommandBuffer Buffer, ButtonPress Presses, EditorCommandBus Commands, bool Visible, KeybindAction Target) : IEachEntity<UiCommand>
+    private struct RunNoteTypes(EntityStore Store, CommandBuffer Buffer, ButtonPress Presses, Entity Editor, bool Visible, KeybindAction Target) : IEachEntity<UiCommand>
     {
         private KeybindAction Target = Target;
 
@@ -117,7 +115,7 @@ public sealed class EditorNoteTypeBarSystem : QuerySystem<UiCommand>
             var action = (KeybindAction)button.Arg;
             if (Presses.Started(entity, Visible && entity.Tags.Has<Pressed>()))
             {
-                Commands.Enqueue(EditorCommand.SetTarget(action));
+                Editor.EmitSignal(new SetNoteTarget(action));
                 Target = action;
             }
 

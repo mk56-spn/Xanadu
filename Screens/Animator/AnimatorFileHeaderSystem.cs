@@ -1,0 +1,43 @@
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Xanadu.Logic.Animator.Commands;
+using Xanadu.Model.Animator;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Screens.Animator;
+
+/// <summary>
+/// The file controls in the window header: the path field shows and edits where
+/// Save and Load go, and a label flags unsaved changes.
+/// </summary>
+public sealed class AnimatorFileHeaderSystem : QuerySystem<AnimatorFile, AnimatorUi>
+{
+    private bool _wasEditing;
+
+    protected override void OnUpdate()
+    {
+        foreach (Entity session in Query.ToEntityList())
+        {
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            SyncPath(session, ui.PathField);
+            ShellStatus.ShowUnsaved(ui.StatusLabels, session.GetComponent<AnimatorFile>().Dirty);
+        }
+    }
+
+    private void SyncPath(Entity session, Entity field)
+    {
+        if (field.IsNull || !field.HasComponent<TextField>())
+            return;
+
+        bool editing = field.Tags.Has<TextFieldFocused>();
+        ref TextField text = ref field.GetComponent<TextField>();
+        if (!editing && _wasEditing)
+            AnimatorFileCommands.SetPath(session, text.Value);
+
+        if (!editing)
+            text.Value = session.GetComponent<AnimatorFile>().Path;
+
+        _wasEditing = editing;
+    }
+
+}

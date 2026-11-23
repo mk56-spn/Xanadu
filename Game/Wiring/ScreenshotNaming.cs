@@ -30,9 +30,7 @@ public static class ScreenshotNaming
     private static string Sanitize(string name)
     {
         char[] invalid = Path.GetInvalidFileNameChars();
-        string safe = new(name
-            .Select(character => invalid.Contains(character) ? '-' : character)
-            .ToArray());
+        string safe = new([.. name.Select(character => invalid.Contains(character) ? '-' : character)]);
 
         return safe.Trim().TrimEnd('.');
     }

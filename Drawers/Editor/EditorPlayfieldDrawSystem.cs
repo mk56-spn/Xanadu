@@ -4,12 +4,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Ui.Systems;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Model.Editor;
 using Xanadu.Drawers.Playfields;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Drawers.Editor;
 
@@ -25,7 +25,7 @@ public sealed class EditorPlayfieldDrawSystem : SystemGroup
     private readonly Handle _editor;
 
     /// <summary>This frame's editors (one in practice), read by <see cref="FrameSystem"/> for the drawing systems after it.</summary>
-    private readonly List<EditorFrame> _frames = new();
+    private readonly List<EditorFrame> _frames = [];
 
     /// <summary>A clock that runs whether or not the song plays.</summary>
     private float _seconds;

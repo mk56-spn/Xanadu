@@ -1,0 +1,278 @@
+using System.Collections.Generic;
+using System.Text;
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Logic.Animator.Commands;
+using Xanadu.Model.Animation;
+using Xanadu.Model.Animator;
+using Xanadu.Model.Animator.Intents;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Screens.Animator;
+
+/// <summary>
+/// Fills the FLOW tab: one row per clip the edited clip could fade into, with
+/// whether it may, its fade, and whether the game asks for it; then the
+/// selected transition's readouts and which of its buttons are lit.
+/// </summary>
+public sealed class AnimatorFlowSystem(IVisualItemFactory visuals) : QuerySystem<AnimatorDocument, AnimatorUi>
+{
+    private static readonly Color Allowed = new(Palette.Lime, 0.55f);
+    private static readonly Color Missing = new(Palette.Warning, 0.6f);
+    private static readonly Color Lit = Palette.Selected;
+
+    /// <summary>What the rows were last built from, so they are rebuilt only when it changes.</summary>
+    private string _built = "";
+
+    protected override void OnUpdate()
+    {
+        foreach (Entity session in Query.ToEntityList())
+        {
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            if (ui.FlowList.IsNull)
+                continue;
+
+            RigPackage package = session.GetComponent<AnimatorDocument>().Package;
+            string from = AnimatorFlowCommands.From(session);
+            List<(string From, string To)> game = AnimatorFlowCommands.GameTransitions(package);
+            string signature = Signature(package, from);
+            if (signature != _built)
+            {
+                _built = signature;
+                Rebuild(ui.FlowList, package, from, game);
+            }
+
+            SyncRows(ui.FlowList, package, from, game, session.GetComponent<AnimatorFlow>().Target ?? "");
+
+            SyncReadouts(session, ui, package, from, game);
+        }
+    }
+
+    private void Rebuild(
+        Entity list,
+        RigPackage package,
+        string from,
+        List<(string From, string To)> game)
+    {
+        UiLayout.DeleteChildren(list);
+
+        foreach (RigClip clip in package.Clips)
+        {
+            if (clip.Id == from)
+                continue;
+
+            UiBuilder ui = UiBuilder.Begin(Query.Store, visuals).Use(list);
+            ui.Container(Vector2.Zero, new Vector2(AnimatorLayout.FlowListWidth, AnimatorLayout.FlowRowHeight),
+                spacing: 4, color: new Color(0, 0, 0, 0), main: StackMainAlignment.Start);
+
+            Entity toggle = ui.Button("",
+                new Vector2(AnimatorLayout.FlowToggleWidth, AnimatorLayout.FlowRowHeight),
+                fontSize: UiTheme.SmallFontSize);
+            toggle.AddComponent(new Intent(new AllowTransition(clip.Id)));
+            AnimatorTooltips.Attach(toggle, new AllowTransition(clip.Id));
+
+            Entity entry = ui.Button(clip.Id.ToUpperInvariant(),
+                new Vector2(AnimatorLayout.FlowListWidth - AnimatorLayout.FlowToggleWidth - 4,
+                    AnimatorLayout.FlowRowHeight),
+                fontSize: UiTheme.SmallFontSize);
+            entry.AddComponent(new Intent(new SelectTransition(clip.Id)));
+            AnimatorTooltips.Attach(entry, new SelectTransition(clip.Id));
+            ui.End();
+        }
+        SyncRows(list, package, from, game, "");
+    }
+
+    /// <summary>
+    /// Brings each row up to date in place: rules change while their own
+    /// buttons are being pressed, so the rows are only rebuilt for new clips.
+    /// </summary>
+    private static void SyncRows(
+        Entity list,
+        RigPackage package,
+        string from,
+        List<(string From, string To)> game,
+        string target)
+    {
+        bool open = RigTransitions.IsOpen(package);
+        foreach (Entity row in list.ChildEntities)
+        {
+            foreach (Entity button in row.ChildEntities)
+            {
+                if (!button.TryGetIntent(out IIntent action))
+                    continue;
+
+                string? to = action switch
+                {
+                    AllowTransition allow => allow.To,
+                    SelectTransition select => select.To,
+                    _ => null,
+                };
+                if (to is null)
+                    continue;
+
+                RigTransition? rule = RigTransitions.Find(package, from, to);
+                bool usedByGame = game.Contains((from, to));
+                if (action is AllowTransition)
+                {
+                    UiText.Set(button, rule is not null ? "ON" : open ? "ANY" : "OFF");
+                    Paint(button, rule is not null ? Allowed : usedByGame && !open ? Missing : UiTheme.Button);
+                }
+                else
+                {
+                    UiText.Set(button, Label(to, rule, usedByGame));
+                    Paint(button, to == target ? Lit : UiTheme.Button);
+                }
+            }
+        }
+    }
+
+    /// <summary>A row's text: the clip, its fade and curve when allowed, and a mark when the game asks for it.</summary>
+    public static string Label(string clip, RigTransition? rule, bool usedByGame)
+    {
+        var label = new StringBuilder(clip.ToUpperInvariant());
+        if (rule is not null)
+            label.Append($"  {rule.Fade:0.00}s {Short(rule.Curve)}");
+        if (usedByGame)
+            label.Append("  • GAME");
+        return label.ToString();
+    }
+
+    private static string Short(RigFadeCurve curve) => curve switch
+    {
+        RigFadeCurve.Smooth => "SMO",
+        RigFadeCurve.EaseIn => "IN",
+        RigFadeCurve.EaseOut => "OUT",
+        _ => "LIN",
+    };
+
+    private void SyncReadouts(
+        Entity session,
+        AnimatorUi ui,
+        RigPackage package,
+        string from,
+        List<(string From, string To)> game)
+    {
+        AnimatorFlow flow = session.GetComponent<AnimatorFlow>();
+        int missing = game.FindAll(pair => pair.From == from && !RigTransitions.Allows(package, pair.From, pair.To)).Count;
+        string title = $"FROM {from.ToUpperInvariant()}";
+        if (missing > 0)
+            title += $"  •  {missing} GAME MISSING";
+        UiText.Set(ui.FlowTitle, title);
+
+        RigClip? target = AnimatorFlowCommands.Target(session);
+        RigTransition? rule = AnimatorFlowCommands.Rule(session);
+        if (target is null)
+        {
+            UiText.Set(ui.FlowRule, RigTransitions.IsOpen(package)
+                ? "NO RULES: ANY CLIP CAN FOLLOW ANY. PICK ONE"
+                : "PICK A CLIP TO EDIT ITS FADE");
+            UiText.Set(ui.FlowFade, "FADE");
+            UiText.Set(ui.FlowGap, "");
+        }
+        else
+        {
+            string pair = AnimatorFlowCommands.Pair(from, target.Id);
+            UiText.Set(ui.FlowRule, rule is not null
+                ? pair
+                : RigTransitions.IsOpen(package) ? $"{pair} (OPEN TABLE)" : $"{pair} NOT ALLOWED");
+            (float fade, RigFadeCurve curve) = RigTransitions.Blend(package, from, target.Id);
+            UiText.Set(ui.FlowFade, rule is not null
+                ? $"{fade:0.00} s  {AnimatorFlowCommands.CurveName(curve)}"
+                : $"{fade:0.00} s DEFAULT");
+            SyncGap(session, ui.FlowGap, fade, curve);
+        }
+
+        RigFadeCurve? ruleCurve = rule?.Curve;
+        foreach ((Entity button, IIntent action) in UiIntents.All(Query.Store))
+        {
+            // The preview bar paints its own buttons in its own colours.
+            if (button.Tags.Has<AnimatorPreviewBarButton>())
+                continue;
+
+            switch (action)
+            {
+                case SetTransitionCurve curve:
+                    Paint(button, curve.Curve == ruleCurve ? Lit : UiTheme.Button);
+                    break;
+                case ToggleFlowLoop:
+                    Paint(button, flow.Loop ? Lit : UiTheme.Button);
+                    break;
+                case ToggleSlow:
+                    Paint(button, flow.Slow ? Lit : UiTheme.Button);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Rates the joint jump at the hand-over against the fade that has to
+    /// hide it: small jumps read as smooth whatever the fade, big ones pop
+    /// unless the fade is long enough to carry them.
+    /// </summary>
+    private static void SyncGap(Entity session, Entity label, float fade, RigFadeCurve curve)
+    {
+        if (AnimatorFlowCommands.Gap(session) is not { } gap)
+        {
+            UiText.Set(label, "");
+            return;
+        }
+
+        (string rating, Color color) = Rate(gap.Distance, fade, curve);
+        string bone = gap.BoneId.Length > 0 ? $" AT {gap.BoneId.ToUpperInvariant()}" : "";
+        UiText.Set(label, $"GAP {gap.Distance:0} PX{bone}: {rating}");
+        if (label.HasComponent<TextStyle>() && label.GetComponent<TextStyle>().Color != color)
+        {
+            label.GetComponent<TextStyle>().Color = color;
+            label.AddTag<Dirty>();
+        }
+    }
+
+    /// <summary>
+    /// A jump the fade spreads over its length: what moves in one 60 Hz frame
+    /// at the curve's steepest is what the eye reads as a pop.
+    /// </summary>
+    public static (string Rating, Color Color) Rate(float distance, float fade, RigFadeCurve curve)
+    {
+        if (distance < AnimatorFlowCommands.SmallGap)
+            return ("SMOOTH", Palette.Lime);
+
+        float perFrame = distance * PeakSlope(curve) / Math.Max(1f, fade * 60f);
+        if (perFrame < AnimatorFlowCommands.SmallGap)
+            return ("SMOOTH", Palette.Lime);
+        return perFrame < AnimatorFlowCommands.LargeGap
+            ? ("VISIBLE", Palette.Warning)
+            : ("POPS", Palette.Rose);
+    }
+
+    /// <summary>The steepest the curve's weight climbs, as a multiple of a linear fade's.</summary>
+    private static float PeakSlope(RigFadeCurve curve) => curve switch
+    {
+        RigFadeCurve.Smooth => 1.5f,
+        RigFadeCurve.EaseIn or RigFadeCurve.EaseOut => 2f,
+        _ => 1f,
+    };
+
+    private static string Signature(RigPackage package, string from)
+    {
+        var text = new StringBuilder(from).Append('|');
+        foreach (RigClip clip in package.Clips)
+            text.Append(clip.Id).Append(',');
+        return text.ToString();
+    }
+
+    private static void Paint(Entity button, Color color)
+    {
+        if (!button.HasComponent<ButtonVisual>())
+            return;
+
+        ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
+        if (visual.Normal == color)
+            return;
+
+        visual.Normal = color;
+        visual.Hover = color.Lerp(Colors.White, 0.16f);
+    }
+}

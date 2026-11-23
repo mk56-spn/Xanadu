@@ -1,8 +1,8 @@
 using Xanadu.Core.Keys;
 using Xanadu.Logic.Settings;
 using Xanadu.Model.Settings;
-using Xanadu.Ui.Systems;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Systems;
 
 namespace Xanadu.Screens.Settings;
 

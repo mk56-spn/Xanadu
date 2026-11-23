@@ -1,18 +1,18 @@
-using Xanadu.Ui.Systems.Canvas;
 using System;
 using System.Collections.Generic;
-using Xanadu.Core.Keys;
 using Friflo.Engine.ECS;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
 using Xanadu.Model.Levels;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Timeline;
-using Xanadu.Model.Playfields;
-using Xanadu.Model.Editor;
 
 namespace Xanadu.Drawers.Editor;
 
@@ -22,7 +22,7 @@ namespace Xanadu.Drawers.Editor;
 /// a dot in its colour (a dash as a bar, an entrance as a diamond, an orb as a
 /// gold span to its tail) and the playhead, a line with a head and a glow.
 /// </summary>
-public sealed class EditorTimelineDrawer
+public sealed class EditorTimelineDrawer(EditorDrawSurface surface)
 {
     // Softened so the grid guides the eye without outshouting the notes on it.
     public static readonly Color MainSnapColor = Palette.WithAlpha(Colors.White, 0.6f);
@@ -38,14 +38,8 @@ public sealed class EditorTimelineDrawer
 
     private static readonly Color MarkerTagBackground = Palette.WithAlpha(Palette.SurfaceDeep, 0.94f);
 
-    private readonly EditorDrawSurface _surface;
-    private readonly EditorWaveformDrawer _waveform;
-
-    public EditorTimelineDrawer(EditorDrawSurface surface)
-    {
-        _surface = surface;
-        _waveform = new EditorWaveformDrawer(surface);
-    }
+    private readonly EditorDrawSurface _surface = surface;
+    private readonly EditorWaveformDrawer _waveform = new EditorWaveformDrawer(surface);
 
     public void Draw(EditorFrame frame)
     {

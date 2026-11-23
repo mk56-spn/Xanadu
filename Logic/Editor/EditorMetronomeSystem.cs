@@ -1,24 +1,19 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Audio;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Logic.Editor;
 
 /// <summary>Plays a click on BPM/offset beat boundaries.</summary>
-public sealed class EditorMetronomeSystem : QuerySystem<Playhead, EditorMetronome>
+public sealed class EditorMetronomeSystem(ITrackAudio audio) : QuerySystem<Playhead, EditorMetronome>
 {
     private const string ClickPath = "Assets/Audio/metronome.wav";
 
-    private readonly ITrackAudio _audio;
+    private readonly ITrackAudio _audio = audio;
     private long _lastBeat = long.MinValue;
     private bool _loaded;
-
-    public EditorMetronomeSystem(ITrackAudio audio)
-    {
-        _audio = audio;
-    }
 
     protected override void OnUpdate() => Query.Each(new Click(this));
 

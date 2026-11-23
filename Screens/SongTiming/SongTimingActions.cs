@@ -20,7 +20,7 @@ namespace Xanadu.Screens.SongTiming;
 public sealed class SongTimingActions
 {
     private readonly ButtonPress _presses = new();
-    private readonly HashSet<int> _focused = new();
+    private readonly HashSet<int> _focused = [];
 
     /// <summary>One frame of the screen's controls for the song <paramref name="songId"/>: edits, saves, refreshes.</summary>
     public void Handle(EntityStore entities, string songId)

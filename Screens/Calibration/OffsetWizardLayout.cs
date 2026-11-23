@@ -5,11 +5,11 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Scoring;
 using Xanadu.Logic.Calibration;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Scoring;
 using Xanadu.Screens.Play;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Calibration;
@@ -70,7 +70,7 @@ public sealed class OffsetWizardLayout : IScreenLayout<OffsetWizardLogic>
 
         UiNode plot = Bands(panel);
         UiNode sides = panel.Row().Size(PlotWidth, LineHeight);
-        sides.Text("EARLY", UiType.Caption, SceneUi.DimTextColor, TextAlign.Left).Size(PlotWidth / 2f, LineHeight);
+        sides.Text("EARLY", UiType.Caption, SceneUi.DimTextColor).Size(PlotWidth / 2f, LineHeight);
         sides.Text("LATE", UiType.Caption, SceneUi.DimTextColor, TextAlign.Right).Size(PlotWidth / 2f, LineHeight);
 
         UiNode actions = panel.Row().Gap(UiMetrics.Space.Xl);
@@ -100,7 +100,7 @@ public sealed class OffsetWizardLayout : IScreenLayout<OffsetWizardLogic>
 
     public void Refresh(OffsetWizardLogic logic)
     {
-        List<double> taps = logic.Taps.ToList();
+        List<double> taps = [.. logic.Taps];
         var now = (taps.Count, logic.OffsetMs, logic.Phase, logic.Listening);
         if (_shown == now)
             return;

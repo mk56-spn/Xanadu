@@ -1,8 +1,8 @@
-using Xanadu.Storage.Profiles;
 using System.Collections.Generic;
 using System.Linq;
 using Xanadu.Logic.Screens;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Storage.Profiles;
 
 namespace Xanadu.Logic.Profiles;
 
@@ -15,25 +15,16 @@ public enum ProfilesEntrance
 }
 
 /// <summary>Who's playing: the saved profiles, the current one, and picking, making or editing one.</summary>
-public sealed class ProfilesLogic : IScreenLogic<ProfilesEntrance>
+public sealed class ProfilesLogic(ProfileStore profiles, IScreenNavigator navigator) : IScreenLogic<ProfilesEntrance>
 {
-    private readonly ProfileStore _profiles;
-    private readonly IScreenNavigator _navigator;
+    private readonly ProfileStore _profiles = profiles;
+    private readonly IScreenNavigator _navigator = navigator;
 
-    public ProfilesLogic(ProfileStore profiles, IScreenNavigator navigator)
-    {
-        _profiles = profiles;
-        _navigator = navigator;
-
-        // Every profile must be pickable, whatever the layout looks like.
-        Contract = new ScreenContract<ProfilesEntrance>()
+    public ScreenContract<ProfilesEntrance> Contract { get; } = new ScreenContract<ProfilesEntrance>()
             .Mandatory(ProfilesEntrance.Select, Enumerable.Range(0, profiles.Profiles.Count).ToArray(),
                 i => profiles.Profiles[i].Name)
             .Mandatory(ProfilesEntrance.Create)
             .Optional(ProfilesEntrance.Edit);
-    }
-
-    public ScreenContract<ProfilesEntrance> Contract { get; }
 
     public IReadOnlyList<UserProfile> Profiles => _profiles.Profiles;
 

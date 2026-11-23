@@ -1,0 +1,148 @@
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
+using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
+using Xanadu.Logic.Animator;
+using Xanadu.Logic.Animator.Commands;
+using Xanadu.Model.Animation;
+using Xanadu.Model.Animator;
+using Xanadu.Model.Animator.Intents;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Input;
+using Position = Xanadu.Core.Position;
+
+namespace Xanadu.Screens.Animator;
+
+// Reads the pointer outside UI (BannedSymbols.txt): still to port to a UI concept.
+#pragma warning disable RS0030
+
+/// <summary>
+/// Right-clicking a track row in the timeline opens a menu to add a key at
+/// the clicked time, delete the key under the pointer, or select every key;
+/// on an override's bar it opens the override menu instead. The options are
+/// <see cref="Intent"/> buttons; this system picks what was clicked,
+/// places the menu, closes it on the next click and dims the option that has
+/// nothing to act on.
+/// </summary>
+public sealed class AnimatorKeyMenuSystem(IPointerInputSource pointer)
+    : QuerySystem<AnimatorDocument, AnimatorUi>
+{
+    private static readonly Color Dimmed = Palette.Muted;
+
+    private bool _primaryHeld;
+    private bool _secondaryHeld;
+
+    protected override void OnUpdate()
+    {
+        PointerInput input = pointer.Read();
+        bool primary = AnimatorPointerEdge.Primary(ref _primaryHeld, input);
+        bool secondary = AnimatorPointerEdge.Secondary(ref _secondaryHeld, input);
+
+        foreach (Entity session in Query.ToEntityList())
+        {
+            AnimatorUi ui = session.GetComponent<AnimatorUi>();
+            if (AnimatorUi.Of(session).NewClipDialog.IsOpen())
+            {
+                Close(session);
+                AnimatorMenuPlacement.Hide(ui.KeyMenu);
+                AnimatorMenuPlacement.Hide(ui.OverrideMenu);
+                continue;
+            }
+
+            if (secondary)
+                RightClick(session, input);
+            else if (primary)
+                Close(session);
+
+            AnimatorKeyMenu menu = session.GetComponent<AnimatorKeyMenu>();
+            AnimatorMenuPlacement.Place(ui.KeyMenu, menu.Anchor + AnimatorLayout.KeyMenuSize / 2, shown: menu.Open);
+            AnimatorMenuPlacement.Place(ui.OverrideMenu, menu.Anchor + AnimatorLayout.OverrideMenuSize / 2,
+                shown: menu.OverrideOpen);
+            if (menu.Open)
+            {
+                bool hasKey = session.GetComponent<AnimatorSelection>().HasKey;
+                Tint(ui.KeyMenuAdd, !hasKey);
+                Tint(ui.KeyMenuDelete, hasKey);
+            }
+        }
+    }
+
+    private static void Close(Entity session)
+    {
+        ref AnimatorKeyMenu menu = ref session.GetComponent<AnimatorKeyMenu>();
+        menu.Open = false;
+        menu.OverrideOpen = false;
+    }
+
+    private static void RightClick(Entity session, PointerInput input)
+    {
+        Close(session);
+        ref AnimatorKeyMenu menu = ref session.GetComponent<AnimatorKeyMenu>();
+
+        AnimatorTimelineModel? model = AnimatorTimelineModel.Create(session);
+        if (model is null || !model.Rows.HasPoint(input.Position))
+            return;
+
+        int row = model.ScreenRowAt(input.Position);
+        if (row < 0)
+            return;
+
+        if (model.TryPickOverride(input.Position, out RigLimbTarget? overriding, out _))
+        {
+            menu.Override = overriding;
+            menu.OverrideOpen = true;
+            menu.Anchor = AnimatorMenuPlacement.Anchor(
+                input.Position,
+                AnimatorLayout.OverrideMenuSize,
+                session.GetComponent<AnimatorUi>().ScreenSize);
+            AnimatorSession.SetStatus(session,
+                $"{overriding!.BoneId} {AnimatorTargetLabels.Name(overriding)} · REMOVE IT, OR KEEP ITS KEYS");
+            return;
+        }
+
+        // A key under the pointer is selected, so DELETE KEY acts on it; empty
+        // space keeps the playhead where it is and remembers the time to key.
+        if (model.TryPickKey(input.Position, out AnimatorTrackRow picked, out float keyTime))
+        {
+            // A key in a selected group keeps the group, so DELETE KEY removes them all.
+            AnimatorKeyCommands.MakePrimary(session, picked, keyTime);
+            menu.Track = picked.Track;
+            menu.Property = picked.Property;
+            menu.Time = keyTime;
+        }
+        else
+        {
+            AnimatorTrackRow trackRow = model.TrackAt(row);
+            AnimatorKeyCommands.SelectTrack(session, trackRow);
+            session.GetComponent<AnimatorSelection>().HasKey = false;
+            menu.Track = trackRow.Track;
+            menu.Property = trackRow.Property;
+            menu.Time = Math.Clamp(
+                (float)model.Snap(model.SecondsAtX(input.Position.X), input.Shift),
+                0f,
+                model.Clip.Duration);
+        }
+
+        menu.Open = true;
+        menu.Anchor = AnimatorMenuPlacement.Anchor(
+            input.Position,
+            AnimatorLayout.KeyMenuSize,
+            session.GetComponent<AnimatorUi>().ScreenSize);
+    }
+
+    private static void Tint(Entity button, bool enabled)
+    {
+        if (button.IsNull || !button.HasComponent<ButtonVisual>())
+            return;
+
+        Color target = enabled ? UiTheme.Button : Dimmed;
+        ref ButtonVisual visual = ref button.GetComponent<ButtonVisual>();
+        if (visual.Normal == target)
+            return;
+
+        visual.Normal = target;
+        visual.Hover = target.Lerp(Colors.White, 0.16f);
+    }
+
+}

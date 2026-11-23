@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Levels;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Levels;
 
 namespace Xanadu.Logic.Editor.Kinds;
 

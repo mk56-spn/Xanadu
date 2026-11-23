@@ -72,7 +72,7 @@ public abstract class ScreenHost<TLogic, TEntrance> : ISceneController
         IScreenLayout<TLogic>[] layouts = Layouts();
         _layout = layouts[_layoutIndex % layouts.Length];
 
-        UiNode layer = UiNode.Layer(entities, root, UiLayers.Menu, _visuals, UiStage.Full);
+        var layer = UiNode.Layer(entities, root, UiLayers.Menu, _visuals, UiStage.Full);
         _layout.Build(layer, Logic);
         ScreenBindings.Check(layer.Entity, Logic.Contract, _layout.Name);
         _layout.Refresh(Logic);

@@ -1,7 +1,7 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Logic.Screens;
 using Xanadu.Model.Docs;

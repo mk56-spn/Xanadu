@@ -118,7 +118,7 @@ public static partial class SongSelectScene
                 .Pad(RowPadding)
                 .Main(StackMainAlignment.Start)
                 .With(ButtonVisual.Create(RowColor))
-                .With(new SongSelectTile(-1))
+                .With(new ListIndex(-1)).Tag<SongSelectTile>()
                 .Chamfer(RowChamfer)
                 .Border(Fade(RowBorderColor, RowOpacity), RowBorder);
             tiles.Add(tile.Entity);
@@ -212,7 +212,7 @@ public static partial class SongSelectScene
                 Gold,
                 24,
                 closed: false)
-            .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
+            .With(new Glow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
             .Raised();
         thumb = marker;
 
@@ -230,7 +230,7 @@ public static partial class SongSelectScene
 
     /// <summary>A bold left-aligned label inside a row; its width is set when the row is bound.</summary>
     private static UiNode RowText(UiNode tile, int fontSize, Color color) =>
-        tile.Text("", fontSize, color, TextAlign.Left)
+        tile.Text("", fontSize, color)
             .Size(RowLabelWidth("", fontSize), RowTextHeight)
             .Bold();
 
@@ -265,7 +265,7 @@ public static partial class SongSelectScene
             }
         }
 
-        return points.ToArray();
+        return [.. points];
     }
 
     /// <summary>
@@ -326,10 +326,10 @@ public static partial class SongSelectScene
             float slot = row - 1 - fraction;
             float alpha = valid ? SlotAlpha(slot) : 0;
 
-            ref SongSelectTile tile = ref state.Tiles[row].GetComponent<SongSelectTile>();
-            if (tile.Index != (valid ? index : -1))
+            ref ListIndex tile = ref state.Tiles[row].GetComponent<ListIndex>();
+            if (tile.Value != (valid ? index : -1))
             {
-                tile.Index = valid ? index : -1;
+                tile.Value = valid ? index : -1;
                 BindRow(ref state, row, valid ? catalog[index] : null);
             }
 
@@ -374,7 +374,7 @@ public static partial class SongSelectScene
 
     private static void SetGlowColor(Entity entity, Color color)
     {
-        ref TextGlow glow = ref entity.GetComponent<TextGlow>();
+        ref Glow glow = ref entity.GetComponent<Glow>();
         if (glow.Color == color)
             return;
 

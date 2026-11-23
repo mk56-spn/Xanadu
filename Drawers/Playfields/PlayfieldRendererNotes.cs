@@ -4,12 +4,12 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Systems.Canvas;
-using Position = Xanadu.Core.Position;
 using static Xanadu.Model.Playfields.PlayfieldColors;
 using static Xanadu.Model.Playfields.PlayfieldMetrics;
-using Xanadu.Model.Playfields;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Drawers.Playfields;
 
@@ -119,7 +119,7 @@ public static partial class PlayfieldRenderer
         }
     }
 
-    private static readonly List<Chord> ChordScratch = new();
+    private static readonly List<Chord> ChordScratch = [];
 
     /// <summary>How much of a chord line, from its top, fades in from nothing to its full colour.</summary>
     private const float LineFadeShare = 0.45f;

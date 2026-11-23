@@ -1,23 +1,17 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Audio;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Logic.Audio;
 
 /// <summary>Advances Beatoraja-style TIMER_PLAY and keeps miniaudio in sync.</summary>
-public sealed class TrackPlaybackSystem : QuerySystem<TrackProgress>
+public sealed class TrackPlaybackSystem(ITrackAudio audio, ITrackClock clock) : QuerySystem<TrackProgress>
 {
-    private readonly ITrackAudio _audio;
-    private readonly ITrackClock _clock;
+    private readonly ITrackAudio _audio = audio;
+    private readonly ITrackClock _clock = clock;
     private readonly TrackTimer _timer = new();
-
-    public TrackPlaybackSystem(ITrackAudio audio, ITrackClock clock)
-    {
-        _audio = audio;
-        _clock = clock;
-    }
 
     protected override void OnUpdate()
     {

@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.SongSelect;
 
@@ -39,7 +39,7 @@ public static partial class SongSelectScene
         ];
 
         ui.Shape(underline, default, Gold, 3, closed: false)
-            .With(new ShapeGlow(new Color(Gold, 0.9f), radius: 10, intensity: 2f))
+            .With(new Glow(new Color(Gold, 0.9f), radius: 10, intensity: 2f))
             .Raised();
 
         // The visualizer hangs from the underline, its bars driven by the song preview.
@@ -56,8 +56,7 @@ public static partial class SongSelectScene
         ui.Text(
                 LocalizedText.Get(SongSelectStrings.Title),
                 70,
-                Colors.White,
-                TextAlign.Left)
+                Colors.White)
             .Size(460, 84)
             .At(TextCenter(12.202f, 108.339f, 460, 70))
             .Bold();

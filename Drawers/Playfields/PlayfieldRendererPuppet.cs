@@ -17,13 +17,13 @@ public static partial class PlayfieldRenderer
     /// Draws the puppet round <paramref name="center"/> (the body's centre on
     /// screen), faded by <paramref name="alpha"/> and flashing white by <paramref name="flash"/>.
     /// </summary>
-    public static void DrawPuppet(IRectCanvas canvas, Handle rid, in Puppet puppet, Vector2 center, float scale, float alpha, float flash)
+    public static void DrawPuppet(IRectCanvas canvas, Handle rid, in Puppet puppet, bool facingLeft, Vector2 center, float scale, float alpha, float flash)
     {
         if (puppet.Package is not { } package || puppet.Pose is not { } pose || puppet.Bones.Length != package.Skeleton.Bones.Count)
             return;
 
         // Rig space has its root at the feet: the body's bottom edge.
-        float side = puppet.FacingLeft ? -1f : 1f;
+        float side = facingLeft ? -1f : 1f;
         var placement = new Transform2D(side * scale, 0f, 0f, scale, center.X, center.Y + PlayRules.BodyHeight / 2f * scale);
         var tint = new XifTint(new Color(1f, 1f, 1f, alpha), Colors.White, flash * 0.8f);
         XifDrawer.Shared.DrawRig(canvas, rid, package, pose, puppet.Bones, puppet.Parts, null, null, placement, scale, tint);

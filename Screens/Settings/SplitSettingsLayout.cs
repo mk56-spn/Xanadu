@@ -4,9 +4,9 @@ using Xanadu.Core.Theme;
 using Xanadu.Logic.Settings;
 using Xanadu.Model.Settings;
 using Xanadu.Screens.Shared;
-using Xanadu.Ui.Systems;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
+using Xanadu.Ui.Systems;
 using static Xanadu.Core.Theme.UiMetrics;
 using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
@@ -26,9 +26,9 @@ public sealed class SplitSettingsLayout : IScreenLayout<SettingsLogic>
     private static readonly Flex Fill = new(Grow: 1, Cross: Cross.Stretch);
 
     /// <summary>Each lit-when-current button and the test that lights it.</summary>
-    private readonly List<(Button Button, System.Func<SettingsLogic, bool> On)> _segments = new();
-    private readonly List<bool?> _shown = new();
-    private readonly Dictionary<KeybindAction, Button> _keys = new();
+    private readonly List<(Button Button, System.Func<SettingsLogic, bool> On)> _segments = [];
+    private readonly List<bool?> _shown = [];
+    private readonly Dictionary<KeybindAction, Button> _keys = [];
 
     public string Name => "SPLIT";
 
@@ -50,9 +50,9 @@ public sealed class SplitSettingsLayout : IScreenLayout<SettingsLogic>
                         Segment(SettingsStrings.On, SettingsEntrance.VSync, 1, l => l.VSync),
                         Segment(SettingsStrings.Off, SettingsEntrance.VSync, 0, l => !l.VSync)),
                     Group(SettingsStrings.WindowMode,
-                        new[] { WindowMode.Windowed, WindowMode.Fullscreen, WindowMode.Borderless }
+                        [.. new[] { WindowMode.Windowed, WindowMode.Fullscreen, WindowMode.Borderless }
                             .Select(mode => Segment(SettingsText.WindowMode(mode), SettingsEntrance.WindowMode, (int)mode,
-                                l => l.WindowMode == mode)).ToArray()),
+                                l => l.WindowMode == mode))]),
                     Group(SettingsStrings.Autosave,
                         Segment(SettingsStrings.On, SettingsEntrance.Autosave, 1, l => l.Autosave),
                         Segment(SettingsStrings.Off, SettingsEntrance.Autosave, 0, l => !l.Autosave)),

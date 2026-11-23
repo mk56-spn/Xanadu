@@ -4,14 +4,14 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
+using Xanadu.Logic.Playfields;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Model.Scoring;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Model.Playfields;
-using Xanadu.Logic.Playfields;
+using Xanadu.Model.Scoring;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.Play;
 
@@ -40,8 +40,7 @@ internal static class PlayHudBuilder
         ui.HudButton(
                 new Vector2(95, 44),
                 new Vector2(150, 44),
-                LocalizedText.Get(PlayStrings.Pause),
-                UiType.Label)
+                LocalizedText.Get(PlayStrings.Pause))
             .Secondary()
             .On(SceneActionId.Pause);
 
@@ -49,8 +48,7 @@ internal static class PlayHudBuilder
         Entity skipButton = ui.HudButton(
                 new Vector2(95, 100),
                 new Vector2(150, 44),
-                LocalizedText.Get(PlayStrings.Skip),
-                UiType.Label)
+                LocalizedText.Get(PlayStrings.Skip))
             .Primary()
             .Hidden()
             .Entity;
@@ -168,35 +166,37 @@ internal static class PlayHudBuilder
 
         float counterX = screen.X - 150;
         var countsArea = new Rect2(screen.X - 280, 178, 280, 220);
-        var counterMembers = new List<Entity> { ui.HudBacking(countsArea) };
-        counterMembers.Add(ui.HudText(new Vector2(counterX, 190),
+        var counterMembers = new List<Entity>
+        {
+            ui.HudBacking(countsArea),
+            ui.HudText(new Vector2(counterX, 190),
             new Vector2(260, 22),
             LocalizedText.Get(PlayStrings.Judgements),
             14,
             SceneUi.DimTextColor,
-            new Color(0, 0, 0, 0)));
-
-        counterMembers.Add(CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
+            new Color(0, 0, 0, 0)),
+            CounterText(ui, screen.X - 200, 220, "FLAWLESS+",
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.FlawlessP),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 246, LocalizedText.Get(PlayStrings.Flawless),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Flawless),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 272, LocalizedText.Get(PlayStrings.Clean),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Clean),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 298, LocalizedText.Get(PlayStrings.Fair),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Fair),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 324, LocalizedText.Get(PlayStrings.Deficient),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Deficient),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 350, LocalizedText.Get(PlayStrings.Terrible),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Terrible),
-            TextAlign.Left));
-        counterMembers.Add(CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
+            TextAlign.Left),
+            CounterText(ui, screen.X - 200, 376, LocalizedText.Get(PlayStrings.Miss),
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.Miss),
-            TextAlign.Left));
+            TextAlign.Left)
+        };
 
         Entity flawlessPlus = CounterNumber(ui, screen.X - 65, 220,
             PlayScoreSystem.ColorFor(Xanadu.Model.Scoring.Judgement.FlawlessP));
@@ -223,7 +223,7 @@ internal static class PlayHudBuilder
             "judgement_counts",
             new Vector2(screen.X - 130, 285),
             countsArea,
-            counterMembers.ToArray());
+            [.. counterMembers]);
 
         Entity countdown = ui.HudText(new Vector2(screen.X / 2, screen.Y / 2),
             new Vector2(700, 180),
@@ -312,14 +312,16 @@ internal static class PlayHudBuilder
         float labelOffset = innerWidth / 2 + labelGap + labelWidth / 2;
         float fullWidth = (labelOffset + labelWidth / 2 + edgePad) * 2;
 
-        var members = new List<Entity>();
-        members.Add(ui.HudRect(
+        var members = new List<Entity>
+        {
+            ui.HudRect(
             new Vector2(centerX, y),
             new Vector2(fullWidth, barHeight),
-            default).Backing());
+            default).Backing()
+        };
 
         (Judgement Judgement, double Inner, double Outer)[] bands =
-        {
+        [
             (Judgement.FlawlessP, 0, ScoreRules.JudgementDeviation(Judgement.FlawlessP)),
             (Judgement.Flawless, ScoreRules.JudgementDeviation(Judgement.FlawlessP), ScoreRules.JudgementDeviation(Judgement.Flawless)),
             (Judgement.Clean, ScoreRules.JudgementDeviation(Judgement.Flawless), ScoreRules.JudgementDeviation(Judgement.Clean)),
@@ -327,7 +329,7 @@ internal static class PlayHudBuilder
             (Judgement.Deficient, ScoreRules.JudgementDeviation(Judgement.Fair), ScoreRules.JudgementDeviation(Judgement.Deficient)),
             (Judgement.Terrible, ScoreRules.JudgementDeviation(Judgement.Deficient), ScoreRules.JudgementDeviation(Judgement.Terrible)),
             (Judgement.Miss, ScoreRules.JudgementDeviation(Judgement.Terrible), maxMs),
-        };
+        ];
 
         foreach ((Judgement judgement, double inner, double outer) in bands)
         {
@@ -376,7 +378,7 @@ internal static class PlayHudBuilder
             "error_bar",
             new Vector2(centerX, y),
             new Rect2(centerX - fullWidth / 2, y - barHeight / 2, fullWidth, barHeight),
-            members.ToArray());
+            [.. members]);
 
         playfield.AddComponent(new ErrorBar(
             marker,

@@ -1,7 +1,7 @@
-using Xanadu.Core.Keys;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
@@ -24,16 +24,16 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
 
     /// <summary>The ways dashes go, in turn, by the dash's beat in the song.</summary>
     private static readonly KeybindAction[] DashWays =
-    {
+    [
         KeybindAction.Up,
         KeybindAction.Left,
         KeybindAction.Right,
         KeybindAction.Down,
-    };
+    ];
 
-    private readonly List<Key> _held = new();
-    private readonly Dictionary<Key, long> _changedAt = new();
-    private readonly Dictionary<long, int> _dashTurns = new();
+    private readonly List<Key> _held = [];
+    private readonly Dictionary<Key, long> _changedAt = [];
+    private readonly Dictionary<long, int> _dashTurns = [];
 
     protected override void OnUpdate()
     {
@@ -43,6 +43,7 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
         Playfield field = default;
         _held.Clear();
         _changedAt.Clear();
+        Entity skipping = default;
         foreach (Entity entity in Query.Store.Query<Playhead, PlayfieldMode>().Entities)
         {
             if (entity.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Play)
@@ -58,8 +59,12 @@ public sealed class AutoPlaySystem(KeybindSettings keybinds, ReplayKeyboard keyb
             // Skips the song's entrance, as a player would.
             if (entity.TryGetComponent(out PlaySession session) && session.Started &&
                 session.SkipToMs >= 0 && !session.Skipped)
-                entity.GetComponent<PlaySession>().SkipRequested = true;
+                skipping = entity;
         }
+
+        // Asked after the loop: a skip seeks the playhead.
+        if (!skipping.IsNull)
+            skipping.EmitSignal(new SkipAsked());
 
         if (now is not long time)
             return;

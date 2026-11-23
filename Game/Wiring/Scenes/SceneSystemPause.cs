@@ -5,13 +5,13 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
+using Xanadu.Logic.Playfields;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Settings;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Playfields;
 using Xanadu.Screens.Shared;
-using SceneState = Xanadu.Model.Ecs.Components.SceneState;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Wiring.Scenes;
 
@@ -165,8 +165,8 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
                 return false;
         }
 
-        foreach (Entity entity in _entities.Query<PlaySession>().Entities)
-            entity.GetComponent<PlaySession>().SkipRequested = true;
+        foreach (Entity entity in _entities.Query<PlaySession>().ToEntityList())
+            entity.EmitSignal(new SkipAsked());
 
         return true;
     }

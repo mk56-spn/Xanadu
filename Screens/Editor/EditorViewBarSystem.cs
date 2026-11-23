@@ -3,12 +3,12 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
@@ -57,14 +57,12 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
     private const float MenuGap = 4f;
 
     private readonly IPointerInputSource _pointer;
-    private readonly EditorCommandBus _commands;
     private readonly ButtonPress _presses = new();
     private bool _wasPressed;
 
-    public EditorViewBarSystem(IPointerInputSource pointer, EditorCommandBus commands)
+    public EditorViewBarSystem(IPointerInputSource pointer)
     {
         _pointer = pointer;
-        _commands = commands;
 
         // The menus are hidden most of the time, and still have to be found to be shown.
         Filter.WithDisabled();
@@ -78,7 +76,7 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
         CommandBuffer buffer = CommandBuffer;
         EntityStore store = Query.Store;
 
-        Query.Each(new RunBar(store, CommandBuffer, _presses, _commands, input.Position, justPressed));
+        Query.EachEntity(new RunBar(store, CommandBuffer, _presses, input.Position, justPressed));
     }
 
     /// <summary>Shows a menu with its top-left under its button's left edge, or hides it.</summary>
@@ -131,9 +129,9 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
         buffer.AddTag<Dirty>(button.Id);
     }
 
-    private readonly record struct RunBar(EntityStore Store, CommandBuffer Buffer, ButtonPress Presses, EditorCommandBus Commands, Vector2 Pointer, bool JustPressed) : IEach<EditorViewBar, Playhead, PlayfieldView>
+    private readonly record struct RunBar(EntityStore Store, CommandBuffer Buffer, ButtonPress Presses, Vector2 Pointer, bool JustPressed) : IEachEntity<EditorViewBar, Playhead, PlayfieldView>
     {
-        public void Execute(ref EditorViewBar bar, ref Playhead playhead, ref PlayfieldView view)
+        public void Execute(ref EditorViewBar bar, ref Playhead playhead, ref PlayfieldView view, int id)
         {
             bool onButton = false;
             if (Presses.Started(bar.GridButton))
@@ -174,7 +172,7 @@ public sealed class EditorViewBarSystem : QuerySystem<EditorViewBar, Playhead, P
                 int division = SnapDivisions.Offered[i].Division;
                 bool pressed = bar.Open == EditorViewMenu.Music && button.Tags.Has<Pressed>();
                 if (Presses.Started(button, pressed) && playhead.SnapDivision != division)
-                    Commands.Enqueue(EditorCommand.SetSnap(division));
+                    Store.GetEntityById(id).EmitSignal(new SetSnap(division));
 
                 bool current = playhead.SnapDivision == division;
                 Tint(button, playhead.SnapOff ? Palette.Muted : current ? Palette.Primary : Palette.PrimaryMuted, Buffer);

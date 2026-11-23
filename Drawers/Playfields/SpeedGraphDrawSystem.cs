@@ -30,14 +30,14 @@ public sealed class SpeedGraphDrawSystem(IRectCanvas canvas, Handle target) : Qu
     private static readonly Color YColor = DebugPalette.Title;
 
     private static readonly float[] FixedSpeeds =
-    {
+    [
         PlayRules.CruiseSpeed,
         PlayRules.CruiseSpeed * 1.5f,
         PlayRules.CruiseSpeed * 2f,
-    };
+    ];
 
-    private readonly List<Vector2> _xLine = new();
-    private readonly List<Vector2> _yLine = new();
+    private readonly List<Vector2> _xLine = [];
+    private readonly List<Vector2> _yLine = [];
 
     protected override void OnUpdate()
     {

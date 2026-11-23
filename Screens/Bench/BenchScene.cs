@@ -1,12 +1,12 @@
 using System;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
+using Xanadu.Logic.Bench;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
-using Xanadu.Logic.Bench;
+using Xanadu.Screens.Shared;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
-using Xanadu.Screens.Shared;
 
 namespace Xanadu.Screens.Bench;
 
@@ -75,7 +75,7 @@ public static class BenchScene
         // The chrome flows over the playfield; the song lines are filled in later,
         // so they are as wide as the stage allows and centre what they get.
         var title = new Label("", UiType.Heading, align: Align.Center, width: LineWidth);
-        var info = new Label("", UiType.Body, ink: Ink.Dim, align: Align.Center, width: LineWidth);
+        var info = new Label(ink: Ink.Dim, align: Align.Center, width: LineWidth);
         ui.Page().Cross(Cross.Center).Pad(UiMetrics.Space.Xxl).Gap(UiMetrics.Space.Sm).Add(
             title,
             info,

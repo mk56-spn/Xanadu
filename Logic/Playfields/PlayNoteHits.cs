@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
 using Position = Xanadu.Core.Position;
-using Xanadu.Model.Playfields;
 
 namespace Xanadu.Logic.Playfields;
 
@@ -30,7 +31,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         score.JudgementTimeMs = shownMs;
 
         // Read before the hit takes the note away.
-        int chartIndex = ChartIndex.Of(noteEntity);
+        int chartIndex = ListIndex.Of(noteEntity);
         if (!actions.Hit(ref score, noteEntity, offsetMs, playfield, action))
             return false;
 

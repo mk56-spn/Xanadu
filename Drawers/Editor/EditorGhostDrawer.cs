@@ -1,12 +1,12 @@
-using Xanadu.Ui.Systems.Canvas;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Playfields;
 using Xanadu.Drawers.Playfields;
-using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Playfields;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Drawers.Editor;
 

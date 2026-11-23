@@ -2,10 +2,10 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Logic.Profiles;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Screens.Shared;
 using Xanadu.Screens.SongSelect;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using static Xanadu.Core.Theme.UiMetrics;
 using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
@@ -94,7 +94,7 @@ public sealed class ProfileEditLayout : IScreenLayout<ProfileEditLogic>
             _typed = logic.Name;
         }
 
-        Color tint = new(_picker.Node.Entity.GetComponent<UiColorPicker>().Color, 1);
+        Color tint = new(_picker.Node.Entity.GetComponent<UiColorPicker>().Color);
         if (tint == _shownTint)
             return;
 

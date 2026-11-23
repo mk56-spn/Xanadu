@@ -1,10 +1,10 @@
-using Xanadu.Storage.Levels;
 using System;
 using System.IO;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Levels;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Levels;
+using Xanadu.Storage.Levels;
 
 namespace Xanadu.Screens.Editor;
 
@@ -53,7 +53,7 @@ public sealed partial class EditorOverlay
         try
         {
             LevelStore.Save(document, target);
-            _commands.Enqueue(EditorCommand.SetLevelFile(target));
+            _editor.EmitSignal(new SetLevelFile(target));
         }
         catch (Exception exception)
         {
@@ -90,7 +90,7 @@ public sealed partial class EditorOverlay
                 target = LevelStore.NextUnnamedPath();
 
             LevelStore.Save(document, target);
-            _commands.Enqueue(EditorCommand.SetLevelFile(target));
+            _editor.EmitSignal(new SetLevelFile(target));
             SetStatus($"Saved {Path.GetFileName(target)}");
             path = target;
             return true;

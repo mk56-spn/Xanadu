@@ -4,24 +4,28 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
 /// <summary>Shows the ECS metadata panel and syncs its text fields to editor state.</summary>
-public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
+public sealed class EditorMetadataSystem(EntityStore entities) : QuerySystem<LevelInfo, Playhead>
 {
-    private readonly EntityStore _entities;
-    private readonly EditorCommandBus _commands;
+    private readonly EntityStore _entities = entities;
 
-    public EditorMetadataSystem(EntityStore entities, EditorCommandBus commands)
+    /// <summary>LEVEL INFO (<see cref="ToggleLevelInfo"/>): shows the panel at its home, or hides it.</summary>
+    public static void Toggle(Entity panel)
     {
-        _entities = entities;
-        _commands = commands;
+        if (panel.IsNull || !panel.HasComponent<Position>())
+            return;
+
+        panel.GetComponent<Position>().Value = panel.GetComponent<EditorPanel>().Home;
+        panel.AddTag<Moved>();
+        UiLayout.SetHidden(panel, !UiLayout.IsHidden(panel));
     }
 
     protected override void OnUpdate()
@@ -31,22 +35,6 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
         Entity panel = EditorPanel.Find(_entities, EditorPanelKind.Metadata);
         if (editor.IsNull || panel.IsNull)
             return;
-
-        if (editor.HasComponent<EditorUiRequest>())
-        {
-            ref EditorUiRequest request = ref editor.GetComponent<EditorUiRequest>();
-            if (request.Kind == EditorButtonKind.ToggleMetadata)
-            {
-                request.Kind = EditorButtonKind.None;
-                if (panel.HasComponent<Position>())
-                {
-                    panel.GetComponent<Position>().Value = panel.GetComponent<EditorPanel>().Home;
-                    CommandBuffer buffer = CommandBuffer;
-                    buffer.AddTag<Moved>(panel.Id);
-                    UiLayout.SetHidden(panel, buffer, !UiLayout.IsHidden(panel));
-                }
-            }
-        }
 
         LevelInfo level = editor.GetComponent<LevelInfo>();
 
@@ -77,15 +65,15 @@ public sealed class EditorMetadataSystem : QuerySystem<LevelInfo, Playhead>
             {
                 case EditorFieldKind.LevelName:
                     if (field.Value != level.Name)
-                        _commands.Enqueue(EditorCommand.SetName(field.Value));
+                        editor.EmitSignal(new SetLevelName(field.Value));
                     break;
                 case EditorFieldKind.Artist:
                     if (field.Value != level.Artist)
-                        _commands.Enqueue(EditorCommand.SetArtist(field.Value));
+                        editor.EmitSignal(new SetLevelArtist(field.Value));
                     break;
                 case EditorFieldKind.Difficulty:
                     if (field.Value != level.Difficulty)
-                        _commands.Enqueue(EditorCommand.SetDifficulty(field.Value));
+                        editor.EmitSignal(new SetLevelDifficulty(field.Value));
                     break;
             }
         }

@@ -4,12 +4,12 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Systems.Timeline;
-using Xanadu.Model.Editor;
-using Xanadu.Model.Levels;
-using Xanadu.Logic.Editor.Commands;
 using Xanadu.Logic.Editor.History;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Levels;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Logic.Editor;
 
@@ -19,15 +19,12 @@ namespace Xanadu.Logic.Editor;
 /// at its time. The shared <see cref="TimelineInputSystem"/> reads presses and
 /// drags; this says what they do: a press picks a note and seeks to it, a drag
 /// retimes the whole selection on the beat grid, a plain press on empty strip
-/// scrubs and a Shift-drag boxes notes.
+/// scrubs and a Shift-drag boxes notes. It writes the editor's
+/// <see cref="TimelineFrame"/> and hears the timeline signals on the editor.
 /// </summary>
-public sealed class EditorTimelineHost(
-    Entity editor,
-    EditorCommandBus commands,
-    Action<string> setStatus,
-    EditorHistory? history = null) : ITimelineHost, ITimelineInput
+public sealed class EditorTimeline(Entity editor, EditorHistory? history = null)
 {
-    private readonly Dictionary<int, long> _startTimes = new();
+    private readonly Dictionary<int, long> _startTimes = [];
     private EditorSnapshot _before;
     private bool _moved;
 
@@ -36,40 +33,54 @@ public sealed class EditorTimelineHost(
 
     private Playhead Playhead => editor.GetComponent<Playhead>();
 
-    public double NowMs => Playhead.TimeMs;
-
-    public double DurationMs => Playhead.DurationMs;
-
-    public double StepMs => EditorTiming.StepMs(Playhead);
-
-    public double StepOriginMs => EditorTiming.StepOriginMs(Playhead);
-
-    public bool Blocked => editor.Store.Query<WarningPopup>().Count > 0;
-
-    public bool TryGetArea(out Rect2 panel, out Rect2 ruler)
+    /// <summary>Gives the editor its timeline frame and hears what the timeline does.</summary>
+    public void Listen()
     {
-        panel = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
-        ruler = default;
-        return true;
+        if (!editor.HasComponent<TimelineFrame>())
+            editor.AddComponent(new TimelineFrame());
+
+        editor.AddSignalHandler<TimelineFrameDue>(_ => Write(ref editor.GetComponent<TimelineFrame>()));
+        editor.AddSignalHandler<TimelineSeek>(signal => editor.EmitSignal(new Seek((long)Math.Round(signal.Event.Ms))));
+        editor.AddSignalHandler<TimelineTogglePlay>(_ => editor.EmitSignal(new TogglePlayback()));
+        editor.AddSignalHandler<TimelineNoMarker>(signal =>
+            SetStatus(signal.Event.Direction < 0 ? "No earlier note" : "No later note"));
+        editor.AddSignalHandler<TimelineGestureEnded>(_ => GestureEnded());
+        editor.AddSignalHandler<TimelineScrubbed>(signal => Scrub(signal.Event.Ms));
+        editor.AddSignalHandler<TimelineItemPressed>(signal => ItemPressed(signal.Event.Item, signal.Event.Pick));
+        editor.AddSignalHandler<TimelineItemMoved>(signal => ItemMoved(signal.Event.Item, signal.Event.FromMs));
+        editor.AddSignalHandler<TimelineItemReleased>(signal => ItemReleased(signal.Event.Item, signal.Event.Remove));
+        editor.AddSignalHandler<TimelineBoxSelected>(signal => BoxSelected(signal.Event.Selection));
     }
 
-    public IEnumerable<double> MarkerTimesMs()
+    private void Write(ref TimelineFrame frame)
     {
-        foreach (Entity item in editor.Store.Query().AllTags(Tags.Get<EditorItem>()).ToEntityList())
+        Playhead playhead = Playhead;
+        frame.NowMs = playhead.TimeMs;
+        frame.DurationMs = playhead.DurationMs;
+        frame.StepMs = EditorTiming.StepMs(playhead);
+        frame.StepOriginMs = EditorTiming.StepOriginMs(playhead);
+        frame.Blocked = editor.Store.Query<WarningPopup>().Count > 0;
+        frame.Shown = true;
+        frame.Panel = EditorLayout.RulerRect(editor.GetComponent<PlayfieldView>());
+        frame.Ruler = default;
+
+        frame.Markers.Clear();
+        foreach (Entity item in editor.Store.Query().AllTags(Tags.Get<EditorItem>()).Entities)
         {
             if (EditorItemTiming.TryGet(item, out long time))
-                yield return time;
+                frame.Markers.Add(time);
         }
+
+        frame.Scene = Scene();
     }
 
-    public void SeekMs(double ms) => commands.Enqueue(EditorCommand.Seek((long)Math.Round(ms)));
+    private void SetStatus(string message)
+    {
+        if (editor.HasComponent<EditorHud>())
+            editor.GetComponent<EditorHud>().SetStatus(message);
+    }
 
-    public void TogglePlay() => commands.Enqueue(EditorCommand.TogglePlayback());
-
-    public void NoMarker(int direction) =>
-        setStatus(direction < 0 ? "No earlier note" : "No later note");
-
-    public TimelineScene? Scene()
+    private TimelineScene? Scene()
     {
         var query = new EditorSceneQuery(editor.Store);
         Playhead playhead = Playhead;
@@ -161,11 +172,7 @@ public sealed class EditorTimelineHost(
         }
     }
 
-    public void GestureStarted(TimelineGestureKind kind)
-    {
-    }
-
-    public void GestureEnded(TimelineGestureKind kind)
+    private void GestureEnded()
     {
         _startTimes.Clear();
         _moved = false;
@@ -173,30 +180,17 @@ public sealed class EditorTimelineHost(
         _keyTime = null;
     }
 
-    public void ScrollRows(int first)
-    {
-    }
-
-    public void Scrub(double ms)
+    private void Scrub(double ms)
     {
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
         playhead.SeekRequestMs = Math.Clamp((long)Math.Round(ms), 0, Math.Max(0, playhead.DurationMs));
-    }
-
-    public void LabelPressed(int lane, Vector2 point)
-    {
-    }
-
-    /// <summary>Empty strip only reaches here with Shift, as a box that adds to the selection.</summary>
-    public void LanePressed(int lane, double ms, bool additive)
-    {
     }
 
     /// <summary>
     /// A note pressed on the strip is picked as the shared timeline says and the
     /// playhead goes to it; the selection as it then stands is what a drag moves.
     /// </summary>
-    public void ItemPressed(in TimelineItem item, TimelinePick pick, TimelineGrabPart part)
+    private void ItemPressed(in TimelineItem item, TimelinePick pick)
     {
         if (item.Ref is GroupKey key)
         {
@@ -230,7 +224,7 @@ public sealed class EditorTimelineHost(
     }
 
     /// <summary>Moves every selected item by as much as the grabbed note moved, each landing on the grid.</summary>
-    public void ItemMoved(in TimelineItem item, double fromMs, double toMs)
+    private void ItemMoved(in TimelineItem item, double fromMs)
     {
         if (item.Ref is GroupKey key)
         {
@@ -263,7 +257,7 @@ public sealed class EditorTimelineHost(
     }
 
     /// <summary>A Shift-click on a selected note takes it out; a drag that moved anything is one undo step.</summary>
-    public void ItemReleased(in TimelineItem item, bool remove)
+    private void ItemReleased(in TimelineItem item, bool remove)
     {
         if (remove && item.Ref is Entity note)
             editor.GetComponent<NoteSelection>().Toggle(note);
@@ -293,7 +287,7 @@ public sealed class EditorTimelineHost(
         playhead.SeekRequestMs = (long)Math.Round(playhead.Tempo.TimeAt(target + key.Offset));
     }
 
-    public void BoxSelected(IReadOnlyList<object> selection)
+    private void BoxSelected(IReadOnlyList<object> selection)
     {
         var notes = new List<Entity>(selection.Count);
         foreach (object item in selection)

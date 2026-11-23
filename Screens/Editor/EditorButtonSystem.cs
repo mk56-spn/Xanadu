@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.Editor;
 
@@ -13,13 +14,12 @@ namespace Xanadu.Screens.Editor;
 public sealed class EditorButtonSystem : QuerySystem<UiCommand>
 {
     private readonly EntityStore _entities;
-    private readonly EditorCommandBus _commands;
+    private readonly List<IIntent> _asked = [];
     private readonly ButtonPress _presses = new();
 
-    public EditorButtonSystem(EntityStore entities, EditorCommandBus commands)
+    public EditorButtonSystem(EntityStore entities)
     {
         _entities = entities;
-        _commands = commands;
 
         // A press can land on a control that hides itself the same frame.
         Filter.WithDisabled();
@@ -27,7 +27,7 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
 
     protected override void OnUpdate()
     {
-        Entity editor = EditorSceneQuery.First<Playhead, EditorMetronome, EditorUiRequest>(_entities);
+        Entity editor = EditorSceneQuery.First<Playhead, EditorMetronome>(_entities);
 
         if (editor.IsNull)
             return;
@@ -36,6 +36,11 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
         UpdateLabels(editor, buffer);
 
         Query.EachEntity(new PressButtons(this, Query.Store, editor));
+
+        // Asked after the loop: a listener may show or hide panels.
+        foreach (IIntent intent in _asked)
+            intent.EmitOn(editor);
+        _asked.Clear();
     }
 
     private void UpdateLabels(Entity editor, CommandBuffer buffer)
@@ -66,27 +71,27 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
         switch (kind)
         {
             case EditorButtonKind.GroupPick:
-                _commands.Enqueue(EditorCommand.PickGroup(arg));
+                editor.EmitSignal(new PickGroup(arg));
                 break;
 
             case EditorButtonKind.GroupNew:
-                _commands.Enqueue(EditorCommand.NewGroup());
+                editor.EmitSignal(new NewGroup());
                 break;
 
             case EditorButtonKind.GroupAdd:
-                _commands.Enqueue(EditorCommand.AddToGroup());
+                editor.EmitSignal(new AddToGroup());
                 break;
 
             case EditorButtonKind.GroupRemove:
-                _commands.Enqueue(EditorCommand.RemoveFromGroup());
+                editor.EmitSignal(new RemoveFromGroup());
                 break;
 
             case EditorButtonKind.GroupDelete:
-                _commands.Enqueue(EditorCommand.DeleteGroup());
+                editor.EmitSignal(new DeleteGroup());
                 break;
 
             case EditorButtonKind.GroupLoop when arg != 0:
-                _commands.Enqueue(EditorCommand.StepGroupLoop(arg));
+                editor.EmitSignal(new StepGroupLoop(arg));
                 break;
 
             case EditorButtonKind.GroupPage when arg != 0:
@@ -94,68 +99,66 @@ public sealed class EditorButtonSystem : QuerySystem<UiCommand>
                 break;
 
             case EditorButtonKind.GroupOneMember:
-                _commands.Enqueue(EditorCommand.ToggleOneMember());
+                editor.EmitSignal(new ToggleOneMember());
                 break;
 
             case EditorButtonKind.GroupEase:
-                _commands.Enqueue(EditorCommand.ToggleGroupEase(!editor.GetComponent<EditorGroupEdit>().Easing));
+                editor.EmitSignal(new ShowGroupEase(!editor.GetComponent<EditorGroupEdit>().Easing));
                 break;
 
             case EditorButtonKind.GroupDeleteKeys:
-                _commands.Enqueue(EditorCommand.DeleteGroupKeys());
+                editor.EmitSignal(new DeleteGroupKeys());
                 break;
 
             case EditorButtonKind.Play:
-                _commands.Enqueue(EditorCommand.TogglePlayback());
+                editor.EmitSignal(new TogglePlayback());
                 break;
 
             case EditorButtonKind.Stop:
-                _commands.Enqueue(EditorCommand.StopPlayback());
+                editor.EmitSignal(new StopPlayback());
                 break;
 
             case EditorButtonKind.Metronome:
-                _commands.Enqueue(EditorCommand.SetMetronome(
-                    !editor.GetComponent<EditorMetronome>().Enabled));
+                editor.EmitSignal(new SetMetronome(!editor.GetComponent<EditorMetronome>().Enabled));
                 break;
 
             case EditorButtonKind.ZoomIn:
-                _commands.Enqueue(EditorCommand.ZoomTimeline(1));
+                editor.EmitSignal(new ZoomTimeline(1));
                 break;
 
             case EditorButtonKind.ZoomOut:
-                _commands.Enqueue(EditorCommand.ZoomTimeline(-1));
+                editor.EmitSignal(new ZoomTimeline(-1));
                 break;
 
             case EditorButtonKind.Undo:
-                _commands.Enqueue(EditorCommand.Undo());
+                editor.EmitSignal(new Undo());
                 break;
 
             case EditorButtonKind.Redo:
-                _commands.Enqueue(EditorCommand.Redo());
+                editor.EmitSignal(new Redo());
                 break;
 
+            // Screen work: these listeners show or hide panels, so they hear it after the loop.
             case EditorButtonKind.Preview:
+                _asked.Add(new PreviewLevel(FromPlayhead: false));
+                break;
+
             case EditorButtonKind.PreviewHere:
+                _asked.Add(new PreviewLevel(FromPlayhead: true));
+                break;
+
             case EditorButtonKind.ToggleMetadata:
+                _asked.Add(new ToggleLevelInfo());
+                break;
+
             case EditorButtonKind.Save:
+                _asked.Add(new SaveLevel());
+                break;
+
             case EditorButtonKind.LoadSong:
-            case EditorButtonKind.BackgroundColor:
-            case EditorButtonKind.ResetBackgroundColor:
-            case EditorButtonKind.OutsideColor:
-            case EditorButtonKind.ResetOutsideColor:
-            case EditorButtonKind.FrameColor:
-            case EditorButtonKind.ResetFrameColor:
-                Request(kind, editor);
+                _asked.Add(new OpenSongPicker());
                 break;
         }
-    }
-
-    private static void Request(EditorButtonKind kind, Entity editor)
-    {
-        if (!editor.HasComponent<EditorUiRequest>())
-            return;
-
-        editor.GetComponent<EditorUiRequest>().Kind = kind;
     }
 
     private readonly record struct PressButtons(EditorButtonSystem System, EntityStore Store, Entity Editor) : IEachEntity<UiCommand>

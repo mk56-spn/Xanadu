@@ -22,7 +22,7 @@ public static class CharacterTransitions
     /// ground and a slide turn into each other with sideways speed.
     /// </summary>
     private static readonly (CharacterMotionState From, CharacterMotionState To)[] StateChanges =
-    {
+    [
         (CharacterMotionState.Grounded, CharacterMotionState.Jumping),
         (CharacterMotionState.Landing, CharacterMotionState.Jumping),
         (CharacterMotionState.Falling, CharacterMotionState.Jumping),
@@ -41,7 +41,7 @@ public static class CharacterTransitions
         (CharacterMotionState.Landing, CharacterMotionState.Sliding),
         (CharacterMotionState.Grounded, CharacterMotionState.Sliding),
         (CharacterMotionState.Sliding, CharacterMotionState.Grounded),
-    };
+    ];
 
     /// <summary>
     /// Clip for a state. A rig without a falling clip keeps its jump pose

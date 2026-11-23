@@ -8,19 +8,10 @@ public static class EditorWarnings
 {
     public const string NoSongMessage = "Load a song before placing notes.";
 
-    /// <summary>Queues a warning for the popup system to display.</summary>
+    /// <summary>Shows a warning in the editor's popup (emits <see cref="WarningRaised"/> on the editor).</summary>
     public static void Request(Entity editor, string message)
     {
-        if (editor.IsNull)
-            return;
-
-        if (editor.HasComponent<WarningRequest>())
-        {
-            ref WarningRequest request = ref editor.GetComponent<WarningRequest>();
-            request.Message = message;
-            return;
-        }
-
-        editor.AddComponent(new WarningRequest(message));
+        if (!editor.IsNull)
+            editor.EmitSignal(new WarningRaised(message));
     }
 }

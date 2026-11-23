@@ -29,27 +29,27 @@ public static class ItemKinds
     /// lands; later items draw over earlier ones on the same layer and z.
     /// </summary>
     public static readonly ItemKind[] All =
-    {
+    [
         Decos,
         Chords,
         Drafts,
         DashStops,
         Pads,
         Notes,
-    };
+    ];
 
     /// <summary>
     /// The order a click looks for an item in.
     /// </summary>
     public static readonly ItemKind[] PickOrder =
-    {
+    [
         Notes,
         Pads,
         DashStops,
         Drafts,
         Chords,
         Decos,
-    };
+    ];
 
     private static readonly Dictionary<Type, ItemKind> ByComponent = new()
     {

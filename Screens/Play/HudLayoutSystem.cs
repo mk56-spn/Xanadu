@@ -1,9 +1,9 @@
-using Xanadu.Core.Keys;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs;
@@ -54,12 +54,12 @@ public sealed class HudLayoutSystem(
     private enum Drag { None, Move, Box, Scale, Rotate, ScaleSlider, TurnSlider }
 
     private readonly KeyPress _keys = new();
-    private readonly List<HudItemLayout> _selected = new();
-    private readonly List<HudItemState[]> _undo = new();
-    private readonly List<HudItemState[]> _redo = new();
+    private readonly List<HudItemLayout> _selected = [];
+    private readonly List<HudItemState[]> _undo = [];
+    private readonly List<HudItemState[]> _redo = [];
     private HudItemState[]? _opened;
-    private readonly List<Button> _buttons = new();
-    private readonly List<(Vector2 From, Vector2 To)> _guides = new();
+    private readonly List<Button> _buttons = [];
+    private readonly List<(Vector2 From, Vector2 To)> _guides = [];
 
     private bool _wasEditPressed;
     private bool _wasPressed;

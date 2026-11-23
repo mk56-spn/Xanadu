@@ -28,7 +28,7 @@ public readonly record struct PlayfieldItemFrame(
 /// </summary>
 public static partial class PlayfieldRenderer
 {
-    private static readonly List<(long TimeMs, int Id)> NoteOrder = new();
+    private static readonly List<(long TimeMs, int Id)> NoteOrder = [];
 
     public static void DrawItems(
         IRectCanvas canvas,

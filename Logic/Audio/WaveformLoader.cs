@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Xanadu.Storage.Audio;
 using Xanadu.Audio;
+using Xanadu.Storage.Audio;
 
 namespace Xanadu.Logic.Audio;
 
@@ -12,7 +12,7 @@ public static class WaveformLoader
 
     private const int MaxCached = 12;
 
-    private static readonly Dictionary<string, WaveformData> Cache = new();
+    private static readonly Dictionary<string, WaveformData> Cache = [];
 
     public static WaveformData? Load(string path)
     {

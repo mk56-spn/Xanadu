@@ -1,13 +1,13 @@
-using Xanadu.Core.Keys;
-using Xanadu.Storage.Settings;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Settings;
+using Xanadu.Storage.Settings;
 
 namespace Xanadu.Logic.Replays;
 
@@ -18,8 +18,8 @@ namespace Xanadu.Logic.Replays;
 public sealed class ReplayPlaybackSystem(KeybindSettings keybinds, ReplayKeyboard keyboard)
     : QuerySystem<ReplayPlayer, Playhead, PlaySession>
 {
-    private readonly List<Key> _held = new();
-    private readonly Dictionary<Key, long> _changedAt = new();
+    private readonly List<Key> _held = [];
+    private readonly Dictionary<Key, long> _changedAt = [];
 
     protected override void OnUpdate()
     {

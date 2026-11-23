@@ -1,11 +1,12 @@
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Timeline;
-using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
-using Xanadu.Model.Levels;
-using Xanadu.Model.Editor;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Logic.Editor;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Levels;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
@@ -25,7 +26,7 @@ public static class EditorScene
 
         Entity editor = entities.CreateEntity(
             new LevelInfo("Untitled"),
-            new LevelFile(""),
+            new FilePath(""),
             field,
             new Playhead(
                 timeMs: 0,
@@ -43,14 +44,14 @@ public static class EditorScene
         editor.AddComponent(new WaveformPreview(""));
         editor.AddComponent(new EditorPlacement());
         editor.AddComponent(new EditorPlacementGhost());
-        editor.AddComponent(new EditorUiRequest());
-        editor.AddComponent(new LevelGroups(new System.Collections.Generic.List<Xanadu.Model.Levels.GroupDocument>()));
+        editor.AddComponent(new LevelGroups([]));
         editor.AddComponent(EditorGroupEdit.None);
+        EditorViewSystem.Listen(editor);
 
         if (parent is { } root)
             root.AddChild(editor);
 
-        Entity popup = EditorWarningPopup.Build(entities);
+        Entity popup = EditorWarningPopup.Build(entities, editor);
         Entity popupLayer = popup.Parent;
 
         if (parent is { } sceneRoot && !popupLayer.IsNull)
@@ -68,8 +69,8 @@ public static class EditorScene
         if (entry is not null)
         {
             LevelDocumentMapper.Apply(entities, editor, entry.Document, entry.Song);
-            if (editor.HasComponent<LevelFile>())
-                editor.GetComponent<LevelFile>().Path = entry.Path;
+            if (editor.HasComponent<FilePath>())
+                editor.GetComponent<FilePath>().Value = entry.Path;
         }
     }
 

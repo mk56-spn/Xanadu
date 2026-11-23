@@ -15,7 +15,7 @@ public readonly record struct SceneActionContext(
 public sealed class SceneActionRegistry
 {
     private readonly Dictionary<(SceneKind, SceneActionId),
-        Action<SceneActionContext>> _handlers = new();
+        Action<SceneActionContext>> _handlers = [];
 
     public void Register(
         SceneKind scene,

@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Editor;
 
 namespace Xanadu.Screens.Editor;
 
@@ -22,43 +22,43 @@ public static class EditorToolGroups
 {
     /// <summary>The strip the editor shows: notes, chords, dashes, the entrance, orbs, pads, updrafts and decor.</summary>
     public static readonly EditorToolGroupInfo[] All =
-    {
-        new("Notes", new EditorTool[]
-        {
+    [
+        new("Notes",
+        [
             new(EditorPlacementMode.Note, "N", "Notes: click to place one at the snapped playhead, in the key picked; it lands on that key's line of the chord"),
-        }),
-        new("Chords", new EditorTool[]
-        {
-            new(EditorPlacementMode.Chord, "C", "Chords: click where the first line meets the judgement line; the chord starts at the snapped playhead and lasts until the next one"),
-        }),
-        new("Dashes", new EditorTool[]
-        {
+        ]),
+        new("Chords",
+        [
+            new(EditorPlacementMode.Chord, "C", "Chords: click where the first line meets the judgement line; the chord starts at the snapped playhead and lasts until the next one")
+        ]),
+        new("Dashes",
+        [
             new(EditorPlacementMode.Dash, "D", "Dashes: click to place one at the snapped playhead; it crosses the whole chord, and the player dashes whichever way they press"),
             new(EditorPlacementMode.DashStop, "S", "Dash enders: click to place one; a dash that enters it ends there, stopped on its centre, instead of running on to a wall"),
-        }),
-        new("Entrance", new EditorTool[]
-        {
+        ]),
+        new("Entrance",
+        [
             new(EditorPlacementMode.Entrance, "E", "Entrance: click where the player comes in; it releases them at the snapped playhead, and any key hits it. Still selected, click again to set its exit: at its time, on the rift falls and off to a side dashes that way; later on, it comes out riding an orb, each click a height key"),
-        }),
-        new("Orbs", new EditorTool[]
-        {
+        ]),
+        new("Orbs",
+        [
             new(EditorPlacementMode.Orb, "O", "Orb holds: click to place one at the snapped playhead, two beats long; with it still selected, move the playhead on and click to add a height key (past the tail, it stretches)"),
-        }),
-        new("Pads", new EditorTool[]
-        {
+        ]),
+        new("Pads",
+        [
             new(EditorPlacementMode.Pad, "P", "Pads: click to place one; touching it launches the player upward, and a dash that reaches it ends there and launches"),
             new(EditorPlacementMode.TimedPad, "T", "Timed pads: click to place one firing at the snapped playhead; at that moment it stands the player on it and launches, wherever they fell from"),
-        }),
-        new("Drafts", new EditorTool[]
-        {
+        ]),
+        new("Drafts",
+        [
             new(EditorPlacementMode.Draft, "W", "Updrafts: click to place an emitter, one fixed width; above it the player is held at its hover height instead of falling. Still selected, click above it to set that height; set several in a row for a long stretch"),
-        }),
-        new("Decor", new EditorTool[]
-        {
+        ]),
+        new("Decor",
+        [
             new(EditorPlacementMode.Grass, "G", "Grass: click to plant a patch, rooted where clicked; one blade copied across a strip, each swaying in the wind on its own. Only for show: play never notices it"),
             new(EditorPlacementMode.Flare, "F", "Flares: click to place a lens flare centred where clicked. Only for show: play never notices it"),
-        }),
-    };
+        ]),
+    ];
 
     /// <summary>The icon the strip shows for a group: its own when it has one, else its current tool's when that is in it, else its first tool's.</summary>
     public static string IconFor(EditorToolGroupInfo group, EditorPlacementMode current)
@@ -108,16 +108,11 @@ public struct EditorToolGroup(int index, Entity flyout, Entity icon) : IComponen
 /// group, from another button or a key, closes it. The button lights up while
 /// one of its tools is the current one, and shows that tool's icon.
 /// </summary>
-public sealed class EditorToolGroupSystem : QuerySystem<EditorToolGroup>
+public sealed class EditorToolGroupSystem(EntityStore entities) : QuerySystem<EditorToolGroup>
 {
-    private readonly EntityStore _entities;
+    private readonly EntityStore _entities = entities;
     private readonly ButtonPress _presses = new();
     private EditorPlacementMode? _lastMode;
-
-    public EditorToolGroupSystem(EntityStore entities)
-    {
-        _entities = entities;
-    }
 
     protected override void OnUpdate()
     {

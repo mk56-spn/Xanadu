@@ -75,19 +75,18 @@ public static class SongTempoEdits
     /// </summary>
     public static void Normalize(SongDocument song)
     {
-        song.TempoChanges ??= new List<TempoChangeDocument>();
+        song.TempoChanges ??= [];
         TempoMap map = song.Tempo();
         TempoPoint first = map.Points[0];
         song.Bpm = first.Bpm;
         song.BeatsPerBar = first.BeatsPerBar;
-        song.TempoChanges = map.Points.Skip(1)
+        song.TempoChanges = [.. map.Points.Skip(1)
             .Select(point => new TempoChangeDocument
             {
                 TimeMs = Math.Round(point.TimeMs, 3),
                 Bpm = point.Bpm,
                 BeatsPerBar = point.BeatsPerBar,
-            })
-            .ToList();
+            })];
     }
 
     /// <summary>Where a moment falls, as the screen shows it: beat count and bar (both from 1).</summary>

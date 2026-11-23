@@ -1,5 +1,3 @@
-using Xanadu.Storage.Editor;
-using Xanadu.Storage.Levels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +7,11 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
+using Xanadu.Storage.Editor;
+using Xanadu.Storage.Levels;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Screens.Editor;
 
@@ -23,7 +23,6 @@ namespace Xanadu.Screens.Editor;
 public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 {
     private readonly EntityStore entities;
-    private readonly EditorCommandBus commands;
     private readonly IVisualItemFactory? _visuals;
     private readonly LevelRecoveryStore? _recovery;
     private readonly SongStore? _songs;
@@ -33,18 +32,16 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     /// <param name="songs">The song library the picker lists; null for the game's own.</param>
     public EditorDialogSystem(
         EntityStore entities,
-        EditorCommandBus commands,
         IVisualItemFactory? visuals = null,
         LevelRecoveryStore? recovery = null,
         SongStore? songs = null)
     {
         this.entities = entities;
-        this.commands = commands;
         _visuals = visuals;
         _recovery = recovery;
         _songs = songs;
 
-        // A closed dialog is hidden, and still has to hear that it should open.
+        // A closed dialog is hidden, and still has to be listened to.
         Filter.WithDisabled();
     }
 
@@ -52,6 +49,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
     private static readonly Color RowPicked = Palette.Primary;
 
     private readonly ButtonPress _presses = new();
+    private readonly HashSet<int> _heard = [];
 
     protected override void OnUpdate()
     {
@@ -61,7 +59,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
 
         OfferRecovery(editor);
         HoldForSong(editor);
-        OpenRequested(editor);
+        Listen();
 
         foreach ((Entity button, EditorDialogAction action, UiCommand command) in UiCommand.All<EditorDialogAction>(entities))
         {
@@ -96,24 +94,26 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         EditorDialogs.Open(entities, EditorDialogKind.Recovery);
     }
 
-    private void OpenRequested(Entity editor)
+    /// <summary>Hears <see cref="DialogOpenAsked"/> on every dialog, once each.</summary>
+    private void Listen()
     {
         foreach (Entity dialog in Query.ToEntityList())
         {
-            ref EditorDialog state = ref dialog.GetComponent<EditorDialog>();
-            if (!state.OpenRequested)
-                continue;
-
-            state.OpenRequested = false;
-            switch (state.Kind)
-            {
-                case EditorDialogKind.Song:
-                    FillSongs(editor);
-                    break;
-            }
-
-            UiLayout.SetHidden(dialog, false);
+            if (_heard.Add(dialog.Id))
+                dialog.AddSignalHandler<DialogOpenAsked>(_ => Opened(dialog));
         }
+    }
+
+    private void Opened(Entity dialog)
+    {
+        Entity editor = FindEditor();
+        if (editor.IsNull || dialog.IsNull)
+            return;
+
+        if (dialog.GetComponent<EditorDialog>().Kind == EditorDialogKind.Song)
+            FillSongs(editor);
+
+        UiLayout.SetHidden(dialog, false);
     }
 
     /// <param name="arg">For a list row, which row.</param>
@@ -134,15 +134,14 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
                 if (dialogs.Song >= 0 && dialogs.Song < dialogs.Songs.Count)
                 {
                     string id = dialogs.Songs[dialogs.Song].Id;
-                    commands.Enqueue(EditorCommand.LoadSongById(id));
+                    editor.EmitSignal(new UseSong(id));
                     _awaitedSong = id;
                     _awaitFrames = AwaitSongFrames;
                     Close(EditorDialogKind.Song);
                 }
                 break;
             case EditorDialogAction.Leave:
-                if (editor.HasComponent<EditorUiRequest>())
-                    editor.GetComponent<EditorUiRequest>().Kind = EditorButtonKind.Leave;
+                editor.EmitSignal(new LeaveEditor());
                 break;
 
             case EditorDialogAction.Recover:
@@ -207,9 +206,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         {
             if (EditorDialogs.IsOpen(entities, EditorDialogKind.Song))
             {
-                Entity song = EditorDialogs.Find(entities, EditorDialogKind.Song);
-                song.GetComponent<EditorDialog>().OpenRequested = false;
-                UiLayout.SetHidden(song, true);
+                UiLayout.SetHidden(EditorDialogs.Find(entities, EditorDialogKind.Song), true);
             }
 
             return;
@@ -275,7 +272,7 @@ public sealed class EditorDialogSystem : QuerySystem<EditorDialog>
         {
             if (restore)
             {
-                commands.Enqueue(EditorCommand.RecoverLevel(offer.Level, offer.Path));
+                editor.EmitSignal(new RecoverLevel(offer.Level, offer.Path));
                 SetStatus(editor, "Recovered unsaved changes");
             }
             else

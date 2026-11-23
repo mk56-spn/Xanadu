@@ -1,4 +1,4 @@
-using Xanadu.Storage.Settings;
+using Xanadu.Audio;
 using Xanadu.Logic.Calibration;
 using Xanadu.Logic.MainMenu;
 using Xanadu.Logic.Profiles;
@@ -12,8 +12,8 @@ using Xanadu.Screens.Profiles;
 using Xanadu.Screens.Results;
 using Xanadu.Screens.Settings;
 using Xanadu.Screens.Shared;
+using Xanadu.Storage.Settings;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Audio;
 
 namespace Xanadu.Wiring.Scenes;
 

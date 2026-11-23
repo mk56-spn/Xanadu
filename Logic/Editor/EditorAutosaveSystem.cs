@@ -1,9 +1,11 @@
-using Xanadu.Storage.Editor;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Core;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
+using Xanadu.Storage.Editor;
 
 namespace Xanadu.Logic.Editor;
 
@@ -22,7 +24,7 @@ public sealed class EditorAutosaveSystem(
     Func<DateTimeOffset>? clock = null,
     float intervalSeconds = EditorAutosaveSystem.DefaultIntervalSeconds,
     Func<bool>? saveToFile = null)
-    : QuerySystem<LevelFile, EditorUiRequest>
+    : QuerySystem<FilePath>
 {
     public const float DefaultIntervalSeconds = 20f;
 
@@ -33,11 +35,17 @@ public sealed class EditorAutosaveSystem(
     private string? _lastWritten;
     private string _path = "";
     private float _elapsed;
+    private Entity _saveFrom;
 
     protected override void OnUpdate()
     {
         CommandBuffer buffer = CommandBuffer;
         Query.EachEntity(new Watch(this, Query.Store, CommandBuffer, store, intervalSeconds, Tick.deltaTime));
+
+        // Asked after the loop: the overlay, which owns writing level files, saves.
+        if (!_saveFrom.IsNull)
+            _saveFrom.EmitSignal(new SaveQuietly());
+        _saveFrom = default;
     }
 
     /// <summary>
@@ -105,21 +113,17 @@ public sealed class EditorAutosaveSystem(
 
     /// <summary>
     /// Hands the save to the overlay, which owns writing level files. A level
-    /// with no file yet is left to the user to save; a frame already asking
-    /// for something else is left alone, and the next interval tries again.
+    /// with no file yet is left to the user to save.
     /// </summary>
-    private void RequestSave(ref EditorUiRequest request, string path)
+    private void RequestSave(Entity editor, string path)
     {
-        if (saveToFile?.Invoke() != true || string.IsNullOrEmpty(path))
-            return;
-
-        if (request.Kind == EditorButtonKind.None)
-            request.Kind = EditorButtonKind.QuietSave;
+        if (saveToFile?.Invoke() == true && !string.IsNullOrEmpty(path))
+            _saveFrom = editor;
     }
 
-    private readonly record struct Watch(EditorAutosaveSystem System, EntityStore Store, CommandBuffer Buffer, LevelRecoveryStore Recovery, float IntervalSeconds, float Delta) : IEachEntity<LevelFile, EditorUiRequest>
+    private readonly record struct Watch(EditorAutosaveSystem System, EntityStore Store, CommandBuffer Buffer, LevelRecoveryStore Recovery, float IntervalSeconds, float Delta) : IEachEntity<FilePath>
     {
-        public void Execute(ref LevelFile file, ref EditorUiRequest request, int id)
+        public void Execute(ref FilePath file, int id)
         {
             Entity entity = Store.GetEntityById(id);
 
@@ -127,14 +131,14 @@ public sealed class EditorAutosaveSystem(
             {
                 // A new editor scene: whatever it loaded is the clean state.
                 System._editor = entity.Pid;
-                System.Rebase(entity, Buffer, file.Path, offer: true);
+                System.Rebase(entity, Buffer, file.Value, offer: true);
                 return;
             }
 
             if (entity.Tags.Has<EditorBaselineStale>())
             {
                 Buffer.RemoveTag<EditorBaselineStale>(id);
-                System.Rebase(entity, Buffer, file.Path, offer: true);
+                System.Rebase(entity, Buffer, file.Value, offer: true);
                 return;
             }
 
@@ -142,8 +146,8 @@ public sealed class EditorAutosaveSystem(
             {
                 Buffer.RemoveTag<EditorSaved>(id);
                 Recovery.Delete(System._path);
-                Recovery.Delete(file.Path);
-                System.Rebase(entity, Buffer, file.Path, offer: false);
+                Recovery.Delete(file.Value);
+                System.Rebase(entity, Buffer, file.Value, offer: false);
                 return;
             }
 
@@ -152,8 +156,8 @@ public sealed class EditorAutosaveSystem(
                 return;
 
             System._elapsed = 0;
-            if (System.Autosave(entity, file.Path))
-                System.RequestSave(ref request, file.Path);
+            if (System.Autosave(entity, file.Value))
+                System.RequestSave(entity, file.Value);
         }
     }
 }

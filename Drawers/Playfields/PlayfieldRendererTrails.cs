@@ -5,9 +5,9 @@ using Xanadu.Model.Animation;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Playfields;
 using Xanadu.Ui.Systems.Canvas;
-using Position = Xanadu.Core.Position;
 using static Xanadu.Model.Playfields.PlayfieldColors;
 using static Xanadu.Model.Playfields.PlayfieldMetrics;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Drawers.Playfields;
 

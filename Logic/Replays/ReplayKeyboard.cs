@@ -1,5 +1,5 @@
-using Xanadu.Core.Keys;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Ui.Systems.Input;
 
@@ -12,8 +12,8 @@ namespace Xanadu.Logic.Replays;
 /// </summary>
 public sealed class ReplayKeyboard(IKeyboardState real) : IKeyboardState
 {
-    private readonly HashSet<Key> _replayed = new();
-    private readonly Dictionary<Key, long> _changedAt = new();
+    private readonly HashSet<Key> _replayed = [];
+    private readonly Dictionary<Key, long> _changedAt = [];
 
     /// <summary>The real keyboard, which the recorder samples directly.</summary>
     public IKeyboardState Real { get; } = real;

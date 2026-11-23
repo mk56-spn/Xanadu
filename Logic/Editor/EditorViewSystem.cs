@@ -2,8 +2,9 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Systems.Input;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Editor;
 
@@ -13,12 +14,22 @@ namespace Xanadu.Logic.Editor;
 /// <summary>
 /// Moves the editor's view of the playfield: pans while the middle button is
 /// dragged (starting over the field area), zooms by the notches the overlay
-/// queued, fits the field on request, and reopens the view when the field
+/// queued, fits the field when asked (<see cref="Listen"/>), and reopens the view when the field
 /// changes size. See <see cref="EditorViewport"/>.
 /// </summary>
 public sealed class EditorViewSystem(IPointerInputSource pointer)
     : QuerySystem<PlayfieldView, Playfield, EditorViewNavigation, PlayfieldMode>
 {
+    /// <summary>Fits <paramref name="editor"/>'s field in view on each <see cref="FitView"/>.</summary>
+    public static void Listen(Entity editor) =>
+        editor.AddSignalHandler<FitView>(_ =>
+        {
+            if (editor.GetComponent<PlayfieldMode>().Kind != PlayfieldKind.Editor)
+                return;
+            ref PlayfieldView view = ref editor.GetComponent<PlayfieldView>();
+            view = EditorViewport.Fit(view.ScreenSize, editor.GetComponent<Playfield>());
+        });
+
     protected override void OnUpdate()
     {
         PointerInput input = pointer.Read();
@@ -37,12 +48,6 @@ public sealed class EditorViewSystem(IPointerInputSource pointer)
             {
                 navigation.FieldSize = size;
                 view = EditorViewport.Open(view.ScreenSize, playfield);
-            }
-
-            if (navigation.FitRequested)
-            {
-                navigation.FitRequested = false;
-                view = EditorViewport.Fit(view.ScreenSize, playfield);
             }
 
             if (navigation.ZoomSteps != 0)

@@ -11,17 +11,11 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Screens.Editor;
 
 /// <summary>Updates the ECS editor header, footer, status, and preview labels.</summary>
-public sealed class EditorHudSystem : QuerySystem<EditorHud, LevelInfo, Playhead>
+public sealed class EditorHudSystem(EntityStore entities, ToastSystem? toasts = null) : QuerySystem<EditorHud, LevelInfo, Playhead>
 {
-    private readonly EntityStore _entities;
-    private readonly ToastSystem? _toasts;
+    private readonly EntityStore _entities = entities;
+    private readonly ToastSystem? _toasts = toasts;
     private int _shownStatus;
-
-    public EditorHudSystem(EntityStore entities, ToastSystem? toasts = null)
-    {
-        _entities = entities;
-        _toasts = toasts;
-    }
 
     protected override void OnUpdate()
     {

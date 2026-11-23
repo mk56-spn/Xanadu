@@ -3,9 +3,9 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
+using Xanadu.Screens.Shared;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
-using Xanadu.Screens.Shared;
 using static Xanadu.Core.Theme.UiMetrics;
 using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
@@ -75,8 +75,7 @@ public static class SongTimingScene
                     new Button("+ CHANGE", UiType.Body, tone: Tone.Primary, cmd: Cmd(SongTempoAction.Add),
                         tip: "Add a change four bars after the last section, at its tempo"),
                 },
-                (empty = new Label("One tempo for the whole song. + CHANGE adds a section with its own BPM.",
-                    UiType.Body, ink: Ink.Dim, align: Align.Center)),
+                (empty = new Label("One tempo for the whole song. + CHANGE adds a section with its own BPM.", ink: Ink.Dim, align: Align.Center)),
                 (list = new PooledList(RowHeight, Space.Sm, grow: 1)
                 {
                     Row = slot => ChangeRow(slot, rows),
@@ -95,7 +94,7 @@ public static class SongTimingScene
         root.AddComponent(new SongTimingView(title, bpm.Value, offset.Value)
         {
             List = list,
-            Rows = rows.ConvertAll(row => row.Ui).ToArray(),
+            Rows = [.. rows.ConvertAll(row => row.Ui)],
             Empty = empty,
             Foot = foot,
         });
@@ -111,7 +110,7 @@ public static class SongTimingScene
     private static IEnumerable<UiSpec> ChangeRow(int slot, List<ChangeRowParts> rows)
     {
         Field at = Field(SongTimingFieldKind.ChangeAt, slot, "When the change starts; it moves onto the next whole beat");
-        Label position = new("", UiType.Body, ink: Ink.Dim, width: PositionWidth, fit: true);
+        Label position = new(ink: Ink.Dim, width: PositionWidth, fit: true);
         Field bpm = Field(SongTimingFieldKind.ChangeBpm, slot, "The tempo from this change on");
         Field bar = Field(SongTimingFieldKind.ChangeBar, slot, "Beats in a bar from this change on");
         Button remove = new("X", UiType.Body, tone: Tone.Secondary, cmd: Cmd(SongTempoAction.Remove, slot),
@@ -124,7 +123,7 @@ public static class SongTimingScene
     private static Stepper Adjust(string value, string down, string up, SongTimingAdjustKind kind, int step) =>
         new("", value, ValueWidth, UiType.Heading, Cmd(kind, -step), Cmd(kind, step), down, up);
 
-    private static Label Caption(string text) => new(text, UiType.Body, ink: Ink.Dim);
+    private static Label Caption(string text) => new(text, ink: Ink.Dim);
 
     private static Field Field(SongTimingFieldKind kind, int slot, string tip) =>
         new(type: UiType.Body, numeric: true, width: FieldWidth(kind), height: RowHeight, tip: tip)
@@ -140,5 +139,5 @@ public static class SongTimingScene
     };
 
     private static Button Action(string label, Tone tone, UiCommand cmd) =>
-        new(label, UiType.Label, tone: tone, cmd: cmd, width: ActionWidth, height: Control.Lg);
+        new(label, tone: tone, cmd: cmd, width: ActionWidth, height: Control.Lg);
 }

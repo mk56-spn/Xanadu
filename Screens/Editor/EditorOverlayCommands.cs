@@ -1,60 +1,29 @@
 using System;
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Logic.Editor;
 
 namespace Xanadu.Screens.Editor;
 
 /// <summary>Editor overlay command and preview controls.</summary>
 public sealed partial class EditorOverlay
 {
+    private Entity _listening;
+    private readonly List<Action> _asked = [];
+
+    /// <summary>Acts on what the editor asked for since the last tick (<see cref="Listen"/>).</summary>
     private void ProcessUiRequest()
     {
-        if (!_editor.HasComponent<EditorUiRequest>())
+        if (_asked.Count == 0)
             return;
 
-        ref EditorUiRequest request = ref _editor.GetComponent<EditorUiRequest>();
-        EditorButtonKind kind = request.Kind;
-
-        // Only take the requests handled here: others, such as LEVEL INFO's
-        // toggle, belong to an ECS system that may not have run yet this frame.
-        if (!Handles(kind))
-            return;
-
-        request.Kind = EditorButtonKind.None;
-
-        switch (kind)
-        {
-            case EditorButtonKind.Save:
-                SaveCurrent();
-                break;
-
-            case EditorButtonKind.LoadSong:
-                OpenSongDialog();
-                break;
-
-            case EditorButtonKind.Preview:
-                StartPreview();
-                break;
-
-            case EditorButtonKind.PreviewHere:
-                StartPreview(true);
-                break;
-
-            case EditorButtonKind.Leave:
-                _onBack?.Invoke();
-                break;
-
-            case EditorButtonKind.QuietSave:
-                SaveQuietly();
-                break;
-        }
+        Action[] asked = [.. _asked];
+        _asked.Clear();
+        foreach (Action act in asked)
+            act();
     }
-
-    /// <summary>The request kinds the overlay acts on and clears.</summary>
-    private static bool Handles(EditorButtonKind kind) =>
-        kind is EditorButtonKind.Save or EditorButtonKind.LoadSong or EditorButtonKind.Preview
-            or EditorButtonKind.PreviewHere or EditorButtonKind.Leave or EditorButtonKind.QuietSave;
 
     /// <summary>Opens the real play scene on the current level, from a start point or the playhead.</summary>
     private void StartPreview(bool fromPlayhead = false)

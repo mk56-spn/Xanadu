@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Scoring;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Scoring;
 using Xanadu.Model.Settings;
 
 namespace Xanadu.Logic.Playfields;
@@ -39,7 +40,7 @@ public static class PlayChart
                 Colour = new Vector4(colour.R, colour.G, colour.B, colour.A),
                 Timing = new Vector4(note.TimeMs / 1000f, 0f, note.IsDash ? -1f : (float)note.Target - (float)KeybindAction.Action1, i),
             };
-            notes[i].AddComponent(new ChartIndex(i));
+            notes[i].AddComponent(new ListIndex(i));
         }
 
         ShaderChart.Load(chart);
@@ -51,7 +52,7 @@ public static class PlayChart
     /// </summary>
     public static void Judge(Entity note, Judgement judgement, long offsetMs)
     {
-        int index = ChartIndex.Of(note);
+        int index = ListIndex.Of(note);
         if (index < 0)
             return;
 

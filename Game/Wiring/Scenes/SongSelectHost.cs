@@ -36,7 +36,7 @@ public sealed class SongSelectHost(SceneSystem scenes) : ScreenHost<SongSelectLo
         }
         catch (Exception)
         {
-            catalog = new List<LevelEntry>();
+            catalog = [];
         }
 
         var logic = new SongSelectLogic(

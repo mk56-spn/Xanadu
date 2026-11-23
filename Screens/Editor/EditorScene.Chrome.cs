@@ -2,10 +2,10 @@ using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
 using Xanadu.Model.Editor;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
@@ -49,7 +49,7 @@ public static class EditorSceneChrome
 
         // The song's name shows in LEVEL INFO, beside the button that changes it.
         Entity songLabel = default;
-        foreach (Entity label in entities.Query<EditorSongLabel>().Entities)
+        foreach (Entity label in entities.Query().AllTags(Tags.Get<EditorSongLabel>()).Entities)
             songLabel = label;
 
         editor.AddComponent(new EditorHud(
@@ -203,16 +203,16 @@ public static class EditorSceneChrome
             .Main(StackMainAlignment.Center);
 
         EditorButtonKind[] kinds =
-        {
+        [
             EditorButtonKind.Play,
             EditorButtonKind.Stop,
             EditorButtonKind.Preview,
             EditorButtonKind.PreviewHere,
             EditorButtonKind.Metronome,
-        };
-        float[] widths = { 64, 64, 108, 124, 108 };
-        string[] labels = { "▶", "■", "Preview", "Play from here", "Click Off" };
-        string?[] icons = { "play", "stop", null, null, null };
+        ];
+        float[] widths = [64, 64, 108, 124, 108];
+        string[] labels = ["▶", "■", "Preview", "Play from here", "Click Off"];
+        string?[] icons = ["play", "stop", null, null, null];
         for (int i = 0; i < kinds.Length; i++)
         {
             var size = new Vector2(widths[i], 38);
@@ -223,8 +223,7 @@ public static class EditorSceneChrome
                             labels[i],
                             IconDir + icon + ".svg",
                             size,
-                            SceneUi.EditorButtonColor,
-                            18)
+                            SceneUi.EditorButtonColor)
                         .Entity,
                     kinds[i]);
             }
@@ -260,7 +259,7 @@ public static class EditorSceneChrome
             clockColumn.Row()
                 .Size(EditorLayout.TimeWidth, EditorLayout.TimeHeight)
                 .Fill(Palette.SurfaceInset)
-                .Border(Palette.BorderStrong, 1)
+                .Border(Palette.BorderStrong)
                 .Main(StackMainAlignment.Center),
             Vector2.Zero,
             new Vector2(EditorLayout.TimeWidth - 16, EditorLayout.TimeHeight - 6),

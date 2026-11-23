@@ -1,7 +1,7 @@
-using Xanadu.Model.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Playfields;

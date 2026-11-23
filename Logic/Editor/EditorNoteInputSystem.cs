@@ -1,9 +1,11 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
+using Xanadu.Logic.Editor.History;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Playfields;
 using Xanadu.Model.Settings;
@@ -11,8 +13,6 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Interaction;
 using Position = Xanadu.Core.Position;
-using Xanadu.Model.Editor;
-using Xanadu.Logic.Editor.History;
 
 namespace Xanadu.Logic.Editor;
 
@@ -41,7 +41,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private Entity _placed;
     private Entity _draggedEntity;
     private readonly UiDragController _drag = new();
-    private readonly Dictionary<int, Vector2> _dragStartPositions = new();
+    private readonly Dictionary<int, Vector2> _dragStartPositions = [];
     private EditorSnapshot _dragBefore;
     private readonly NoteBox _box;
 
@@ -95,7 +95,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
 
         _box.Cancel(editor);
 
-        // The ruler strip is the shared timeline's (TimelineInputSystem, through EditorTimelineHost).
+        // The ruler strip is the shared timeline's (TimelineInputSystem, answered by EditorTimeline).
         if (IsOverEditorUi(editor, screenPosition))
             return;
 
@@ -379,7 +379,7 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
     private Xanadu.Core.Items.Xif Named(Xanadu.Core.Items.Xif xif)
     {
         var taken = new System.Collections.Generic.HashSet<string>();
-        _entities.Query<Deco>().ForEachEntity((ref Deco deco, Entity _) => taken.Add(deco.Xif.Id));
+        _entities.Query<Deco>().ForEachEntity((ref deco, _) => taken.Add(deco.Xif.Id));
         xif.Id = LevelItemIds.Fresh(taken, xif.Name);
         return xif;
     }

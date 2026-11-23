@@ -7,7 +7,7 @@ namespace Xanadu.Logic.Editor;
 public static class SnapDivisions
 {
     public static readonly (int Division, string Label)[] Offered =
-    {
+    [
         (1, "1/1"),
         (2, "1/2"),
         (4, "1/4"),
@@ -15,7 +15,7 @@ public static class SnapDivisions
         (3, "1/3"),
         (6, "1/6"),
         (12, "1/12"),
-    };
+    ];
 
     /// <summary>How many of <see cref="Offered"/> are straight; the rest are triplets.</summary>
     public const int Straight = 4;

@@ -49,7 +49,7 @@ public sealed class OffsetCalibration
     /// <summary>Scales a median absolute deviation to a standard deviation.</summary>
     private const double MadToDeviation = 1.4826d;
 
-    private readonly Dictionary<int, double> _taps = new();
+    private readonly Dictionary<int, double> _taps = [];
 
     public static int TotalBeats => CountInBeats + MeasuredBeats;
 
@@ -82,11 +82,11 @@ public sealed class OffsetCalibration
         if (_taps.Count == 0)
             return null;
 
-        List<double> taps = _taps.Values.ToList();
+        List<double> taps = [.. _taps.Values];
         double middle = Median(taps);
-        double deviation = Median(taps.Select(tap => Math.Abs(tap - middle)).ToList()) * MadToDeviation;
+        double deviation = Median([.. taps.Select(tap => Math.Abs(tap - middle))]) * MadToDeviation;
         double keep = Math.Max(deviation * OutlierSpreads, AlwaysKeptMs);
-        List<double> kept = taps.Where(tap => Math.Abs(tap - middle) <= keep).ToList();
+        List<double> kept = [.. taps.Where(tap => Math.Abs(tap - middle) <= keep)];
 
         // The median again, of what is left, so strays cannot pull it at all.
         double offset = Median(kept);

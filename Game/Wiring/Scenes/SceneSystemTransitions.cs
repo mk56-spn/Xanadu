@@ -6,8 +6,8 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Ui.Ecs.Ui;
-using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 using Position = Xanadu.Core.Position;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Wiring.Scenes;
 

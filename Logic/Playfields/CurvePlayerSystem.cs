@@ -227,8 +227,8 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     }
 
     /// <summary>The pads the body touched last frame: a pad fires as the body comes onto it, not again until it has left.</summary>
-    private readonly HashSet<int> _touching = new();
-    private readonly HashSet<int> _touchingNow = new();
+    private readonly HashSet<int> _touching = [];
+    private readonly HashSet<int> _touchingNow = [];
 
     /// <summary>
     /// Fires every pad the body has just come onto: its upward speed is set

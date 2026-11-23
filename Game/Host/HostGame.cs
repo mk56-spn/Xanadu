@@ -1,7 +1,6 @@
-using Xanadu.Storage.Levels;
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -11,13 +10,14 @@ using MoonWorks.Input;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Storage;
-using Xanadu.Model.Ecs;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Host.Input;
 using Xanadu.Host.Rendering;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Ui.Systems;
+using Xanadu.Storage.Levels;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Wiring;
 using Xanadu.Wiring.Scenes;
@@ -70,7 +70,6 @@ internal sealed class HostGame : HostApp
     /// <summary>What the Godot <c>Main</c> did on a scene change: the editor gets its overlay while it is up.</summary>
     private void OnSceneChanged(SceneKind scene)
     {
-        _systems.Commands.Clear();
         if (scene != SceneKind.Editor)
         {
             _editorOverlay?.Close();
@@ -84,7 +83,6 @@ internal sealed class HostGame : HostApp
 
         _editorOverlay = new Xanadu.Screens.Editor.EditorOverlay(
             Entities,
-            _systems.Commands,
             Pointer,
             () => _systems.Scenes.TryBack(),
             () => _systems.Scenes.TryForward(),
@@ -94,8 +92,7 @@ internal sealed class HostGame : HostApp
             onPreviewHere: (document, path, playheadMs) => _systems.Scenes.StartEditorPreview(
                 LevelStore.Entry(path, document),
                 playheadMs,
-                fromPlayhead: true),
-            history: _systems.EditorHistory)
+                fromPlayhead: true))
         {
             FileDialogOpen = () => _fileDialog.IsOpen,
         };
@@ -183,7 +180,7 @@ internal sealed class HostGame : HostApp
     {
         _fileDialog.Poll();
         Keyboard.FeedPresses(Inputs.Keyboard, _systems.KeyPresses, key =>
-            key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
+            !TerminalOpen && key != DebugKeys.Screenshot && (!TextInput.Active || key == Key.Escape));
     }
 
     protected override void Tick(float delta, float time)

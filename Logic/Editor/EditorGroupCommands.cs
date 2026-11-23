@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Timeline;
-using Xanadu.Logic.Editor.Commands;
 using Xanadu.Logic.Editor.History;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 
 namespace Xanadu.Logic.Editor;
@@ -25,93 +25,97 @@ public sealed class EditorGroupCommands(EditorCommandContext context)
 
     private EditorSnapshot? _dragBefore;
 
-    public bool TryApply(EditorCommand command, Entity editor)
+    public void Listen(Entity editor)
     {
-        if (command.Type is not (EditorCommandType.NewGroup or EditorCommandType.PickGroup or
-            EditorCommandType.AddToGroup or EditorCommandType.RemoveFromGroup or EditorCommandType.DeleteGroup or
-            EditorCommandType.KeyGroup or EditorCommandType.DeleteGroupKeys or EditorCommandType.StepGroupLoop or
-            EditorCommandType.RenameGroup or EditorCommandType.ToggleOneMember or EditorCommandType.ToggleGroupEase or
-            EditorCommandType.EaseGroupKeys))
-            return false;
-
-        // The scene gives the editor its groups; nothing here may add a component mid-query.
-        if (!editor.HasComponent<LevelGroups>() || !editor.HasComponent<EditorGroupEdit>())
-            return true;
-
-        ref EditorGroupEdit edit = ref editor.GetComponent<EditorGroupEdit>();
-        switch (command.Type)
+        context.On<PickGroup>(editor, (on, intent) => { if (HasGroups(on)) Pick(on, intent.Index); });
+        context.On<ToggleOneMember>(editor, (on, _) =>
         {
-            case EditorCommandType.PickGroup:
-                Pick(editor, command.IntValue);
-                return true;
-            case EditorCommandType.ToggleOneMember:
-                edit.OneMember = !edit.OneMember;
-                return true;
-            case EditorCommandType.ToggleGroupEase:
-                edit.Easing = command.IntValue != 0;
-                return true;
-            case EditorCommandType.KeyGroup:
-                Key(editor, command.IntValue, command.FloatValue, command.LongValue != 0);
-                return true;
-        }
+            if (HasGroups(on))
+                on.GetComponent<EditorGroupEdit>().OneMember = !on.GetComponent<EditorGroupEdit>().OneMember;
+        });
+        context.On<ShowGroupEase>(editor, (on, intent) =>
+        {
+            if (HasGroups(on))
+                on.GetComponent<EditorGroupEdit>().Easing = intent.Open;
+        });
+        context.On<KeyGroup>(editor, (on, intent) => { if (HasGroups(on)) Key(on, intent.Field, intent.Value, intent.Live); });
+
+        context.On<NewGroup>(editor, (on, _) => Change(on, (groups, ref edit, _, _) =>
+        {
+            List<string> selected = SelectedIds(on);
+            if (selected.Count == 0)
+                return;
+            groups.Add(new GroupDocument { Name = FreshName(groups), Members = selected });
+            edit.Picked = groups.Count - 1;
+        }));
+        context.On<RenameGroup>(editor, (on, intent) => ChangePicked(on, (current, _) =>
+        {
+            string name = (intent.Name ?? "").Trim();
+            if (name.Length > 0)
+                current.Name = name;
+        }));
+        context.On<AddToGroup>(editor, (on, _) => ChangePicked(on, (current, _) =>
+        {
+            foreach (string id in SelectedIds(on))
+            {
+                if (!current.Members.Contains(id))
+                    current.Members.Add(id);
+            }
+        }));
+        context.On<RemoveFromGroup>(editor, (on, _) => ChangePicked(on, (current, _) =>
+        {
+            foreach (string id in SelectedIds(on))
+            {
+                current.Members.Remove(id);
+                // A member's own keys leave with it.
+                current.Clip.Channels.RemoveAll(channel => channel.Address.Node == id);
+            }
+        }));
+        context.On<DeleteGroup>(editor, (on, _) => Change(on, (groups, ref edit, current, _) =>
+        {
+            if (current is null)
+                return;
+            groups.RemoveAt(edit.Picked);
+            edit.Picked = Math.Min(edit.Picked, groups.Count - 1);
+        }));
+        context.On<StepGroupLoop>(editor, (on, intent) => ChangePicked(on, (current, _) => StepLoop(current, intent.Direction)));
+        context.On<DeleteGroupKeys>(editor, (on, _) => ChangePicked(on, (current, node) =>
+        {
+            if (node is not null)
+                current.Clip.RemoveKeysAt(current.ClipTime(PlayheadBeat(on)), node);
+        }));
+        context.On<EaseGroupKeys>(editor, (on, intent) => ChangePicked(on, (current, node) =>
+        {
+            if (node is not null)
+                current.Clip.ApplyEase(current.ClipTime(PlayheadBeat(on)), intent.Preset, node);
+        }));
+    }
+
+    /// <summary>The scene gives the editor its groups; nothing here adds them.</summary>
+    private static bool HasGroups(Entity editor) =>
+        editor.HasComponent<LevelGroups>() && editor.HasComponent<EditorGroupEdit>();
+
+    private delegate void GroupChange(List<GroupDocument> groups, ref EditorGroupEdit edit, GroupDocument? current, string? node);
+
+    /// <summary>One undo step around <paramref name="change"/>.</summary>
+    private void Change(Entity editor, GroupChange change)
+    {
+        if (!HasGroups(editor))
+            return;
 
         EditorSnapshot before = context.History.Capture();
-        List<GroupDocument> groups = editor.GetComponent<LevelGroups>().Groups;
         (GroupDocument? current, string? node) = EditorGroupTarget.Of(editor);
-        switch (command.Type)
-        {
-            case EditorCommandType.NewGroup:
-                List<string> selected = SelectedIds(editor);
-                if (selected.Count == 0)
-                    return true;
-                groups.Add(new GroupDocument { Name = FreshName(groups), Members = selected });
-                edit.Picked = groups.Count - 1;
-                break;
-
-            case EditorCommandType.RenameGroup when current is not null:
-                string name = (command.Text ?? "").Trim();
-                if (name.Length > 0)
-                    current.Name = name;
-                break;
-
-            case EditorCommandType.AddToGroup when current is not null:
-                foreach (string id in SelectedIds(editor))
-                {
-                    if (!current.Members.Contains(id))
-                        current.Members.Add(id);
-                }
-                break;
-
-            case EditorCommandType.RemoveFromGroup when current is not null:
-                foreach (string id in SelectedIds(editor))
-                {
-                    current.Members.Remove(id);
-                    // A member's own keys leave with it.
-                    current.Clip.Channels.RemoveAll(channel => channel.Address.Node == id);
-                }
-                break;
-
-            case EditorCommandType.DeleteGroup when current is not null:
-                groups.RemoveAt(edit.Picked);
-                edit.Picked = Math.Min(edit.Picked, groups.Count - 1);
-                break;
-
-            case EditorCommandType.StepGroupLoop when current is not null:
-                StepLoop(current, command.IntValue);
-                break;
-
-            case EditorCommandType.DeleteGroupKeys when current is not null && node is not null:
-                current.Clip.RemoveKeysAt(current.ClipTime(PlayheadBeat(editor)), node);
-                break;
-
-            case EditorCommandType.EaseGroupKeys when current is not null && node is not null:
-                current.Clip.ApplyEase(current.ClipTime(PlayheadBeat(editor)), (EasePreset)command.IntValue, node);
-                break;
-        }
-
+        change(editor.GetComponent<LevelGroups>().Groups, ref editor.GetComponent<EditorGroupEdit>(), current, node);
         context.History.Record(before, context.History.Capture());
-        return true;
     }
+
+    /// <summary>One undo step around a change to the picked group; nothing when none is picked.</summary>
+    private void ChangePicked(Entity editor, Action<GroupDocument, string?> change) =>
+        Change(editor, (_, ref _, current, node) =>
+        {
+            if (current is not null)
+                change(current, node);
+        });
 
     /// <summary>The playhead's beat, on the grid, which is where keys go.</summary>
     public static double PlayheadBeat(Entity editor)

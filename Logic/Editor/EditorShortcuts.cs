@@ -1,35 +1,15 @@
-using Xanadu.Core.Keys;
-using Xanadu.Model.Settings;
 using System;
 using System.Collections.Generic;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Settings;
+using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Logic.Editor;
-
-/// <summary>What a key in the level editor can do.</summary>
-public enum EditorShortcut
-{
-    Preview,
-    PreviewHere,
-    CloseDialog,
-    ToggleHelp,
-    FitView,
-    Save,
-    Undo,
-    Redo,
-    Copy,
-    Paste,
-    Timeline,
-    Place,
-    Back,
-    Forward,
-    Delete,
-    MoveLeft,
-    MoveRight,
-}
 
 /// <summary>When a binding can fire. <see cref="EditorShortcuts.ActiveScopes"/> says which are live.</summary>
 [Flags]
@@ -56,12 +36,8 @@ public enum EditorShortcutScope
 /// <summary>Every key binding in the level editor; the first live match wins.</summary>
 public static class EditorShortcuts
 {
-    public readonly record struct Binding(
-        KeyChord Chord,
-        EditorShortcut Action,
-        EditorShortcutScope Scope,
-        EditorPlacementMode Placement = EditorPlacementMode.Note,
-        TimelineCommand Timeline = TimelineCommand.TogglePlay);
+    /// <summary>A chord that emits <paramref name="Intent"/> on the editor while one of <paramref name="Scope"/> is live.</summary>
+    public readonly record struct Binding(KeyChord Chord, IIntent Intent, EditorShortcutScope Scope);
 
     public static readonly IReadOnlyList<Binding> All = Build();
 
@@ -105,31 +81,31 @@ public static class EditorShortcuts
 
         var bindings = new List<Binding>
         {
-            new(new KeyChord(DebugKeys.Preview), EditorShortcut.Preview, always),
-            new(new KeyChord(DebugKeys.Preview, Shift: true), EditorShortcut.PreviewHere, always),
-            new(new KeyChord(Key.Escape), EditorShortcut.CloseDialog, EditorShortcutScope.Dialog),
-            new(new KeyChord(GameDebugKeys.EditorHelp), EditorShortcut.ToggleHelp, always),
-            new(new KeyChord(Key.F), EditorShortcut.FitView, notTyping),
-            new(new KeyChord(Key.Escape), EditorShortcut.ToggleHelp, EditorShortcutScope.Help),
-            new(new KeyChord(Key.S, Ctrl: true), EditorShortcut.Save, always),
-            new(new KeyChord(Key.Z, Ctrl: true), EditorShortcut.Undo, always),
-            new(new KeyChord(Key.Y, Ctrl: true), EditorShortcut.Redo, always),
-            new(new KeyChord(Key.Z, Ctrl: true, Shift: true), EditorShortcut.Redo, always),
-            new(new KeyChord(Key.C, Ctrl: true), EditorShortcut.Copy, notTyping),
-            new(new KeyChord(Key.V, Ctrl: true), EditorShortcut.Paste, notTyping),
+            new(new KeyChord(DebugKeys.Preview), new PreviewLevel(FromPlayhead: false), always),
+            new(new KeyChord(DebugKeys.Preview, Shift: true), new PreviewLevel(FromPlayhead: true), always),
+            new(new KeyChord(Key.Escape), new CloseEditorDialog(), EditorShortcutScope.Dialog),
+            new(new KeyChord(GameDebugKeys.EditorHelp), new ToggleShortcutHelp(), always),
+            new(new KeyChord(Key.F), new FitView(), notTyping),
+            new(new KeyChord(Key.Escape), new ToggleShortcutHelp(), EditorShortcutScope.Help),
+            new(new KeyChord(Key.S, Ctrl: true), new SaveLevel(), always),
+            new(new KeyChord(Key.Z, Ctrl: true), new Undo(), always),
+            new(new KeyChord(Key.Y, Ctrl: true), new Redo(), always),
+            new(new KeyChord(Key.Z, Ctrl: true, Shift: true), new Redo(), always),
+            new(new KeyChord(Key.C, Ctrl: true), new CopySelection(), notTyping),
+            new(new KeyChord(Key.V, Ctrl: true), new PasteSelection(), notTyping),
 
 
-            new(new KeyChord(Key.Escape), EditorShortcut.Back, field),
-            new(new KeyChord(Key.Enter), EditorShortcut.Forward, field),
-            new(new KeyChord(Key.KpEnter), EditorShortcut.Forward, field),
-            new(new KeyChord(Key.Delete), EditorShortcut.Delete, field),
-            new(new KeyChord(Key.Backspace), EditorShortcut.Delete, field),
-            new(new KeyChord(Key.Left), EditorShortcut.MoveLeft, field),
-            new(new KeyChord(Key.Right), EditorShortcut.MoveRight, field),
+            new(new KeyChord(Key.Escape), new LeaveEditor(), field),
+            new(new KeyChord(Key.Enter), new GoForward(), field),
+            new(new KeyChord(Key.KpEnter), new GoForward(), field),
+            new(new KeyChord(Key.Delete), new DeleteSelection(), field),
+            new(new KeyChord(Key.Backspace), new DeleteSelection(), field),
+            new(new KeyChord(Key.Left), new MoveSelection(-1), field),
+            new(new KeyChord(Key.Right), new MoveSelection(1), field),
         };
 
         foreach ((KeyChord chord, TimelineCommand command) in TimelineShortcuts.All)
-            bindings.Add(new Binding(chord, EditorShortcut.Timeline, field, Timeline: command));
+            bindings.Add(new Binding(chord, new TimelineKey(command), field));
 
         for (Key key = Key.Key0; key <= Key.Key9; key++)
             AddPlacement(bindings, key);
@@ -143,28 +119,7 @@ public static class EditorShortcuts
     {
         if (EditorPlacementKeybinds.TryGet(key, out EditorPlacementMode mode))
         {
-            bindings.Add(new Binding(
-                new KeyChord(key),
-                EditorShortcut.Place,
-                EditorShortcutScope.Field,
-                mode));
+            bindings.Add(new Binding(new KeyChord(key), new PickPlacement(mode), EditorShortcutScope.Field));
         }
     }
-}
-
-/// <summary>What runs an editor shortcut: the overlay, which owns the dialogs and the status line.</summary>
-public interface IEditorShortcutTarget
-{
-    /// <summary>False once the overlay has closed, so keys go back to the scene.</summary>
-    bool IsOpen { get; }
-
-    EditorShortcutScope ActiveScopes { get; }
-
-    void Run(EditorShortcuts.Binding binding);
-}
-
-/// <summary>Marks the editor entity with whatever runs its shortcuts.</summary>
-public struct EditorShortcutHost(IEditorShortcutTarget target) : Friflo.Engine.ECS.IComponent
-{
-    public IEditorShortcutTarget Target = target;
 }

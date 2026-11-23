@@ -1,11 +1,11 @@
 using System;
 using Friflo.Engine.ECS;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Timeline;
-using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Screens.Editor;
 
@@ -17,7 +17,6 @@ namespace Xanadu.Screens.Editor;
 /// </summary>
 public sealed partial class EditorOverlay
 {
-    private readonly EditorCommandBus _commands;
     private readonly EntityStore _entities;
     private readonly Action? _onBack;
     private readonly Action? _onForward;
@@ -33,17 +32,14 @@ public sealed partial class EditorOverlay
 
     public EditorOverlay(
         EntityStore entities,
-        EditorCommandBus commands,
         IBlockingPointerInputSource? pointer,
         Action? onBack = null,
         Action? onForward = null,
         Action<LevelDocument, string, long>? onPreview = null,
         bool openSongDialog = true,
-        Action<LevelDocument, string, long>? onPreviewHere = null,
-        EditorHistory? history = null)
+        Action<LevelDocument, string, long>? onPreviewHere = null)
     {
         _entities = entities;
-        _commands = commands;
         _pointer = pointer;
         _onBack = onBack;
         _onForward = onForward;
@@ -52,11 +48,6 @@ public sealed partial class EditorOverlay
         _openSongDialog = openSongDialog;
 
         _editor = FindEditor();
-        if (!_editor.IsNull)
-        {
-            _editor.AddComponent(new EditorShortcutHost(this));
-            _editor.AddComponent(new TimelineHost(new EditorTimelineHost(_editor, _commands, SetStatus, history)));
-        }
     }
 
     /// <summary>Detaches the overlay before the ECS editor scene is destroyed.</summary>
@@ -66,6 +57,8 @@ public sealed partial class EditorOverlay
             return;
 
         _closed = true;
+        if (!_editor.IsNull && _editor.Tags.Has<KeyTarget>())
+            _editor.RemoveTag<KeyTarget>();
         _editor = default;
         _pointer?.SetBlocked(false);
     }

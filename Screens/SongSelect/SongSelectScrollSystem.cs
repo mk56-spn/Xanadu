@@ -11,7 +11,7 @@ namespace Xanadu.Screens.SongSelect;
 /// </summary>
 public sealed class SongSelectScrollSystem : QuerySystem<SongSelectState>
 {
-    private readonly List<Entity> _lists = new();
+    private readonly List<Entity> _lists = [];
 
     protected override void OnUpdate()
     {

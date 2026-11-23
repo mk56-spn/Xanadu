@@ -3,10 +3,10 @@ using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Ui.Ecs;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.Editor;
@@ -39,7 +39,7 @@ public static class EditorGroupPanel
     internal static void Build(UiNode body, float width)
     {
         // The hint shows while there are no groups.
-        body.Text("Select decos, then NEW", UiType.Caption, SceneUi.DimTextColor, TextAlign.Left)
+        body.Text("Select decos, then NEW", UiType.Caption, SceneUi.DimTextColor)
             .Size(width, 18)
             .With(EditorButton.Of(EditorButtonKind.GroupPick, -1));
 
@@ -56,9 +56,9 @@ public static class EditorGroupPanel
         UiNode page = body.Row().Size(width, RowHeight).Gap(Gap).Main(StackMainAlignment.Start)
             .Hidden()
             .With(EditorButton.Of(EditorButtonKind.GroupPage, -2));
-        page.Text("", UiType.Caption, SceneUi.DimTextColor, TextAlign.Left)
+        page.Text("", UiType.Caption, SceneUi.DimTextColor)
             .Size(width - 2 * (RowHeight + Gap), RowHeight)
-            .With(EditorButton.Of(EditorButtonKind.GroupPage, 0));
+            .With(EditorButton.Of(EditorButtonKind.GroupPage));
         Page(page, "▲", "Earlier groups", -1);
         Page(page, "▼", "Later groups", +1);
 
@@ -87,15 +87,15 @@ public static class EditorGroupPanel
 
         // The loop: a stepped length, so the label, then - and +.
         UiNode loop = keys.Row().Size(width, RowHeight).Gap(Gap).Main(StackMainAlignment.Start);
-        loop.Text("LOOP", UiType.Caption, UiTheme.Accent, TextAlign.Left).Size(48, RowHeight);
+        loop.Text("LOOP", UiType.Caption, UiTheme.Accent).Size(48, RowHeight);
         loop.Text("off", UiType.Label, SceneUi.DimTextColor, TextAlign.Center)
             .Size(width - 48 - 2 * (RowHeight + Gap) - Gap, RowHeight)
-            .With(EditorButton.Of(EditorButtonKind.GroupLoop, 0));
+            .With(EditorButton.Of(EditorButtonKind.GroupLoop));
         Step(loop, "-", "A shorter loop (down to none)", -1);
         Step(loop, "+", "A longer loop", +1);
 
         // What the sliders key: the whole group, or (escape hatch) one member.
-        keys.Text("AT THE PLAYHEAD (DRAG TO KEY)", UiType.Caption, SceneUi.DimTextColor, TextAlign.Left)
+        keys.Text("AT THE PLAYHEAD (DRAG TO KEY)", UiType.Caption, SceneUi.DimTextColor)
             .Size(width, 18)
             .With(EditorButton.Of(EditorButtonKind.GroupField, -2));
         for (int i = 0; i < LevelItemFields.All.Length; i++)

@@ -1,141 +1,68 @@
-using Xanadu.Storage.Levels;
 using System;
-using System.IO;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Timeline;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Storage.Levels;
 
 namespace Xanadu.Logic.Editor;
 
 /// <summary>The editor's level and transport commands: metadata, playback, loading and saving.</summary>
 public sealed class EditorLevelCommands(EditorCommandContext context)
 {
-    public bool TryApply(EditorCommand command, Entity editor, CommandBuffer buffer)
+    public void Listen(Entity editor)
     {
-        ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
-        ref Playhead playhead = ref editor.GetComponent<Playhead>();
-
-        switch (command.Type)
+        context.On<SetLevelName>(editor, (on, intent) => on.GetComponent<LevelInfo>().Name = intent.Name);
+        context.On<SetLevelArtist>(editor, (on, intent) => on.GetComponent<LevelInfo>().Artist = intent.Artist);
+        context.On<SetLevelDifficulty>(editor, (on, intent) => on.GetComponent<LevelInfo>().Difficulty = intent.Difficulty);
+        context.On<SetSnap>(editor, (on, intent) => on.GetComponent<Playhead>().SnapDivision = NormalizeSnap(intent.Division));
+        context.On<PickPlacement>(editor, (on, intent) =>
         {
-            case EditorCommandType.SetName:
-                level.Name = command.Text ?? "";
-                return true;
-
-            case EditorCommandType.SetArtist:
-                level.Artist = command.Text ?? "";
-                return true;
-
-            case EditorCommandType.SetDifficulty:
-                level.Difficulty = command.Text ?? "";
-                return true;
-
-            case EditorCommandType.SetSnap:
-                playhead.SnapDivision = NormalizeSnap(command.IntValue);
-                return true;
-
-            case EditorCommandType.SetPlacementMode:
-                if (Enum.IsDefined(typeof(EditorPlacementMode), command.IntValue) &&
-                    editor.HasComponent<EditorPlacement>())
-                {
-                    editor.GetComponent<EditorPlacement>().Mode = (EditorPlacementMode)command.IntValue;
-                }
-
-                return true;
-
-            case EditorCommandType.TogglePlayback:
-                if (!playhead.Playing &&
-                    playhead.DurationMs > 0 &&
-                    playhead.TimeMs >= playhead.DurationMs)
-                {
-                    playhead.SeekRequestMs = 0;
-                }
-
-                playhead.Playing = !playhead.Playing;
-                return true;
-
-            case EditorCommandType.StopPlayback:
-                playhead.Playing = false;
+            if (Enum.IsDefined(intent.Mode) && on.HasComponent<EditorPlacement>())
+                on.GetComponent<EditorPlacement>().Mode = intent.Mode;
+        });
+        context.On<TogglePlayback>(editor, (on, _) =>
+        {
+            ref Playhead playhead = ref on.GetComponent<Playhead>();
+            if (!playhead.Playing && playhead.DurationMs > 0 && playhead.TimeMs >= playhead.DurationMs)
                 playhead.SeekRequestMs = 0;
-                return true;
 
-            case EditorCommandType.Seek:
-                playhead.SeekRequestMs = Math.Max(0, command.LongValue);
-                return true;
-
-            case EditorCommandType.SetMetronome:
-                editor.GetComponent<EditorMetronome>().Enabled = command.IntValue != 0;
-                return true;
-
-            case EditorCommandType.LoadSong:
-                LoadSong(command.Text ?? "", editor);
-                if (editor.HasComponent<TimelineView>())
-                    editor.GetComponent<TimelineView>().AutoZoomed = false;
-                return true;
-
-            case EditorCommandType.LoadSongById:
-                LoadSongById(command.Text ?? "", editor);
-                if (editor.HasComponent<TimelineView>())
-                    editor.GetComponent<TimelineView>().AutoZoomed = false;
-                return true;
-
-            case EditorCommandType.ApplyLevel:
-                if (command.Document is not null)
-                    ApplyLevel(command.Document, command.Text ?? "", editor, buffer);
-                return true;
-
-            case EditorCommandType.RecoverLevel:
-                if (command.Document is not null)
-                    ApplyLevel(command.Document, command.Text ?? "", editor, buffer, isOnDisk: false);
-                return true;
-
-            case EditorCommandType.SetLevelFile:
-                SetLevelFile(editor, command.Text ?? "");
-                // Directly after the query, so the autosave system later in
-                // this group sees the save and clears its recovery file. The
-                // shared command buffer would only apply it next frame, after
-                // a preview may already have switched the scene.
-                context.AfterQuery.Add(() => editor.AddTag<EditorSaved>());
-                return true;
-
-            default:
-                return false;
-        }
+            playhead.Playing = !playhead.Playing;
+        });
+        context.On<StopPlayback>(editor, (on, _) =>
+        {
+            ref Playhead playhead = ref on.GetComponent<Playhead>();
+            playhead.Playing = false;
+            playhead.SeekRequestMs = 0;
+        });
+        context.On<Seek>(editor, (on, intent) => on.GetComponent<Playhead>().SeekRequestMs = Math.Max(0, intent.TimeMs));
+        context.On<SetMetronome>(editor, (on, intent) => on.GetComponent<EditorMetronome>().Enabled = intent.On);
+        context.On<UseSong>(editor, (on, intent) =>
+        {
+            if (SongStore.Shared.Open(intent.Id) is { } song)
+                UseLibrarySong(song, on);
+            if (on.HasComponent<TimelineView>())
+                on.GetComponent<TimelineView>().AutoZoomed = false;
+        });
+        context.On<RecoverLevel>(editor, (on, intent) =>
+        {
+            if (intent.Level is not null)
+                Recover(intent.Level, intent.Path ?? "", on);
+        });
+        context.On<SetLevelFile>(editor, (on, intent) =>
+        {
+            SetLevelFile(on, intent.Path ?? "");
+            // Directly after the commands, so the autosave system later in
+            // this group sees the save and clears its recovery file. The
+            // shared command buffer would only apply it next frame, after
+            // a preview may already have switched the scene.
+            context.AfterQuery.Add(() => on.AddTag<EditorSaved>());
+        });
     }
 
-    private static void LoadSongById(string id, Entity editor)
-    {
-        if (SongStore.Shared.Open(id) is { } song)
-            UseSong(song, editor);
-    }
-
-    /// <summary>Imports an audio file into the library and times the level to it.</summary>
-    private static void LoadSong(string path, Entity editor)
-    {
-        LoadedSong song;
-        try
-        {
-            song = SongStore.Shared.Import(path);
-        }
-        catch (Exception)
-        {
-            // Nothing the library could take: the level keeps the song it had.
-            return;
-        }
-
-        UseSong(song, editor);
-
-        ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
-        if (string.IsNullOrWhiteSpace(level.Name) || level.Name == "Untitled")
-        {
-            string name = Path.GetFileNameWithoutExtension(path);
-            if (!string.IsNullOrEmpty(name))
-                level.Name = name;
-        }
-    }
-
-    private static void UseSong(LoadedSong song, Entity editor)
+    private static void UseLibrarySong(LoadedSong song, Entity editor)
     {
         ref LevelInfo level = ref editor.GetComponent<LevelInfo>();
         ref Playhead playhead = ref editor.GetComponent<Playhead>();
@@ -150,14 +77,10 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
         playhead.AudioRevision++;
     }
 
-    private void ApplyLevel(
-        LevelDocument document,
-        string path,
-        Entity editor,
-        CommandBuffer buffer,
-        bool isOnDisk = true)
+    /// <summary>Puts unsaved work back: it is not what is on disk, so the baseline stays.</summary>
+    private void Recover(LevelDocument document, string path, Entity editor)
     {
-        document.Notes ??= new();
+        document.Notes ??= [];
         document.Notes.RemoveAll(note => note is null);
 
         editor.GetComponent<EditorMetronome>().Enabled = false;
@@ -171,16 +94,12 @@ public sealed class EditorLevelCommands(EditorCommandContext context)
             editor.GetComponent<NoteSelection>().Clear();
 
         SetLevelFile(editor, path);
-
-        // A level straight from disk is the clean state to measure edits against.
-        if (isOnDisk)
-            buffer.AddTag<EditorBaselineStale>(editor.Id);
     }
 
     private static void SetLevelFile(Entity editor, string path)
     {
-        if (editor.HasComponent<LevelFile>())
-            editor.GetComponent<LevelFile>().Path = path;
+        if (editor.HasComponent<FilePath>())
+            editor.GetComponent<FilePath>().Value = path;
     }
 
     /// <summary>A beat snap divisor the editor offers; anything else falls back to 1/4.</summary>

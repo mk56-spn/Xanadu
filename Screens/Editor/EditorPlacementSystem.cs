@@ -1,19 +1,14 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Logic.Editor;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Screens.Editor;
 
 /// <summary>Exclusive note/mine/movement placement mode buttons.</summary>
-public sealed class EditorPlacementSystem : QuerySystem<EditorPlacement>
+public sealed class EditorPlacementSystem(EntityStore entities) : QuerySystem<EditorPlacement>
 {
-    private readonly EntityStore _entities;
-
-    public EditorPlacementSystem(EntityStore entities)
-    {
-        _entities = entities;
-    }
+    private readonly EntityStore _entities = entities;
 
     protected override void OnUpdate()
     {

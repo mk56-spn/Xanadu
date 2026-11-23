@@ -1,98 +1,53 @@
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Systems.Timeline;
+using Friflo.Engine.ECS;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Timeline;
 
 namespace Xanadu.Screens.Editor;
 
-/// <summary>Runs the editor's key bindings; <see cref="EditorShortcuts" /> says which key does what.</summary>
-public sealed partial class EditorOverlay : IEditorShortcutTarget
+/// <summary>
+/// The editor's keys: the host hands each press to the editor as <see cref="KeyPressed"/>;
+/// <see cref="EditorShortcuts" /> says which intent it emits there, given what is up.
+/// The intents only keys send are heard here too.
+/// </summary>
+public sealed partial class EditorOverlay
 {
-    public bool IsOpen => !_closed;
-
-    public EditorShortcutScope ActiveScopes => EditorShortcuts.ActiveScopes(
+    private EditorShortcutScope ActiveScopes => EditorShortcuts.ActiveScopes(
         AnyDialogVisible(),
         IsBindingsHelpVisible(),
         IsWarningOpen(),
         !FindFocusedTextField().IsNull);
 
-    public void Run(EditorShortcuts.Binding binding)
+    private void ListenKeys(Entity editor)
     {
-        switch (binding.Action)
+        editor.AddTag<KeyTarget>();
+        editor.AddSignalHandler<KeyPressed>(signal =>
         {
-            case EditorShortcut.Preview:
-                StartPreview();
-                break;
-            case EditorShortcut.PreviewHere:
-                StartPreview(true);
-                break;
-            case EditorShortcut.CloseDialog:
-                // The song picker can't be closed while the level has no song: Escape leaves instead.
-                if (EditorDialogs.IsSongRequired(_entities) && EditorDialogs.IsOpen(_entities, EditorDialogKind.Song))
-                    _onBack?.Invoke();
-                else
-                    EditorDialogs.Dismiss(_entities);
-                break;
-            case EditorShortcut.ToggleHelp:
-                ToggleBindingsHelp();
-                break;
-            case EditorShortcut.FitView:
-                _editor.GetComponent<EditorViewNavigation>().FitRequested = true;
-                break;
-            case EditorShortcut.Save:
-                SaveCurrent();
-                break;
-            case EditorShortcut.Undo:
-                Undo();
-                break;
-            case EditorShortcut.Redo:
-                Redo();
-                break;
-            case EditorShortcut.Copy:
-                _commands.Enqueue(EditorCommand.CopySelection());
-                break;
-            case EditorShortcut.Paste:
-                _commands.Enqueue(EditorCommand.PasteSelection());
-                break;
-            case EditorShortcut.Timeline:
-                if (!_editor.IsNull && _editor.TryGetComponent(out TimelineHost timeline))
-                    TimelineShortcuts.Run(timeline.Host, binding.Timeline);
-                break;
-            case EditorShortcut.Place:
-                SetPlacementMode(binding.Placement);
-                break;
-            case EditorShortcut.Back:
-                _onBack?.Invoke();
-                break;
-            case EditorShortcut.Forward:
-                _onForward?.Invoke();
-                break;
-            case EditorShortcut.Delete:
-                DeleteSelectedNote();
-                break;
-            case EditorShortcut.MoveLeft:
-                _commands.Enqueue(EditorCommand.MoveSelection(-1));
-                break;
-            case EditorShortcut.MoveRight:
-                _commands.Enqueue(EditorCommand.MoveSelection(1));
-                break;
-        }
+            if (!_closed && EditorShortcuts.Find(signal.Event.Chord, ActiveScopes) is { } binding)
+                binding.Intent.EmitOn(signal.Entity);
+        });
+
+        editor.AddSignalHandler<CloseEditorDialog>(_ =>
+        {
+            // The song picker can't be closed while the level has no song: Escape leaves instead.
+            if (EditorDialogs.IsSongRequired(_entities) && EditorDialogs.IsOpen(_entities, EditorDialogKind.Song))
+                _asked.Add(() => _onBack?.Invoke());
+            else
+                EditorDialogs.Dismiss(_entities);
+        });
+        editor.AddSignalHandler<ToggleShortcutHelp>(_ => ToggleBindingsHelp());
+        editor.AddSignalHandler<GoForward>(_ => _asked.Add(() => _onForward?.Invoke()));
+        editor.AddSignalHandler<TimelineKey>(signal => TimelineShortcuts.Run(signal.Entity, signal.Event.Command));
+
+        editor.AddSignalHandler<Undo>(_ => SetStatus("Undo"));
+        editor.AddSignalHandler<Redo>(_ => SetStatus("Redo"));
+        editor.AddSignalHandler<PickPlacement>(signal => ShowPlacement(signal.Event.Mode));
     }
 
-    private void DeleteSelectedNote()
+    private void ShowPlacement(EditorPlacementMode mode)
     {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.DeleteSelection());
-    }
-
-    private void SetPlacementMode(EditorPlacementMode mode)
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.SetPlacementMode(mode));
         SetStatus(mode switch
         {
             EditorPlacementMode.Note => "Notes: click to place one at the playhead, on its key's chord line",
@@ -108,23 +63,5 @@ public sealed partial class EditorOverlay : IEditorShortcutTarget
             EditorPlacementMode.Flare => "Flares: click to place a lens flare",
             _ => "Placement mode",
         });
-    }
-
-    private void Undo()
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.Undo());
-        SetStatus("Undo");
-    }
-
-    private void Redo()
-    {
-        if (_editor.IsNull)
-            return;
-
-        _commands.Enqueue(EditorCommand.Redo());
-        SetStatus("Redo");
     }
 }

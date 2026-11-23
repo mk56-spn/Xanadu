@@ -1,9 +1,9 @@
-using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
-using Xanadu.Logic.Screens;
-using Xanadu.Ui.Systems.Input;
 using Xanadu.Audio;
+using Xanadu.Logic.Screens;
+using Xanadu.Storage.Settings;
+using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Logic.Calibration;
 

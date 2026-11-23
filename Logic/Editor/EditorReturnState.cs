@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Timeline;
+using Xanadu.Logic.Editor.Kinds;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
-using Xanadu.Logic.Editor.Kinds;
 
 namespace Xanadu.Logic.Editor;
 
@@ -16,7 +16,7 @@ namespace Xanadu.Logic.Editor;
 /// </summary>
 public sealed class EditorReturnState
 {
-    private readonly List<ItemKey> _selection = new();
+    private readonly List<ItemKey> _selection = [];
     private bool _hasPlacement;
     private bool _hasTimeline;
     private bool _metronome;

@@ -24,7 +24,7 @@ public sealed class CardSettingsLayout : IScreenLayout<SettingsLogic>
     private const float BackWidth = 150;
 
     private Button _vsync = null!, _window = null!, _autosave = null!;
-    private readonly Dictionary<KeybindAction, Button> _keys = new();
+    private readonly Dictionary<KeybindAction, Button> _keys = [];
 
     public string Name => "CARD";
 

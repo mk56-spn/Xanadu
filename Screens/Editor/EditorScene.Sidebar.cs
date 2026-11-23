@@ -1,13 +1,13 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
-using Xanadu.Model.Settings;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Model.Playfields;
 using Xanadu.Logic.Editor;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Settings;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
@@ -175,7 +175,7 @@ public static class EditorSceneSidebar
             // Held off the viewport's corner, outlined in the picked key's colour.
             .Anchor(new Vector2(1, 0), margin: NoteElementsMargin)
             .Border(PlayfieldColors.ColorFor(KeybindActions.ActionKeys[0]), NoteElementsBorder)
-            .With(new EditorNoteBarPanel());
+            .Tag<EditorNoteBarPanel>();
 
         EditorSceneUi.SidebarLabel(box, "ACTION KEY", inner, 12);
         UiNode swatches = box.Row().Size(inner, swatchSize).Gap(swatchGap);

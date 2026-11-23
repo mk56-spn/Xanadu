@@ -1,29 +1,28 @@
-using Xanadu.Core.Keys;
-using Xanadu.Storage.Profiles;
-using Xanadu.Storage.Replays;
-using Xanadu.Storage.Settings;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Audio;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
-using Xanadu.Model.Ecs;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Settings;
-using Xanadu.Ui.Systems;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Ui.Systems.Input;
-using Xanadu.Ui.Systems.Ui;
 using Xanadu.Logic.Audio;
 using Xanadu.Logic.Bench;
 using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
 using Xanadu.Logic.Profiles;
 using Xanadu.Logic.Replays;
+using Xanadu.Model.Ecs;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Settings;
 using Xanadu.Screens.SongSelect;
+using Xanadu.Storage.Profiles;
+using Xanadu.Storage.Replays;
+using Xanadu.Storage.Settings;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems;
+using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Input;
+using Xanadu.Ui.Systems.Ui;
 using Xanadu.Wiring.Groups;
 using Xanadu.Wiring.Scenes;
-using Xanadu.Audio;
 
 namespace Xanadu.Wiring;
 
@@ -50,8 +49,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
 
 
     public EditorHistory EditorHistory { get; }
-
-    public EditorCommandBus Commands { get; }
 
     public SceneSystem Scenes { get; }
 
@@ -93,7 +90,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         IRectCanvas canvas = HostPlatform.NewCanvas();
         _entities = entities;
         EditorHistory = new EditorHistory(entities);
-        Commands = new EditorCommandBus();
         Keybinds = keybinds ?? new KeybindSettings();
         Keyboard = keyboard ?? HostPlatform.Keyboard;
         PlayKeyboard = new Xanadu.Logic.Replays.ReplayKeyboard(Keyboard);
@@ -159,7 +155,6 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         Add(_playfieldSystems);
         _editorSystems = new EditorSystemGroup(
             entities,
-            Commands,
             pointerInput,
             canvas,
             _playfieldSystems.Playfield,
@@ -174,7 +169,7 @@ public sealed class XanaduSystemRoot : SystemRoot, IDisposable
         if (wheel is not null)
         {
             // The UI's input ran first, so this only sees what the UI did not scroll with.
-            _editorWheel = new Xanadu.Logic.Editor.EditorWheelSystem(Commands, wheel) { Enabled = false };
+            _editorWheel = new Xanadu.Logic.Editor.EditorWheelSystem(wheel) { Enabled = false };
             Add(_editorWheel);
         }
         _docs = new DocsOverlaySystem(entities);

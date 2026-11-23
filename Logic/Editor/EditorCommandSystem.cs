@@ -1,32 +1,30 @@
-using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Logic.Editor.Commands;
+using Xanadu.Model.Editor.Intents;
 
 namespace Xanadu.Logic.Editor;
 
 /// <summary>
-/// Single ECS writer for editor intents from the UI. It owns the command queue
-/// and the deferred edits; the level and selection handlers own what each
-/// command does.
+/// Applies the editor's intents (<c>Xanadu.Model.Editor.Intents</c>), emitted
+/// on the editor entity by its buttons, shortcuts, fields and timeline. The
+/// first time it sees an editor it has the level, selection and group handlers
+/// listen on it; what they hear is applied here, once a frame.
 /// </summary>
 public sealed class EditorCommandSystem :
     QuerySystem<LevelInfo, Playfield, Playhead, EditorMetronome>
 {
-    private readonly EditorCommandBus _commands;
     private readonly EditorCommandContext _context;
     private readonly EditorLevelCommands _levels;
     private readonly EditorSelectionCommands _selection;
     private readonly EditorGroupCommands _groups;
 
-    public EditorCommandSystem(
-        EntityStore entities,
-        EditorCommandBus commands,
-        EditorHistory history)
+    /// <summary>Editors already listened to, by id and revision: a rebuilt scene may reuse an id.</summary>
+    private readonly HashSet<(int Id, int Revision)> _listening = [];
+
+    public EditorCommandSystem(EntityStore entities, EditorHistory history)
     {
-        _commands = commands;
         _context = new EditorCommandContext(entities, history);
         _levels = new EditorLevelCommands(_context);
         _selection = new EditorSelectionCommands(_context);
@@ -35,43 +33,31 @@ public sealed class EditorCommandSystem :
 
     protected override void OnUpdate()
     {
-        Query.EachEntity(new Drain(this, Query.Store));
-
-        foreach (Action edit in _context.AfterQuery)
-            edit();
-
-        _context.AfterQuery.Clear();
-    }
-
-    private void Apply(EditorCommand command, Entity editor)
-    {
-        // Restoring a snapshot makes structural changes, so it waits for the query.
-        if (command.Type is EditorCommandType.Undo or EditorCommandType.Redo)
+        foreach (Entity editor in Query.Entities)
         {
-            bool undo = command.Type == EditorCommandType.Undo;
-            _context.AfterQuery.Add(() =>
-            {
-                bool changed = undo ? _context.History.Undo() : _context.History.Redo();
-                if (changed)
-                    EditorSelectionCommands.ClearSelection(editor);
-            });
-            return;
+            if (_listening.Add((editor.Id, editor.Revision)))
+                Listen(editor);
         }
 
-        if (_groups.TryApply(command, editor))
-            return;
-
-        if (!_levels.TryApply(command, editor, CommandBuffer))
-            _selection.TryApply(command, editor, CommandBuffer);
+        _context.Run(CommandBuffer);
     }
 
-    private readonly record struct Drain(EditorCommandSystem System, EntityStore Store)
-        : IEachEntity<LevelInfo, Playfield, Playhead, EditorMetronome>
+    private void Listen(Entity editor)
     {
-        public void Execute(ref LevelInfo level, ref Playfield playfield, ref Playhead playhead, ref EditorMetronome metronome, int id)
+        // Restoring a snapshot makes structural changes, so it waits for the rest.
+        _context.On<Undo>(editor, (on, _) => _context.AfterQuery.Add(() =>
         {
-            while (System._commands.TryDequeue(out EditorCommand command))
-                System.Apply(command, Store.GetEntityById(id));
-        }
+            if (_context.History.Undo())
+                EditorSelectionCommands.ClearSelection(on);
+        }));
+        _context.On<Redo>(editor, (on, _) => _context.AfterQuery.Add(() =>
+        {
+            if (_context.History.Redo())
+                EditorSelectionCommands.ClearSelection(on);
+        }));
+
+        _levels.Listen(editor);
+        _selection.Listen(editor);
+        _groups.Listen(editor);
     }
 }

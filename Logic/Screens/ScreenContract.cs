@@ -19,7 +19,7 @@ public sealed record Entrance<T>(T Id, bool Mandatory, IReadOnlyList<int>? Requi
 /// </summary>
 public sealed class ScreenContract<T> where T : struct, Enum
 {
-    private readonly Dictionary<T, Entrance<T>> _entrances = new();
+    private readonly Dictionary<T, Entrance<T>> _entrances = [];
 
     public IEnumerable<Entrance<T>> Entrances => _entrances.Values;
 

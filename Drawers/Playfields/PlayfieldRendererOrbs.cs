@@ -38,7 +38,7 @@ public static partial class PlayfieldRenderer
         if (alpha <= 0f)
             return;
 
-        Color colour = missed ? new Color(0.45f, 0.45f, 0.5f, 1f) : OrbColor;
+        Color colour = missed ? new Color(0.45f, 0.45f, 0.5f) : OrbColor;
         DrawOrbPath(canvas, rid, orb, frame.View, Math.Max(now, orb.TimeMs), colour with { A = 0.45f * alpha });
         Vector2 at = frame.View.PlayfieldToScreen(Orbs.At(orb, now));
         float approach = !missed && now < orb.TimeMs ? (float)((orb.TimeMs - now) / Orbs.ApproachMs) : -1f;

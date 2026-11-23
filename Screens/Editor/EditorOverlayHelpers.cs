@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
+using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Editor;
 
 namespace Xanadu.Screens.Editor;
 
@@ -12,7 +14,7 @@ namespace Xanadu.Screens.Editor;
 public sealed partial class EditorOverlay
 {
     private string CurrentLevelPath() =>
-        _editor.HasComponent<LevelFile>() ? _editor.GetComponent<LevelFile>().Path : "";
+        _editor.HasComponent<FilePath>() ? _editor.GetComponent<FilePath>().Value : "";
 
     private bool ValidateCurrent()
     {
@@ -66,9 +68,34 @@ public sealed partial class EditorOverlay
 
     private Entity FindEditor()
     {
-        foreach (Entity entity in _entities.Query<PlayfieldView>().Entities)
-            return entity;
+        EntityList editors = _entities.Query<PlayfieldView>().ToEntityList();
+        if (editors.Count == 0)
+            return default;
 
-        return default;
+        Listen(editors[0]);
+        return editors[0];
+    }
+
+    /// <summary>
+    /// Hears the editor's screen intents the overlay acts on. They wait for
+    /// <see cref="Tick"/>, which runs after the systems: leaving or previewing
+    /// swaps the scene, which must not happen mid-update.
+    /// </summary>
+    private void Listen(Entity editor)
+    {
+        if (editor.Id == _listening.Id && editor.Revision == _listening.Revision)
+            return;
+
+        _listening = editor;
+        editor.AddSignalHandler<SaveLevel>(_ => _asked.Add(() => SaveCurrent()));
+        editor.AddSignalHandler<SaveQuietly>(_ => _asked.Add(SaveQuietly));
+        editor.AddSignalHandler<OpenSongPicker>(_ => _asked.Add(OpenSongDialog));
+        editor.AddSignalHandler<PreviewLevel>(signal =>
+        {
+            bool fromPlayhead = signal.Event.FromPlayhead;
+            _asked.Add(() => StartPreview(fromPlayhead));
+        });
+        editor.AddSignalHandler<LeaveEditor>(_ => _asked.Add(() => _onBack?.Invoke()));
+        ListenKeys(editor);
     }
 }

@@ -1,18 +1,17 @@
-using Xanadu.Storage.Editor;
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Audio;
 using Xanadu.Core.Maths;
 using Xanadu.Drawers.Editor;
+using Xanadu.Logic.Editor;
+using Xanadu.Screens.Editor;
+using Xanadu.Storage.Editor;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Groups;
 using Xanadu.Ui.Systems.Input;
 using Xanadu.Ui.Systems.Ui;
-using Xanadu.Logic.Editor;
-using Xanadu.Logic.Editor.Commands;
-using Xanadu.Screens.Editor;
-using Xanadu.Audio;
 
 namespace Xanadu.Wiring.Groups;
 
@@ -24,7 +23,6 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
 
     public EditorSystemGroup(
         EntityStore entities,
-        EditorCommandBus commands,
         IPointerInputSource pointerInput,
         IRectCanvas canvas,
         Handle playfieldCanvas,
@@ -34,8 +32,8 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Func<bool>? autosaveToFile = null,
         ToastSystem? toasts = null) : base("Editor")
     {
-        Add(new EditorCommandSystem(entities, commands, history));
-        Add(new EditorTimelineSystem());
+        Add(new EditorCommandSystem(entities, history));
+        Add(new EditorTimelineSystem(history));
         if (wheel is not null)
             Add(new TimelineSystemGroup(pointerInput, wheel));
         _autosave = new EditorAutosaveSystem(
@@ -44,21 +42,21 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
         Add(new EditorMetronomeSystem(metronomeAudio));
         Add(new EditorViewSystem(pointerInput));
         Add(new EditorNoteInputSystem(entities, pointerInput, history));
-        Add(new EditorViewBarSystem(pointerInput, commands));
+        Add(new EditorViewBarSystem(pointerInput));
         Add(new EditorPlacementSystem(entities));
         Add(new EditorToolGroupSystem(entities));
-        Add(new EditorNoteTypeBarSystem(entities, commands));
+        Add(new EditorNoteTypeBarSystem(entities));
         Add(new EditorToolSectionSystem(entities));
-        Add(new EditorButtonSystem(entities, commands));
-        Add(new EditorGroupPanelSystem(entities, commands));
-        Add(new Xanadu.Ui.Systems.Ui.EasePickerSystem());
-        Add(new EditorMetadataSystem(entities, commands));
+        Add(new EditorButtonSystem(entities));
+        Add(new EditorGroupPanelSystem(entities));
+        Add(new EasePickerSystem());
+        Add(new EditorMetadataSystem(entities));
         Add(new EditorHudSystem(entities, toasts));
         Add(new WaveformPreviewSystem());
         _draw = new EditorPlayfieldDrawSystem(entities, canvas, playfieldCanvas);
         Add(_draw);
         Add(new WarningPopupSystem(entities));
-        Add(new EditorDialogSystem(entities, commands));
+        Add(new EditorDialogSystem(entities));
     }
 
     /// <summary>
@@ -76,8 +74,5 @@ public sealed class EditorSystemGroup : SystemGroup, IDisposable
     }
 
     /// <summary>Quitting normally is not a crash either.</summary>
-    public void Dispose()
-    {
-        _autosave.EndSession();
-    }
+    public void Dispose() => _autosave.EndSession();
 }

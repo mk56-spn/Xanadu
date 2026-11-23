@@ -1,13 +1,13 @@
 using System;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Audio;
+using Xanadu.Model.Ecs.Components;
 
 namespace Xanadu.Logic.Playfields;
 
 /// <summary>Loads the active playfield song and drives its playhead from miniaudio.</summary>
-public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
+public sealed class PlayfieldPlaybackSystem(ITrackAudio audio) : QuerySystem<LevelInfo, Playhead>
 {
     /// <summary>How quickly the smooth clock eases to the audio clock, per second.</summary>
     private const double ClockPull = 4d;
@@ -15,14 +15,9 @@ public sealed class PlayfieldPlaybackSystem : QuerySystem<LevelInfo, Playhead>
     /// <summary>The smooth clock is put straight on the audio clock when it is this far off, ms (a seek, a stall).</summary>
     private const double ClockSnapMs = 80d;
 
-    private readonly ITrackAudio _audio;
+    private readonly ITrackAudio _audio = audio;
     private int _loadedRevision = -1;
     private int _loadedEntityId = -1;
-
-    public PlayfieldPlaybackSystem(ITrackAudio audio)
-    {
-        _audio = audio;
-    }
 
     protected override void OnUpdate()
     {

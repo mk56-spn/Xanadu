@@ -4,15 +4,15 @@ using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Timeline;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Model.Settings;
-using Xanadu.Model.Playfields;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Model.Editor;
-using Xanadu.Logic.Editor.Commands;
 using Xanadu.Logic.Editor.History;
-using Xanadu.Model.Levels;
 using Xanadu.Logic.Editor.Kinds;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Levels;
+using Xanadu.Model.Playfields;
+using Xanadu.Model.Settings;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Logic.Editor;
 
@@ -21,40 +21,17 @@ namespace Xanadu.Logic.Editor;
 /// </summary>
 public sealed class EditorSelectionCommands(EditorCommandContext context)
 {
-    private readonly List<ItemCopy> _clipboard = new();
+    private readonly List<ItemCopy> _clipboard = [];
     private int _pasteCount;
 
-    public bool TryApply(EditorCommand command, Entity editor, CommandBuffer buffer)
+    public void Listen(Entity editor)
     {
-        switch (command.Type)
-        {
-            case EditorCommandType.DeleteSelection:
-                DeleteSelection(editor);
-                return true;
-
-            case EditorCommandType.CopySelection:
-                CopySelection(editor);
-                return true;
-
-            case EditorCommandType.PasteSelection:
-                PasteSelection(editor, buffer);
-                return true;
-
-            case EditorCommandType.SetTarget:
-                SetTarget(command.IntValue, editor);
-                return true;
-
-            case EditorCommandType.MoveSelection:
-                MoveSelection(command.IntValue, editor);
-                return true;
-
-            case EditorCommandType.ZoomTimeline:
-                ZoomTimeline(command.IntValue, editor);
-                return true;
-
-            default:
-                return false;
-        }
+        context.On<DeleteSelection>(editor, (on, _) => DeleteSelection(on));
+        context.On<CopySelection>(editor, (on, _) => CopySelection(on));
+        context.On<PasteSelection>(editor, (on, _, buffer) => PasteSelection(on, buffer));
+        context.On<SetNoteTarget>(editor, (on, intent) => SetTarget(intent.Action, on));
+        context.On<MoveSelection>(editor, (on, intent) => MoveSelection(intent.Direction, on));
+        context.On<ZoomTimeline>(editor, (on, intent) => ZoomTimeline(intent.Direction, on));
     }
 
     private void MoveSelection(int direction, Entity editor)
@@ -124,9 +101,9 @@ public sealed class EditorSelectionCommands(EditorCommandContext context)
         timeline.Pinned = false;
     }
 
-    private static void SetTarget(int value, Entity editor)
+    private static void SetTarget(KeybindAction action, Entity editor)
     {
-        int index = Math.Clamp(value, 0, KeybindActions.All.Length - 1);
+        int index = Math.Clamp((int)action, 0, KeybindActions.All.Length - 1);
         KeybindAction target = KeybindActions.All[index];
 
         if (editor.HasComponent<EditorPlacement>())

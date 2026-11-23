@@ -26,7 +26,6 @@ public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
     private bool _loaded;
     private AnimatorRuntime? _runtime;
     private double _lastMs = double.NaN;
-    private bool _facingLeft;
 
     protected override void OnUpdate()
     {
@@ -47,10 +46,12 @@ public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
             _runtime.Play(clip, clip == "dash" ? 0.04f : 0.12f);
             _runtime.Update(delta);
 
-            if (body.Velocity.X < -1f)
-                _facingLeft = true;
-            else if (body.Velocity.X > 1f)
-                _facingLeft = false;
+            // Turns only on real sideways speed; standing still keeps the last facing.
+            bool left = entity.Tags.Has<FacingLeft>();
+            if (body.Velocity.X < -1f && !left)
+                CommandBuffer.AddTag<FacingLeft>(entity.Id);
+            else if (body.Velocity.X > 1f && left)
+                CommandBuffer.RemoveTag<FacingLeft>(entity.Id);
 
             Transform2D[] bones = RigRig.WorldBones(package, _runtime.Pose);
             var puppet = new Puppet
@@ -59,7 +60,6 @@ public sealed class PuppetSystem : QuerySystem<CurveBody, PlayfieldMode>
                 Pose = _runtime.Pose,
                 Bones = bones,
                 Parts = RigRig.WorldAttachments(package, _runtime.Pose, bones),
-                FacingLeft = _facingLeft,
                 Clip = clip,
             };
             // Added once, after the loop; from then on written in place.

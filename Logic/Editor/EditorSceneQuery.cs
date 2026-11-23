@@ -87,7 +87,7 @@ public sealed class EditorSceneQuery(EntityStore entities)
     public bool IsOverNoteBar(Vector2 screenPosition)
     {
         foreach (Entity panel in Store
-                     .Query<EditorNoteBarPanel, Position, Rectangle>()
+                     .Query<Position, Rectangle>().AllTags(Tags.Get<EditorNoteBarPanel>())
                      .Entities)
         {
             Vector2 center = panel.GetComponent<Position>().Value;

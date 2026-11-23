@@ -4,8 +4,8 @@ using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.SongSelect;
 
@@ -70,7 +70,7 @@ public static partial class SongSelectScene
         float height,
         int fontSize,
         Color color) =>
-        panel.Text("", fontSize, color, TextAlign.Left)
+        panel.Text("", fontSize, color)
             .Size(InfoTextWidth, height)
             .Bold();
 

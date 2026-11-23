@@ -1,11 +1,11 @@
-using Xanadu.Storage.Settings;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core.Maths;
-using Xanadu.Ui.Systems.Input;
 using Xanadu.Logic.Audio;
 using Xanadu.Logic.Docs;
 using Xanadu.Logic.Editor;
+using Xanadu.Storage.Settings;
+using Xanadu.Ui.Systems.Input;
 using Xanadu.Wiring.Scenes;
 
 namespace Xanadu.Wiring;
@@ -13,14 +13,15 @@ namespace Xanadu.Wiring;
 /// <summary>
 /// Hands out the game's key presses. A key being captured for a binding comes
 /// first; then the docs, whose key works everywhere and which take every key while
-/// open; then the open editor's table; otherwise the keys every other scene shares.
+/// open; then the entity tagged <see cref="Xanadu.Ui.Systems.Input.KeyTarget"/> (the open
+/// editor, whose overlay maps them to intents); otherwise the keys every other scene shares.
 /// </summary>
 public sealed class AppShortcutSystem(
     IKeyPressSource keys,
     KeybindSettings keybinds,
     SceneSystem scenes,
     FeedbackSoundPlayer? sounds = null,
-    DocsOverlaySystem? docs = null) : QuerySystem<EditorShortcutHost>
+    DocsOverlaySystem? docs = null) : QuerySystem
 {
     protected override void OnUpdate()
     {
@@ -32,10 +33,9 @@ public sealed class AppShortcutSystem(
             if (docs is not null && TryDocsKey(docs, chord))
                 continue;
 
-            if (FindEditor() is { } editor)
+            if (KeyTarget() is { IsNull: false } target)
             {
-                if (EditorShortcuts.Find(chord, editor.ActiveScopes) is { } binding)
-                    editor.Run(binding);
+                target.EmitSignal(new KeyPressed(chord));
                 continue;
             }
 
@@ -60,17 +60,17 @@ public sealed class AppShortcutSystem(
         return true;
     }
 
-    private IEditorShortcutTarget? FindEditor()
+    /// <summary>The entity taking keys (the open editor), if any.</summary>
+    private Entity KeyTarget()
     {
-        foreach (Entity entity in Query.Entities)
-        {
-            IEditorShortcutTarget target = entity.GetComponent<EditorShortcutHost>().Target;
-            if (target.IsOpen)
-                return target;
-        }
+        _takesKeys ??= Query.Store.Query().AllTags(Tags.Get<KeyTarget>());
+        foreach (Entity entity in _takesKeys.Entities)
+            return entity;
 
-        return null;
+        return default;
     }
+
+    private ArchetypeQuery? _takesKeys;
 
     private void RunSceneKey(KeyChord chord)
     {

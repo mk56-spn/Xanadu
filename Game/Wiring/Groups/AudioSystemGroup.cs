@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Audio;
 using Xanadu.Core.Maths;
 using Xanadu.Drawers.Timeline;
-using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Logic.Audio;
-using Xanadu.Audio;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Wiring.Groups;
 

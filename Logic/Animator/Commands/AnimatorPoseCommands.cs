@@ -1,0 +1,171 @@
+using System.Collections.Generic;
+using Friflo.Engine.ECS;
+using Xanadu.Model.Animation;
+using Xanadu.Model.Animator;
+using Xanadu.Model.Animator.Intents;
+
+namespace Xanadu.Logic.Animator.Commands;
+
+/// <summary>Whole-pose edits: key every bone, copy and paste a pose, and mirror it left to right.</summary>
+public static class AnimatorPoseCommands
+{
+    /// <summary>Hears this class's intents on <paramref name="session"/>.</summary>
+    public static void Listen(Entity session)
+    {
+        session.On<KeyPose>((s, _) => KeyPose(s));
+        session.On<CopyPose>((s, _) => CopyPose(s));
+        session.On<PastePose>((s, _) => PastePose(s));
+        session.On<MirrorPose>((s, _) => MirrorPose(s));
+    }
+
+    /// <summary>Bone name endings that pair a left bone with its right twin.</summary>
+    private static readonly (string Left, string Right)[] Sides =
+    [
+        ("_l", "_r"), ("_L", "_R"), (".l", ".r"), (".L", ".R"), ("-l", "-r"),
+    ];
+
+    /// <summary>Keys every bone's current pose at the playhead.</summary>
+    public static void KeyPose(Entity session) =>
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            if (!TryCurrentClip(session, out RigClip clip))
+                return;
+
+            ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+            float time = document.Runtime.CurrentTime;
+            RigPose pose = document.Runtime.Pose;
+            for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
+                RigAuthoring.KeyBoneTransform(document.Package, clip, i, time, pose.Bones[i]);
+            AnimatorSession.SetStatus(session, $"KEYED POSE AT {time:0.00}s");
+        });
+
+    /// <summary>Copies every bone's current pose, by bone id, so it can be pasted at another time or clip.</summary>
+    public static void CopyPose(Entity session)
+    {
+        AnimatorDocument document = session.GetComponent<AnimatorDocument>();
+        var pose = new Dictionary<string, RigTransform>();
+        for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
+            pose[document.Package.Skeleton.Bones[i].Id] = document.Runtime.Pose.Bones[i];
+
+        session.GetComponent<AnimatorSessionState>().Clipboard.Pose = pose;
+        AnimatorSession.SetStatus(session, $"COPIED POSE AT {document.Runtime.CurrentTime:0.00}s");
+    }
+
+    /// <summary>
+    /// Poses the bones the copied pose names and keys them at the playhead. A
+    /// paste is an explicit edit, so it keys whether or not auto key is on;
+    /// otherwise the pose would vanish on the next frame and never be saved.
+    /// </summary>
+    public static void PastePose(Entity session)
+    {
+        Dictionary<string, RigTransform>? copied = session.GetComponent<AnimatorSessionState>().Clipboard.Pose;
+        if (copied is null)
+        {
+            AnimatorSession.SetStatus(session, "COPY A POSE FIRST");
+            return;
+        }
+
+        if (!CanPose(session))
+            return;
+
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        document.Runtime.SetPaused(true);
+        var pasted = new List<int>();
+        for (int i = 0; i < document.Package.Skeleton.Bones.Count; i++)
+        {
+            if (!copied.TryGetValue(document.Package.Skeleton.Bones[i].Id, out RigTransform transform))
+                continue;
+
+            document.Runtime.Pose.Bones[i] = transform;
+            pasted.Add(i);
+        }
+
+        AnimatorHistoryCommands.Edit(session, () =>
+        {
+            if (!TryCurrentClip(session, out RigClip clip))
+                return;
+
+            ref AnimatorDocument edited = ref session.GetComponent<AnimatorDocument>();
+            float time = edited.Runtime.CurrentTime;
+            foreach (int bone in pasted)
+                RigAuthoring.KeyBoneTransform(edited.Package, clip, bone, time, edited.Runtime.Pose.Bones[bone]);
+            AnimatorSession.SetStatus(session, $"PASTED POSE AND KEYED {pasted.Count} BONES AT {time:0.00}s");
+        });
+    }
+
+    /// <summary>
+    /// Mirrors the pose left to right: paired bones (<c>arm_l</c>/<c>arm_r</c>)
+    /// swap poses and every turn and sideways shift is reversed.
+    /// </summary>
+    public static void MirrorPose(Entity session)
+    {
+        if (!CanPose(session))
+            return;
+
+        ref AnimatorDocument document = ref session.GetComponent<AnimatorDocument>();
+        document.Runtime.SetPaused(true);
+        List<RigBone> bones = document.Package.Skeleton.Bones;
+        RigTransform[] before = (RigTransform[])document.Runtime.Pose.Bones.Clone();
+        for (int i = 0; i < bones.Count; i++)
+        {
+            int twin = RigRig.FindBone(document.Package, MirrorId(bones[i].Id));
+            RigTransform source = before[twin >= 0 ? twin : i];
+            source.Rotation = -source.Rotation;
+            // Fixed-length bones keep their own offset; only movable ones are shifted.
+            source.Translation = bones[i].CanTranslate
+                ? new Vector2(-source.Translation.X, source.Translation.Y)
+                : before[i].Translation;
+            document.Runtime.Pose.Bones[i] = source;
+        }
+
+        Finish(session, "MIRRORED POSE");
+    }
+
+    /// <summary>The id of a bone's other-side twin, or the id itself for a centre bone.</summary>
+    public static string MirrorId(string id)
+    {
+        foreach ((string left, string right) in Sides)
+        {
+            if (id.EndsWith(left, System.StringComparison.Ordinal))
+                return id[..^left.Length] + right;
+            if (id.EndsWith(right, System.StringComparison.Ordinal))
+                return id[..^right.Length] + left;
+        }
+        return id;
+    }
+
+    private static bool CanPose(Entity session)
+    {
+        if (!AnimatorModes.Of(session).Rest)
+            return true;
+
+        AnimatorSession.SetStatus(session, "LEAVE REST POSE TO EDIT THE POSE");
+        return false;
+    }
+
+    private static void Finish(Entity session, string status)
+    {
+        if (AnimatorModes.Of(session).AutoKey)
+        {
+            KeyPose(session);
+            status += " AND KEYED";
+        }
+        AnimatorSession.SetStatus(session, status);
+    }
+
+    private static bool TryCurrentClip(Entity session, out RigClip clip)
+    {
+        clip = null!;
+        if (AnimatorModes.Of(session).Rest)
+        {
+            AnimatorSession.SetStatus(session, "LEAVE REST POSE TO KEY");
+            return false;
+        }
+
+        RigClip? current = AnimatorSession.CurrentClip(session.GetComponent<AnimatorDocument>());
+        if (current is null)
+            return false;
+        clip = current;
+        return true;
+    }
+}

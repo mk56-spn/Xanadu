@@ -4,12 +4,12 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Logic.Editor;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Screens.Shared;
-using SceneState = Xanadu.Model.Ecs.Components.SceneState;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Wiring.Scenes;
 
@@ -142,9 +142,9 @@ public sealed partial class SceneSystem : QuerySystem<SceneState>
 
     private bool EditorHasSavedLevel()
     {
-        foreach (Entity entity in _entities.Query<LevelFile>().Entities)
+        foreach (Entity entity in _entities.Query<FilePath>().Entities)
         {
-            if (!string.IsNullOrWhiteSpace(entity.GetComponent<LevelFile>().Path))
+            if (!string.IsNullOrWhiteSpace(entity.GetComponent<FilePath>().Value))
                 return true;
         }
 

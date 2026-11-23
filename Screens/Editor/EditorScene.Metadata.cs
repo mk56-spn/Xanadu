@@ -1,13 +1,14 @@
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
-using Xanadu.Model.Editor;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Model.Playfields;
 using Xanadu.Logic.Editor;
+using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Model.Playfields;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
@@ -48,7 +49,7 @@ public static class EditorSceneMetadata
                 "No song loaded",
                 13,
                 SceneUi.TextColor)
-            .AddComponent(new EditorSongLabel());
+            .AddTag<EditorSongLabel>();
         songRow.Button("CHANGE", 12, SceneUi.MutedButtonColor)
             .Size(94, 28)
             .With(EditorButton.Of(EditorButtonKind.LoadSong))
@@ -105,6 +106,7 @@ public static class EditorSceneMetadata
             EditorColorTarget.Frame);
 
         panel.AddComponent(new EditorPanel(EditorPanelKind.Metadata, home));
+        editor.AddSignalHandler<ToggleLevelInfo>(_ => EditorMetadataSystem.Toggle(panel));
 
 
         UiNode helpUi = UiNode.Layer(entities, root, UiLayers.EditorHelp, null, UiStage.Full);
@@ -134,7 +136,7 @@ public static class EditorSceneMetadata
             .Cross(StackCrossAlignment.Start);
 
         string[] bindings =
-        {
+        [
             "SPACE                  Play / pause",
             "HOME / END             Go to start / end",
             "UP / DOWN              Previous / next note",
@@ -166,7 +168,7 @@ public static class EditorSceneMetadata
             "F10                    Level shaders",
             "F6                     Toggle hitboxes",
             "F9                     Toggle this list",
-        };
+        ];
         foreach (string binding in bindings)
             EditorSceneUi.HudText(bindingList, Vector2.Zero, new Vector2(520, 24), binding, 14, SceneUi.TextColor);
 
@@ -221,7 +223,7 @@ public static class EditorSceneMetadata
         // drop one here. EDIT beside it opens the picker.
         UiNode swatch = row.Rect(initial, size: new Vector2(44, 28)).Input()
             .With(new EditorColorRow(target, hex: false))
-            .With(new UiColorDrop())
+            .Tag<UiColorDrop>()
             .Tooltip(tooltip + ". Drag it onto another colour to copy it, or drop one here");
         swatch.Entity.AddTag<UiColorSwatch>();
 

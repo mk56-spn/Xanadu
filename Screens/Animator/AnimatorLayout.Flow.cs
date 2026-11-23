@@ -1,0 +1,86 @@
+using Friflo.Engine.ECS;
+using Xanadu.Core.Theme;
+using Xanadu.Model.Animation;
+using Xanadu.Model.Animator;
+using Xanadu.Model.Animator.Intents;
+using Xanadu.Ui.Ecs.Ui;
+
+namespace Xanadu.Screens.Animator;
+
+/// <summary>
+/// The FLOW tab: the clips the clip being edited may fade into, then the fade,
+/// curve and pose gap of the selected one, and its preview controls.
+/// </summary>
+public static partial class AnimatorLayout
+{
+    public const float FlowRowHeight = 26f;
+    public const float FlowToggleWidth = 44f;
+    private const float FlowTitleHeight = 20f;
+    private const float FlowTextHeight = 18f;
+    private const float FlowControlHeight = 28f;
+
+    /// <summary>Title, rule, fade readout, fade slider, curve, gap and preview rows, and the spacing after each.</summary>
+    private const float FlowFixedHeight =
+        FlowTitleHeight + FlowTextHeight * 3 + FlowControlHeight * 2 + RowHeight + UiTheme.ContainerSpacing * 7;
+
+    /// <summary>Width of one row in the clip list, inside its scrolling viewport.</summary>
+    public const float FlowListWidth = ListWidth - 10;
+
+    private static void BuildFlowBody(UiBuilder menu, Vector2 body, ref Refs refs)
+    {
+        refs.Ui.FlowTitle = menu.Text("", new Vector2(ListWidth, FlowTitleHeight), UiTheme.FontSize,
+            UiTheme.Accent);
+
+        // The clips this one may fade into: the flow system fills it with one
+        // row per other clip, and it scrolls when there are more than fit.
+        float viewportHeight = body.Y - UiTheme.ContainerPadding * 2 - FlowFixedHeight;
+        menu.Container(Vector2.Zero, new Vector2(ListWidth, viewportHeight),
+            StackDirection.Vertical, clip: true, color: Palette.SurfaceInset, takesInput: false);
+        Entity viewport = menu.Current;
+        refs.Ui.FlowList = List(menu, ListWidth);
+        menu.End();
+        viewport.AddComponent(new ScrollOffset());
+
+        refs.Ui.FlowRule = menu.Text("", new Vector2(ListWidth, FlowTextHeight), UiTheme.SmallFontSize,
+            UiTheme.Text, TextAlign.Left);
+
+        refs.Ui.FlowFade = menu.Text("", new Vector2(ButtonWidth, FlowTextHeight),
+            UiTheme.SmallFontSize, UiTheme.Text, TextAlign.Left);
+        SliderRow(menu, "FADE S", AnimatorSliderValue.TransitionFade, 0f, Xanadu.Model.Animation.RigTransitions.MaxFade,
+            Xanadu.Model.Animation.RigTransitions.DefaultFade, "0.00", "How long the fade into the picked clip lasts, in seconds");
+
+        menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 4, color: Clear);
+        // The two long names get the room; IN and OUT share what is left.
+        float word = (ButtonWidth - 12) * 0.3f;
+        var wide = new Vector2(word, FlowControlHeight);
+        var narrow = new Vector2((ButtonWidth - 12 - word * 2) / 2, FlowControlHeight);
+        FlowButton(menu, "LINEAR", new SetTransitionCurve(RigFadeCurve.Linear), wide);
+        FlowButton(menu, "SMOOTH", new SetTransitionCurve(RigFadeCurve.Smooth), wide);
+        FlowButton(menu, "IN", new SetTransitionCurve(RigFadeCurve.EaseIn), narrow);
+        FlowButton(menu, "OUT", new SetTransitionCurve(RigFadeCurve.EaseOut), narrow);
+        menu.End();
+
+        refs.Ui.FlowGap = menu.Text("", new Vector2(ListWidth, FlowTextHeight), UiTheme.SmallFontSize,
+            UiTheme.TextDim, TextAlign.Left);
+
+        menu.Container(Vector2.Zero, new Vector2(ButtonWidth, FlowControlHeight), spacing: 4, color: Clear);
+        float small = (ButtonWidth - 8) / 4;
+        FlowButton(menu, "PREVIEW", new PreviewTransition(),
+            new Vector2(ButtonWidth - 8 - small * 2, FlowControlHeight));
+        FlowButton(menu, "LOOP", new ToggleFlowLoop(), new Vector2(small, FlowControlHeight));
+        FlowButton(menu, "SLOW", new ToggleSlow(), new Vector2(small, FlowControlHeight));
+        menu.End();
+    }
+
+    private static Entity FlowButton(
+        UiBuilder ui,
+        string label,
+        IIntent action,
+        Vector2 size)
+    {
+        Entity button = ui.Button(label, size, fontSize: UiTheme.SmallFontSize);
+        button.AddComponent(new Intent(action));
+        AnimatorTooltips.Attach(button, action);
+        return button;
+    }
+}

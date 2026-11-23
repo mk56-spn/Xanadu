@@ -12,7 +12,7 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Drawers.Timeline;
 
 /// <summary>Draws the track timeline, playhead, and drift history from TrackProgress.</summary>
-public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
+public sealed class TimelineDrawSystem(IRectCanvas canvas, Handle timeline) : QuerySystem<TrackProgress>
 {
     private const float PanelX = 60;
     private const float PanelY = 60;
@@ -39,21 +39,15 @@ public sealed class TimelineDrawSystem : QuerySystem<TrackProgress>
     private static readonly Color DriftAverageColor = new(0.3f, 0.9f, 1f, 0.95f);
     private static readonly Color DriftZeroColor = new(0.35f, 0.42f, 0.55f, 0.9f);
 
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _timeline;
-    private readonly List<DriftSample> _drift = new();
+    private readonly IRectCanvas _canvas = canvas;
+    private readonly Handle _timeline = timeline;
+    private readonly List<DriftSample> _drift = [];
 
     private long _lastTrackMs = -1;
     private long _lastSampleAudioMs = -1;
     private long _lastSampleTrackMs = -DriftCheckIntervalMs;
     private long _driftSum;
     private int _driftCount;
-
-    public TimelineDrawSystem(IRectCanvas canvas, Handle timeline)
-    {
-        _canvas = canvas;
-        _timeline = timeline;
-    }
 
     protected override void OnUpdate()
     {

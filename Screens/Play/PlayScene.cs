@@ -1,18 +1,19 @@
-using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Logic.Editor;
+using Xanadu.Logic.Playfields;
 using Xanadu.Model.Ecs;
 using Xanadu.Model.Ecs.Components;
-using Position = Xanadu.Core.Position;
 using Xanadu.Model.Levels;
-using Xanadu.Model.Replays;
 using Xanadu.Model.Playfields;
+using Xanadu.Model.Replays;
+using Xanadu.Storage.Settings;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Logic.Playfields;
-using Xanadu.Logic.Editor;
+using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Play;
 
@@ -51,7 +52,7 @@ public static class PlayScene
 
         Entity playfieldEntity = entities.CreateEntity(
             new LevelInfo(document.Name, song),
-            new LevelFile(entry.Path),
+            new FilePath(entry.Path),
             new Playfield(document.PlayfieldWidth, document.PlayfieldHeight),
             new Playhead(
                 timeMs: 0,

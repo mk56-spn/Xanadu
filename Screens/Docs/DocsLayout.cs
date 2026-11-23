@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
+using Xanadu.Core.Theme;
 using Xanadu.Core.Timeline;
 using Xanadu.Core.Tweens;
-using Xanadu.Core.Theme;
 using Xanadu.Logic.Docs;
 using Xanadu.Model.Docs;
 using Xanadu.Screens.Shared;
@@ -27,7 +27,7 @@ public sealed class DocsLayout : IScreenLayout<DocsLogic>
 
     private static readonly Flex Fill = new(Grow: 1, Cross: Cross.Stretch);
 
-    private readonly List<Button> _sections = new();
+    private readonly List<Button> _sections = [];
     private Column _panel = null!;
     private Label _title = null!;
     private Label _body = null!;
@@ -62,7 +62,7 @@ public sealed class DocsLayout : IScreenLayout<DocsLogic>
                     new Column(Fill, pad: Space.Lg, gap: Space.Lg, tone: Tone.Backing)
                     {
                         (_title = new Label("", UiType.Title, bold: true)),
-                        (_body = new Label("", UiType.Body, wrap: true, stretch: true)),
+                        (_body = new Label(wrap: true, stretch: true)),
                     },
                 },
             }));

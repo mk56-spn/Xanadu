@@ -62,7 +62,7 @@ public static partial class PlayfieldRenderer
         // One mote trip in takes two beats dormant, half a beat fully charged.
         double tripMs = beatMs * (2d - 1.5d * charge);
 
-        Rifts.Set(look, "rift_release", 0f, 0f);
+        Rifts.Set(look, "rift_release", 0f);
         Rifts.Set(look, "rift_glow", bodyHalf * (2.5f + 3f * charge), halfHeight * (1.3f + 0.6f * charge), 0.18f + 0.35f * charge + 0.12f * pulse);
         Rifts.Set(look, "rift_motes", (float)((now / tripMs) % 1d), halfHeight * (2.6f + 0.8f * charge), 0.35f + 0.6f * charge, 1f);
         Rifts.Set(look, "rift_ring", halfHeight * (0.7f + 2.6f * pulse), 2f + 2f * since,
@@ -158,10 +158,10 @@ public static partial class PlayfieldRenderer
         float alpha = near ? 1f : 0.4f;
 
         Xif look = Rifts.Look;
-        Rifts.Set(look, "rift_release", 0f, 0f);
+        Rifts.Set(look, "rift_release", 0f);
         Rifts.Set(look, "rift_glow", Rifts.BodyHalf * 3f, Rifts.HalfHeight * 1.4f, 0.3f * alpha);
-        Rifts.Set(look, "rift_motes", 0f, 0f, 0f, 0f);
-        Rifts.Set(look, "rift_ring", 0f, 2f, 0f);
+        Rifts.Set(look, "rift_motes", 0f);
+        Rifts.Set(look, "rift_ring", 0f, 2f);
         Rifts.Set(look, "rift_lens", 0f, Rifts.BodyHalf * 0.5f, 0f, 0.9f * alpha);
         Rifts.Set(look, "rift_pips", ChargeBeats, 0f, 22f, 6f);
         SetExit(look, note, alpha);

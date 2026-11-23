@@ -101,7 +101,7 @@ public sealed class ChordItemKind : ItemKind<Chord, ChordDocument>
 {
     private const float HitRadius = 14f;
 
-    private readonly List<Chord> _sorted = new();
+    private readonly List<Chord> _sorted = [];
 
     public override string Name => "chord";
 

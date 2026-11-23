@@ -18,7 +18,39 @@ public sealed class PlaySkipSystem : QuerySystem<PlaySession, Playhead>
     /// <summary>The wait a skip leaves before the first note, and the shortest one worth skipping.</summary>
     public const long LeadMs = 2_000;
 
-    protected override void OnUpdate() => Query.EachEntity(new Skip(Query.Store, CommandBuffer));
+    private readonly HashSet<int> _heard = [];
+
+    protected override void OnUpdate()
+    {
+        foreach (Entity entity in Query.ToEntityList())
+        {
+            if (_heard.Add(entity.Id))
+                entity.AddSignalHandler<SkipAsked>(_ => Asked(entity));
+        }
+
+        Query.EachEntity(new Skip(Query.Store, CommandBuffer));
+    }
+
+    /// <summary>The skip key (<see cref="SkipAsked"/>): skips now if a player could press SKIP.</summary>
+    private static void Asked(Entity entity)
+    {
+        if (entity.IsNull || !entity.HasComponent<PlaySession>() || !entity.HasComponent<Playhead>())
+            return;
+
+        ref PlaySession session = ref entity.GetComponent<PlaySession>();
+        ref Playhead playhead = ref entity.GetComponent<Playhead>();
+        if (!entity.Tags.Has<PlayPaused>() && !entity.HasComponent<ReplayPlayer>() && CanSkip(session, playhead))
+            Apply(entity, ref session, ref playhead);
+    }
+
+    private static void Apply(Entity entity, ref PlaySession session, ref Playhead playhead)
+    {
+        if (entity.HasComponent<ReplayRecorder>())
+            entity.GetComponent<ReplayRecorder>().SkipFromMs = playhead.TimeMs;
+
+        session.Skipped = true;
+        playhead.SeekRequestMs = session.SkipToMs;
+    }
 
     /// <summary>
     /// Where a skip lands for a run starting at <paramref name="startMs"/>, or -1
@@ -55,9 +87,6 @@ public sealed class PlaySkipSystem : QuerySystem<PlaySession, Playhead>
         {
             Entity entity = Store.GetEntityById(id);
 
-            bool requested = session.SkipRequested;
-            session.SkipRequested = false;
-
             bool available = !entity.Tags.Has<PlayPaused>() && CanSkip(session, playhead);
             bool replaying = entity.HasComponent<ReplayPlayer>();
             UiLayout.SetHidden(session.SkipButton, Buffer, !available || replaying);
@@ -67,16 +96,10 @@ public sealed class PlaySkipSystem : QuerySystem<PlaySession, Playhead>
 
             bool skip = replaying
                 ? ReplayReachedSkip(entity.GetComponent<ReplayPlayer>(), playhead)
-                : requested || (!session.SkipButton.IsNull && session.SkipButton.Tags.Has<Pressed>());
+                : !session.SkipButton.IsNull && session.SkipButton.Tags.Has<Pressed>();
 
-            if (!skip)
-                return;
-
-            if (entity.HasComponent<ReplayRecorder>())
-                entity.GetComponent<ReplayRecorder>().SkipFromMs = playhead.TimeMs;
-
-            session.Skipped = true;
-            playhead.SeekRequestMs = session.SkipToMs;
+            if (skip)
+                Apply(entity, ref session, ref playhead);
         }
     }
 }

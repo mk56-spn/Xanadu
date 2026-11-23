@@ -1,11 +1,11 @@
-using Xanadu.Storage.Profiles;
 using System.Linq;
 using Xanadu.Core.Theme;
 using Xanadu.Logic.Profiles;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Screens.Shared;
 using Xanadu.Screens.SongSelect;
+using Xanadu.Storage.Profiles;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using static Xanadu.Core.Theme.UiMetrics;
 using static Xanadu.Ui.Ecs.Ui.Tree.UiSpecs;
 
@@ -55,7 +55,7 @@ public sealed class ProfilesLayout : IScreenLayout<ProfilesLogic>
         new(gap: Space.Lg, cross: Cross.Center, width: RowWidth, height: RowHeight)
         {
             new Custom(p => SongSelectScene.TiltedArt(p, Vector2.Zero, ArtSize,
-                ProfileArt.Material(loadAssets, ProfileTint.Of(profile), ProfileArt.Instance(profile), ArtZoom))),
+                ProfileArt.Material(loadAssets, ProfileTint.Of(profile), ProfileArt.Instance(profile)))),
             new Button($"{(active ? "▶  " : "")}{profile.Name}",
                 tone: active ? Tone.Primary : Tone.Secondary, cmd: Cmd(ProfilesEntrance.Select, index),
                 height: RowHeight, grow: 1),

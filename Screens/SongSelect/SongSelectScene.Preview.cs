@@ -1,18 +1,16 @@
-using Xanadu.Storage.Profiles;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
+using Xanadu.Logic.Profiles;
+using Xanadu.Logic.SongSelect;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Screens.Profiles;
 using Xanadu.Screens.Shared;
-
-using Xanadu.Logic.Profiles;
-
-using Xanadu.Logic.SongSelect;
+using Xanadu.Storage.Profiles;
+using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Screens.SongSelect;
 
@@ -151,7 +149,7 @@ public static partial class SongSelectScene
         if (material is null)
             return art;
 
-        art.With(new UiMaterial(material)).With(new SpectrumEnergy());
+        art.With(new UiMaterial(material)).Tag<SpectrumEnergy>();
         return art;
     }
 

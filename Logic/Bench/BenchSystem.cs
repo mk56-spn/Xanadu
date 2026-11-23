@@ -1,19 +1,19 @@
-using Xanadu.Core.Keys;
-using Xanadu.Storage.Levels;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Audio;
 using Xanadu.Core;
+using Xanadu.Core.Keys;
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
+using Xanadu.Storage.Levels;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
 using Position = Xanadu.Core.Position;
 using SceneState = Xanadu.Model.Ecs.Components.SceneState;
-using Xanadu.Audio;
 
 namespace Xanadu.Logic.Bench;
 
@@ -25,7 +25,10 @@ namespace Xanadu.Logic.Bench;
 /// note scrolls past the running box; Space (pink) or J (orange) on its beat
 /// sets its height.
 /// </summary>
-public sealed class BenchSystem : QuerySystem<BenchView>
+public sealed class BenchSystem(
+    EntityStore entities,
+    ITrackAudio audio,
+    IKeyboardState? keyboard = null) : QuerySystem<BenchView>
 {
     /// <summary>How far the background lifts toward <see cref="Palette.SurfaceAlt"/> on the beat.</summary>
     private const float PulseLift = 0.35f;
@@ -83,9 +86,9 @@ public sealed class BenchSystem : QuerySystem<BenchView>
     private const float NoteLow = 30f;
     private const float NoteHigh = 380f;
 
-    private readonly EntityStore _entities;
-    private readonly ITrackAudio _audio;
-    private readonly IKeyboardState? _keyboard;
+    private readonly EntityStore _entities = entities;
+    private readonly ITrackAudio _audio = audio;
+    private readonly IKeyboardState? _keyboard = keyboard;
     private readonly ButtonPress _presses = new();
     private IReadOnlyList<LoadedSong>? _songs;
     private int _index;
@@ -115,18 +118,8 @@ public sealed class BenchSystem : QuerySystem<BenchView>
     private bool _wasOrangeHeld;
     private bool _wasModeHeld;
     private double _lastTimeMs;
-    private readonly Dictionary<long, Vocal> _hit = new();
-    private readonly HashSet<long> _missed = new();
-
-    public BenchSystem(
-        EntityStore entities,
-        ITrackAudio audio,
-        IKeyboardState? keyboard = null)
-    {
-        _entities = entities;
-        _audio = audio;
-        _keyboard = keyboard;
-    }
+    private readonly Dictionary<long, Vocal> _hit = [];
+    private readonly HashSet<long> _missed = [];
 
     protected override void OnUpdate()
     {

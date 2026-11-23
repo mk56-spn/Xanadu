@@ -1,5 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Wiring.Scenes;
 
@@ -12,28 +14,20 @@ public static class EditorSceneActions
             context => context.Scenes.TryBack());
 
         registry.Register(SceneKind.Editor, SceneActionId.Save,
-            context => RequestEditorUi(context, EditorButtonKind.Save));
+            context => AskEditor(context, new SaveLevel()));
 
         registry.Register(SceneKind.Editor, SceneActionId.LoadSong,
-            context => RequestEditorUi(context, EditorButtonKind.LoadSong));
+            context => AskEditor(context, new OpenSongPicker()));
 
         registry.Register(SceneKind.Editor, SceneActionId.ToggleMetadata,
-            context => RequestEditorUi(context, EditorButtonKind.ToggleMetadata));
+            context => AskEditor(context, new ToggleLevelInfo()));
     }
 
-    private static void RequestEditorUi(
-        SceneActionContext context,
-        EditorButtonKind kind)
+    private static void AskEditor<T>(SceneActionContext context, T intent)
+        where T : struct, IIntent<T>
     {
-        foreach (Entity editor in context.Entities
-                     .Query<LevelInfo>()
-                     .Entities)
-        {
-            // The editor is built with the request component; adding it again
-            // would be a structural change inside the scene's query loop.
-            if (editor.HasComponent<EditorUiRequest>())
-                editor.GetComponent<EditorUiRequest>().Kind = kind;
-            return;
-        }
+        EntityList editors = context.Entities.Query<LevelInfo>().ToEntityList();
+        if (editors.Count > 0)
+            editors[0].EmitSignal(intent);
     }
 }

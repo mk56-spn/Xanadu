@@ -11,7 +11,7 @@ namespace Xanadu.Logic.Editor;
 public static class EditorPlacementKeybinds
 {
     private static readonly (Key Main, Key Pad, EditorPlacementMode Mode)[] Bindings =
-    {
+    [
         (Key.Key1, Key.Kp1, EditorPlacementMode.Note),
         (Key.Key2, Key.Kp2, EditorPlacementMode.Chord),
         (Key.Key3, Key.Kp3, EditorPlacementMode.Dash),
@@ -22,7 +22,7 @@ public static class EditorPlacementKeybinds
         (Key.Key8, Key.Kp8, EditorPlacementMode.Draft),
         (Key.Key9, Key.Kp9, EditorPlacementMode.DashStop),
         (Key.Key0, Key.Kp0, EditorPlacementMode.Grass),
-    };
+    ];
 
     public static bool TryGet(Key key, out EditorPlacementMode mode)
     {

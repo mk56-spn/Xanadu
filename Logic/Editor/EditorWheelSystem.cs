@@ -1,9 +1,9 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Model.Editor.Intents;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Input;
-using Xanadu.Logic.Editor.Commands;
 
 namespace Xanadu.Logic.Editor;
 
@@ -15,7 +15,7 @@ namespace Xanadu.Logic.Editor;
 /// the field view about the pointer. A warning, the group overlay or a text field
 /// in use keeps the wheel from reaching the editor.
 /// </summary>
-public sealed class EditorWheelSystem(EditorCommandBus commands, IWheelSource wheel)
+public sealed class EditorWheelSystem(IWheelSource wheel)
     : QuerySystem<Playhead, PlayfieldView>
 {
     protected override void OnUpdate()
@@ -33,7 +33,7 @@ public sealed class EditorWheelSystem(EditorCommandBus commands, IWheelSource wh
             }
 
             // Wheel up goes back through the song.
-            commands.Enqueue(EditorCommand.Seek(
+            editor.EmitSignal(new Seek(
                 EditorScroll.Target(editor.GetComponent<Playhead>(), -notches, wheel.Shift)));
             return;
         }

@@ -6,8 +6,8 @@ using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Scoring;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Play;
@@ -52,8 +52,8 @@ public sealed class PlayScoreSystem : QuerySystem<ScoreState, Playhead>
             buffer.AddTag<Dirty>(text.Id);
         }
 
-        if (text.HasComponent<TextGlow>())
-            text.GetComponent<TextGlow>().Color = color with { A = 0.8f * JudgementPop.Fade(age) };
+        if (text.HasComponent<Glow>())
+            text.GetComponent<Glow>().Color = color with { A = 0.8f * JudgementPop.Fade(age) };
     }
 
     private static Vector2 JudgementScreenPosition(Entity entity, ScoreState score) =>

@@ -1,10 +1,10 @@
 using Xanadu.Core.Maths;
 using Xanadu.Core.Theme;
-using Xanadu.Model.Ecs.Components;
 using Xanadu.Drawers.Playfields;
-using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Model.Playfields;
+using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
+using Xanadu.Model.Playfields;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Drawers.Editor;
 
@@ -27,8 +27,8 @@ public sealed class EditorFieldDrawer(EditorDrawSurface surface)
         bool grid = ViewportGrid.IsVisible(surface.Entities);
         if (grid)
             PlayfieldRenderer.DrawOuterGrid(surface.Canvas, surface.Target, playfield, field, area);
-        PlayfieldRenderer.DrawFieldFrame(surface.Canvas, surface.Target, field, view.Scale, null);
-        PlayfieldRenderer.DrawField(surface.Canvas, surface.Target, field, 1, null, null);
+        PlayfieldRenderer.DrawFieldFrame(surface.Canvas, surface.Target, field, view.Scale);
+        PlayfieldRenderer.DrawField(surface.Canvas, surface.Target, field);
         if (grid)
             PlayfieldRenderer.DrawGrid(surface.Canvas, surface.Target, playfield, field, area);
         PlayfieldRenderer.DrawFieldLabels(surface.Canvas, surface.Target, playfield, field);

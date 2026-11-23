@@ -1,12 +1,12 @@
-using Xanadu.Storage.Profiles;
 using Friflo.Engine.ECS;
 using Xanadu.Core;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Shaders;
+using Xanadu.Screens.Shared;
+using Xanadu.Storage.Profiles;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Screens.Shared;
 
 namespace Xanadu.Screens.SongSelect;
 
@@ -40,7 +40,7 @@ public static partial class SongSelectScene
 
         // The banner fits eight characters at full size; longer names shrink to stay inside it.
         int size = Math.Clamp(Mathf.FloorToInt(620f / name.Length), 28, 70);
-        UiNode bannerText = banner.Text(name, size, Colors.White, TextAlign.Left)
+        UiNode bannerText = banner.Text(name, size, Colors.White)
             .Size(350, 84)
             .Bold();
 
@@ -67,7 +67,7 @@ public static partial class SongSelectScene
             .Skew(PreviewTilt)
             .AnchorLeft();
 
-        UiNode level = panel.Text("", 50, LevelFill, TextAlign.Left)
+        UiNode level = panel.Text("", 50, LevelFill)
             .Size(LevelLabelWidth(0), 70)
             .Bold()
             .Outline(LevelEdge(LevelColor(1)), LevelOutline)
@@ -126,7 +126,7 @@ public static partial class SongSelectScene
 
         Color color = LevelColor(state.Selected + 1);
         state.LevelLabel.GetComponent<TextOutline>().Color = LevelEdge(color);
-        state.LevelLabel.GetComponent<TextGlow>().Color = LevelGlow(color);
+        state.LevelLabel.GetComponent<Glow>().Color = LevelGlow(color);
         state.LevelLabel.AddTag<Dirty>();
     }
 

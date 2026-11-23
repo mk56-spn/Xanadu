@@ -1,7 +1,7 @@
-using Xanadu.Storage.Profiles;
 using Xanadu.Core.Maths;
 using Xanadu.Logic.Screens;
 using Xanadu.Model.Ecs.Components;
+using Xanadu.Storage.Profiles;
 using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Logic.Profiles;
@@ -46,7 +46,7 @@ public sealed class ProfileEditLogic(ProfileStore profiles, UserProfile profile,
 
     public void SetTint(Color tint)
     {
-        string hex = SelfModulate.Format(new Color(tint, 1));
+        string hex = SelfModulate.Format(new Color(tint));
         if (hex == profile.NoteTint)
             return;
 

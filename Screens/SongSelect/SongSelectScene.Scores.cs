@@ -1,11 +1,11 @@
-using Xanadu.Storage.Profiles;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Maths;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Shared;
+using Xanadu.Storage.Profiles;
+using Xanadu.Ui.Ecs.Ui;
 using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.SongSelect;
@@ -87,7 +87,7 @@ public static partial class SongSelectScene
             .Main(StackMainAlignment.Start)
             .Fill(Transparent);
 
-        viewport.With(new ScrollView());
+        viewport.With(new ScrollOffset());
 
         ui.Shape(
             RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
@@ -95,7 +95,7 @@ public static partial class SongSelectScene
         Entity thumb = ui.Shape(
                 RoundedRect(BarTrackLeft, BarTrackTop, BarTrackRight, BarTrackBottom, 3.2f),
                 Gold)
-            .With(new ShapeGlow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
+            .With(new Glow(new Color(Gold, 0.6f), radius: 10, intensity: 1.5f))
             .Raised();
 
         // Invisible and a little wider than the thin bar: what the pointer actually presses.
@@ -140,7 +140,7 @@ public static partial class SongSelectScene
         if (state.ScoresFor != path)
         {
             state.ScoresFor = path;
-            state.ScoreViewport.GetComponent<ScrollView>().Offset = 0;
+            state.ScoreViewport.GetComponent<ScrollOffset>().Value = 0;
         }
 
         Entity rows = state.ScoreContent.Entity;
@@ -192,12 +192,12 @@ public static partial class SongSelectScene
     public static float ScoreValue(in SongSelectState state)
     {
         float range = ScoreRange(state);
-        return range <= 0 ? 0 : state.ScoreViewport.GetComponent<ScrollView>().Offset / range;
+        return range <= 0 ? 0 : state.ScoreViewport.GetComponent<ScrollOffset>().Value / range;
     }
 
     /// <summary>Scrolls the scores to a point from 0 at the top to 1 at the bottom.</summary>
     public static void SetScoreValue(in SongSelectState state, float value) =>
-        state.ScoreViewport.GetComponent<ScrollView>().Offset = value * ScoreRange(state);
+        state.ScoreViewport.GetComponent<ScrollOffset>().Value = value * ScoreRange(state);
 
     /// <summary>Sizes and places the scrollbar thumb for how far the scores are scrolled.</summary>
     public static void RefreshScoreThumb(ref SongSelectState state)

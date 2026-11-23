@@ -1,7 +1,7 @@
 using Friflo.Engine.ECS;
 using Xanadu.Model.Ecs.Components;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.SongSelect;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Screens.Shared;
 
@@ -27,7 +27,7 @@ public static class SceneBackgrounds
             // Black behind the notes; their golden halo carries the warmth.
             material.Set("glow", BackgroundGlow);
             fill.AddComponent(new UiMaterial(material));
-            fill.AddComponent(new SpectrumEnergy());
+            fill.AddTag<SpectrumEnergy>();
         }
 
         return ui.Entity;

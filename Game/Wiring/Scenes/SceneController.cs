@@ -1,6 +1,3 @@
-using Xanadu.Storage.Levels;
-using Xanadu.Storage.Profiles;
-using Xanadu.Storage.Settings;
 using System;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -9,18 +6,21 @@ using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Levels;
 using Xanadu.Model.Replays;
 using Xanadu.Model.Scoring;
-using SceneState = Xanadu.Model.Ecs.Components.SceneState;
-using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Screens.Bench;
+using Xanadu.Screens.Calibration;
 using Xanadu.Screens.Editor;
 using Xanadu.Screens.MainMenu;
-using Xanadu.Screens.Calibration;
 using Xanadu.Screens.Play;
 using Xanadu.Screens.Profiles;
 using Xanadu.Screens.Results;
 using Xanadu.Screens.Settings;
 using Xanadu.Screens.Shared;
 using Xanadu.Screens.SongTiming;
+using Xanadu.Storage.Levels;
+using Xanadu.Storage.Profiles;
+using Xanadu.Storage.Settings;
+using Xanadu.Ui.Ecs.Ui;
+using SceneState = Xanadu.Model.Ecs.Components.SceneState;
 
 namespace Xanadu.Wiring.Scenes;
 
@@ -62,7 +62,7 @@ public interface ISceneController
 /// <summary>Scene builders keyed by scene kind.</summary>
 public sealed class SceneControllerRegistry
 {
-    private readonly Dictionary<SceneKind, ISceneController> _controllers = new();
+    private readonly Dictionary<SceneKind, ISceneController> _controllers = [];
 
     public void Register(ISceneController controller) =>
         _controllers[controller.Kind] = controller;
