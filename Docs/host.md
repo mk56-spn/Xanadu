@@ -167,7 +167,9 @@ The rest is under "Later" (§6).
   it makes a store and a `UiRoot` per scene.
 - **Launcher:** `./run.sh <target> [args]`, one script for every exe: `game`,
   `editor`, `labs`, `animator`, `shaders`, `showcase`, `visual-tests`,
-  `devtools`. With no target it asks which in the terminal.
+  `devtools`. With no target it asks which in the terminal. `--release` (or
+  `-r`) before the target builds and runs it in Release: Debug isn't
+  optimised by the JIT, so read CPU timings (F3, Autopsy) from a Release run.
 - **Game flags:** `--scene=<name>` (any `SceneKind`), `--demo` (a level made in
   memory with a field shader, a buffered group and a self-contained layer),
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,

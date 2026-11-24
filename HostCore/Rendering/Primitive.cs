@@ -188,26 +188,45 @@ internal struct Primitive
         return new Vector4(A.X - hx, A.Y - hy, A.X + hx, A.Y + hy);
     }
 
-    /// <summary>Writes the GPU's copy, already in pixels: tinted, clipped, at a depth, reading texture slot <paramref name="slot"/>.</summary>
-    public readonly void Write(ref GpuPrimitive gpu, Color tint, Vector4 clip, float depth, uint slot)
+    /// <summary>The pool's copy, in the item's own space: untinted, unclipped, the expand stage places it.</summary>
+    public readonly void Write(ref GpuPrimitive gpu, uint slot)
     {
         gpu.A = A;
         gpu.B = B;
         gpu.Uv = Uv;
-        gpu.Clip = clip;
-        (gpu.C0a, gpu.C0b) = Pack(C0 * tint);
-        (gpu.C1a, gpu.C1b) = Pack(C1 * tint);
-        (gpu.C2a, gpu.C2b) = Pack(C2 * tint);
+        gpu.Clip = default;
+        (gpu.C0a, gpu.C0b) = Pack(C0);
+        (gpu.C1a, gpu.C1b) = Pack(C1);
+        (gpu.C2a, gpu.C2b) = Pack(C2);
         gpu.Kind = (uint)Kind | Flags;
         gpu.Slot = slot;
-        gpu.Depth = depth;
+        gpu.Depth = 0;
         gpu.Pad0 = gpu.Pad1 = gpu.Pad2 = 0;
     }
 
     private static (uint, uint) Pack(Color c) =>
         (Half(c.R) | Half(c.G) << 16, Half(c.B) | Half(c.A) << 16);
 
-    private static uint Half(float value) => BitConverter.HalfToUInt16Bits((Half)value);
+    /// <summary>
+    /// A float as half bits, rounded to nearest even: the same bits as a
+    /// <c>(Half)</c> cast (checked over a million values, subnormals and
+    /// overflow included), in a few integer steps instead of its general path.
+    /// After Fabian Giesen's <c>float_to_half_fast3_rtne</c>.
+    /// </summary>
+    private static uint Half(float value)
+    {
+        uint x = BitConverter.SingleToUInt32Bits(value);
+        uint sign = (x >> 16) & 0x8000u;
+        x &= 0x7FFFFFFFu;
+        uint bits;
+        if (x >= 0x47800000u)
+            bits = x > 0x7F800000u ? 0x7E00u : 0x7C00u;
+        else if (x < 0x38800000u)
+            bits = BitConverter.SingleToUInt32Bits(BitConverter.UInt32BitsToSingle(x) + 0.5f) - 0x3F000000u;
+        else
+            bits = (x + 0xC8000FFFu + ((x >> 13) & 1)) >> 13;
+        return bits | sign;
+    }
 
     /// <summary>
     /// The primitive cut into the canvas vertices a material's effect draws

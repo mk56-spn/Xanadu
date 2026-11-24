@@ -3,6 +3,8 @@
 # this terminal; extra arguments go to the exe.
 #
 #   ./run.sh                      -> a menu
+#   ./run.sh --release <target>   -> any target below built and run in Release (-r for short): optimised
+#                                    code, so CPU timings (F3, Autopsy) read as players get them
 #   ./run.sh game [args]          -> the game (--scene=songselect, --play, --demo, --shot=<png> …)
 #   ./run.sh editor [args]        -> the game, straight into the level editor
 #   ./run.sh labs [args]          -> experiments (--tab=<n> …)
@@ -23,6 +25,9 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# Debug unless asked: the JIT doesn't optimise Debug builds, so they run a few times slower.
+configuration=Debug
 targets=(game editor labs animator shaders showcase visual-tests devtools)
 
 # Started without a terminal (a double click in the file manager): the menu would
@@ -46,25 +51,25 @@ run() {
     local target="$1"
     shift
     case "$target" in
-        game) dotnet run --project "$root/Game/Host" -- "$@" ;;
-        editor) dotnet run --project "$root/Game/Host" -- --editor "$@" ;;
-        labs) dotnet run --project "$root/Tools/Labs" -- "$@" ;;
-        animator) dotnet run --project "$root/Tools/Animator" -- "$@" ;;
-        shaders) dotnet run --project "$root/Tools/Shaders" -- "$@" ;;
-        showcase) dotnet run --project "$root/UI/Showcase" -- "$@" ;;
-        visual-tests) dotnet run --project "$root/Tests/VisualTests" -- "$@" ;;
+        game) dotnet run -c "$configuration" --project "$root/Game/Host" -- "$@" ;;
+        editor) dotnet run -c "$configuration" --project "$root/Game/Host" -- --editor "$@" ;;
+        labs) dotnet run -c "$configuration" --project "$root/Tools/Labs" -- "$@" ;;
+        animator) dotnet run -c "$configuration" --project "$root/Tools/Animator" -- "$@" ;;
+        shaders) dotnet run -c "$configuration" --project "$root/Tools/Shaders" -- "$@" ;;
+        showcase) dotnet run -c "$configuration" --project "$root/UI/Showcase" -- "$@" ;;
+        visual-tests) dotnet run -c "$configuration" --project "$root/Tests/VisualTests" -- "$@" ;;
         devtools)
             if [[ $# -gt 1 && "$1" == autopsy && " game editor labs animator shaders " == *" $2 "* ]]; then
                 local profiled="$2"
                 shift 2
                 # The exe's own exit code doesn't stop the autopsy: a crash is worth looking at too.
                 XANADU_PROFILE=1 run "$profiled" "$@" || true
-                dotnet run --project "$root/Tools/DevTools" -- autopsy --methods
+                dotnet run -c "$configuration" --project "$root/Tools/DevTools" -- autopsy --methods
                 return
             fi
             if [[ $# -gt 1 && "$1" == deps && "$2" == --dump* ]]; then
-                dotnet build "$root/Xanadu.sln" -v q -nologo >/dev/null 2>&1 || echo "devtools: the solution didn't fully build; failed projects show their last build" >&2
-                dotnet run --project "$root/Tools/DevTools" --no-build -- "$@"
+                dotnet build -c "$configuration" "$root/Xanadu.sln" -v q -nologo >/dev/null 2>&1 || echo "devtools: the solution didn't fully build; failed projects show their last build" >&2
+                dotnet run -c "$configuration" --project "$root/Tools/DevTools" --no-build -- "$@"
                 return
             fi
             # Atlas reads its chart from the builds; a project that fails to build shows its last good one.
@@ -73,14 +78,14 @@ run() {
             for project in "${projects[@]}"; do
                 i=$((i + 1))
                 echo "devtools: building $project for Atlas ($i/${#projects[@]})..." >&2
-                dotnet build "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "devtools: $project didn't build; Atlas shows its last build" >&2
+                dotnet build -c "$configuration" "$root/$project" -v q -nologo >/dev/null 2>&1 || echo "devtools: $project didn't build; Atlas shows its last build" >&2
             done
             echo "devtools: builds done in $((SECONDS - started))s, launching" >&2
             # The whole map as greppable text, for reading outside the window (agents too); out of the repo, refreshed alongside.
             local atlas="${XDG_CACHE_HOME:-$HOME/.cache}/xanadu/atlas.txt"
             mkdir -p "$(dirname "$atlas")"
-            (dotnet run --project "$root/Tools/DevTools" --no-build -- atlas --dump-all="$atlas" >/dev/null 2>&1 &)
-            dotnet run --project "$root/Tools/DevTools" -- "$@"
+            (dotnet run -c "$configuration" --project "$root/Tools/DevTools" --no-build -- atlas --dump-all="$atlas" >/dev/null 2>&1 &)
+            dotnet run -c "$configuration" --project "$root/Tools/DevTools" -- "$@"
             ;;
         *)
             echo "Unknown target '$target' (choose from: ${targets[*]})" >&2
@@ -88,6 +93,11 @@ run() {
             ;;
     esac
 }
+
+if [[ "${1:-}" == --release || "${1:-}" == -r ]]; then
+    configuration=Release
+    shift
+fi
 
 target="${1:-}"
 [[ $# -gt 0 ]] && shift
@@ -137,7 +147,7 @@ choose() {
 
 if [[ -z "$target" ]]; then
     choose || exit 0
-    echo "→ $target" >&2
+    echo "→ $target ($configuration)" >&2
 fi
 
 run "$target" "$@"

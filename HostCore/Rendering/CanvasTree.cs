@@ -434,6 +434,12 @@ internal sealed class CanvasItem(ulong id)
     /// <summary>A hash of the primitives last sent, so a picture cleared and drawn again the same is not sent again.</summary>
     public int PoolHash;
 
+    /// <summary>Whether <see cref="PoolHash"/> is the hash of what was sent (false when the send skipped hashing).</summary>
+    public bool PoolHashKnown;
+
+    /// <summary>Redraws in a row that came out different, and sends that skipped the hash since.</summary>
+    public int HashMisses, HashSkips;
+
     /// <summary>The textures the primitives read, in the order of their local slots on the GPU.</summary>
     public readonly List<ulong> LocalTextures = [];
 

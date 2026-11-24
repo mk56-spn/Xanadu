@@ -150,6 +150,9 @@ internal sealed partial class CanvasRenderer : IDisposable
 
     private const uint NoTexture = 0xFFFF;
 
+    /// <summary>Redraws in a row that differed before an item stops hashing its primitives, and how often it checks again.</summary>
+    private const int HashMissesBeforeSkipping = 8, HashRecheck = 32;
+
     /// <summary>A primitive's texture slot with this bit is a glyph page's layer in <see cref="Glyphs"/>' array, not a run slot.</summary>
     private const uint GlyphLayer = 0x8000;
 
@@ -801,17 +804,29 @@ internal sealed partial class CanvasRenderer : IDisposable
             return;
 
         int count = item.Primitives.Count;
-        var hash = new HashCode();
-        hash.AddBytes(System.Runtime.InteropServices.MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(item.Primitives)));
-        int content = hash.ToHashCode();
-        if (item.PoolEpoch == _poolEpoch && item.PoolStart >= 0 && item.PoolHash == content)
+
+        // The hash only pays when a redraw comes out the same. An item that has
+        // differed every time lately (a live graph) skips it, checking again now and then.
+        bool check = item.HashMisses < HashMissesBeforeSkipping || ++item.HashSkips % HashRecheck == 0;
+        int content = 0;
+        if (check)
         {
-            // Drawn again exactly as it was (most drawers clear and redraw every frame): nothing to send.
-            item.PoolVersion = item.Version;
-            return;
+            var hash = new HashCode();
+            hash.AddBytes(System.Runtime.InteropServices.MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(item.Primitives)));
+            content = hash.ToHashCode();
+            if (item.PoolHashKnown && item.PoolEpoch == _poolEpoch && item.PoolStart >= 0 && item.PoolHash == content)
+            {
+                // Drawn again exactly as it was (most drawers clear and redraw every frame): nothing to send.
+                item.PoolVersion = item.Version;
+                item.HashMisses = 0;
+                return;
+            }
+
+            item.HashMisses++;
         }
 
         item.PoolHash = content;
+        item.PoolHashKnown = check;
         if (item.PoolEpoch != _poolEpoch || item.PoolStart < 0 || count > item.PoolCapacity)
         {
             int capacity = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(count, 4));
@@ -847,7 +862,7 @@ internal sealed partial class CanvasRenderer : IDisposable
                     local = (uint)at;
             }
 
-            p.Write(ref _staging[_stagingCount + i], Colors.White, default, 0, local);
+            p.Write(ref _staging[_stagingCount + i], local);
         }
 
         _uploads.Add((_stagingCount, item.PoolStart, count));
