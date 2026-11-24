@@ -83,9 +83,13 @@ public sealed partial class SlangHints
         return hints;
     }
 
+    /// <summary>Moves each time a library file is read: the names it colours may have changed.</summary>
+    public int Version { get; private set; }
+
     /// <summary>Adds the declarations in one library file.</summary>
     public void Read(string source)
     {
+        Version++;
         foreach (Match tag in CostTag().Matches(source))
             Costs[tag.Groups[2].Success ? tag.Groups[2].Value : tag.Groups[3].Value] = float.Parse(tag.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
         source = WithoutComments(source);

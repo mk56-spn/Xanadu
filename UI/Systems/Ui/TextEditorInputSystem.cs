@@ -68,6 +68,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         foreach (Entity entity in Query.ToEntityList())
         {
             ref TextEditor editor = ref entity.GetComponent<TextEditor>();
+            TextEditors.Follow(entity, ref editor);
             TextBuffer buffer = editor.Buffer;
             int version = buffer.Version;
             (int, int) caret = (buffer.Line, buffer.Column);

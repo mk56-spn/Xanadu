@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Particles;
 using Xanadu.Core.Rendering;
+using Xanadu.Host.Rendering.Compute;
 using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = Xanadu.Core.Maths.Color;
@@ -23,16 +24,20 @@ internal struct GpuParticle
 }
 
 /// <summary>
-/// The particles one canvas item draws: a ring of slots in a storage buffer.
-/// A burst takes the next slots, cutting off the oldest particles if the ring
-/// is full, as Godot's pool of ten instances cut off the oldest burst.
+/// The particles one canvas item draws: a ring of slots, its own range of the
+/// particle arena (from <see cref="First"/>). A burst takes the next slots,
+/// cutting off the oldest particles if the ring is full, as Godot's pool of ten
+/// instances cut off the oldest burst.
 /// </summary>
 internal sealed class ParticleField : IDisposable
 {
     public const uint Capacity = 8192;
 
-    public readonly Buffer Buffer;
+    private readonly ComputeArena<GpuParticle> _arena;
     private readonly TransferBuffer _upload;
+
+    /// <summary>Its first slot in the arena.</summary>
+    public readonly uint First;
     private readonly GpuParticle[] _staging = new GpuParticle[Capacity];
     private readonly List<(uint Start, uint Count)> _dirty = [];
     private uint _head;
@@ -45,13 +50,12 @@ internal sealed class ParticleField : IDisposable
 
     public bool Live => Remaining > 0f;
 
-    public ParticleField(GraphicsDevice device)
+    public ParticleField(GraphicsDevice device, ComputeArena<GpuParticle> arena)
     {
-        Buffer = Buffer.Create<GpuParticle>(device, "particles",
-            BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
-            Capacity);
+        _arena = arena;
+        First = arena.Allocate();
         _upload = TransferBuffer.Create<GpuParticle>(device, "particle upload", TransferBufferUsage.Upload, Capacity);
-        // Every slot starts dead (age 0, lifespan 0), and the GPU copy must say so too.
+        // Every slot starts dead (age 0, lifespan 0), and the GPU copy must say so too (a reused range held another field's).
         _dirty.Add((0, Capacity));
     }
 
@@ -86,8 +90,8 @@ internal sealed class ParticleField : IDisposable
 
     public bool Disposed { get; private set; }
 
-    /// <summary>Sends the slots written since the last frame; the rest of the buffer is left as the GPU moved it.</summary>
-    public void Upload(CopyPass copy)
+    /// <summary>Sends the slots written since the last frame; the rest of its range is left as the GPU moved it.</summary>
+    public void Upload(CopyPass copy, Buffer arena)
     {
         if (_dirty.Count == 0)
             return;
@@ -98,7 +102,7 @@ internal sealed class ParticleField : IDisposable
         _upload.Unmap();
 
         foreach ((uint start, uint count) in _dirty)
-            copy.UploadToBuffer<GpuParticle>(_upload, Buffer, start, start, count, cycle: false);
+            copy.UploadToBuffer<GpuParticle>(_upload, arena, start, First + start, count, cycle: false);
         _dirty.Clear();
     }
 
@@ -109,7 +113,7 @@ internal sealed class ParticleField : IDisposable
         if (Disposed)
             return;
         Disposed = true;
-        Buffer.Dispose();
+        _arena.Free(First);
         _upload.Dispose();
     }
 }
@@ -117,9 +121,10 @@ internal sealed class ParticleField : IDisposable
 /// <summary>
 /// The host's <see cref="IParticleServer"/> (Docs/host.md §5.6):
 /// bursts land in the <see cref="ParticleField"/> of the canvas item they were
-/// emitted into; once a frame every live field is uploaded and stepped by a
-/// compute shader, and the <see cref="CanvasRenderer"/> draws each one as an
-/// instanced quad per particle where its item sits in the tree.
+/// emitted into; once a frame every live field is uploaded and all of them are
+/// stepped by one <see cref="ComputeOperation{TJob}"/> dispatch, a job per field
+/// over the shared particle arena, and the <see cref="CanvasRenderer"/> draws
+/// each one as an instanced quad per particle where its item sits in the tree.
 /// </summary>
 /// <remarks>
 /// Each effect gets a row in one table (gravity, a sampled colour ramp and a
@@ -132,10 +137,13 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     private const int Samples = 32;
     private const int RowSize = 1 + Samples * 2;
     private const int MaxEffects = 128;
-    private const uint ThreadsPerGroup = 64;
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct StepUniforms { public float Dt; public uint Count; public float Pad0, Pad1; }
+    private struct StepUniforms { public float Dt; public uint Pad0, Pad1, Pad2; }
+
+    /// <summary>particles.slang's <c>StepJob</c>: one field's range.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct StepJob { public uint First, Count, Pad0, Pad1; }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct DrawUniforms
@@ -143,12 +151,15 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         public float Width, Height, OriginX, OriginY;
         public float XX, XY, YX, YY;
         public float R, G, B, A;
-        public float Depth, Pad0, Pad1, Pad2;
+        public float Depth;
+        public uint First;
+        public float Pad1, Pad2;
     }
 
     private readonly GraphicsDevice _device;
     private readonly CanvasTree _tree;
-    private readonly ComputePipeline _step;
+    private readonly ComputeOperation<StepJob> _step;
+    private readonly ComputeArena<GpuParticle> _arena;
     private readonly Shader _vertex;
     private readonly Shader _fragment;
     private readonly TextureFormat _format;
@@ -168,15 +179,9 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         _tree = tree;
         string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "particles.slang");
 
-        _step = ComputePipeline.Create(device, SlangShaders.Compile(module, "simulate", "compute"), "main",
-            new ComputePipelineCreateInfo
-            {
-                Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = 1,
-                NumReadWriteStorageBuffers = 1,
-                NumUniformBuffers = 1,
-                ThreadCountX = ThreadsPerGroup, ThreadCountY = 1, ThreadCountZ = 1,
-            });
+        _arena = new ComputeArena<GpuParticle>(device, "particles", ParticleField.Capacity);
+        _step = new ComputeOperation<StepJob>(device, "particles.slang", "simulate", inputs: 1,
+            groupsPerJob: (ParticleField.Capacity + ComputeOperation<StepJob>.Threads - 1) / ComputeOperation<StepJob>.Threads);
 
         _format = format;
         _vertex = Shader.Create(device, SlangShaders.Compile(module, "quad", "vertex"), "main",
@@ -194,6 +199,9 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     /// <summary>Every effect's row (gravity, colour ramp, scale curve), which a particle-mesh draw reads too.</summary>
     public Buffer Effects => _effects;
 
+    /// <summary>Every field's particles, each from its <see cref="ParticleField.First"/>; current after <see cref="Step"/>.</summary>
+    public Buffer Arena => _arena.Buffer;
+
     /// <summary>Fields stepped in the last frame, for the debug line.</summary>
     public int LastLiveFields { get; private set; }
 
@@ -204,7 +212,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
 
         if (canvasItem.Particles is not { } field)
         {
-            field = new ParticleField(_device);
+            field = new ParticleField(_device, _arena);
             canvasItem.Particles = field;
             canvasItem.Touch();
         }
@@ -225,6 +233,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
     {
         // Fields whose item was freed have been disposed by the tree.
         _fields.RemoveAll(static field => field.Disposed);
+        _arena.Prepare(commands);
         LastLiveFields = 0;
         bool upload = _rowsDirty;
         foreach (ParticleField field in _fields)
@@ -243,10 +252,11 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             }
 
             foreach (ParticleField field in _fields)
-                field.Upload(copy);
+                field.Upload(copy, _arena.Buffer);
             commands.EndCopyPass(copy);
         }
 
+        // Every live field is one job: all of them move in a single dispatch.
         foreach (ParticleField field in _fields)
         {
             if (!field.Live)
@@ -254,13 +264,10 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
 
             LastLiveFields++;
             field.Remaining -= dt;
-            commands.PushComputeUniformData(new StepUniforms { Dt = dt, Count = ParticleField.Capacity });
-            ComputePass compute = commands.BeginComputePass(new StorageBufferReadWriteBinding(field.Buffer, cycle: false));
-            compute.BindComputePipeline(_step);
-            compute.BindStorageBuffers(_effects);
-            compute.Dispatch((ParticleField.Capacity + ThreadsPerGroup - 1) / ThreadsPerGroup, 1, 1);
-            commands.EndComputePass(compute);
+            _step.Submit(new StepJob { First = field.First, Count = ParticleField.Capacity });
         }
+
+        _step.Run(commands, _arena.Buffer, [_effects], new StepUniforms { Dt = dt });
     }
 
     /// <summary>
@@ -272,7 +279,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         float width, float height, Texture strip, Sampler sampler, SampleCount samples = SampleCount.One, float depth = 0)
     {
         pass.BindGraphicsPipeline(DrawPipeline(samples));
-        pass.BindVertexStorageBuffers(field.Buffer, _effects);
+        pass.BindVertexStorageBuffers(_arena.Buffer, _effects);
         pass.BindFragmentSamplers(new TextureSamplerBinding(strip, sampler));
         commands.PushVertexUniformData(new DrawUniforms
         {
@@ -281,6 +288,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
             XX = transform.X.X, XY = transform.X.Y, YX = transform.Y.X, YY = transform.Y.Y,
             R = modulate.R, G = modulate.G, B = modulate.B, A = modulate.A,
             Depth = depth,
+            First = field.First,
         });
         pass.DrawPrimitives(6, ParticleField.Capacity, 0, 0);
     }
@@ -354,6 +362,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         foreach (ParticleField field in _fields)
             field.Dispose();
         _step.Dispose();
+        _arena.Dispose();
         foreach (GraphicsPipeline pipeline in _draws.Values)
             pipeline.Dispose();
         _vertex.Dispose();

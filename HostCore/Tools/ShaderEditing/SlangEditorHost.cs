@@ -116,13 +116,36 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
     private readonly Dictionary<(int Line, int Column), Color> _brackets = [];
 
     /// <summary>What Slang and the lint found, by 1-based line; the first on a line is the one shown.</summary>
-    public IReadOnlyList<SlangProblem> Problems { get; set; } = [];
+    public IReadOnlyList<SlangProblem> Problems
+    {
+        get;
+        set
+        {
+            if (!ReferenceEquals(field, value))
+                _version++;
+            field = value;
+        }
+    } = [];
 
     /// <summary>
     /// The float3s the last compile took as colours, with the text each covered: a hint shows only
     /// while that text is still where it was, so edits since don't leave it hanging on something else.
     /// </summary>
-    public IReadOnlyList<(ColourConversion Place, string Text)> ColourConversions { get; set; } = [];
+    public IReadOnlyList<(ColourConversion Place, string Text)> ColourConversions
+    {
+        get;
+        set
+        {
+            if (!ReferenceEquals(field, value))
+                _version++;
+            field = value;
+        }
+    } = [];
+
+    private int _version;
+
+    /// <summary>Problems or conversions swapped for a new list, a rename begun, typed or ended, the library's names read.</summary>
+    public int Version => HashCode.Combine(_version, hints.Version, _rename, _rename?.Name, ReadOnly);
 
     /// <summary>The inlay in front of a float3 taken as a colour, read as the cast it stands for.</summary>
     private const string ConversionLabel = "(colour)";

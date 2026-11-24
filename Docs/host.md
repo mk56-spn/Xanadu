@@ -278,6 +278,12 @@ host fills; tests leave the headless defaults.
   draws keep the effect path: primitives cut into `CanvasVertex` triangles
   (`Primitive.Tessellate`), values packed per run (`[Default]`s, material,
   run). `SelectShader(0)` is plain.
+  - Every effect range's vertices are kept on the GPU (`KeptMesh`) and cut
+    again only when its primitives, place or tint change.
+  - A deform's `[Grid]` boxes are cut on the GPU instead (`grid_cut.slang`, a
+    compute operation, §5.6): a job per box, every frame, into one vertex
+    buffer, so a grid resized every frame costs the CPU nothing. Triangles and
+    discs on a grid still cut on the CPU.
 - **Screen reads:** before the first effect in a pass whose SPIR-V samples the
   screen (`CompiledShader.ReadsScreen`), the pass ends, the target is blitted
   into the screen texture with mips (`ScreenMips`), and the pass resumes
@@ -417,12 +423,24 @@ host fills; tests leave the headless defaults.
   `HostPlatform.Particles`; `CanvasParticleEmitter` on the playfield;
   `ParticleStream` (`IParticleFlow`) for rig streams and trails.
 - **Host** (`HostCore/Rendering/CanvasParticles.cs`, `HostCore/Shaders/particles.slang`):
-  an item gets a `ParticleField` on its first burst, a ring of 8,192 slots in
-  a storage buffer (a full ring cuts off the oldest). Written slots upload
-  each frame; each live field gets one compute dispatch and is drawn as one
-  instanced draw right after its item's own draws, so z, groups and layers
-  order it like any item. Per-effect gravity, ramp and scale curve live in one
-  table of 32 samples each.
+  an item gets a `ParticleField` on its first burst, a ring of 8,192 slots:
+  its own range of one particle arena (a full ring cuts off the oldest).
+  Written slots upload each frame; every live field is a job of one compute
+  operation, so all of them step in a single dispatch. Each is drawn as one
+  instanced draw (reading from its range's first slot) right after its item's
+  own draws, so z, groups and layers order it like any item. Per-effect
+  gravity, ramp and scale curve live in one table of 32 samples each.
+- **Compute operations** (`HostCore/Rendering/Compute`): the model all GPU
+  compute is moving to, the engine's first so players' later can be the same.
+  A `ComputeOperation<TJob>` is a pipeline plus a job list: jobs submitted in
+  a frame run in one dispatch, (groups per job, jobs, 1), the shader taking
+  its job from `SV_GroupID.y` (jobs at read-only binding 0). SDL_GPU fixes a
+  pass's writable buffers when it begins, so an operation's jobs share one
+  `ComputeArena<T>`: a growable buffer of fixed-size ranges, copied over on
+  growth so ranges keep their offsets. Users: particles (one arena) and
+  `[Grid]` cutting (jobs of different sizes write a frame vertex buffer, the
+  run's groups sized to the biggest). The resident UI's passes, screen mips
+  and the labs still dispatch directly.
 
 ### 5.7 Textures, SVG and rigs
 

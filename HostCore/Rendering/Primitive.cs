@@ -269,11 +269,8 @@ internal struct Primitive
             return;
         }
 
-        Vector2 p0 = centre - x - y, p1 = centre + x - y, p2 = centre + x + y, p3 = centre - x + y;
-        Vector2 u0 = new(Uv.X, Uv.Y), u2 = new(Uv.Z, Uv.W);
-        Vector2 u1 = new(u2.X, u0.Y), u3 = new(u0.X, u2.Y);
-        bool vertical = (Flags & FlagVertical) != 0;
-        Color c0 = C0, c1 = vertical ? C0 : C1, c2 = C1, c3 = vertical ? C1 : C0;
+        (Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 u0, Vector2 u1, Vector2 u2, Vector2 u3,
+            Color c0, Color c1, Color c2, Color c3) = Corners();
         if (columns > 1 || rows > 1)
         {
             TessellateGrid(into, t, tint, ref points, columns, rows, [p0, p1, p2, p3], [u0, u1, u2, u3], [c0, c1, c2, c3]);
@@ -284,6 +281,21 @@ internal struct Primitive
         Add(into, t, tint, p0, p1, p2, c0, c1, c2, u0, u1, u2, first, first + 1, first + 2);
         Add(into, t, tint, p0, p2, p3, c0, c2, c3, u0, u2, u3, first, first + 2, first + 3);
         points += 4;
+    }
+
+    /// <summary>
+    /// A box's four corners (top left, top right, bottom right, bottom left): their places in the
+    /// item's space, their uvs and their colours (a two-colour ramp along x, or along y when vertical).
+    /// </summary>
+    public readonly BoxCorners Corners()
+    {
+        Vector2 centre = new(A.X, A.Y), x = new(A.Z, A.W), y = new(B.X, B.Y);
+        Vector2 u0 = new(Uv.X, Uv.Y), u2 = new(Uv.Z, Uv.W);
+        bool vertical = (Flags & FlagVertical) != 0;
+        return new BoxCorners(
+            centre - x - y, centre + x - y, centre + x + y, centre - x + y,
+            u0, new Vector2(u2.X, u0.Y), u2, new Vector2(u0.X, u2.Y),
+            C0, vertical ? C0 : C1, C1, vertical ? C1 : C0);
     }
 
     /// <summary>
@@ -334,6 +346,12 @@ internal struct Primitive
         into.Add(new CanvasVertex(t * c, uc, cc * tint, c, rest, ic));
     }
 }
+
+/// <summary>A box primitive's corners: top left, top right, bottom right, bottom left (<see cref="Primitive.Corners"/>).</summary>
+internal readonly record struct BoxCorners(
+    Vector2 P0, Vector2 P1, Vector2 P2, Vector2 P3,
+    Vector2 U0, Vector2 U1, Vector2 U2, Vector2 U3,
+    Color C0, Color C1, Color C2, Color C3);
 
 /// <summary>A <see cref="Primitive"/> as the GPU reads it: <c>Primitive</c> in primitives.slang, 112 bytes.</summary>
 [StructLayout(LayoutKind.Sequential)]

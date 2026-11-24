@@ -2,6 +2,7 @@ using System.IO;
 using Xanadu.Core.Storage;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
+using Xanadu.Ui.Ecs.Ui;
 
 namespace Xanadu.Labs.Experiments;
 
@@ -43,7 +44,8 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
     /// (16:9) and its column on the right, a divider between that drags. The text saves to the
     /// working file before every compile.
     /// </summary>
-    private sealed class Stage : IToolStage
+    private sealed class Stage(LabContext context, Handle parent, Rect2 area, string workingFile,
+        Func<LabContext, Handle, IEditorPreview> preview) : IToolStage
     {
         private const float Gap = 12;
         private const float StatusHeight = 32;
@@ -54,23 +56,34 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
         /// <summary>The least the code and the column can be dragged down to; the column also keeps room under the preview.</summary>
         private const float MinCode = 360, MinSide = 280, MinUnderPreview = 260 + ClipTimeline.MinHeight;
 
-        private readonly ShaderCodeEditor _code;
-        private readonly Rect2 _area;
+        private ShaderCodeEditor? _code;
+        private UiNode _side, _preview, _divider;
         private float _sideWidth;
-        private Rect2 _divider;
 
         /// <summary>The divider is being dragged; where the pointer grabbed it from its middle.</summary>
         private bool _dragging;
         private float _grabbedAt;
         private bool _wasHeld;
 
-        public Stage(LabContext context, Handle parent, Rect2 area, string workingFile, Func<LabContext, Handle, IEditorPreview> preview)
+        /// <summary>
+        /// The code and its status bar on the left, the divider in the gap, the preview (16:9, as
+        /// the game's playfield is, so a shader looks here as it will there) and the column under it
+        /// on the right; the editor lives in these slots.
+        /// </summary>
+        public void Build(UiNode body)
         {
-            _area = area;
             _sideWidth = ClampSide(SideWidth);
-            ShaderEditorBoxes boxes = Arrange(_sideWidth);
-            _divider = boxes.Divider;
-            _code = new ShaderCodeEditor(context.Entities, parent, boxes, File.ReadAllText(workingFile), item => preview(context, item))
+            UiNode row = body.Row().Cross(StackCrossAlignment.Stretch).Grow();
+            UiNode code = row.Column().Cross(StackCrossAlignment.Stretch).Grow().MinWidth(MinCode);
+            UiNode codeSlot = code.Column().Grow();
+            UiNode barSlot = code.Column().Height(StatusHeight);
+            _divider = row.Column().Width(Gap);
+            _side = row.Column().Gap(Gap).Cross(StackCrossAlignment.Stretch).Width(_sideWidth);
+            _preview = _side.Column().Height(PreviewHeight(_sideWidth));
+            UiNode sideSlot = _side.Column().Grow();
+
+            _code = new ShaderCodeEditor(context.Entities, parent, new ShaderEditorSlots(codeSlot, barSlot, _preview, sideSlot, _divider),
+                File.ReadAllText(workingFile), item => preview(context, item))
             {
                 // Saving is a convenience; the compile goes ahead.
                 Compiling = source =>
@@ -86,53 +99,42 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
             };
         }
 
-        /// <summary>
-        /// Where everything goes for a column this wide: the code and its status bar on the left, the
-        /// divider in the gap, the preview (16:9, as the game's playfield is, so a shader looks here as
-        /// it will there) and the column under it on the right.
-        /// </summary>
-        private ShaderEditorBoxes Arrange(float sideWidth)
-        {
-            float codeWidth = _area.Size.X - sideWidth - Gap;
-            var code = new Rect2(_area.Position, new Vector2(codeWidth, _area.Size.Y - StatusHeight));
-            var bar = new Rect2(_area.Position.X, code.End.Y, codeWidth, StatusHeight);
-            float sideLeft = code.End.X + Gap;
-            var preview = new Rect2(sideLeft, _area.Position.Y, sideWidth, MathF.Round(sideWidth * 9f / 16f));
-            var side = new Rect2(sideLeft, preview.End.Y + Gap, sideWidth, _area.End.Y - preview.End.Y - Gap);
-            var divider = new Rect2(code.End.X, _area.Position.Y, Gap, _area.Size.Y);
-            return new ShaderEditorBoxes(code, bar, preview, side, divider);
-        }
+        private static float PreviewHeight(float width) => MathF.Round(width * 9f / 16f);
 
         /// <summary>A column width that leaves the code, the column and the room under the preview their least.</summary>
         private float ClampSide(float width)
         {
-            float most = MathF.Min(_area.Size.X - Gap - MinCode, (_area.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
+            float most = MathF.Min(area.Size.X - Gap - MinCode, (area.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
             return MathF.Round(Math.Clamp(width, MinSide, MathF.Max(MinSide, most)));
         }
 
-        public void Render(MoonWorks.Graphics.CommandBuffer commands) => _code.Render(commands);
+        public void Render(MoonWorks.Graphics.CommandBuffer commands) => _code?.Render(commands);
 
         public void Update(in ToolFrame frame)
         {
+            if (_code is null || !UiLayout.Settled(_side.Entity))
+                return;
+
             bool pressed = frame.Held && !_wasHeld;
             _wasHeld = frame.Held;
+            Rect2 divider = UiLayout.Box(_divider.Entity);
 
-            // The divider: a press on it drags the column's edge until let go.
-            if (pressed && _divider.HasPoint(frame.Mouse))
+            // The divider: a press on it drags the column's edge until let go; only the column's width changes.
+            if (pressed && divider.HasPoint(frame.Mouse))
             {
                 _dragging = true;
-                _grabbedAt = frame.Mouse.X - _divider.GetCenter().X;
+                _grabbedAt = frame.Mouse.X - divider.GetCenter().X;
             }
 
             if (_dragging)
             {
-                float width = ClampSide(_area.End.X - (frame.Mouse.X - _grabbedAt) - Gap / 2);
+                Rect2 side = UiLayout.Box(_side.Entity);
+                float width = ClampSide(side.End.X - (frame.Mouse.X - _grabbedAt) - Gap / 2);
                 if (width != _sideWidth)
                 {
                     _sideWidth = width;
-                    ShaderEditorBoxes boxes = Arrange(width);
-                    _divider = boxes.Divider;
-                    _code.Place(boxes);
+                    _side.Width(width);
+                    _preview.Height(PreviewHeight(width));
                 }
 
                 if (!frame.Held)
@@ -143,10 +145,10 @@ internal sealed class ShaderEditor(string name, string workingCopy, string templ
                 }
             }
 
-            _code.DividerLit = _dragging || _divider.HasPoint(frame.Mouse);
+            _code.DividerLit = _dragging || divider.HasPoint(frame.Mouse);
             _code.Update(frame, pointerFree: !_dragging);
         }
 
-        public void Dispose() => _code.Dispose();
+        public void Dispose() => _code?.Dispose();
     }
 }

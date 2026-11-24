@@ -26,21 +26,27 @@ float4 sampleRow(StructuredBuffer<float4> table, uint start, float t)
 
 // --- compute: one step of every particle ------------------------------------
 
-struct Step { float dt; uint count; float2 pad; };
+// A ComputeOperation (HostCore/Rendering/Compute): every live field is a job,
+// its range of the particle arena, and all of them run in one dispatch.
+struct Step { float dt; uint3 pad; };
+struct StepJob { uint first; uint count; uint2 pad; };
 
-[[vk::binding(0, 0)]] StructuredBuffer<float4> stepEffects;
+[[vk::binding(0, 0)]] StructuredBuffer<StepJob> stepJobs;
+[[vk::binding(1, 0)]] StructuredBuffer<float4> stepEffects;
 [[vk::binding(0, 1)]] RWStructuredBuffer<Particle> moving;
 [[vk::binding(0, 2)]] ConstantBuffer<Step> step;
 
 [shader("compute")]
 [numthreads(64, 1, 1)]
-void simulate(uint3 id : SV_DispatchThreadID)
+void simulate(uint3 group : SV_GroupID, uint3 thread : SV_GroupThreadID)
 {
-    uint i = id.x;
-    if (i >= step.count)
+    StepJob job = stepJobs[group.y];
+    uint i = group.x * 64 + thread.x;
+    if (i >= job.count)
         return;
 
-    Particle p = moving[i];
+    uint at = job.first + i;
+    Particle p = moving[at];
     if (p.life.x >= p.life.y)
         return;
 
@@ -59,14 +65,15 @@ void simulate(uint3 id : SV_DispatchThreadID)
         p.motion.xy += p.motion.zw * alive;
     }
 
-    moving[i] = p;
+    moving[at] = p;
 }
 
 // --- vertex + fragment: one quad per particle ---------------------------------
 
 // The item's transform (x axis, y axis, origin) and its modulate, from the tree.
-/// `place.x` is the draw's depth: its place in the frame, which an opaque rect in front hides it by.
-struct Draw { float2 screen; float2 origin; float4 axes; float4 modulate; float4 place; };
+/// `depth` is the draw's place in the frame, which an opaque rect in front hides it by;
+/// `first` is the field's first slot in the particle arena.
+struct Draw { float2 screen; float2 origin; float4 axes; float4 modulate; float depth; uint first; float2 pad; };
 
 [[vk::binding(0, 0)]] StructuredBuffer<Particle> drawn;
 [[vk::binding(1, 0)]] StructuredBuffer<float4> drawEffects;
@@ -86,7 +93,7 @@ static const float2 corners[6] = { float2(-1, -1), float2(1, -1), float2(1, 1), 
 [shader("vertex")]
 Varyings quad(uint vertex : SV_VertexID, uint instance : SV_InstanceID)
 {
-    Particle p = drawn[instance];
+    Particle p = drawn[draw.first + instance];
     Varyings o;
     o.uv = float2(0.0, 0.0);
     o.colour = float4(0.0, 0.0, 0.0, 0.0);
@@ -111,7 +118,7 @@ Varyings quad(uint vertex : SV_VertexID, uint instance : SV_InstanceID)
     float2 pixel = draw.axes.xy * local.x + draw.axes.zw * local.y + draw.origin;
 
     float2 ndc = pixel / draw.screen * 2.0 - 1.0;
-    o.position = float4(ndc.x, -ndc.y, draw.place.x, 1.0);
+    o.position = float4(ndc.x, -ndc.y, draw.depth, 1.0);
     o.uv = corner * 0.5 + 0.5;
     o.colour = p.colour * ramp * draw.modulate;
     o.cell = p.look.zw;

@@ -20,7 +20,6 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// </summary>
 internal sealed class EditorTuning : IDisposable
 {
-    private readonly UiNode _layer;
     private readonly UiNode _column;
     private readonly HashSet<string> _filledByLab;
 
@@ -40,26 +39,24 @@ internal sealed class EditorTuning : IDisposable
     private string _shown = "";
     private bool _holding;
 
-    public EditorTuning(EntityStore entities, Rect2 area, IEnumerable<string> filledByLab)
+    /// <param name="parent">Where the fields go: a node in the side column's flow, which they fill.</param>
+    public EditorTuning(UiNode parent, IEnumerable<string> filledByLab)
     {
         _filledByLab = [.. filledByLab];
-        _layer = UiNode.Layer(entities, default, UiLayers.ShaderEditorValues, null, UiStage.Full).Theme(UiThemes.Tools);
-        _column = _layer.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Start).Clip();
-        Area = area;
+        _column = parent.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Start).Clip().Grow();
     }
 
-    /// <summary>Where the fields go; set again when the column is resized.</summary>
-    public Rect2 Area
+    /// <summary>Where the fields are, as laid out.</summary>
+    public Rect2 Area => _area;
+
+    /// <summary>Takes the column's laid-out box; the fields are made again when it changes width.</summary>
+    public void Follow()
     {
-        get => _area;
-        set
-        {
-            bool wider = !Mathf.IsEqualApprox(value.Size.X, _area.Size.X);
-            _area = value;
-            _column.Box(value);
-            if (wider)
-                Rebuild();
-        }
+        Rect2 box = UiLayout.Box(_column.Entity);
+        bool wider = !Mathf.IsEqualApprox(box.Size.X, _area.Size.X);
+        _area = box;
+        if (wider)
+            Rebuild();
     }
 
     /// <summary>Takes a fresh compile's values: new ones start at their defaults, kept ones keep their tuning.</summary>
@@ -141,7 +138,7 @@ internal sealed class EditorTuning : IDisposable
         return _holding;
     }
 
-    public void Dispose() => UiLayout.DeleteSubtree(_layer.Entity);
+    public void Dispose() => UiLayout.DeleteSubtree(_column.Entity);
 
     /// <summary>Starts a value on its default the first time it is seen, or when its shape changed.</summary>
     private void Remember(MaterialParam param)

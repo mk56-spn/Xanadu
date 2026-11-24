@@ -17,7 +17,9 @@ namespace Xanadu.Ui.Systems.Ui;
 /// row of its own under the line, so it is never cut off by a long line), and
 /// a faint guide down each indent step (blank lines carry the guides of the
 /// code around them).
-/// Redrawn whole every frame; only the visible rows are drawn.
+/// Redrawn whole when anything it shows moved; only the visible rows are drawn.
+/// An editor on a laid-out node takes this frame's box first (<see cref="TextEditors.Follow"/>):
+/// drawing runs after layout, so the text never trails its node.
 /// </summary>
 public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextEditor>
 {
@@ -40,20 +42,24 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
 
     private readonly List<TextCell> _boxed = [];
 
-    protected override void OnUpdate()
-    {
-        foreach (Entity entity in Query.Entities)
-        {
-            ref TextEditor editor = ref entity.GetComponent<TextEditor>();
-            Draw(ref editor, entity.Tags.Has<TextEditorFocused>());
-        }
-    }
+    protected override void OnUpdate() => Query.EachEntity(new DrawEditors(this, Query.Store));
 
     private void Draw(ref TextEditor editor, bool focused)
     {
         TextBuffer buffer = editor.Buffer;
         TextEditorLayout layout = editor.Layout;
         Handle item = editor.Item;
+
+        // Solid while typing or moving, blinking once still; hidden without focus.
+        bool caretOn = focused && (editor.SinceCaretMove < 0.5f || (int)(editor.SinceCaretMove * 2) % 2 == 0);
+
+        // The picture stays on the canvas until cleared: redraw only when something it shows moved.
+        var drawn = new TextEditorDrawn(buffer, editor.Host, buffer.Version, buffer.Line, buffer.Column, buffer.Anchor, layout.Scroll, layout.Area,
+            focused, caretOn, editor.Host?.Version ?? 0, item);
+        if (layout.Drawn == drawn)
+            return;
+
+        layout.Drawn = drawn;
         canvas.Clear(item);
         canvas.DrawRect(item, layout.Area, Background);
         layout.Rows.Clear();
@@ -61,8 +67,6 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         _boxed.Clear();
         editor.Host?.Prepare(buffer, _boxed);
 
-        // Solid while typing or moving, blinking once still; hidden without focus.
-        bool caretOn = focused && (editor.SinceCaretMove < 0.5f || (int)(editor.SinceCaretMove * 2) % 2 == 0);
         float charWidth = layout.CharWidth;
         float bottom = layout.Area.End.Y - Inset;
         float y = layout.Area.Position.Y + Inset;
@@ -259,5 +263,15 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         end = Math.Max(end, start + 1);
         float x0 = layout.TextLeft + VisualColumn(inlays, start) * layout.CharWidth;
         canvas.DrawRect(item, new Rect2(x0, y + LineHeight - 3, (end - start) * layout.CharWidth, 2), mark.Colour);
+    }
+
+    private readonly struct DrawEditors(TextEditorDrawSystem System, EntityStore Store) : IEachEntity<TextEditor>
+    {
+        public void Execute(ref TextEditor editor, int id)
+        {
+            Entity entity = Store.GetEntityById(id);
+            TextEditors.Follow(entity, ref editor);
+            System.Draw(ref editor, entity.Tags.Has<TextEditorFocused>());
+        }
     }
 }

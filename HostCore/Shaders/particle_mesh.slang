@@ -25,7 +25,8 @@ float4 sampleRow(StructuredBuffer<float4> table, uint start, float t)
 struct View { float2 screen; float depth; float pad; };
 
 /// The item's transform: where its origin lands and its axes, as the triangles were placed by.
-struct Place { float2 origin; float2 pad; float4 axes; };
+/// `first`: the field's first slot in the particle arena.
+struct Place { float2 origin; uint first; uint pad; float4 axes; };
 
 [[vk::binding(0, 0)]] StructuredBuffer<Particle> drawn;
 [[vk::binding(1, 0)]] StructuredBuffer<float4> drawEffects;
@@ -43,7 +44,7 @@ struct VertexIn
 [shader("vertex")]
 ItemVaryings meshParticle(VertexIn v, uint instance : SV_InstanceID)
 {
-    Particle p = drawn[instance];
+    Particle p = drawn[place.first + instance];
     ItemVaryings o;
     o.uv = v.uv;
     o.colour = float4(0.0, 0.0, 0.0, 0.0);

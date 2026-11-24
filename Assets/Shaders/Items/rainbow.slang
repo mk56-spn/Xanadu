@@ -5,6 +5,7 @@ import xanadu;
 
 float4 shade(ItemInput i)
 {
-    float4 texel = sampleItem(i.uv);
-    return float4(texel.rgb * colours.hue(frac(time * speed)).rgb, texel.a);
+    colour c = sampleItem(i.uv);
+    c.rgb *= colours.hue(saw(time * speed)).rgb;
+    return c;
 }

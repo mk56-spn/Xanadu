@@ -5,36 +5,38 @@
 // quad to hold the shockwave and sets the numbers each frame.
 import xanadu;
 
-// The pop's colour, faded.
-[Default(1, 1, 1, 1)] uniform float4 pop_tint;
+[Default(1, 1, 1, 1)] uniform colour pop_tint;
 // The body's radius, the shockwave's radius and width, the flash's alpha (pixels).
 [Default(36, 50, 4, 0)] uniform float4 pop_shape;
 // The flash's radius.
 [Default(36, 0, 0, 0)] uniform float4 pop_flash;
 
-static const float4 Edge = float4(0.973, 0.98, 0.988, 1.0);
-static const float4 Core = float4(0.118, 0.161, 0.231, 1.0);
+static const colour Rim = colour(0.973, 0.98, 0.988);
+static const colour Core = colour(0.118, 0.161, 0.231);
 
 float4 shade(ItemInput i)
 {
-    float r = length(i.canvas.centred);
     float radius = pop_shape.x;
-    float k = radius / 36.0;
+    // The designs are drawn at a 36-unit radius; everything in the body scales with it.
+    float k = radius / 36;
     float a = pop_tint.a;
-    colour c = colours.transparent;
 
-    // The body: a filled ring with a bright rim, a dark core with a bright rim.
-    c.paint(sdf.filled(r - radius), pop_tint);
-    c.paint(sdf.stroked(r - radius, 4.0 * k), float4(Edge.rgb, a));
-    c.paint(sdf.filled(r - 20.0 * k), float4(Core.rgb, a));
-    c.paint(sdf.stroked(r - 20.0 * k, 5.0 * k), float4(Edge.rgb, a));
+    let body = Circle(radius).measured();
+    let core = Circle(20 * k).measured();
+
+    colour c = colours.transparent;
+    c.paint(body, pop_tint);
+    c.paint(body.stroked(4 * k), Rim.withAlpha(a));
+    c.paint(core, Core.withAlpha(a));
+    c.paint(core.stroked(5 * k), Rim.withAlpha(a));
 
     // The shockwave.
-    c.paint(sdf.stroked(r - pop_shape.y, pop_shape.z), float4(pop_tint.rgb, a * 0.8));
+    c.paint(Circle(pop_shape.y).stroked(pop_shape.z), pop_tint.withAlpha(a * 0.8));
 
     // The flash.
-    if (pop_shape.w > 0.0)
-        c.paint(sdf.filled(r - pop_flash.x), float4(1.0, 1.0, 1.0, pop_shape.w));
+    if (pop_shape.w > 0)
+        c.paint(Circle(pop_flash.x), colours.white.withAlpha(pop_shape.w));
 
-    return float4(c.rgb * i.colour.rgb, c.a * i.colour.a);
+    // The item's colour carries its self modulate and fades.
+    return c * i.colour;
 }

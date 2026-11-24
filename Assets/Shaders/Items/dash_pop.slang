@@ -10,12 +10,13 @@ import xanadu;
 
 float4 shade(ItemInput i)
 {
-    float2 p = i.canvas.centred;
     float fade = saturate(dashpop_state.x);
+
     colour c = colours.transparent;
-    c.paint(sdf.filled(Box(dashpop_shape.xy).local(p)), float4(1.0, 1.0, 1.0, 0.85 * fade * fade));
-    float2 spark = float2(dashpop_shape.z, 0.0);
-    float d = min(length(p - spark), length(p + spark)) - dashpop_shape.w;
-    c.paint(sdf.filled(d), float4(1.0, 1.0, 1.0, fade));
-    return float4(c.rgb * i.colour.rgb, c.a * i.colour.a);
+    c.paint(Box(dashpop_shape.xy), colours.white.withAlpha(0.85 * fade * fade));
+    // One spark out to the right, mirrored to the left.
+    c.paint(Circle(dashpop_shape.w).moved(float2(dashpop_shape.z, 0)).mirrored(), colours.white.withAlpha(fade));
+
+    // The item's colour carries its self modulate and fades.
+    return c * i.colour;
 }

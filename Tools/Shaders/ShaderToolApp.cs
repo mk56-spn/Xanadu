@@ -10,6 +10,7 @@ using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Ui.Systems.Canvas;
 using Handle = Xanadu.Core.Maths.Handle;
 
@@ -61,6 +62,9 @@ internal sealed class ShaderToolApp : HostApp
 
     private readonly List<ShaderFile> _files;
     private readonly List<Entity> _rows = [];
+
+    /// <summary>The column inside the list's scroll that holds a row per file.</summary>
+    private UiNode _rowList;
     private readonly List<Entity> _thumbs = [];
 
     /// <summary>Edited text not yet saved, by file; a file without an entry is as on disk.</summary>
@@ -71,7 +75,6 @@ internal sealed class ShaderToolApp : HostApp
     /// <summary>The preview's overlays, kept across shaders: the triangles' edges, and where uv is 0 and 1.</summary>
     private bool _showTriangles, _showUv;
     private EffectPreview? _effect;
-    private UiNode _list;
     private Entity _body, _side, _preview;
     private Entity _codeSlot, _barSlot, _sideSlot, _dividerSlot;
     private readonly HashSet<long> _held = [];
@@ -80,7 +83,6 @@ internal sealed class ShaderToolApp : HostApp
     private int _wanted;
     private ShaderCodeEditor? _code;
     private Handle _codeItem;
-    private ShaderEditorBoxes _boxes;
 
     /// <summary>The text as last saved or read, for telling whether the code has changes.</summary>
     private string _disk = "";
@@ -105,10 +107,14 @@ internal sealed class ShaderToolApp : HostApp
         UiNode body = page.Row().Gap(Gap).Cross(StackCrossAlignment.Stretch).Grow();
         _body = body;
 
-        _list = body.Panel().Width(ListWidth).Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch);
-        UiNode head = _list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
+        UiNode list = body.Panel().Width(ListWidth).Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch);
+        UiNode head = list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
         head.Text("SHADERS", UiType.Section).AccentText().Grow();
         _new = head.Button("NEW", UiType.Small).Secondary().Tooltip("Make a new effect from the template and open it");
+        // The rows scroll under the head when there are more than fit.
+        var rows = new Column(gap: UiMetrics.Space.Sm, cross: StackCrossAlignment.Stretch);
+        list.Add(new Scroll(grow: 1, stretch: true) { rows });
+        _rowList = rows.Node;
         for (int i = 0; i < _files.Count; i++)
             AddRow(i);
 
@@ -138,11 +144,13 @@ internal sealed class ShaderToolApp : HostApp
     /// <summary>A file's row in the list: its thumbnail and its name.</summary>
     private void AddRow(int i)
     {
-        UiNode row = _list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
-        // The effect as shipped, drawn live with its own defaults; saving makes it compile again.
+        UiNode row = _rowList.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
+        // The effect as shipped, drawn live with its own defaults; saving makes it compile again. A box the
+        // thumbnail's size clips it: an effect that moves its own vertices (a deform) would draw past it.
+        UiNode frame = row.Column().Size(ThumbWidth, ThumbHeight).Clip();
         _thumbs.Add((SlangShaders.IsLabOnly(_files[i].Path)
-                ? row.Image(Still(i), new Vector2(ThumbWidth, ThumbHeight))
-                : row.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(_files[i].Path))))
+                ? frame.Image(Still(i), new Vector2(ThumbWidth, ThumbHeight))
+                : frame.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(_files[i].Path))))
             .Input()
             .Tooltip(_files[i].Path));
         _rows.Add(row.Button(_files[i].Name, UiType.Small).Quiet().Grow().Height(ThumbHeight));
@@ -239,7 +247,6 @@ internal sealed class ShaderToolApp : HostApp
 
         var frame = new ToolFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, Pointer.TakeWheel());
         Drag(frame);
-        Follow();
         _code.Update(frame, pointerFree: !_dragging);
         ShowChanges();
     }
@@ -261,9 +268,10 @@ internal sealed class ShaderToolApp : HostApp
         _codeItem = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(_codeItem, Canvas.RootHandle);
         CanvasServer.Current.SetZIndex(_codeItem, StageZ);
-        _boxes = Boxes();
         string label = file.Name + ".slang";
-        _code = new ShaderCodeEditor(Entities, _codeItem, _boxes, text,
+        var slots = new ShaderEditorSlots(UiNode.Wrap(_codeSlot), UiNode.Wrap(_barSlot), UiNode.Wrap(_preview),
+            UiNode.Wrap(_sideSlot), UiNode.Wrap(_dividerSlot));
+        _code = new ShaderCodeEditor(Entities, _codeItem, slots, text,
             item =>
             {
                 _effect = new EffectPreview(Renderer.Pipelines, item, label, SlangShaders.IsLabOnly(file.Path));
@@ -367,10 +375,11 @@ internal sealed class ShaderToolApp : HostApp
     {
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;
-        if (pressed && _boxes.Divider.HasPoint(frame.Mouse))
+        Rect2 divider = UiLayout.Box(_dividerSlot);
+        if (pressed && divider.HasPoint(frame.Mouse))
         {
             _dragging = true;
-            _grabbedAt = frame.Mouse.X - _boxes.Divider.GetCenter().X;
+            _grabbedAt = frame.Mouse.X - divider.GetCenter().X;
         }
 
         if (_dragging)
@@ -392,7 +401,7 @@ internal sealed class ShaderToolApp : HostApp
             }
         }
 
-        _code!.DividerLit = _dragging || _boxes.Divider.HasPoint(frame.Mouse);
+        _code!.DividerLit = _dragging || divider.HasPoint(frame.Mouse);
     }
 
     /// <summary>A column width that leaves the code its least, and room under the preview.</summary>
@@ -401,20 +410,6 @@ internal sealed class ShaderToolApp : HostApp
         Rect2 body = UiLayout.Box(_body);
         float most = MathF.Min(body.Size.X - ListWidth - Gap * 2 - MinCode, (body.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
         return MathF.Round(Math.Clamp(width, MinSide, MathF.Max(MinSide, most)));
-    }
-
-    /// <summary>The editor's parts, from their slots.</summary>
-    private ShaderEditorBoxes Boxes() => new(
-        UiLayout.Box(_codeSlot), UiLayout.Box(_barSlot), UiLayout.Box(_preview), UiLayout.Box(_sideSlot), UiLayout.Box(_dividerSlot));
-
-    /// <summary>Hands the editor its slots' boxes when the layout moves them.</summary>
-    private void Follow()
-    {
-        ShaderEditorBoxes boxes = Boxes();
-        if (boxes == _boxes)
-            return;
-        _boxes = boxes;
-        _code!.Place(boxes);
     }
 
     /// <summary>True on the frame a button goes down.</summary>

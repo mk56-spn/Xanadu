@@ -105,7 +105,14 @@ public sealed class TextLineDecor
 /// </summary>
 public interface ITextEditorHost
 {
-    /// <summary>Once a frame before drawing: work done for the whole text, and cells to box (a matching bracket pair).</summary>
+    /// <summary>
+    /// Moves whenever what <see cref="Prepare"/> and <see cref="Decorate"/> would draw changes for a
+    /// reason other than the text and the caret (problems from a compile, a rename): the editor
+    /// redraws only when something it draws from moved.
+    /// </summary>
+    int Version => 0;
+
+    /// <summary>Before drawing, when anything drawn changed: work done for the whole text, and cells to box (a matching bracket pair).</summary>
     void Prepare(TextBuffer buffer, List<TextCell> boxed)
     {
     }
@@ -174,6 +181,9 @@ public sealed class TextEditorLayout(Rect2 area)
 
     /// <summary>Where the caret was drawn last frame (blinking or not); null when its line is scrolled away.</summary>
     public Rect2? CaretRect { get; internal set; }
+
+    /// <summary>What the last drawing was made from; the next frame redraws only when this moves.</summary>
+    internal TextEditorDrawn? Drawn { get; set; }
 
     /// <summary>Rows that fit: a line takes one, a note one more.</summary>
     public int VisibleRows => (int)((Area.Size.Y - Inset * 2) / LineHeight);
@@ -347,12 +357,67 @@ public static class TextEditors
         return entity;
     }
 
-    /// <summary>Removes a text editor and its canvas item.</summary>
+    /// <summary>
+    /// A text editor on a laid-out node: it takes its area from the node's box
+    /// every frame (<see cref="Follow"/>), so it moves and resizes with the
+    /// layout in the same frame. Draws into a new canvas item under <paramref name="parent"/>, focused.
+    /// </summary>
+    public static Entity Create(UiNode node, Handle parent, string text, ITextEditorHost? host = null)
+    {
+        Rect2 area = UiLayout.Box(node.Entity);
+        Handle item = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(item, parent);
+        CanvasServer.Current.SetCustomRect(item, true, area);
+        CanvasServer.Current.SetClip(item, true);
+
+        var buffer = new TextBuffer();
+        buffer.Load(text);
+        node.Entity.AddComponent(new TextEditor
+        {
+            Buffer = buffer,
+            History = new TextHistory(buffer),
+            Host = host,
+            Item = item,
+            Layout = new TextEditorLayout(area),
+            LastClick = -1,
+            LastClickAt = (-1, -1),
+        });
+        node.Entity.AddTag<TextEditorFocused>();
+        return node.Entity;
+    }
+
+    /// <summary>An editor on a laid-out node takes the node's box as its area (and its item's clip); a free one keeps its own.</summary>
+    public static void Follow(Entity entity, ref TextEditor editor)
+    {
+        if (!entity.HasComponent<Rectangle>() || !entity.HasComponent<Core.Position>())
+            return;
+
+        Rect2 area = UiLayout.Box(entity);
+        if (area == editor.Layout.Area)
+            return;
+
+        editor.Layout.Area = area;
+        CanvasServer.Current.SetCustomRect(editor.Item, true, area);
+    }
+
+    /// <summary>Removes a text editor and its canvas item; one made on a node leaves the node to its owner.</summary>
     public static void Delete(Entity entity)
     {
         if (entity.IsNull)
             return;
         CanvasServer.Current.Free(entity.GetComponent<TextEditor>().Item);
+        if (entity.HasComponent<Rectangle>())
+        {
+            entity.RemoveComponent<TextEditor>();
+            entity.RemoveTag<TextEditorFocused>();
+            return;
+        }
+
         entity.DeleteEntity();
     }
 }
+
+/// <summary>Everything an editor's drawing depends on: when none of it moved, last frame's picture stands.</summary>
+internal readonly record struct TextEditorDrawn(
+    TextBuffer Buffer, ITextEditorHost? Host, int Version, int Line, int Column, (int Line, int Column)? Anchor, int Scroll, Rect2 Area, bool Focused, bool CaretOn,
+    int HostVersion, Handle Item);

@@ -26,19 +26,25 @@ internal sealed class EditorChrome
     private const int ProblemRows = 6;
 
     private static readonly Color Bar = Palette.Surface;
-    private static readonly Color Column = Palette.SurfaceDeep;
+    /// <summary>The column under the preview: filled by its node, the problems and guide drawn over it.</summary>
+    public static readonly Color ColumnColour = Palette.SurfaceDeep;
     private static readonly Color Badge = new(0.04f, 0.06f, 0.13f, 0.85f);
 
-    /// <summary>The lines under the problems: the editor's own keys; the stage puts its preview's lines before them.</summary>
+    /// <summary>The lines under the values: the editor's own keys; the stage puts its preview's lines before them.</summary>
     public string[] Help
     {
         get => _help;
-        set
-        {
-            _help = value;
-            Resize(_bar, _preview, _side);
-        }
+        set => _help = value;
     }
+
+    /// <summary>How tall the problems' box is: its heading and the rows it shows.</summary>
+    public const float ProblemsHeight = Pad + Row + 4 + ProblemRows * Row + Pad;
+
+    /// <summary>How tall the key guide's box is with <paramref name="lines"/> of it shown.</summary>
+    public static float HelpHeight(int lines) => lines * Row + Pad;
+
+    /// <summary>The key guide's lines that fit in a box that tall.</summary>
+    public int HelpFitting(float height) => Math.Clamp((int)((height - Pad) / Row), 0, Help.Length);
 
     private string[] _help =
     [
@@ -52,40 +58,33 @@ internal sealed class EditorChrome
     private readonly Handle _item;
     private Rect2 _bar;
     private Rect2 _preview;
-    private Rect2 _side;
+    private Rect2 _problems;
+    private Rect2 _guide;
     private readonly List<(Rect2 Box, SlangProblem Problem)> _problemRows = [];
 
-    public EditorChrome(IRectCanvas canvas, Handle item, Rect2 bar, Rect2 preview, Rect2 side)
+    public EditorChrome(IRectCanvas canvas, Handle item)
     {
         _canvas = canvas;
         _item = item;
-        Resize(bar, preview, side);
     }
 
-    /// <summary>The bar under the code, the preview and the column under it, after the divider moved.</summary>
-    public void Resize(Rect2 bar, Rect2 preview, Rect2 side)
+    /// <summary>
+    /// Where it draws, from the laid-out boxes: the bar under the code, the preview, and in the
+    /// column under it the problems' and the key guide's boxes (the column fills its own background).
+    /// </summary>
+    public void Place(Rect2 bar, Rect2 preview, Rect2 problems, Rect2 help)
     {
         _bar = bar;
         _preview = preview;
-        _side = side;
-        float tuningTop = side.Position.Y + Pad + Row + 4 + ProblemRows * Row + Pad;
-        // The key guide gives way, a line at a time from its end, so the values keep room.
-        _helpShown = Help.Length;
-        while (_helpShown > 0 && HelpTop(side) - Pad - tuningTop < MinTuningRows * Row)
-            _helpShown--;
-        TuningArea = new Rect2(side.Position.X + Pad, tuningTop, side.Size.X - Pad * 2, Math.Max(0, HelpTop(side) - Pad - tuningTop));
+        _problems = problems;
+        _guide = help;
     }
 
     /// <summary>Rows the values always get before the key guide gives way: the header and a few values.</summary>
-    private const int MinTuningRows = 5;
+    public const int MinTuningRows = 5;
 
-    /// <summary>How many of the key guide's lines fit.</summary>
-    private int _helpShown;
-
-    private float HelpTop(Rect2 side) => side.End.Y - Pad - _helpShown * Row;
-
-    /// <summary>Where the value sliders go: between the problems and the key guide.</summary>
-    public Rect2 TuningArea { get; private set; }
+    /// <summary>The height of a row of the guide or the problems.</summary>
+    public const float RowHeight = Row;
 
     /// <summary>The bar between the code and the column that drags to resize them; lit while hovered or held.</summary>
     public Rect2 Divider { get; set; }
@@ -112,21 +111,20 @@ internal sealed class EditorChrome
         _canvas.DrawRect(_item, new Rect2(Divider.GetCenter().X - grip / 2, Divider.Position.Y, grip, Divider.Size.Y),
             DividerLit ? Palette.PrimaryMuted.Lerp(Colors.White, 0.16f) : Palette.PrimaryMuted);
 
-        _canvas.DrawRect(_item, _side, Column);
-        float y = _side.Position.Y + Pad;
-        _canvas.DrawTextStyledLeft(_item, new Rect2(_side.Position.X + Pad, y, _side.Size.X, Row), "PROBLEMS", Palette.TextDim, 13);
+        Rect2 side = _problems;
+        float y = side.Position.Y + Pad;
+        _canvas.DrawTextStyledLeft(_item, new Rect2(side.Position.X + Pad, y, side.Size.X, Row), "PROBLEMS", Palette.TextDim, 13);
         y += Row + 4;
 
         _problemRows.Clear();
-        float helpTop = HelpTop(_side);
         float problemsEnd = y + ProblemRows * Row;
         if (state.Problems.Count == 0)
-            _canvas.DrawTextStyledLeft(_item, new Rect2(_side.Position.X + Pad, y, _side.Size.X, Row), "none", Palette.TextMuted, 14);
+            _canvas.DrawTextStyledLeft(_item, new Rect2(side.Position.X + Pad, y, side.Size.X, Row), "none", Palette.TextMuted, 14);
         foreach (SlangProblem problem in state.Problems)
         {
             if (y + Row > problemsEnd)
                 break;
-            var box = new Rect2(_side.Position.X + 4, y, _side.Size.X - 8, Row);
+            var box = new Rect2(side.Position.X + 4, y, side.Size.X - 8, Row);
             string where = problem.Line > 0 ? $"{problem.Line,4}" : "    ";
             _canvas.DrawTextMono(_item, new Rect2(box.Position.X + Pad - 4, y, 48, Row), where, Palette.TextMuted, 13, TextAlign.Left);
             _canvas.DrawTextMono(
@@ -136,10 +134,11 @@ internal sealed class EditorChrome
             y += Row;
         }
 
-        for (int i = 0; i < _helpShown; i++)
+        int lines = HelpFitting(_guide.Size.Y);
+        for (int i = 0; i < lines; i++)
         {
             _canvas.DrawTextStyledLeft(
-                _item, new Rect2(_side.Position.X + Pad, helpTop + i * Row, _side.Size.X - Pad * 2, Row), Help[i], Palette.TextMuted, 13);
+                _item, new Rect2(_guide.Position.X + Pad, _guide.Position.Y + i * Row, _guide.Size.X - Pad * 2, Row), Help[i], Palette.TextMuted, 13);
         }
     }
 

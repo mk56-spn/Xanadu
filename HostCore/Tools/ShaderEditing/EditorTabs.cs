@@ -19,8 +19,10 @@ internal sealed record EditorQuestion(string Title, string Message, string Yes, 
 /// modules gone to), each with its close cross, and the box that asks before
 /// something lasting happens (editing the library, dropping unsaved changes).
 /// The open tab is the chosen one; one that can't be edited says so at the
-/// strip's end. Both are ECS UI made of the shared buttons and panel, on the
-/// values column's layer; the strip is rebuilt only when its tabs change.
+/// strip's end. Both are ECS UI made of the shared buttons and panel. The strip
+/// is a row at the top of the code's column, laid out with it, so it never
+/// trails the code; it is rebuilt only when its tabs change. The question sits
+/// on the values column's layer, over the code.
 /// </summary>
 internal sealed class EditorTabs : IDisposable
 {
@@ -37,10 +39,11 @@ internal sealed class EditorTabs : IDisposable
     private Rect2 _code;
     private EditorQuestion? _question;
 
-    public EditorTabs(EntityStore entities)
+    /// <param name="column">The code's column: the strip is its first row.</param>
+    public EditorTabs(EntityStore entities, UiNode column)
     {
         _layer = UiNode.Layer(entities, default, UiLayers.ShaderEditorValues, null, UiStage.Full).Theme(UiThemes.Tools);
-        _strip = _layer.Row().Gap(1).Cross(StackCrossAlignment.Stretch).Fill(_layer.Roles.Inset);
+        _strip = column.Row().Height(Height).Gap(1).Cross(StackCrossAlignment.Stretch).Fill(column.Roles.Inset);
 
         _scrim = _layer.Rect(new Color(0, 0, 0, 0.35f)).Hidden();
         _dialog = _layer.Panel().Gap(UiMetrics.Space.Md).Cross(StackCrossAlignment.Start).Hidden();
@@ -49,12 +52,6 @@ internal sealed class EditorTabs : IDisposable
         UiNode answers = _dialog.Row().Gap(UiMetrics.Space.Sm);
         _yes = answers.Button("YES", UiType.Small).Primary().Entity;
         _no = answers.Button("CANCEL", UiType.Small).Secondary().Entity;
-    }
-
-    /// <summary>The strip's box, over the code.</summary>
-    public Rect2 Area
-    {
-        set => _strip.Box(value);
     }
 
     /// <summary>The code's box: the question dims it and sits in its middle.</summary>
@@ -128,5 +125,9 @@ internal sealed class EditorTabs : IDisposable
     public bool? AnswerAt(Vector2 point) =>
         UiLayout.Box(_yes).HasPoint(point) ? true : UiLayout.Box(_no).HasPoint(point) ? false : null;
 
-    public void Dispose() => UiLayout.DeleteSubtree(_layer.Entity);
+    public void Dispose()
+    {
+        UiLayout.DeleteSubtree(_strip.Entity);
+        UiLayout.DeleteSubtree(_layer.Entity);
+    }
 }

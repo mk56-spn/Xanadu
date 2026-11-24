@@ -45,7 +45,9 @@ public static class DashStops
                     Shader = XifShaderRef.OfCommon(Shader),
                     Params =
                     {
-                        ["stop_block"] = [half.X, half.Y, 3f, 4f],
+                        ["stop_half"] = [half.X, half.Y],
+                        // Border, bars, and the glow's reach out to the quad's edge.
+                        ["stop_lines"] = [3f, 4f, room.X - half.X],
                         ["stop_tint"] = [PlayfieldColors.DashStopColor.R, PlayfieldColors.DashStopColor.G, PlayfieldColors.DashStopColor.B, 1f],
                     },
                 },

@@ -15,14 +15,21 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>Where a <see cref="ShaderCodeEditor"/>'s parts go: boxes its owner reads from container slots (or, in the lab, works out).</summary>
-internal readonly record struct ShaderEditorBoxes(Rect2 Code, Rect2 Bar, Rect2 Preview, Rect2 Side, Rect2 Divider);
+/// <summary>
+/// The owner's laid-out slots the editor lives in: the code's column (the tab strip and the
+/// code go in it), the bar under it, the preview, the column under the preview (the clips,
+/// problems, values and key guide go in it) and the divider between.
+/// </summary>
+internal readonly record struct ShaderEditorSlots(UiNode Code, UiNode Bar, UiNode Preview, UiNode Side, UiNode Divider);
 
 /// <summary>
 /// Slang code being edited with its preview: the text (a UI text editor), its
 /// problems (Slang's and <see cref="SlangLint"/>'s, marking their lines),
 /// completion, hovers, inlay hints, and a compile off the frame whenever typing
-/// pauses, shown by an <see cref="IEditorPreview"/>. It owns no layout: its
-/// owner hands it boxes (<see cref="Place"/>) and tells it again when they move.
+/// pauses, shown by an <see cref="IEditorPreview"/>. It lives in its owner's
+/// laid-out slots (<see cref="ShaderEditorSlots"/>): its UI parts are nodes in
+/// them, moving with the layout in the same frame, and what it draws itself
+/// follows their boxes each <see cref="Update"/>.
 /// Shared by the shader tool and the lab's editor tabs.
 /// <para>
 /// A place written as <c>float2(x, y)</c> under the caret, and every <c>uniform float2</c>
@@ -46,8 +53,11 @@ internal sealed class ShaderCodeEditor : IDisposable
     private readonly IEditorPreview _view;
     private readonly ClipTimeline _timeline;
 
-    /// <summary>The boxes it was last placed in, to lay out again when the timeline wants another height.</summary>
-    private ShaderEditorBoxes _boxes;
+    private readonly ShaderEditorSlots _slots;
+
+    /// <summary>The nodes it made in its slots: the code, and under the preview the clips, the problems, the values' room, the key guide.</summary>
+    private readonly UiNode _code, _rest, _clipsNode, _problemsNode, _tuningNode, _guideNode;
+    private int _guideLines = -1;
     private readonly PlayStandIns _standIns = new();
     private readonly PreviewPoints _points = new();
     private readonly IRectCanvas _canvas;
@@ -128,25 +138,35 @@ internal sealed class ShaderCodeEditor : IDisposable
     private Task<(int Version, string Source, PreviewBuild? Build, string? Error, long Ms, double SlangMs, List<SlangProblem> Lint)>? _compiling;
 
     /// <param name="preview">Makes the preview, drawing under the item it is given.</param>
-    public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorBoxes boxes, string text, Func<Handle, IEditorPreview> preview)
+    public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string text, Func<Handle, IEditorPreview> preview)
     {
-        _preview = boxes.Preview;
+        _slots = slots;
+        _preview = UiLayout.Box(slots.Preview.Entity);
         _pointer = _preview.GetCenter();
-        (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
         // The text as opened is usually in the shader cache; the first edit isn't, and shouldn't wait for Slang to start.
         SlangShaders.Prepare();
 
+        // The code's column: the tab strip, then the code taking the rest.
+        slots.Code.Cross(StackCrossAlignment.Stretch);
+        _strip = new EditorTabs(entities, slots.Code);
+        _code = slots.Code.Column().Grow();
+        // Under the preview: the clips, then the rest on the column's own background.
+        slots.Side.Gap(UnderGap).Cross(StackCrossAlignment.Stretch);
+        _clipsNode = slots.Side.Column().Height(ClipTimeline.MinHeight);
+        _rest = slots.Side.Column().Grow().Cross(StackCrossAlignment.Stretch).Fill(EditorChrome.ColumnColour);
+        _problemsNode = _rest.Column().Height(EditorChrome.ProblemsHeight);
+        _tuningNode = _rest.Column().Grow().Pad(TuningPad).Cross(StackCrossAlignment.Stretch);
+        _guideNode = _rest.Column();
+
         // Made first, so everything after draws over the code.
-        _editor = TextEditors.Create(entities, parent, code, text);
+        _editor = TextEditors.Create(_code, parent, text);
         _view = preview(Child(parent));
         _view.Place(_preview);
         Handle chromeItem = Child(parent);
         IRectCanvas canvas = HostPlatform.NewCanvas();
         _canvas = canvas;
         _chromeItem = chromeItem;
-        _boxes = boxes;
-        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side, ClipTimeline.MinHeight);
-        _timeline = new ClipTimeline(entities) { Area = clipsBox, Scrubs = _view.TakesClock };
+        _timeline = new ClipTimeline(entities) { Scrubs = _view.TakesClock };
         _timeline.Jump += (line, column) =>
         {
             Show(0);
@@ -154,12 +174,9 @@ internal sealed class ShaderCodeEditor : IDisposable
             Focus();
         };
         _timeline.Released += Focus;
-        _chrome = new EditorChrome(canvas, chromeItem, boxes.Bar, boxes.Preview, side) { Divider = boxes.Divider };
+        _chrome = new EditorChrome(canvas, chromeItem);
         _chrome.Help = [.. _view.Help, .. _chrome.Help];
-        // The room for sliders ends above the help, so it is worked out again now the help is longer.
-        _chrome.Resize(boxes.Bar, boxes.Preview, side);
-        _tuning = new EditorTuning(entities, _chrome.TuningArea,
-            _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
+        _tuning = new EditorTuning(_tuningNode, _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
         // Every library folder: the API's (xanadu/) and the game's (rhythm/).
         string library = SlangShaders.LibraryPath ?? "";
         SlangHints hints = SlangHints.FromLibrary(library);
@@ -167,9 +184,9 @@ internal sealed class ShaderCodeEditor : IDisposable
         _shapeCosts = hints.Costs;
         (_completions, _declarations) = ReadLibrary();
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
+        Rect2 code = UiLayout.Box(_code.Entity);
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
-        _strip = new EditorTabs(entities) { Area = strip, Code = code };
         _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) { Save = Save, GoElsewhere = GoElsewhere };
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Host = _host;
@@ -188,13 +205,6 @@ internal sealed class ShaderCodeEditor : IDisposable
             ShaderConstants.Library,
             _view.Provided);
         return (completions, SlangLibraryDeclarations.FromModules(modules));
-    }
-
-    /// <summary>The tab strip off the top of the code's box.</summary>
-    private static (Rect2 Strip, Rect2 Code) SplitCode(Rect2 code)
-    {
-        var strip = new Rect2(code.Position, new Vector2(code.Size.X, EditorTabs.Height));
-        return (strip, new Rect2(code.Position.X, strip.End.Y, code.Size.X, Math.Max(0, code.Size.Y - EditorTabs.Height)));
     }
 
     /// <summary>The name at the caret isn't declared in the open text: the library's declaration of it, opened next frame.</summary>
@@ -363,39 +373,47 @@ internal sealed class ShaderCodeEditor : IDisposable
         return item;
     }
 
-    /// <summary>The column under the preview split: the clip timeline on top, the problems and the rest under it.</summary>
-    private static (Rect2 Clips, Rect2 Others) UnderPreview(Rect2 side, float timeline)
-    {
-        const float Gap = 8;
-        var clips = new Rect2(side.Position, new Vector2(side.Size.X, timeline));
-        var rest = new Rect2(side.Position.X, clips.End.Y + Gap, side.Size.X, Math.Max(0, side.Size.Y - timeline - Gap));
-        return (clips, rest);
-    }
+    /// <summary>Space between the clips and the column under them, and round the values.</summary>
+    private const float UnderGap = 8, TuningPad = 12;
 
-    /// <summary>Moves everything to new boxes: the code, the preview quad (so the shader sees its new size), the column and the popups' bounds.</summary>
-    public void Place(ShaderEditorBoxes boxes)
+    /// <summary>
+    /// What it draws itself follows its nodes' boxes as this frame laid them out: the
+    /// preview quad (so the shader sees its new size), the chrome, the clips, the popups'
+    /// bounds and the question over the code. The key guide gives way, a line at a time
+    /// from its end, so the values keep room.
+    /// </summary>
+    private void Follow()
     {
-        _boxes = boxes;
-        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
-        (Rect2 strip, Rect2 code) = SplitCode(boxes.Code);
-        editor.Layout.Area = code;
-        CanvasServer.Current.SetCustomRect(editor.Item, true, code);
+        Rect2 code = UiLayout.Box(_code.Entity), preview = UiLayout.Box(_slots.Preview.Entity);
         _hover.Bounds = code;
         _popup.Bounds = code;
-        _strip.Area = strip;
         _strip.Code = code;
+        if (preview != _preview && preview.Size.X > 0 && _preview.Size.X > 0)
+        {
+            // The pointer keeps its place on the preview as a fraction of it.
+            Vector2 at = (_pointer - _preview.Position) / _preview.Size;
+            _pointer = preview.Position + at * preview.Size;
+        }
 
-        // The pointer keeps its place on the preview as a fraction of it.
-        Vector2 at = (_pointer - _preview.Position) / _preview.Size;
-        _preview = boxes.Preview;
-        _pointer = _preview.Position + at * _preview.Size;
-        _view.Place(_preview);
+        if (preview != _preview)
+        {
+            _preview = preview;
+            _view.Place(preview);
+        }
 
-        (Rect2 clipsBox, Rect2 side) = UnderPreview(boxes.Side, _timeline.Height);
-        _timeline.Area = clipsBox;
-        _chrome.Resize(boxes.Bar, boxes.Preview, side);
-        _chrome.Divider = boxes.Divider;
-        _tuning.Area = _chrome.TuningArea;
+        _timeline.Area = UiLayout.Box(_clipsNode.Entity);
+        _chrome.Place(UiLayout.Box(_slots.Bar.Entity), preview, UiLayout.Box(_problemsNode.Entity), UiLayout.Box(_guideNode.Entity));
+        _chrome.Divider = UiLayout.Box(_slots.Divider.Entity);
+        _tuning.Follow();
+
+        float room = UiLayout.Box(_rest.Entity).Size.Y - EditorChrome.ProblemsHeight - TuningPad * 2
+                     - EditorChrome.MinTuningRows * EditorChrome.RowHeight;
+        int lines = _chrome.HelpFitting(room);
+        if (lines != _guideLines)
+        {
+            _guideLines = lines;
+            _guideNode.Height(EditorChrome.HelpHeight(lines));
+        }
     }
 
     public void Render(MoonWorks.Graphics.CommandBuffer commands) => _view.Render(commands);
@@ -404,6 +422,7 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <param name="pointerFree">False while the owner has the pointer (dragging its divider): no slider or problem takes it.</param>
     public void Update(in ToolFrame frame, bool pointerFree = true)
     {
+        Follow();
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;
         TextEditorFrame did = _editor.GetComponent<TextEditor>().Frame;
@@ -451,7 +470,7 @@ internal sealed class ShaderCodeEditor : IDisposable
             _timeline.Use(SlangClips.Find(main.Lines));
             // More clips, more rows: the column under the preview makes room.
             if (_timeline.Height != height)
-                Place(_boxes);
+                _clipsNode.Height(_timeline.Height);
             _tuning.UseStandIns(PlayStandIns.Needed(main.Text));
         }
 
@@ -626,5 +645,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         _strip.Dispose();
         _timeline.Dispose();
         _view.Dispose();
+        UiLayout.DeleteSubtree(_code.Entity);
+        UiLayout.DeleteSubtree(_clipsNode.Entity);
+        UiLayout.DeleteSubtree(_rest.Entity);
     }
 }

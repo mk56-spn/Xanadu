@@ -17,16 +17,17 @@ import xanadu;
 ItemVertex deform(ItemVertex v)
 {
     float seed = random(float2(floor(v.uv.x), xif_seed));
-    float up = 1.0 - saturate(v.uv.y);
+    float up = 1 - saturate(v.uv.y);
     float bend = looks.wind(v.position, seed, grass_wind.y, grass_wind.z) * grass_wind.x * xif_unit;
     // The tip swings out and dips a little as it goes over: a stalk bending, not sliding.
-    v.position.x += bend * up * up;
-    v.position.y += abs(bend) * up * up * up * 0.3;
+    v.position.x += bend * ease.inQuad(up);
+    v.position.y += abs(bend) * ease.inCubic(up) * 0.3;
     return v;
 }
 
 float4 shade(ItemInput i)
 {
-    float up = 1.0 - saturate(i.uv.y);
-    return i.vertexColour * lerp(grass_root, grass_tip, up * up);
+    // From the root's colour to the tip's, most of the change near the tip.
+    float up = 1 - saturate(i.uv.y);
+    return i.vertexColour * lerp(grass_root, grass_tip, ease.inQuad(up));
 }

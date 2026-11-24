@@ -43,7 +43,12 @@ internal sealed partial class CanvasRenderer : IDisposable
 
     /// <summary>particle_mesh.slang's <c>Place</c>: vertex uniform buffer 1 of a particle-mesh draw.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct PlaceUniforms { public float OriginX, OriginY, Pad0, Pad1, XX, XY, YX, YY; }
+    private struct PlaceUniforms
+    {
+        public float OriginX, OriginY;
+        public uint First, Pad1;
+        public float XX, XY, YX, YY;
+    }
 
     /// <summary>xanadu.stage's <c>Frame</c>: fragment uniform buffer 0. Only the engine's clocks; anything else is a global.</summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -102,14 +107,13 @@ internal sealed partial class CanvasRenderer : IDisposable
         StepKind Kind, uint Start, uint Count, int FirstTexture = 0,
         Rect Clip = default, CanvasMaterial? Material = null, IReadOnlyDictionary<string, Vector4>? Values = null, ulong Texture = 0,
         ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0, float Span = 0,
-        KeptMesh? Mesh = null);
+        KeptMesh? Mesh = null, bool Grid = false);
 
     /// <summary>
-    /// A big [Grid] effect's vertices, kept on the GPU between frames. Cutting a 96 × 54 grid
-    /// into vertices costs the CPU milliseconds and sends megabytes, and the shader tool's
-    /// thumbnails hold several such grids that almost never change, so they are cut again only
-    /// when the item's primitives, its place or its tint change. Start and Count on a step
-    /// that uses one are within <see cref="Buffer"/>.
+    /// An effect range's vertices, kept on the GPU between frames: cut again only when the
+    /// item's primitives, its place or its tint change. Shaded items mostly look the same frame
+    /// after frame (a [Grid] of 96 × 54 alone costs milliseconds to cut), so none is cut every
+    /// frame for nothing. Start and Count on a step that uses one are within <see cref="Buffer"/>.
     /// </summary>
     private sealed class KeptMesh
     {
@@ -123,9 +127,6 @@ internal sealed partial class CanvasRenderer : IDisposable
         public bool Pending;
         public long LastFrame;
     }
-
-    /// <summary>Grids with at least this many cells are kept on the GPU (<see cref="KeptMesh"/>).</summary>
-    private const int KeptCells = 256;
 
     /// <summary>Frames a kept mesh may go undrawn before its buffer is let go.</summary>
     private const int KeptFrames = 120;
@@ -424,6 +425,8 @@ internal sealed partial class CanvasRenderer : IDisposable
         }
         using (commands.Scope("expand primitives"))
             Expand(commands);
+        using (commands.Scope("cut grids"))
+            CutGrids(commands);
         using (commands.Scope("upload globals"))
             UploadGlobals(commands);
         phases?.Lap(HostFramePhases.Phase.Upload, ref lap);
@@ -608,6 +611,7 @@ internal sealed partial class CanvasRenderer : IDisposable
             _placedCount = 0;
             _opaqueReserved = 0;
             _overflow = false;
+            ClearGrids();
             PrepareResident();
             for (int j = 0; j < _jobs.Count; j++)
                 BuildJob(_jobs[j], j);
@@ -893,7 +897,14 @@ internal sealed partial class CanvasRenderer : IDisposable
             span = (taken - 1) * DepthStep;
         }
 
-        if (particles is null && columns * rows >= KeptCells)
+        // A [Grid]'s boxes are cut on the GPU, so a grid that changes every frame costs the CPU nothing.
+        if (particles is null && columns * rows > 1 &&
+            AddGrid(item, entry, from, to, columns, rows, kind, material, values, depth, span))
+            return taken;
+
+        // Every other effect range is kept: most shaded items (thumbnails, panels, glass) look the same
+        // frame after frame, and cutting them again each frame was the bulk of a frame's CPU in the shader tool.
+        if (particles is null)
         {
             KeptMesh mesh = Kept(item, entry, from, to, columns, rows);
             foreach ((uint pieceStart, uint pieceCount, ulong pieceTexture) in mesh.Pieces)
@@ -997,10 +1008,10 @@ internal sealed partial class CanvasRenderer : IDisposable
             {
                 mesh.Buffer?.Dispose();
                 mesh.Capacity = Math.Max(count, 1 << 10);
-                mesh.Buffer = Buffer.Create<CanvasVertex>(_device, "kept grid vertices", BufferUsageFlags.Vertex, mesh.Capacity);
+                mesh.Buffer = Buffer.Create<CanvasVertex>(_device, "kept effect vertices", BufferUsageFlags.Vertex, mesh.Capacity);
             }
 
-            TransferBuffer staging = GrowTransfer<CanvasVertex>(_device, ref _keptTransfer, ref _keptTransferCapacity, (int)count, "kept grid upload");
+            TransferBuffer staging = GrowTransfer<CanvasVertex>(_device, ref _keptTransfer, ref _keptTransferCapacity, (int)count, "kept effect upload");
             CollectionsMarshal.AsSpan(mesh.Vertices).CopyTo(staging.Map<CanvasVertex>(cycle: true));
             staging.Unmap();
             CopyPass copy = commands.BeginCopyPass();
@@ -1434,7 +1445,7 @@ internal sealed partial class CanvasRenderer : IDisposable
             if (step.Material?.Custom is { UsesConstant: true } custom)
                 pass.SetBlendConstants(new MwColor(custom.Constant.R, custom.Constant.G, custom.Constant.B, custom.Constant.A));
             pass.BindGraphicsPipeline(pipeline);
-            pass.BindVertexBuffers(step.Mesh?.Buffer ?? _buffer!);
+            pass.BindVertexBuffers(step.Grid ? _gridVertices! : step.Mesh?.Buffer ?? _buffer!);
 
             pass.SetScissor(step.Clip);
             int count = Math.Clamp(names.Length, 1, samplers.Length);
@@ -1464,11 +1475,12 @@ internal sealed partial class CanvasRenderer : IDisposable
             if (instanced)
             {
                 // Each particle places a copy of the triangles; the effect's own deform sits out.
-                pass.BindVertexStorageBuffers(step.Particles!.Buffer, Particles.Effects);
+                pass.BindVertexStorageBuffers(Particles.Arena, Particles.Effects);
                 Transform2D place = step.Transform;
                 commands.PushVertexUniformData(new PlaceUniforms
                 {
                     OriginX = place.Origin.X, OriginY = place.Origin.Y,
+                    First = step.Particles!.First,
                     XX = place.X.X, XY = place.X.Y, YX = place.Y.X, YY = place.Y.Y,
                 }, 1);
                 pass.DrawPrimitives(step.Count, ParticleField.Capacity, step.Start, 0);
@@ -1671,6 +1683,7 @@ internal sealed partial class CanvasRenderer : IDisposable
         _transfer?.Dispose();
         _expand.Dispose();
         DisposeResident();
+        DisposeGrids();
         _pool?.Dispose();
         _placed?.Dispose();
         _opaqueBuffer?.Dispose();
