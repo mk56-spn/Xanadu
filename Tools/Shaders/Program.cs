@@ -4,9 +4,11 @@ using Xanadu.Tools.Shaders;
 
 // dotnet run --project Tools/Shaders                        -> the shader tool, on the first shipped effect
 // dotnet run --project Tools/Shaders -- --open=<name>       -> opens that one first (note_background, Ui/colour_hue, or its path)
+// dotnet run --project Tools/Shaders -- --graph            -> starts with the render graph where the code is (GRAPH on)
 // dotnet run --project Tools/Shaders -- --shot=<png>        -> saves frame 60 and quits (--shot-frame=<n> to pick)
 // dotnet run --project Tools/Shaders -- --resolution=WxH    -> window size (default 1600x900)
 string? shot = null, open = null;
+bool graph = false;
 int frame = 60;
 uint width = 1600, height = 900;
 foreach (string arg in args)
@@ -17,6 +19,8 @@ foreach (string arg in args)
         frame = int.Parse(arg["--shot-frame=".Length..]);
     else if (arg.StartsWith("--open=", StringComparison.Ordinal))
         open = arg["--open=".Length..];
+    else if (arg == "--graph")
+        graph = true;
     else if (arg.StartsWith("--resolution=", StringComparison.Ordinal))
     {
         string[] size = arg["--resolution=".Length..].Split('x');
@@ -27,4 +31,4 @@ foreach (string arg in args)
         throw new ArgumentException($"Unknown argument: {arg}");
 }
 
-new ShaderToolApp(new HostWindowOptions(width, height, shot, frame), open).Run();
+new ShaderToolApp(new HostWindowOptions(width, height, shot, frame), open, graph).Run();

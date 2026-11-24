@@ -100,6 +100,25 @@ public sealed class BoardInputSystemTests : EcsSystemTest
     }
 
     [Test]
+    public void AReadOnlyBoardSelectsAndPansButTakesNoEdits()
+    {
+        _entity.AddTag<ReadOnly>();
+        BoardBox box = _board.Add(new Rect2(100, 100, 100, 60), "trace");
+        Frame();
+
+        Drag(new Vector2(150, 130), new Vector2(300, 300));
+        Click(new Vector2(500, 400));
+        Click(new Vector2(500, 400));
+        Click(new Vector2(150, 130));
+        Tap(Key.Delete);
+
+        Assert.That(box.Rect.Position, Is.EqualTo(new Vector2(100, 100)));
+        Assert.That(_board.Boxes, Has.Count.EqualTo(1));
+        Assert.That(_entity.GetComponent<UiBoard>().State.Selected, Does.Contain(box.Id));
+        Assert.That(_changes, Is.Zero);
+    }
+
+    [Test]
     public void ANewBoxLeftEmptyIsTakenBackOff()
     {
         Click(new Vector2(300, 200));

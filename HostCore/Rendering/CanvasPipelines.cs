@@ -37,6 +37,9 @@ internal sealed class CanvasEffect(
     /// <summary>A TRACE brick's compute stage, a thread a pixel of the quad; null without one.</summary>
     public ComputePipeline? Trace { get; } = trace;
 
+    /// <summary>Its passes and what they share, in the order they run: what the renderer walks each frame.</summary>
+    public StackGraph Graph { get; } = StackGraph.Of(compiled);
+
     public void Dispose()
     {
         foreach (ComputePipeline pass in Passes)

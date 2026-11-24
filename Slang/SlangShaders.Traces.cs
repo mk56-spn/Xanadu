@@ -4,9 +4,9 @@ namespace Xanadu.Slang;
 
 /// <summary>
 /// A stack's TRACE brick, compiled: its compute stage, the stack buffers it binds (by their place
-/// in <see cref="StackBuild.Buffers"/>), its tile, and whether it is all the stack draws (no SHADE brick).
+/// in <see cref="StackBuild.Buffers"/>) and how it really uses each, its tile, and whether it is all the stack draws (no SHADE brick).
 /// </summary>
-public sealed record CompiledTrace(CompiledShader Shader, int[] Buffers, int Width, int Height, bool Alone);
+public sealed record CompiledTrace(CompiledShader Shader, int[] Buffers, int Width, int Height, bool Alone, GraphAccess[] Access);
 
 /// <summary>
 /// The TRACE brick (<see cref="BrickKind.Trace"/>): <c>trace</c> as compute, a thread a pixel over
@@ -50,7 +50,7 @@ public static partial class SlangShaders
         string arguments = ShadeSignature.Arguments("float4 shade(" + TraceEntry().Match(code).Groups[1].Value + ")", out string problem)
                            ?? throw new InvalidOperationException($"{name}: {problem.Replace("shade", "trace")}");
 
-        (CompiledShader compute, int[] used) = Placed(build, source, 1, 2, placed =>
+        (CompiledShader compute, int[] used, GraphAccess[] access) = PlacedWithAccess(build, source, 1, 2, placed =>
             CompileWrapped(WrapTrace(name, placed, arguments, width, height, keepsState, pool), "xanaduTrace", "compute", 0, 2,
                 [.. GlobalDefines(1, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
         CheckDeclared(name, compute, 0, 1);
@@ -62,7 +62,7 @@ public static partial class SlangShaders
         {
             ReadsDepth = SpirvScan.Binds(compute.Spirv, 0, 0),
         };
-        return new CompiledTrace(shader, used, width, height, source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal));
+        return new CompiledTrace(shader, used, width, height, source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal), access);
     }
 
     /// <summary>

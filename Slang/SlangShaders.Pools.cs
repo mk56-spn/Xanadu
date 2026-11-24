@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// The STEP brick (<see cref="BrickKind.Step"/>): <c>count</c> items of the
+/// The STEP brick (<see cref="BrickKind.Step"/>): <c>[Pool(count)]</c> items of the
 /// author's own struct kept on the GPU, stepped once a frame by a compute
 /// entry on the <c>ComputeOperation</c> contract (jobs at read-only binding 0,
 /// the globals after them, the items at read-write binding 0, the frame at
@@ -21,7 +21,7 @@ public static partial class SlangShaders
 
     /// <summary>
     /// A pool: its item type's name, how many it keeps, and the births a second when the
-    /// engine bears them (a <c>rate</c>, with <c>bool step</c> saying when one dies); 0 when
+    /// engine bears them (<c>[Pool(count, rate)]</c>, with <c>bool step</c> saying when one dies); 0 when
     /// every item lives for good.
     /// </summary>
     public readonly record struct PoolShape(string Type, int Count, float Rate = 0)
@@ -43,30 +43,29 @@ public static partial class SlangShaders
             throw new InvalidOperationException(
                 $"{Where(name, code, declared.Index)}: error: write step as void step(inout Item t, uint i, float dt) (or bool step, with a rate), with your own struct for Item.");
 
-        Match count = Regex.Match(code, @"\bstatic\s+const\s+uint\s+count\s*=\s*(\d+)\s*u?\s*;");
-        if (!count.Success)
+        // [Pool(count)] or [Pool(count, rate)], on step itself.
+        Match named = Regex.Match(code, @"\[\s*Pool\b");
+        Match pooled = Regex.Match(code, @"\[\s*Pool\s*\(\s*(\d+)\s*(?:,\s*(\d+(?:\.\d*)?|\.\d+)\s*f?\s*)?\)\s*\]\s*(?:void|bool)\s+step\b");
+        if (!pooled.Success)
+            throw new InvalidOperationException(named.Success
+                ? $"{Where(name, code, named.Index)}: error: write the pool as numbers, right on step: [Pool(1000)] void step(...) or [Pool(1000, 2500)] bool step(...)."
+                : $"{Where(name, code, declared.Index)}: error: say how many items the pool keeps on step: [Pool(1000)] void step(inout Item t, uint i, float dt).");
+        if (!int.TryParse(pooled.Groups[1].Value, out int items) || items < 1 || items > MaxPoolItems)
             throw new InvalidOperationException(
-                $"{Where(name, code, declared.Index)}: error: say how many items the pool keeps, as a number: static const uint count = 1000;");
-        if (!int.TryParse(count.Groups[1].Value, out int items) || items < 1 || items > MaxPoolItems)
-            throw new InvalidOperationException(
-                $"{Where(name, code, count.Index)}: error: a pool keeps 1 to {MaxPoolItems} items.");
+                $"{Where(name, code, pooled.Index)}: error: a pool keeps 1 to {MaxPoolItems} items.");
 
         // Born at a rate: step says whether each one lives on.
         bool dies = step.Groups[1].Value == "bool";
-        Match rate = Regex.Match(code, @"\bstatic\s+const\s+float\s+rate\s*=\s*(\d+(?:\.\d*)?|\.\d+)\s*f?\s*;");
-        Match rateNamed = Regex.Match(code, @"\bstatic\s+const\s+\w+\s+rate\b");
-        if (rateNamed.Success && !rate.Success)
-            throw new InvalidOperationException(
-                $"{Where(name, code, rateNamed.Index)}: error: say the births a second as a number: static const float rate = 2500;");
-        if (rate.Success && !dies)
+        bool born = pooled.Groups[2].Success;
+        if (born && !dies)
             throw new InvalidOperationException(
                 $"{Where(name, code, declared.Index)}: error: items born at a rate must be able to die: write bool step(...) and return false when one does.");
-        if (dies && !rate.Success)
+        if (dies && !born)
             throw new InvalidOperationException(
-                $"{Where(name, code, declared.Index)}: error: an item that dies is born again at a rate: say how many a second, static const float rate = 2500;");
-        float births = rate.Success ? float.Parse(rate.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
-        if (rate.Success && births <= 0)
-            throw new InvalidOperationException($"{Where(name, code, rate.Index)}: error: the rate is births a second, more than 0.");
+                $"{Where(name, code, declared.Index)}: error: an item that dies is born again at a rate: say how many a second, [Pool(1000, 2500)] bool step(...).");
+        float births = born ? float.Parse(pooled.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+        if (born && births <= 0)
+            throw new InvalidOperationException($"{Where(name, code, pooled.Index)}: error: the rate is births a second, more than 0.");
         return new PoolShape(step.Groups[2].Value, items, births);
     }
 

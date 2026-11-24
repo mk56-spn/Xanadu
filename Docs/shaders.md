@@ -1503,8 +1503,6 @@ import xanadu;
 
 struct Dot { float2 position; float2 velocity; float size; float hue; };
 
-static const uint count = 10000;
-
 Dot start(uint i)
 {
     Dot d;
@@ -1515,6 +1513,7 @@ Dot start(uint i)
     return d;
 }
 
+[Pool(10000)]
 void step(inout Dot d, uint i, float dt)
 {
     d.velocity += normalize(attractor - d.position + 0.001) * 600 * dt;
@@ -1534,8 +1533,8 @@ ItemVertex deform(ItemVertex v)
 }
 ```
 
-- The item is your own struct. `count` items, written as a number
-  (`static const uint count = 10000;`), up to 262,144. Item `i` is the same
+- The item is your own struct. `[Pool(count)]` on `step` says how many,
+  written as a number (`[Pool(10000)]`), up to 262,144. Item `i` is the same
   item every frame.
 - `start(i)` makes item `i` once, after every compile. Optional: without it
   every item starts zeroed.
@@ -1546,20 +1545,18 @@ ItemVertex deform(ItemVertex v)
   needs a DEFORM brick, or every item would land on the same quad.
 - `step` sees the uniforms, the globals (§19) and `time`; an UPDATE brick's
   `state` too, when the stack has one.
-- **Born and dying.** Say a rate of births and write `bool step`: return
-  `false` and the item dies, its slot free. Each frame the engine bears
-  exactly `rate` a second (the fraction carries over) into free slots, each
+- **Born and dying.** Give `[Pool]` a rate of births (`[Pool(count, rate)]`)
+  and write `bool step`: return `false` and the item dies, its slot free.
+  Each frame the engine bears exactly `rate` a second (the fraction carries over) into free slots, each
   made by `start(n)`. Here `n` counts births, so every birth differs; `step`'s
   `i` is still the slot. Only live items are drawn. A full pool drops the
   births it has no room for, so make `count` at least `rate` times the
   longest life. Start from `Lab/fountain`:
 
   ```slang
-  static const uint count = 8000;
-  static const float rate = 2500;      // births a second
-
   Particle start(uint n) { ... }       // birth n
 
+  [Pool(8000, 2500)]                   // 8000 slots, 2500 births a second
   bool step(inout Particle p, uint i, float dt)
   {
       p.age += dt;

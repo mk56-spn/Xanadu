@@ -33,11 +33,15 @@ public sealed class Board
     /// <summary>How far a line stays off a box it goes round, in board units.</summary>
     public const float Clearance = 8;
 
+    /// <summary>Whether there is a line back the other way, so this one points both ways.</summary>
+    public bool TwoWay(BoardLink link) => Links.Contains(new BoardLink(link.To, link.From));
+
+    /// <summary>A line whose partner the other way came first: that partner draws them both.</summary>
+    private bool DrawnByPartner(BoardLink link) => Links.IndexOf(new BoardLink(link.To, link.From)) is var other and >= 0 && other < Links.IndexOf(link);
+
     /// <summary>How much further off a box each further line round it stays.</summary>
     public const float LaneGap = 6;
 
-    /// <summary>How far to its own side each of two opposite lines between the same boxes runs.</summary>
-    public const float TwoWayGap = 5;
 
     private const int MaxDetours = 16, MaxLanes = 6;
 
@@ -154,8 +158,14 @@ public sealed class Board
                 continue;
             }
 
-            bool twoWay = Links.Contains(new BoardLink(link.To, link.From));
-            (Vector2 a, Vector2 b) = Ends(from.Rect, to.Rect, twoWay ? TwoWayGap : 0);
+            // Lines both ways between two boxes are one line, with an arrow at each end: the first one drawn carries it.
+            if (DrawnByPartner(link))
+            {
+                paths.Add(null);
+                continue;
+            }
+
+            (Vector2 a, Vector2 b) = Ends(from.Rect, to.Rect);
             blocks.Clear();
             foreach (BoardBox box in solid)
             {

@@ -154,17 +154,27 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
             if (layout.Hit(buffer, editor.Host, input.Position) is { } hit)
             {
-                bool twice = _clock - editor.LastClick < DoubleClick && editor.LastClickAt == hit;
-                if (twice)
-                    buffer.SelectWord(hit.Line, hit.Column);
-                else
-                    buffer.Place(hit.Line, hit.Column, extend: input.Shift || _keyboard.IsPressed(Key.Shift));
-                // A third click starts over rather than reselecting the word.
-                editor.LastClick = twice ? -1 : _clock;
+                bool quick = _clock - editor.LastClick < DoubleClick && editor.LastClickAt == hit;
+                // A fourth click starts over rather than reselecting the line.
+                editor.Clicks = quick && editor.Clicks < 3 ? editor.Clicks + 1 : 1;
+                switch (editor.Clicks)
+                {
+                    case 3:
+                        buffer.SelectLine(hit.Line);
+                        break;
+                    case 2:
+                        buffer.SelectWord(hit.Line, hit.Column);
+                        break;
+                    default:
+                        buffer.Place(hit.Line, hit.Column, extend: input.Shift || _keyboard.IsPressed(Key.Shift));
+                        break;
+                }
+
+                editor.LastClick = _clock;
                 editor.LastClickAt = hit;
-                editor.Dragging = !twice;
+                editor.Dragging = true;
                 bool ctrl = input.Ctrl || _keyboard.IsPressed(Key.Ctrl) || _keyboard.IsPressed(Key.Meta);
-                if (!twice && ctrl && editor.Host?.TakeCtrlClick(buffer) == true)
+                if (editor.Clicks == 1 && ctrl && editor.Host?.TakeCtrlClick(buffer) == true)
                 {
                     editor.Dragging = false;
                     editor.LastClick = -1;
@@ -174,9 +184,14 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             Scroll(ref editor, input);
             return true;
         }
-        else if (editor.Dragging && layout.Hit(buffer, editor.Host, input.Position, dragging: true) is { } to
-                 && to != (buffer.Line, buffer.Column))
-            buffer.Place(to.Line, to.Column, extend: true);
+        else if (editor.Dragging && layout.Hit(buffer, editor.Host, input.Position, dragging: true) is { } to)
+        {
+            // After a double or triple click the drag grows by whole words or lines.
+            if (editor.Clicks > 1)
+                buffer.SelectUnits(editor.LastClickAt, to, lines: editor.Clicks == 3);
+            else if (to != (buffer.Line, buffer.Column))
+                buffer.Place(to.Line, to.Column, extend: true);
+        }
 
         Scroll(ref editor, input);
         return null;

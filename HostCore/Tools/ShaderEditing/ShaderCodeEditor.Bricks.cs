@@ -113,14 +113,25 @@ internal sealed partial class ShaderCodeEditor
         ListProblems();
     }
 
-    /// <summary>Adds a brick from its template and opens it; compiled straight away.</summary>
+    /// <summary>
+    /// Adds a brick from its template and opens it; compiled straight away. A brick it needs
+    /// that needs it back comes with it; one it needs on its own is named in a toast.
+    /// </summary>
     private void AddBrick(BrickKind kind)
     {
+        List<BrickKind> missing = [.. ShaderStack.Needs(kind).Where(need => !_bricks.Exists(brick => brick.Kind == need))];
+        List<BrickKind> together = [.. missing.Where(need => ShaderStack.Needs(need).Contains(kind))];
         Tab tab = NewBrick(new Brick(kind, ShaderStack.Template(kind)));
         _bricks.Add(tab);
+        foreach (BrickKind need in together)
+            _bricks.Add(NewBrick(new Brick(need, ShaderStack.Template(need))));
         _bricks.Sort((a, b) => a.Kind!.Value.CompareTo(b.Kind!.Value));
         Changed();
         OpenBrick(tab);
+
+        List<BrickKind> lacking = [.. missing.Except(together)];
+        if (lacking.Count > 0)
+            Toasts?.ShowStatus($"{ShaderStack.Title(kind)} needs {string.Join(" and ", lacking.Select(ShaderStack.Title))}: add it from the strip");
     }
 
     /// <summary>Asks, then takes a brick out of the stack, opening the nearest one left.</summary>

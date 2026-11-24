@@ -44,7 +44,6 @@ internal sealed partial class CanvasRenderer
     private const uint ZeroPiece = 1 << 20;
 
     private readonly Dictionary<CanvasMaterial, BuildRun> _builds = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<CanvasMaterial> _built = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<CanvasEffect> _brokenSchedules = new(ReferenceEqualityComparer.Instance);
     private readonly List<StackBuild.Run> _calls = [];
     private TransferBuffer? _zeroPiece;
@@ -66,41 +65,35 @@ internal sealed partial class CanvasRenderer
 
     private readonly HashSet<CanvasEffect> _heavyCopies = new(ReferenceEqualityComparer.Instance);
 
-    private void RunBuilds(CommandBuffer commands, float dt, float time)
+    /// <summary>A stack's BUILD passes, run in the order its <c>build()</c> calls them this frame.</summary>
+    private void RunBuild(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect, float dt, float time)
     {
-        _built.Clear();
-        foreach (Step step in _steps)
+        if (effect.Compiled.Build is not { } build)
+            return;
+
+        if (!_builds.TryGetValue(material, out BuildRun? run) || run.Effect != effect)
         {
-            if (step.Material is not { } material || !_built.Add(material))
-                continue;
-            CanvasEffect effect = _pipelines.Effect(material);
-            if (effect.Compiled.Build is not { } build)
-                continue;
-
-            if (!_builds.TryGetValue(material, out BuildRun? run) || run.Effect != effect)
-            {
-                run?.Dispose();
-                run = new BuildRun(effect, MakeBuffers(commands, build));
-                _builds[material] = run;
-            }
-
-            _calls.Clear();
-            try
-            {
-                build.Shape.Walk(name => Uniform(effect.Compiled, material, name), _calls);
-            }
-            catch (BuildProblem problem)
-            {
-                // Its values made the schedule impossible (a loop that won't end): said once, nothing run.
-                if (_brokenSchedules.Add(effect))
-                    Console.Error.WriteLine($"Shader stack {material.Shader}: build() can't run: {problem.Message}");
-                continue;
-            }
-
-            Buffer? state = _states.GetValueOrDefault(material);
-            foreach (StackBuild.Run call in _calls)
-                Dispatch(commands, effect, run, build.Passes[call.Pass], call, state, material, dt, time);
+            run?.Dispose();
+            run = new BuildRun(effect, MakeBuffers(commands, build));
+            _builds[material] = run;
         }
+
+        _calls.Clear();
+        try
+        {
+            build.Shape.Walk(name => Uniform(effect.Compiled, material, name), _calls);
+        }
+        catch (BuildProblem problem)
+        {
+            // Its values made the schedule impossible (a loop that won't end): said once, nothing run.
+            if (_brokenSchedules.Add(effect))
+                Console.Error.WriteLine($"Shader stack {material.Shader}: build() can't run: {problem.Message}");
+            return;
+        }
+
+        Buffer? state = _states.GetValueOrDefault(material);
+        foreach (StackBuild.Run call in _calls)
+            Dispatch(commands, effect, run, build.Passes[call.Pass], call, state, material, dt, time);
     }
 
     private void Dispatch(CommandBuffer commands, CanvasEffect effect, BuildRun run, CompiledPass pass, StackBuild.Run call,
@@ -182,18 +175,8 @@ internal sealed partial class CanvasRenderer
     }
 
     /// <summary>A uniform's value as the schedule reads it: the material's, else its default; null for a name that isn't one.</summary>
-    private static BuildValue? Uniform(CompiledShader compiled, CanvasMaterial material, string name)
-    {
-        foreach (ShaderParam param in compiled.Params)
-        {
-            if (param.Name != name)
-                continue;
-            Vector4 value = material.Values.TryGetValue(name, out Vector4 set) ? set : param.Default;
-            return param.IsInt ? BuildValue.Of((long)MathF.Round(value.X)) : new BuildValue(value.X, false);
-        }
-
-        return null;
-    }
+    private static BuildValue? Uniform(CompiledShader compiled, CanvasMaterial material, string name) =>
+        compiled.ScheduleValue(name, material.Values.TryGetValue(name, out Vector4 set) ? set : null);
 
     /// <summary>The brick's buffers, each cleared to zeros.</summary>
     private Buffer[] MakeBuffers(CommandBuffer commands, CompiledBuild build)

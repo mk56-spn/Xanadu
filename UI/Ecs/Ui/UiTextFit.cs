@@ -72,6 +72,28 @@ public static class UiTextFit
         return lines;
     }
 
+    /// <summary>
+    /// Monospaced text broken at spaces into rows of at most <paramref name="fits"/> characters,
+    /// rows after the first led by <paramref name="indent"/>; a word longer than a row is cut.
+    /// </summary>
+    public static List<string> WrapColumns(string text, int fits, string indent = "")
+    {
+        fits = Math.Max(fits, indent.Length + 1);
+        var rows = new List<string>();
+        while (text.Length > fits)
+        {
+            // A space inside the indent is no place to break: cutting there would leave the text as it was, forever.
+            int cut = text.LastIndexOf(' ', fits);
+            if (cut <= indent.Length)
+                cut = fits;
+            rows.Add(text[..cut].TrimEnd());
+            text = indent + text[cut..].TrimStart();
+        }
+
+        rows.Add(text);
+        return rows;
+    }
+
     /// <summary>One line's height at this size: wrapped text is this times its line count.</summary>
     public static float LineHeight(int fontSize) => fontSize * UiNode.TextLineHeight;
 

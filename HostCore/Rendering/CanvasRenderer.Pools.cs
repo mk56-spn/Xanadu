@@ -40,50 +40,42 @@ internal sealed partial class CanvasRenderer
     }
 
     private readonly Dictionary<CanvasMaterial, PoolRun> _pools = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<CanvasMaterial> _stepped = new(ReferenceEqualityComparer.Instance);
-
-    private void StepPools(CommandBuffer commands, float dt, float time)
+    /// <summary>A stack's STEP pass: its pool, made on its first run after a compile, stepped by the frame's time.</summary>
+    private void StepPool(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect, float dt, float time)
     {
-        _stepped.Clear();
-        foreach (Step step in _steps)
+        if (effect.Pool is not { } operation || effect.Compiled.Pool is not { } compiled)
+            return;
+
+        bool fresh = !_pools.TryGetValue(material, out PoolRun? pool) || pool.Effect != effect;
+        if (fresh)
         {
-            if (step.Material is not { } material || !_stepped.Add(material))
-                continue;
-            CanvasEffect effect = _pipelines.Effect(material);
-            if (effect.Pool is not { } operation || effect.Compiled.Pool is not { } compiled)
-                continue;
-
-            bool fresh = !_pools.TryGetValue(material, out PoolRun? pool) || pool.Effect != effect;
-            if (fresh)
-            {
-                pool?.Items.Dispose();
-                // Born at a rate: two slots more, the births' counters.
-                int slots = compiled.ItemCount + (compiled.PoolRate > 0 ? 2 : 0);
-                pool = new PoolRun(effect, Buffer.Create<byte>(_device, "shader pool",
-                    BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
-                    (uint)(compiled.ItemBytes * slots)));
-                _pools[material] = pool;
-            }
-
-            var job = new PoolJob { Reset = fresh ? 1u : 0u, Born = pool!.Born, Parity = pool.Parity };
-            if (compiled.PoolRate > 0 && !fresh)
-            {
-                // More births than slots can't all find one; the rest are dropped, as a full pool drops them.
-                pool.Owed += compiled.PoolRate * dt;
-                uint births = (uint)Math.Min(Math.Floor(pool.Owed), compiled.ItemCount);
-                pool.Owed = Math.Min(pool.Owed - births, 1);
-                job.Births = births;
-                pool.Born += births;
-                pool.Parity ^= 1;
-            }
-
-            if (compiled.ParamsSize > 0)
-                PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
-            // Its inputs after the jobs: the globals, then kept state when the stack keeps some.
-            Buffer? state = _states.GetValueOrDefault(material);
-            operation.Submit(job);
-            operation.Run(commands, pool.Items, Bound(compiled.StorageBuffers - 1, state), new UpdateUniforms { Dt = dt, Time = time });
+            pool?.Items.Dispose();
+            // Born at a rate: two slots more, the births' counters.
+            int slots = compiled.ItemCount + (compiled.PoolRate > 0 ? 2 : 0);
+            pool = new PoolRun(effect, Buffer.Create<byte>(_device, "shader pool",
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
+                (uint)(compiled.ItemBytes * slots)));
+            _pools[material] = pool;
         }
+
+        var job = new PoolJob { Reset = fresh ? 1u : 0u, Born = pool!.Born, Parity = pool.Parity };
+        if (compiled.PoolRate > 0 && !fresh)
+        {
+            // More births than slots can't all find one; the rest are dropped, as a full pool drops them.
+            pool.Owed += compiled.PoolRate * dt;
+            uint births = (uint)Math.Min(Math.Floor(pool.Owed), compiled.ItemCount);
+            pool.Owed = Math.Min(pool.Owed - births, 1);
+            job.Births = births;
+            pool.Born += births;
+            pool.Parity ^= 1;
+        }
+
+        if (compiled.ParamsSize > 0)
+            PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
+        // Its inputs after the jobs: the globals, then kept state when the stack keeps some.
+        Buffer? state = _states.GetValueOrDefault(material);
+        operation.Submit(job);
+        operation.Run(commands, pool.Items, Bound(compiled.StorageBuffers - 1, state), new UpdateUniforms { Dt = dt, Time = time });
     }
 
     /// <summary>A material's pool items, or null when it keeps none (yet).</summary>

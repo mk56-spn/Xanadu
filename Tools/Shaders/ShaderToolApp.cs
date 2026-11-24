@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using MoonWorks.Graphics;
 using Xanadu.Core;
 using Xanadu.Core.Rendering.Rhythm;
@@ -11,7 +12,9 @@ using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Ecs.Ui.Tree;
+using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Ui;
 using Handle = Xanadu.Core.Maths.Handle;
 
 namespace Xanadu.Tools.Shaders;
@@ -71,10 +74,10 @@ internal sealed class ShaderToolApp : HostApp
     /// <summary>Edited bricks not yet saved, by stack; a stack without an entry is as on disk.</summary>
     private readonly Dictionary<ShaderFile, List<Brick>> _unsaved = [];
 
-    private Entity _title, _save, _revert, _note, _new, _trianglesButton, _uvButton;
+    private Entity _title, _save, _revert, _note, _new, _graphButton, _trianglesButton, _uvButton;
 
     /// <summary>The preview's overlays, kept across shaders: the triangles' edges, and where uv is 0 and 1.</summary>
-    private bool _showTriangles, _showUv;
+    private bool _showGraph, _showTriangles, _showUv;
     private EffectPreview? _effect;
     private Entity _body, _side, _preview;
     private Entity _codeSlot, _barSlot, _sideSlot, _dividerSlot;
@@ -94,8 +97,15 @@ internal sealed class ShaderToolApp : HostApp
     private float _grabbedAt;
     private bool _wasHeld;
 
-    public ShaderToolApp(HostWindowOptions window, string? open) : base("Xanadu Shaders", window)
+    private readonly SystemRoot _systems;
+    private readonly ToastSystem _toasts;
+
+    public ShaderToolApp(HostWindowOptions window, string? open, bool graph = false) : base("Xanadu Shaders", window)
     {
+        _showGraph = graph;
+        _toasts = new ToastSystem(Entities, new Vector2(Width, Height), HostPlatform.Visuals);
+        _systems = new SystemRoot(Entities, "Shaders") { _toasts };
+        UseSystems(_systems);
         _files = [.. ShaderFiles.All()];
         _wanted = Math.Max(0, _files.FindIndex(file => file.Name == open || file.Path == open));
         Build();
@@ -126,6 +136,10 @@ internal sealed class ShaderToolApp : HostApp
         _title = bar.Text("", UiType.Label).AccentText().Grow();
         // Sized for its longest words: a text box is measured from what it holds when made.
         _note = bar.Text("unsaved changes", UiType.Small, align: TextAlign.Right).DimText();
+        _graphButton = bar.Button("GRAPH", UiType.Small).Secondary()
+            .Tooltip("Show the stack's render graph where the code is: its passes in order, the data they share, and who reads and writes what");
+        if (_showGraph)
+            UiNode.Wrap(_graphButton).Primary();
         _trianglesButton = bar.Button("TRIANGLES", UiType.Small).Secondary()
             .Tooltip("Outline every triangle of the preview's mesh, where the vertex stage put it (not for pools yet)");
         _uvButton = bar.Button("UV", UiType.Small).Secondary()
@@ -238,6 +252,11 @@ internal sealed class ShaderToolApp : HostApp
         if (_code is null)
             return;
 
+        if (Clicked(_graphButton))
+        {
+            Toggle(ref _showGraph, _graphButton);
+            _code.ShowsGraph = _showGraph;
+        }
         if (Clicked(_trianglesButton))
             Toggle(ref _showTriangles, _trianglesButton);
         if (Clicked(_uvButton))
@@ -286,6 +305,8 @@ internal sealed class ShaderToolApp : HostApp
                 return _effect;
             });
         _code.SaveRequested += Save;
+        _code.Toasts = _toasts;
+        _code.ShowsGraph = _showGraph;
         _seenVersion = -1;
 
         UiText.Set(_title, file.Path);

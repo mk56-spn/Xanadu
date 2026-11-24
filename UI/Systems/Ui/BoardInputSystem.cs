@@ -21,7 +21,8 @@ namespace Xanadu.Ui.Systems.Ui;
 /// Delete removes what is selected, 1 to 9 colour the selection, Ctrl+Z and Ctrl+Y
 /// (or Ctrl+Shift+Z) undo and redo. Dragging empty board, or with the middle or
 /// right button anywhere, pans; the wheel zooms about the pointer. Keys go to the
-/// board the last press landed on.
+/// board the last press landed on. A <see cref="ReadOnly"/> board only pans, zooms
+/// and selects.
 /// </summary>
 public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeyboardState keyboard, IWheelSource? wheel = null)
     : QuerySystem<UiBoard>
@@ -67,7 +68,7 @@ public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeybo
 
             Place(entity, state);
             Point(entity, ref ui, input, press, panPress, panHeld);
-            if (state.Focused)
+            if (state.Focused && !entity.Tags.Has<ReadOnly>())
                 Keys(entity, ref ui, input, delta);
             anyEditing |= state.Editing != 0;
         }
@@ -138,6 +139,8 @@ public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeybo
 
         state.Pointer = state.ToBoard(input.Position);
         Hover(state, board, inside ? state.Pointer : null);
+        if (entity.Tags.Has<ReadOnly>())
+            state.HoverLinkHandle = state.HoverResize = false;
     }
 
     private static void Zoom(BoardState state, Vector2 screen, int notches)
@@ -167,6 +170,21 @@ public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeybo
         state.LastClickAt = input.Position;
 
         BoardBox? under = board.At(point);
+        // Read-only: a press selects what it lands on, or pans the empty board.
+        if (entity.Tags.Has<ReadOnly>())
+        {
+            state.SelectedLink = null;
+            if (under is not null)
+                Select(state, under.Id);
+            else
+            {
+                state.Selected.Clear();
+                Begin(state, BoardGestureKind.Pan, input.Position);
+            }
+
+            return;
+        }
+
         if (state.Editing != 0 && under?.Id != state.Editing)
             Finish(entity, ref ui);
         if (state.Editing != 0)

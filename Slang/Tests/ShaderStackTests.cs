@@ -82,11 +82,11 @@ public sealed class ShaderStackTests
     }
 
     /// <summary>The pool template with its step made to die and a rate of births.</summary>
-    private static string Born(string rate = "static const float rate = 500;") =>
+    private static string Born(string pool = "[Pool(1000, 500)]") =>
         ShaderStack.Template(BrickKind.Step)
             .Replace("void step(inout Item t, uint i, float dt)", "bool step(inout Item t, uint i, float dt)")
             .Replace("t.position += t.velocity * dt;", "t.position += t.velocity * dt;\n    return length(t.position) < 600;")
-            .Replace("static const uint count = 1000;", "static const uint count = 1000;\n" + rate);
+            .Replace("[Pool(1000)]", pool);
 
     [Test]
     public void APoolBornAtARateCompilesWithItsRate()
@@ -97,12 +97,13 @@ public sealed class ShaderStackTests
         Assert.That(compiled.Pool!.PoolRate, Is.EqualTo(500));
     }
 
-    [TestCase("static const float rate = 500;", "void step")]
+    [TestCase("[Pool(1000, 500)]", "void step")]
+    [TestCase("[Pool(1000)]", "bool step")]
+    [TestCase("[Pool(1000, fast)]", "bool step")]
     [TestCase("", "bool step")]
-    [TestCase("static const float rate = fast;", "bool step")]
-    public void BirthsAndDeathsGoTogether(string rate, string step)
+    public void BirthsAndDeathsGoTogether(string pool, string step)
     {
-        string brick = Born(rate);
+        string brick = Born(pool);
         if (step == "void step")
             brick = brick.Replace("bool step", "void step").Replace("\n    return length(t.position) < 600;", "");
         string body = ShaderStack.Compose("s", [new Brick(BrickKind.Step, brick), new Brick(BrickKind.Deform, Vertex)]);

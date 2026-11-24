@@ -251,7 +251,8 @@ internal sealed partial class CanvasRenderer : IDisposable
 
     /// <summary>Each kept-state material's state, made zeroed the first frame it is drawn.</summary>
     private readonly Dictionary<CanvasMaterial, Buffer> _states = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<CanvasMaterial> _updated = new(ReferenceEqualityComparer.Instance);
+    /// <summary>The stacks whose compute passes already ran this frame.</summary>
+    private readonly HashSet<CanvasMaterial> _ranStacks = new(ReferenceEqualityComparer.Instance);
     private readonly TransferBuffer _zeros;
 
     /// <summary>
@@ -438,12 +439,8 @@ internal sealed partial class CanvasRenderer : IDisposable
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _lastTime = time;
         _traceDt = dt;
-        using (commands.Scope("shader updates"))
-            UpdateStates(commands, dt, time);
-        using (commands.Scope("shader pools"))
-            StepPools(commands, dt, time);
-        using (commands.Scope("shader builds"))
-            RunBuilds(commands, dt, time);
+        using (commands.Scope("shader stacks"))
+            RunStacks(commands, dt, time);
         using (commands.Scope("shader draws"))
             FillDraws(commands);
         using (commands.Scope("particles step"))
@@ -1558,42 +1555,78 @@ internal sealed partial class CanvasRenderer : IDisposable
     /// Runs each kept-state effect's <c>update</c> once, on one GPU thread, for
     /// every material drawn this frame, so all its pixels read the same state.
     /// </summary>
-    private void UpdateStates(CommandBuffer commands, float dt, float time)
+    #region Stack passes
+
+    /// <summary>
+    /// Every stack drawn this frame runs the compute passes of its render graph
+    /// (<see cref="StackGraph"/>) in the graph's order, before any pass draws: UPDATE, STEP,
+    /// then BUILD as its <c>build()</c> calls the passes. Its TRACE and triangles run at its draw.
+    /// </summary>
+    private void RunStacks(CommandBuffer commands, float dt, float time)
     {
-        _updated.Clear();
+        _ranStacks.Clear();
         foreach (Step step in _steps)
         {
-            // Code that asked for state, or a lab-only effect file (Docs/shaders.md §14).
-            if (step.Material is not { } material || !(material.KeepsState || (material.Source is null && SlangShaders.IsLabOnly(material.Shader)))
-                || !_updated.Add(material))
+            if (step.Material is not { } material || !_ranStacks.Add(material))
                 continue;
-
             CanvasEffect effect = _pipelines.Effect(material);
-            if (effect.Update is not { } update || effect.Compiled.Update is not { } compiled)
-                continue;
-
-            if (!_states.TryGetValue(material, out Buffer? state))
+            bool built = false;
+            foreach (GraphPass pass in effect.Graph.Passes)
             {
-                state = Buffer.Create<byte>(_device, "shader state",
-                    BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
-                    SlangShaders.MaxStateBytes);
-                CopyPass copy = commands.BeginCopyPass();
-                copy.UploadToBuffer(_zeros, state, cycle: false);
-                commands.EndCopyPass(copy);
-                _states[material] = state;
+                switch (pass.Brick)
+                {
+                    case BrickKind.Update:
+                        UpdateState(commands, material, effect, dt, time);
+                        break;
+                    case BrickKind.Step:
+                        StepPool(commands, material, effect, dt, time);
+                        break;
+                    // build() calls the passes, once or many times each: it runs when the graph reaches the first.
+                    case BrickKind.Build when !built:
+                        built = true;
+                        RunBuild(commands, material, effect, dt, time);
+                        break;
+                }
             }
 
-            commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time });
-            if (compiled.ParamsSize > 0)
-                PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
-            ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
-            pass.BindComputePipeline(update);
-            if (compiled.StorageBuffers > 0)
-                pass.BindStorageBuffers(Bound(compiled.StorageBuffers));
-            pass.Dispatch(1, 1, 1);
-            commands.EndComputePass(pass);
+            // The graph was drawn at the defaults; this material's values may call passes they don't. BUILD is the last compute.
+            if (!built)
+                RunBuild(commands, material, effect, dt, time);
         }
     }
+
+    /// <summary>A stack's UPDATE pass: its state, made zeroed on its first run, updated once.</summary>
+    private void UpdateState(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect, float dt, float time)
+    {
+        // Code that asked for state, or a lab-only effect file (Docs/shaders.md §14).
+        if (!(material.KeepsState || (material.Source is null && SlangShaders.IsLabOnly(material.Shader))))
+            return;
+        if (effect.Update is not { } update || effect.Compiled.Update is not { } compiled)
+            return;
+
+        if (!_states.TryGetValue(material, out Buffer? state))
+        {
+            state = Buffer.Create<byte>(_device, "shader state",
+                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead,
+                SlangShaders.MaxStateBytes);
+            CopyPass copy = commands.BeginCopyPass();
+            copy.UploadToBuffer(_zeros, state, cycle: false);
+            commands.EndCopyPass(copy);
+            _states[material] = state;
+        }
+
+        commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time });
+        if (compiled.ParamsSize > 0)
+            PushParams(commands, compiled, material, null, stage: ParamsStage.Compute);
+        ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
+        pass.BindComputePipeline(update);
+        if (compiled.StorageBuffers > 0)
+            pass.BindStorageBuffers(Bound(compiled.StorageBuffers));
+        pass.Dispatch(1, 1, 1);
+        commands.EndComputePass(pass);
+    }
+
+    #endregion
 
     /// <summary>
     /// The target as it stands into the screen texture, with Gaussian-filtered

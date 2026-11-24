@@ -106,6 +106,19 @@ public struct TranslucentAttribute
 {
 };
 
+/// Put on a STEP brick's `step`: the pool keeps `count` items (up to 262,144), each stepped
+/// once a frame. With a `rate`, the engine bears that many a second into free slots, and
+/// `step` returns bool: false frees its slot. Both written as numbers.
+///
+///     [Pool(10000)] void step(inout Dot d, uint i, float dt) { ... }
+///     [Pool(8000, 2500)] bool step(inout Spark s, uint i, float dt) { ... }
+[__AttributeUsage(_AttributeTargets.Function)]
+public struct PoolAttribute
+{
+    int count;
+    float rate = 0;
+};
+
 /// Put on a TRACE brick's `trace`: it runs as compute, a thread a pixel over the quad, in
 /// tiles of `width` × `height` threads that may share `groupshared` memory and wait for each
 /// other (GroupMemoryBarrierWithGroupSync). `group` says where a thread sits. 8 × 8 without one.

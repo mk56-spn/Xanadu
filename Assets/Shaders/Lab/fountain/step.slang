@@ -1,5 +1,5 @@
 // STEP: the particle lab's FOUNTAIN, cut down to one pool (Tools/Labs/Shaders/particle_lab.slang).
-// The engine bears `rate` particles a second into free slots, each made by start, and
+// The engine bears 2500 particles a second into free slots, each made by start, and
 // frees the slot when step returns false. Modules, in the lab's order: gravity, drag,
 // a pusher (the lab's pointer; drag its dot), then the walls.
 import xanadu;
@@ -17,9 +17,6 @@ import xanadu;
 [Default(0.2)] uniform float friction;
 // The world the walls stand round, centred on the middle.
 [Default(640, 360)] uniform float2 world;
-
-static const uint count = 8000;
-static const float rate = 2500;
 
 // The emitter, as the lab sets it: straight up, 18° wide, 260 to 320 px/s, 2.2 to 3 s.
 static const float Heading = -PI / 2;
@@ -48,6 +45,8 @@ Particle start(uint n)
     return p;
 }
 
+// 8000 slots, 2500 births a second: the longest life (3 s) fits.
+[Pool(8000, 2500)]
 bool step(inout Particle p, uint i, float dt)
 {
     p.age += dt;

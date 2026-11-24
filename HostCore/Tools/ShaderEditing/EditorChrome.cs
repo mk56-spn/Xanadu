@@ -22,8 +22,11 @@ internal sealed class EditorChrome
     private const float Pad = 12;
     private const float Row = 22;
 
-    /// <summary>Problems shown at most; the rest of the column is for tuning values.</summary>
+    /// <summary>Rows of problems shown at most, a long one wrapping over several; the rest of the column is for tuning values.</summary>
     private const int ProblemRows = 6;
+
+    private const int ProblemSize = 13;
+    private static readonly float ProblemCharWidth = UiTextMetrics.MonoCharWidth(ProblemSize);
 
     private static readonly Color Bar = Palette.Surface;
     /// <summary>The column under the preview: filled by its node, the problems and guide drawn over it.</summary>
@@ -120,18 +123,28 @@ internal sealed class EditorChrome
         float problemsEnd = y + ProblemRows * Row;
         if (state.Problems.Count == 0)
             _canvas.DrawTextStyledLeft(_item, new Rect2(side.Position.X + Pad, y, side.Size.X, Row), "none", Palette.TextMuted, 14);
+        float messageX = side.Position.X + Pad + 48, messageWidth = side.Size.X - 4 - Pad - 48;
+        int fits = Math.Max(8, (int)(messageWidth / ProblemCharWidth));
         foreach (SlangProblem problem in state.Problems)
         {
             if (y + Row > problemsEnd)
                 break;
-            var box = new Rect2(side.Position.X + 4, y, side.Size.X - 8, Row);
+            List<string> rows = UiTextFit.WrapColumns(problem.Message, fits);
+            int shown = Math.Min(rows.Count, (int)((problemsEnd - y) / Row));
+            if (shown < rows.Count)
+                rows[shown - 1] = Clip(rows[shown - 1], fits);
+            var box = new Rect2(side.Position.X + 4, y, side.Size.X - 8, shown * Row);
             string where = problem.Line > 0 ? $"{problem.Line,4}" : "    ";
-            _canvas.DrawTextMono(_item, new Rect2(box.Position.X + Pad - 4, y, 48, Row), where, Palette.TextMuted, 13, TextAlign.Left);
-            _canvas.DrawTextMono(
-                _item, new Rect2(box.Position.X + Pad + 44, y, box.Size.X - 56, Row), Clip(problem.Message, 82),
-                problem.Warning ? Palette.Warning : Palette.DangerBright, 13, TextAlign.Left);
+            _canvas.DrawTextMono(_item, new Rect2(box.Position.X + Pad - 4, y, 48, Row), where, Palette.TextMuted, ProblemSize, TextAlign.Left);
+            for (int r = 0; r < shown; r++)
+            {
+                _canvas.DrawTextMono(
+                    _item, new Rect2(messageX, y + r * Row, messageWidth, Row), rows[r],
+                    problem.Warning ? Palette.Warning : Palette.DangerBright, ProblemSize, TextAlign.Left);
+            }
+
             _problemRows.Add((box, problem));
-            y += Row;
+            y += shown * Row;
         }
 
         int lines = HelpFitting(_guide.Size.Y);
@@ -154,5 +167,6 @@ internal sealed class EditorChrome
         return null;
     }
 
-    private static string Clip(string text, int length) => text.Length > length ? text[..(length - 1)] + "…" : text;
+    /// <summary>The last row that fits, marked as going on.</summary>
+    private static string Clip(string text, int length) => text.Length >= length ? text[..(length - 1)] + "…" : text + "…";
 }

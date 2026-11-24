@@ -254,6 +254,12 @@ public struct UiAnchor(Vector2 anchor, Vector2 pivot, float margin = 0) : ICompo
     public readonly Vector2 Inset => (Vector2.One - Anchor * 2) * Margin;
 }
 
+/// <summary>
+/// Shows its content without letting it be changed: a board made from data elsewhere
+/// pans, zooms and selects, but takes no edits.
+/// </summary>
+public struct ReadOnly : ITag;
+
 /// <summary>Marks a full-screen backdrop that must draw below sibling UI.</summary>
 public struct UiBackground : ITag;
 

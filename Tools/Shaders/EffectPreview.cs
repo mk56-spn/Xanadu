@@ -88,7 +88,8 @@ internal sealed class EffectPreview : IEditorPreview
 
     public PreviewBuild Compile(string source)
     {
-        PreviewBuild build = new(source, SlangShaders.CompileEffectBody(Label, source, _keepsState).Params);
+        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source, _keepsState);
+        PreviewBuild build = new(source, compiled.Params, compiled);
         // Off the frame, so the overlays' first draw finds them in Slang's cache. Copies have none (yet).
         if (Copies(source))
             return build;

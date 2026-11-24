@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Xanadu.Slang;
 
@@ -110,6 +112,23 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     public bool ReadsScreen { get; } = SpirvScan.Binds(spirv, set: 2, binding: 1);
 
     /// <summary>
+    /// A uniform as a BUILD schedule reads it: <paramref name="set"/> when the material sets it,
+    /// else its default, whole for an int; null for a name that isn't one of its values.
+    /// </summary>
+    public BuildValue? ScheduleValue(string name, Vector4? set)
+    {
+        foreach (ShaderParam param in Params)
+        {
+            if (param.Name != name)
+                continue;
+            Vector4 value = set ?? param.Default;
+            return param.IsInt ? BuildValue.Of((long)MathF.Round(value.X)) : new BuildValue(value.X, false);
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Whether the compiled code really samples the depth: fragment sampler 2, or, for a
     /// deforming effect's vertex stage, vertex sampler 0 (set when it is compiled).
     /// </summary>
@@ -126,6 +145,106 @@ public static class SpirvScan
 
     /// <summary>Whether any variable is decorated with this descriptor set and binding.</summary>
     public static bool Binds(byte[] code, int set, int binding) => Bound(code).Contains(((uint)set, (uint)binding));
+
+    private const int OpFunction = 54, OpFunctionParameter = 55, OpFunctionCall = 57, OpLoad = 61, OpStore = 62, OpCopyMemory = 63,
+        OpAccessChain = 65, OpInBoundsAccessChain = 66, OpPtrAccessChain = 67, OpCopyObject = 83, OpBitcast = 124, OpSelect = 169,
+        OpAtomicLoad = 227, OpAtomicStore = 228, OpPhi = 245;
+
+    /// <summary>
+    /// How the code really uses the buffer at this set and binding: whether anything loads from
+    /// it, and whether anything stores to it (an atomic does both). Follows the pointers made from
+    /// it (access chains, copies, selects, phis, function parameters) to where they're used. A
+    /// binding that isn't there, or is only bound (its length asked), is neither.
+    /// </summary>
+    public static GraphAccess Access(byte[] code, int set, int binding)
+    {
+        if (code.Length < 20)
+            return 0;
+        ReadOnlySpan<uint> words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(code);
+        var sets = new Dictionary<uint, uint>();
+        var bindings = new Dictionary<uint, uint>();
+        var parameters = new Dictionary<uint, List<uint>>();
+        uint function = 0;
+        for (int i = 5; i < words.Length;)
+        {
+            int count = (int)(words[i] >> 16), opcode = (int)(words[i] & 0xFFFF);
+            if (count == 0)
+                break;
+            if (opcode == OpDecorate && count >= 4 && words[i + 2] == DecorationDescriptorSet)
+                sets[words[i + 1]] = words[i + 3];
+            else if (opcode == OpDecorate && count >= 4 && words[i + 2] == DecorationBinding)
+                bindings[words[i + 1]] = words[i + 3];
+            else if (opcode == OpFunction)
+                parameters[function = words[i + 2]] = [];
+            else if (opcode == OpFunctionParameter)
+                parameters[function].Add(words[i + 2]);
+            i += count;
+        }
+
+        // The pointers into the buffer: its variable, then everything made from one, until nothing new turns up.
+        var into = new HashSet<uint>();
+        foreach ((uint id, uint value) in bindings)
+            if (value == binding && sets.TryGetValue(id, out uint s) && s == set)
+                into.Add(id);
+        if (into.Count == 0)
+            return 0;
+
+        GraphAccess access = 0;
+        for (bool grew = true; grew;)
+        {
+            grew = false;
+            access = 0;
+            for (int i = 5; i < words.Length;)
+            {
+                int count = (int)(words[i] >> 16), opcode = (int)(words[i] & 0xFFFF);
+                if (count == 0)
+                    break;
+                switch (opcode)
+                {
+                    case OpAccessChain or OpInBoundsAccessChain or OpPtrAccessChain or OpCopyObject or OpBitcast when into.Contains(words[i + 3]):
+                        grew |= into.Add(words[i + 2]);
+                        break;
+                    case OpSelect when into.Contains(words[i + 4]) || into.Contains(words[i + 5]):
+                        grew |= into.Add(words[i + 2]);
+                        break;
+                    case OpPhi:
+                        for (int k = i + 3; k < i + count; k += 2)
+                            if (into.Contains(words[k]))
+                                grew |= into.Add(words[i + 2]);
+                        break;
+                    case OpFunctionCall when parameters.TryGetValue(words[i + 3], out List<uint>? called):
+                        for (int k = 0; k < called.Count && i + 4 + k < i + count; k++)
+                            if (into.Contains(words[i + 4 + k]))
+                                grew |= into.Add(called[k]);
+                        break;
+                    case OpLoad or OpAtomicLoad when into.Contains(words[i + 3]):
+                        access |= GraphAccess.Read;
+                        break;
+                    case OpStore or OpAtomicStore when into.Contains(words[i + 1]):
+                        access |= GraphAccess.Write;
+                        break;
+                    case OpCopyMemory:
+                        if (into.Contains(words[i + 1]))
+                            access |= GraphAccess.Write;
+                        if (into.Contains(words[i + 2]))
+                            access |= GraphAccess.Read;
+                        break;
+                    // Every other atomic (exchange, compare-exchange, add, min, max, and, or, xor, the flags, the float ones) reads and writes.
+                    case >= 229 and <= 242 or 318 or 5614 or 5615 or 6035 when count > 3 && into.Contains(words[i + 3]):
+                        access |= GraphAccess.ReadWrite;
+                        break;
+                    // OpAtomicFlagClear names its pointer first.
+                    case 319 when into.Contains(words[i + 1]):
+                        access |= GraphAccess.Write;
+                        break;
+                }
+
+                i += count;
+            }
+        }
+
+        return access;
+    }
 
     /// <summary>Every (set, binding) a variable is decorated with.</summary>
     private static List<(uint Set, uint Binding)> Bound(byte[] code)
@@ -234,7 +353,7 @@ public static partial class SlangShaders
 
     private static string? _libraryHash;
 
-    private static readonly object ModuleLock = new();
+    private static readonly Lock ModuleLock = new();
 
     /// <summary>Each precompiled library by its folder (named by library hash, compiler and defines); null where building it failed.</summary>
     private static readonly Dictionary<string, string?> ModuleFolders = new(StringComparer.Ordinal);
@@ -295,21 +414,23 @@ public static partial class SlangShaders
                 {
                     string code = StripComments(text);
                     // A marker on anything else would compile with whatever binding Slang picks: wrong data, no error.
-                    var declared = SlangModules.GlobalDeclaration().Matches(code);
-                    foreach (System.Text.RegularExpressions.Match marker in System.Text.RegularExpressions.Regex.Matches(code, @"\[Global\]"))
-                        if (!declared.Any(match => match.Index == marker.Index))
+                    MatchCollection declared = SlangModules.GlobalDeclaration().Matches(code);
+                    foreach (Match marker in Regex.Matches(code, @"\[Global\]"))
+                    {
+                        if (declared.All(match => match.Index != marker.Index))
                         {
                             int line = code[..marker.Index].Count(c => c == '\n') + 1;
                             throw new InvalidOperationException(
                                 $"{Path.GetFileName(path)}({line}): [Global] marks only `public StructuredBuffer<T> name;` (read-only, public, one per line).");
                         }
+                    }
 
-                    foreach (System.Text.RegularExpressions.Match match in declared)
+                    foreach (Match match in declared)
                     {
-                    string name = match.Groups[2].Value;
-                    if (names.Contains(name))
-                        throw new InvalidOperationException($"{Path.GetFileName(path)}: global {name} is declared twice in the library.");
-                    names.Add(name);
+                        string name = match.Groups[2].Value;
+                        if (names.Contains(name))
+                            throw new InvalidOperationException($"{Path.GetFileName(path)}: global {name} is declared twice in the library.");
+                        names.Add(name);
                     }
                 }
 
@@ -329,8 +450,10 @@ public static partial class SlangShaders
     private static void CheckDeclared(string name, CompiledShader compiled, int set, int first)
     {
         for (int i = 0; i < Globals.Count; i++)
-            if (!Xanadu.Core.Rendering.ShaderGlobals.IsDeclared(Globals[i]) && SpirvScan.Binds(compiled.Spirv, set, first + i))
+        {
+            if (!Core.Rendering.ShaderGlobals.IsDeclared(Globals[i]) && SpirvScan.Binds(compiled.Spirv, set, first + i))
                 throw new InvalidOperationException($"{name}: reads the global `{Globals[i]}`, which nothing here declares.");
+        }
     }
 
     // One shared folder: every file in it has a fresh GUID name and is deleted after use,
@@ -389,7 +512,7 @@ public static partial class SlangShaders
     /// <summary>Compiles tried again for float3s found standing as colours: Slang reports most in one go.</summary>
     private const int MaxConversionPasses = 4;
 
-    private static readonly object ConversionsLock = new();
+    private static readonly Lock ConversionsLock = new();
     private static readonly Dictionary<string, ColourConversion[]> KnownConversions = new(StringComparer.Ordinal);
     private static string? _libraryText;
 
@@ -542,18 +665,18 @@ public static partial class SlangShaders
         {
             ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
             Grid = GridOf(source),
-            Translucent = System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), @"\[\s*Translucent\s*\]"),
+            Translucent = Regex.IsMatch(StripComments(source), @"\[\s*Translucent\s*\]"),
             StackBuffers = buffers,
         };
     }
 
     /// <summary>The most cells a <c>[Grid]</c> may ask for on a side.</summary>
-    public const int MaxGrid = 256;
+    private const int MaxGrid = 256;
 
     /// <summary>The <c>[Grid(columns, rows)]</c> a body puts on its deform, each side clamped to 1..<see cref="MaxGrid"/>; null without one.</summary>
     public static (int Columns, int Rows)? GridOf(string source)
     {
-        var match = System.Text.RegularExpressions.Regex.Match(StripComments(source),
+        var match = Regex.Match(StripComments(source),
             @"\[\s*Grid\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*\]");
         if (!match.Success)
             return null;
@@ -564,7 +687,7 @@ public static partial class SlangShaders
 
     /// <summary>Whether an effect body declares <c>ItemVertex deform(…)</c>, and so its own vertex stage.</summary>
     public static bool Deforms(string source) =>
-        System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), @"\bItemVertex\s+deform\s*\(");
+        Regex.IsMatch(StripComments(source), @"\bItemVertex\s+deform\s*\(");
 
     /// <summary>The most bytes an effect's <c>State</c> may take.</summary>
     public const int MaxStateBytes = 16 * 1024;
@@ -586,11 +709,11 @@ public static partial class SlangShaders
     }
 
     public static bool KeepsState(string source) =>
-        System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), @"\bvoid\s+update\s*\(");
+        Regex.IsMatch(StripComments(source), @"\bvoid\s+update\s*\(");
 
     private static string StripComments(string source) =>
-        System.Text.RegularExpressions.Regex.Replace(
-            System.Text.RegularExpressions.Regex.Replace(source, @"/\*.*?\*/", " ", System.Text.RegularExpressions.RegexOptions.Singleline),
+        Regex.Replace(
+            Regex.Replace(source, @"/\*.*?\*/", " ", RegexOptions.Singleline),
             @"//[^\n]*", "");
 
     /// <summary>
@@ -601,7 +724,7 @@ public static partial class SlangShaders
     private static int StorageBinding(string source)
     {
         int next = 3;
-        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
+        foreach (Match match in Regex.Matches(
                      StripComments(source), @"vk::binding\(\s*(\d+)\s*,\s*2\s*\)"))
             next = Math.Max(next, int.Parse(match.Groups[1].Value) + 1);
         return next;
@@ -641,7 +764,7 @@ public static partial class SlangShaders
 
     /// <summary>Whether a body declares <see cref="ClockOverride"/>.</summary>
     public static bool DrivesClock(string source) =>
-        System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), $@"\buniform\s+float2\s+{ClockOverride}\b");
+        MyRegex().IsMatch(StripComments(source));
 
     /// <summary>The generated module around one effect body; a chain would add one namespace per effect.</summary>
     /// <param name="stateBinding">The fragment binding for kept state, or -1 when the effect keeps none.</param>
@@ -660,7 +783,7 @@ public static partial class SlangShaders
             static State state;
             """;
         string load = stateBinding < 0 ? "" : "effect0::state = effect0::xanaduStateIn[0];";
-        string items = pool is { } kept && poolBinding >= 0
+        string items = pool is not null && poolBinding >= 0
             ? $"[[vk::binding({poolBinding}, 2)]] StructuredBuffer<XanaduSlot> xanaduPoolIn;"
             : "";
         if (items.Length > 0)
@@ -899,7 +1022,7 @@ public static partial class SlangShaders
     {
         if (cached is null || !File.Exists(cached + ".spv") || !File.Exists(cached + ".json"))
             return null;
-        using JsonDocument stored = JsonDocument.Parse(File.ReadAllText(cached + ".json"));
+        using var stored = JsonDocument.Parse(File.ReadAllText(cached + ".json"));
         return Reflect(File.ReadAllBytes(cached + ".spv"), stored.RootElement, samplerSpace, uniformSpace);
     }
 
@@ -956,7 +1079,7 @@ public static partial class SlangShaders
         {
             byte[] spirv = RunSlang([.. args]);
             reflectionJson = File.ReadAllText(json);
-            using JsonDocument reflection = JsonDocument.Parse(reflectionJson);
+            using var reflection = JsonDocument.Parse(reflectionJson);
             return Reflect(spirv, reflection.RootElement, samplerSpace, uniformSpace);
         }
         finally
@@ -975,11 +1098,10 @@ public static partial class SlangShaders
             args.Add(modules);
         }
 
-        if (LibraryPath is { } library)
-        {
-            args.Add("-I");
-            args.Add(library);
-        }
+        if (LibraryPath is not { } library) return args;
+
+        args.Add("-I");
+        args.Add(library);
 
         return args;
     }
@@ -1138,4 +1260,6 @@ public static partial class SlangShaders
     }
 
     private static float At(float[] values, int index) => index < values.Length ? values[index] : 0f;
+    [GeneratedRegex(@"\buniform\s+float2\s+xanaduClock\b")]
+    private static partial Regex MyRegex();
 }

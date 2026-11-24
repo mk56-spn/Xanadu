@@ -15,7 +15,7 @@ public enum BrickKind
     /// <summary><c>update.slang</c>: one struct the GPU keeps, <c>update</c> once a frame; every later brick reads <c>state</c>.</summary>
     Update,
 
-    /// <summary><c>step.slang</c>: a pool of <c>count</c> items the GPU keeps, <c>step</c> on each once a frame; each is drawn once, as <c>item</c>.</summary>
+    /// <summary><c>step.slang</c>: a pool of <c>[Pool(count)]</c> items the GPU keeps, <c>step</c> on each once a frame; each is drawn once, as <c>item</c>.</summary>
     Step,
 
     /// <summary>
@@ -85,9 +85,9 @@ public static partial class ShaderStack
             "Use it for things the whole effect shares and that build up over time: a value easing towards a target, " +
             "a counter, a smoothed beat. Lab and shader tool only for now.",
         BrickKind.Step =>
-            "STEP (step.slang) is a pool: `count` items of your own struct kept on the GPU, each moved once a frame by " +
-            "step(inout Item t, uint i, float dt), one GPU thread per item; start(i) makes each after a compile. " +
-            "Each item is drawn once: DEFORM places it (reading it as `item`) and SHADE colours it. With a `rate` and a " +
+            "STEP (step.slang) is a pool: [Pool(count)] items of your own struct kept on the GPU, each moved once a frame by " +
+            "[Pool(count)] void step(inout Item t, uint i, float dt), one GPU thread per item; start(i) makes each after a compile. " +
+            "Each item is drawn once: DEFORM places it (reading it as `item`) and SHADE colours it. With [Pool(count, rate)] and a " +
             "bool step, the engine bears that many a second into dead slots and frees those whose step returns false. " +
             "Use it for swarms, sparks and particles that each move on their own. Needs a DEFORM brick. Lab only for now.",
         BrickKind.Build =>
@@ -127,6 +127,16 @@ public static partial class ShaderStack
         "multiply, premultiplied, or a custom one), set where the stack is placed (on the item or its material), not in " +
         "the code. The same stack can glow additively in one place and mix plainly in another.";
 
+    /// <summary>
+    /// The bricks a kind can't work without. When one needs the other back, adding either
+    /// adds both; when only one needs the other, adding it says what is missing.
+    /// </summary>
+    public static BrickKind[] Needs(BrickKind kind) => kind switch
+    {
+        BrickKind.Step => [BrickKind.Deform],
+        _ => [],
+    };
+
     /// <summary>The functions a kind's brick declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
     public static string[] Entries(BrickKind kind) => kind switch
     {
@@ -146,7 +156,7 @@ public static partial class ShaderStack
     private static (string Entry, Regex Pattern) EntryOf(BrickKind kind) => kind switch
     {
         BrickKind.Update => ("void update(inout State s, float dt)", UpdateEntry()),
-        BrickKind.Step => ("void step(inout Item t, uint i, float dt) (or bool step, with a rate)", StepEntry()),
+        BrickKind.Step => ("[Pool(count)] void step(inout Item t, uint i, float dt) (or [Pool(count, rate)] bool step)", StepEntry()),
         BrickKind.Build => ("void build(), calling its passes in order", BuildEntry()),
         BrickKind.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
         BrickKind.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
@@ -265,14 +275,12 @@ public static partial class ShaderStack
 
             """,
         BrickKind.Step => """
-            // STEP: `count` items the GPU keeps from frame to frame.
+            // STEP: items the GPU keeps from frame to frame, as many as [Pool(n)] on step says.
             // start(i) makes item i after every compile; step moves it once a frame.
             // The DEFORM brick draws each item once: it reads the one it is drawing as `item`.
             import xanadu;
 
             struct Item { float2 position; float2 velocity; };
-
-            static const uint count = 1000;
 
             Item start(uint i)
             {
@@ -282,6 +290,7 @@ public static partial class ShaderStack
                 return t;
             }
 
+            [Pool(1000)]
             void step(inout Item t, uint i, float dt)
             {
                 t.position += t.velocity * dt;

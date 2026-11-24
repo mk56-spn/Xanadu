@@ -85,6 +85,9 @@ internal sealed class EditorTuning : IDisposable
         Rebuild();
     }
 
+    /// <summary>A value as its field has it now; null for a name that has no field.</summary>
+    public Vector4? Value(string name) => _tuned.TryGetValue(name, out float[]? value) ? UiValueFields.AsVector(value) : null;
+
     /// <summary>A stand-in's value: its field's, or <paramref name="fallback"/> in every channel before it ever had one.</summary>
     public Vector4 StandIn(string name, float fallback) =>
         _tuned.TryGetValue(name, out float[]? value) ? UiValueFields.AsVector(value) : new Vector4(fallback);

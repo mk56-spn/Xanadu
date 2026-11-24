@@ -833,6 +833,152 @@ public sealed class ShapeCostLintTests
     }
 
     [Test]
+    public void ASwitchCostsOnlyItsDearestCase()
+    {
+        // 30 stars a case (90 circles) would be 270 summed; one case runs, so it is 90.
+        SlangProblem problem = Check("""
+                colour c = colours.black;
+                int shape = 1;
+                for (int i = 0; i < 10; i++)
+                {
+                    switch (shape)
+                    {
+                        case 0:
+                            c.paint(Star6(10).moved(float2(i, 0)), colours.gold);
+                            break;
+                        case 1:
+                        {
+                            c.paint(Star6(10).moved(float2(i, 0)), colours.gold);
+                            c.paint(Star6(10).moved(float2(0, i)), colours.gold);
+                            c.paint(Star6(10).moved(float2(i, i)), colours.gold);
+                            break;
+                        }
+                        default:
+                            c.paint(Circle(10).moved(float2(i, 0)), colours.gold);
+                            break;
+                    }
+                }
+                return c;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS006 · about 90 circles"));
+    }
+
+    [Test]
+    public void NumbersAndFieldReadsAreNotShapesWorkedOutAgain()
+    {
+        // As the tour's write_on: scale is a number made from a Step, and s.points reads the spline, it doesn't draw it.
+        SlangProblem[] problems = [.. Check("""
+                Step panel = steps.split(6);
+                float scale = panel.canvas.size.x / 250;
+                Spline s = Spline(scale);
+                colour c = colours.black;
+                for (int k = 0; k < 4; k++)
+                    c.paint(Circle(5 * scale).moved(s.points[k]).stroked(2), colours.white);
+                Polyline straight = Polyline(2 * scale);
+                c.paint(straight, colours.gray);
+                c.paint(s, colours.gold);
+                return c;
+            """).Where(p => p.Message.StartsWith("XS005"))];
+
+        Assert.That(problems, Is.Empty);
+    }
+
+    [Test]
+    public void AShapePlacedAtAPointOnAnotherDoesNotDrawIt()
+    {
+        Assert.That(Check("""
+                colour c = colours.black;
+                Spline s = Spline(4);
+                c.paint(s, colours.gold);
+                let tip = Circle(3).moved(s.at(0.5));
+                c.paint(tip.haloed(30, 3), colours.orange);
+                c.paint(tip, colours.white);
+                return c;
+            """).Where(p => p.Message.StartsWith("XS005 · s")), Is.Empty);
+    }
+
+    [Test]
+    public void BlocksThatReturnCostOnlyTheDearestWayThrough()
+    {
+        // Three stars a block (9 circles), five blocks that each return: 9 a pixel, not 45 or more.
+        string block = "if (k == {0}) {{ c.paint(Star6(1).moved(float2(1, 0)), colours.gold); c.paint(Star6(2).moved(float2(2, 0)), colours.gold); c.paint(Star6(3).moved(float2(3, 0)), colours.gold); return c; }}\n";
+        string body = "colour c = colours.black;\nint k = 2;\n" + string.Concat(Enumerable.Range(0, 12).Select(i => string.Format(block, i))) + "return c;";
+
+        Assert.That(Check(body).Where(p => p.Message.StartsWith("XS006")), Is.Empty);
+    }
+
+    [Test]
+    public void ADrawInABlockThatReturnsIsNotRepeatedByOnesAfterIt()
+    {
+        // As the tour's panels: each block draws and returns, so the next never runs after it.
+        Assert.That(Check("""
+                colour c = colours.black;
+                let star = Star6(60);
+                int k = 1;
+                if (k == 0)
+                {
+                    c.paint(star, colours.gold);
+                    return c;
+                }
+                if (k == 1)
+                    return c.paint(star.stroked(2), colours.white);
+                c.paint(star, colours.white);
+                return c;
+            """).Where(p => p.Message.StartsWith("XS005")), Is.Empty);
+    }
+
+    [Test]
+    public void AShapeDrawnOnceInEachCaseIsNotARepeat()
+    {
+        Assert.That(Check("""
+                colour c = colours.black;
+                let star = Star6(60);
+                int look = 1;
+                switch (look)
+                {
+                    case 0: c.paint(star, colours.gold); break;
+                    case 1: c.paint(star.stroked(2), colours.white); break;
+                }
+                return c;
+            """), Is.Empty);
+    }
+
+    [Test]
+    public void AShapeDrawnTwiceInOneCaseIsARepeat()
+    {
+        SlangProblem problem = Check("""
+                colour c = colours.black;
+                let star = Star6(60);
+                int look = 1;
+                switch (look)
+                {
+                    case 0: c.paint(star, colours.gold); break;
+                    case 1: c.paint(star, colours.gold); c.paint(star.stroked(2), colours.white); break;
+                }
+                return c;
+            """).Single();
+        Assert.That(problem.Message, Does.StartWith("XS005 · star"));
+    }
+
+    [Test]
+    public void SwitchCasesUnderTheBudgetDoNotAddUp()
+    {
+        Assert.That(Check("""
+                colour c = colours.black;
+                int shape = 2;
+                switch (shape)
+                {
+                    case 0: c.paint(Star6(10).moved(float2(1, 0)), colours.gold); c.paint(Star6(10).moved(float2(2, 0)), colours.gold); break;
+                    case 1: c.paint(Star6(10).moved(float2(3, 0)), colours.gold); c.paint(Star6(10).moved(float2(4, 0)), colours.gold); break;
+                    case 2: c.paint(Star6(10).moved(float2(5, 0)), colours.gold); c.paint(Star6(10).moved(float2(6, 0)), colours.gold); break;
+                    case 3: c.paint(Star6(10).moved(float2(7, 0)), colours.gold); c.paint(Star6(10).moved(float2(8, 0)), colours.gold); break;
+                    default: c.paint(Star6(10).moved(float2(9, 0)), colours.gold); c.paint(Star6(10).moved(float2(10, 0)), colours.gold); break;
+                }
+                return c;
+            """).Where(p => p.Message.StartsWith("XS006")), Is.Empty);
+    }
+
+    [Test]
     public void ALookPaintsTwiceAndALoopWithoutABoundIsAGuess()
     {
         SlangProblem problem = Check("""

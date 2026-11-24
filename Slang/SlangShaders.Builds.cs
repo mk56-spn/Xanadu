@@ -3,8 +3,11 @@ using System.Linq;
 
 namespace Xanadu.Slang;
 
-/// <summary>A BUILD brick's pass, compiled: its compute stage and the stack buffers it binds, by their place in <see cref="StackBuild.Buffers"/>.</summary>
-public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buffers, int Threads);
+/// <summary>
+/// A BUILD brick's pass, compiled: its compute stage, the stack buffers it binds (by their place in
+/// <see cref="StackBuild.Buffers"/>), and how it really uses each (read, write or both), in the same order.
+/// </summary>
+public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buffers, int Threads, GraphAccess[] Access);
 
 /// <summary>
 /// A stack's BUILD brick, compiled: the brick as read (its schedule runs on the CPU), each
@@ -51,14 +54,25 @@ public static partial class SlangShaders
     /// </summary>
     private static (CompiledShader Shader, int[] Used) Placed(StackBuild? build, string source, int set, int first, Func<string, CompiledShader> compile)
     {
+        (CompiledShader shader, int[] used, _) = PlacedWithAccess(build, source, set, first, compile);
+        return (shader, used);
+    }
+
+    /// <summary>
+    /// <see cref="Placed"/>, with how the stage really uses each buffer it binds (in the order of
+    /// <c>Used</c>): for compute, which binds them read-write whatever it does with them.
+    /// </summary>
+    private static (CompiledShader Shader, int[] Used, GraphAccess[] Access) PlacedWithAccess(
+        StackBuild? build, string source, int set, int first, Func<string, CompiledShader> compile)
+    {
         if (build is null)
-            return (compile(source), []);
+            return (compile(source), [], []);
         int count = build.Buffers.Count;
         CompiledShader shader = compile(build.Rewrite(source, set, k => first + k));
         int[] used = [.. Enumerable.Range(0, count).Where(k => SpirvScan.Binds(shader.Spirv, set, first + k))];
-        if (used.Length == count)
-            return (shader, used);
-        return (compile(build.Rewrite(source, set, k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k)), used);
+        if (used.Length != count)
+            shader = compile(build.Rewrite(source, set, k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k));
+        return (shader, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, set, first + at))]);
     }
 
     /// <summary>
@@ -107,7 +121,7 @@ public static partial class SlangShaders
         for (int p = 0; p < passes.Length; p++)
         {
             BuildPass pass = build.Passes[p];
-            (CompiledShader compute, int[] used) = Placed(build, source, 1, 0, placed =>
+            (CompiledShader compute, int[] used, GraphAccess[] access) = PlacedWithAccess(build, source, 1, 0, placed =>
                 CompileWrapped(WrapPass(name, placed, pass, keepsState, pool), "xanaduPass", "compute", 0, 2,
                     [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]));
             CheckDeclared(name, compute, 0, 0);
@@ -119,7 +133,7 @@ public static partial class SlangShaders
             passes[p] = new CompiledPass(pass.Name,
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
                     storageBuffers: Globals.Count + (keepsState ? 1 : 0)),
-                used, pass.Threads);
+                used, pass.Threads, access);
         }
 
         var compiled = new CompiledBuild(build, bytes, passes);

@@ -98,17 +98,41 @@ public sealed class TextBuffer
     }
 
     /// <summary>Selects the word (or run of spaces, or single symbol) at a place: a double click.</summary>
-    public void SelectWord(int line, int column)
+    public void SelectWord(int line, int column) => SelectUnits((line, column), (line, column), lines: false);
+
+    /// <summary>Selects a whole line with its line break (to the end of the text on the last line): a triple click.</summary>
+    public void SelectLine(int line) => SelectUnits((line, 0), (line, 0), lines: true);
+
+    /// <summary>
+    /// Selects every word (or line) from the one at <paramref name="from"/> to the one at
+    /// <paramref name="to"/>, keeping the first whole whichever way it runs: dragging after a
+    /// double or triple click.
+    /// </summary>
+    public void SelectUnits((int Line, int Column) from, (int Line, int Column) to, bool lines)
     {
-        Place(line, column);
-        string text = _lines[Line];
+        var origin = Unit(from, lines);
+        var reach = Unit(to, lines);
+        bool back = Before(reach.Start, origin.Start);
+        Anchor = back ? origin.End : origin.Start;
+        (Line, Column) = back ? reach.Start : reach.End;
+        _wantedColumn = Column;
+    }
+
+    private ((int Line, int Column) Start, (int Line, int Column) End) Unit((int Line, int Column) at, bool lines)
+    {
+        int line = Math.Clamp(at.Line, 0, _lines.Count - 1);
+        string text = _lines[line];
+        if (lines)
+            return ((line, 0), line + 1 < _lines.Count ? (line + 1, 0) : (line, text.Length));
+
+        int column = Math.Clamp(at.Column, 0, text.Length);
         if (text.Length == 0)
-            return;
-        int at = Math.Min(Column, text.Length - 1);
+            return ((line, 0), (line, 0));
+        int spot = Math.Min(column, text.Length - 1);
         // Just past the end of a word, the word is meant.
-        if (Column == text.Length || (Column > 0 && Kind(text[at]) != Kind(text[Column - 1]) && Kind(text[Column - 1]) == 0))
-            at = Math.Max(0, Column - 1);
-        int kind = Kind(text[at]), start = at, end = at + 1;
+        if (column == text.Length || (column > 0 && Kind(text[spot]) != Kind(text[column - 1]) && Kind(text[column - 1]) == 0))
+            spot = Math.Max(0, column - 1);
+        int kind = Kind(text[spot]), start = spot, end = spot + 1;
         if (kind != 2)
         {
             while (start > 0 && Kind(text[start - 1]) == kind)
@@ -117,9 +141,7 @@ public sealed class TextBuffer
                 end++;
         }
 
-        Anchor = (Line, start);
-        Column = end;
-        _wantedColumn = Column;
+        return ((line, start), (line, end));
     }
 
     /// <summary>Removes the selection, leaving the caret where it began; false when nothing was selected.</summary>

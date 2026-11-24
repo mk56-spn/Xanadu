@@ -3,8 +3,11 @@ using Xanadu.Slang;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 
-/// <summary>What a compile hands back: whatever the preview needs to show it, and the values it can tune.</summary>
-internal sealed record PreviewBuild(object Result, ShaderParam[] Params);
+/// <summary>
+/// What a compile hands back: whatever the preview needs to show it, the values it can tune, and the
+/// compiled stack its render graph is read from (null when the preview has none).
+/// </summary>
+internal sealed record PreviewBuild(object Result, ShaderParam[] Params, CompiledShader? Stack = null);
 
 /// <summary>
 /// What the shader editor turns its code into and draws on the right. The editor

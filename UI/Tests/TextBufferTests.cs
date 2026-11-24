@@ -15,6 +15,35 @@ public sealed class TextBufferTests
     }
 
     [Test]
+    public void SelectLineTakesTheLineAndItsBreak()
+    {
+        TextBuffer buffer = Buffer("one\ntwo\nthree");
+        buffer.SelectLine(1);
+        Assert.That(buffer.SelectedText, Is.EqualTo("two\n"));
+        buffer.SelectLine(2);
+        Assert.That(buffer.SelectedText, Is.EqualTo("three"));
+    }
+
+    [Test]
+    public void DraggingByWordsKeepsTheFirstWordWholeEitherWay()
+    {
+        TextBuffer buffer = Buffer("alpha beta gamma");
+        buffer.SelectUnits((0, 7), (0, 13), lines: false);
+        Assert.That(buffer.SelectedText, Is.EqualTo("beta gamma"));
+        buffer.SelectUnits((0, 7), (0, 1), lines: false);
+        Assert.That(buffer.SelectedText, Is.EqualTo("alpha beta"));
+    }
+
+    [Test]
+    public void DraggingByLinesTakesWholeLinesUpward()
+    {
+        TextBuffer buffer = Buffer("one\ntwo\nthree");
+        buffer.SelectUnits((2, 1), (0, 2), lines: true);
+        Assert.That(buffer.SelectedText, Is.EqualTo("one\ntwo\nthree"));
+        Assert.That((buffer.Line, buffer.Column), Is.EqualTo((0, 0)));
+    }
+
+    [Test]
     public void TabWithASelectionIndentsItsLinesInsteadOfReplacingThem()
     {
         TextBuffer buffer = Buffer("a\n\nb\nc");

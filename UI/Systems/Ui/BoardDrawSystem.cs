@@ -21,6 +21,10 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
     private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7;
 
+    /// <summary>A line's bridge over another, in pixels: its radius, the half circle's steps, and how far (in radii) from a segment's ends a crossing must be to get one.</summary>
+    private const float HopRadius = 6, HopClear = 1.5f;
+    private const int HopSteps = 8;
+
     private readonly List<string> _lines = [];
     private readonly List<BoardBox> _boxes = [];
 
@@ -63,15 +67,18 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         }
 
         List<List<Vector2>?> paths = board.Paths();
+        // Each line hops over the lines drawn before it where they cross.
+        List<List<LineHop>> hops = LineHops.Of(paths, HopRadius * HopClear / state.Zoom);
         for (int i = 0; i < paths.Count; i++)
         {
             if (paths[i] is { } path)
-                Link(item, state, board.Links[i], path, roles);
+                Link(item, board, state, board.Links[i], path, hops[i], roles);
         }
 
         foreach (BoardBox box in _boxes)
             Box(item, state, box, false, roles);
-        Handles(item, board, state, roles);
+        if (!entity.Tags.Has<ReadOnly>())
+            Handles(item, board, state, roles);
     }
 
     private void Grid(Handle item, BoardState state, Rect2 area, UiThemeRoles roles)
@@ -162,18 +169,63 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             _lines.Clear();
     }
 
-    private void Link(Handle item, BoardState state, BoardLink link, List<Vector2> path, UiThemeRoles roles)
+    private void Link(Handle item, Board board, BoardState state, BoardLink link, List<Vector2> path, List<LineHop> hops, UiThemeRoles roles)
     {
         Color colour = state.SelectedLink == link ? roles.Accent : roles.TextDim;
         float width = state.SelectedLink == link ? LineWidth + 1 : LineWidth;
-        for (int i = 1; i < path.Count - 1; i++)
-            canvas.DrawLine(item, state.Local(state.ToScreen(path[i - 1])), state.Local(state.ToScreen(path[i])), colour, width);
-        Arrow(item, state.Local(state.ToScreen(path[^2])), state.Local(state.ToScreen(path[^1])), colour, width);
+        int next = 0;
+        for (int i = 1; i < path.Count; i++)
+        {
+            Vector2 from = state.Local(state.ToScreen(path[i - 1])), to = state.Local(state.ToScreen(path[i]));
+            int first = next;
+            while (next < hops.Count && hops[next].Segment == i - 1)
+                next++;
+            Segment(item, from, to, hops, first, next, state.Zoom, colour, width);
+        }
+
+        Arrow(item, state.Local(state.ToScreen(path[^2])), state.Local(state.ToScreen(path[^1])), colour);
+        if (board.TwoWay(link))
+            Arrow(item, state.Local(state.ToScreen(path[1])), state.Local(state.ToScreen(path[0])), colour);
     }
 
-    private void Arrow(Handle item, Vector2 from, Vector2 to, Color colour, float width)
+    /// <summary>A straight piece of a line, bridged over each hop (hops[first..end], board distances along it) by a half circle.</summary>
+    private void Segment(Handle item, Vector2 from, Vector2 to, List<LineHop> hops, int first, int end, float zoom, Color colour, float width)
     {
-        canvas.DrawLine(item, from, to, colour, width);
+        Vector2 along = to - from;
+        float length = along.Length();
+        if (length < 1)
+            return;
+        along /= length;
+        // The bridge bulges up the screen (or left, on a level line's other side).
+        Vector2 up = new(along.Y, -along.X);
+        if (up.Y > 0 || (up.Y == 0 && up.X > 0))
+            up = -up;
+
+        float at = 0;
+        Span<Vector2> arc = stackalloc Vector2[HopSteps + 1];
+        for (int k = first; k < end; k++)
+        {
+            float middle = hops[k].At * zoom;
+            // Two crossings closer than a bridge run straight through the second.
+            if (middle - HopRadius < at)
+                continue;
+            canvas.DrawLine(item, from + along * at, from + along * (middle - HopRadius), colour, width);
+            Vector2 centre = from + along * middle;
+            for (int step = 0; step <= HopSteps; step++)
+            {
+                float angle = MathF.PI * step / HopSteps;
+                arc[step] = centre - along * (HopRadius * MathF.Cos(angle)) + up * (HopRadius * MathF.Sin(angle));
+            }
+
+            canvas.DrawPolyline(item, arc, colour, width);
+            at = middle + HopRadius;
+        }
+
+        canvas.DrawLine(item, from + along * at, to, colour, width);
+    }
+
+    private void Arrow(Handle item, Vector2 from, Vector2 to, Color colour)
+    {
         Vector2 along = to - from;
         if (along.LengthSquared() < 1)
             return;
@@ -189,7 +241,9 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         if (state.Gesture == BoardGestureKind.Link && board.Find(state.Target) is { } from)
         {
             Vector2 start = Board.Edge(from.Rect, state.Pointer);
-            Arrow(item, state.Local(state.ToScreen(start)), state.Local(state.ToScreen(state.Pointer)), roles.Accent, LineWidth);
+            Vector2 tail = state.Local(state.ToScreen(start)), head = state.Local(state.ToScreen(state.Pointer));
+            canvas.DrawLine(item, tail, head, roles.Accent, LineWidth);
+            Arrow(item, tail, head, roles.Accent);
             return;
         }
 

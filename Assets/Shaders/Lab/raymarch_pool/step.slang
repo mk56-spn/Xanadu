@@ -8,7 +8,6 @@ static const int SPHERES = 128;
 static const float SCALE = 80;      // pixels a unit of the old scene
 static const float BLEND = 0.12 * SCALE;    // how far the spheres melt into each other, in pixels
 
-static const uint count = 128;      // SPHERES, written as a number: the engine reads it
 static const int NEAR = 8;          // the most neighbours a sphere melts with: the nearest ones
 
 /// The eye, 520 px back from the cloud's middle, with a 300 px lens: the old scene's framing.
@@ -48,6 +47,7 @@ Sphere start(uint i)
 /// Where it is now, and the spheres close enough to melt into it (surfaces within twice
 /// BLEND), the nearest NEAR of them. The motion is a function of time, so each sphere works
 /// out the others itself, once a frame, and no pixel has to.
+[Pool(128)]     // SPHERES, written as a number: the engine reads it
 void step(inout Sphere s, uint i, float dt)
 {
     s.ball = sphereAt(int(i), time);

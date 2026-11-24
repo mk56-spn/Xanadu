@@ -30,7 +30,7 @@ internal sealed class BrickStrip : IDisposable
     private const float Height = 30;
 
     /// <summary>The theme category each kind is told apart by (<see cref="UiThemeRoles.Categories"/>).</summary>
-    private static int Category(BrickKind kind) => kind switch
+    internal static int Category(BrickKind kind) => kind switch
     {
         BrickKind.Update => 4,
         BrickKind.Step => 5,

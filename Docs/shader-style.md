@@ -143,7 +143,10 @@ the shape is dear.
 
 **Not flagged** A shape moved, turned, scaled, anchored or given a new value
 between draws (that's another shape), one drawn at a different point
-(`distance(p)` and `distance(mouse)`), and a `Measured` (it's free to draw).
+(`distance(p)` and `distance(mouse)`), one drawn in different cases of a
+`switch` or in a block that returns and after it (only one runs), a name
+declared as a number or other non-shape, a shape read for a point or a field
+(`s.at(t)`, `s.points[k]`), and a `Measured` (it's free to draw).
 
 ```slang
 // flagged: ring is worked out by both paints
@@ -163,7 +166,9 @@ shown on `shade`. Each shape costs its library `/// @cost` tag (a `Circle` is 1,
 a `Box` 2, a `Star6` 3; `repeated` adds 2, the melted joins 1). A draw costs
 every shape inside it, a `Look` paints twice, and a draw in a `for` counts once
 per pass. The bound is read from a number or a `const int`, and taken as 8 passes
-when the text doesn't give one.
+when the text doesn't give one. A `switch` runs one case a pixel, so it costs its
+dearest case, not all of them added up; a block that ends in `return` costs the
+dearer of itself and everything after it.
 
 **Why** Every pixel of the quad pays it, every frame.
 
@@ -172,7 +177,7 @@ distances by hand in a loop (§8 of `Docs/shaders.md`) so each shape is worked
 out once.
 
 **Not flagged** Work the text can't see. A helper function counts once,
-wherever it's called from, and a branch counts as though it always runs.
+wherever it's called from, and an `if` counts as though it always runs.
 
 ## XS007 · A name that hides a function (warning) · checked
 

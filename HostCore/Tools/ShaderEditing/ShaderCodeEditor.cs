@@ -10,6 +10,7 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
+using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 
@@ -61,6 +62,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     private readonly ShaderEditorSlots _slots;
 
     /// <summary>The nodes it made in its slots: the code, and under the preview the clips, the problems, the values' room, the key guide.</summary>
+    private readonly StackGraphView _graph;
     private readonly UiNode _code, _rest, _clipsNode, _problemsNode, _tuningNode, _guideNode;
     private int _guideLines = -1;
     private readonly PlayStandIns _standIns = new();
@@ -189,6 +191,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _brickStrip = new BrickStrip(slots.Code);
         _strip = new EditorTabs(entities, slots.Code);
         _code = slots.Code.Column().Grow();
+        _graph = new StackGraphView(slots.Code);
         // Under the preview: the clips, then the rest on the column's own background.
         slots.Side.Gap(UnderGap).Cross(StackCrossAlignment.Stretch);
         _clipsNode = slots.Side.Column().Height(ClipTimeline.MinHeight);
@@ -427,6 +430,30 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     /// <summary>Ctrl+S in the code. Without a handler the key does nothing.</summary>
     public event Action? SaveRequested;
 
+    /// <summary>
+    /// Whether the stack's render graph stands where the code is: its passes, the data
+    /// they share and who reads and writes what, as of the last compile that worked.
+    /// </summary>
+    public bool ShowsGraph
+    {
+        get => _showsGraph;
+        set
+        {
+            _showsGraph = value;
+            _code.Hidden(value);
+            _graph.Node.Hidden(!value);
+            CanvasServer.Current.SetVisible(_editor.GetComponent<TextEditor>().Item, !value);
+        }
+    }
+
+    private bool _showsGraph;
+
+    /// <summary>The last stack that compiled: its graph is read again each frame, with the values as they are tuned now.</summary>
+    private CompiledShader? _compiledStack;
+
+    /// <summary>Where the editor says what a brick still needs; nothing is said without one.</summary>
+    public ToastSystem? Toasts { get; set; }
+
     /// <summary>Called with the text just before each compile; the lab saves its working copy there.</summary>
     public Action<string>? Compiling { get; init; }
 
@@ -493,6 +520,9 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     public void Update(in ToolFrame frame, bool pointerFree = true)
     {
         Follow();
+        if (_showsGraph && _compiledStack is { } stack)
+            _graph.Show(StackGraph.Of(stack, name => stack.ScheduleValue(name, _tuning.Value(name))));
+        _graph.Update();
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;
         TextEditorFrame did = _editor.GetComponent<TextEditor>().Frame;
@@ -631,6 +661,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);
+        _graph.Delete();
         UiLayout.DeleteSubtree(_clipsNode.Entity);
         UiLayout.DeleteSubtree(_rest.Entity);
     }

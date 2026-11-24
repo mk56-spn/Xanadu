@@ -62,6 +62,7 @@ internal sealed partial class ShaderCodeEditor
             try
             {
                 said = _view.Show(compiled.Build!);
+                _compiledStack = compiled.Build!.Stack;
             }
             catch (Exception exception)
             {

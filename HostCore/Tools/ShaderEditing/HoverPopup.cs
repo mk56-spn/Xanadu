@@ -102,14 +102,14 @@ internal sealed class HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
             foreach (string paragraph in doc.Split('\n'))
             {
                 bool code = paragraph.StartsWith("    ", StringComparison.Ordinal);
-                foreach (string piece in code ? [paragraph[2..]] : Wrap(paragraph, fits))
+                foreach (string piece in code ? [paragraph[2..]] : UiTextFit.WrapColumns(paragraph, fits))
                     rows.Add((piece, code ? Palette.TextDim : Palette.Text));
             }
         }
 
         if (_shownReason is { } why)
         {
-            foreach (string piece in Wrap(char.ToUpperInvariant(why[0]) + why[1..] + ".", fits))
+            foreach (string piece in UiTextFit.WrapColumns(char.ToUpperInvariant(why[0]) + why[1..] + ".", fits))
                 rows.Add((piece, Palette.Warning));
             if (_shown.Count > 0)
                 rows.Add(("", Palette.Text));
@@ -121,7 +121,7 @@ internal sealed class HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
         {
             if (e > 0 && !shared)
                 rows.Add(("", Palette.Text));
-            foreach (string piece in Wrap(_shown[e].Header, fits, "    "))
+            foreach (string piece in UiTextFit.WrapColumns(_shown[e].Header, fits, "    "))
                 rows.Add((piece, Signature));
             if (_shown[e].Doc is { } doc && (!shared || e == _shown.Count - 1))
                 Doc(doc);
@@ -152,23 +152,5 @@ internal sealed class HoverPopup(IRectCanvas canvas, Handle item, Rect2 bounds)
             _canvas.DrawTextMono(
                 _item, new Rect2(x + Pad - 4, y + Pad / 2 + r * Row, width - Pad, Row), rows[r].Text, rows[r].Colour, TextSize, TextAlign.Left);
         }
-    }
-
-    /// <summary>Text broken at spaces into rows of at most <paramref name="fits"/> characters, rows after the first led by <paramref name="indent"/>.</summary>
-    private static List<string> Wrap(string text, int fits, string indent = "")
-    {
-        var rows = new List<string>();
-        while (text.Length > fits)
-        {
-            // A space inside the indent is no place to break: cutting there would leave the text as it was, forever.
-            int cut = text.LastIndexOf(' ', fits);
-            if (cut <= indent.Length)
-                cut = fits;
-            rows.Add(text[..cut].TrimEnd());
-            text = indent + text[cut..].TrimStart();
-        }
-
-        rows.Add(text);
-        return rows;
     }
 }

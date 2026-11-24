@@ -174,13 +174,13 @@ float4 shade(Canvas canvas)
 
 ## 7. Particles: kept state × N
 
-- **Pools (built 2026-11-24, lab only):** the STEP brick, `count` items of the
+- **Pools (built 2026-11-24, lab only):** the STEP brick, `[Pool(count)]` items of the
   author's own struct, `start(i)` and `step(t, i, dt)` on the GPU, each item
   drawn once through the stack's deform and shade bricks, which read it as
   `item` (`Docs/shaders.md` §20, `Assets/Shaders/Lab/swarm/`). It is this box
   as a user chunk; the host's particles below are not on it yet.
 - **Engine births (built 2026-11-24, user's choice over raw atomics):** a
-  `rate` and `bool step`. The engine bears exactly `rate` a second into dead
+  `rate` (`[Pool(count, rate)]`) and `bool step`. The engine bears exactly `rate` a second into dead
   slots (each takes a ticket from an atomic counter; the first `births` are
   born, through `start(n)`), frees a slot when `step` returns false, and folds
   dead slots out of the draw. No atomics in user code. `Lab/fountain` is the
@@ -264,6 +264,33 @@ Open:
   as its own, not as a sibling?
 - This rule may answer "effect to effect" below: an effect reads another
   effect's compute when that compute sits in an earlier level.
+
+## 9. The render graph (built 2026-11-24)
+
+A compiled stack is also a graph (`Slang/StackGraph.cs`): the passes it runs
+this frame and the resources they share (state, pool items, each BUILD buffer,
+depth, frame, the screen copy), with who reads and writes what. It shows what
+*is*, not what could be:
+
+- **Passes:** the BUILD passes are the ones `build()` really calls with the
+  values as they are now, in the order first called, each with its calls
+  (×4 for a loop) and the threads they run. A pass a value switches off isn't
+  there; a schedule that can't run says why.
+- **Reads and writes:** compute binds every buffer read-write, so each compute
+  stage's SPIR-V is scanned (`SpirvScan.Access`) for the loads, stores and
+  atomics that really reach each buffer. Graphics stages can only read.
+- **Still as bound:** kept state and pool items show every stage that binds
+  them, used or not.
+
+- **The renderer walks it.** Each frame, every stack drawn runs its compute
+  passes in the graph's order before any pass draws (UPDATE, STEP, then BUILD
+  as `build()` calls the passes); TRACE and the triangles run at its draw.
+- **The shader tool draws it.** GRAPH (or `--graph`) swaps the code for the
+  graph on a read-only board: passes down the left, coloured like their bricks,
+  resources down the right, an arrow for each read and write (one line with two
+  heads for both), lines hopping where they cross. It follows the values as
+  you tune them.
+- **Next:** frame history as one more resource.
 
 ## Not covered yet
 

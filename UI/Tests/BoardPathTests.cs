@@ -73,7 +73,7 @@ public sealed class BoardPathTests
     }
 
     [Test]
-    public void OppositeLinesBetweenTwoBoxesRunSideBySide()
+    public void OppositeLinesBetweenTwoBoxesAreOneLine()
     {
         var board = new Board();
         BoardBox a = board.Add(new Rect2(0, 0, 100, 60)), b = board.Add(new Rect2(400, 0, 100, 60));
@@ -83,7 +83,7 @@ public sealed class BoardPathTests
         var paths = board.Paths();
 
         Assert.That(paths[0]![0].X, Is.EqualTo(100).Within(0.01f));
-        Assert.That(paths[1]![0].X, Is.EqualTo(400).Within(0.01f));
-        Assert.That(MathF.Abs(paths[0]![0].Y - paths[1]![0].Y), Is.EqualTo(Board.TwoWayGap * 2).Within(0.01f));
+        Assert.That(paths[1], Is.Null);
+        Assert.That(board.TwoWay(board.Links[0]), Is.True);
     }
 }

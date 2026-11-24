@@ -15,8 +15,6 @@ struct Dot
     float hue;
 };
 
-static const uint count = 10000;
-
 Dot start(uint i)
 {
     Dot d;
@@ -27,6 +25,7 @@ Dot start(uint i)
     return d;
 }
 
+[Pool(10000)]
 void step(inout Dot d, uint i, float dt)
 {
     float2 towards = attractor - d.position;

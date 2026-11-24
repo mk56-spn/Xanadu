@@ -19,7 +19,7 @@ namespace Xanadu.Slang;
 /// <see cref="UnknownPasses"/> passes).</item>
 /// </list>
 /// Only what the text says: a helper function counts once wherever it's called from,
-/// and a branch counts as though it always runs.
+/// an if counts as though it always runs, and a switch costs its dearest case.
 /// </summary>
 public static partial class SlangLint
 {
@@ -90,10 +90,17 @@ public static partial class SlangLint
             bool measured = false, any = false;
             // sdf.melted and the rest work on numbers, not shapes.
             value = Regex.Replace(value, @"\bsdf\s*\.\s*\w+", "sdf_");
+            string?[] within = Within(value);
             foreach (Match token in Token().Matches(value))
             {
                 string name = token.Groups[2].Value;
                 bool dotted = token.Groups[1].Success, called = token.Groups[3].Success;
+                // In moved(...), at(...), a number's maths: a shape there gives a point or a number, it isn't drawn.
+                if (!dotted && !called && within[token.Index] is { } call && !Joins.Contains(call))
+                    continue;
+                // s.points[k], s.count: reading a shape's field or an element isn't drawing it.
+                if (!dotted && !called && Regex.IsMatch(value[(token.Index + token.Length)..], @"^\s*(?:\.\s*[A-Za-z_]\w*(?!\s*[\w(])|\[)"))
+                    continue;
                 if (dotted && called && Draws.Contains(name) && name != "measured")
                     return null;     // a number now, not a shape
                 if (dotted && called && name == "measured")
@@ -136,7 +143,15 @@ public static partial class SlangLint
             int from = assignment.Index + assignment.Length;
             string value = code[from..StatementEnd(code, from)];
             Changed(name, assignment.Index);
-            if (Read(value, assignment.Index) is { } recipe)
+            // A name declared as a number, a colour, a Step… is never a shape, whatever it's made from.
+            string? type = DeclaredType(code, name, assignment.Index);
+            if (type is not null && !IsShapeType(type, costs))
+                continue;
+            // A shape made by code the lint can't read (a helper) still costs what its type does.
+            Recipe? read = Read(value, assignment.Index);
+            if (read is null && type is not null && costs.TryGetValue(type, out float own))
+                read = new Recipe(own, [], false);
+            if (read is { } recipe)
             {
                 if (!named.TryGetValue(name, out var list))
                     named[name] = list = [];
@@ -181,16 +196,21 @@ public static partial class SlangLint
                 work.Add(new Work(call.Index, done.Cost * times, done.Shapes, point));
         }
 
-        // XS005: a named shape worked out again, unchanged, at the same point.
-        var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+        // XS005: a named shape worked out again, unchanged, at the same point. Draws that never
+        // both run (different cases of a switch, a block that returns and what follows) aren't repeats.
+        var branches = new SlangBranches(code);
+        var seen = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         var told = new HashSet<string>(StringComparer.Ordinal);
         foreach (Work done in work.OrderBy(w => w.At))
         {
             foreach (string shape in done.Shapes)
             {
                 string key = shape + "|" + done.Point;
-                seen[key] = seen.GetValueOrDefault(key) + 1;
-                if (seen[key] < 2 || !told.Add(shape))
+                if (!seen.TryGetValue(key, out var before))
+                    seen[key] = before = [];
+                bool again = before.Any(at => !branches.Apart(at, done.At));
+                before.Add(done.At);
+                if (!again || !told.Add(shape))
                     continue;
                 string name = shape[..shape.IndexOf('@')];
                 (int line, int column) = Place(code, done.At);
@@ -203,7 +223,7 @@ public static partial class SlangLint
         // XS006: the whole effect over the budget.
         List<(int Start, int End, float Passes, bool Guessed)> loops = Loops(code);
         bool guessed = false;
-        float total = 0;
+        var weighed = new List<(int At, float Cost)>();
         foreach (Work done in work)
         {
             float passes = 1;
@@ -213,8 +233,11 @@ public static partial class SlangLint
                 guessed |= loop.Guessed;
             }
 
-            total += done.Cost * passes;
+            weighed.Add((done.At, done.Cost * passes));
         }
+
+        // Only one case of a switch runs at a pixel, and a block that returns ends it: the dearest way through.
+        float total = branches.Dearest(0, code.Length, weighed);
 
         if (total > ShapeBudget)
         {
@@ -226,6 +249,51 @@ public static partial class SlangLint
                 Warning: true);
         }
     }
+
+    /// <summary>For each character, the call whose arguments it is in (innermost; "" for plain brackets), or null at the top.</summary>
+    private static string?[] Within(string value)
+    {
+        var within = new string?[value.Length + 1];
+        var open = new Stack<string>();
+        for (int i = 0; i < value.Length; i++)
+        {
+            within[i] = open.Count > 0 ? open.Peek() : null;
+            if (value[i] == '(')
+            {
+                int end = i;
+                while (end > 0 && char.IsWhiteSpace(value[end - 1]))
+                    end--;
+                int start = end;
+                while (start > 0 && (char.IsLetterOrDigit(value[start - 1]) || value[start - 1] == '_'))
+                    start--;
+                open.Push(value[start..end]);
+            }
+            else if (value[i] == ')' && open.Count > 0)
+                open.Pop();
+        }
+
+        within[value.Length] = open.Count > 0 ? open.Peek() : null;
+        return within;
+    }
+
+    /// <summary>The type a name was last declared with before <paramref name="at"/> (<c>float scale =</c>, <c>Spline s;</c>); null when the text doesn't say.</summary>
+    private static string? DeclaredType(string code, string name, int at)
+    {
+        string? type = null;
+        foreach (Match declared in Regex.Matches(code, $@"\b([A-Za-z_]\w*)\s+{Regex.Escape(name)}\b\s*(?=[=;,)])"))
+        {
+            if (declared.Index > at)
+                break;
+            if (declared.Groups[1].Value is not ("return" or "in" or "out" or "inout" or "const" or "static" or "uniform"))
+                type = declared.Groups[1].Value;
+        }
+
+        return type;
+    }
+
+    /// <summary>Whether values of a type can be shapes: a library shape (one with a cost), Shape, Measured, or inferred (let, var).</summary>
+    private static bool IsShapeType(string type, IReadOnlyDictionary<string, float> costs) =>
+        type is "let" or "var" or "Shape" or "Measured" || costs.ContainsKey(type);
 
     /// <summary>
     /// The point a draw works its shape out at: its first argument when that's a point, "" for the

@@ -46,9 +46,10 @@ public struct TextEditor : IComponent
     /// <summary>A press began in the text and is still held: moving drags the selection.</summary>
     public bool Dragging;
 
-    /// <summary>When and where the last click landed, for a double click.</summary>
+    /// <summary>When and where the last click landed, and how many quick clicks led to it (1 place, 2 word, 3 line).</summary>
     public float LastClick;
     public (int Line, int Column) LastClickAt;
+    public int Clicks;
 }
 
 /// <summary>The text editor that keys and typing go to.</summary>
