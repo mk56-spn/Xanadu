@@ -17,7 +17,7 @@ internal enum BrickPress { Open, Add, Remove }
 
 /// <summary>
 /// The pipeline a shader stack composes, as a row over its code: every brick
-/// kind in the order it runs, UPDATE → STEP → DEFORM → SHADE, then the blend
+/// kind in the order it runs, UPDATE → STEP → BUILD → TRACE → DEFORM → SHADE, then the blend
 /// (set where the stack is placed, not a brick). Each kind has its own colour
 /// (<see cref="Colour"/>), which the code's entry names share: a brick the stack
 /// has is written in it, the open one on a surface tinted with it; one it hasn't
@@ -34,6 +34,7 @@ internal sealed class BrickStrip : IDisposable
     {
         BrickKind.Update => 4,
         BrickKind.Step => 5,
+        BrickKind.Trace => 2,
         BrickKind.Deform => 3,
         _ => 6,
     };
@@ -74,19 +75,19 @@ internal sealed class BrickStrip : IDisposable
                 else
                     button.Quiet();
                 button.CategoryText(Category(brick.Kind))
-                    .Tooltip($"{ShaderStack.FileName(brick.Kind)}: {ShaderStack.Purpose(brick.Kind)}");
+                    .Tooltip(ShaderStack.Description(brick.Kind));
             }
             else
             {
                 button = _row.Button("+ " + title, UiType.Small).Mono().Quiet().DimText().Height(Height - UiMetrics.Space.Xs * 2)
-                    .Tooltip($"Add the {title} brick ({ShaderStack.FileName(brick.Kind)}): {ShaderStack.Purpose(brick.Kind)}");
+                    .Tooltip($"Click to add it. {ShaderStack.Description(brick.Kind)}");
             }
 
             _bricks.Add((brick.Kind, brick.Present, button.Entity));
         }
 
         _row.Text("→", UiType.Small).DimText();
-        _row.Text("blend (where placed)", UiType.Small).DimText().Tooltip("Blend isn't a brick: it is set where the stack is placed");
+        _row.Text("blend (where placed)", UiType.Small).DimText().Tooltip(ShaderStack.BlendDescription);
         _row.Column().Grow();
         UiNode remove = _row.Button("REMOVE " + ShaderStack.Title(open), UiType.Small).Quiet().Height(Height - UiMetrics.Space.Xs * 2)
             .Tooltip("Take the open brick out of the stack (saving deletes its file)");

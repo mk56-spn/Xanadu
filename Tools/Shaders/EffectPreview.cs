@@ -81,7 +81,7 @@ internal sealed class EffectPreview : IEditorPreview
 
     public string[] Help =>
     [
-        "A stack of bricks, run top to bottom: UPDATE, STEP and BUILD (compute, lab only), DEFORM deform(v), SHADE shade(...).",
+        "A stack of bricks, run top to bottom: UPDATE, STEP, BUILD and TRACE (compute, lab only), DEFORM deform(v), SHADE shade(...).",
         "A brick reads what the bricks above it declare. SHADE: uniforms and float4 shade(ItemInput i, Canvas canvas).",
         "Ctrl+S saves every brick to the folder. Picking another stack keeps these edits until the tool closes.",
     ];

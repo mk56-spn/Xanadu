@@ -36,18 +36,10 @@ public sealed class UiTooltipSystem : QuerySystem<UiTooltip>
         _pointer = pointer;
         _screen = screen;
 
-        UiBuilder ui = UiBuilder.Begin(entities, visuals).Layer(UiLayers.Tooltip);
-        _tooltip = ui.RectEntity(
-            Vector2.Zero,
-            UiTooltipPanel.Size("", Height),
-            new Color(UiTheme.Tooltip, 0.96f),
-            "",
-            takesInput: false);
-        _tooltip.AddComponent(new TextStyle(UiTheme.SmallFontSize, UiTheme.Text));
-        UiLayout.SetHidden(_tooltip, true);
+        _tooltip = UiTooltipPanel.Create(UiBuilder.Begin(entities, visuals).Layer(UiLayers.Tooltip), Height);
     }
 
-    /// <summary>The tooltip panel entity, exposed for tests.</summary>
+    /// <summary>The tooltip panel entity, exposed for tests; its text is on <see cref="UiTooltipPanel.Label"/>.</summary>
     public Entity Tooltip => _tooltip;
 
     protected override void OnUpdate()

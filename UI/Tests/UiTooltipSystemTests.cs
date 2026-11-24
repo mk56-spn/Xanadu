@@ -1,3 +1,4 @@
+using System.Linq;
 using Xanadu.Tests.Support.Fakes;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
@@ -85,8 +86,20 @@ public sealed class UiTooltipSystemTests
         Assert.That(area.End.Y, Is.LessThanOrEqualTo(600f));
     }
 
+    [Test]
+    public void ALongTooltipWrapsAndGrowsTall()
+    {
+        _target.GetComponent<UiTooltip>().Text = string.Join(" ", Enumerable.Repeat("a paragraph of hover text", 12));
+        Frame(0.5f);
+
+        Entity label = UiTooltipPanel.Label(_system.Tooltip);
+        Assert.That(label.Tags.Has<TextWrap>(), Is.True);
+        Assert.That(_system.Tooltip.GetComponent<Rectangle>().Bounds.Size.Y, Is.GreaterThan(26f * 2));
+        Assert.That(label.GetComponent<Rectangle>().Bounds.Size.X, Is.LessThan(_system.Tooltip.GetComponent<Rectangle>().Bounds.Size.X));
+    }
+
     private string TooltipText() =>
-        _system.Tooltip.GetComponent<Text>().Value;
+        UiTooltipPanel.Label(_system.Tooltip).GetComponent<Text>().Value;
 
     private void Frame(float delta) =>
         _root.Update(new UpdateTick(delta, 0));

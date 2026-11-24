@@ -1,9 +1,10 @@
-// Raymarcher four (Labs' BVH MARCH, moved here): a galaxy of up to 262,144 melting blobs
+// Raymarcher four (once Labs' BVH MARCH): a galaxy of up to 262,144 melting blobs
 // over a floor and a ring of pillars. BUILD rebuilds a BVH round the blobs every frame, all
 // on the GPU: animate places each one and gives it a 30-bit Morton code, four rounds of an
 // 8-bit radix sort put the codes in order, link builds Karras' LBVH over them and refit
 // boxes it up from the leaves. For soft shadows, a sun-space grid lists the blobs each cell
-// of it sees. SHADE walks the BVH for every pixel and marches only the blobs it meets.
+// of it sees. TRACE lists what each tile of the screen sees, then marches every pixel through it.
+// DEFORM and SHADE draw sparks on rings through it all, hidden behind what the trace drew.
 //
 // Space is in pixels, as xanadu.march's: x right, y down, z away; the item's centre is 0.
 import xanadu;
@@ -21,12 +22,17 @@ static const uint LIGHT = 256;              // the sun's grid: cells across and 
 static const uint CELLS = LIGHT * LIGHT;
 static const float REACH = 18 * U;          // half the grid's width: the galaxy from any sun
 static const uint ENTRIES = 8u << 20;       // blob-in-cell entries the grid holds; more are dropped
+static const uint SPARKS = 6144;
 
 [Options("1,024|4,096|16,384|65,536|262,144")] [Default(2)] uniform int spheres;
 /// How far blobs melt into each other, in blob radii.
 [Default(0.6)] uniform float melt;
 /// Soft shadows from the blobs (and hard ones from the pillars).
 [Default(1)] uniform bool shadows;
+/// Soft shadows from the sun's grid; off, each lit point walks the BVH toward the sun (slow, to check it).
+[Default(1)] uniform bool sunGrid;
+/// Sparks on rings through the galaxy: drawn after the march, behind the blobs where they pass behind.
+[Default(1)] uniform bool sparks;
 
 /// How many blobs `spheres` picks.
 uint count() { return 1024u << (2 * uint(spheres)); }
@@ -56,6 +62,7 @@ struct Node
 [Buffer(2 * MAX)] globallycoherent RWStructuredBuffer<Node> nodes;    // inner 0..n-2, leaves n-1..2n-2
 [Buffer(MAX)] globallycoherent RWStructuredBuffer<uint> arrivals;    // children arrived at each inner node
 [Buffer(2 * CELLS + ENTRIES)] RWStructuredBuffer<uint> light;   // cell starts, cell ends, then blob ids
+[Draws] RWStructuredBuffer<uint> drawn;                         // the sparks: a copy of the quad each
 
 // ---- animate -----------------------------------------------------------------
 
@@ -340,8 +347,12 @@ void lightFill(uint i)
     }
 }
 
+[Pass(1, over: 1)]
+void countSparks(uint i) { drawn[0] = sparks ? SPARKS : 0; }
+
 void build()
 {
+    countSparks();
     animate();
     for (uint round = 0; round < 4; round++)
     {
@@ -351,7 +362,7 @@ void build()
     }
     link();
     refit();
-    if (shadows)
+    if (shadows && sunGrid)
     {
         clearLight();
         lightCount();

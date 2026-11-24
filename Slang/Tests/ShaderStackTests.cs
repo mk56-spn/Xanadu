@@ -130,5 +130,35 @@ public sealed class ShaderStackTests
         Assert.DoesNotThrow(() => SlangShaders.CompileEffectBody("s", ShaderStack.Compose("s", bricks), keepsState: true));
     }
 
+    [Test]
+    public void ATraceAloneComputesInItsTilesAndDrawsNoQuad()
+    {
+        string body = ShaderStack.Compose("s", [new Brick(BrickKind.Trace, ShaderStack.Template(BrickKind.Trace))]);
+
+        CompiledTrace trace = SlangShaders.CompileEffectBody("s", body, keepsState: true).Trace!;
+
+        Assert.That((trace.Width, trace.Height, trace.Alone), Is.EqualTo((8, 8, true)));
+    }
+
+    [Test]
+    public void ATraceReadsTheBuildsBuffersAndKeepsItsQuadUnderAShade()
+    {
+        const string build = "import xanadu;\n[Buffer(64)] RWStructuredBuffer<float> heights;\n[Pass(64, over: 64)] void grow(uint i) { heights[i] = i; }\nvoid build() { grow(); }\n";
+        const string trace = "import xanadu;\n[Tile(16, 4)] float4 trace(ItemInput i) { traced.depth = heights[group.index % 64]; return float4(1); }\n";
+        string body = ShaderStack.Compose("s", [new Brick(BrickKind.Build, build), new Brick(BrickKind.Trace, trace), new Brick(BrickKind.Shade, Fragment)]);
+
+        CompiledTrace compiled = SlangShaders.CompileEffectBody("s", body, keepsState: true).Trace!;
+
+        Assert.That((compiled.Width, compiled.Height, compiled.Alone, compiled.Buffers), Is.EqualTo((16, 4, false, new[] { 0 })));
+    }
+
+    [Test]
+    public void ATraceOutsideTheLabIsRefused()
+    {
+        string body = ShaderStack.Compose("s", [new Brick(BrickKind.Trace, ShaderStack.Template(BrickKind.Trace))]);
+
+        Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", body));
+    }
+
     private static BrickKind[] AllKinds() => ShaderStack.Kinds;
 }

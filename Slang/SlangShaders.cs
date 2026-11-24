@@ -67,6 +67,9 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// <summary>A stack's BUILD brick, compiled: its buffers, its passes and their schedule; null without one. Set on the fragment.</summary>
     public CompiledBuild? Build { get; init; }
 
+    /// <summary>A stack's TRACE brick, compiled: run before its triangles draw; null without one. Set on the fragment.</summary>
+    public CompiledTrace? Trace { get; init; }
+
     /// <summary>Bytes in one pool slot (the read-write buffer's element: the item and whether it is alive); 0 for none.</summary>
     public int ItemBytes { get; init; }
 
@@ -92,6 +95,9 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// null for four corners. Set on <see cref="Vertex"/>.
     /// </summary>
     public (int Columns, int Rows)? Grid { get; init; }
+
+    /// <summary>Whether a deform is <c>[Translucent]</c>: its triangles test the depth and never write it. Set on <see cref="Vertex"/>.</summary>
+    public bool Translucent { get; init; }
 
     /// <summary>Bytes in the values block, padded to 16; 0 when the effect has none.</summary>
     public int ParamsSize { get; } = paramsSize;
@@ -425,11 +431,14 @@ public static partial class SlangShaders
         StackBuild? build = BuildOf(name, source);
         if (build is not null && !keepsState)
             throw new InvalidOperationException($"{name}: a BUILD brick runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
+        bool traces = Traces(source);
+        if (traces && !keepsState)
+            throw new InvalidOperationException($"{name}: a TRACE brick runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
 
         if (shadeWith is not null)
         {
-            if (pool is not null || build is not null)
-                throw new InvalidOperationException($"{name}: the editor's overlays don't draw pools or BUILD bricks yet.");
+            if (pool is not null || build is not null || traces)
+                throw new InvalidOperationException($"{name}: the editor's overlays don't draw pools, BUILD or TRACE bricks yet.");
             // Only the body's deform and values matter: the fragment is the library's, reading no state.
             int first = StorageBinding(source);
             CompiledShader overlay = CompileWrapped(
@@ -489,6 +498,7 @@ public static partial class SlangShaders
             Pool = stepped,
             StackBuffers = buffers,
             Build = build is null ? null : CompileBuild(name, source, build, fragment, updates, pool),
+            Trace = traces ? CompileTrace(name, source, build, updates, pool) : null,
         };
     }
 
@@ -532,6 +542,7 @@ public static partial class SlangShaders
         {
             ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
             Grid = GridOf(source),
+            Translucent = System.Text.RegularExpressions.Regex.IsMatch(StripComments(source), @"\[\s*Translucent\s*\]"),
             StackBuffers = buffers,
         };
     }

@@ -437,6 +437,7 @@ internal sealed partial class CanvasRenderer : IDisposable
         // The particles and kept state move by the frame's time, before any pass draws them.
         float dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _lastTime = time;
+        _traceDt = dt;
         using (commands.Scope("shader updates"))
             UpdateStates(commands, dt, time);
         using (commands.Scope("shader pools"))
@@ -884,10 +885,11 @@ internal sealed partial class CanvasRenderer : IDisposable
 
     /// <summary>An item with a material: its primitives as canvas vertices for the effect's pipeline, one draw per texture.</summary>
     /// <summary>
-    /// Whether an effect moves its own vertices: its depth is then its own, so
-    /// rects after it must draw in order rather than in the pre-pass.
+    /// Whether an effect sets its own depths, moving its own vertices or tracing its pixels: it then
+    /// takes a slice of the frame's depth to spread them over.
     /// </summary>
-    private bool Deforms(CanvasMaterial? material) => _pipelines.Effect(material).Vertex is not null;
+    private bool OwnsDepth(CanvasMaterial? material) =>
+        _pipelines.Effect(material) is { } effect && (effect.Vertex is not null || effect.Trace is not null);
 
     /// <summary>The effect's steps at the draw-order depth after <paramref name="sequence"/>; returns the depth steps it takes.</summary>
     /// <param name="particles">Draws the triangles once per particle of this field instead (a particle mesh); its deform is left out.</param>
@@ -900,7 +902,7 @@ internal sealed partial class CanvasRenderer : IDisposable
         StepKind kind = particles is null ? StepKind.Effect : StepKind.MeshParticles;
         // A deform's [Grid]: each rect it draws is cut into cells.
         (int columns, int rows) = particles is null ? _pipelines.Effect(material).Compiled.Vertex?.Grid ?? (1, 1) : (1, 1);
-        if (particles is null && Deforms(material))
+        if (particles is null && OwnsDepth(material))
         {
             taken = Math.Max(taken, DeformSlice);
             span = (taken - 1) * DepthStep;
@@ -1350,7 +1352,7 @@ internal sealed partial class CanvasRenderer : IDisposable
             if (step.Kind is StepKind.Primitives or StepKind.Particles)
                 continue;
             CanvasEffect effect = _pipelines.Effect(step.Material);
-            if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true)
+            if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true || effect.Compiled.Trace?.Shader.ReadsDepth == true)
                 return true;
         }
 
@@ -1418,7 +1420,7 @@ internal sealed partial class CanvasRenderer : IDisposable
             DrawPrimitives(commands, pass, samples, opaque: true, job.OpaqueStart, job.OpaqueReserved, 0);
 
         var frame = FrameUniforms.Now(_width, _height, time);
-        bool drawnSinceCopy = true, copied = false, effectState = false;
+        bool copied = false, effectState = false;
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
         for (int s = job.FirstStep; s < job.FirstStep + job.StepCount; s++)
         {
@@ -1428,7 +1430,6 @@ internal sealed partial class CanvasRenderer : IDisposable
                 case StepKind.Primitives:
                     DrawPrimitives(commands, pass, samples, opaque: false, step.Start, step.Count, step.FirstTexture);
                     effectState = false;
-                    drawnSinceCopy = true;
                     continue;
 
                 case StepKind.Particles:
@@ -1437,7 +1438,6 @@ internal sealed partial class CanvasRenderer : IDisposable
                         Textures.GetValueOrDefault(step.Texture) ?? _white, _sampler, samples, step.Depth);
                     LastBatchCount++;
                     effectState = false;
-                    drawnSinceCopy = true;
                     continue;
             }
 
@@ -1451,7 +1451,19 @@ internal sealed partial class CanvasRenderer : IDisposable
                 CopyScreen(commands, job.Target);
                 pass = BeginPass(commands, job, msaa, load: true);
                 effectState = false;
-                drawnSinceCopy = false;
+            }
+
+            if (effect.Trace is not null && step.Kind == StepKind.Effect)
+            {
+                // The trace runs as compute between passes, then its colour and depth land under the stack's triangles.
+                commands.EndRenderPass(pass);
+                bool traced = RunTrace(commands, effect, step, time);
+                pass = BeginPass(commands, job, msaa, load: true);
+                if (traced)
+                    DrawTraced(commands, pass, step, samples);
+                effectState = false;
+                if (effect.Compiled.Trace!.Alone)
+                    continue;
             }
 
             commands.PushVertexUniformData(new ViewUniforms { Width = _width, Height = _height, Depth = step.Depth, Span = step.Span });
@@ -1515,7 +1527,6 @@ internal sealed partial class CanvasRenderer : IDisposable
                 }, 1);
                 pass.DrawPrimitives(step.Count, ParticleField.Capacity, step.Start, 0);
                 LastBatchCount++;
-                drawnSinceCopy = true;
                 continue;
             }
 
@@ -1538,7 +1549,6 @@ internal sealed partial class CanvasRenderer : IDisposable
             else if (copies > 0)
                 pass.DrawPrimitives(step.Count, copies, step.Start, 0);
             LastBatchCount++;
-            drawnSinceCopy = true;
         }
 
         commands.EndRenderPass(pass);
@@ -1718,6 +1728,7 @@ internal sealed partial class CanvasRenderer : IDisposable
             state.Dispose();
         DisposePools();
         DisposeBuilds();
+        DisposeTraces();
         _buffer?.Dispose();
         _transfer?.Dispose();
         _expand.Dispose();

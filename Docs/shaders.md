@@ -49,6 +49,7 @@ overload.
 19. [Globals: data anyone can read](#19-globals-data-anyone-can-read)
 20. [Pools: things the GPU keeps](#20-pools-things-the-gpu-keeps)
 21. [Build: passes over buffers](#21-build-passes-over-buffers)
+22. [Trace: a compute pass over the pixels](#22-trace-a-compute-pass-over-the-pixels)
 
 ---
 
@@ -1162,7 +1163,9 @@ and v top to bottom as seen from outside).
   (pixels into the screen), so where a surface overlaps itself (a torus edge-on,
   hills in front of hills) the nearest part wins per pixel. The effect keeps its
   place in the frame's draw order: depth sorts only its own triangles. Left at 0,
-  triangles draw in order. Translucent pixels still blend in grid order, so a
+  triangles draw in order. `[Translucent]` on `deform` tests the depth but never
+  writes it: glows and sparks that blend over each other instead of cutting holes
+  in the ones behind. Translucent pixels still blend in grid order, so a
   see-through closed surface hides its far side with `mesh.facing()` (the uv's
   winding on screen, no normal needed); it is also a cheap cull for convex ones.
 - **Many from one grid:** `mesh.split(uv, count)` cuts the grid into pieces,
@@ -1644,3 +1647,55 @@ void build()
 - Passes and pool steps read the frame's seconds as `dt` (0 while the clock
   stands still).
 - **Lab only for now**, as pools are.
+
+## 22. Trace: a compute pass over the pixels
+
+Some looks need the pixels to work together: a raymarcher whose rays share the
+list of what a tile of the screen can see, a blur that loads a block once. A
+TRACE brick (`trace.slang`) runs `trace` as compute, a thread a pixel over the
+quad, in tiles whose threads share `groupshared` memory and wait for each
+other. What it returns lands first; the stack's DEFORM and SHADE draw after it,
+over it. Start from `Lab/trace_wave` (small) or `Lab/bvh_march` (tile lists
+over a BVH, then a march, then sparks):
+
+```slang
+// trace.slang
+import xanadu;
+
+groupshared float wave[8];
+
+[Tile(8, 8)]
+float4 trace(ItemInput i, Canvas canvas)
+{
+    // One thread a column loads, everyone reads.
+    if (group.thread.y == 0)
+        wave[group.thread.x] = sin(time * 2 + (group.place.x * 8 + group.thread.x) * 0.05) * 60;
+    GroupMemoryBarrierWithGroupSync();
+    float d = canvas.centred.y - wave[group.thread.x];
+    traced.depth = d;
+    return lerp(colours.midnightBlue, colours.skyBlue, saturate(0.5 - d / 200));
+}
+```
+
+- **`trace`** takes `Canvas` and `ItemInput` as `shade` does. `i.colour` is
+  white (compute reads no item texture) and `local` is uv across the quad.
+- **Tiles:** `[Tile(w, h)]` (8 × 8 without one; at most 1,024 threads). Every
+  thread of a tile runs `trace`, even past the quad's edge, so a barrier is met
+  by all; only those on the quad write. `group` says where a thread is:
+  `group.thread` in its tile, `group.place` the tile's place, `group.index` the
+  thread as one number, `group.threads` how many, and `group.low`/`group.high`
+  the tile's corners on the target in pixels (for working out what the tile sees).
+- **Depth:** set `traced.depth`, pixels into the screen as deform's `v.depth`
+  (`camera.depth(p) - camera.distance` for a point of a 3D scene). The
+  stack's own triangles drawn after it are tested against it, so they hide
+  behind it or show in front. A pixel left clear (alpha 0) sets no depth.
+  Sparks and glows over it want `[Translucent]` on their deform (§15).
+- **Reads:** the uniforms, the globals, `time` and `dt`, kept state, the
+  depth (`sampleDepth`), and the BUILD brick's buffers (it may write them too).
+  Not the screen or the item's texture.
+- Without a SHADE brick the quad is drawn by the trace alone. With one, the
+  quad's copies (every one, or as many as a `[Draws]` buffer says) draw over
+  it: `Lab/bvh_march` places 6,144 sparks that way.
+- The quad must stay uncut: a deform with `[Grid]` can't sit under a trace.
+- **Lab only for now**, as pools and builds are.
+

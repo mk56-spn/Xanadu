@@ -24,6 +24,12 @@ public enum BrickKind
     /// </summary>
     Build,
 
+    /// <summary>
+    /// <c>trace.slang</c>: <c>trace</c>, compute run on every pixel of the quad in tiles that may share
+    /// memory; its colour and depth land first, under the stack's own triangles.
+    /// </summary>
+    Trace,
+
     /// <summary><c>deform.slang</c>: <c>deform</c>, run on every corner before it lands.</summary>
     Deform,
 
@@ -57,6 +63,7 @@ public static partial class ShaderStack
         BrickKind.Update => "update.slang",
         BrickKind.Step => "step.slang",
         BrickKind.Build => "build.slang",
+        BrickKind.Trace => "trace.slang",
         BrickKind.Deform => "deform.slang",
         BrickKind.Shade => "shade.slang",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
@@ -65,16 +72,60 @@ public static partial class ShaderStack
     /// <summary>The brick's name as the editor shows it.</summary>
     public static string Title(BrickKind kind) => kind.ToString().ToUpperInvariant();
 
-    /// <summary>What a brick of this kind is for, in a line.</summary>
-    public static string Purpose(BrickKind kind) => kind switch
+    /// <summary>
+    /// What a brick of this kind is, at length, for hovering it in the editor: what it runs,
+    /// when, what it reads, what it hands down, and what it is good for.
+    /// </summary>
+    public static string Description(BrickKind kind) => kind switch
     {
-        BrickKind.Update => "compute: one struct kept on the GPU, update(s, dt) once a frame; later bricks read state",
-        BrickKind.Step => "compute: count items kept on the GPU, step(t, i, dt) on each once a frame; each is drawn once, as item",
-        BrickKind.Build => "compute: buffers kept on the GPU and [Pass] functions over them; build() runs the passes in order each frame",
-        BrickKind.Deform => "deform(v) on every corner before it lands",
-        BrickKind.Shade => "shade(...) on every pixel",
+        BrickKind.Update =>
+            "UPDATE (update.slang) is compute that runs once a frame on a single GPU thread, before anything is drawn. " +
+            "It keeps one struct of yours, State, on the GPU from frame to frame: void update(inout State s, float dt) " +
+            "changes it, and every brick below reads it as `state`. It starts as zeros after each compile. " +
+            "Use it for things the whole effect shares and that build up over time: a value easing towards a target, " +
+            "a counter, a smoothed beat. Lab and shader tool only for now.",
+        BrickKind.Step =>
+            "STEP (step.slang) is a pool: `count` items of your own struct kept on the GPU, each moved once a frame by " +
+            "step(inout Item t, uint i, float dt), one GPU thread per item; start(i) makes each after a compile. " +
+            "Each item is drawn once: DEFORM places it (reading it as `item`) and SHADE colours it. With a `rate` and a " +
+            "bool step, the engine bears that many a second into dead slots and frees those whose step returns false. " +
+            "Use it for swarms, sparks and particles that each move on their own. Needs a DEFORM brick. Lab only for now.",
+        BrickKind.Build =>
+            "BUILD (build.slang) is compute over buffers you declare ([Buffer(size)] RWStructuredBuffer<T> name), kept on " +
+            "the GPU and zeroed after each compile. [Pass(threads, over: n)] functions work on them, a thread each, or " +
+            "groups: g for whole groups that share groupshared memory. void build() runs on the CPU every frame and calls " +
+            "the passes in order, each its own dispatch, so a pass sees everything the ones before it wrote; it may loop " +
+            "and branch on constants and uniforms. TRACE, DEFORM and SHADE read the buffers, and a [Draws] buffer sets how " +
+            "many copies of the quad are drawn. Use it for work no single item can do alone: sorting, building a tree, " +
+            "counting into cells. Lab only for now.",
+        BrickKind.Trace =>
+            "TRACE (trace.slang) runs trace(...) as compute, one GPU thread per pixel of the quad, before the stack's own " +
+            "triangles draw. Threads come in tiles, [Tile(w, h)] (8 × 8 by default), that share groupshared memory and " +
+            "wait for each other (GroupMemoryBarrierWithGroupSync); `group` says where a thread sits. What it returns " +
+            "lands on the frame first, and traced.depth (pixels into the screen) sets how deep each pixel is, so DEFORM " +
+            "and SHADE copies drawn after it hide behind it or show in front. It reads the uniforms, globals, state, the " +
+            "depth and the BUILD buffers. Use it for raymarchers whose rays share what a tile sees, or blurs that load a " +
+            "block once. Without a SHADE brick the trace is all the stack draws. Lab only for now.",
+        BrickKind.Deform =>
+            "DEFORM (deform.slang) runs ItemVertex deform(ItemVertex v) on every corner of the quad before it lands on " +
+            "the target: move v.position to move or bend the shape, set v.depth so overlapping parts sort themselves. " +
+            "[Grid(columns, rows)] cuts the quad into cells, giving it corners inside to bend; [Translucent] makes its " +
+            "triangles test the depth without writing it, for glows. With a pool or a [Draws] buffer it runs once per " +
+            "copy, and `copy` (or `item`) says which. Use it for waves, 3D surfaces, and placing each particle.",
+        BrickKind.Shade =>
+            "SHADE (shade.slang) runs float4 shade(...) on every pixel the stack's triangles cover and returns its colour. " +
+            "It takes Canvas (the quad: size, centre, `centred` for this pixel) and ItemInput (uv, the item's colour and " +
+            "texture, screen place), either, both or neither. It can read the screen drawn so far, the depth, its own " +
+            "textures, the uniforms, globals, state, the pool's item and the BUILD buffers. Most stacks are this brick " +
+            "alone. Without one, the item keeps its own colour (or, under a TRACE, only the trace draws).",
         _ => "",
     };
+
+    /// <summary>What the blend after the bricks is, at length, for hovering it.</summary>
+    public const string BlendDescription =
+        "Blend isn't a brick: it is how the stack's colour mixes with what is already on the frame (mix, add, subtract, " +
+        "multiply, premultiplied, or a custom one), set where the stack is placed (on the item or its material), not in " +
+        "the code. The same stack can glow additively in one place and mix plainly in another.";
 
     /// <summary>The functions a kind's brick declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
     public static string[] Entries(BrickKind kind) => kind switch
@@ -82,6 +133,7 @@ public static partial class ShaderStack
         BrickKind.Update => ["update"],
         BrickKind.Step => ["start", "step"],
         BrickKind.Build => ["build"],
+        BrickKind.Trace => ["trace"],
         BrickKind.Deform => ["deform"],
         BrickKind.Shade => ["shade"],
         _ => [],
@@ -96,6 +148,7 @@ public static partial class ShaderStack
         BrickKind.Update => ("void update(inout State s, float dt)", UpdateEntry()),
         BrickKind.Step => ("void step(inout Item t, uint i, float dt) (or bool step, with a rate)", StepEntry()),
         BrickKind.Build => ("void build(), calling its passes in order", BuildEntry()),
+        BrickKind.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
         BrickKind.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
         BrickKind.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
@@ -109,6 +162,9 @@ public static partial class ShaderStack
 
     [GeneratedRegex(@"\bvoid\s+build\s*\(\s*\)")]
     private static partial Regex BuildEntry();
+
+    [GeneratedRegex(@"\b(?:float4|colour)\s+trace\s*\(")]
+    private static partial Regex TraceEntry();
 
     [GeneratedRegex(@"\bItemVertex\s+deform\s*\(")]
     private static partial Regex DeformEntry();
@@ -143,11 +199,16 @@ public static partial class ShaderStack
                 composed.Append('\n');
         }
 
-        // Without a shade brick the item keeps its own colour.
+        // Without a shade brick the item keeps its own colour, or, under a trace, draws nothing of its own.
         if (!bricks.Any(brick => brick.Kind == BrickKind.Shade))
-            composed.Append($"#line 1 \"{name} (no shade brick)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
+            composed.Append(bricks.Any(brick => brick.Kind == BrickKind.Trace)
+                ? $"#line 1 \"{name} (no shade brick)\"\n{TracedAlone}\n"
+                : $"#line 1 \"{name} (no shade brick)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
         return composed.ToString();
     }
+
+    /// <summary>The shade a stack with a TRACE brick and no SHADE brick gets: its quad is never drawn, only the trace.</summary>
+    public const string TracedAlone = "float4 shade(ItemInput i) { return float4(0); } // traced alone";
 
     private static void Check(string name, IReadOnlyList<Brick> bricks)
     {
@@ -249,6 +310,30 @@ public static partial class ShaderStack
             void build()
             {
                 grow();
+            }
+
+            """,
+        BrickKind.Trace => """
+            // TRACE: trace runs on every pixel of the quad as compute, in tiles of [Tile(w, h)]
+            // threads. A tile's threads may share groupshared memory and wait for each other
+            // (GroupMemoryBarrierWithGroupSync): load what the tile needs once, then all read it.
+            // group says where a thread sits: group.thread in its tile, group.place the tile's.
+            // traced.depth (pixels into the screen) lets the stack's own triangles drawn after
+            // it hide behind it. It lands first; DEFORM and SHADE draw over it.
+            import xanadu;
+
+            groupshared float wave[8];
+
+            [Tile(8, 8)]
+            float4 trace(ItemInput i, Canvas canvas)
+            {
+                // One thread a column loads, everyone reads.
+                if (group.thread.y == 0)
+                    wave[group.thread.x] = sin(time * 2 + (group.place.x * 8 + group.thread.x) * 0.05) * 60;
+                GroupMemoryBarrierWithGroupSync();
+                float d = canvas.centred.y - wave[group.thread.x];
+                traced.depth = d;
+                return lerp(colours.midnightBlue, colours.skyBlue, saturate(0.5 - d / 200));
             }
 
             """,

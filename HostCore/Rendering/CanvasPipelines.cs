@@ -16,7 +16,7 @@ namespace Xanadu.Host.Rendering;
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
 internal sealed class CanvasEffect(
     Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<PoolJob>? pool = null,
-    ComputePipeline[]? passes = null)
+    ComputePipeline[]? passes = null, ComputePipeline? trace = null)
     : IDisposable
 {
     public Shader Shader { get; } = shader;
@@ -34,11 +34,15 @@ internal sealed class CanvasEffect(
     /// <summary>A BUILD brick's passes, in the order it declares them (a schedule's call names one by its place); empty without one.</summary>
     public ComputePipeline[] Passes { get; } = passes ?? [];
 
+    /// <summary>A TRACE brick's compute stage, a thread a pixel of the quad; null without one.</summary>
+    public ComputePipeline? Trace { get; } = trace;
+
     public void Dispose()
     {
         foreach (ComputePipeline pass in Passes)
             pass.Dispose();
         Shader.Dispose();
+        Trace?.Dispose();
         Update?.Dispose();
         Vertex?.Dispose();
         Pool?.Dispose();
@@ -246,7 +250,20 @@ internal sealed class CanvasPipelines : IDisposable
                 ThreadCountX = (uint)pass.Threads, ThreadCountY = 1, ThreadCountZ = 1,
             }))]
             : [];
-        return new CanvasEffect(shader, compiled, update, vertex, pool, passes);
+        // A TRACE brick: the depth to read, the globals (and kept state) read-only; the two textures it fills and the buffers it touches read-write.
+        ComputePipeline? trace = compiled.Trace is { } traced
+            ? ComputePipelines.Create(_device, traced.Shader.Spirv, "trace brick", new ComputePipelineCreateInfo
+            {
+                Format = ShaderFormat.SPIRV,
+                NumSamplers = 1,
+                NumReadonlyStorageBuffers = (uint)traced.Shader.StorageBuffers,
+                NumReadWriteStorageTextures = 2,
+                NumReadWriteStorageBuffers = (uint)traced.Buffers.Length,
+                NumUniformBuffers = SlangShaders.TraceUniforms,
+                ThreadCountX = (uint)traced.Width, ThreadCountY = (uint)traced.Height, ThreadCountZ = 1,
+            })
+            : null;
+        return new CanvasEffect(shader, compiled, update, vertex, pool, passes, trace);
     }
 
     /// <summary>
@@ -357,12 +374,12 @@ internal sealed class CanvasPipelines : IDisposable
             MultisampleState = new MultisampleState { SampleCount = samples },
             // In the renderer's passes an effect tests depth, so an opaque rect in front hides it. A deforming
             // effect also writes it, within its own slice, so its nearest triangle wins per pixel; ties (depth
-            // left at 0) still draw in order.
+            // left at 0) still draw in order. A [Translucent] one only tests it.
             DepthStencilState = depth
                 ? new DepthStencilState
                 {
                     EnableDepthTest = true,
-                    EnableDepthWrite = effect.Vertex is not null,
+                    EnableDepthWrite = effect.Vertex is not null && effect.Compiled.Vertex?.Translucent != true,
                     CompareOp = effect.Vertex is not null ? CompareOp.LessOrEqual : CompareOp.Less,
                 }
                 : DepthStencilState.Disable,

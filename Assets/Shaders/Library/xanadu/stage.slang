@@ -96,6 +96,28 @@ public struct GridAttribute
     int rows;
 };
 
+/// Put on `deform`: its triangles test the depth but never write it, so see-through ones
+/// (glows, sparks) blend over each other instead of cutting holes in what lies behind.
+/// They still hide behind what is nearer (a trace's surface, the effect's opaque triangles).
+///
+///     [Translucent] ItemVertex deform(ItemVertex v) { ... }
+[__AttributeUsage(_AttributeTargets.Function)]
+public struct TranslucentAttribute
+{
+};
+
+/// Put on a TRACE brick's `trace`: it runs as compute, a thread a pixel over the quad, in
+/// tiles of `width` × `height` threads that may share `groupshared` memory and wait for each
+/// other (GroupMemoryBarrierWithGroupSync). `group` says where a thread sits. 8 × 8 without one.
+///
+///     [Tile(8, 8)] float4 trace(ItemInput i, Canvas canvas) { ... }
+[__AttributeUsage(_AttributeTargets.Function)]
+public struct TileAttribute
+{
+    int width;
+    int height;
+};
+
 /// Marks a level shader's global uniform as keyable per item: a group's
 /// item-shader track can animate it, and each run of items gets its own value.
 [__AttributeUsage(_AttributeTargets.Var)]
@@ -335,6 +357,35 @@ public static float dt = 0.0;
 /// pool draws one per item or a BUILD brick's [Draws] buffer asks for more.
 public static uint copy = 0;
 
+/// Where a TRACE thread sits in its tile (a GPU work group): its pixel's place in the tile,
+/// the tile's place among the quad's tiles, its place as one number
+/// (`thread.y * width + thread.x`) for handing out shares of groupshared work, how many
+/// threads a tile holds, and the tile's pixels on the target (`low` to `high`, corners).
+public struct Group
+{
+    public uint2 thread;
+    public uint2 place;
+    public uint index;
+    public uint threads;
+    public float2 low;
+    public float2 high;
+};
+
+/// The TRACE thread running now (all zeros elsewhere).
+public static Group group = {};
+
+/// What `trace` says about its pixel besides its colour.
+public struct Traced
+{
+    /// How far into the screen the surface it drew sits, in pixels: deform's `v.depth`, so
+    /// the stack's own triangles drawn after it hide behind it or show in front. 0 is the
+    /// item's plane. A pixel it leaves clear (alpha 0) sets no depth.
+    public float depth;
+};
+
+/// Set by `trace` for its pixel; reset to zeros before each call.
+public static Traced traced = {};
+
 /// Music beats since the music started, for `clock.beats`: from the song's
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;
@@ -410,6 +461,28 @@ public ItemInput input(ItemVaryings v)
     // give each its own size and cut shapes at the edges. Without a deform they agree.
     i.canvas.size = i.rest.size;
     i.canvas.centred = (v.uv - 0.5) * i.rest.size;
+    shading = i;
+    return i;
+}
+
+/// A TRACE thread's input: its pixel on the quad the host hands over (no derivatives in
+/// compute), the item's colour as white, and `local` as uv across the quad's size.
+/// @hidden
+public ItemInput tracedInput(float2 pixel, float2 corner, float2 xAxis, float2 yAxis)
+{
+    Canvas at = canvasFrom(xAxis, yAxis, corner, float2(0.0));
+    float2 uv = at.uvAt(pixel);
+    ItemInput i;
+    i.uv = uv;
+    i.vertexColour = float4(1.0);
+    i.colour = float4(1.0);
+    i.local = uv * at.size;
+    i.pixel = pixel;
+    i.screenUv = pixel / frame.screen;
+    uvWinding = 1.0;
+    i.time = time;
+    i.canvas = canvasFrom(xAxis, yAxis, corner, uv);
+    i.rest = i.canvas;
     shading = i;
     return i;
 }

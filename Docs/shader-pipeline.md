@@ -194,6 +194,18 @@ float4 shade(Canvas canvas)
   wrapper places every buffer and each stage binds only what it reads
   (`Slang/StackBuild.cs`, `SlangShaders.Builds.cs`; `CanvasRenderer.Builds.cs`
   runs it). `Docs/shaders.md` §21; `Lab/build_bars`, `Lab/bvh_march`.
+- **TRACE brick (built 2026-11-24, user's choice over `[Tile]` on SHADE):**
+  `trace.slang` between BUILD and DEFORM, `[Tile(w, h)] float4 trace(…)`:
+  compute, a thread a pixel over the quad's box on the target, tiles that share
+  `groupshared` memory (`group.thread`, `.place`, `.index`, `.low`, `.high`).
+  At the step's place the renderer ends the pass, dispatches it into two
+  target-sized textures (colour rgba16f, depth r32f), starts the pass again and
+  draws them over the box (`HostCore/Shaders/traced.slang`), depth into the
+  step's slice as a deform's corners go (`traced.depth`, pixels into the
+  screen). The stack's own triangles draw after it, depth-tested.
+  `CanvasRenderer.Traces.cs`, `SlangShaders.Traces.cs`; `Docs/shaders.md` §22;
+  `Lab/trace_wave`, `Lab/bvh_march`. `[Translucent]` on deform (test, never
+  write depth) came with it, for the sparks.
 - **Draws (built 2026-11-24, user's choice of syntax):** a BUILD brick may
   declare `[Draws] RWStructuredBuffer<uint> name;`, one uint its passes write:
   the copies of the stack's quad drawn this frame. The renderer draws such a
