@@ -445,7 +445,7 @@ public sealed partial class XifDrawer
 
     /// <summary>
     /// The common shader a node draws with, when it names one the game knows, with its
-    /// known layers stacked over it (<see cref="ShaderStackKey"/>); empty for plain.
+    /// known layers stacked over it (<see cref="ShaderLayersKey"/>); empty for plain.
     /// </summary>
     private static string ShaderOf(Xif node)
     {
@@ -465,7 +465,7 @@ public sealed partial class XifDrawer
             if (CommonShaders.IsKnown(layer))
                 stack.Add(layer);
         }
-        return ShaderStackKey.Of(stack);
+        return ShaderLayersKey.Of(stack);
     }
 
     private static Vector2 UvOf(Vector2 point, Rect2 bounds, int copy)

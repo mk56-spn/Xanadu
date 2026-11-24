@@ -31,7 +31,7 @@ public enum UiSdfShape
 /// </summary>
 public static class UiShapes
 {
-    public const string Shader = "Assets/Shaders/Items/sdf.slang";
+    public const string Shader = "Assets/Shaders/Items/sdf";
 
     /// <summary>
     /// A shape <paramref name="size"/> pixels across, filled with <paramref name="fill"/>,

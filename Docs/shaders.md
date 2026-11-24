@@ -47,12 +47,32 @@ overload.
 17. [Pitfalls](#17-pitfalls)
 18. [From shadertoy](#18-from-shadertoy)
 19. [Globals: data anyone can read](#19-globals-data-anyone-can-read)
+20. [Pools: things the GPU keeps](#20-pools-things-the-gpu-keeps)
+21. [Build: passes over buffers](#21-build-passes-over-buffers)
 
 ---
 
 ## 1. A shader
 
-A level's shader slot (and every effect in the shader tool) holds an
+A shader is a **stack of bricks**: a folder under `Assets/Shaders` with one
+file per brick, and its path is the shader's name (`Assets/Shaders/Items/orb`).
+The bricks run in this order, and each one reads what the bricks above it
+declare:
+
+| Brick | File | Entry | Runs |
+|---|---|---|---|
+| UPDATE | `update.slang` | `void update(inout State s, float dt)` | once a frame on the GPU (§14) |
+| STEP | `step.slang` | `void step(inout Item t, uint i, float dt)` | once a frame on every item (§20) |
+| BUILD | `build.slang` | `void build()`, calling `[Pass]` functions | its passes, in order, once a frame (§21) |
+| DEFORM | `deform.slang` | `ItemVertex deform(ItemVertex v)` | on every corner (§15) |
+| SHADE | `shade.slang` | `float4 shade(…)` | on every pixel |
+
+Most shaders are a shade brick alone, and that is what the rest of this
+section is about. Blend isn't a brick: it's set where the shader is placed. In
+the shader tool the strip over the code shows the stack's bricks in this
+order; `+ DEFORM` adds one from a template, and the open one can be removed.
+
+A level's shader slot (and every shade brick) holds an
 *effect body*: some uniforms and one function, `shade`, which returns the
 pixel's colour.
 
@@ -751,7 +771,7 @@ for the whole run, so a shader can look at any note, past or coming:
 A note's clock runs on the song, not real time, so pausing holds it and a
 seek shows the frame it lands on. The game's hit bar is one quad per hit,
 told its note's index, and everything else comes from here
-(`Assets/Shaders/hit_bar.slang`):
+(`Assets/Shaders/hit_bar`):
 
 ```slang
 uniform float hit_note;
@@ -936,8 +956,9 @@ c.brighten(filter.vignette(i.screenUv, 0.5));
 ## 14. Keeping state between frames
 
 `shade` runs once per pixel and forgets everything when the frame ends. To keep
-something from frame to frame, such as a light that trails the pointer,
-declare a `State` struct and an `update`:
+something from frame to frame, such as a light that trails the pointer, give
+the stack an UPDATE brick (`update.slang`) with a `State` struct and an `update`;
+`shade` (in `shade.slang`) reads it:
 
 ```slang
 struct State { float2 light; };
@@ -974,15 +995,21 @@ float4 shade(Canvas canvas)
   The shader tool lists and runs them (thumbnail and preview), and the game
   never loads them: its start-up compile skips the folder. Kept state anywhere
   else under `Assets/Shaders` is still an error. `raymarch_tiled` and
-  `raymarch_single` there compare culling in `update` with a plain single pass.
+  `raymarch_single` there compare culling in `update` with a plain single pass;
+  `raymarch_pool` draws the same scene as a pool (§20): STEP keeps each sphere's
+  nearest melt neighbours, DEFORM draws the exact box its outline takes on screen,
+  and SHADE marches only through that sphere, against it and those, with the
+  normal and colour from the smooth min's own weights. In the shader tool's
+  preview (2026-11-24, GPU, Release, the tool's own 0.1 ms taken off): single
+  about 15.5 ms a frame, tiled 7, pooled 0.15.
 
 See `Tools/Labs/Examples/flashlight.slang`.
 
 ## 15. Moving the corners: `deform`
 
 `shade` colours pixels where the shape already is. To move the shape itself
-(a flag waving, a squash on the beat, a tilt), declare a `deform`: the effect's
-own vertex stage. It runs once per corner, before the corner lands, and hands
+(a flag waving, a squash on the beat, a tilt), give the stack a DEFORM brick
+(`deform.slang`) with a `deform`: the effect's own vertex stage. It runs once per corner, before the corner lands, and hands
 the corner back moved:
 
 ```slang
@@ -1148,6 +1175,75 @@ and v top to bottom as seen from outside).
   surfaces shade smoothly, but their outline is as fine as the grid.
 - `Learn/planet.slang` goes from the flat grid to a lit planet in nine steps;
   `Learn/tour_mesh.slang` shows every surface.
+
+### 3D by marching: `xanadu.march`
+
+The other 3D path. A mesh bends a grid to a surface it can write as uv → point;
+a march finds a surface it can only measure (how far is p from it?), such as
+balls melting into each other. Same `Camera`, same `lights.`, same pixels.
+
+```slang
+struct Cloud : IField                       // your field: distance, normal and colour at p
+{
+    Sample sampled(float3 p)
+    {
+        Melt melt = Melt(12);                // balls melted over 12 px
+        melt.add(Ball(float3(-60, 0, 0), 70), p, colours.gold);
+        melt.add(Ball(float3(60, 0, 0), 70), p, colours.tomato);
+        return melt.sample;
+    }
+};
+
+float4 shade(Canvas canvas)
+{
+    Camera camera = Camera(650);
+    Ray ray = camera.ray(canvas.centred);                // through this pixel
+    Span inside = Ball(float3(0, 0, 0), 160).entered(ray);
+    if (inside.missed)
+        return colours.transparent;                     // nothing to march
+    Hit hit = ray.marched(Cloud(), inside);
+    return hit.found ? hit.lit(camera) : colours.transparent;
+}
+```
+
+- `Ray`: `camera.ray(pixel)` from the eye through a point on screen; `at(t)`;
+  `marched(field, span, steps = 48, close = 0.05)` steps by the field's distance
+  and gives a `Hit` (`found`, `t`, `position`, `normal`, `tint`, `lit(camera)`
+  with the mesh's studio lights).
+- `Ball`: `grown(by)`, `distance(p)`, `entered(ray)`, the `Span` where the ray is
+  inside it (`missed` when it passes by; `joined` for two). March only inside a span.
+- `Melt`: Quilez's polynomial smooth min, built a ball at a time with `add`. Its
+  normal and colour come out of the same weights, so a hit needs no extra
+  samples for its normal and a melt shades from one ball's colour to the next's.
+- Cost is per pixel and per step, so march only where something is: in
+  `deform`, `camera.outlined(ball)` is the exact `Footprint` a ball takes on
+  screen (`at(uv)` is a corner) and `camera.depth(ball)` its depth. Each
+  thing its own quad, each pixel marching only its neighbours:
+  `Assets/Shaders/Lab/raymarch_pool` is the worked example (a pool, §20).
+
+### Particles: `xanadu.particles`
+
+The pieces of a particle system, as plain functions over a particle's place
+and velocity (px from the middle, y down; px/s), for a pool's `step` or a BUILD
+brick's passes. They read `dt` and `time` themselves.
+
+- **Births:** `particles.onShape(shape, size, u, v)` (POINT, LINE, CIRCLE, DISC,
+  BOX, RING) and `particles.launched(local, heading, outward, speed, tangent)`.
+- **Moves**, each giving the velocity after the frame: `forced`, `dragged`,
+  `flowed` / `carried` (curl noise; `flowAt` is the flow), `attracted`,
+  `swirled`, `pushed` (AWAY, TOWARDS, ROUND), `limited`, and `steered` for
+  Physarum (it gives a heading from three samples of a field you keep).
+- **Walls:** `bounce`, `wrap`, and `pastWalls` to kill past them.
+- **Looks:** `particles.cover(look, local, halfLength, radius)` (GLOW, DOT,
+  RINGED, SPARK, SQUARE), and `reachOf(look, radius)` for how big its quad is.
+
+```slang
+velocity = particles.forced(velocity, float2(0, 400));
+velocity = particles.dragged(velocity, 0.5);
+particles.bounce(position, velocity, -world / 2, world / 2, bool4(true), 0.5, 0.1);
+```
+
+`Lab/particles` runs them all: its `emitterOf` and `move` are the parts to edit.
 
 ## 16. Trying things out
 
@@ -1389,3 +1485,162 @@ chart) the same way anyone would.
   start-up; the shader tool, the labs and the dev tools declare them too, and
   the editor's stand-ins fill them.
 - Read-only everywhere. A global with nothing written yet reads as zeros.
+
+## 20. Pools: things the GPU keeps
+
+An effect draws pixels and forgets them. A STEP brick (`step.slang`) keeps a
+whole crowd of items on the GPU, moves every one of them each frame, and draws
+each one once. Start from `Lab/swarm`:
+
+```slang
+// step.slang
+import xanadu;
+
+[Default(0, 0)] uniform float2 attractor;
+
+struct Dot { float2 position; float2 velocity; float size; float hue; };
+
+static const uint count = 10000;
+
+Dot start(uint i)
+{
+    Dot d;
+    d.position = (random2(float2(i, 1)) - 0.5) * float2(1600, 900);
+    d.velocity = float2(0, 0);
+    d.size = lerp(3, 8, random(float2(i, 2)));
+    d.hue = random(float2(i, 3));
+    return d;
+}
+
+void step(inout Dot d, uint i, float dt)
+{
+    d.velocity += normalize(attractor - d.position + 0.001) * 600 * dt;
+    d.position += d.velocity * dt;
+}
+```
+
+```slang
+// deform.slang: once per dot, it puts the quad round the one being drawn
+ItemVertex deform(ItemVertex v)
+{
+    float2 offset = (v.uv - 0.5) * item.size;
+    v.position = v.rest.position + item.position + offset;
+    v.local = offset;
+    v.colour = colours.hsv(item.hue, 0.6, 1);
+    return v;
+}
+```
+
+- The item is your own struct. `count` items, written as a number
+  (`static const uint count = 10000;`), up to 262,144. Item `i` is the same
+  item every frame.
+- `start(i)` makes item `i` once, after every compile. Optional: without it
+  every item starts zeroed.
+- `step(t, i, dt)` runs once a frame for every item, all at once on the GPU;
+  what it leaves in `t` is what the next frame's `step` gets.
+- The item is drawn once: the quad it's placed on is drawn `count` times, and
+  the DEFORM and SHADE bricks read the one being drawn as `item`. A pool
+  needs a DEFORM brick, or every item would land on the same quad.
+- `step` sees the uniforms, the globals (§19) and `time`; an UPDATE brick's
+  `state` too, when the stack has one.
+- **Born and dying.** Say a rate of births and write `bool step`: return
+  `false` and the item dies, its slot free. Each frame the engine bears
+  exactly `rate` a second (the fraction carries over) into free slots, each
+  made by `start(n)`. Here `n` counts births, so every birth differs; `step`'s
+  `i` is still the slot. Only live items are drawn. A full pool drops the
+  births it has no room for, so make `count` at least `rate` times the
+  longest life. Start from `Lab/fountain`:
+
+  ```slang
+  static const uint count = 8000;
+  static const float rate = 2500;      // births a second
+
+  Particle start(uint n) { ... }       // birth n
+
+  bool step(inout Particle p, uint i, float dt)
+  {
+      p.age += dt;
+      if (p.age >= p.life)
+          return false;                // it dies; its slot is free
+      ...
+      return true;
+  }
+  ```
+
+- Items never see each other: `step` gets one item. Ease with `dt`
+  (`exp(-dt * rate)`), so it feels the same at any frame rate.
+- **Lab only for now**, as kept state is (§14): pools run in
+  `Assets/Shaders/Lab/` and in the shader tool. Elsewhere a pool is an error.
+
+## 21. Build: passes over buffers
+
+Some work can't be done one item at a time: sorting, building a tree over
+everything, counting into cells and then filling them. A BUILD brick
+(`build.slang`) keeps **buffers** on the GPU and runs **passes** over them, in
+an order you write down, every frame. DEFORM and SHADE read the buffers. Start
+from `Lab/build_bars` (small) or `Lab/bvh_march` (a BVH over 262,144 blobs,
+rebuilt every frame, and marched):
+
+```slang
+// build.slang
+import xanadu;
+
+static const uint BARS = 256;
+
+// Two halves: the heights grow wrote, then each smoothing's result in the other half.
+[Buffer(2 * BARS)] RWStructuredBuffer<float> heights;
+
+[Options("0|1|2|3|4|5|6|7|8")] [Default(4)] uniform int passes;
+
+[Pass(64, over: BARS)]
+void grow(uint i) { heights[i] = 0.5 + 0.35 * sin(i * 0.15 + time * 3); }
+
+[Pass(64, over: BARS)]
+void smooth(uint i, uint from)
+{
+    uint a = from * BARS, b = (1 - from) * BARS;
+    heights[b + i] = (heights[a + max(i, 1) - 1] + heights[a + i] + heights[a + min(i + 1, BARS - 1)]) / 3;
+}
+
+void build()
+{
+    grow();
+    for (uint k = 0; k < passes; k++)
+        smooth(k & 1);
+}
+```
+
+- **Buffers:** `[Buffer(size)] RWStructuredBuffer<T> name;`, `size` elements
+  of any struct of yours. The size is worked out on the CPU, so it is made of
+  numbers and `static const`s. `globallycoherent` may go before
+  `RWStructuredBuffer` (for atomics that hand work up a tree). Never write a
+  binding: the engine places every buffer, and each pass, deform and shade
+  binds only the ones it really uses. They start as zeros and keep what they
+  hold from frame to frame.
+- **Passes:** `[Pass(threads, over: n)] void name(uint i, …)` runs `threads` a
+  group, a thread for each `i` below `n` (the rest of the last group turned
+  away). `[Pass(threads, groups: g)]` runs `g` whole groups and every thread in
+  them: what code with `groupshared` memory and barriers needs. `dispatch.thread`
+  is a thread's place in its group and `dispatch.group` its group. `n` and `g`
+  are worked out on the CPU too, and may read uniforms (`over: 1024 << 2 * spheres`).
+- **`build()`** is the order. It runs on the CPU every frame: each call is a
+  pass of its own, so a pass sees everything the passes before it wrote. It
+  may hold `for` loops and `if`s over numbers, `static const`s and uniforms; a
+  call passes uints to the parameters after `i` (`smooth(k & 1)`).
+- Passes see the uniforms, the globals (§19), `time` and an UPDATE brick's
+  `state`. UPDATE and STEP run before BUILD and can't read its buffers.
+- **Limits:** a pass writes at most 8 buffers, and deform and shade read at
+  most 8 storage buffers each, counting the library's globals (4 now), kept
+  state and a pool's items. Past that the compile says so: share a buffer
+  between arrays (`Lab/bvh_march` keeps two arrays in each half of `keys`).
+  A frame runs at most 1,024 passes; a buffer takes at most 256 MB.
+- **Drawing many from a build:** declare `[Draws] RWStructuredBuffer<uint> drawn;`
+  and have a pass write `drawn[0]`: the stack's quad is drawn that many times
+  this frame (the count never comes back to the CPU). DEFORM and SHADE read
+  which one they draw as `copy` and place it themselves, as a pool's deform
+  places its item. `Lab/particles` draws the field as copy 0, then every trail
+  segment, then every live particle, all from one count. Without `[Draws]`
+  the quad is drawn once.
+- Passes and pool steps read the frame's seconds as `dt` (0 while the clock
+  stands still).
+- **Lab only for now**, as pools are.

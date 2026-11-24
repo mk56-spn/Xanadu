@@ -85,6 +85,15 @@ public sealed class LevelRecoveryStore(string directory)
             File.Delete(path);
     }
 
+    /// <summary>Drops every recovery file, so nothing opens under a "recover unsaved changes" dialog (the visual tests).</summary>
+    public void Clear()
+    {
+        if (!System.IO.Directory.Exists(Directory))
+            return;
+        foreach (string file in System.IO.Directory.GetFiles(Directory, "*.recovery.xmf"))
+            File.Delete(file);
+    }
+
     /// <summary>
     ///     A digest of the level that two captures of the same state agree on: a
     ///     level not yet saved gets a fresh identity from every capture, and the

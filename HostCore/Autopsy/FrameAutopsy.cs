@@ -10,6 +10,26 @@ public enum AutopsySide : byte
 {
     Cpu = 0,
     Gpu = 1,
+    /// <summary>Memory and the GC: not milliseconds, each track's name says its unit (<see cref="AutopsyMemory"/>).</summary>
+    Memory = 2,
+}
+
+/// <summary>
+/// The memory tracks every capture has, top level, side <see cref="AutopsySide.Memory"/>.
+/// Process and GPU memory are read twice a second and carried between.
+/// </summary>
+public static class AutopsyMemory
+{
+    public const string AllocatedKb = "allocated KB";
+    public const string HeapMb = "heap MB";
+    public const string ProcessMb = "process MB";
+    public const string GpuMb = "GPU MB";
+    public const string Gen0 = "gen0 GCs";
+    public const string Gen1 = "gen1 GCs";
+    public const string Gen2 = "gen2 GCs";
+    public const string PauseMs = "GC pause ms";
+
+    public static readonly string[] All = [AllocatedKb, HeapMb, ProcessMb, GpuMb, Gen0, Gen1, Gen2, PauseMs];
 }
 
 /// <summary>Why a frame was kept; a frame can be kept for more than one reason.</summary>
@@ -20,6 +40,8 @@ public enum AutopsyKeep : byte
     WorstCpu = 2,
     WorstGpu = 4,
     Mean = 8,
+    /// <summary>One of the launch's last frames that collected garbage.</summary>
+    Gc = 16,
 }
 
 /// <summary>
@@ -28,7 +50,7 @@ public enum AutopsyKeep : byte
 /// </summary>
 public sealed record AutopsyTrack(string Name, int Parent, AutopsySide Side);
 
-/// <summary>One frame's milliseconds per track, NaN where a track didn't run or wasn't known yet.</summary>
+/// <summary>One frame's value per track (milliseconds, or the memory track's unit), NaN where a track didn't run or wasn't known yet.</summary>
 public sealed class AutopsyFrame(long number, AutopsyKeep keep, float[] values, long start = 0)
 {
     public long Number { get; } = number;
@@ -73,7 +95,7 @@ public sealed class FrameAutopsy
 public static class XfaBinary
 {
     public const ushort MajorVersion = 1;
-    public const ushort MinorVersion = 0;
+    public const ushort MinorVersion = 1;
     public const string Extension = ".xfa";
 
     private const string Format = "XFA";

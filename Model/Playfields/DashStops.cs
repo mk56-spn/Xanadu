@@ -7,7 +7,7 @@ namespace Xanadu.Model.Playfields;
 public static class DashStops
 {
     /// <summary>The shader that draws a dash ender's look.</summary>
-    public const string Shader = "Assets/Shaders/Items/dash_stop.slang";
+    public const string Shader = "Assets/Shaders/Items/dash_stop";
 
     /// <summary>
     /// What every dash ender looks like: a quad with room round the block for

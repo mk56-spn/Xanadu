@@ -14,7 +14,7 @@ namespace Xanadu.Model.Playfields;
 public static class Orbs
 {
     /// <summary>The shader that draws an orb's ball.</summary>
-    public const string Shader = "Assets/Shaders/Items/orb.slang";
+    public const string Shader = "Assets/Shaders/Items/orb";
 
     /// <summary>
     /// What an orb's ball looks like: a quad centred on it with room for its glow

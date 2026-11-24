@@ -12,7 +12,7 @@ namespace Xanadu.Screens.SongSelect;
 /// <summary>The player banner and the level readout beneath it.</summary>
 public static partial class SongSelectScene
 {
-    private const string BackgroundShader = "Assets/Shaders/note_background.slang";
+    private const string BackgroundShader = "Assets/Shaders/note_background";
 
 
     /// <summary>Builds the banner and the level readout under it, returning the readout's label and panel.</summary>

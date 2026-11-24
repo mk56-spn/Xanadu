@@ -151,10 +151,13 @@ public static class UiLayout
         if (entity.IsNull)
             return;
 
+        // Deepest first: deleting a child tells its parent, and a parent already deleted would be
+        // tagged dirty by the tree events (UiTreeEvents), which puts it back in an archetype as a
+        // dead entity every query then trips on. AddTree lists parents before their children.
         var subtree = new EntityList(entity.Store);
         subtree.AddTree(entity);
-        foreach (Entity member in subtree)
-            member.DeleteEntity();
+        for (int i = subtree.Count - 1; i >= 0; i--)
+            subtree[i].DeleteEntity();
     }
 
     /// <summary>Deletes everything under an entity and keeps the entity.</summary>

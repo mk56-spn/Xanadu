@@ -46,11 +46,12 @@ internal static class AutopsyDump
         var kept = autopsy.Frames.Where(f => !f.Keep.HasFlag(AutopsyKeep.Mean)).ToList();
         var peaks = Enumerable.Range(2, Math.Max(0, autopsy.Tracks.Count - 2))
             .Select(t => (Track: t, Peak: kept.OrderByDescending(f => Ms(f, t)).FirstOrDefault()))
-            .Where(p => p.Peak is not null && children[p.Track].Count == 0)
+            .Where(p => p.Peak is not null && children[p.Track].Count == 0 && autopsy.Tracks[p.Track].Side != AutopsySide.Memory)
             .OrderByDescending(p => Ms(p.Peak!, p.Track)).Take(25);
         foreach ((int track, AutopsyFrame? peak) in peaks)
             Console.WriteLine($"{Path(autopsy, track),-60}{(mean is null ? 0 : Ms(mean, track)),10:0.000}{Ms(peak!, track),10:0.000}  {peak!.Number}");
 
+        Memory(autopsy, kept, mean);
         Hitches(autopsy, children, kept, mean);
 
         foreach ((string title, AutopsyFrame? frame) in new[] { ("MEAN FRAME", mean), ("WORST CPU FRAME", worst) })
@@ -97,11 +98,32 @@ internal static class AutopsyDump
                 .OrderByDescending(t => Ms(frame, t))
                 .Take(4)
                 .Select(t => $"{autopsy.Tracks[t].Name} {Ms(frame, t):0.0}"));
-            Console.WriteLine($"  frame {frame.Number,6}  {at,7:0.00} s  {total,7:0.0} ms   {causes}");
+            string gc = Ms(frame, Memory(autopsy, AutopsyMemory.PauseMs)) is var paused && paused > 0 ? $"  [GC {paused:0.0} ms]" : "";
+            Console.WriteLine($"  frame {frame.Number,6}  {at,7:0.00} s  {total,7:0.0} ms   {causes}{gc}");
         }
 
         if (hitches.Count > HitchRows)
             Console.WriteLine($"  … and {hitches.Count - HitchRows} more");
+    }
+
+    private static int Memory(FrameAutopsy autopsy, string name) =>
+        autopsy.Tracks.FindIndex(t => t.Side == AutopsySide.Memory && t.Parent < 0 && t.Name == name);
+
+    /// <summary>The launch's allocations, collections and pauses (mean frame × frames), and the kept frames' peaks.</summary>
+    private static void Memory(FrameAutopsy autopsy, List<AutopsyFrame> kept, AutopsyFrame? mean)
+    {
+        if (mean is null || Memory(autopsy, AutopsyMemory.AllocatedKb) < 0)
+            return;
+        float Total(string name) => Ms(mean, Memory(autopsy, name)) * autopsy.FrameCount;
+        float Peak(string name) => kept.Count == 0 ? 0 : kept.Max(f => Ms(f, Memory(autopsy, name)));
+        double seconds = Math.Max(autopsy.Seconds, 1e-3);
+        float allocatedMb = Total(AutopsyMemory.AllocatedKb) / 1024f;
+        Console.WriteLine();
+        Console.WriteLine("MEMORY");
+        Console.WriteLine($"  allocated   {allocatedMb:N0} MB, {allocatedMb / seconds:0.0} MB/s, {Ms(mean, Memory(autopsy, AutopsyMemory.AllocatedKb)):0.0} KB/frame");
+        Console.WriteLine($"  GCs         gen0 {Total(AutopsyMemory.Gen0):0}, gen1 {Total(AutopsyMemory.Gen1):0}, gen2 {Total(AutopsyMemory.Gen2):0}; " +
+                          $"paused {Total(AutopsyMemory.PauseMs):0.0} ms in all, longest kept {Peak(AutopsyMemory.PauseMs):0.00} ms");
+        Console.WriteLine($"  peaks kept  heap {Peak(AutopsyMemory.HeapMb):0.0} MB, process {Peak(AutopsyMemory.ProcessMb):0} MB, GPU {Peak(AutopsyMemory.GpuMb):0} MB");
     }
 
     private static void Tree(FrameAutopsy autopsy, List<int>[] children, AutopsyFrame frame, int track, int depth, string? name = null)
@@ -154,5 +176,5 @@ internal static class AutopsyDump
         return path.Length > 58 ? "…" + path[^57..] : path;
     }
 
-    private static float Ms(AutopsyFrame frame, int track) => frame.Get(track) is var v && !float.IsNaN(v) ? v : 0;
+    private static float Ms(AutopsyFrame frame, int track) => track >= 0 && frame.Get(track) is var v && !float.IsNaN(v) ? v : 0;
 }

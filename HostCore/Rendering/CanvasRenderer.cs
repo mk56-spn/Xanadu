@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
+using Xanadu.Host.Rendering.Compute;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -357,9 +358,9 @@ internal sealed partial class CanvasRenderer : IDisposable
             Stage = ShaderStage.Fragment,
         });
 
-        _expand = ComputePipeline.Create(device,
+        _expand = ComputePipelines.Create(device,
             SlangShaders.Compile(Path.Combine(AppContext.BaseDirectory, "Shaders", "primitive_expand.slang"), "expandPrimitives", "compute"),
-            "main", new ComputePipelineCreateInfo
+            "expandPrimitives", new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
                 NumReadonlyStorageBuffers = 4,
@@ -378,6 +379,8 @@ internal sealed partial class CanvasRenderer : IDisposable
         {
             if (_states.Remove(material, out Buffer? state))
                 state.Dispose();
+            ForgetPool(material);
+            ForgetBuild(material);
         };
     }
 
@@ -436,6 +439,12 @@ internal sealed partial class CanvasRenderer : IDisposable
         _lastTime = time;
         using (commands.Scope("shader updates"))
             UpdateStates(commands, dt, time);
+        using (commands.Scope("shader pools"))
+            StepPools(commands, dt, time);
+        using (commands.Scope("shader builds"))
+            RunBuilds(commands, dt, time);
+        using (commands.Scope("shader draws"))
+            FillDraws(commands);
         using (commands.Scope("particles step"))
             Particles.Step(commands, dt);
         phases?.Lap(HostFramePhases.Phase.ShaderStates, ref lap);
@@ -1185,11 +1194,13 @@ internal sealed partial class CanvasRenderer : IDisposable
         }
 
         IReadOnlyList<string> names = SlangShaders.Globals;
-        if (_bound.Length != names.Count + 1)
-            _bound = new Buffer[names.Count + 1];
+        // The globals, two places for what a stage binds after them, then room for a stack's BUILD buffers.
+        if (_bound.Length != names.Count + 2 + SlangShaders.MaxStageBuffers)
+            _bound = new Buffer[names.Count + 2 + SlangShaders.MaxStageBuffers];
         for (int i = 0; i < names.Count; i++)
             _bound[i] = ShaderGlobals.Find(names[i]) is { Count: > 0 } global ? Uploaded(commands, global) : _blank;
-        _bound[names.Count] = _blank;
+        for (int i = names.Count; i < _bound.Length; i++)
+            _bound[i] = _blank;
     }
 
     private Buffer Uploaded(CommandBuffer commands, ShaderGlobal global)
@@ -1221,12 +1232,26 @@ internal sealed partial class CanvasRenderer : IDisposable
         return held.Buffer;
     }
 
-    /// <summary>The frame's globals, then <paramref name="state"/> (or zeros) when a stage binds one more: <paramref name="count"/> in all.</summary>
-    private Span<Buffer> Bound(int count, Buffer? state = null)
+    /// <summary>
+    /// The frame's globals, then what a stage binds after them (kept state, a pool's items; zeros
+    /// for one not there yet): <paramref name="count"/> in all.
+    /// </summary>
+    private Span<Buffer> Bound(int count, Buffer? first = null, Buffer? second = null)
     {
-        int globals = _bound.Length - 1;
-        _bound[globals] = state ?? _blank!;
+        int globals = SlangShaders.Globals.Count;
+        _bound[globals] = first ?? _blank!;
+        _bound[globals + 1] = second ?? _blank!;
         return _bound.AsSpan(0, Math.Min(count, _bound.Length));
+    }
+
+    /// <summary>A stage's storage buffers: its own (<see cref="Bound(int, Buffer?, Buffer?)"/>), then the stack's BUILD buffers it reads.</summary>
+    private Span<Buffer> Bound(CompiledShader stage, Buffer? first, Buffer? second, Buffer[]? built)
+    {
+        int own = stage.StorageBuffers - stage.StackBuffers.Length;
+        Bound(own, first, second);
+        for (int k = 0; k < stage.StackBuffers.Length; k++)
+            _bound[own + k] = built?[stage.StackBuffers[k]] ?? _blank!;
+        return _bound.AsSpan(0, stage.StorageBuffers);
     }
 
     /// <summary>A pass on a job's target and the depth buffer; with <paramref name="msaa"/>, on the multisampled frame, resolved into the target when it ends.</summary>
@@ -1467,9 +1492,14 @@ internal sealed partial class CanvasRenderer : IDisposable
             }
 
             pass.BindFragmentSamplers(samplers[..count]);
+            // After the globals: kept state when the stack keeps some, then its pool's items.
+            Buffer? items = effect.Compiled.Pool is null ? null : PoolItems(step.Material);
+            Buffer? state = step.Material is { } kept && _states.TryGetValue(kept, out Buffer? held) ? held : null;
+            Buffer[]? built = effect.Compiled.Build is null ? null : BuildBuffers(step.Material);
             if (effect.Compiled.StorageBuffers > 0)
-                pass.BindFragmentStorageBuffers(Bound(effect.Compiled.StorageBuffers,
-                    step.Material is { } kept && _states.TryGetValue(kept, out Buffer? state) ? state : null));
+                pass.BindFragmentStorageBuffers(effect.Compiled.Update is null
+                    ? Bound(effect.Compiled, items, null, built)
+                    : Bound(effect.Compiled, state, items, built));
             if (effect.Compiled.ParamsSize > 0)
                 PushParams(commands, effect.Compiled, step.Material, step.Values);
             if (instanced)
@@ -1494,12 +1524,19 @@ internal sealed partial class CanvasRenderer : IDisposable
                 if (vertex.Samplers.Length > 0)
                     pass.BindVertexSamplers(new TextureSamplerBinding(_depthRead, _device.PointSampler));
                 if (vertex.StorageBuffers > 0)
-                    pass.BindVertexStorageBuffers(Bound(vertex.StorageBuffers));
+                    pass.BindVertexStorageBuffers(Bound(vertex, items, null, built));
                 if (vertex.ParamsSize > 0)
                     PushParams(commands, vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
             }
 
-            pass.DrawPrimitives(step.Count, 1, step.Start, 0);
+            // A pooled stack draws once per item; until its pool (or its BUILD buffers) exists, not at all.
+            uint copies = effect.Compiled.Pool is { } pooled ? items is null ? 0u : (uint)pooled.ItemCount : 1u;
+            if (effect.Compiled.Build is not null && built is null)
+                copies = 0;
+            if (_drawSlots.TryGetValue(s, out uint slot))
+                pass.DrawPrimitivesIndirect(_drawArgs!, slot * DrawArgsBytes, 1);
+            else if (copies > 0)
+                pass.DrawPrimitives(step.Count, copies, step.Start, 0);
             LastBatchCount++;
             drawnSinceCopy = true;
         }
@@ -1679,6 +1716,8 @@ internal sealed partial class CanvasRenderer : IDisposable
         _zeros.Dispose();
         foreach (Buffer state in _states.Values)
             state.Dispose();
+        DisposePools();
+        DisposeBuilds();
         _buffer?.Dispose();
         _transfer?.Dispose();
         _expand.Dispose();

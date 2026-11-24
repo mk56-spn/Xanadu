@@ -10,7 +10,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// </summary>
 public static class UiTextGradient
 {
-    public const string Shader = "Assets/Shaders/Ui/text_gradient.slang";
+    public const string Shader = "Assets/Shaders/Ui/text_gradient";
 
     /// <summary>
     /// Blends from <paramref name="from"/> at <paramref name="start"/> to

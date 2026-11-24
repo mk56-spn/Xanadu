@@ -20,7 +20,7 @@ public static partial class PlayfieldRenderer
     private const float BarWidth = 1.4f;
 
     /// <summary>The shader that draws the hit bar from the chart.</summary>
-    public const string HitBarShader = "Assets/Shaders/hit_bar.slang";
+    public const string HitBarShader = "Assets/Shaders/hit_bar";
 
     /// <summary>
     /// Draws a recently hit note where it was: a white flash over the note,

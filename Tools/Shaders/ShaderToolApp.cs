@@ -20,12 +20,13 @@ namespace Xanadu.Tools.Shaders;
 #pragma warning disable RS0030
 
 /// <summary>
-/// The shader tool: every shipped effect in a list on the left, each with a
-/// live thumbnail; the picked one's code in the shared Slang editor
-/// (<see cref="ShaderCodeEditor"/>) with its preview and problems on the right.
-/// Edits stay in memory, kept per shader while others are picked, until saved
-/// (Ctrl+S or SAVE) or put back (REVERT). NEW makes an effect from the
-/// template (<see cref="ShaderFiles.Create"/>) and opens it. It is all containers: the code, its
+/// The shader tool: every shipped shader stack in a list on the left, each with a
+/// live thumbnail; the picked one's bricks in the shared Slang editor
+/// (<see cref="ShaderCodeEditor"/>), its pipeline over the code, with its preview
+/// and problems on the right. Edits (bricks added and removed too) stay in memory,
+/// kept per stack while others are picked, until saved (Ctrl+S or SAVE) or put
+/// back (REVERT). NEW makes a stack, a shade brick from its template
+/// (<see cref="ShaderFiles.Create"/>), and opens it. It is all containers: the code, its
 /// status bar, the divider, the preview and the column under it are slots the
 /// editor reads its boxes from; dragging the divider only resizes a container.
 /// </summary>
@@ -67,8 +68,8 @@ internal sealed class ShaderToolApp : HostApp
     private UiNode _rowList;
     private readonly List<Entity> _thumbs = [];
 
-    /// <summary>Edited text not yet saved, by file; a file without an entry is as on disk.</summary>
-    private readonly Dictionary<ShaderFile, string> _unsaved = [];
+    /// <summary>Edited bricks not yet saved, by stack; a stack without an entry is as on disk.</summary>
+    private readonly Dictionary<ShaderFile, List<Brick>> _unsaved = [];
 
     private Entity _title, _save, _revert, _note, _new, _trianglesButton, _uvButton;
 
@@ -84,8 +85,8 @@ internal sealed class ShaderToolApp : HostApp
     private ShaderCodeEditor? _code;
     private Handle _codeItem;
 
-    /// <summary>The text as last saved or read, for telling whether the code has changes.</summary>
-    private string _disk = "";
+    /// <summary>The bricks as last saved or read, for telling whether the code has changes.</summary>
+    private List<Brick> _disk = [];
     private int _seenVersion = -1;
 
     private float _sideWidth = SideWidth;
@@ -126,9 +127,9 @@ internal sealed class ShaderToolApp : HostApp
         // Sized for its longest words: a text box is measured from what it holds when made.
         _note = bar.Text("unsaved changes", UiType.Small, align: TextAlign.Right).DimText();
         _trianglesButton = bar.Button("TRIANGLES", UiType.Small).Secondary()
-            .Tooltip("Outline every triangle of the preview's mesh, where the vertex stage put it");
+            .Tooltip("Outline every triangle of the preview's mesh, where the vertex stage put it (not for pools yet)");
         _uvButton = bar.Button("UV", UiType.Small).Secondary()
-            .Tooltip("Lines where uv is 0 (solid) and 1 (dashed): red for u, green for v, after the vertex stage");
+            .Tooltip("Lines where uv is 0 (solid) and 1 (dashed): red for u, green for v, after the vertex stage (not for pools yet)");
         _revert = bar.Button("REVERT", UiType.Small).Secondary().Tooltip("Put the code back as the file has it");
         _save = bar.Button("SAVE", UiType.Small).Primary().Tooltip("Write the code to the file (Ctrl+S)");
         _codeSlot = code.Column().Grow();
@@ -148,11 +149,12 @@ internal sealed class ShaderToolApp : HostApp
         // The effect as shipped, drawn live with its own defaults; saving makes it compile again. A box the
         // thumbnail's size clips it: an effect that moves its own vertices (a deform) would draw past it.
         UiNode frame = row.Column().Size(ThumbWidth, ThumbHeight).Clip();
-        _thumbs.Add((SlangShaders.IsLabOnly(_files[i].Path)
+        string path = _files[i].Path;
+        _thumbs.Add((SlangShaders.IsLabOnly(path)
                 ? frame.Image(Still(i), new Vector2(ThumbWidth, ThumbHeight))
-                : frame.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(_files[i].Path))))
+                : frame.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(path))))
             .Input()
-            .Tooltip(_files[i].Path));
+            .Tooltip(path));
         _rows.Add(row.Button(_files[i].Name, UiType.Small).Quiet().Grow().Height(ThumbHeight));
     }
 
@@ -245,13 +247,18 @@ internal sealed class ShaderToolApp : HostApp
         if (Clicked(_revert))
             Revert();
 
+        // The overlays don't draw copies yet (a pool, a BUILD's [Draws]): their buttons rest while one is shown.
+        bool copies = _effect?.DrawsCopies == true;
+        UiLayout.SetDisabled(_trianglesButton, copies);
+        UiLayout.SetDisabled(_uvButton, copies);
+
         var frame = new ToolFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, Pointer.TakeWheel());
         Drag(frame);
         _code.Update(frame, pointerFree: !_dragging);
         ShowChanges();
     }
 
-    /// <summary>Opens a shader: its unsaved text if it has some, else the file's.</summary>
+    /// <summary>Opens a stack: its unsaved bricks if it has some, else the folder's.</summary>
     private void Pick(int index)
     {
         if (_picked >= 0 && _code is not null)
@@ -263,18 +270,18 @@ internal sealed class ShaderToolApp : HostApp
         _picked = index;
         ShaderFile file = _files[index];
         _disk = ShaderFiles.Read(file);
-        string text = _unsaved.GetValueOrDefault(file, _disk);
+        List<Brick> bricks = _unsaved.GetValueOrDefault(file, _disk);
 
         _codeItem = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(_codeItem, Canvas.RootHandle);
         CanvasServer.Current.SetZIndex(_codeItem, StageZ);
-        string label = file.Name + ".slang";
         var slots = new ShaderEditorSlots(UiNode.Wrap(_codeSlot), UiNode.Wrap(_barSlot), UiNode.Wrap(_preview),
             UiNode.Wrap(_sideSlot), UiNode.Wrap(_dividerSlot));
-        _code = new ShaderCodeEditor(Entities, _codeItem, slots, text,
+        _effect = null;
+        _code = new ShaderCodeEditor(Entities, _codeItem, slots, file.Path, bricks,
             item =>
             {
-                _effect = new EffectPreview(Renderer.Pipelines, item, label, SlangShaders.IsLabOnly(file.Path));
+                _effect = new EffectPreview(Renderer.Pipelines, item, file.Path, SlangShaders.IsLabOnly(file.Path));
                 _effect.ShowOverlays(_showTriangles, _showUv);
                 return _effect;
             });
@@ -307,15 +314,15 @@ internal sealed class ShaderToolApp : HostApp
         _effect?.ShowOverlays(_showTriangles, _showUv);
     }
 
-    /// <summary>Remembers the open shader's text while another is picked, if it differs from the file.</summary>
+    /// <summary>Remembers the open stack's bricks while another is picked, if they differ from the folder.</summary>
     private void Keep()
     {
         ShaderFile file = _files[_picked];
-        string text = _code!.Text;
-        if (text == _disk)
+        List<Brick> bricks = _code!.Bricks;
+        if (bricks.SequenceEqual(_disk))
             _unsaved.Remove(file);
         else
-            _unsaved[file] = text;
+            _unsaved[file] = bricks;
     }
 
     private void Save()
@@ -324,14 +331,14 @@ internal sealed class ShaderToolApp : HostApp
             return;
 
         ShaderFile file = _files[_picked];
-        string text = _code.Text;
-        if (!ShaderFiles.Write(file, text, out string? error))
+        List<Brick> bricks = _code.Bricks;
+        if (!ShaderFiles.Write(file, bricks, out string? error))
         {
             UiText.Set(_note, "not saved: " + error);
             return;
         }
 
-        _disk = text;
+        _disk = bricks;
         _unsaved.Remove(file);
         _seenVersion = -1;
         // The thumbnail draws the file, so it compiles again from what was just written.
@@ -339,7 +346,7 @@ internal sealed class ShaderToolApp : HostApp
         Redraw(_picked);
     }
 
-    /// <summary>Puts the file's text back: a fresh editor on it.</summary>
+    /// <summary>Puts the folder's bricks back: a fresh editor on them.</summary>
     private void Revert()
     {
         _unsaved.Remove(_files[_picked]);
@@ -350,16 +357,17 @@ internal sealed class ShaderToolApp : HostApp
         Pick(index);
     }
 
-    /// <summary>Marks the list and the bar when the code differs from the file; checked only when the text changes.</summary>
+    /// <summary>Marks the list and the bar when the bricks differ from the folder; checked only when they change.</summary>
     private void ShowChanges()
     {
         if (_code!.Version == _seenVersion)
             return;
 
         _seenVersion = _code.Version;
-        bool changed = _code.Text != _disk;
+        List<Brick> bricks = _code.Bricks;
+        bool changed = !bricks.SequenceEqual(_disk);
         if (changed)
-            _unsaved[_files[_picked]] = _code.Text;
+            _unsaved[_files[_picked]] = bricks;
         else
             _unsaved.Remove(_files[_picked]);
 

@@ -11,7 +11,7 @@ namespace Xanadu.Model.Playfields;
 public static class Beams
 {
     /// <summary>The shader that draws a beam.</summary>
-    public const string Shader = "Assets/Shaders/Items/beam.slang";
+    public const string Shader = "Assets/Shaders/Items/beam";
 
     /// <summary>How far either side of the beam its quad reaches, screen pixels: room for the strike's flash.</summary>
     public const float HalfWidth = 40f;

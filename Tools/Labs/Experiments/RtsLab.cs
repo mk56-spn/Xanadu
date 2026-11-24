@@ -1,11 +1,9 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Tools;
-using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -151,7 +149,7 @@ internal sealed class RtsLab : ILabExperiment
             _lists = Words("rts lists", drawn, (2 * MaxUnits + Fx) * 4);
             _args = Words("rts args", drawn | Mw.BufferUsageFlags.Indirect, 16 * 4);
 
-            string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "rts_lab.slang");
+            string module = LabShaders.Module("rts_lab.slang");
             _initGame = Compute(module, "initGame");
             _initWorld = Compute(module, "initWorld");
             _initUnits = Compute(module, "initUnits");
@@ -193,7 +191,7 @@ internal sealed class RtsLab : ILabExperiment
             Buffer.Create<uint>(_device, name, usage, bytes / 4);
 
         private ComputePipeline Compute(string module, string entry, uint writes = 8, uint threads = Group) =>
-            ComputePipeline.Create(_device, CachedSpirv(module, entry, "compute"), "main",
+            ComputePipeline.Create(_device, LabShaders.Cached(module, entry, "compute"), "main",
                 new Mw.ComputePipelineCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -205,7 +203,7 @@ internal sealed class RtsLab : ILabExperiment
                 });
 
         private Shader Shader(string module, string entry, Mw.ShaderStage stage, uint storage = 0, uint uniforms = 0) =>
-            MoonWorks.Graphics.Shader.Create(_device, CachedSpirv(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
+            MoonWorks.Graphics.Shader.Create(_device, LabShaders.Cached(module, entry, stage == Mw.ShaderStage.Vertex ? "vertex" : "fragment"),
                 "main", new Mw.ShaderCreateInfo
                 {
                     Format = Mw.ShaderFormat.SPIRV,
@@ -213,27 +211,6 @@ internal sealed class RtsLab : ILabExperiment
                     NumStorageBuffers = storage,
                     NumUniformBuffers = uniforms,
                 });
-
-        /// <summary>
-        /// SPIR-V for one entry, kept in the shader cache by a hash of the module
-        /// and the entry: the module has twenty-odd entries, and compiling them all
-        /// fresh would stall the tab for seconds each time it opens.
-        /// </summary>
-        private static byte[] CachedSpirv(string module, string entry, string stage)
-        {
-            string source = File.ReadAllText(module);
-            if (SlangShaders.CacheFolder is not { } folder)
-                return SlangShaders.Compile(module, entry, stage);
-            byte[] hash = System.Security.Cryptography.SHA256.HashData(
-                System.Text.Encoding.UTF8.GetBytes($"rts|{entry}|{stage}\n{source}"));
-            string path = Path.Combine(folder, "rts-" + Convert.ToHexString(hash)[..32] + ".spv");
-            if (File.Exists(path))
-                return File.ReadAllBytes(path);
-            byte[] spirv = SlangShaders.Compile(module, entry, stage);
-            Directory.CreateDirectory(folder);
-            File.WriteAllBytes(path, spirv);
-            return spirv;
-        }
 
         private static Mw.ColorTargetBlendState Blend(Mw.BlendFactor source, Mw.BlendFactor destination) => new()
         {

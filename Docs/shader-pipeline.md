@@ -5,7 +5,7 @@ API (phases A–D) and the tutorial (`Docs/shaders.md`) build on this. The host
 side is in `Docs/host.md`.
 
 ```
- 0 GLOBALS ──► 1 PARAMS ──► 2 KEPT STATE ──► 3 VERTEX ──► 4 FRAGMENT ──► 5 BLEND ──► 6 WHERE IT LANDS
+ 0 GLOBALS ──► 1 PARAMS ──► 2 KEPT STATE ──► 3 DEFORM ──► 4 SHADE  ──► 5 BLEND ──► 6 WHERE IT LANDS
  (read-only,   (per effect,   (per effect,     user chunk    user chunk     user chunk
   everyone)     read-only)     writable)
                                      │
@@ -14,6 +14,15 @@ side is in `Docs/host.md`.
 
 Data only flows down. Kept state (2, and per particle in 7) is the only thing
 an effect writes, and it belongs to that effect.
+
+**Stacks of bricks (built 2026-11-24).** The unit is a *shader stack*: a folder
+with one file per user chunk, a *brick* (`Slang/ShaderStack.cs`). `update.slang`
+is box 2, `step.slang` is box 7's kept state × N, `deform.slang` is box 3 and
+`shade.slang` is box 4; they run in that order and each reads what the
+bricks above it declare (they compile as one body, each under its own `#line`
+label). Most stacks are a shade brick alone. Blend (5) isn't a brick: it's
+set where the stack is placed (6). The shader tool edits a stack around this
+pipeline: a strip over the code shows the bricks in order, adds and removes them.
 
 ## The API sits outside the game
 
@@ -106,12 +115,12 @@ void update(inout State s, float dt) { … }
   an error until the level runtime passes a paused `dt`.
 - Open: one per material or one per placed item. Can other effects read it?
 
-## 3. Vertex: `deform` (user chunk)
+## 3. Deform: the vertex stage (user chunk, `deform.slang`)
 
 Moves the quad's corners. Reads 0, 1, 2 and depth. Varyings to fragment:
 32 vec4 is the real cap. No auto-packing.
 
-## 4. Fragment: `shade(Canvas)` (user chunk)
+## 4. Shade: the fragment stage (user chunk, `shade.slang`)
 
 The pixel colour. Reads 0, 1, 2, the varyings, textures, the screen and depth.
 
@@ -164,6 +173,36 @@ float4 shade(Canvas canvas)
   become a game global (the spectrum), so the shader declares nothing special.
 
 ## 7. Particles: kept state × N
+
+- **Pools (built 2026-11-24, lab only):** the STEP brick, `count` items of the
+  author's own struct, `start(i)` and `step(t, i, dt)` on the GPU, each item
+  drawn once through the stack's deform and shade bricks, which read it as
+  `item` (`Docs/shaders.md` §20, `Assets/Shaders/Lab/swarm/`). It is this box
+  as a user chunk; the host's particles below are not on it yet.
+- **Engine births (built 2026-11-24, user's choice over raw atomics):** a
+  `rate` and `bool step`. The engine bears exactly `rate` a second into dead
+  slots (each takes a ticket from an atomic counter; the first `births` are
+  born, through `start(n)`), frees a slot when `step` returns false, and folds
+  dead slots out of the draw. No atomics in user code. `Lab/fountain` is the
+  lab's FOUNTAIN on it. Bursts (rockets into shells) would be the engine
+  bearing N in another pool per death: not built.
+- **BUILD brick (built 2026-11-24, lab only):** named buffers
+  (`[Buffer(size)] RWStructuredBuffer<T> name;`) and compute passes
+  (`[Pass(threads, over: n | groups: g)]`), ordered by `void build()`, which the
+  CPU walks each frame (loops and ifs over constants and uniforms); each call is
+  its own compute pass, so a pass sees what the ones before it wrote. The
+  wrapper places every buffer and each stage binds only what it reads
+  (`Slang/StackBuild.cs`, `SlangShaders.Builds.cs`; `CanvasRenderer.Builds.cs`
+  runs it). `Docs/shaders.md` §21; `Lab/build_bars`, `Lab/bvh_march`.
+- **Draws (built 2026-11-24, user's choice of syntax):** a BUILD brick may
+  declare `[Draws] RWStructuredBuffer<uint> name;`, one uint its passes write:
+  the copies of the stack's quad drawn this frame. The renderer draws such a
+  step indirectly (`FillDraws` in `CanvasRenderer.Builds.cs`: the step's
+  vertices and start go up from the CPU, the copies are copied in from the
+  buffer on the GPU), and deform and shade read the copy as `copy`. `dt` is a
+  global in passes and pool steps. `Lab/particles` is the whole particle lab on
+  it (free slots, emitters, death bursts, trail rings, the field); its moves,
+  shapes and looks are `xanadu.particles`.
 
 - Today: host only (`HostCore/Shaders/particles.slang`), outside the DSL. A
   compute step moves every particle (motion, life, colour, look), then one

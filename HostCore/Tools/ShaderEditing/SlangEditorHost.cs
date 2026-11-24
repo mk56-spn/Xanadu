@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Xanadu.Core.Theme;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
@@ -30,7 +31,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// a name declared elsewhere (the library's) goes to <see cref="GoElsewhere"/>.
 /// </para>
 /// </summary>
-internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup) : ITextEditorHost
+internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup) : ITextEditorHost
 {
     /// <summary>A fixed colour per kind of token (not editable yet).</summary>
     private static readonly Dictionary<TokenKind, Color> Colours = new()
@@ -82,6 +83,12 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
 
     /// <summary>Ctrl+S in the code; null leaves the key to nobody.</summary>
     public Action? Save { get; init; }
+
+    /// <summary>The colour each brick entry's name takes where it is declared (<c>shade</c>, <c>deform</c>, …).</summary>
+    public IReadOnlyDictionary<string, Color> EntryColours { get; init; } = new Dictionary<string, Color>();
+
+    [GeneratedRegex(@"^\s*[\w:<>]+\s+(\w+)\s*\(")]
+    private static partial Regex Declared();
 
     /// <summary>Go to the declaration of the name at the caret when this text doesn't declare it; true when there is one.</summary>
     public Func<TextBuffer, bool>? GoElsewhere { get; init; }
@@ -216,6 +223,15 @@ internal sealed class SlangEditorHost(SlangHints hints, SlangColours colourConst
         {
             for (int c = token.Start; c < token.End && c < text.Length; c++)
                 colours[c] = Colours[token.Kind];
+        }
+
+        // A brick's entry where it is declared (a type, the name, then its bracket), in its kind's colour.
+        if (EntryColours.Count > 0 && Declared().Match(text) is { Success: true } declared
+            && EntryColours.TryGetValue(declared.Groups[1].Value, out Color entry))
+        {
+            Group name = declared.Groups[1];
+            for (int c = name.Index; c < name.Index + name.Length; c++)
+                colours[c] = entry;
         }
 
         foreach (LoopIndex index in _loopIndexes)

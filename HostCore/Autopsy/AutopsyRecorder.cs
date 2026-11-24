@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Friflo.Engine.ECS.Systems;
+using Xanadu.Ui.Systems.Debug;
 using Xanadu.Ui.Systems.Ui;
 
 namespace Xanadu.Host.Autopsy;
@@ -11,13 +12,19 @@ namespace Xanadu.Host.Autopsy;
 /// down through its groups, from Friflo's perf counters), draw (waiting for the
 /// swapchain, then recording and submitting) and idle (pacing and vsync). GPU
 /// side: the <see cref="Rendering.GpuTimes"/> groups of the same frame, which
-/// arrive a few frames later. Keeps the last <see cref="RecentCount"/> frames,
-/// the launch's worst frames on each side and a running mean; HostApp saves it when the window closes.
+/// arrive a few frames later. Memory side: what every thread allocated, the
+/// heap, collections and GC pauses per frame, process and GPU memory twice a
+/// second (<see cref="AutopsyMemory"/>). Keeps the last <see cref="RecentCount"/> frames,
+/// the launch's worst frames on each side, the last frames that collected garbage and a running mean; HostApp saves it when the window closes.
 /// </summary>
 internal sealed class AutopsyRecorder
 {
     public const int RecentCount = 1800;
     private const int WorstCount = 16;
+    private const int GcCount = 64;
+
+    /// <summary>Frames between reads of process and GPU memory (asking the OS and the driver isn't free).</summary>
+    private const int SlowEvery = 30;
 
     /// <summary>Frames waited for GPU results before a frame is kept without them.</summary>
     private const int GpuPatience = 16;
@@ -27,6 +34,12 @@ internal sealed class AutopsyRecorder
     private readonly Dictionary<BaseSystem, (int Track, double Sum)> _systems = [];
     private readonly Queue<AutopsyFrame> _recent = new();
     private readonly List<AutopsyFrame> _worstCpu = [], _worstGpu = [];
+    private readonly Queue<AutopsyFrame> _gcFrames = new();
+    private readonly IGpuMemorySource? _gpuMemory;
+    private readonly int _allocated, _heap, _process, _gpu, _gen0, _gen1, _gen2, _pause;
+    private GcReading _gcLast;
+    private float _processMb = float.NaN, _gpuMb = float.NaN;
+    private int _slowAge;
     private readonly Dictionary<long, AutopsyFrame> _pending = [];
     private readonly List<long> _settled = [];
     private readonly int _update, _draw, _acquire, _record, _idle;
@@ -38,8 +51,9 @@ internal sealed class AutopsyRecorder
     private SystemRoot? _monitored;
     private int _monitorAge;
 
-    public AutopsyRecorder(string app, float budgetMs, long mainThread)
+    public AutopsyRecorder(string app, float budgetMs, long mainThread, IGpuMemorySource? gpuMemory = null)
     {
+        _gpuMemory = gpuMemory;
         _autopsy = new FrameAutopsy
         {
             App = app, Started = DateTime.Now, BudgetMs = budgetMs, MainThread = mainThread, TicksPerSecond = Stopwatch.Frequency,
@@ -51,6 +65,15 @@ internal sealed class AutopsyRecorder
         _idle = Child(FrameAutopsy.CpuRoot, "idle (pacing, vsync)", AutopsySide.Cpu);
         _acquire = Child(_draw, "wait for swapchain", AutopsySide.Cpu);
         _record = Child(_draw, "record + submit", AutopsySide.Cpu);
+        _allocated = Child(-1, AutopsyMemory.AllocatedKb, AutopsySide.Memory);
+        _heap = Child(-1, AutopsyMemory.HeapMb, AutopsySide.Memory);
+        _process = Child(-1, AutopsyMemory.ProcessMb, AutopsySide.Memory);
+        _gpu = Child(-1, AutopsyMemory.GpuMb, AutopsySide.Memory);
+        _gen0 = Child(-1, AutopsyMemory.Gen0, AutopsySide.Memory);
+        _gen1 = Child(-1, AutopsyMemory.Gen1, AutopsySide.Memory);
+        _gen2 = Child(-1, AutopsyMemory.Gen2, AutopsySide.Memory);
+        _pause = Child(-1, AutopsyMemory.PauseMs, AutopsySide.Memory);
+        _gcLast = GcReading.Now();
     }
 
     /// <summary>The frame being recorded, as the GPU "frame" group names it.</summary>
@@ -69,6 +92,7 @@ internal sealed class AutopsyRecorder
             Set(_current, _acquire, _acquireMs);
             Set(_current, _record, _drawMs - _acquireMs);
             Set(_current, _idle, Math.Max(0, interval - _updateMs - _drawMs));
+            SampleMemory(_current);
             _pending[_current.Number] = _current;
         }
 
@@ -77,6 +101,29 @@ internal sealed class AutopsyRecorder
         _updateMs = _drawMs = _acquireMs = 0;
         _current = new AutopsyFrame(Number, 0, NewValues(), now);
         Settle(GpuPatience);
+    }
+
+    /// <summary>What the frame allocated and collected, read at its end, with the slow readings carried between their reads.</summary>
+    private void SampleMemory(AutopsyFrame frame)
+    {
+        GcReading gc = GcReading.Now();
+        (int gen0, int gen1, int gen2) = gc.CollectionsSince(_gcLast);
+        Set(frame, _allocated, (gc.AllocatedBytes - _gcLast.AllocatedBytes) / 1024.0);
+        Set(frame, _heap, gc.HeapBytes / (1024.0 * 1024.0));
+        Set(frame, _gen0, gen0);
+        Set(frame, _gen1, gen1);
+        Set(frame, _gen2, gen2);
+        Set(frame, _pause, (gc.Paused - _gcLast.Paused).TotalMilliseconds);
+        _gcLast = gc;
+
+        if (--_slowAge <= 0)
+        {
+            _slowAge = SlowEvery;
+            _processMb = GcReading.ProcessBytes() / (1024f * 1024f);
+            _gpuMb = _gpuMemory?.Read() is { } reading ? reading.ProcessBytes / (1024f * 1024f) : float.NaN;
+        }
+        Set(frame, _process, _processMb);
+        Set(frame, _gpu, _gpuMb);
     }
 
     public void AddUpdate(double ms) => _updateMs += ms;
@@ -177,6 +224,12 @@ internal sealed class AutopsyRecorder
             _recent.Dequeue();
         Rank(_worstCpu, frame, FrameAutopsy.CpuRoot);
         Rank(_worstGpu, frame, FrameAutopsy.GpuRoot);
+        if (frame.Get(_gen0) + frame.Get(_gen1) + frame.Get(_gen2) > 0)
+        {
+            _gcFrames.Enqueue(frame);
+            while (_gcFrames.Count > GcCount)
+                _gcFrames.Dequeue();
+        }
     }
 
     private static void Rank(List<AutopsyFrame> worst, AutopsyFrame frame, int track)
@@ -213,6 +266,7 @@ internal sealed class AutopsyRecorder
         Keep(_recent, AutopsyKeep.Recent);
         Keep(_worstCpu, AutopsyKeep.WorstCpu);
         Keep(_worstGpu, AutopsyKeep.WorstGpu);
+        Keep(_gcFrames, AutopsyKeep.Gc);
 
         var result = new FrameAutopsy
         {

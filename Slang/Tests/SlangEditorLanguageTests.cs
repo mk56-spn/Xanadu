@@ -125,6 +125,27 @@ public sealed class SlangLintTests
     }
 
     [Test]
+    public void AStructsFieldsAndAnAtomicsOldValueAreNotFlagged()
+    {
+        List<SlangProblem> problems = SlangLint.Check("""
+            struct Gather
+            {
+                uint kept;
+                float cut;
+            };
+
+            void count(uint i)
+            {
+                uint before;
+                InterlockedAdd(counts[i], 1, before);
+                counts[i + 1] = before;
+            }
+            """, Types);
+
+        Assert.That(problems, Is.Empty);
+    }
+
+    [Test]
     public void ALocalFilledByAnOutParameterIsFine()
     {
         const string code = """

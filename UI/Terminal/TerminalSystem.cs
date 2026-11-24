@@ -90,8 +90,9 @@ public sealed class TerminalSystem : BaseSystem
 
         if (!IsOpen)
         {
-            // A ` typed into a field or an editor is just a character.
-            if (_pressed.Contains(DebugKeys.Terminal) && Ctrl && !entry.Claimed && !AnyFieldFocused())
+            // Ctrl+` opens it from anywhere, a focused field or code editor too: with Ctrl held the
+            // ` is no character (editors type nothing while Ctrl is down), and Open takes the focus.
+            if (_pressed.Contains(DebugKeys.Terminal) && Ctrl)
                 Open();
             return;
         }
@@ -230,13 +231,6 @@ public sealed class TerminalSystem : BaseSystem
         int most = Math.Max(0, _log.Count - Lines);
         _scroll = Math.Clamp(_scroll + lines, 0, most);
         _dirty = true;
-    }
-
-    private bool AnyFieldFocused()
-    {
-        foreach (Entity _ in _store.Query<TextField>().AllTags(Tags.Get<TextFieldFocused>()).Entities)
-            return true;
-        return false;
     }
 
     private void Open()

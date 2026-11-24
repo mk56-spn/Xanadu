@@ -175,7 +175,7 @@ The rest is under "Later" (§6).
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
   default 60), `--resolution=WxH`.
 - `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder, which every
-  relative path is under (`Assets/Shaders/flare.slang`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`; `%APPDATA%\xanadu` on Windows).
+  relative path is under (`Assets/Shaders/flare`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`; `%APPDATA%\xanadu` on Windows).
 
 ### 5.2 Seams the game draws through
 
@@ -352,11 +352,15 @@ host fills; tests leave the headless defaults.
   that declare globals (and `xanadu.stage` for the frame and depth slots). The
   folder holds the prepared sources too (globals bound), so a module Slang
   refuses still compiles from there and reports its error.
-- **Shipped effects** are `.slang` files under `Assets/Shaders` (note
+- **Shipped effects** are shader stacks under `Assets/Shaders` (note
   background, flare, rainbow, frosted glass, text gradient, colour picker,
-  editor waveform), written exactly as level shader slots are (below) and
-  compiled through the same wrapper, so the lab, the shader tool and the game
-  read one form.
+  editor waveform): a folder each, one file per brick (`state`, `pool`,
+  `vertex`, `fragment`.slang; `Slang/ShaderStack.cs`). `ShaderStack.Compose`
+  joins the bricks in pipeline order, each under its own `#line` label, into
+  one body written exactly as level shader slots are (below) and compiled
+  through the same wrapper, so the lab, the shader tool and the game read one
+  form, and Slang's errors land on the brick's own lines. A material names the
+  folder (`Assets/Shaders/Items/orb`).
 - **Level shader slots** hold an effect body: global `uniform`s (tagged
   `[Instance]` when a group's item-shader track may key them, with
   `[Default(...)]`s) and a `float4 shade(…)` taking any of `Canvas` and
@@ -439,8 +443,17 @@ host fills; tests leave the headless defaults.
   `ComputeArena<T>`: a growable buffer of fixed-size ranges, copied over on
   growth so ranges keep their offsets. Users: particles (one arena) and
   `[Grid]` cutting (jobs of different sizes write a frame vertex buffer, the
-  run's groups sized to the biggest). The resident UI's passes, screen mips
-  and the labs still dispatch directly.
+  run's groups sized to the biggest), and a stack's STEP brick
+  (`HostCore/Rendering/CanvasRenderer.Pools.cs`), the player-shaped one: the
+  brick's `start`/`step` wrapped into the operation's contract
+  (`SlangShaders.Pools.cs`), each material its own pool buffer stepped once a
+  frame, then its draw instanced by the item count, the vertex and fragment
+  entries reading `item` by the instance. Each slot is the item and an
+  `alive` flag. A pool born at a rate (`rate`, `bool step`) has two slots more,
+  the births' counters, used on alternate frames so the one in use was zeroed
+  the frame before; the CPU carries the births owed (`PoolRun.Owed`). Lab only,
+  as kept state is. The
+  resident UI's passes, screen mips and the labs still dispatch directly.
 
 ### 5.7 Textures, SVG and rigs
 
@@ -455,6 +468,7 @@ host fills; tests leave the headless defaults.
 
 ### 5.8 Window, input, editor overlay
 
+- **GPU validation:** `XANADU_GPU_DEBUG=1` creates the device in SDL_GPU's debug mode, so bad bindings and limits assert with a message instead of failing silently.
 - **VSync on:** `PresentMode.VSync`, one update per display refresh. **Off:**
   mailbox (or immediate) and up to 1000 updates a second. `UpdateTick` gets
   real elapsed time. Window mode (windowed, fullscreen, borderless) is a
@@ -528,9 +542,15 @@ host fills; tests leave the headless defaults.
     gates it; level materials leave it off, so `update` is a compile error
     there.
   - **Shader editor** (`ShaderCodeEditor`; the start of the in-game shader
-    editor): lives in the shader tool (`./run.sh shaders`, where NEW makes an
-    effect from a template under `Assets/Shaders/` and opens it) and the lab's
-    Spawner tab. Compiled 0.3 s after typing stops. Code left with
+    editor): lives in the shader tool (`./run.sh shaders`, where NEW makes a
+    stack, a shade brick from its template, under `Assets/Shaders/` and
+    opens it) and the lab's Spawner tab. In the tool it edits a stack: the
+    pipeline strip over the code (`BrickStrip`: UPDATE → STEP → DEFORM →
+    SHADE → blend) opens a brick, adds a missing one from
+    `ShaderStack.Template` and removes the open one, each brick with its
+    problem count; the editor composes the bricks for every compile, and each
+    problem goes to its brick by label (other bricks' are listed named by
+    theirs). The lab keeps one text. Compiled 0.3 s after typing stops. Code left with
     a status bar under it, a 16:9 preview top right (the playfield's shape;
     the pointer counts only over it), problems and a key guide under that.
     Linting is Slang's own errors: the line tinted, the word underlined, the
@@ -592,6 +612,7 @@ host fills; tests leave the headless defaults.
     compute pass that spawns, culls and packs, plus one indirect draw.
   - **Pointer history:** the pointer's path as a ring of keys on the GPU.
   - **RTS:** an RTS that lives on the GPU.
+  - **BVH march** (raymarcher four; the stacks in `Assets/Shaders/Lab/raymarch_*` are one to three): up to 262,144 melting blobs marched in compute. Every frame the GPU animates them, radix sorts their Morton codes, builds a Karras LBVH and refits it with atomics; 8×8 tiles cull through it against the raster depth into lists the march sorts in groupshared memory; each ray gathers the 8 spheres it enters first, bounded by the first plain sphere it hits (a melt is never further), and marches only those. Soft shadows read a sun-space grid (count, scan, fill) or walk the BVH. Depth goes both ways: the march stops at the raster floor and pillars, and writes its depth back (`SV_Depth`) for sparks drawn after it. SDL_GPU allows 8 read-write buffers a compute pipeline, so arrays share buffers. ~3.4 ms GPU at 16k spheres, ~9.4 ms at 262k (RTX 4060 laptop, vsync off; at vsync the GPU clocks down and times read higher). Moving into the shader editor: `Assets/Shaders/Lab/bvh_march` is it as a stack (BUILD brick: animate, sort, LBVH, refit, sun grid; SHADE walks the BVH per pixel, floor and pillars analytic). Still lab-only: the tiled compute march with groupshared lists, depth both ways with raster draws, sparks, BVH-walk shadows.
   - **Radiance cascades:** 2D GI with wall bounce: pre-averaged, direction-first cascades, the bilinear fix on cascades 0–1 (MERGE picks plain, low or all) and a jump flood capped at 64 px; ~2 ms GPU on its 1208×990 stage.
   - `dotnet run --project Tools/Labs -- --tab=<n>` opens a tab.
 
@@ -616,13 +637,25 @@ host fills; tests leave the headless defaults.
     `user://autopsy/<app>.nettrace`; the METHODS view reads it with TraceEvent.
     Sample bias: time can land on the next allocation; trust *total* over
     *self* for small methods.
+  - Memory, per frame (`AutopsyMemory`, side `Memory`): KB every thread
+    allocated, the managed heap, collections by generation and GC pause, from
+    the runtime's counters (`UI/Systems/Debug/GcReading.cs`); process RSS and
+    GPU memory read twice a second and carried between. The last 64 frames
+    that collected are kept too.
   - Views: FRAME (recent frames, mean / latest / worst, CPU and GPU split bars
-    to drill into) and METHODS.
+    to drill into), METHODS and MEMORY (heap, process and GPU lanes each on
+    its own range, allocations per frame with GC ticks: cyan gen0, amber
+    gen1, red gen2; GC FRAMES steps through the collecting frames).
+    `--memory` opens on it; `--dump` prints a MEMORY block and marks hitches
+    that collected.
   - No window: `dotnet run --project Tools/DevTools -- autopsy --dump[=app]`
     (text trees) and `autopsy --dump=app --under=<method>`.
   - `./run.sh devtools autopsy game|editor|labs|animator` runs that exe with
     profiling, then opens the tool on METHODS.
-- **F3 overlay:** per-system times, and GPU memory (this app, budget, card) from
+- **F3 overlay:** per-system times; MEMORY (heap, process RSS, every
+  thread's KB per frame; "systems alloc KB" under FRAME is only what Friflo
+  systems allocated), GC since launch by generation with the pause share of
+  the last 0.1 s, and GPU memory (this app, budget, card) from
   `VulkanMemoryBudget`.
 - **Query cache** (`UI/Ecs/QueryCache.cs`): `store.Cached<T>()` and
   `store.ToggleOn<TTag>(none, hidden)`; see `Docs/ecs/README.md`.

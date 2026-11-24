@@ -51,7 +51,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
 
     /// <summary>
-    /// The effect's path, such as <c>Assets/Shaders/note_background.slang</c>;
+    /// The effect's path, such as <c>Assets/Shaders/note_background</c>;
     /// empty for the plain canvas shader. For an effect made from <see cref="Source"/>,
     /// the name it is cached and reported by.
     /// </summary>

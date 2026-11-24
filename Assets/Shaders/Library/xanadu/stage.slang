@@ -113,6 +113,8 @@ public struct ItemVaryings
     /// Where the corner was before `deform` moved it, in target pixels: blended across
     /// the triangle like uv, it gives `rest`, the quad as it was. Where it landed, without one.
     public float2 rest : TEXCOORD2;
+    /// Which copy of the item this is: a pool's item index, a [Draws] stack's copy, 0 for everything else.
+    public nointerpolation uint instance : TEXCOORD3;
 };
 
 /// One corner of what is drawn, as an effect's `deform` sees it and changes it:
@@ -325,6 +327,14 @@ public static float uvWinding = 0.0;
 /// `shade` runs, and before `update` for kept state.
 public static float time = 0.0;
 
+/// Seconds since the last frame, for passes and pool steps that move things on:
+/// 0 while the clock stands still.
+public static float dt = 0.0;
+
+/// Which copy of the item's quad deform and shade are drawing: 0, unless a
+/// pool draws one per item or a BUILD brick's [Draws] buffer asks for more.
+public static uint copy = 0;
+
 /// Music beats since the music started, for `clock.beats`: from the song's
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;
@@ -374,6 +384,7 @@ public ItemVaryings varyings(ItemVertex v)
     o.colour = v.colour;
     o.local = v.local;
     o.rest = v.position;
+    o.instance = 0;
     return o;
 }
 

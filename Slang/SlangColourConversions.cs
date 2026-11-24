@@ -101,14 +101,22 @@ public static partial class SlangColourConversions
     /// </summary>
     /// <param name="compiled">The code compiled: <paramref name="source"/> after <see cref="Apply"/>.</param>
     /// <param name="library">The library's text, for colour parameters and fields declared there.</param>
-    public static List<ColourConversion> Find(string output, string label, string source, string compiled, int[] origin, string library)
+    public static List<ColourConversion> Find(string output, string label, string source, string compiled, int[] origin, string library) =>
+        Find(output, [(label, 1)], source, compiled, origin, library);
+
+    /// <summary>
+    /// As above for code under several labels (a stack's bricks): <paramref name="marks"/> gives each
+    /// label and the 1-based line of <paramref name="source"/> its line 1 is.
+    /// </summary>
+    public static List<ColourConversion> Find(
+        string output, IReadOnlyList<(string Label, int Line)> marks, string source, string compiled, int[] origin, string library)
     {
         var found = new List<ColourConversion>();
         string code = Blank(compiled);
         int[] compiledStarts = LineStarts(compiled);
         int[] sourceStarts = LineStarts(source);
         Slots? slots = null;
-        foreach ((int line, int column) in Mismatches(output, label))
+        foreach ((int line, int column) in Mismatches(output, marks))
         {
             if (line < 1 || line > compiledStarts.Length)
                 continue;
@@ -134,7 +142,7 @@ public static partial class SlangColourConversions
     }
 
     /// <summary>Where Slang says a float3 was given for a float4, in the labelled code (1-based).</summary>
-    private static IEnumerable<(int Line, int Column)> Mismatches(string output, string label)
+    private static IEnumerable<(int Line, int Column)> Mismatches(string output, IReadOnlyList<(string Label, int Line)> marks)
     {
         string[] lines = output.ReplaceLineEndings("\n").Split('\n');
         for (int i = 0; i < lines.Length; i++)
@@ -146,14 +154,27 @@ public static partial class SlangColourConversions
             for (int j = i + 1; j < lines.Length && !Header().IsMatch(lines[j]); j++)
             {
                 Match location = Location().Match(lines[j]);
-                if (location.Success && location.Groups[1].Value.Trim() == label)
-                    place = (int.Parse(location.Groups[2].Value), int.Parse(location.Groups[3].Value));
+                // The last mark under that label wins, as Slang's own #line does.
+                int mark = location.Success ? LastIndex(marks, location.Groups[1].Value.Trim()) : -1;
+                if (mark >= 0)
+                    place = (int.Parse(location.Groups[2].Value) + marks[mark].Line - 1, int.Parse(location.Groups[3].Value));
                 mismatch |= Float3ForFloat4().IsMatch(lines[j]);
             }
 
             if (mismatch && place is { } found)
                 yield return found;
         }
+    }
+
+    private static int LastIndex(IReadOnlyList<(string Label, int Line)> marks, string label)
+    {
+        for (int i = marks.Count - 1; i >= 0; i--)
+        {
+            if (marks[i].Label == label)
+                return i;
+        }
+
+        return -1;
     }
 
     /// <summary>What an expression stands in for.</summary>

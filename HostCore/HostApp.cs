@@ -132,7 +132,7 @@ internal abstract class HostApp : Game
         new WindowCreateInfo(title, window.Width, window.Height, ScreenMode.Windowed),
         FramePacingSettings.CreateCapped(60, 1),
         ShaderFormat.SPIRV,
-        debugMode: false)
+        debugMode: Environment.GetEnvironmentVariable("XANADU_GPU_DEBUG") == "1")
     {
         _window = window;
         Target = Texture.Create2D(GraphicsDevice, "frame", Width, Height, TargetFormat,
@@ -207,7 +207,7 @@ internal abstract class HostApp : Game
         if (RecordsAutopsy && (window.ShotPath is null || Environment.GetEnvironmentVariable("XANADU_AUTOPSY") == "1"))
         {
             string app = AutopsyName(title);
-            _autopsy = new Autopsy.AutopsyRecorder(app, 1000f / RefreshRate(), OperatingSystem.IsLinux() ? GetThreadId() : 0);
+            _autopsy = new Autopsy.AutopsyRecorder(app, 1000f / RefreshRate(), OperatingSystem.IsLinux() ? GetThreadId() : 0, _gpuMemory);
             GpuTimes.FrameTimed = _autopsy.AddGpu;
             _sampler = Autopsy.CpuSampler.Start(app);
             _autopsy.HasTrace = _sampler is not null;

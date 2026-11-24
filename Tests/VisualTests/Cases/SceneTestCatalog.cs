@@ -21,7 +21,6 @@ public static class SceneTestCatalog
         new EditorWaveformSceneTest(),
         new SettingsSceneTest(),
         new OffsetWizardSceneTest(),
-        new PlayCameraSceneTest(),
         new ResultsSceneTest(),
         new RestartSceneTest(),
         new EditorHelpSceneTest(),

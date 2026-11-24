@@ -4,6 +4,7 @@ using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Ui.Systems.Input;
 using Position = Xanadu.Core.Position;
 
@@ -118,12 +119,17 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
             .Gap(UiMetrics.Space.Md)
             .Cross(StackCrossAlignment.Start);
 
-        UiNode metrics = Panel(panels);
+        // As tall as the stage leaves it; under its title everything scrolls in one box, as the
+        // frame's parts and the systems run longer on some screens than fit.
+        UiNode metrics = Panel(panels).Height(UiStage.Full.Height - TopLeft.Y * 2);
         metrics.Text("F3 ECS DEBUG", FontSize, DebugPalette.Title);
-        BuildSummary(metrics);
-        BuildPhases(metrics);
+        var body = new Column(gap: UiMetrics.Space.Sm, cross: StackCrossAlignment.Start);
+        metrics.Add(new Scroll(width: TreeWidth, grow: 1) { body });
+        UiNode content = body.Node;
+        BuildSummary(content);
+        BuildPhases(content);
 
-        BuildSystemTree(metrics);
+        BuildSystemTree(content);
         if (_systems is not null)
             MonitorNested(_systems);
 

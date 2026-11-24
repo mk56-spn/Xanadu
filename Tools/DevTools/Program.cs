@@ -15,6 +15,7 @@ using Xanadu.Tools.DevTools.Deps;
 // atlas --similar=Glow       -> prints the types most like one as text, no window (--similar= alone: the top pairs)
 // atlas --dump-all=<path>    -> writes the whole map as greppable text, no window (run.sh devtools keeps one fresh)
 // autopsy --methods          -> opens on the METHODS view
+// autopsy --memory           -> opens on the MEMORY view
 // autopsy --dump[=app]       -> prints the latest (or that app's) capture as text, no window
 //         --under=<name>     -> with --dump: the methods run beneath methods named like that
 // deps --dump[=assembly]     -> prints each built DLL's level and the project DLLs it really loads, no window
@@ -25,7 +26,8 @@ using Xanadu.Tools.DevTools.Deps;
 string? shot = null, focus = null, compare = null;
 int frame = 60, tab = DevToolsApp.AtlasTab;
 var sort = AtlasStage.SortMode.Name;
-bool reverse = false, similar = false, methods = false;
+bool reverse = false, similar = false;
+var view = AutopsyView.Frame;
 string root = FindRoot();
 int first = 0;
 if (args.Length > 0 && args[0] is "atlas" or "autopsy" or "arch" or "clock" or "deps")
@@ -88,7 +90,9 @@ for (int i = first; i < args.Length; i++)
     if (arg == "--similar")
         similar = true;
     else if (arg == "--methods")
-        methods = true;
+        view = AutopsyView.Methods;
+    else if (arg == "--memory")
+        view = AutopsyView.Memory;
     else if (arg.StartsWith("--focus=", StringComparison.Ordinal))
         focus = arg["--focus=".Length..];
     else if (arg.StartsWith("--compare=", StringComparison.Ordinal))
@@ -109,7 +113,7 @@ for (int i = first; i < args.Length; i++)
 
 new DevToolsApp(
     new HostWindowOptions(1600, 900, shot, frame),
-    new DevToolsOptions(root, tab, new AtlasOptions(focus, compare, sort, reverse, similar), methods)).Run();
+    new DevToolsOptions(root, tab, new AtlasOptions(focus, compare, sort, reverse, similar), view)).Run();
 
 /// <summary>The repository: the folder above this tool's build holding Xanadu.sln.</summary>
 static string FindRoot()

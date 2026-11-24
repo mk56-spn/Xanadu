@@ -253,6 +253,7 @@ internal sealed class SpawnerPreview(LabContext context, Handle item) : IEditorP
                 item.colour = v.colour;
                 item.local = v.local;
                 item.rest = v.position.xy;
+                item.instance = 0;
 
                 ItemInput i;
                 i.uv = v.uv;

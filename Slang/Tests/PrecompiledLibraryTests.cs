@@ -30,18 +30,14 @@ public sealed class PrecompiledLibraryTests
             Directory.Delete(_cache, recursive: true);
     }
 
-    private static string[] Effects() =>
-        Directory.EnumerateFiles(Path.GetDirectoryName(ShippedLibrary.Path)!, "*.slang", SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}Library{Path.DirectorySeparatorChar}"))
-            .Order()
-            .ToArray();
+    private static string[] Effects() => ShippedEffectsTests.Stacks();
 
     [Test]
     public void EveryEffectCompilesTheSameAgainstTheModules()
     {
         string[] effects = Effects();
         SlangShaders.CacheFolder = _cache;
-        byte[][] precompiled = effects.Select(path => SlangShaders.CompileEffectBody(path, File.ReadAllText(path), SlangShaders.IsLabOnly(path)).Spirv).ToArray();
+        byte[][] precompiled = effects.Select(folder => ShippedEffectsTests.Compile(folder).Spirv).ToArray();
         Assert.That(SlangShaders.ModuleProblem, Is.Null);
         Assert.That(Directory.EnumerateFiles(_cache, "*.slang-module", SearchOption.AllDirectories), Is.Not.Empty);
 
@@ -58,7 +54,7 @@ public sealed class PrecompiledLibraryTests
         SlangShaders.LibraryPath = copy;
         for (int i = 0; i < effects.Length; i++)
         {
-            byte[] fromSource = SlangShaders.CompileEffectBody(effects[i], File.ReadAllText(effects[i]), SlangShaders.IsLabOnly(effects[i])).Spirv;
+            byte[] fromSource = ShippedEffectsTests.Compile(effects[i]).Spirv;
             Assert.That(precompiled[i], Is.EqualTo(fromSource), Path.GetFileName(effects[i]));
         }
     }

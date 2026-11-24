@@ -50,6 +50,7 @@ ItemVaryings meshParticle(VertexIn v, uint instance : SV_InstanceID)
     o.colour = float4(0.0, 0.0, 0.0, 0.0);
     o.local = v.local;
     o.rest = float2(0.0, 0.0);
+    o.instance = 0;
 
     // Waiting, dead or never used: off screen, so nothing rasterises.
     if (p.life.x < 0.0 || p.life.x >= p.life.y)

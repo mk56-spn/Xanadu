@@ -302,15 +302,7 @@ internal sealed class VisualTestMain : HostApp
     /// Drops recovery files an earlier test or run left in the test user folder,
     /// so no test opens the editor under a "recover unsaved changes" dialog.
     /// </summary>
-    private static void ClearRecovery()
-    {
-        string directory = Xanadu.Storage.Editor.LevelRecoveryStore.Default.Directory;
-        if (!System.IO.Directory.Exists(directory))
-            return;
-
-        foreach (string file in System.IO.Directory.GetFiles(directory, "*.recovery.xmf"))
-            System.IO.File.Delete(file);
-    }
+    private static void ClearRecovery() => Xanadu.Storage.Editor.LevelRecoveryStore.Default.Clear();
 
     private void EnsureRoot()
     {

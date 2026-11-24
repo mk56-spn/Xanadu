@@ -10,7 +10,7 @@ public static class CommonShaders
     /// <summary>Resource paths of the game's common canvas shaders.</summary>
     public static readonly string[] Paths =
     [
-        "Assets/Shaders/Items/rainbow.slang",
+        "Assets/Shaders/Items/rainbow",
         Playfields.Decos.FlareShader,
         Playfields.DashStops.Shader,
         Playfields.Pads.Shader,
@@ -25,7 +25,7 @@ public static class CommonShaders
         Playfields.NoteLooks.DotShader,
         Playfields.NoteLooks.PopShader,
         Playfields.NoteLooks.DashPopShader,
-        "Assets/Shaders/Items/sdf.slang",
+        "Assets/Shaders/Items/sdf",
     ];
 
     /// <summary>
@@ -41,10 +41,10 @@ public static class CommonShaders
         DissolveLayer,
     ];
 
-    public const string SwayLayer = "Assets/Shaders/Layers/sway.slang";
-    public const string GradientLayer = "Assets/Shaders/Layers/gradient.slang";
-    public const string TintLayer = "Assets/Shaders/Layers/tint.slang";
-    public const string DissolveLayer = "Assets/Shaders/Layers/dissolve.slang";
+    public const string SwayLayer = "Assets/Shaders/Layers/sway";
+    public const string GradientLayer = "Assets/Shaders/Layers/gradient";
+    public const string TintLayer = "Assets/Shaders/Layers/tint";
+    public const string DissolveLayer = "Assets/Shaders/Layers/dissolve";
 
     public static bool IsKnown(string path) => System.Array.IndexOf(Paths, path) >= 0 || System.Array.IndexOf(Layers, path) >= 0;
 }

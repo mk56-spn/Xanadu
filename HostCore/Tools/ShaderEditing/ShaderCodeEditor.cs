@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +13,6 @@ using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
 
-/// <summary>Where a <see cref="ShaderCodeEditor"/>'s parts go: boxes its owner reads from container slots (or, in the lab, works out).</summary>
 /// <summary>
 /// The owner's laid-out slots the editor lives in: the code's column (the tab strip and the
 /// code go in it), the bar under it, the preview, the column under the preview (the clips,
@@ -40,10 +38,17 @@ internal readonly record struct ShaderEditorSlots(UiNode Code, UiNode Bar, UiNod
 /// a tab of its own over the code. A library tab is read-only until the first
 /// try at an edit is answered yes; Ctrl+S there writes the module and compiles
 /// the shader again. The shader's own tab is always first: its text is what
-/// compiles, owns the problems and the clips, and is what <see cref="Text"/> is.
+/// compiles, owns the problems and the clips.
+/// </para>
+/// <para>
+/// It edits one text (the lab's slots) or a shader stack's bricks (the shader tool):
+/// then the pipeline strip (<see cref="BrickStrip"/>) over the code picks the brick
+/// in the first tab, adds and removes them, and the editor composes them
+/// (<see cref="ShaderStack.Compose"/>) for each compile, every problem landing on its
+/// own brick.
 /// </para>
 /// </summary>
-internal sealed class ShaderCodeEditor : IDisposable
+internal sealed partial class ShaderCodeEditor : IDisposable
 {
     /// <summary>How long typing has to pause before a compile starts.</summary>
     private const float Settle = 0.3f;
@@ -71,10 +76,17 @@ internal sealed class ShaderCodeEditor : IDisposable
     private SlangCompletions _completions;
     private SlangLibraryDeclarations _declarations;
 
-    /// <summary>One open text: the shader's own (first, no path) or a library module's.</summary>
+    /// <summary>One open text: the shader's own or one of its bricks (no path), or a library module's.</summary>
     private sealed class Tab(string label, string? path, TextBuffer buffer, TextHistory history, string disk)
     {
         public readonly string Label = label;
+
+        /// <summary>The brick it is; null for a single text or a library module.</summary>
+        public BrickKind? Kind;
+
+        /// <summary>The last compile's problems and colour conversions on this text's own lines.</summary>
+        public List<SlangProblem> Problems = [];
+        public List<(ColourConversion Place, string Text)> Conversions = [];
         public readonly string? Path = path;
         public readonly TextBuffer Buffer = buffer;
         public readonly TextHistory History = history;
@@ -109,20 +121,23 @@ internal sealed class ShaderCodeEditor : IDisposable
         }
     }
 
+    /// <summary>The open texts: the shader's own (the open brick) first, then library modules.</summary>
     private readonly List<Tab> _tabs = [];
     private int _open;
     private readonly EditorTabs _strip;
     private LibraryPlace? _goTo;
+
+    /// <summary>The shader's text in the first tab: the one text, or the brick open.</summary>
     private Tab Main => _tabs[0];
     private readonly CompletionPopup _popup;
     private readonly HoverPopup _hover;
+
+    /// <summary>Every problem as the list under the preview shows it, and the text each is on (null: none of them).</summary>
     private List<SlangProblem> _shownProblems = [];
+    private List<Tab?> _listed = [];
 
-    /// <summary>The float3s the last compile took as colours, with the text each covered then (only the first line's, for one spanning lines).</summary>
-    private List<(ColourConversion Place, string Text)> _shownConversions = [];
-
-    /// <summary>The editor's own warnings (<see cref="SlangLint"/>) for the text being compiled.</summary>
-    private List<SlangProblem> _lint = [];
+    /// <summary>The last compile's problems that aren't on any of the shader's lines.</summary>
+    private List<SlangProblem> _global = [];
 
     /// <summary>Every type a local can be declared with, for the lint: Slang's and the library's.</summary>
     private readonly HashSet<string> _typeNames;
@@ -135,19 +150,43 @@ internal sealed class ShaderCodeEditor : IDisposable
     private Vector2 _pointer;
     private string _status = "compiling…";
     private Color _statusColour = Palette.TextMuted;
-    private Task<(int Version, string Source, PreviewBuild? Build, string? Error, long Ms, double SlangMs, List<SlangProblem> Lint)>? _compiling;
+    private Task<Compiled>? _compiling;
 
+    /// <summary>What a compile off the frame hands back.</summary>
+    private sealed record Compiled(
+        int Version, string Source, List<Placed> Places, PreviewBuild? Build, string? Error, long Ms, double SlangMs, List<SlangProblem> Lint);
+
+    /// <summary>Edits one text: its problems carry the preview's label.</summary>
     /// <param name="preview">Makes the preview, drawing under the item it is given.</param>
     public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string text, Func<Handle, IEditorPreview> preview)
+        : this(entities, parent, slots, [new Brick(BrickKind.Shade, text)], null, preview)
     {
+    }
+
+    /// <summary>Edits a shader stack's bricks; <paramref name="stack"/> names it, as <see cref="ShaderStack.Compose"/> labels them.</summary>
+    public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string stack, IReadOnlyList<Brick> bricks,
+        Func<Handle, IEditorPreview> preview)
+        : this(entities, parent, slots, bricks, stack, preview)
+    {
+    }
+
+    private ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, IReadOnlyList<Brick> bricks, string? stack,
+        Func<Handle, IEditorPreview> preview)
+    {
+        _stack = stack;
+        if (bricks.Count == 0)
+            bricks = [new Brick(BrickKind.Shade, ShaderStack.Template(BrickKind.Shade))];
+        Brick first = FirstOpen(bricks);
         _slots = slots;
         _preview = UiLayout.Box(slots.Preview.Entity);
         _pointer = _preview.GetCenter();
         // The text as opened is usually in the shader cache; the first edit isn't, and shouldn't wait for Slang to start.
         SlangShaders.Prepare();
 
-        // The code's column: the tab strip, then the code taking the rest.
+        // The code's column: the pipeline (a stack's), the tab strip, then the code taking the rest.
         slots.Code.Cross(StackCrossAlignment.Stretch);
+        if (stack is not null)
+            _brickStrip = new BrickStrip(slots.Code);
         _strip = new EditorTabs(entities, slots.Code);
         _code = slots.Code.Column().Grow();
         // Under the preview: the clips, then the rest on the column's own background.
@@ -159,7 +198,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         _guideNode = _rest.Column();
 
         // Made first, so everything after draws over the code.
-        _editor = TextEditors.Create(_code, parent, text);
+        _editor = TextEditors.Create(_code, parent, first.Text);
         _view = preview(Child(parent));
         _view.Place(_preview);
         Handle chromeItem = Child(parent);
@@ -169,8 +208,10 @@ internal sealed class ShaderCodeEditor : IDisposable
         _timeline = new ClipTimeline(entities) { Scrubs = _view.TakesClock };
         _timeline.Jump += (line, column) =>
         {
-            Show(0);
-            Main.Buffer.Place(line, column);
+            if (Unjoin(_clipPlaces, line + 1) is not ({ } tab, int own))
+                return;
+            OpenBrick(tab);
+            Main.Buffer.Place(own - 1, column);
             Focus();
         };
         _timeline.Released += Focus;
@@ -187,10 +228,15 @@ internal sealed class ShaderCodeEditor : IDisposable
         Rect2 code = UiLayout.Box(_code.Entity);
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
-        _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) { Save = Save, GoElsewhere = GoElsewhere };
+        _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) {
+            Save = Save,
+            GoElsewhere = GoElsewhere,
+            EntryColours = ShaderStack.Kinds.SelectMany(kind => ShaderStack.Entries(kind).Select(name => (name, kind)))
+                .ToDictionary(entry => entry.name, entry => BrickStrip.Colour(entry.kind)),
+        };
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Host = _host;
-        _tabs.Add(new Tab(_view.Label, null, editor.Buffer, editor.History, ""));
+        MakeBricks(bricks, first, editor.Buffer, editor.History);
     }
 
     /// <summary>The library's completions and where its names are declared, from the modules as they are on disk.</summary>
@@ -243,13 +289,25 @@ internal sealed class ShaderCodeEditor : IDisposable
     /// <summary>Puts a tab's text in the editor, keeping where the last one was scrolled to.</summary>
     private void Show(int index)
     {
-        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         if (index == _open)
             return;
+        Leave();
+        _open = index;
+        Load(_tabs[index]);
+    }
+
+    /// <summary>Keeps where the open tab was scrolled to, as the editor leaves it.</summary>
+    private void Leave()
+    {
+        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         _popup.Dismiss(editor.Buffer);
         _tabs[_open].Scroll = editor.Layout.Scroll;
-        _open = index;
-        Tab tab = _tabs[index];
+    }
+
+    /// <summary>Puts a text in the editor.</summary>
+    private void Load(Tab tab)
+    {
+        ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Buffer = tab.Buffer;
         editor.History = tab.History;
         editor.Layout.Scroll = tab.Scroll;
@@ -348,11 +406,23 @@ internal sealed class ShaderCodeEditor : IDisposable
         return true;
     }
 
-    /// <summary>The shader's text as it is now (its own tab's, whichever is open).</summary>
-    public string Text => Main.Buffer.Text;
+    /// <summary>The one text as it is now, whichever tab is open (a stack's first brick; see <see cref="Bricks"/>).</summary>
+    public string Text => _bricks[0].Buffer.Text;
 
-    /// <summary>Goes up with every edit of the shader's text.</summary>
-    public int Version => Main.Buffer.Version;
+    /// <summary>A stack's bricks as they are now, in pipeline order.</summary>
+    public List<Brick> Bricks => [.. _bricks.Select(brick => new Brick(brick.Kind ?? BrickKind.Shade, brick.Buffer.Text))];
+
+    /// <summary>Changes with every edit of the shader's text, and every brick added or removed.</summary>
+    public int Version
+    {
+        get
+        {
+            int version = _structure;
+            foreach (Tab brick in _bricks)
+                version = unchecked(version * 31 + brick.Buffer.Version);
+            return version;
+        }
+    }
 
     /// <summary>Ctrl+S in the code. Without a handler the key does nothing.</summary>
     public event Action? SaveRequested;
@@ -442,8 +512,8 @@ internal sealed class ShaderCodeEditor : IDisposable
         TextEditor editor = _editor.GetComponent<TextEditor>();
         TextBuffer buffer = editor.Buffer;
         bool onMain = _open == 0;
-        _host.Problems = onMain ? _shownProblems : [];
-        _host.ColourConversions = onMain ? _shownConversions : [];
+        _host.Problems = onMain ? Main.Problems : [];
+        _host.ColourConversions = onMain ? Main.Conversions : [];
 
         if (did.SteppedHistory && _popup.Open)
             _popup.Dismiss(buffer);
@@ -458,20 +528,21 @@ internal sealed class ShaderCodeEditor : IDisposable
         _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
         Finish();
-        TextBuffer main = Main.Buffer;
-        if (_compiling is null && _compiledVersion != main.Version && _sinceEdit >= Settle)
-            Compile(main);
+        int version = Version;
+        if (_compiling is null && _compiledVersion != version && _sinceEdit >= Settle)
+            Compile();
 
         // The clips follow the shader's text as it is typed, not the last compile.
-        if (_clipsVersion != main.Version)
+        if (_clipsVersion != version)
         {
-            _clipsVersion = main.Version;
+            _clipsVersion = version;
+            (string joined, _clipPlaces) = Joined();
             float height = _timeline.Height;
-            _timeline.Use(SlangClips.Find(main.Lines));
+            _timeline.Use(SlangClips.Find(joined.Split('\n')));
             // More clips, more rows: the column under the preview makes room.
             if (_timeline.Height != height)
                 _clipsNode.Height(_timeline.Height);
-            _tuning.UseStandIns(PlayStandIns.Needed(main.Text));
+            _tuning.UseStandIns(PlayStandIns.Needed(joined));
         }
 
         PressPlayKeys(frame);
@@ -495,6 +566,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
+        DrawBricks();
     }
 
     /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
@@ -531,7 +603,9 @@ internal sealed class ShaderCodeEditor : IDisposable
         if (_points.Point(Main.Buffer, Main.History, _completions.ParameterNames, _preview, _tuning, frame.Mouse, frame.Held, pressed, Focus))
             return;
 
-        if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
+        if (pressed && PressBricks(frame.Mouse))
+            Focus();
+        else if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
         {
             if (tab.Close)
                 Close(tab.Tab);
@@ -539,103 +613,13 @@ internal sealed class ShaderCodeEditor : IDisposable
                 Show(tab.Tab);
             Focus();
         }
-        else if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem)
+        else if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem && _shownProblems.IndexOf(problem) is >= 0 and int index
+                 && _listed[index] is { } on)
         {
-            Show(0);
+            OpenBrick(on);
             Main.Buffer.Place(problem.Line - 1, problem.Column - 1);
             Focus();
         }
-    }
-
-    /// <summary>Compiles the text off the frame, so typing never waits on Slang.</summary>
-    private void Compile(TextBuffer buffer)
-    {
-        string source = buffer.Text;
-        int version = buffer.Version;
-        Compiling?.Invoke(source);
-
-        if (!_everCompiled)
-            (_status, _statusColour) = ("compiling…", Palette.TextMuted);
-        IEditorPreview view = _view;
-        // The warnings are read beside the compile, off the frame too; the type names and costs are never changed after start.
-        HashSet<string> typeNames = _typeNames;
-        Dictionary<string, float> shapeCosts = _shapeCosts;
-        Task<List<SlangProblem>> lint = Task.Run(() => SlangLint.Check(source, typeNames, shapeCosts));
-        _compiling = Task.Run(() =>
-        {
-            var clock = Stopwatch.StartNew();
-            SlangShaders.ResetSlangTime();
-            try
-            {
-                var build = (PreviewBuild?)view.Compile(source);
-                return (version, source, build, (string?)null, clock.ElapsedMilliseconds, SlangShaders.SlangMilliseconds, lint.Result);
-            }
-            catch (Exception exception)
-            {
-                return (version, source, null, exception.Message, clock.ElapsedMilliseconds, SlangShaders.SlangMilliseconds, lint.Result);
-            }
-        });
-    }
-
-    private void Finish()
-    {
-        if (_compiling is not { IsCompleted: true } done)
-            return;
-
-        _compiling = null;
-        (int version, string source, PreviewBuild? build, string? error, long ms, double slangMs, List<SlangProblem> lint) = done.Result;
-        _compiledVersion = version;
-        _lint = lint;
-        string[] compiledLines = source.Split('\n');
-        _shownConversions = [.. SlangShaders.ColourConversionsOf(source)
-            .Where(c => c.Line < compiledLines.Length)
-            .Select(c => (c, compiledLines[c.Line][c.Column..Math.Min(compiledLines[c.Line].Length, c.Column + c.Length)]))];
-        string said = "";
-        if (error is null)
-        {
-            try
-            {
-                said = _view.Show(build!);
-            }
-            catch (Exception exception)
-            {
-                error = $"{_view.Label}(1): error: the GPU refused it: {exception.Message}";
-            }
-        }
-
-        if (error is not null)
-        {
-            _shownProblems = WithLint(SlangProblems.Parse(error, _view.Label, source.Split('\n')));
-            int count = _shownProblems.Count;
-            (_status, _statusColour) = ($"{count} problem{(count == 1 ? "" : "s")}", Palette.DangerBright);
-            return;
-        }
-
-        _shownProblems = WithLint([]);
-        _tuning.Use(build!.Params);
-        _everCompiled = true;
-        int warnings = _lint.Count;
-        string warned = warnings == 0 ? "" : $" · {warnings} warning{(warnings == 1 ? "" : "s")}";
-        // Slang's own share apart from ours (wrapping, rewrites, reflection); none at all when the cache had it.
-        string split = slangMs > 0 ? $" (ours {Math.Max(0, ms - (long)slangMs)} · slang {(long)slangMs})" : " (cached)";
-        // The library from source is the slow path: say why it couldn't be precompiled.
-        if (SlangShaders.ModuleProblem is { } unbuilt)
-            split += $" · library not precompiled: {unbuilt}";
-        (_status, _statusColour) = ($"compiled in {ms} ms{split}{warned}{said}", warnings == 0 ? Palette.Success : Palette.Warning);
-    }
-
-    /// <summary>Slang's problems and the editor's warnings together, by line; Slang's first on a shared line.</summary>
-    private List<SlangProblem> WithLint(List<SlangProblem> problems)
-    {
-        var all = new List<SlangProblem>(problems);
-        foreach (SlangProblem warning in _lint)
-        {
-            if (!problems.Exists(problem => problem.Line == warning.Line))
-                all.Add(warning);
-        }
-
-        all.Sort((a, b) => a.Line.CompareTo(b.Line));
-        return all;
     }
 
     public void Dispose()
@@ -643,6 +627,7 @@ internal sealed class ShaderCodeEditor : IDisposable
         TextEditors.Delete(_editor);
         _tuning.Dispose();
         _strip.Dispose();
+        _brickStrip?.Dispose();
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);

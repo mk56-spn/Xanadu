@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Compute;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -328,9 +329,9 @@ internal sealed partial class CanvasRenderer
     }
 
     private ComputePipeline Compute(string file, string entry, uint readOnly) =>
-        ComputePipeline.Create(_device,
+        ComputePipelines.Create(_device,
             SlangShaders.Compile(Path.Combine(AppContext.BaseDirectory, "Shaders", file), entry, "compute"),
-            "main", new ComputePipelineCreateInfo
+            entry, new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
                 NumReadonlyStorageBuffers = readOnly,

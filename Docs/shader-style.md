@@ -4,7 +4,7 @@ The house style for Xanadu shaders (level shader slots, the shader tool, the
 shader editor, shipped effects). Each rule has an id so the shader editor can
 show it as a warning later and a level can say which ones it ignores.
 
-**Status:** XS002 to XS008 are checked: the shader editor shows them as warnings
+**Status:** XS002 to XS009 are checked: the shader editor shows them as warnings
 (`Slang/SlangLint.cs`, the shape-cost rules in `Slang/SlangLint.Cost.cs`). The rest are collected here as they come
 up, for the editor to check when that is wanted.
 
@@ -206,3 +206,17 @@ a level item is four corners and the bend comes out flat.
 
 **Fix** Put `[Grid(columns, rows)]` on `deform`: `[Grid(96, 54)]` suits a 16:9
 quad. Moves that work on four corners (`squash`, `tilt`, `shake`) don't need one.
+Not on a stack with a `[Draws]` buffer: its deform places copies of the quad,
+it doesn't bend it.
+
+## XS009 · A `[Grid]` on a stack that draws copies (warning) · checked
+
+A stack with a `[Draws]` buffer draws its quad once per copy (a particle, a
+trail segment). With a `[Grid(columns, rows)]` every copy is drawn with every
+cell: copies × columns × rows × 6 vertices, nearly all of them on cells smaller
+than a pixel. 48,000 particle copies on a 72 × 72 grid is 1.5 billion vertices a
+frame, a few frames a second on any card.
+
+**Fix** Take the `[Grid]` off and place each copy as one quad (`v.uv` gives the
+corner). The renderer says so on the console too when a copy has more than
+`CanvasRenderer.MostCopyVertices` vertices, whatever cut it.

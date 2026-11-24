@@ -15,7 +15,8 @@ namespace Xanadu.Slang;
 /// use reads it. Slang leaves locals as whatever was there, so the result is
 /// noise. A first use that assigns it, or one of its fields (<c>c = …</c>,
 /// <c>t.id = …</c>), is fine, and so is passing it alone to an <c>out</c> parameter
-/// of a function the code declares (<c>map(uv, near, neighbor)</c>), which fills it.</item>
+/// of a function the code declares (<c>map(uv, near, neighbor)</c>) or of Slang's own
+/// (<c>InterlockedAdd(n[i], 1, before)</c>), which fills it. A struct's fields aren't locals.</item>
 /// <item>XS004: <c>mouse</c> passed to <c>anchor</c>/<c>anchored</c>. Anchors are
 /// fractions of the quad; <c>mouse</c> is pixels, so the shape lands far off the
 /// stage. <c>move(mouse)</c> is what was meant.</item>
@@ -28,7 +29,10 @@ namespace Xanadu.Slang;
 /// <c>twist</c>, <c>bulge</c>, <c>sway</c>, <c>curl</c>, <c>jitter</c>, <c>mesh.split</c>)
 /// with no <c>[Grid(columns, rows)]</c> on it. The shader tool's preview draws its
 /// own grid, so it looks right there, but on a level item it has four corners and
-/// the bend comes out flat.</item>
+/// the bend comes out flat. Not on a stack with a <c>[Draws]</c> buffer: its deform
+/// places copies of the quad, it doesn't bend it.</item>
+/// <item>XS009: a <c>[Grid]</c> on a stack with a <c>[Draws]</c> buffer. Every copy is
+/// drawn with every cell, so the vertices are copies × cells × 6.</item>
 /// </list>
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
@@ -56,8 +60,8 @@ public static partial class SlangLint
         int[] depth = Depths(code);
         foreach (Match match in Declaration().Matches(code))
         {
-            // Inside a function only: file-level uniforms and statics are set by the host.
-            if (depth[match.Index] == 0 || !typeNames.Contains(match.Groups[1].Value))
+            // Inside a function only: file-level uniforms and statics are set by the host, a struct's fields by whoever makes one.
+            if (depth[match.Index] == 0 || !typeNames.Contains(match.Groups[1].Value) || InTypeBody(code, match.Index))
                 continue;
             int end = ScopeEnd(code, match.Index + match.Length);
             foreach ((int at, string name) in Names(match))
@@ -82,6 +86,7 @@ public static partial class SlangLint
         problems.AddRange(WholeDivisions(code));
         problems.AddRange(HiddenFunctions(code, typeNames));
         problems.AddRange(GridlessBends(code));
+        problems.AddRange(GriddedCopies(code));
         if (shapeCosts is { Count: > 0 })
             problems.AddRange(ShapeCosts(code, shapeCosts));
         problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
@@ -311,13 +316,30 @@ public static partial class SlangLint
     private static IEnumerable<SlangProblem> GridlessBends(string code)
     {
         Match header = DeformHeader().Match(code);
-        if (!header.Success || GridAttribute().IsMatch(code) || !Bend().IsMatch(code))
+        if (!header.Success || GridAttribute().IsMatch(code) || DrawsAttribute().IsMatch(code) || !Bend().IsMatch(code))
             yield break;
 
         (int line, int column) = Place(code, header.Groups[1].Index);
         yield return new SlangProblem(
             line, column,
             "XS008 · this deform bends, but a level item has only four corners; put [Grid(96, 54)] on it (columns, rows) so it has corners inside",
+            Warning: true);
+    }
+
+    [GeneratedRegex(@"\[\s*Draws\s*\]")]
+    private static partial Regex DrawsAttribute();
+
+    /// <summary>XS009: a [Grid] on a stack that draws copies of its quad, which multiplies every copy by its cells.</summary>
+    private static IEnumerable<SlangProblem> GriddedCopies(string code)
+    {
+        Match grid = GridAttribute().Match(code);
+        if (!grid.Success || !DrawsAttribute().IsMatch(code))
+            yield break;
+
+        (int line, int column) = Place(code, grid.Index);
+        yield return new SlangProblem(
+            line, column,
+            "XS009 · this stack draws copies ([Draws]), and each copy is drawn with every cell of this grid; take the [Grid] off and place each copy as one quad",
             Warning: true);
     }
 
@@ -384,11 +406,36 @@ public static partial class SlangLint
         Match callee = Regex.Match(code[..open], @"([A-Za-z_]\w*)\s*$");
         if (!callee.Success)
             return false;
+        if (IntrinsicOuts.TryGetValue(callee.Groups[1].Value, out int[]? outs))
+            return outs.Contains(index);
         Match declared = Regex.Match(code, $@"\b[A-Za-z_]\w*\s+{Regex.Escape(callee.Groups[1].Value)}\s*\(([^)]*)\)\s*\{{");
         if (!declared.Success)
             return false;
         string[] parameters = declared.Groups[1].Value.Split(',');
         return index < parameters.Length && Regex.IsMatch(parameters[index], @"^\s*out\b");
+    }
+
+    /// <summary>Slang's own functions that fill an argument (their <c>out</c> places): the atomics' old value, sincos, modf, frexp.</summary>
+    private static readonly Dictionary<string, int[]> IntrinsicOuts = new()
+    {
+        ["InterlockedAdd"] = [2], ["InterlockedAnd"] = [2], ["InterlockedOr"] = [2], ["InterlockedXor"] = [2],
+        ["InterlockedMin"] = [2], ["InterlockedMax"] = [2], ["InterlockedExchange"] = [2], ["InterlockedCompareExchange"] = [3],
+        ["sincos"] = [1, 2], ["modf"] = [1], ["frexp"] = [1],
+    };
+
+    /// <summary>Whether a place sits right inside a struct's (or class's, interface's, extension's) braces: a field, not a local.</summary>
+    private static bool InTypeBody(string code, int index)
+    {
+        int open = 0;
+        for (int i = index - 1; i >= 0; i--)
+        {
+            if (code[i] == '}')
+                open++;
+            else if (code[i] == '{' && open-- == 0)
+                return Regex.IsMatch(code[..i], @"\b(?:struct|class|interface|extension)\b[^;{}()]*$");
+        }
+
+        return false;
     }
 
     private static IEnumerable<(int At, string Name)> Names(Match match)

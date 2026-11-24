@@ -99,7 +99,7 @@ public static partial class XifShaderParams
         if (module.Shader.Scope == XifShaderScope.Common && !string.IsNullOrEmpty(module.Shader.Path))
             paths.Add(module.Shader.Path);
         paths.AddRange(module.Layers);
-        return Xanadu.Core.Rendering.ShaderStackKey.Of(paths);
+        return Xanadu.Core.Rendering.ShaderLayersKey.Of(paths);
     }
 }
 

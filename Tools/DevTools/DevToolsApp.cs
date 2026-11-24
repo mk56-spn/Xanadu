@@ -11,7 +11,7 @@ using Xanadu.Tools.DevTools.Deps;
 namespace Xanadu.Tools.DevTools;
 
 /// <summary>How the dev tools open: which tab, and each tool's own start.</summary>
-internal sealed record DevToolsOptions(string Root, int Tab, AtlasOptions Atlas, bool Methods);
+internal sealed record DevToolsOptions(string Root, int Tab, AtlasOptions Atlas, AutopsyView AutopsyView);
 
 /// <summary>A dev tool's tab: it takes the whole body, draws its own panels, and is kept as it was left.</summary>
 internal sealed record DevToolTab(string Name) : IToolTab
@@ -49,7 +49,7 @@ internal sealed class DevToolsApp(HostWindowOptions window, DevToolsOptions opti
     {
         var context = new DevToolsContext(Keyboard, TextInput);
         if (tab == AutopsyTab)
-            return new AutopsyStage(context, parent, area, this, _options.Methods);
+            return new AutopsyStage(context, parent, area, this, _options.AutopsyView);
         if (tab == ArchTab)
             return new ArchStage(_options.Root);
         if (tab == ClockTab)

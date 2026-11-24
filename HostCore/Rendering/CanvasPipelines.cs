@@ -4,6 +4,7 @@ using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Storage;
+using Xanadu.Host.Rendering.Compute;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using BlendFactor = MoonWorks.Graphics.BlendFactor;
@@ -13,7 +14,10 @@ using Shader = MoonWorks.Graphics.Shader;
 namespace Xanadu.Host.Rendering;
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
-internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null) : IDisposable
+internal sealed class CanvasEffect(
+    Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<PoolJob>? pool = null,
+    ComputePipeline[]? passes = null)
+    : IDisposable
 {
     public Shader Shader { get; } = shader;
     public CompiledShader Compiled { get; } = compiled;
@@ -24,11 +28,20 @@ internal sealed class CanvasEffect(Shader shader, CompiledShader compiled, Compu
     /// <summary>A kept-state effect's once-a-frame <c>update</c>; null when it keeps none.</summary>
     public ComputePipeline? Update { get; } = update;
 
+    /// <summary>A pooled stack's step (its STEP brick): one job a material, run before the draws; null without a pool.</summary>
+    public ComputeOperation<PoolJob>? Pool { get; } = pool;
+
+    /// <summary>A BUILD brick's passes, in the order it declares them (a schedule's call names one by its place); empty without one.</summary>
+    public ComputePipeline[] Passes { get; } = passes ?? [];
+
     public void Dispose()
     {
+        foreach (ComputePipeline pass in Passes)
+            pass.Dispose();
         Shader.Dispose();
         Update?.Dispose();
         Vertex?.Dispose();
+        Pool?.Dispose();
     }
 }
 
@@ -141,20 +154,21 @@ internal sealed class CanvasPipelines : IDisposable
 
     private CanvasEffect? TryCompile(string path, string? shadeWith)
     {
-        if (ShaderStackKey.TryParse(path, out string[] layers))
+        if (ShaderLayersKey.TryParse(path, out string[] layers))
             return TryCompileStack(path, layers, shadeWith);
 
-        string file = GamePaths.Full(path);
-        if (!File.Exists(file))
+        string folder = GamePaths.Full(path);
+        if (!ShaderStack.IsStack(folder))
         {
-            Console.Error.WriteLine($"Shader {path} not found; drawing plain.");
+            Console.Error.WriteLine($"Shader stack {path} not found; drawing plain.");
             return null;
         }
 
         try
         {
-            // Written as level shaders are: the same wrapper calls its shade. Lab-only ones may keep state.
-            return Make(SlangShaders.CompileEffectBody(path, File.ReadAllText(file), SlangShaders.IsLabOnly(path), shadeWith));
+            // Its bricks as one body, written as level shaders are: the same wrapper calls its shade. Lab-only ones may keep state.
+            string body = ShaderStack.Compose(path, ShaderStack.Read(folder));
+            return Make(SlangShaders.CompileEffectBody(path, body, SlangShaders.IsLabOnly(path), shadeWith));
         }
         catch (Exception exception)
         {
@@ -163,7 +177,7 @@ internal sealed class CanvasPipelines : IDisposable
         }
     }
 
-    /// <summary>A stack of shaders (<see cref="ShaderStackKey"/>) stitched into one and compiled, or null with its error logged.</summary>
+    /// <summary>Layered shaders (<see cref="ShaderLayersKey"/>) stitched into one and compiled, or null with its error logged.</summary>
     private CanvasEffect? TryCompileStack(string key, string[] layers, string? shadeWith)
     {
         try
@@ -171,13 +185,13 @@ internal sealed class CanvasPipelines : IDisposable
             var sources = new List<(string, string)>(layers.Length);
             foreach (string layer in layers)
             {
-                string file = GamePaths.Full(layer);
-                if (!File.Exists(file))
-                    throw new FileNotFoundException($"layer {layer} not found");
-                sources.Add((layer, File.ReadAllText(file)));
+                string folder = GamePaths.Full(layer);
+                if (!ShaderStack.IsStack(folder))
+                    throw new DirectoryNotFoundException($"layer {layer} not found");
+                sources.Add((layer, ShaderStack.Compose(layer, ShaderStack.Read(folder))));
             }
 
-            return Make(SlangShaders.CompileEffectBody(key, ShaderStack.Stitch(sources), keepsState: false, shadeWith));
+            return Make(SlangShaders.CompileEffectBody(key, ShaderLayers.Stitch(sources), keepsState: false, shadeWith));
         }
         catch (Exception exception)
         {
@@ -197,7 +211,7 @@ internal sealed class CanvasPipelines : IDisposable
             NumUniformBuffers = compiled.UniformBuffers,
         });
         ComputePipeline? update = compiled.Update is { } step
-            ? ComputePipeline.Create(_device, step.Spirv, "main", new ComputePipelineCreateInfo
+            ? ComputePipelines.Create(_device, step.Spirv, "update brick", new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
                 NumReadonlyStorageBuffers = (uint)step.StorageBuffers,
@@ -216,7 +230,23 @@ internal sealed class CanvasPipelines : IDisposable
                 NumUniformBuffers = stage.UniformBuffers,
             })
             : null;
-        return new CanvasEffect(shader, compiled, update, vertex);
+        // A pool's step: the values are uniform 1, the globals (and kept state) its read-only inputs after the jobs.
+        ComputeOperation<PoolJob>? pool = compiled.Pool is { } step2
+            ? new ComputeOperation<PoolJob>(_device, step2.Spirv, inputs: (uint)(step2.StorageBuffers - 1),
+                groupsPerJob: (uint)((step2.ItemCount + SlangShaders.PoolThreads - 1) / SlangShaders.PoolThreads), uniforms: step2.UniformBuffers)
+            : null;
+        // A BUILD brick's passes: the globals (and kept state) read-only, the buffers each touches read-write.
+        ComputePipeline[] passes = compiled.Build is { } build
+            ? [.. build.Passes.Select(pass => ComputePipelines.Create(_device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
+            {
+                Format = ShaderFormat.SPIRV,
+                NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
+                NumReadWriteStorageBuffers = (uint)pass.Buffers.Length,
+                NumUniformBuffers = Math.Max(1, pass.Shader.UniformBuffers),
+                ThreadCountX = (uint)pass.Threads, ThreadCountY = 1, ThreadCountZ = 1,
+            }))]
+            : [];
+        return new CanvasEffect(shader, compiled, update, vertex, pool, passes);
     }
 
     /// <summary>
@@ -282,7 +312,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     /// <summary>
-    /// Compiles every shipped effect (each <c>.slang</c> under <c>Assets/Shaders</c>
+    /// Compiles every shipped effect (each shader stack, a folder of bricks, under <c>Assets/Shaders</c>
     /// outside the library and the lab-only folder) with mix; called once at start, so screens and the
     /// playfield never compile one mid-song.
     /// </summary>
@@ -290,13 +320,13 @@ internal sealed class CanvasPipelines : IDisposable
     {
         string root = GamePaths.Full("Assets/Shaders");
         string library = Path.Combine(root, "Library");
-        string[] files = [.. Directory.EnumerateFiles(root, "*.slang", SearchOption.AllDirectories).Where(file => !file.StartsWith(library, StringComparison.Ordinal) && !SlangShaders.IsLabOnly(file))];
-        for (int i = 0; i < files.Length; i++)
+        string[] stacks = [.. ShaderStack.Under(root, skip: library).Where(folder => !SlangShaders.IsLabOnly(folder + "/"))];
+        for (int i = 0; i < stacks.Length; i++)
         {
-            string path = "Assets/Shaders/" + Path.GetRelativePath(root, files[i]).Replace('\\', '/');
+            string path = "Assets/Shaders/" + Path.GetRelativePath(root, stacks[i]).Replace('\\', '/');
             Pipeline(Effect(path), BlendMode.Mix, depth: true);
             Pipeline(Effect(path), BlendMode.Mix, samples: MainSamples, depth: true);
-            progress?.Invoke(i + 1, files.Length);
+            progress?.Invoke(i + 1, stacks.Length);
         }
     }
 

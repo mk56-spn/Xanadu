@@ -24,7 +24,6 @@ public sealed partial class DebugPressedOverlaySystem
     private const float SlowMs = 0.5f;
 
     private const float TreeWidth = 560;
-    private const float TreeHeight = 560;
     private const float TreeRowHeight = DebugTable.RowHeight + UiMetrics.Space.Xxs;
     private static readonly float[] CellWidths = [80, 80, 70];
     private static readonly string[] CellTitles = ["live ms", "avg ms", "upd"];
@@ -49,7 +48,7 @@ public sealed partial class DebugPressedOverlaySystem
     private float _liveClock;
     private float _averageClock;
 
-    /// <summary>The column titles over the tree, then the tree in a scrolling viewport.</summary>
+    /// <summary>The column titles over the tree, then the tree, as tall as its rows: the panel's scroll box scrolls it.</summary>
     private void BuildSystemTree(UiNode panel)
     {
         float labelWidth = TreeWidth - UiTheme.TreeIndent - TotalCellWidth();
@@ -61,14 +60,6 @@ public sealed partial class DebugPressedOverlaySystem
         UiBuilder ui = UiBuilder.Begin(_store, _visuals).Use(panel.Entity);
         ui.Container(
             Vector2.Zero,
-            new Vector2(TreeWidth, TreeHeight),
-            StackDirection.Vertical,
-            clip: true,
-            color: new Color(0, 0, 0, 0),
-            takesInput: true);
-        Entity viewport = ui.Current;
-        ui.Container(
-            Vector2.Zero,
             new Vector2(TreeWidth, 4),
             StackDirection.Vertical,
             color: new Color(0, 0, 0, 0),
@@ -76,8 +67,6 @@ public sealed partial class DebugPressedOverlaySystem
             autoHeight: true,
             main: StackMainAlignment.Start);
         _systemTree = ui.Tree(TreeWidth, TreeRowHeight, cellWidths: CellWidths);
-        ui.End();
-        viewport.AddComponent(new ScrollOffset());
         ui.End();
 
         _known.Clear();

@@ -16,7 +16,8 @@ namespace Xanadu.Host.Rendering.Compute;
 /// <remarks>
 /// The shader's contract: <c>StructuredBuffer&lt;TJob&gt;</c> jobs at read-only
 /// binding 0, its other read-only buffers after it, the arena the jobs share as
-/// read-write binding 0, and one uniform block. It runs
+/// read-write binding 0, and a uniform block at slot 0 (any after it the caller
+/// pushes before running: a pool's values). It runs
 /// <c>[numthreads(Threads, 1, 1)]</c> over (<see cref="GroupsPerJob"/>, jobs, 1)
 /// groups: <c>SV_GroupID.y</c> is the job, <c>SV_GroupID.x</c> the group within
 /// it. SDL_GPU fixes a pass's writable buffers when it begins, so the jobs of one
@@ -34,19 +35,30 @@ internal sealed class ComputeOperation<TJob> : IDisposable where TJob : unmanage
     private uint _capacity;
     private Buffer[] _read = [];
 
+    /// <summary>An engine operation: <paramref name="entry"/> of a host shader module.</summary>
     /// <param name="inputs">Read-only buffers the shader takes after its jobs.</param>
     public ComputeOperation(GraphicsDevice device, string module, string entry, uint inputs, uint groupsPerJob)
+        : this(device, SlangShaders.Compile(Path.Combine(AppContext.BaseDirectory, "Shaders", module), entry, "compute"),
+            inputs, groupsPerJob)
+    {
+    }
+
+    /// <summary>An operation from SPIR-V compiled elsewhere (a stack's STEP brick, compiled off the frame).</summary>
+    /// <param name="inputs">Read-only buffers the shader takes after its jobs.</param>
+    /// <param name="uniforms">
+    /// Uniform blocks it reads: the one <see cref="Run{TUniforms}"/> pushes at slot 0, and any the
+    /// caller pushes itself at the slots after (a pool's values) before running it.
+    /// </param>
+    public ComputeOperation(GraphicsDevice device, byte[] spirv, uint inputs, uint groupsPerJob, uint uniforms = 1)
     {
         _device = device;
         GroupsPerJob = groupsPerJob;
-        _pipeline = ComputePipeline.Create(device,
-            SlangShaders.Compile(Path.Combine(AppContext.BaseDirectory, "Shaders", module), entry, "compute"),
-            "main", new ComputePipelineCreateInfo
+        _pipeline = ComputePipelines.Create(device, spirv, "compute operation", new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
                 NumReadonlyStorageBuffers = 1 + inputs,
                 NumReadWriteStorageBuffers = 1,
-                NumUniformBuffers = 1,
+                NumUniformBuffers = Math.Max(1, uniforms),
                 ThreadCountX = Threads,
                 ThreadCountY = 1,
                 ThreadCountZ = 1,

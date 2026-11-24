@@ -6,8 +6,9 @@
 // (colour, paint), clock, Clip and Keys (anim), the noises (Perlin, Simplex, ValueNoise, Worley; noise),
 // pictures and their filters (filter). Everything else is under its own name: colours., sdf., anchor.,
 // ease., eases., blend., gradient., pattern., sprite., noise., filter., pictures., tonemap., shaping., complex.,
-// steps. (Step), looks. and beats. (with the Lightning and Sunburst shapes), and 3D from the grid:
-// surfaces, Camera, lights. and mesh. (mesh).
+// steps. (Step), looks. and beats. (with the Lightning and Sunburst shapes), 3D from the grid:
+// surfaces, Camera, lights. and mesh. (mesh), 3D by marching: Ray, Ball, Span, Melt, Hit (march), and
+// a particle system's shapes, moves and looks under particles. (particles).
 // Nothing here knows the game: its play state and chart are `import rhythm;`.
 module xanadu;
 
@@ -28,3 +29,5 @@ __exported import xanadu.filter;
 __exported import xanadu.steps;
 __exported import xanadu.looks;
 __exported import xanadu.mesh;
+__exported import xanadu.march;
+__exported import xanadu.particles;

@@ -1,195 +1,317 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Xanadu.Slang;
 
 /// <summary>
-/// Stitches a stack of effect bodies into one, the GPU mirror of a Xif's
-/// modules (Docs/xif-modules.md). Each layer is an ordinary effect, the same file
-/// that draws on its own: its code goes in a namespace of its own, so helpers
-/// never clash, and the stitched <c>deform</c> and <c>shade</c> call the layers'
-/// in order, bottom first. A layer's <c>shade</c> finds the colour so far in
-/// <c>i.colour</c> (the bottom one the item's own, as when it draws alone) and
-/// returns the new one; a layer with no deform moves nothing.
+/// One kind of brick in a <see cref="ShaderStack"/>, in pipeline order: what runs
+/// first comes first. Each kind is one file in the stack's folder and owns one entry.
+/// </summary>
+public enum BrickKind
+{
+    /// <summary><c>update.slang</c>: one struct the GPU keeps, <c>update</c> once a frame; every later brick reads <c>state</c>.</summary>
+    Update,
+
+    /// <summary><c>step.slang</c>: a pool of <c>count</c> items the GPU keeps, <c>step</c> on each once a frame; each is drawn once, as <c>item</c>.</summary>
+    Step,
+
+    /// <summary>
+    /// <c>build.slang</c>: buffers the GPU keeps, compute passes over them, and <c>build()</c>, the order
+    /// the passes run in each frame; deform and shade read the buffers.
+    /// </summary>
+    Build,
+
+    /// <summary><c>deform.slang</c>: <c>deform</c>, run on every corner before it lands.</summary>
+    Deform,
+
+    /// <summary><c>shade.slang</c>: <c>shade</c>, run on every pixel.</summary>
+    Shade,
+}
+
+/// <summary>One brick's code: its kind and its text.</summary>
+public sealed record Brick(BrickKind Kind, string Text);
+
+/// <summary>
+/// A shader stack: bricks that compose one pipeline, a folder on disk with a
+/// file per brick (<see cref="FileName"/>). Most stacks are a shade brick
+/// alone; some add a deform brick; some start with compute (update, or a pool its step moves).
+/// Bricks run in <see cref="BrickKind"/> order and data flows down: a brick
+/// reads what the bricks above it keep and declare. Blend isn't a brick: it
+/// is set where the stack is placed.
 /// </summary>
 /// <remarks>
-/// Uniforms stay global: they are lifted out of the layers, so params are set by
-/// name as for one shader, and two layers declaring the same one (<c>xif_unit</c>)
-/// share it, the lower layer's declaration winning. A layer that keeps state
-/// (<c>update</c>) can't be stacked. The deform's <c>[Grid]</c> is the finest any
-/// layer asks for.
+/// The bricks compile as one effect body (<see cref="Compose"/>), each marked
+/// with <c>#line 1 "stack/kind.slang"</c>, so Slang's errors land on the
+/// brick's own lines under its own label (<see cref="Label"/>).
 /// </remarks>
 public static partial class ShaderStack
 {
-    /// <summary>A uniform declaration on one line, attributes and all; group 1 its name.</summary>
-    [GeneratedRegex(@"^\s*(?:\[[^\n]*\]\s*)*uniform\b[^;\n]*?\b(\w+)\s*(?:\[[^\]]*\])?\s*;\s*(?://.*)?$")]
-    private static partial Regex UniformLine();
+    /// <summary>Every kind, in pipeline order.</summary>
+    public static readonly BrickKind[] Kinds = Enum.GetValues<BrickKind>();
 
-    /// <summary>A line of attributes only, which belongs to the declaration under it.</summary>
-    [GeneratedRegex(@"^\s*(?:\[[^\n]*\]\s*)+$")]
-    private static partial Regex AttributeLine();
+    public static string FileName(BrickKind kind) => kind switch
+    {
+        BrickKind.Update => "update.slang",
+        BrickKind.Step => "step.slang",
+        BrickKind.Build => "build.slang",
+        BrickKind.Deform => "deform.slang",
+        BrickKind.Shade => "shade.slang",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
 
-    [GeneratedRegex(@"\[\s*Grid\s*\(\s*\d+\s*,\s*\d+\s*\)\s*\]")]
-    private static partial Regex GridAttribute();
+    /// <summary>The brick's name as the editor shows it.</summary>
+    public static string Title(BrickKind kind) => kind.ToString().ToUpperInvariant();
+
+    /// <summary>What a brick of this kind is for, in a line.</summary>
+    public static string Purpose(BrickKind kind) => kind switch
+    {
+        BrickKind.Update => "compute: one struct kept on the GPU, update(s, dt) once a frame; later bricks read state",
+        BrickKind.Step => "compute: count items kept on the GPU, step(t, i, dt) on each once a frame; each is drawn once, as item",
+        BrickKind.Build => "compute: buffers kept on the GPU and [Pass] functions over them; build() runs the passes in order each frame",
+        BrickKind.Deform => "deform(v) on every corner before it lands",
+        BrickKind.Shade => "shade(...) on every pixel",
+        _ => "",
+    };
+
+    /// <summary>The functions a kind's brick declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
+    public static string[] Entries(BrickKind kind) => kind switch
+    {
+        BrickKind.Update => ["update"],
+        BrickKind.Step => ["start", "step"],
+        BrickKind.Build => ["build"],
+        BrickKind.Deform => ["deform"],
+        BrickKind.Shade => ["shade"],
+        _ => [],
+    };
+
+    /// <summary>The label Slang's errors carry for a brick of stack <paramref name="name"/>.</summary>
+    public static string Label(string name, BrickKind kind) => $"{name}/{FileName(kind)}".Replace("\"", "'");
+
+    /// <summary>The entry a kind's brick must declare, and the pattern that finds it.</summary>
+    private static (string Entry, Regex Pattern) EntryOf(BrickKind kind) => kind switch
+    {
+        BrickKind.Update => ("void update(inout State s, float dt)", UpdateEntry()),
+        BrickKind.Step => ("void step(inout Item t, uint i, float dt) (or bool step, with a rate)", StepEntry()),
+        BrickKind.Build => ("void build(), calling its passes in order", BuildEntry()),
+        BrickKind.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
+        BrickKind.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    [GeneratedRegex(@"\bvoid\s+update\s*\(")]
+    private static partial Regex UpdateEntry();
+
+    [GeneratedRegex(@"\b(?:void|bool)\s+step\s*\(")]
+    private static partial Regex StepEntry();
+
+    [GeneratedRegex(@"\bvoid\s+build\s*\(\s*\)")]
+    private static partial Regex BuildEntry();
+
+    [GeneratedRegex(@"\bItemVertex\s+deform\s*\(")]
+    private static partial Regex DeformEntry();
+
+    [GeneratedRegex(@"\bfloat4\s+shade\s*\(")]
+    private static partial Regex ShadeEntry();
 
     /// <summary>
-    /// One effect body doing what <paramref name="layers"/> (path and source, bottom
-    /// first) do stacked; throws when a layer can't be stacked.
+    /// The bricks as one effect body, in pipeline order, each under its own
+    /// <c>#line</c> mark. Throws, worded as Slang's errors are (so the editor puts
+    /// the problem on the brick), when the stack can't work: no bricks, a brick
+    /// without its entry or with another kind's, or a pool with nothing to place its items.
     /// </summary>
-    public static string Stitch(IReadOnlyList<(string Path, string Source)> layers)
+    public static string Compose(string name, IReadOnlyList<Brick> bricks)
     {
-        if (layers.Count == 0)
-            throw new ArgumentException("A stack needs at least one layer.", nameof(layers));
-
-        var imports = new List<string>();
-        var uniforms = new List<string>();
-        var declared = new HashSet<string>(StringComparer.Ordinal);
-        var bodies = new StringBuilder();
-        var shades = new StringBuilder();
-        var deforms = new StringBuilder();
-        (int Columns, int Rows)? grid = null;
-
-        for (int index = 0; index < layers.Count; index++)
-        {
-            (string path, string source) = layers[index];
-            string space = $"xanaduLayer{index}";
-            if (SlangShaders.KeepsState(source))
-                throw new InvalidOperationException($"{path}: keeps state (update), so it can't be stacked.");
-
-            string shadeArguments = ShadeSignature.Arguments(source, out string problem)
-                ?? throw new InvalidOperationException($"{path}: {problem}");
-            shades.AppendLine($"    i.colour = {space}::shade({shadeArguments});");
-            if (SlangShaders.Deforms(source))
-            {
-                deforms.AppendLine($"    v = {space}::deform(v);");
-                if (SlangShaders.GridOf(source) is { } asked)
-                    grid = grid is { } had ? (Math.Max(had.Columns, asked.Columns), Math.Max(had.Rows, asked.Rows)) : asked;
-            }
-
-            bodies.AppendLine($"namespace {space} {{");
-            bodies.AppendLine($"#line 1 \"{path.Replace("\"", "'")}\"");
-            foreach (string line in Lift(source, imports, uniforms, declared))
-                bodies.AppendLine(line);
-            bodies.AppendLine("}");
-        }
-
-        var stitched = new StringBuilder();
-        foreach (string line in imports)
-            stitched.AppendLine(line);
-        stitched.AppendLine("#line 1 \"stack\"");
-        foreach (string line in uniforms)
-            stitched.AppendLine(line);
-
-        // The stitched entries come first: the wrapper reads the first shade's signature.
-        stitched.AppendLine("float4 shade(ItemInput i)");
-        stitched.AppendLine("{");
-        stitched.Append(shades);
-        stitched.AppendLine("    return i.colour;");
-        stitched.AppendLine("}");
-        if (deforms.Length > 0)
-        {
-            if (grid is { } cells)
-                stitched.AppendLine($"[Grid({cells.Columns}, {cells.Rows})]");
-            stitched.AppendLine("ItemVertex deform(ItemVertex v)");
-            stitched.AppendLine("{");
-            stitched.Append(deforms);
-            stitched.AppendLine("    return v;");
-            stitched.AppendLine("}");
-        }
-
-        stitched.Append(bodies);
-        return stitched.ToString();
+        Check(name, bricks);
+        return Join(name, bricks);
     }
 
     /// <summary>
-    /// A layer's lines with its imports and uniforms (and the attribute lines over
-    /// them) taken out, each left as a blank so error lines still match the file.
-    /// A uniform already declared lower in the stack is dropped; its <c>[Grid]</c>
-    /// goes too, since the stitched deform carries it.
+    /// The bricks as one body without checking them (<see cref="Compose"/> checks first): for reading
+    /// the code as a whole (the editor's clips and warnings) while a brick is half written.
     /// </summary>
-    private static List<string> Lift(string source, List<string> imports, List<string> uniforms, HashSet<string> declared)
+    public static string Join(string name, IReadOnlyList<Brick> bricks)
     {
-        string[] lines = source.ReplaceLineEndings("\n").Split('\n');
-        var kept = new List<string>(lines.Length);
-        var attributes = new List<int>();
-        bool inComment = false;
-        foreach (string raw in lines)
+        var composed = new StringBuilder();
+        foreach (Brick brick in bricks.OrderBy(brick => brick.Kind))
         {
-            string line = raw;
-            bool commented = inComment || line.TrimStart().StartsWith("//", StringComparison.Ordinal);
-            inComment = BlockCommentOpen(line, inComment);
-            if (commented)
-            {
-                kept.Add(line);
-                continue;
-            }
-
-            if (line.TrimStart().StartsWith("import ", StringComparison.Ordinal))
-            {
-                if (!imports.Contains(line.Trim()))
-                    imports.Add(line.Trim());
-                kept.Add("");
-                attributes.Clear();
-                continue;
-            }
-
-            Match uniform = UniformLine().Match(line);
-            if (uniform.Success)
-            {
-                bool fresh = declared.Add(uniform.Groups[1].Value);
-                foreach (int at in attributes)
-                {
-                    if (fresh)
-                        uniforms.Add(kept[at]);
-                    kept[at] = "";
-                }
-                if (fresh)
-                    uniforms.Add(line);
-                kept.Add("");
-                attributes.Clear();
-                continue;
-            }
-
-            if (AttributeLine().IsMatch(line))
-            {
-                attributes.Add(kept.Count);
-                kept.Add(GridAttribute().Replace(line, ""));
-                continue;
-            }
-
-            if (line.Trim().Length > 0)
-                attributes.Clear();
-            kept.Add(GridAttribute().Replace(line, ""));
+            composed.Append("#line 1 \"").Append(Label(name, brick.Kind)).Append("\"\n");
+            composed.Append(brick.Text.ReplaceLineEndings("\n"));
+            if (!brick.Text.EndsWith('\n'))
+                composed.Append('\n');
         }
 
-        return kept;
+        // Without a shade brick the item keeps its own colour.
+        if (!bricks.Any(brick => brick.Kind == BrickKind.Shade))
+            composed.Append($"#line 1 \"{name} (no shade brick)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
+        return composed.ToString();
     }
 
-    /// <summary>Whether a <c>/* … */</c> comment is still open at the end of the line.</summary>
-    private static bool BlockCommentOpen(string line, bool open)
+    private static void Check(string name, IReadOnlyList<Brick> bricks)
     {
-        int at = 0;
-        while (at < line.Length)
+        if (bricks.Count == 0)
+            throw new InvalidOperationException($"{name}(1): error: a stack needs at least one brick.");
+
+        foreach (IGrouping<BrickKind, Brick> twice in bricks.GroupBy(brick => brick.Kind).Where(group => group.Count() > 1))
+            throw new InvalidOperationException($"{Label(name, twice.Key)}(1): error: a stack has one {Title(twice.Key)} brick.");
+
+        foreach (Brick brick in bricks)
         {
-            if (open)
+            string code = StripComments(brick.Text);
+            (string entry, Regex own) = EntryOf(brick.Kind);
+            if (!own.IsMatch(code))
+                throw new InvalidOperationException($"{Label(name, brick.Kind)}(1): error: the {Title(brick.Kind)} brick declares {entry}.");
+
+            foreach (BrickKind other in Kinds.Where(kind => kind != brick.Kind))
             {
-                int end = line.IndexOf("*/", at, StringComparison.Ordinal);
-                if (end < 0)
-                    return true;
-                open = false;
-                at = end + 2;
-            }
-            else
-            {
-                int lineComment = line.IndexOf("//", at, StringComparison.Ordinal);
-                int start = line.IndexOf("/*", at, StringComparison.Ordinal);
-                if (start < 0 || (lineComment >= 0 && lineComment < start))
-                    return false;
-                open = true;
-                at = start + 2;
+                Match stray = EntryOf(other).Pattern.Match(code);
+                if (stray.Success)
+                    throw new InvalidOperationException(
+                        $"{Label(name, brick.Kind)}({LineAt(code, stray.Index)}): error: {EntryOf(other).Entry.Split('(')[0].Split(' ')[^1]} belongs in the {Title(other)} brick ({FileName(other)}).");
             }
         }
-        return open;
+
+        if (bricks.Any(brick => brick.Kind == BrickKind.Step) && !bricks.Any(brick => brick.Kind == BrickKind.Deform))
+            throw new InvalidOperationException(
+                $"{Label(name, BrickKind.Step)}(1): error: a pool's items are drawn by a DEFORM brick: add one, and place each item there with deform.");
     }
+
+    private static int LineAt(string text, int index) => 1 + text.AsSpan(0, index).Count('\n');
+
+    private static string StripComments(string source) =>
+        Regex.Replace(Regex.Replace(source, @"/\*.*?\*/", match => new string('\n', match.Value.Count(c => c == '\n')), RegexOptions.Singleline),
+            @"//[^\n]*", "");
+
+    /// <summary>What a new brick of this kind starts as: a working one that changes nothing much, explained.</summary>
+    public static string Template(BrickKind kind) => kind switch
+    {
+        BrickKind.Update => """
+            // UPDATE: one struct the GPU keeps from frame to frame.
+            // update runs once a frame on one GPU thread; every later brick reads it as `state`.
+            import xanadu;
+
+            // Where it eases towards, in pixels from the centre: drag its dot on the preview.
+            [Default(200, 0)] uniform float2 target;
+
+            struct State { float2 follow; };
+
+            void update(inout State s, float dt)
+            {
+                s.follow = lerp(s.follow, target, 1 - exp(-dt * 4));
+            }
+
+            """,
+        BrickKind.Step => """
+            // STEP: `count` items the GPU keeps from frame to frame.
+            // start(i) makes item i after every compile; step moves it once a frame.
+            // The DEFORM brick draws each item once: it reads the one it is drawing as `item`.
+            import xanadu;
+
+            struct Item { float2 position; float2 velocity; };
+
+            static const uint count = 1000;
+
+            Item start(uint i)
+            {
+                Item t;
+                t.position = (random2(float2(i, 1)) - 0.5) * 800;
+                t.velocity = (random2(float2(i, 2)) - 0.5) * 200;
+                return t;
+            }
+
+            void step(inout Item t, uint i, float dt)
+            {
+                t.position += t.velocity * dt;
+            }
+
+            """,
+        BrickKind.Build => """
+            // BUILD: buffers the GPU keeps from frame to frame, and passes that work on them.
+            // Each [Pass] runs `threads` a group: over: n gives a thread to each of n (the rest
+            // turned away), groups: g runs g whole groups (for code with barriers). build() runs
+            // on the CPU each frame: it calls the passes in order, each one its own dispatch, so
+            // a pass sees everything the passes before it wrote. DEFORM and SHADE read the buffers.
+            import xanadu;
+
+            static const uint cells = 4096;
+
+            // The wrapper places every buffer: never write a binding.
+            [Buffer(cells)] RWStructuredBuffer<float> heights;
+
+            [Pass(256, over: cells)]
+            void grow(uint i)
+            {
+                heights[i] = 0.5 + 0.5 * sin(time * 2 + i * 0.01);
+            }
+
+            void build()
+            {
+                grow();
+            }
+
+            """,
+        BrickKind.Deform => """
+            // DEFORM: deform runs on every corner before it lands; move v.position to move the shape.
+            import xanadu;
+
+            ItemVertex deform(ItemVertex v)
+            {
+                v.position.y += sin(time * 3 + v.uv.x * 6) * 6;
+                return v;
+            }
+
+            """,
+        BrickKind.Shade => """
+            // SHADE: shade runs on every pixel and returns its colour.
+            import xanadu;
+
+            [Default(colours.gold)] uniform colour tint;
+
+            float4 shade(ItemInput i, Canvas canvas)
+            {
+                colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);
+                let blob = Circle(120 + 20 * sin(time * 2));
+                return lerp(sky, tint, blob.filled(canvas.centred, 2));
+            }
+
+            """,
+        _ => "",
+    };
+
+    // ---- on disk -------------------------------------------------------------------
+
+    /// <summary>Whether a folder is a stack: it holds at least one brick file.</summary>
+    public static bool IsStack(string folder) =>
+        Directory.Exists(folder) && Kinds.Any(kind => File.Exists(Path.Combine(folder, FileName(kind))));
+
+    /// <summary>The bricks in a stack's folder, in pipeline order.</summary>
+    public static List<Brick> Read(string folder) =>
+    [
+        .. Kinds.Select(kind => (kind, file: Path.Combine(folder, FileName(kind))))
+            .Where(brick => File.Exists(brick.file))
+            .Select(brick => new Brick(brick.kind, File.ReadAllText(brick.file))),
+    ];
+
+    /// <summary>Writes the bricks into the folder (made if needed) and deletes the files of kinds it no longer has.</summary>
+    public static void Write(string folder, IReadOnlyList<Brick> bricks)
+    {
+        Directory.CreateDirectory(folder);
+        foreach (BrickKind kind in Kinds)
+        {
+            string file = Path.Combine(folder, FileName(kind));
+            if (bricks.FirstOrDefault(brick => brick.Kind == kind) is { } brick)
+                File.WriteAllText(file, brick.Text);
+            else if (File.Exists(file))
+                File.Delete(file);
+        }
+    }
+
+    /// <summary>Every stack under <paramref name="root"/> (full paths), outside <paramref name="skip"/>, in order.</summary>
+    public static IEnumerable<string> Under(string root, string? skip = null) =>
+        Directory.EnumerateDirectories(root, "*", SearchOption.AllDirectories)
+            .Where(folder => skip is null || !folder.StartsWith(skip, StringComparison.Ordinal))
+            .Where(IsStack)
+            .Order(StringComparer.Ordinal);
 }

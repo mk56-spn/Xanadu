@@ -25,6 +25,7 @@ ItemVaryings item(VertexIn v)
     o.colour = v.colour;
     o.local = v.local;
     o.rest = v.position;
+    o.instance = 0;
     return o;
 }
 

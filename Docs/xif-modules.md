@@ -64,15 +64,15 @@ puts data modules together on the CPU; a shader puts code modules together on
 the GPU. `XifShader.Layers` stacks common shaders over the module's own shader,
 bottom first. A layer is an ordinary effect, the same file that draws on its own:
 
-- `Slang/ShaderStack.Stitch` puts each layer's code in a namespace of its own
+- `Slang/ShaderLayers.Stitch` puts each layer's code in a namespace of its own
   (helpers never clash), lifts the uniforms out so params stay global by name
   (a uniform two layers declare, like `xif_unit`, is shared), and writes one
   `deform` calling the layers' in order and one `shade` that hands each layer
   the colour so far as `i.colour`. `[Grid]` is the finest any layer asks for.
   A layer that keeps state can't be stacked.
-- A stack goes by one name wherever a shader path would
-  (`Core/Rendering/ShaderStackKey`: `stack:a.slang|b.slang`); the pipelines
-  stitch and compile it the first time it is drawn, and keep it.
+- Layered shaders go by one name wherever a shader path would
+  (`Core/Rendering/ShaderLayersKey`: `layers:a|b`); the pipelines
+  stitch and compile them the first time they are drawn, and keep them.
 - Starter layers in `Assets/Shaders/Layers/`: sway, gradient, tint, dissolve
   (`CommonShaders.Layers`). Any common shader can be a layer.
 - Grass is now a stack (sway + gradient) over no shader; `Items/grass.slang`

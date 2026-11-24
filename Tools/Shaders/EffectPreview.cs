@@ -8,10 +8,12 @@ using Xanadu.Ui.Systems.Canvas;
 namespace Xanadu.Tools.Shaders;
 
 /// <summary>
-/// A shipped effect on a 16:9 quad, compiled from the text being edited, not
-/// the file, through the same wrapper as level shaders (its <c>shade</c> takes
-/// <c>Canvas</c> and/or <c>ItemInput</c>; a <c>deform</c> bends the quad, drawn
-/// as a grid so it has corners to move). Textures it declares
+/// A shipped shader stack on a 16:9 quad, compiled from the bricks being edited
+/// (composed by the editor), not the folder, through the same wrapper as level
+/// shaders (its <c>shade</c> takes <c>Canvas</c> and/or <c>ItemInput</c>; a
+/// <c>deform</c> bends the quad, drawn as a grid so it has corners to move). A
+/// stack with a pool draws the quad once per item, a plain rect each, placed by
+/// its deform brick; the overlays are off for it. Textures it declares
 /// past the item's own draw white until the tool can feed them. Behind it the
 /// backdrop effect (<see cref="ShaderFiles.Backdrop"/>) fills the same quad, so
 /// an effect that reads the screen shows what it does to something. Over it,
@@ -34,6 +36,15 @@ internal sealed class EffectPreview : IEditorPreview
     private string? _source;
     private Rect2 _area;
     private (int Columns, int Rows)? _grid;
+
+    /// <summary>
+    /// Whether the code shown draws copies of its quad (a pool's items, a BUILD's <c>[Draws]</c>):
+    /// one plain rect, no overlays. The fine preview mesh would be drawn whole for every copy.
+    /// </summary>
+    private bool _copies;
+
+    /// <summary>Whether the code shown draws copies of its quad, which the overlays don't draw yet.</summary>
+    public bool DrawsCopies => _copies;
 
     /// <summary>One overlay: its item and, while on, its material (the code with the overlay for shade).</summary>
     private sealed class Overlay(MaterialOverlay kind, Handle item)
@@ -70,15 +81,17 @@ internal sealed class EffectPreview : IEditorPreview
 
     public string[] Help =>
     [
-        "An effect: uniforms and float4 shade(Canvas canvas), as in a level shader; ItemInput i gives uv, colour and the rest.",
-        "ItemVertex deform(ItemVertex v) moves the corners: v.position is target pixels.",
-        "Ctrl+S saves to the file. Picking another shader keeps these edits until the tool closes.",
+        "A stack of bricks, run top to bottom: UPDATE, STEP and BUILD (compute, lab only), DEFORM deform(v), SHADE shade(...).",
+        "A brick reads what the bricks above it declare. SHADE: uniforms and float4 shade(ItemInput i, Canvas canvas).",
+        "Ctrl+S saves every brick to the folder. Picking another stack keeps these edits until the tool closes.",
     ];
 
     public PreviewBuild Compile(string source)
     {
         PreviewBuild build = new(source, SlangShaders.CompileEffectBody(Label, source, _keepsState).Params);
-        // Off the frame, so the overlays' first draw finds them in Slang's cache.
+        // Off the frame, so the overlays' first draw finds them in Slang's cache. Copies have none (yet).
+        if (Copies(source))
+            return build;
         if (_triangles.On)
             SlangShaders.CompileEffectBody(Label, source, _keepsState, SlangShaders.TrianglesOverlay);
         if (_uv.On)
@@ -105,7 +118,7 @@ internal sealed class EffectPreview : IEditorPreview
     private void Refresh(Overlay overlay)
     {
         CanvasMaterial? previous = overlay.Material;
-        overlay.Material = overlay.On && _source is { } source
+        overlay.Material = overlay.On && !_copies && _source is { } source
             ? CanvasMaterial.FromSource(Label, source, keepsState: _keepsState, overlay: overlay.Kind)
             : null;
         CanvasServer.Current.SetVisible(overlay.Item, overlay.Material is not null);
@@ -124,9 +137,10 @@ internal sealed class EffectPreview : IEditorPreview
             _pipelines.Forget(previous);
         _source = (string)build.Result;
         (int, int)? grid = SlangShaders.GridOf(_source);
-        if (grid != _grid)
+        bool copies = Copies(_source);
+        if (grid != _grid || copies != _copies)
         {
-            _grid = grid;
+            (_grid, _copies) = (grid, copies);
             Place(_area);
         }
 
@@ -135,19 +149,35 @@ internal sealed class EffectPreview : IEditorPreview
         return "";
     }
 
+    /// <summary>Whether compiled code keeps a pool or a BUILD that draws copies; it compiled, so both are written right.</summary>
+    private bool Copies(string source)
+    {
+        try
+        {
+            return SlangShaders.PoolOf(Label, source) is not null || StackBuild.Of(source) is { Draws: >= 0 };
+        }
+        catch (Exception problem) when (problem is InvalidOperationException or BuildProblem)
+        {
+            return false;
+        }
+    }
+
     /// <remarks>
-    /// An effect with a <c>[Grid]</c> gets one plain rect, cut by the renderer as a level item's
+    /// An effect with a <c>[Grid]</c>, a pool or a BUILD that draws copies gets one plain rect, cut by the renderer as a level item's
     /// would be; without one, the preview's own fine grid, so any deform has corners to bend.
     /// </remarks>
     public void Place(Rect2 area)
     {
         _area = area;
+        // Everything over the backdrop stays on the preview: a deform or a pool's items may land past it.
+        CanvasServer.Current.SetCustomRect(_backdrop, true, area);
+        CanvasServer.Current.SetClip(_backdrop, true);
         CanvasServer.Current.Clear(_backdrop);
         CanvasServer.Current.AddRect(_backdrop, area, Colors.White);
         foreach (Handle item in (ReadOnlySpan<Handle>)[_item, _triangles.Item, _uv.Item])
         {
             CanvasServer.Current.Clear(item);
-            if (_grid is not null)
+            if (_grid is not null || _copies)
                 CanvasServer.Current.AddRect(item, area, Colors.White);
             else
                 PreviewMesh.Add(item, area, Colors.White);

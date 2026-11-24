@@ -4,6 +4,14 @@ using Xanadu.Host.Autopsy;
 
 namespace Xanadu.Tools.DevTools.Autopsy;
 
+/// <summary>Which of the Autopsy's views is open.</summary>
+internal enum AutopsyView
+{
+    Frame,
+    Methods,
+    Memory,
+}
+
 /// <summary>
 /// Autopsy of a frame: opens the capture each exe saved when its last launch
 /// closed (HostCore/Autopsy) and takes one frame apart. A strip of the last
@@ -11,8 +19,10 @@ namespace Xanadu.Tools.DevTools.Autopsy;
 /// frame; the mean frame and the launch's worst frames are a click away. Two
 /// split bars then show where that frame's CPU and GPU time went against the
 /// display's budget; click a segment to open it, a crumb to go back out.
+/// METHODS shows the CPU samples, MEMORY the heap, process, GPU memory and GC
+/// over the same frames (AutopsyStage.Memory.cs).
 /// </summary>
-internal sealed class AutopsyStage : CanvasToolStage
+internal sealed partial class AutopsyStage : CanvasToolStage
 {
     private const float Margin = 40;
     private const float Left = 150;
@@ -22,6 +32,7 @@ internal sealed class AutopsyStage : CanvasToolStage
     private const float BarsTop = 410, BarHeight = 58, BarBlock = 132;
     private const float TableTop = 690, RowHeight = 26;
     private const int MaxRows = 11;
+    private const float CapturesLeft = 870;
 
     private static readonly Color[] Segments =
     [
@@ -43,8 +54,9 @@ internal sealed class AutopsyStage : CanvasToolStage
     private readonly int[] _focus = [FrameAutopsy.CpuRoot, FrameAutopsy.GpuRoot];
     private int _update = -1, _draw = -1, _idle = -1;
 
+    private AutopsyView _view;
+
     // The METHODS view: the launch's CPU samples, read in the background.
-    private bool _methodsView;
     private bool _wholeLaunch = true;
     private MethodProfile? _profile;
     private System.Threading.Tasks.Task<MethodProfile>? _profileTask;
@@ -63,10 +75,10 @@ internal sealed class AutopsyStage : CanvasToolStage
     private string? _hint;
     private Action? _onClick;
 
-    public AutopsyStage(DevToolsContext context, Handle item, Rect2 area, ICodeLinks? links = null, bool methods = false) : base(context, item, area)
+    public AutopsyStage(DevToolsContext context, Handle item, Rect2 area, ICodeLinks? links = null, AutopsyView view = AutopsyView.Frame) : base(context, item, area)
     {
         _links = links;
-        _methodsView = methods;
+        _view = view;
         _captures = AutopsyStore.List();
         if (_captures.Count > 0)
             Open(0);
@@ -124,6 +136,7 @@ internal sealed class AutopsyStage : CanvasToolStage
         _focus[0] = FrameAutopsy.CpuRoot;
         _focus[1] = FrameAutopsy.GpuRoot;
         _frame = _mean ?? (_recent.Count > 0 ? _recent[^1] : null);
+        OpenMemory();
 
         // TraceEvent takes a few seconds on a long trace, so read it off the frame loop.
         _profile = null;
@@ -166,14 +179,20 @@ internal sealed class AutopsyStage : CanvasToolStage
         {
             DrawStrip();
             DrawPicks();
-            if (_methodsView)
-                DrawMethods();
-            else
+            switch (_view)
             {
-                DrawBar(0, BarsTop);
-                DrawBar(1, BarsTop + BarBlock);
-                DrawTable(0, Margin);
-                DrawTable(1, Width / 2f + Margin / 2);
+                case AutopsyView.Methods:
+                    DrawMethods();
+                    break;
+                case AutopsyView.Memory:
+                    DrawMemory();
+                    break;
+                default:
+                    DrawBar(0, BarsTop);
+                    DrawBar(1, BarsTop + BarBlock);
+                    DrawTable(0, Margin);
+                    DrawTable(1, Width / 2f + Margin / 2);
+                    break;
             }
         }
         else
@@ -195,19 +214,23 @@ internal sealed class AutopsyStage : CanvasToolStage
         Label(new Rect2(Margin, 34, 600, 44), "AUTOPSY OF A FRAME", Palette.Accent, 34);
         if (_autopsy is not null)
         {
-            Button(new Rect2(470, 36, 140, 40), "FRAME", !_methodsView, () => _methodsView = false, "CPU and GPU time split into systems and passes");
-            Button(new Rect2(616, 36, 140, 40), "METHODS", _methodsView, () => _methodsView = true,
+            Button(new Rect2(470, 36, 124, 40), "FRAME", _view == AutopsyView.Frame, () => _view = AutopsyView.Frame, "CPU and GPU time split into systems and passes");
+            Button(new Rect2(600, 36, 124, 40), "METHODS", _view == AutopsyView.Methods, () => _view = AutopsyView.Methods,
                 "Where the frame thread's time went, method by method (launches run with XANADU_PROFILE=1)");
+            Button(new Rect2(730, 36, 124, 40), "MEMORY", _view == AutopsyView.Memory, () => _view = AutopsyView.Memory,
+                "Heap, process and GPU memory, allocations and garbage collections, frame by frame");
         }
+        // The captures share what the view buttons leave; narrow ones drop the time (it stays in the tooltip).
+        float width = MathF.Min(220, (Right - CapturesLeft) / Math.Max(1, _captures.Count) - 8);
         float x = Right;
         for (int i = _captures.Count - 1; i >= 0; i--)
         {
             AutopsyCapture capture = _captures[i];
-            string label = $"{capture.App.ToUpperInvariant()}  {capture.Saved:HH:mm}";
-            var box = new Rect2(x - 220, 36, 220, 40);
+            string label = width >= 200 ? $"{capture.App.ToUpperInvariant()}  {capture.Saved:HH:mm}" : capture.App.ToUpperInvariant();
+            var box = new Rect2(x - width, 36, width, 40);
             int index = i;
             Button(box, label, i == _captureIndex, () => Open(index), $"Last {capture.App} launch, closed {capture.Saved:yyyy-MM-dd HH:mm:ss}");
-            x -= 228;
+            x -= width + 8;
         }
 
         if (_autopsy is null)
