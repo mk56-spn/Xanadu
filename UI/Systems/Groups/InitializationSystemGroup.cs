@@ -4,7 +4,7 @@ using Xanadu.Ui.Systems.Rendering;
 
 namespace Xanadu.Ui.Systems.Groups;
 
-/// <summary>Resolves container layout and anchors. Where things draw is worked out each frame by <see cref="UiCanvasMount"/>.</summary>
+/// <summary>Resolves container layout and anchors. Where things draw is kept on the GPU by <see cref="UiCanvasMount"/>.</summary>
 public sealed class InitializationSystemGroup : SystemGroup
 {
     public InitializationSystemGroup() : base("Initialization")

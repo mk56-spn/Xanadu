@@ -17,6 +17,8 @@
 #   ./run.sh devtools autopsy game|editor|labs|animator|shaders [args]
 #                                 -> runs that target with the CPU sampler on, then opens
 #                                    AUTOPSY on METHODS once it closes
+#   ./run.sh devtools deps            -> opens on DEPS, every built DLL by level from what it really loads
+#   ./run.sh devtools deps --dump[=name] -> builds the solution, then prints the same as text (no window)
 #   ./run.sh devtools arch            -> opens on ARCH, the architecture as it should be, drawn by hand on a board (Docs/architecture.xab)
 set -euo pipefail
 
@@ -58,6 +60,11 @@ run() {
                 # The exe's own exit code doesn't stop the autopsy: a crash is worth looking at too.
                 XANADU_PROFILE=1 run "$profiled" "$@" || true
                 dotnet run --project "$root/Tools/DevTools" -- autopsy --methods
+                return
+            fi
+            if [[ $# -gt 1 && "$1" == deps && "$2" == --dump* ]]; then
+                dotnet build "$root/Xanadu.sln" -v q -nologo >/dev/null 2>&1 || echo "devtools: the solution didn't fully build; failed projects show their last build" >&2
+                dotnet run --project "$root/Tools/DevTools" --no-build -- "$@"
                 return
             fi
             # Atlas reads its chart from the builds; a project that fails to build shows its last good one.

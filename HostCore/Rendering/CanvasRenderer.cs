@@ -36,7 +36,7 @@ namespace Xanadu.Host.Rendering;
 /// the pass resumes. A copy is only made if something was drawn since the last.
 /// </para>
 /// </remarks>
-internal sealed class CanvasRenderer : IDisposable
+internal sealed partial class CanvasRenderer : IDisposable
 {
     [StructLayout(LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Span; }
@@ -75,11 +75,13 @@ internal sealed class CanvasRenderer : IDisposable
     {
         public uint Instances;
         public float DepthStep;
-        public uint Pad0, Pad1;
+        public uint First, Pad1;
     }
 
     /// <summary>One item's draws in a job: its place, and what it inherits.</summary>
-    private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip);
+    /// <remarks>A resident segment (<see cref="Piece"/>) has no item: its items are placed on the GPU.</remarks>
+    private readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Transform2D Transform, Color Color, Rect Clip,
+        ResidentPiece? Piece = null);
 
     private enum StepKind
     {
@@ -147,6 +149,9 @@ internal sealed class CanvasRenderer : IDisposable
     private const int Slots = 8;
 
     private const uint NoTexture = 0xFFFF;
+
+    /// <summary>A primitive's texture slot with this bit is a glyph page's layer in <see cref="Glyphs"/>' array, not a run slot.</summary>
+    private const uint GlyphLayer = 0x8000;
 
     /// <summary>Depth steps per primitive: room for four million in a frame before they share a depth.</summary>
     private const float DepthStep = 1f / (1 << 22);
@@ -268,6 +273,12 @@ internal sealed class CanvasRenderer : IDisposable
 
     public CanvasPipelines Pipelines => _pipelines;
 
+    /// <summary>The text atlas, whose pages plain primitives read from its layer array instead of a run slot.</summary>
+    public Host.Text.TextAtlas? Glyphs { get; set; }
+
+    /// <summary>Bound in place of the layer array before the atlas has a page.</summary>
+    private Texture? _noLayers;
+
     public CanvasParticles Particles { get; }
 
     private float _lastTime = float.NaN;
@@ -334,7 +345,7 @@ internal sealed class CanvasRenderer : IDisposable
         {
             Format = ShaderFormat.SPIRV,
             Stage = ShaderStage.Fragment,
-            NumSamplers = Slots,
+            NumSamplers = Slots + 1,
         });
         _primitiveOpaque = Shader.Create(device, SlangShaders.Compile(module, "primitiveOpaque", "fragment"), "main", new ShaderCreateInfo
         {
@@ -347,7 +358,7 @@ internal sealed class CanvasRenderer : IDisposable
             "main", new ComputePipelineCreateInfo
             {
                 Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = 3,
+                NumReadonlyStorageBuffers = 4,
                 NumReadWriteStorageBuffers = 2,
                 NumUniformBuffers = 1,
                 ThreadCountX = 64,
@@ -358,6 +369,7 @@ internal sealed class CanvasRenderer : IDisposable
         _zeros = TransferBuffer.Create<byte>(device, "state zeros", TransferBufferUsage.Upload, SlangShaders.MaxStateBytes);
         _zeros.Map<byte>(cycle: false).Clear();
         _zeros.Unmap();
+        tree.Unmounted += DropResident;
         _pipelines.Forgotten += material =>
         {
             if (_states.Remove(material, out Buffer? state))
@@ -391,10 +403,11 @@ internal sealed class CanvasRenderer : IDisposable
     public void Render(CommandBuffer commands, Texture target, MwColor clear, float time, HostFramePhases? phases = null)
     {
         long lap = HostFramePhases.Now;
+        DrainTouched();
         _jobs.Clear();
         foreach ((CanvasItem root, Texture offscreen) in _offscreen)
-            Collect(root, offscreen, new MwColor(0, 0, 0, 0));
-        Collect(_tree.Root, target, clear);
+            Collect(root, offscreen, new MwColor(0, 0, 0, 0), phases);
+        Collect(_tree.Root, target, clear, phases);
         phases?.Lap(HostFramePhases.Phase.Collect, ref lap);
 
         _buildFrame++;
@@ -404,6 +417,7 @@ internal sealed class CanvasRenderer : IDisposable
         {
             Upload(commands);
             UploadKept(commands);
+            UploadResident(commands);
         }
         using (commands.Scope("expand primitives"))
             Expand(commands);
@@ -437,13 +451,80 @@ internal sealed class CanvasRenderer : IDisposable
 
     private int _sequence;
 
-    private void Collect(CanvasItem root, Texture target, MwColor clear)
+    // The walk's timing is exclusive: one clock, each stretch charged to the part running then,
+    // so nested parts (a mount placing items whose children hold mounts) never count twice.
+    private HostFramePhases? _walkPhases;
+    private HostFramePhases.Phase _walkPart;
+    private long _walkStamp;
+
+    /// <summary>One root's flat, sorted draw list; the walk and the sort are timed apart, under "collect items".</summary>
+    private void Collect(CanvasItem root, Texture target, MwColor clear, HostFramePhases? phases)
     {
+        long lap = HostFramePhases.Now;
         var job = new Job(root, target, clear);
         _sequence = 0;
+        _walkPhases = phases;
+        _walkStamp = lap;
+        _walkPart = HostFramePhases.Phase.CollectCanvas;
         Visit(job, root, Transform2D.Identity, Colors.White, 0, FullClip);
-        job.Entries.Sort(static (a, b) => a.Z != b.Z ? a.Z.CompareTo(b.Z) : a.Sequence.CompareTo(b.Sequence));
+        Switch(HostFramePhases.Phase.CollectCanvas);
+        _walkPhases = null;
+        phases?.Lap(HostFramePhases.Phase.CollectWalk, ref lap);
+        SortByZ(job.Entries);
+        phases?.Lap(HostFramePhases.Phase.CollectSort, ref lap);
         _jobs.Add(job);
+    }
+
+    private int[] _zStarts = [];
+    private Entry[] _zSorted = [];
+
+    /// <summary>
+    /// Puts entries in draw order, z then sequence, by counting sort: z is a small
+    /// integer and entries are added in sequence order, so counting each z, turning
+    /// the counts into start positions and copying entries over in the order they
+    /// came keeps ties in sequence for free. Two passes, no comparisons.
+    /// </summary>
+    private void SortByZ(List<Entry> entries)
+    {
+        Span<Entry> span = CollectionsMarshal.AsSpan(entries);
+        if (span.Length < 2)
+            return;
+
+        int min = int.MaxValue, max = int.MinValue;
+        foreach (ref readonly Entry entry in span)
+        {
+            min = Math.Min(min, entry.Z);
+            max = Math.Max(max, entry.Z);
+        }
+
+        if (min == max)
+            return;
+
+        int range = max - min + 1;
+        if (_zStarts.Length < range + 1)
+            _zStarts = new int[range + 1];
+        else
+            Array.Clear(_zStarts, 0, range + 1);
+
+        foreach (ref readonly Entry entry in span)
+            _zStarts[entry.Z - min + 1]++;
+        for (int i = 1; i <= range; i++)
+            _zStarts[i] += _zStarts[i - 1];
+
+        if (_zSorted.Length < span.Length)
+            _zSorted = new Entry[Math.Max(span.Length, _zSorted.Length * 2)];
+        foreach (ref readonly Entry entry in span)
+            _zSorted[_zStarts[entry.Z - min]++] = entry;
+        _zSorted.AsSpan(0, span.Length).CopyTo(span);
+    }
+
+    /// <summary>Charges the walk's time so far to the part that was running and starts <paramref name="next"/>; returns the old part.</summary>
+    private HostFramePhases.Phase Switch(HostFramePhases.Phase next)
+    {
+        HostFramePhases.Phase was = _walkPart;
+        _walkPhases?.Lap(was, ref _walkStamp);
+        _walkPart = next;
+        return was;
     }
 
     private void Visit(Job job, CanvasItem item, Transform2D parent, Color parentModulate, int parentZ, Rect clip)
@@ -473,7 +554,11 @@ internal sealed class CanvasRenderer : IDisposable
         if (item.Mounts is { } mounts)
         {
             foreach (ICanvasMount mount in mounts)
+            {
+                HostFramePhases.Phase was = Switch(HostFramePhases.Phase.CollectOtherMounts);
                 mount.Collect(new MountCollector(this, job, transform, modulate, z, clip));
+                Switch(was);
+            }
         }
     }
 
@@ -486,10 +571,22 @@ internal sealed class CanvasRenderer : IDisposable
             if (renderer._tree.Item(handle) is not { Visible: true } item)
                 return;
 
+            HostFramePhases.Phase was = renderer.Switch(HostFramePhases.Phase.CollectCanvas);
             Rect within = cut is { } area ? Intersect(clip, Bounds(transform, area)) : clip;
             renderer.Place(job, item, transform * local * item.Transform, modulate * tint * item.Modulate,
                 Math.Clamp(z + layer, -4096, 4096), within);
+            renderer.Switch(was);
         }
+
+        public void Begin(MountStep step) => renderer.Switch(step switch
+        {
+            MountStep.Restructure => HostFramePhases.Phase.CollectUiRestructure,
+            _ => HostFramePhases.Phase.CollectUiScan,
+        });
+
+        public IResidentTree? Resident(ICanvasMount owner) => renderer.ResidentFor(owner);
+
+        public void Draw(IResidentTree tree) => renderer.DrawResident(job, tree, transform, modulate, z, clip);
     }
 
     // ---- Building ---------------------------------------------------------
@@ -508,6 +605,7 @@ internal sealed class CanvasRenderer : IDisposable
             _placedCount = 0;
             _opaqueReserved = 0;
             _overflow = false;
+            PrepareResident();
             for (int j = 0; j < _jobs.Count; j++)
                 BuildJob(_jobs[j], j);
 
@@ -614,6 +712,13 @@ internal sealed class CanvasRenderer : IDisposable
 
         foreach (Entry entry in job.Entries)
         {
+            if (entry.Piece is { } piece)
+            {
+                CloseRun();
+                sequence += AddPiece(job, piece, jobFirst, sequence);
+                continue;
+            }
+
             CanvasItem item = entry.Item;
             int total = item.Primitives.Count;
 
@@ -725,7 +830,11 @@ internal sealed class CanvasRenderer : IDisposable
         {
             Primitive p = item.Primitives[i];
             uint local = NoTexture;
-            if (p.Texture != 0)
+            if (p.Texture != 0 && Glyphs?.LayerOf(p.Texture, out int layer) == true)
+            {
+                local = GlyphLayer | (uint)layer;
+            }
+            else if (p.Texture != 0)
             {
                 int at = item.LocalTextures.IndexOf(p.Texture);
                 if (at < 0 && item.LocalTextures.Count < Slots)
@@ -939,8 +1048,9 @@ internal sealed class CanvasRenderer : IDisposable
             BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead, "placed primitives");
         Grow<GpuPrimitive>(_device, ref _opaqueBuffer, ref _opaqueCapacity, Math.Max(1, _opaqueReserved),
             BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead, "opaque primitives");
-        Grow<GpuInstance>(_device, ref _instanceBuffer, ref _instanceCapacity, Math.Max(1, _instances.Count),
-            BufferUsageFlags.ComputeStorageRead, "primitive instances");
+        // Resident trees' instances follow the CPU's, written by their resolve pass.
+        Grow<GpuInstance>(_device, ref _instanceBuffer, ref _instanceCapacity, Math.Max(1, _instances.Count + ResidentInstances),
+            BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite, "primitive instances");
         Grow<uint>(_device, ref _slotBuffer, ref _slotCapacity, Math.Max(1, _slots.Count),
             BufferUsageFlags.ComputeStorageRead, "texture slots");
 
@@ -999,18 +1109,35 @@ internal sealed class CanvasRenderer : IDisposable
     /// <summary>Places every instance's primitives for the frame (primitive_expand.slang).</summary>
     private void Expand(CommandBuffer commands)
     {
-        if (_instances.Count == 0)
+        if (_instances.Count == 0 && ResidentInstances == 0)
             return;
 
+        ResolveResident(commands);
         ComputePass pass = commands.BeginComputePass([],
         [
             new StorageBufferReadWriteBinding(_placed!, cycle: true),
             new StorageBufferReadWriteBinding(_opaqueBuffer!, cycle: true),
         ]);
         pass.BindComputePipeline(_expand);
-        pass.BindStorageBuffers(_pool!, _instanceBuffer!, _slotBuffer!);
-        commands.PushComputeUniformData(new ExpandUniforms { Instances = (uint)_instances.Count, DepthStep = DepthStep });
-        pass.Dispatch((uint)_instances.Count, 1, 1);
+        if (_instances.Count > 0)
+        {
+            pass.BindStorageBuffers(_pool!, _instanceBuffer!, _slotBuffer!, _slotBuffer!);
+            commands.PushComputeUniformData(new ExpandUniforms { Instances = (uint)_instances.Count, DepthStep = DepthStep });
+            pass.Dispatch((uint)_instances.Count, 1, 1);
+        }
+
+        // Each resident tree's instances read its own run slots.
+        foreach (ResidentGpu gpu in _residentFrame)
+        {
+            uint count = (uint)gpu.Tree.Entries.Count;
+            if (count == 0)
+                continue;
+
+            pass.BindStorageBuffers(_pool!, _instanceBuffer!, _slotBuffer!, gpu.RunSlots!);
+            commands.PushComputeUniformData(new ExpandUniforms { Instances = count, DepthStep = DepthStep, First = gpu.InstanceBase });
+            pass.Dispatch(count, 1, 1);
+        }
+
         commands.EndComputePass(pass);
     }
 
@@ -1146,13 +1273,15 @@ internal sealed class CanvasRenderer : IDisposable
         pass.SetScissor(FullClip);
         if (!opaque)
         {
-            Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Slots];
+            Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Slots + 1];
             for (int i = 0; i < Slots; i++)
             {
                 ulong id = _stepTextures[firstTexture + i];
                 samplers[i] = new TextureSamplerBinding(id != 0 ? Textures.GetValueOrDefault(id) ?? _white : _white, _sampler);
             }
 
+            _noLayers ??= Texture.Create2DArray(_device, "no glyph layers", 1, 1, 1, TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler);
+            samplers[Slots] = new TextureSamplerBinding(Glyphs?.Layers ?? _noLayers, _sampler);
             pass.BindFragmentSamplers(samplers);
         }
 
@@ -1511,6 +1640,7 @@ internal sealed class CanvasRenderer : IDisposable
         _primitiveShade.Dispose();
         _primitiveOpaque.Dispose();
         _white.Dispose();
+        _noLayers?.Dispose();
         _screen.Dispose();
         _msaa?.Dispose();
         _msaaDepth?.Dispose();
@@ -1525,6 +1655,7 @@ internal sealed class CanvasRenderer : IDisposable
         _buffer?.Dispose();
         _transfer?.Dispose();
         _expand.Dispose();
+        DisposeResident();
         _pool?.Dispose();
         _placed?.Dispose();
         _opaqueBuffer?.Dispose();

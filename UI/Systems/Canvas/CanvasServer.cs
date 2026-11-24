@@ -137,6 +137,28 @@ public interface ICanvasCollector
     /// the mount, and cut to <paramref name="clip"/> (in the mount's space) if given.
     /// </summary>
     void Item(Handle item, in Transform2D transform, Color modulate, int z, Rect2? clip);
+
+    /// <summary>For the host's frame timings: the mount's own time from here on goes to <paramref name="step"/>.</summary>
+    void Begin(MountStep step) { }
+
+    /// <summary>
+    /// The tree this mount keeps on the GPU, made on first ask; null when the
+    /// host can't keep one (then the mount lists its items with <see cref="Item"/>).
+    /// </summary>
+    IResidentTree? Resident(ICanvasMount owner) => null;
+
+    /// <summary>Draws a resident tree here, as it stands after the mount's changes this frame.</summary>
+    void Draw(IResidentTree tree) { }
+}
+
+/// <summary>The parts of the UI mount's collect, timed apart in the host's frame overlay.</summary>
+public enum MountStep
+{
+    /// <summary>Resident: the order and every node again, after a structural change.</summary>
+    Restructure,
+
+    /// <summary>Resident: the per-frame values (positions, poses, fades, clips) compared and sent when changed.</summary>
+    Scan,
 }
 
 /// <summary>

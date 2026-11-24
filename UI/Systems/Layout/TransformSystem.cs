@@ -7,7 +7,7 @@ using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Ui.Systems.Layout;
 
-/// <summary>Clears <see cref="Moved"/> once a frame has seen it; where things draw is read live by <see cref="Rendering.UiCanvasMount"/>.</summary>
+/// <summary>Clears <see cref="Moved"/> once a frame has seen it; where things draw is kept on the GPU by <see cref="Rendering.UiCanvasMount"/>.</summary>
 public sealed class TransformSystem : QuerySystem<VisualItem, Position>
 {
     private readonly IRectCanvas _canvas;

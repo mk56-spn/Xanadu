@@ -38,10 +38,16 @@ internal sealed class CanvasTree : ICanvasServer
 
     public int Count => _items.Count;
 
+    /// <summary>Items in a resident tree changed since the renderer last looked (<see cref="CanvasItem.Touch"/>).</summary>
+    public readonly List<CanvasItem> Touched = [];
+
+    /// <summary>A mount was taken down: whoever kept state for it lets go.</summary>
+    public event Action<ICanvasMount>? Unmounted;
+
     private CanvasItem Make()
     {
         Handle rid = MintHandle();
-        var item = new CanvasItem(rid.Id);
+        var item = new CanvasItem(rid.Id) { TouchList = Touched };
         _items.Add(item.Id, item);
         return item;
     }
@@ -58,6 +64,7 @@ internal sealed class CanvasTree : ICanvasServer
         if (!_items.Remove(rid.Id, out CanvasItem? item))
             return;
 
+        item.ResidentOwner?.Forget(item.ResidentSlot);
         Detach(item);
         item.Particles?.Dispose();
         item.Particles = null;
@@ -69,6 +76,7 @@ internal sealed class CanvasTree : ICanvasServer
     private static void Detach(CanvasItem item)
     {
         item.Parent?.Children.Remove(item);
+        item.Parent?.Touch();
         item.Parent = null;
     }
 
@@ -85,6 +93,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Order = _nextOrder++;
         parent.Children.Add(item);
         parent.ChildrenSorted = false;
+        parent.Touch();
     }
 
     public void SetZIndex(Handle rid, int z)
@@ -96,26 +105,38 @@ internal sealed class CanvasTree : ICanvasServer
 
     public void SetVisible(Handle rid, bool visible)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.Visible != visible)
+        {
             item.Visible = visible;
+            item.Touch();
+        }
     }
 
     public void SetTransform(Handle rid, Transform2D transform)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.Transform != transform)
+        {
             item.Transform = transform;
+            item.Touch();
+        }
     }
 
     public void SetModulate(Handle rid, Color color)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.Modulate != color)
+        {
             item.Modulate = color;
+            item.Touch();
+        }
     }
 
     public void SetSelfModulate(Handle rid, Color color)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.SelfModulate != color)
+        {
             item.SelfModulate = color;
+            item.Touch();
+        }
     }
 
     public void SetCustomRect(Handle rid, bool use, Rect2 rect)
@@ -125,18 +146,25 @@ internal sealed class CanvasTree : ICanvasServer
 
         item.UseCustomRect = use;
         item.CustomRect = rect;
+        item.Touch();
     }
 
     public void SetClip(Handle rid, bool clip)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.Clip != clip)
+        {
             item.Clip = clip;
+            item.Touch();
+        }
     }
 
     public void SetMaterial(Handle rid, CanvasMaterial? material)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.Material != material)
+        {
             item.Material = material;
+            item.Touch();
+        }
     }
 
 
@@ -144,8 +172,11 @@ internal sealed class CanvasTree : ICanvasServer
 
     public void SetParticleMesh(Handle rid, bool on)
     {
-        if (Find(rid) is { } item)
+        if (Find(rid) is { } item && item.ParticleMesh != on)
+        {
             item.ParticleMesh = on;
+            item.Touch();
+        }
     }
 
     public void Clear(Handle rid)
@@ -294,15 +325,27 @@ internal sealed class CanvasTree : ICanvasServer
 
         item.Runs.Add((material, values));
         item.CurrentRun = item.Runs.Count;
+        item.Touch();
     }
 
     public void Mount(Handle rid, ICanvasMount mount)
     {
-        if (Find(rid) is { } item)
-            (item.Mounts ??= []).Add(mount);
+        if (Find(rid) is not { } item)
+            return;
+
+        (item.Mounts ??= []).Add(mount);
+        item.Touch();
     }
 
-    public void Unmount(Handle rid, ICanvasMount mount) => Find(rid)?.Mounts?.Remove(mount);
+    public void Unmount(Handle rid, ICanvasMount mount)
+    {
+        if (Find(rid) is not { } item)
+            return;
+
+        item.Mounts?.Remove(mount);
+        item.Touch();
+        Unmounted?.Invoke(mount);
+    }
 
     public void AddSetTransform(Handle rid, Transform2D transform)
     {
@@ -367,6 +410,24 @@ internal sealed class CanvasItem(ulong id)
     /// <summary>Moves on whenever the primitives change, so the renderer knows to send them again.</summary>
     public int Version;
 
+    /// <summary>The resident tree this item draws in, and its slot there; null and -1 when it draws through the walk.</summary>
+    public HostResidentTree? ResidentOwner;
+    public int ResidentSlot = -1;
+
+    /// <summary>The tree's list of touched items, and whether this one is on it.</summary>
+    public List<CanvasItem>? TouchList;
+    public bool IsTouched;
+
+    /// <summary>Tells the resident tree this item is in (if any) that its recording or its own place, look or kind changed.</summary>
+    public void Touch()
+    {
+        if (ResidentOwner is null || IsTouched)
+            return;
+
+        IsTouched = true;
+        TouchList?.Add(this);
+    }
+
     /// <summary>Where the renderer keeps this item's primitives on the GPU, and for which version and pool.</summary>
     public int PoolStart = -1, PoolCapacity, PoolVersion = -1, PoolEpoch = -1;
 
@@ -379,6 +440,7 @@ internal sealed class CanvasItem(ulong id)
     public void ClearCommands()
     {
         Version++;
+        Touch();
         Primitives.Clear();
         Runs.Clear();
         CurrentRun = 0;
@@ -401,6 +463,7 @@ internal sealed class CanvasItem(ulong id)
             return;
 
         Version++;
+        Touch();
         Primitive placed = CommandTransform == Transform2D.Identity ? primitive : primitive.Transformed(CommandTransform);
         placed.Run = CurrentRun;
         Primitives.Add(placed);

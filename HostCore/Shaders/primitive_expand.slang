@@ -38,17 +38,22 @@ struct Expand
 {
     uint instances;
     float depthStep;
-    uint pad0, pad1;
+    uint first;     // where this dispatch's instances start
+    uint pad1;
 };
 
 static const uint KindRect = 0, KindTexture = 2, KindTriangle = 3, KindSkip = 0xFF;
 static const uint FlagExact = 1 << 9;
 static const uint NoTexture = 0xFFFF;
-static const uint AllowOpaque = 1;
+static const uint AllowOpaque = 1, ResidentSlots = 2;
+/// A slot with this bit already names a glyph page's layer: it passes through unmapped.
+static const uint GlyphLayer = 0x8000;
 
 [[vk::binding(0, 0)]] StructuredBuffer<Primitive> pool;
 [[vk::binding(1, 0)]] StructuredBuffer<Instance> instances;
 [[vk::binding(2, 0)]] StructuredBuffer<uint> slots;
+// A resident tree's run slots (resident_resolve.slang), kept between frames.
+[[vk::binding(3, 0)]] StructuredBuffer<uint> residentSlots;
 [[vk::binding(0, 1)]] RWStructuredBuffer<Primitive> placed;
 [[vk::binding(1, 1)]] RWStructuredBuffer<Primitive> opaque;
 [[vk::binding(0, 2)]] ConstantBuffer<Expand> expand;
@@ -82,7 +87,7 @@ void expandPrimitives(uint3 group : SV_GroupID, uint3 thread : SV_GroupThreadID)
     if (group.x >= expand.instances)
         return;
 
-    Instance at = instances[group.x];
+    Instance at = instances[expand.first + group.x];
     uint count = at.range.y;
     for (uint i = thread.x; i < count; i += 64)
     {
@@ -114,7 +119,8 @@ void expandPrimitives(uint3 group : SV_GroupID, uint3 thread : SV_GroupThreadID)
         p.clip = at.clip;
         p.extra = float4(1.0 - float(at.more.w + i + 1) * expand.depthStep, 0, 0, 0);
         uint local = p.more.w;
-        p.more.w = local == NoTexture ? NoTexture : slots[at.range.w + local];
+        if (local != NoTexture && (local & GlyphLayer) == 0)
+        p.more.w = (at.more.x & ResidentSlots) != 0 ? residentSlots[at.range.w + local] : slots[at.range.w + local];
 
         uint out = at.range.z + i;
         // A pixel of slack for a smoothed edge.

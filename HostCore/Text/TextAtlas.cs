@@ -14,6 +14,13 @@ internal readonly record struct AtlasGlyph(int Page, int X, int Y, int Width, in
 /// alpha, so the canvas draws them with its one pipeline, tinted by the vertex
 /// colour. Pages are never evicted (retained canvas items keep their UVs), and
 /// a new page opens when one fills. Changed rows upload once per frame.
+/// <para>
+/// Every page is kept twice on the GPU: as its own texture (what effects and
+/// labs sample) and as a layer of one array (<see cref="Layers"/>), which the
+/// plain primitive pipeline reads, so glyphs take no texture slot of a run and
+/// a glyph moving page never cuts runs differently. The array costs a second
+/// copy of the atlas (Docs/host.md §5.4).
+/// </para>
 /// </summary>
 /// <param name="register">Gives a new page texture an id the canvas can draw it by.</param>
 internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> register) : IDisposable
@@ -34,8 +41,17 @@ internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> regi
     private readonly GraphicsDevice _device = device;
     private readonly Func<Texture, ulong> _register = register;
     private readonly List<Page> _pages = [];
+    private readonly Dictionary<ulong, int> _pageOf = [];
+    private Texture? _layers;
+    private int _layerCapacity;
 
     public int PageCount => _pages.Count;
+
+    /// <summary>Every page as a layer of one array, in page order; null until the first page.</summary>
+    public Texture? Layers => _layers;
+
+    /// <summary>Whether a canvas texture id is one of the pages, and its layer.</summary>
+    public bool LayerOf(ulong id, out int layer) => _pageOf.TryGetValue(id, out layer);
 
     /// <summary>The canvas texture id of a page.</summary>
     public ulong TextureId(int page) => _pages[page].Id;
@@ -106,6 +122,7 @@ internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> regi
         Texture texture = Texture.Create2D(_device, "text atlas", Size, Size,
             TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler);
         var page = new Page(texture, _register(texture));
+        _pageOf[page.Id] = _pages.Count;
         Array.Fill(page.Pixels, 0x00FFFFFFu);
         page.DirtyTop = 0;
         page.DirtyBottom = Size;
@@ -116,17 +133,36 @@ internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> regi
     public void Flush()
     {
         ResourceUploader? uploader = null;
-        foreach (Page page in _pages)
+        // A full array starts again twice the size, every page sent into it whole.
+        bool regrown = false;
+        if (_pages.Count > _layerCapacity)
         {
+            _layers?.Dispose();
+            _layerCapacity = Math.Max(4, (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)_pages.Count));
+            _layers = Texture.Create2DArray(_device, "text atlas layers", Size, Size, (uint)_layerCapacity,
+                TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler);
+            regrown = true;
+        }
+
+        for (int i = 0; i < _pages.Count; i++)
+        {
+            Page page = _pages[i];
+            if (regrown)
+            {
+                uploader ??= new ResourceUploader(_device);
+                uploader.SetTextureData(new TextureRegion(_layers!) { Layer = (uint)i },
+                    (ReadOnlySpan<uint>)page.Pixels, cycle: false);
+            }
+
             if (page.DirtyTop >= page.DirtyBottom)
                 continue;
 
             uploader ??= new ResourceUploader(_device);
             int top = page.DirtyTop, rows = page.DirtyBottom - top;
-            uploader.SetTextureData(
-                new TextureRegion(page.Texture) { Y = (uint)top, H = (uint)rows },
-                (ReadOnlySpan<uint>)page.Pixels.AsSpan(top * Size, rows * Size),
-                cycle: false);
+            ReadOnlySpan<uint> changed = page.Pixels.AsSpan(top * Size, rows * Size);
+            uploader.SetTextureData(new TextureRegion(page.Texture) { Y = (uint)top, H = (uint)rows }, changed, cycle: false);
+            if (!regrown)
+                uploader.SetTextureData(new TextureRegion(_layers!) { Layer = (uint)i, Y = (uint)top, H = (uint)rows }, changed, cycle: false);
             page.DirtyTop = int.MaxValue;
             page.DirtyBottom = 0;
         }
@@ -143,5 +179,6 @@ internal sealed class TextAtlas(GraphicsDevice device, Func<Texture, ulong> regi
         foreach (Page page in _pages)
             page.Texture.Dispose();
         _pages.Clear();
+        _layers?.Dispose();
     }
 }

@@ -36,6 +36,8 @@ static const uint FlagCurve = 1 << 10;
 /// With FlagCurve: keep the side towards the control, not towards the chord.
 static const uint FlagConcave = 1 << 11;
 static const uint NoTexture = 0xFFFF;
+/// A texture slot with this bit is a glyph page: its layer in glyphPages.
+static const uint GlyphLayer = 0x8000;
 
 struct Draw
 {
@@ -55,6 +57,8 @@ struct Draw
 [[vk::binding(5, 2)]] Sampler2D texture5;
 [[vk::binding(6, 2)]] Sampler2D texture6;
 [[vk::binding(7, 2)]] Sampler2D texture7;
+/// Every text atlas page as a layer, so glyphs need no slot of their run.
+[[vk::binding(8, 2)]] Sampler2DArray glyphPages;
 
 struct Varyings
 {
@@ -146,6 +150,9 @@ Varyings primitiveVertex(uint vertex : SV_VertexID)
 
 float4 sampleSlot(uint slot, float2 uv)
 {
+    if ((slot & GlyphLayer) != 0)
+        return glyphPages.Sample(float3(uv, float(slot & ~GlyphLayer)));
+
     switch (slot)
     {
     case 0: return texture0.Sample(uv);

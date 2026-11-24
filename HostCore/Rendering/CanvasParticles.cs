@@ -206,6 +206,7 @@ internal sealed class CanvasParticles : IParticleServer, IDisposable
         {
             field = new ParticleField(_device);
             canvasItem.Particles = field;
+            canvasItem.Touch();
         }
 
         if (!_fields.Contains(field))

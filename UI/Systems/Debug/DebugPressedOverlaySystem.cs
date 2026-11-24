@@ -76,7 +76,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         _paging = paging;
         _visuals = visuals;
 
-        Tags debug = Tags.Get<DebugUi>();
+        var debug = Tags.Get<DebugUi>();
         _debug = store.Query().WithDisabled().AllTags(debug);
         _dirty = store.Query<Rectangle>().AllTags(Tags.Get<Dirty>()).WithoutAnyTags(debug);
         _moved = store.Query<VisualItem>().AllTags(Tags.Get<Moved>()).WithoutAnyTags(debug);
@@ -185,7 +185,7 @@ public sealed partial class DebugPressedOverlaySystem : QuerySystem<Rectangle, P
         line.Parent.AddTag<LayoutDirty>();
     }
 
-    private string Name(BaseSystem system)
+    private new string Name(BaseSystem system)
     {
         if (_names.TryGetValue(system, out string? name))
             return name;

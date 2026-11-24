@@ -155,6 +155,7 @@ internal abstract class HostApp : Game
             Renderer.Textures[id] = texture;
             return id;
         });
+        Renderer.Glyphs = Text.Atlas;
 
         Keyboard = new HostKeyboard(Inputs.Keyboard);
         Pointer = new HostPointer(Inputs.Mouse, Keyboard)

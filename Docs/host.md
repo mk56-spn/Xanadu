@@ -5,19 +5,14 @@ C# framework over SDL3 (SDL_GPU on Vulkan / D3D12 / Metal). Every exe is a
 plain `dotnet run`; there is no engine. This doc holds the decisions behind the
 host, how it is built, the tooling around it, and what is left for later.
 
-Godot was removed on 2026-11-10. The port's step-by-step log is in git history
-(`Docs/moonworks-port.md` up to commit `337ff7a0`).
-
 ---
 
 ## 1. Why MoonWorks
 
-- Plain .NET: every tool is a normal exe, with no per-assembly engine project,
-  no asset root per tool, no symlinked assets.
-- Features Godot's 2D would not give: 2D depth buffers, arbitrary blend modes,
-  compute (GPU particles), instance data without per-shader limits, and control
-  over present mode and frame latency.
-- Godot's C# future (godot-dotnet, LibGodot hosting) had no date.
+- Plain .NET: every tool is a normal exe, with no engine project, asset root
+  or symlinks per tool.
+- The GPU directly: 2D depth buffers, any blend state, compute, storage
+  buffers, indirect draws, and control over present mode and frame latency.
 
 ---
 
@@ -33,11 +28,9 @@ Agreed with the user. Don't revisit them without asking.
 | P5 | **MoonWorks is vendored from source**, pinned to a commit, as a trimmed copy in `External/MoonWorks/` (it is not on NuGet). Patch it locally when needed; zlib allows that, and `External/README.md` lists the patches. **Never send AI-written PRs upstream**: their `AGENTS.md` forbids it. |
 | P6 | **Native libs come from Moonside's bundle**, not the OS (SDL3, FAudio, IRO, Wellspring, dav1dfile). `External/fetch-moonlibs.sh` fetches it with a SHA-256 check into gitignored `External/moonlibs/`; run it once after cloning. |
 | P7 | **Shaders are [Slang](https://shader-slang.org)**, compiled to SPIR-V **at runtime** by `libslang`, called directly (`Slang/SlangNative.cs`; the `Slangc.NET` NuGet package only ships the native library), because players write shaders and will get shader libraries. Slang's real modules replace GLSL's text-pasting `#include`. |
-| P8 | **Maths types:** vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). Scalar maths is .NET's (`Math`, `MathF`, `float.*`). `Color` (float, so HDR and fades stay exact; MoonWorks' byte `Color` only at the GPU edge), `Rect2`, `Transform2D` and a slim `Mathf` of Godot-only helpers are our own types in `Xanadu.Maths`, copied from Godot 4.4 (MIT) and trimmed to what is used (2026-11-20). Canvas ids are `Handle`. |
+| P8 | **Maths types:** vectors are `System.Numerics` (what MoonWorks and Friflo use), aliased project-wide by `Core/Maths/Maths.props`; Godot's vector methods live on them as C# 14 extension members (`Core/Maths/VectorExtensions.cs`). Scalar maths is .NET's (`Math`, `MathF`, `float.*`). `Color` (float, so HDR and fades stay exact; MoonWorks' byte `Color` only at the GPU edge), `Rect2`, `Transform2D` and a slim `Mathf` of Godot-only helpers are our own types in `Xanadu.Maths`, copied from Godot 4.4 (MIT) and trimmed to what is used. Canvas ids are `Handle`. |
 | P10 | **No mesh shaders** (SDL_GPU doesn't expose them). GPU-made geometry = compute into a storage buffer + vertex pulling + indirect draws. |
 | P11 | **Shaders are exposed to players as slots, not whole shaders** (§3). |
-
-(P2 "hard switch" and P9 "order of work" belonged to the port and are done.)
 
 ---
 
@@ -54,7 +47,7 @@ Built today: the fragment slot with one effect, a body's own `deform` as its
 vertex stage (Docs/shaders.md §15: it compiles beside the fragment as vertex
 set 0/1, its values are vertex uniform buffer 1 laid out as the fragment's, the
 frame is vertex buffer 2, the depth vertex sampler 0 and the globals vertex
-storage buffers 1 on; no other textures), and the blend modes Godot had. No library modifiers yet.
+storage buffers 1 on; no other textures), and the hardware blend modes. No library modifiers yet.
 The rest is under "Later" (§6).
 
 - **The contract** is the Slang module `xanadu.stage`
@@ -156,16 +149,14 @@ The rest is under "Later" (§6).
   exe derives from it, builds its ECS world on `Canvas`, and runs it in `Tick`.
   It copies the moonlibs, `HostCore/Shaders/*` and the timing layer next to
   every exe.
-- **`Game`**: the game's code (`Game/Xanadu.csproj`: Animation, Ecs, Editor,
-  Levels, Scenes, Systems and the rest) and its exe, **`Game/Host`**
-  (`HostGame`: the world, the add-song dialog, the editor overlay, level
-  shader warm-up), `HostPassSurfaces` and `DemoLevel`. The repo's top level is
-  the engine (`Core`, `UI`, `HostCore`), `Game`, `Tools`, `Tests`, `External`,
-  `Assets`, `docs` and the `run-*.sh` launchers.
-- **Tools:** `Tools/Animator`, `UI/Showcase`, `Tools/Labs`, `Tools/DevTools` and
-  `Tests/VisualTests` are `HostApp`s. Labs and the dev tools share the tabbed
-  tool shell; the dev tools hold Atlas (the type chart) and Autopsy (frame
-  captures) as two tabs.
+- **The game** is spread over the role projects (`Model`, `Serialisation`,
+  `Storage`, `Drawers`, `Logic`, `Screens`). `Game/Xanadu.csproj` is the
+  wiring (`Game/Wiring`: the system root, scenes, groups) and **`Game/Host`**
+  is its exe (`HostGame`: the world, the add-song dialog, the editor overlay,
+  level shader warm-up), with `HostPassSurfaces` and `DemoLevel`.
+- **Tools:** `Tools/Animator`, `Tools/Shaders`, `UI/Showcase`, `Tools/Labs`,
+  `Tools/DevTools` and `Tests/VisualTests` are `HostApp`s. Labs and the dev
+  tools share the tabbed tool shell.
 - **Who owns which systems:** the host owns the UI, `UiRoot` (`UI/Systems/Ui`),
   on `HostApp.Entities`. Each frame it runs UI input, then the exe's own root,
   then layout, drawing and the F1/F3/F4 overlays. An exe owns its root (the
@@ -175,8 +166,8 @@ The rest is under "Later" (§6).
   goes in `BeforeSystems`. Only the visual-test harness opts out (`HostUi.None`):
   it makes a store and a `UiRoot` per scene.
 - **Launcher:** `./run.sh <target> [args]`, one script for every exe: `game`,
-  `editor`, `labs`, `animator`, `showcase`, `visual-tests`, `atlas`, `autopsy`.
-  With no target it asks which in the terminal.
+  `editor`, `labs`, `animator`, `shaders`, `showcase`, `visual-tests`,
+  `devtools`. With no target it asks which in the terminal.
 - **Game flags:** `--scene=<name>` (any `SceneKind`), `--demo` (a level made in
   memory with a field shader, a buffered group and a self-contained layer),
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
@@ -191,10 +182,10 @@ host fills; tests leave the headless defaults.
 
 - **`CanvasServer`** (`UI/Systems/Canvas/CanvasServer.cs`): a retained canvas
   item API (create, free, parent, z, draw index, transform, modulate, clip,
-  material, instance values, canvas group, copy screen, draw commands).
-  Default `HeadlessCanvasServer`.
+  material, material runs, mounts, draw commands). Default
+  `HeadlessCanvasServer`.
 - **`IRectCanvas`**: the drawing contract every draw system uses (shapes, text,
-  glows, layers, buffers, shader selection), keyed by a canvas `Handle`.
+  glows, shader selection and runs), keyed by a canvas `Handle`.
   `ServerRectCanvas` draws shapes on the server; the host's `HostRectCanvas`
   adds text.
 - **`HostPlatform`** (`UI/Systems/HostPlatform.cs`): keyboard, visual factory,
@@ -205,12 +196,8 @@ host fills; tests leave the headless defaults.
   SVG by its path in the game folder) and `Free`.
 - **`GamePaths`** (`Core/Storage/GamePaths.cs`) is the only place game-folder
   and `user://` paths become real ones (`GamePaths.Full`; no IO spread).
-- Draw-system tests pass `Tests/Support/Fakes/FakeShaderCanvasItems`.
 
 ### 5.3 Canvas tree and renderer
-
-Rebuilt 2026-11-20 off the Godot canvas model: primitives, a GPU pool, a
-compute expand stage and a depth buffer.
 
 - **Recordings.** A canvas item (`CanvasTree`, `HostCore/Rendering`) records
   *primitives* (`Primitive.cs`), not triangles: boxes (rect, rounded, stroked,
@@ -219,21 +206,49 @@ compute expand stage and a depth buffer.
   boxes along them. Nothing is tessellated on the CPU unless an effect needs a
   mesh.
 - **Mounts, not mirrors.** `ICanvasServer.Mount(item, ICanvasMount)` hangs a
-  source under an item; each frame the renderer asks it what to draw there.
-  The UI is one: `UiCanvasMount` walks layers and the entity tree, working out
-  transform, `LayerOpacity`, `LocalZIndex`, container clips and visibility
-  (`Enabled`, the `CanvasHidden` tag) from components on the spot. UI entities
-  keep only their own recording (`VisualItem`); there are no parenting,
-  transform, visibility or opacity sync systems. A rig's particle
-  streams (`RigParticleStreams`) are a mount too. Game groups and tools still hang items under the root with a z.
+  source under an item; each frame the renderer asks it what to draw there,
+  item by item (`ICanvasCollector.Item`) or as a resident tree (below). A rig's
+  particle streams (`RigParticleStreams`) list items; the UI keeps a tree. UI
+  entities keep only their own recording (`VisualItem`); there are no
+  parenting, transform, visibility or opacity sync systems. Game groups and
+  tools still hang items under the root with a z.
+- **Resident UI.** The UI's drawn entities live on the GPU between frames
+  (`IResidentTree`, `HostCore/Rendering/ResidentTree.cs`): a slot per entity
+  holding its node (parent slot, local transform, opacity, the clip it gives
+  its children) and its item's own transform, tint, clip and pool range.
+  - *The UI side* (`UiResidentSync`): **structure** (which entities draw,
+    parents, z, order) changes only through Friflo events (tags, components
+    added or removed, children, entities made or deleted, with the drawn
+    count as a net) and triggers a **restructure**: one walk over layers and
+    the tree, working out `LocalZIndex`, layer and loose entities, visibility
+    (`Enabled`, `CanvasHidden`), the order. **Values** are written through
+    `ref` by layout and tweens, which raises no event, so each frame a flat
+    chunk scan compares positions (and, for posed or tweened entities, the
+    whole local place and fade; layer fades; container clips) with what was
+    last sent and sends only the differences. A quiet frame walks nothing.
+  - *The host side*: canvas items tell their tree when they change
+    (`CanvasItem.Touch`). The order is cut into **pieces**: plain items in
+    segments by z, and **foreign** items (a material, shaded runs, canvas
+    children, mounts, particles) that the CPU places itself from its
+    ancestors' nodes, at its walk position, so sorting the frame by z draws
+    as the walk did. Segments join the frame as one entry each; their runs
+    and each entry's place are kept and worked out again only when a size,
+    texture set or the order moves.
+  - *The GPU side*: `resident_patch.slang` writes the changed slots;
+    `resident_resolve.slang` walks each drawn slot's ancestors (transform,
+    fade, clips, the mount's place) and writes its instance after the CPU's;
+    the expand stage reads a tree's run slots through its instance flag.
+  - On the 20,000-cell CJK lab (2026-11-24): draw 18.7 ms → 0.5 ms still,
+    collect and build 0.13 ms; churn costs what changes.
 - **Pool.** Every recording's primitives live on the GPU in its own space, in a
   range that stays while it fits (`Resident`). A recording goes up again only
   when its content changes: a hash of the primitives means a drawer that
   clears and redraws the same picture every frame sends nothing. Settled
   screens send 0 primitives a frame. A full pool starts a bigger empty one and
   everything drawn is sent once.
-- **Instances and the expand stage.** Per frame the CPU walks the tree in
-  order and sends one `GpuInstance` per drawn range: transform, tint, clip,
+- **Instances and the expand stage.** Per frame the CPU walks the canvas tree, puts
+  the entries in order (`SortByZ`: a counting sort on z, ties in walk order)
+  and sends one `GpuInstance` per drawn range: transform, tint, clip,
   depth base, its place in the output and its texture slots.
   `primitive_expand.slang` (compute, one workgroup an instance) writes each
   primitive in pixels, in order: placed, tinted, clipped, its depth, its run
@@ -253,21 +268,21 @@ compute expand stage and a depth buffer.
 - **Drawing.** One pipeline (`primitives.slang`) pulls records by vertex id
   (six a record) and shapes them by signed distance (`xanadu.shape`), so edges
   are smooth at any turn or scale; up to eight textures a draw (glyph pages,
-  images). The editor is two draw calls; HEAD before the rebuild was 55.
+  images). The editor is two draw calls.
 - **Material runs.** `SelectCommonShader` / `SetShaderValue` / `NewRun` on a
   canvas start a run in the item (`ICanvasServer.SelectRun`); the renderer cuts
   the item into plain ranges (instances) and shaded ranges (effect steps), in
   order. An item with a material (`SetMaterial`) is shaded whole. Shaded
   draws keep the effect path: primitives cut into `CanvasVertex` triangles
   (`Primitive.Tessellate`), values packed per run (`[Default]`s, material,
-  run). Level shader slots went with v2; `SelectShader(0)` is plain.
+  run). `SelectShader(0)` is plain.
 - **Screen reads:** before the first effect in a pass whose SPIR-V samples the
   screen (`CompiledShader.ReadsScreen`), the pass ends, the target is blitted
   into the screen texture with mips (`ScreenMips`), and the pass resumes
   (colour and depth loaded); later reads in the pass share that copy.
-- **Gone:** canvas groups, `SetCopyScreen`, per-item instance values, and the
-  layering surface on `IRectCanvas` (`BeginLayer`, `BeginBuffer`, `CopyScreen`,
-  `ToLocal`), unused since the v2 rework.
+- **MSAA:** 4× (or the most the GPU allows) on the main frame only, resolved
+  at every pass end so screen copies read the resolve; offscreen roots stay
+  single-sampled. Pipelines are cached per sample count.
 - **Offscreen roots** (`AddOffscreen`, the shader tool's stills) draw into their
   own target, single-sampled, before the frame.
 - **GPU scopes:** `using (commands.Scope("name"))` names GPU work for the
@@ -287,14 +302,22 @@ compute expand stage and a depth buffer.
   through the canvas pipeline tinted by vertex colour; shelf-packed, never
   evicted; changed rows upload once a frame. Each string is one triangle array
   per page, added **in command order**.
+- Every page is kept twice on the GPU: its own texture (what effects and labs
+  sample) and a layer of one array (`TextAtlas.Layers`, regrown by doubling).
+  The plain primitive pipeline reads glyphs from the array (fragment sampler 8;
+  a texture slot with bit `0x8000` is a layer), so glyphs take no run slot and
+  a glyph moving page never moves a resident layout.
 - Outline: FreeType's stroker, outer border, radius = outline size / 2. Glow:
   `GlowBlur` on the CPU, per glyph, cached in the atlas (where halos overlap
   between letters the glow is slightly fainter than a whole-string blur).
   `HostShapeGlow` does the same for polygon and polyline glows.
 - `GlyphStrips` builds a `GlyphAtlas` texture with mipmaps for materials
   (note glyphs, particles).
-- **No font fallback:** glyphs missing from Source Sans (CJK, emoji) are
-  skipped. Fontconfig or a bundled Noto is the user's call.
+- **Fallback:** characters the main faces lack go, in order, to the bundled
+  Noto Sans Symbols 2, Noto Sans Symbols and Noto Emoji (one colour), then a
+  system CJK font (`HostText.SystemCjkPaths`, Linux then Windows), then
+  JetBrains Mono. No CJK font is bundled, so a machine without one draws CJK
+  as missing boxes.
 
 ### 5.5 Shaders
 
@@ -345,8 +368,7 @@ compute expand stage and a depth buffer.
 - **F2 tuner:** reads the compiled effect's values through
   `HostPlatform.DescribeMaterial`. A four-channel value named like a colour or
   tint gets a colour picker; slider ranges are guessed (no `[Range]` yet).
-- **Shipped library** (`Assets/Shaders/Library`), struct-based since
-  2026-11-10 (no compatibility with the legacy GLSL names). Shapes are values:
+- **Shipped library** (`Assets/Shaders/Library`). Shapes are values:
   make one, change it, draw it. Everything that isn't a type lives under its
   own namespace, so a shader editor's global names stay few.
 
@@ -399,7 +421,6 @@ compute expand stage and a depth buffer.
   instanced draw right after its item's own draws, so z, groups and layers
   order it like any item. Per-effect gravity, ramp and scale curve live in one
   table of 32 samples each.
-- A buffered group's composite bounds ignore particles (nothing relies on it).
 
 ### 5.7 Textures, SVG and rigs
 
@@ -467,8 +488,9 @@ compute expand stage and a depth buffer.
   when the tab opens and freed when another does. The shell is the one place
   that reads the pointer for its tabs: each stage gets it in a `ToolFrame`.
   A tool derives from `TabbedToolApp`, lists its tabs and makes a tab's stage.
-- **Dev tools** (`Tools/DevTools`): a `TabbedToolApp` with two tabs, ATLAS and
-  AUTOPSY (`./run.sh devtools [atlas|autopsy] [flags]`). Both are still their
+- **Dev tools** (`Tools/DevTools`): a `TabbedToolApp` with ATLAS (the type
+  chart), AUTOPSY (frame captures), ARCH, CLOCK and DEPS
+  (`./run.sh devtools [tab] [flags]`). ATLAS and AUTOPSY are still their
   own canvases laid out for 1920×1080 (`CanvasToolStage`): the stage scales
   them into the tab's area and maps the pointer back. Atlas reads the builds
   once, the first time its tab opens.
@@ -530,10 +552,10 @@ compute expand stage and a depth buffer.
     shared `UndoHistory`: a run of plain typing is one step until the caret
     moves or typing pauses for a second; Enter, paste, cut, anything the owner
     does or typing over a selection is a step of its own. No horizontal scroll
-    yet. **Shader** (`Tools/Labs/Editor/`): `SlangEditorHost` is the owner
+    yet. **Shader** (`HostCore/Tools/ShaderEditing/`): `SlangEditorHost` is the owner
     (tokens, bracket colours, hints, problems, the completion list's keys,
     Enter after `{` and `}` indenting); `EditorChrome`, `EditorTuning`, the
-    popups and the previews (`IEditorPreview`) stay in Labs. The language
+    popups and the previews (`IEditorPreview`) sit beside it. The language
     smarts it drives (completion, hints, lint, rename, problems, syntax,
     brackets) live in the `Slang` module. A code editor layer between the
     two (any language) is next.
@@ -550,7 +572,7 @@ compute expand stage and a depth buffer.
     compute pass that spawns, culls and packs, plus one indirect draw.
   - **Pointer history:** the pointer's path as a ring of keys on the GPU.
   - **RTS:** an RTS that lives on the GPU.
-  - **Radiance cascades:** 2D GI with wall bounce: pre-averaged, direction-first cascades, the bilinear fix on cascades 0–1 (MERGE picks plain, low or all) and a jump flood capped at 64 px; ~2 ms GPU on its 1208×990 stage (was 12.6 ms with the fix everywhere).
+  - **Radiance cascades:** 2D GI with wall bounce: pre-averaged, direction-first cascades, the bilinear fix on cascades 0–1 (MERGE picks plain, low or all) and a jump flood capped at 64 px; ~2 ms GPU on its 1208×990 stage.
   - `dotnet run --project Tools/Labs -- --tab=<n>` opens a tab.
 
 ### 5.10 Perf tooling
@@ -584,6 +606,10 @@ compute expand stage and a depth buffer.
   `VulkanMemoryBudget`.
 - **Query cache** (`UI/Ecs/QueryCache.cs`): `store.Cached<T>()` and
   `store.ToggleOn<TTag>(none, hidden)`; see `Docs/ecs/README.md`.
+- **Collect split** (F3, under "collect items"): the walk is timed exclusively
+  (one clock, each stretch charged to the part running, so nesting never counts
+  twice) into canvas items, the UI's restructure and value scan
+  (`ICanvasCollector.Begin` with a `MountStep`) and other mounts; then the sort.
 
 ---
 
@@ -594,24 +620,26 @@ No hurry; none of this is parity.
 - [ ] Shader slot model (§3): vertex modifiers, fragment chains (the level
   format must hold more than one effect per slot), the blend dropdown with
   exotic modes, a pipeline cache keyed by (vertex, chain, blend, state).
-- [ ] Per-item data (instance values) in a storage buffer per frame. Instance
-  values draw right today, one batch per item that has them; moving them
-  breaks `xanadu.stage` v1's "values are uniform buffer 1". Revisit if those
-  draws show up as a cost.
-- [ ] 2D depth buffer: per-item depth, per-pixel sprite depth maps, sampled
-  depth (fog, outlines, soft particles).
-- [x] MSAA: 4× (or the most the GPU allows) on the main frame only, resolved at every pass end so screen copies read the resolve; offscreen roots and buffered groups stay single-sampled. Pipelines are cached per sample count. Still open: how it meets sampled depth (§4).
+- [ ] Per-pixel sprite depth maps, and effects on sampled depth (fog,
+  outlines, soft particles). Open: how MSAA meets sampled depth (§4).
 - [ ] Photoshop-style blend modes via group composite.
 - [ ] 2D lighting: point and directional lights, normal maps, 1D shadow maps
   with PCF, light masks. Later: SDF or radiance-cascade GI (the radiance lab's
   next step is 2.5D, depth as occluder height).
-- [ ] Font fallback (§5.4).
+- [ ] A bundled CJK font (undecided; a full bundle means an editor character
+  picker).
 - [ ] Resizable window.
 - [ ] Perf, when it matters: GPU group tracks by song time, then tight hulls
-  for overdraw hogs. `store.Query<…>().ToEntityList()` every frame is still
-  common; convert hot ones to `Cached` as they show up in Autopsy.
-- [ ] Play a level start to end by hand on the host (never done end to end
-  during the port).
+  for overdraw hogs.
+- [ ] Resident UI, left over (§5.3):
+  - Glyph pages once, not twice: `xanadu.stage` learns to sample a layer
+    (add-only), and the plain page textures go.
+  - Game drawers on the same records, or staying CPU: undecided.
+  - Changes the events miss: `Layer.ZIndex` and `Drawable.ZIndex` written
+    through `ref` don't restructure; two layers sharing a z draw their loose
+    entities under the first only (the old walk drew them under each).
+  - The slot lives in `UiResidentSync`'s arrays by entity id; a name, if it
+    ever becomes data.
 
 ---
 
@@ -620,13 +648,7 @@ No hurry; none of this is parity.
 - **Build:** `dotnet build` on each project touched.
 - **Tests:** `dotnet test Tests/Xanadu.Tests.csproj` (~2300),
   `dotnet test UI/Tests` and `dotnet test Slang/Tests`. Check for "Test Run
-  Aborted"; `--blame-crash` finds the culprit. Known failures (nine, checked
-  2026-11-14): `EveryButtonActionHasAKey`, two `EditorPlayfieldDrawSystemTests`,
-  `EditorToolSectionSystemTests.BlocksShowTheirSizeAndShape`,
-  `XmfBinaryTests.ALevelWithoutItemGeometryIsWrittenAsBefore`, LayerPass,
-  `PlayKeyTrailSystemTests.PressedKeyLightsAndReleasedKeyDecays`,
-  `SceneSystemTests.SettingsKeepsBackgroundBelowContent` and the key-binding
-  button test. Don't count them as regressions or fix them unasked.
+  Aborted"; `--blame-crash` finds the culprit. No known failures.
 - **Visual:** one screenshot from `--shot` (or a visual test's
   `--visual-test-shot`), saved outside the repo (the session's scratchpad or a
   temp folder). Never commit images outside `Assets/`.
