@@ -556,4 +556,7 @@ resolve.
 Also still open:
 
 - `scene_room` lost its `view` option (steps, tile lists, normals) when it moved to Surfaces.
-- Faint lighter squares on the floor round some pins predate this work (AO or tile lists).
+- Fixed 11-25: the lighter squares round the pins were the tile lists. Occlusion asked only what a tile sees, so a
+  floor beside a pin it didn't see lost the pin's darkening at the pin's screen box; and a shadow's soft edge spread
+  past the swept box a tile lists casters by. A tile now lists objects within `Lighting.OCCLUSION_REACH` of its view,
+  and the sweep grows by the penumbra (far / hardness).

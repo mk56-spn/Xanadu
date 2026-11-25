@@ -580,11 +580,14 @@ public namespace scene
     Bounds shadowBox(Object o, Lighting light)
     {
         Bounds r = o.box;
+        // A soft shadow's edge spreads as it goes (Quilez's penumbra, far / hardness wide at the far end): the far
+        // end of the sweep grows by it, so tiles in the edge still list the object.
+        float spread = light.far / max(light.shadows, 1e-3);
         if (any(light.sunlight.rgb > 0.0))
         {
             float3 away = -light.sun * light.far;
-            r.low = min(r.low, o.low + away);
-            r.high = max(r.high, o.high + away);
+            r.low = min(r.low, o.low + away - spread);
+            r.high = max(r.high, o.high + away + spread);
         }
         for (uint l = 0; l < light.lamps; l++)
         {
@@ -592,8 +595,8 @@ public namespace scene
             {
                 float3 c = float3((k & 1) != 0 ? o.high.x : o.low.x, (k & 2) != 0 ? o.high.y : o.low.y, (k & 4) != 0 ? o.high.z : o.low.z);
                 float3 w = c + normalize(c - light.lampAt[l].xyz + 1e-3) * light.far;
-                r.low = min(r.low, w);
-                r.high = max(r.high, w);
+                r.low = min(r.low, w - spread);
+                r.high = max(r.high, w + spread);
             }
         }
         return r;
@@ -616,7 +619,9 @@ public namespace scene
             Object o = objects[1 + k];
             bool always = endless(o);
             uint at;
-            if (always || v.sees(o.box))
+            // Seen, or near enough to close in what is: occlusion asks the seen list, and a floor beside an
+            // object the tile doesn't see is still darkened by it.
+            if (always || v.sees(o.box.grown(Lighting.OCCLUSION_REACH)))
             {
                 InterlockedAdd(seenCount, 1, at);
                 if (at < LISTED)

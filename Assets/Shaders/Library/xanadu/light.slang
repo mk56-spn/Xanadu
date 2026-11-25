@@ -105,6 +105,10 @@ public struct Lighting
         far = 8000.0;
     }
 
+    /// How far out, in pixels, occlusion looks for what closes a point in: a caster listing
+    /// objects for it lists everything within this of what it sees.
+    public static const float OCCLUSION_REACH = 60.0;
+
     /// Which light IShadows.shadow is asked about: the sun, or lamp k as LAMP + k.
     public static const uint SUN = 0, LAMP = 1;
 
@@ -585,7 +589,7 @@ public extension Lighting
                 lamp *= caster.shadow(LAMP + l, from, toLamp, gap, shadows);
             rgb += lightFrom(n, toLamp, toEye, m, lampLight[l].rgb, lamp);
         }
-        float openness = occlusion > 0.0 ? lerp(1.0, caster.open(position, n, 60.0), occlusion) : 1.0;
+        float openness = occlusion > 0.0 ? lerp(1.0, caster.open(position, n, OCCLUSION_REACH), occlusion) : 1.0;
         float above = saturate(0.5 - 0.5 * n.y);   // up is -y
         rgb += base * (sky.rgb * above + ground.rgb * (1.0 - above)) * openness * 0.6;
         rgb += base * m.glow;
