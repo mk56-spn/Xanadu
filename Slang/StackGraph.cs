@@ -140,7 +140,8 @@ public sealed class StackGraph
             }
 
             foreach (IGrouping<int, StackBuild.Run> calls in runs
-                         .Where(run => run.Pass >= 0 && (run.Groups > 0 || build.Passes[run.Pass].Tile is not null)).GroupBy(run => run.Pass))
+                         .Where(run => run.Pass >= 0 && (run.Groups > 0 || build.Passes[run.Pass].Tile is not null || build.Passes[run.Pass].Drawn is not null))
+                         .GroupBy(run => run.Pass))
             {
                 CompiledPass compiled = build.Passes[calls.Key];
                 long threads = calls.Sum(run => run.Over > 0 ? run.Over : (long)run.Groups * compiled.Threads);
@@ -149,6 +150,13 @@ public sealed class StackGraph
                 Uses(pass, compiled.Buffers, compiled.Access);
                 foreach (int image in compiled.Images)
                     graph.Edge(pass, images[image], GraphAccess.ReadWrite);
+                // A draw writes the images its calls name.
+                foreach (StackBuild.Run run in calls.Where(_ => compiled.Drawn is not null))
+                {
+                    graph.Edge(pass, images[(int)run.A], GraphAccess.Write);
+                    if (run.B != StackBuild.Run.None)
+                        graph.Edge(pass, images[(int)run.B], GraphAccess.Write);
+                }
             }
 
             // What it presents lands on the frame, its depth with it.

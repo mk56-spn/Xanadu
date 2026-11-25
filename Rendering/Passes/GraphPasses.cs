@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
 using Xanadu.Rendering.Frame;
@@ -64,7 +67,8 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
         {
             if (kept.Buffers is not null)
                 MaterialStore.Release(kept);
-            entity.AddComponent(kept = new BuildBuffers(effect, MakeBuffers(commands, build), MakeImages(commands, build.Shape)));
+            entity.AddComponent(kept = new BuildBuffers(effect, MakeBuffers(commands, build), MakeImages(commands, build.Shape),
+                build.Passes.Any(pass => pass.Drawn is not null) ? MakeZ() : null));
         }
 
         _calls.Clear();
@@ -81,6 +85,7 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
         }
 
         Buffer? state = _materials.State(material);
+        bool drawn = false;
         foreach (StackBuild.Run call in _calls)
         {
             if (call.Presents)
@@ -89,8 +94,25 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
                 continue;
             }
 
+            if (call.Clears)
+            {
+                // FColor, not Color: Color is bytes, and would clamp a far depth like 1e30 to 1.
+                float value = BitConverter.UInt32BitsToSingle(call.B);
+                commands.EndRenderPass(commands.BeginRenderPass(new ColorTargetInfo(kept.Images[(int)call.A], LoadOp.Clear)
+                {
+                    ClearColor = new FColor { R = value, G = value, B = value, A = value },
+                }));
+                continue;
+            }
+
             CompiledPass pass = build.Passes[call.Pass];
-            if (pass.Tile is not null)
+            if (pass.Drawn is { } draw)
+            {
+                // The first draw of the frame starts on a cleared depth: the nearest surface of this frame's draws wins.
+                RunDraw(commands, effect, kept, draw, call, material, step, time, clearZ: !drawn);
+                drawn = true;
+            }
+            else if (pass.Tile is not null)
                 DispatchPixels(commands, effect, kept, pass, call, state, material, step, dt, time);
             else
                 Dispatch(commands, effect, kept, pass, call, state, material, dt, time);
@@ -145,6 +167,70 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
         commands.EndComputePass(compute);
     }
 
+    /// <summary>
+    /// A draw: its grid over the item's quad into the images the call names, colour (and depth, pixels into the screen),
+    /// tested and written against the graph's own depth.
+    /// </summary>
+    private void RunDraw(CommandBuffer commands, CanvasEffect effect, BuildBuffers kept, CompiledDraw draw, StackBuild.Run call,
+        CanvasMaterial material, Step step, float time, bool clearZ)
+    {
+        if (step.Mesh is not { } mesh || step.Start >= mesh.Vertices.Count)
+        {
+            if (_uncut.Add(effect))
+                Console.Error.WriteLine($"Shader stack {material.Shader}: a draw needs the item's quad uncut; drop the deform's [Grid].");
+            return;
+        }
+
+        RestFrame rest = mesh.Vertices[(int)step.Start].Rest;
+        Texture colour = kept.Images[(int)call.A];
+        Texture? depth = call.B == StackBuild.Run.None ? null : kept.Images[(int)call.B];
+        GraphicsPipeline pipeline = effect.DrawPipeline(_device, call.Pass, colour.Format, depth is not null, ZFormat);
+        using GpuScope scope = commands.Scope(effect.Compiled.Build!.Passes[call.Pass].Name);
+
+        var z = new DepthStencilTargetInfo
+        {
+            Texture = kept.Z!.Handle,
+            ClearDepth = 1f,
+            LoadOp = clearZ ? LoadOp.Clear : LoadOp.Load,
+            StoreOp = StoreOp.Store,
+            StencilLoadOp = LoadOp.DontCare,
+            StencilStoreOp = StoreOp.DontCare,
+        };
+        RenderPass pass = depth is null
+            ? commands.BeginRenderPass(z, new ColorTargetInfo(colour, LoadOp.Load))
+            : commands.BeginRenderPass(z, new ColorTargetInfo(colour, LoadOp.Load), new ColorTargetInfo(depth, LoadOp.Load));
+        pass.BindGraphicsPipeline(pipeline);
+        FrameUniforms frame = FrameUniforms.Now(_targets.Width, _targets.Height, time);
+        commands.PushVertexUniformData(new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis });
+        commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
+        if (draw.Vertex.ParamsSize > 0)
+            ShaderParams.Push(commands, draw.Vertex, material, step.Values, stage: ParamsStage.Vertex);
+        commands.PushFragmentUniformData(frame);
+        if (draw.Fragment.ParamsSize > 0)
+            ShaderParams.Push(commands, draw.Fragment, material, step.Values);
+        if (draw.Vertex.StorageBuffers > 0)
+            pass.BindVertexStorageBuffers(_globals.Bound(draw.Vertex.StorageBuffers));
+        // Neither stage gets a texture of its own yet: any sampler it declares sees white.
+        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Math.Max(draw.Vertex.Samplers.Length, draw.Fragment.Samplers.Length)];
+        for (int k = 0; k < samplers.Length; k++)
+            samplers[k] = new TextureSamplerBinding(_targets.White, _targets.Sampler);
+        if (draw.Vertex.Samplers.Length > 0)
+            pass.BindVertexSamplers(samplers[..draw.Vertex.Samplers.Length]);
+        if (draw.Fragment.Samplers.Length > 0)
+            pass.BindFragmentSamplers(samplers[..draw.Fragment.Samplers.Length]);
+        if (draw.Fragment.StorageBuffers > 0)
+            pass.BindFragmentStorageBuffers(_globals.Bound(draw.Fragment.StorageBuffers));
+        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
+        commands.EndRenderPass(pass);
+    }
+
+    /// <summary>The depth format a graph's draws test against.</summary>
+    private TextureFormat ZFormat => _targets.DepthFormat;
+
+    /// <summary>A graph's depth for its draws, the target's size.</summary>
+    private Texture MakeZ() =>
+        Texture.Create2D(_device, "graph depth", _targets.Width, _targets.Height, ZFormat, TextureUsageFlags.DepthStencilTarget);
+
     /// <summary>A pass begun with the images and buffers it touches read-write, and the globals and kept state read-only.</summary>
     private ComputePass Begin(CommandBuffer commands, CanvasEffect effect, BuildBuffers kept, CompiledPass pass, StackBuild.Run call, Buffer? state)
     {
@@ -163,7 +249,7 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
 
     /// <summary>A uniform's value as the schedule reads it: the material's, else its default; null for a name that isn't one.</summary>
     private static BuildValue? Uniform(CompiledShader compiled, CanvasMaterial material, string name) =>
-        compiled.ScheduleValue(name, material.Values.TryGetValue(name, out System.Numerics.Vector4 set) ? set : null);
+        compiled.ScheduleValue(name, material.Values.TryGetValue(name, out Vector4 set) ? set : null);
 
     /// <summary>The graph's buffers, each cleared to zeros.</summary>
     private Buffer[] MakeBuffers(CommandBuffer commands, CompiledBuild build)
@@ -220,4 +306,11 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
     };
 
     public void Dispose() => _zeroPiece?.Dispose();
+}
+
+/// <summary>A draw's quad (vertex uniform 0, <c>XanaduDrawQuad</c> in SlangShaders.Draws): the item's corner and sides on the target.</summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct DrawQuad
+{
+    public Vector2 Corner, XAxis, YAxis, Pad;
 }

@@ -14,6 +14,9 @@ public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buff
 
     /// <summary>A pixel pass's tile; null for a pass over elements or groups.</summary>
     public (int Width, int Height)? Tile { get; init; }
+
+    /// <summary>A draw's stages; null for a compute pass.</summary>
+    public CompiledDraw? Drawn { get; init; }
 }
 
 /// <summary>
@@ -138,6 +141,12 @@ public static partial class SlangShaders
             if (pass.Pixels is not null)
             {
                 passes[p] = CompilePixels(name, source, build, p, keepsState, pool);
+                continue;
+            }
+
+            if (pass.Draw is not null)
+            {
+                passes[p] = CompileDraw(name, source, build, p, keepsState, pool);
                 continue;
             }
 

@@ -47,22 +47,45 @@ void record(uint i)
     s.finish();
 }
 
-/// The room through a camera swinging slowly round it, lit by a lamp under the ceiling.
+/// The camera, swinging slowly round the room: the same for the mesh and the march.
+Camera eye(float2 size) { return Camera(1100, size.y * 0.9).orbited(sin(time * 0.25) * 0.7, 0.3); }
+
+/// A ring of real triangles (xanadu.mesh), turning on the beat in a corner.
+Torus ring() { return Torus(160, 40).turned(float3(1.1, beat * 0.5, 0.3)).moved(float3(-620, 60, 380)); }
+
+[Draw(96, 32, shade: ringLook)]
+ItemVertex ringDrawn(ItemVertex v)
+{
+    v.place(ring().at(v.uv), eye(v.rest.size));
+    return v;
+}
+
+float4 ringLook(ItemInput i, Canvas canvas) { return ring().lit(i.uv, eye(canvas.size), colours.orange); }
+
+/// The room, marched where it is nearer than what was drawn.
 [Pixels(8, 8)]
 void shoot(ItemInput i, Canvas canvas)
 {
-    Camera camera = Camera(1100, canvas.size.y * 0.9).orbited(sin(time * 0.25) * 0.7, 0.3);
+    Camera camera = eye(canvas.size);
     // A closed room keeps the sun out: a lamp hangs under the ceiling instead.
     Lighting light = Lighting().sunless().lamp(float3(-350, -550, -300), colour(1.5, 1.35, 1.2), 1200);
     light.sky = colour(0.18, 0.2, 0.28);
     light.ground = colour(0.1, 0.08, 0.07);
-    shown[group.pixel] = scene.shot(parts, objects, camera, canvas, light, view);
-    shownDepth[group.pixel] = traced.depth;
+    float drawn = shownDepth[group.pixel];
+    colour c = scene.shot(parts, objects, camera, canvas, light, view);
+    if (c.a > 0 && traced.depth < drawn)
+    {
+        shown[group.pixel] = c;
+        shownDepth[group.pixel] = traced.depth;
+    }
 }
 
 void graph()
 {
+    clear(shown);
+    clear(shownDepth, 1e30);
     record();
+    ringDrawn(shown, shownDepth);
     shoot();
     present(shown, shownDepth);
 }

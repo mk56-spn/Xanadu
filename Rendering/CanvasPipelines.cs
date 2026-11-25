@@ -4,7 +4,6 @@ using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
 using Xanadu.Core.Storage;
-using Xanadu.Rendering.Compute;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using BlendFactor = MoonWorks.Graphics.BlendFactor;
@@ -12,45 +11,6 @@ using BlendOp = MoonWorks.Graphics.BlendOp;
 using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Rendering;
-
-/// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
-internal sealed class CanvasEffect(
-    Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<Passes.PoolJob>? pool = null,
-    ComputePipeline[]? passes = null, ComputePipeline? trace = null)
-    : IDisposable
-{
-    public Shader Shader { get; } = shader;
-    public CompiledShader Compiled { get; } = compiled;
-
-    /// <summary>Its own vertex stage, from its <c>deform</c>; null draws with the standard one.</summary>
-    public Shader? Vertex { get; } = vertex;
-
-    /// <summary>A kept-state effect's once-a-frame <c>update</c>; null when it keeps none.</summary>
-    public ComputePipeline? Update { get; } = update;
-
-    /// <summary>A pooled stack's step (its STEP brick): one job a material, run before the draws; null without a pool.</summary>
-    public ComputeOperation<Passes.PoolJob>? Pool { get; } = pool;
-
-    /// <summary>A BUILD brick's passes, in the order it declares them (a schedule's call names one by its place); empty without one.</summary>
-    public ComputePipeline[] Passes { get; } = passes ?? [];
-
-    /// <summary>A TRACE brick's compute stage, a thread a pixel of the quad; null without one.</summary>
-    public ComputePipeline? Trace { get; } = trace;
-
-    /// <summary>Its passes and what they share, in the order they run: what the renderer walks each frame.</summary>
-    public StackGraph Graph { get; } = StackGraph.Of(compiled);
-
-    public void Dispose()
-    {
-        foreach (ComputePipeline pass in Passes)
-            pass.Dispose();
-        Shader.Dispose();
-        Trace?.Dispose();
-        Update?.Dispose();
-        Vertex?.Dispose();
-        Pool?.Dispose();
-    }
-}
 
 /// <summary>
 /// The canvas's pipelines: the standard vertex stage (or an effect's own, from its
@@ -228,7 +188,7 @@ internal sealed class CanvasPipelines : IDisposable
             })
             : null;
         return new CanvasEffect(shader, compiled, EffectCompute.Update(_device, compiled), vertex, EffectCompute.Pool(_device, compiled),
-            EffectCompute.Passes(_device, compiled), EffectCompute.Trace(_device, compiled));
+            EffectCompute.Passes(_device, compiled), EffectCompute.Trace(_device, compiled), EffectCompute.Draws(_device, compiled));
     }
 
     /// <summary>

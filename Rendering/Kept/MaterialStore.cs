@@ -85,6 +85,7 @@ internal sealed class MaterialStore : IDisposable
             buffer.Dispose();
         foreach (Texture image in built.Images)
             image.Dispose();
+        built.Z?.Dispose();
     }
 
     public void Dispose()

@@ -11,6 +11,11 @@ public sealed partial class StackBuild
         /// <summary>The pass a <c>present</c> runs as: the images shown are <see cref="A"/> (colour) and <see cref="B"/> (depth, or <see cref="None"/>).</summary>
         public const int Present = -1;
 
+        /// <summary>The pass a <c>clear</c> runs as: image <see cref="A"/> set to the float whose bits are <see cref="B"/>.</summary>
+        public const int Clear = -2;
+
+        public bool Clears => Pass == Clear;
+
         /// <summary>No image.</summary>
         public const uint None = uint.MaxValue;
 
@@ -50,6 +55,15 @@ public sealed partial class StackBuild
                     break;
                 case BuildInline inline:
                     WalkInline(inline, lookup, runs);
+                    break;
+                case BuildDraw draw:
+                    if (runs.Count >= MaxCalls)
+                        throw new BuildProblem(draw.Index, $"graph() runs more than {MaxCalls} passes a frame.");
+                    runs.Add(new Run(draw.Pass, 0, 0, (uint)draw.Colour, draw.Depth < 0 ? Run.None : (uint)draw.Depth, 0, 0));
+                    break;
+                case BuildClear clear:
+                    float value = clear.Value is null ? 0f : (float)BuildPasses.Evaluate(clear.Value, clear.Index, lookup).Number;
+                    runs.Add(new Run(Run.Clear, 0, 0, (uint)clear.Image, BitConverter.SingleToUInt32Bits(value), 0, 0));
                     break;
                 case BuildPresent present:
                     runs.Add(new Run(Run.Present, 0, 0, (uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth, 0, 0));

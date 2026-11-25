@@ -79,6 +79,8 @@ public sealed partial class StackBuild
         string name = tokens.ExpectName();
         if (name == "present" && scope.Library is null && tokens.Is("("))
             return [Present(tokens, first)];
+        if (name == "clear" && scope.Library is null && tokens.Is("("))
+            return [Clear(tokens, first)];
         StackLibrary? library = scope.Library;
         if (tokens.Take("."))
         {
@@ -101,6 +103,28 @@ public sealed partial class StackBuild
         tokens.Expect(";");
         Presents = true;
         return new BuildPresent(first.Index, colour, depth);
+    }
+
+    /// <summary><c>clear(image)</c> or <c>clear(image, value)</c>.</summary>
+    private BuildClear Clear(BuildTokens tokens, BuildToken first)
+    {
+        tokens.Expect("(");
+        int image = Image(tokens, "the image to clear", [.. ImageFormats.Keys]);
+        BuildExpression? value = tokens.Take(",") ? tokens.Expression() : null;
+        tokens.Expect(")");
+        tokens.Expect(";");
+        return new BuildClear(first.Index, image, value);
+    }
+
+    /// <summary>A draw's call: the colour image it draws into, and the depth image it writes its depths to, if any.</summary>
+    private BuildDraw DrawCall(BuildTokens tokens, int pass, BuildToken first)
+    {
+        tokens.Expect("(");
+        int colour = Image(tokens, "the colour it draws into", ["rgba16f", "rgba8", "rgba32f"]);
+        int depth = tokens.Take(",") ? Image(tokens, "the depth it writes, pixels into the screen", ["r32f"]) : -1;
+        tokens.Expect(")");
+        tokens.Expect(";");
+        return new BuildDraw(first.Index, pass, colour, depth);
     }
 
     private int Image(BuildTokens tokens, string what, string[] formats)
@@ -172,6 +196,8 @@ public sealed partial class StackBuild
             int own = _passes.FindIndex(pass => pass.Library is null && pass.Name == name);
             if (own < 0)
                 throw new BuildProblem(first.Index, $"{name} isn't a pass: mark it [Pass(threads, over: n)], or call only passes in build().");
+            if (_passes[own].Draw is not null)
+                return DrawCall(tokens, own, first);
             BuildExpression[] arguments = Arguments(tokens, scope, called, _passes[own].Parameters, first.Index, out _);
             return new BuildCall(first.Index, own, arguments);
         }

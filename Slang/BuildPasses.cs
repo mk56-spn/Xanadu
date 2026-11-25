@@ -61,6 +61,12 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
     private static partial Regex PixelsDeclaration();
 
+    [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
+    private static partial Regex DrawDeclaration();
+
+    /// <summary>The most cells a draw's grid has along a side.</summary>
+    private const int MostCells = 512;
+
     /// <summary>The most threads a pixel pass's tile holds.</summary>
     private const int MostTileThreads = 1024;
 
@@ -117,7 +123,10 @@ internal static partial class BuildPasses
         }
 
         if (!library)
+        {
             ReadPixels(code, passes);
+            ReadDraws(code, passes);
+        }
         return passes;
     }
 
@@ -146,6 +155,35 @@ internal static partial class BuildPasses
             {
                 Pixels = (width, height),
                 Signature = match.Groups["params"].Value,
+            });
+        }
+    }
+
+    /// <summary>
+    /// The brick's draws: <c>[Draw(cells across, cells down, shade: fn)] ItemVertex name(ItemVertex v)</c>, a grid of
+    /// triangles over the item's quad moved by <c>name</c> as a deform moves corners and coloured by <c>fn</c> as shade
+    /// colours pixels, drawn into the images its call names.
+    /// </summary>
+    private static void ReadDraws(string code, List<BuildPass> passes)
+    {
+        var declared = DrawDeclaration().Matches(code);
+        foreach (Match marker in Regex.Matches(code, @"\[\s*Draw\s*\("))
+            if (!declared.Any(match => match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade.");
+
+        foreach (Match match in declared)
+        {
+            string name = match.Groups["name"].Value;
+            if (name is "build" or "graph" or "present" or "clear" or "deform")
+                throw new BuildProblem(match.Index, $"{name} is taken; give the draw another name.");
+            if (passes.Any(pass => pass.Name == name))
+                throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");
+            int across = int.Parse(match.Groups["w"].Value), down = int.Parse(match.Groups["h"].Value);
+            if (across < 1 || down < 1 || across > MostCells || down > MostCells)
+                throw new BuildProblem(match.Index, $"a draw's grid has 1 to {MostCells} cells a side, not {across} × {down}.");
+            passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
+            {
+                Draw = (across, down, match.Groups["shade"].Value),
             });
         }
     }

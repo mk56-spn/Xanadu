@@ -33,11 +33,14 @@ internal struct ItemPool(CanvasEffect effect, Buffer items) : IComponent
 }
 
 /// <summary>A graph's buffers and images, made for one compile of its effect.</summary>
-internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers, Texture[] images) : IComponent
+internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers, Texture[] images, Texture? z) : IComponent
 {
     public CanvasEffect Effect = effect;
     public Buffer[] Buffers = buffers;
     public Texture[] Images = images;
+
+    /// <summary>The depth its draws test and write, cleared at each frame's first draw; null when it has no draws.</summary>
+    public Texture? Z = z;
 }
 
 /// <summary>The frame a stack's compute passes last ran, so they run once a frame however many draws share it.</summary>

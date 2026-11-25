@@ -2,6 +2,7 @@ using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering.Compute;
 using Xanadu.Slang;
+using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Rendering;
 
@@ -30,8 +31,8 @@ internal static class EffectCompute
     /// A graph's passes: the globals (and kept state) read-only, the images then the buffers each touches read-write; a
     /// pixel pass's threads are its tile.
     /// </summary>
-    public static ComputePipeline[] Passes(GraphicsDevice device, CompiledShader compiled) => compiled.Build is { } build
-        ? [.. build.Passes.Select(pass => ComputePipelines.Create(device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
+    public static ComputePipeline?[] Passes(GraphicsDevice device, CompiledShader compiled) => compiled.Build is { } build
+        ? [.. build.Passes.Select(pass => pass.Drawn is not null ? null : ComputePipelines.Create(device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
         {
             Format = ShaderFormat.SPIRV,
             NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
@@ -41,6 +42,20 @@ internal static class EffectCompute
             ThreadCountX = (uint)(pass.Tile?.Width ?? pass.Threads), ThreadCountY = (uint)(pass.Tile?.Height ?? 1), ThreadCountZ = 1,
         }))]
         : [];
+
+    /// <summary>A graph's draws' vertex and fragment stages, by their places among its passes; null for a compute pass.</summary>
+    public static (Shader Vertex, Shader Fragment)?[] Draws(GraphicsDevice device, CompiledShader compiled) => compiled.Build is { } build
+        ? [.. build.Passes.Select(pass => pass.Drawn is { } drawn ? ((Shader, Shader)?)(Stage(device, drawn.Vertex, ShaderStage.Vertex), Stage(device, drawn.Fragment, ShaderStage.Fragment)) : null)]
+        : [];
+
+    private static Shader Stage(GraphicsDevice device, CompiledShader stage, ShaderStage kind) => Shader.Create(device, stage.Spirv, "main", new ShaderCreateInfo
+    {
+        Format = ShaderFormat.SPIRV,
+        Stage = kind,
+        NumSamplers = (uint)stage.Samplers.Length,
+        NumStorageBuffers = (uint)stage.StorageBuffers,
+        NumUniformBuffers = stage.UniformBuffers,
+    });
 
     /// <summary>A TRACE brick: the depth to read, the globals (and kept state) read-only; the two textures it fills and the buffers it touches read-write.</summary>
     public static ComputePipeline? Trace(GraphicsDevice device, CompiledShader compiled) => compiled.Trace is { } traced
