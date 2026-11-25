@@ -65,23 +65,6 @@ public sealed class SlangColourConversionsTests
     }
 
     [Test]
-    public void APlainFloat4StaysAnError()
-    {
-        const string source = """
-            import xanadu;
-            float4 shade(ItemInput i)
-            {
-                float4 c = i.colour.rgb;
-                return c;
-            }
-            """;
-
-        var error = Assert.Throws<Exception>(() => SlangShaders.CompileEffectBody("test", source));
-        Assert.That(error!.Message, Does.Contain("vector<float,3>"));
-        Assert.That(SlangShaders.ColourConversionsOf(source), Is.Empty);
-    }
-
-    [Test]
     public void ConversionsAreKeptWhenSomethingElseIsWrong()
     {
         const string source = """

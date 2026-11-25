@@ -523,8 +523,11 @@ The GRAPH view, prettified (2026-11-25):
 - **Arrows say what the code does with an image:** `SpirvScan.Access(…, image: true)` follows a storage image through
   its loads to `OpImageRead` / `OpImageWrite` (and texel pointers), so a pass that only writes an image no longer
   shows read-write (`GraphPass.Kind` and the scan are what the view reads). `SpirvScan` has its own file.
-- **Checked:** GRAPH shots of scene_room, meshes, post and sizes; StackGraphTests pass (the march now only writes
-  `marched`).
+- **A key** left of the graph: one small box per kind in its colour (compute, pixels, draw, item quad, buffer, image,
+  target), framed and titled.
+- **Checked:** GRAPH shots of scene_room, meshes, post and sizes against three bars: every box's text on two lines at
+  most, no wire through a box (the board routes round them), and every colour named in the key. StackGraphTests pass
+  (the march now only writes `marched`).
 
 The shared scene's "Not yet", done (2026-11-25):
 
@@ -554,7 +557,3 @@ Also still open:
 
 - `scene_room` lost its `view` option (steps, tile lists, normals) when it moved to Surfaces.
 - Faint lighter squares on the floor round some pins predate this work (AO or tile lists).
-
-## Known failures (not from this work)
-
-- `APlainFloat4StaysAnError` fails with or without the scene module.

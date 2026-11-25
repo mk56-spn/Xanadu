@@ -31,6 +31,9 @@ internal sealed class StackGraphView
     private const int TargetCategory = 0, ComputeCategory = 2, DrawCategory = 3, PixelsCategory = 4, ImageCategory = 5,
         ShadeCategory = 6, BufferCategory = 7;
 
+    /// <summary>The key's size: its width, its title's height, a row, and the space round each.</summary>
+    private const float KeyWidth = 150, KeyTitle = 44, KeyRow = 30, KeyGap = 8;
+
     /// <summary>How many times each column is reordered by its neighbours.</summary>
     private const int Sweeps = 4;
 
@@ -112,6 +115,22 @@ internal sealed class StackGraphView
         if (graph.ScheduleProblem is { } problem)
             _board.Add(new Rect2(-Width * 1.5f, -Step * 1.5f, Width * 3, Height * 1.5f),
                 $"graph() can't run: {problem}", TargetCategory);
+        Key();
+    }
+
+    /// <summary>What the colours mean: a framed column of one small box per kind, left of the graph.</summary>
+    private void Key()
+    {
+        (string Name, int Category)[] kinds =
+        [
+            ("compute", ComputeCategory), ("pixels", PixelsCategory), ("draw", DrawCategory), ("item quad", ShadeCategory),
+            ("buffer", BufferCategory), ("image", ImageCategory), ("target", TargetCategory),
+        ];
+        float left = _board.Boxes.Min(box => box.Rect.Position.X) - KeyWidth - Gap * 3;
+        float top = _board.Boxes.Min(box => box.Rect.Position.Y);
+        _board.Add(new Rect2(left, top, KeyWidth, KeyTitle + kinds.Length * (KeyRow + KeyGap) + KeyGap), "key", BufferCategory);
+        for (int k = 0; k < kinds.Length; k++)
+            _board.Add(new Rect2(left + KeyGap, top + KeyTitle + k * (KeyRow + KeyGap), KeyWidth - KeyGap * 2, KeyRow), kinds[k].Name, kinds[k].Category);
     }
 
     /// <summary>Each frame: fits a newly made graph to the box once the box has its size, and feeds the underlay.</summary>
