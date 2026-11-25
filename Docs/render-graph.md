@@ -511,7 +511,22 @@ Stage E, second slice: the shared scene (2026-11-25):
   a map (they cast through the march, which is exact); xanadu.scene still keeps its own record buffers (they are its
   authoring, not plumbing, now that `shoot` writes ids); screen-space AO and `room.box` are still to come.
 
-Next: prettify the GRAPH view (the stack's graph as the tool shows it).
+The GRAPH view, prettified (2026-11-25):
+
+- **Laid out as data flows, top to bottom** (`StackGraphView.Columns`, `Order`): each pass a layer below the latest
+  write of what it reads, each resource a layer below its first writer (inputs nothing writes at the top, the frame
+  and its depth always at the bottom), empty layers closed up, and each layer ordered by where its neighbours sit
+  (four barycentre sweeps) so wires cross little.
+- **Boxes say what they are**, coloured by kind: compute (threads, or `cached`), pixels, draws, the item's quad;
+  buffers (bytes), images (`r32f · box`, `0.5× box`, `64×64`, kept / cached / last frame: `GraphResource.Detail`), the
+  targets. A mid-frame pass says `breaks pass` and glows red. The generated present draw is just `present`.
+- **Arrows say what the code does with an image:** `SpirvScan.Access(…, image: true)` follows a storage image through
+  its loads to `OpImageRead` / `OpImageWrite` (and texel pointers), so a pass that only writes an image no longer
+  shows read-write (`GraphPass.Kind` and the scan are what the view reads). `SpirvScan` has its own file.
+- **Checked:** GRAPH shots of scene_room, meshes, post and sizes; StackGraphTests pass (the march now only writes
+  `marched`).
+
+Next: the "Not yet" list of the shared scene above (shadow maps all round, AO, `room.box`).
 
 Was: stage E on the confirmed drawing model, starting (user's call, 2026-11-25) with the mesh core: a paged meshlet
 pool in kept buffers, generators as passes that rerun only when their inputs change (today's grid surfaces first, built

@@ -137,8 +137,12 @@ public sealed class StackGraph
                         int pass = graph.Pass(compiled.Name, StackRole.Graph, true, 1, threads, place: node.Place, fills: node.Fills, kind: node.Kind);
                         called[node.Call.Pass] = seen = pass;
                         Uses(pass, compiled.Buffers, compiled.Access);
-                        foreach (int image in compiled.Images)
-                            graph.Edge(pass, images[image], GraphAccess.ReadWrite);
+                        // A pass's images sit at bindings 0.. of set 1, in order: its code says which it reads and which it writes.
+                        for (int at = 0; at < compiled.Images.Length; at++)
+                        {
+                            GraphAccess used = SpirvScan.Access(compiled.Shader.Spirv, 1, at, image: true);
+                            graph.Edge(pass, images[compiled.Images[at]], used == 0 ? GraphAccess.ReadWrite : used);
+                        }
                         foreach (int image in compiled.Drawn?.Reads ?? [])
                             graph.Edge(pass, images[image], GraphAccess.Read);
                         if (compiled.ReadsScreen)

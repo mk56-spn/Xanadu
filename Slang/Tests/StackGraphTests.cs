@@ -80,8 +80,9 @@ public sealed class StackGraphTests
         Assert.That(passes.ToList().IndexOf("march"), Is.GreaterThan(passes.ToList().IndexOf("lightFill")));
         // Bound read-write, as compute is; its code only reads.
         Assert.That(Access(graph, "march", "nodes"), Is.EqualTo(GraphAccess.Read));
-        // The march writes its two images; the present, lowered to a draw, reads them and lands them, depth with it.
-        Assert.That(Access(graph, "march", "marched"), Is.EqualTo(GraphAccess.ReadWrite));
+        // The march only writes its two images (its code says so, though images bind read-write); the present, lowered
+        // to a draw, reads them and lands them, depth with it.
+        Assert.That(Access(graph, "march", "marched"), Is.EqualTo(GraphAccess.Write));
         Assert.That(Access(graph, "present_marched_marchedDepth", "marchedDepth"), Is.EqualTo(GraphAccess.Read));
         Assert.That(Access(graph, "present_marched_marchedDepth", "depth")!.Value.HasFlag(GraphAccess.Write));
         // Its sparks are drawn onto the frame.

@@ -35,7 +35,7 @@
 485 Slang/SlangCompletions.Library.cs
 443 Slang/SlangLint.Cost.cs
 502 Slang/SlangLint.cs
-1089 Slang/SlangShaders.cs
+939 Slang/SlangShaders.cs
 993 Slang/Tests/SlangEditorLanguageTests.cs
 604 Tests/VisualTests/Harness/VisualTestMain.cs
 469 Tools/Animator/AnimatorTool.cs
