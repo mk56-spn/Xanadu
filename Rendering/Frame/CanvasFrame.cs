@@ -63,7 +63,7 @@ internal struct FrameUniforms
 
 /// <summary>A stack's compute clock (uniform buffer 0 of its UPDATE and STEP passes, SlangShaders.WrapUpdate).</summary>
 [StructLayout(LayoutKind.Sequential)]
-internal struct UpdateUniforms { public float Dt, Time, Pad0, Pad1; }
+internal struct UpdateUniforms { public float Dt, Time, Beat, Pad; }
 
 /// <summary>
 /// What one frame of the canvas is made of, shared by its passes: the jobs collected, the

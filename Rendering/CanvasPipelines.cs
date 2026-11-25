@@ -217,16 +217,6 @@ internal sealed class CanvasPipelines : IDisposable
             NumStorageBuffers = (uint)compiled.StorageBuffers,
             NumUniformBuffers = compiled.UniformBuffers,
         });
-        ComputePipeline? update = compiled.Update is { } step
-            ? ComputePipelines.Create(_device, step.Spirv, "update brick", new ComputePipelineCreateInfo
-            {
-                Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = (uint)step.StorageBuffers,
-                NumReadWriteStorageBuffers = 1,
-                NumUniformBuffers = step.UniformBuffers,
-                ThreadCountX = 1, ThreadCountY = 1, ThreadCountZ = 1,
-            })
-            : null;
         Shader? vertex = compiled.Vertex is { } stage
             ? Shader.Create(_device, stage.Spirv, "main", new ShaderCreateInfo
             {
@@ -237,36 +227,8 @@ internal sealed class CanvasPipelines : IDisposable
                 NumUniformBuffers = stage.UniformBuffers,
             })
             : null;
-        // A pool's step: the values are uniform 1, the globals (and kept state) its read-only inputs after the jobs.
-        ComputeOperation<Passes.PoolJob>? pool = compiled.Pool is { } step2
-            ? new ComputeOperation<Passes.PoolJob>(_device, step2.Spirv, inputs: (uint)(step2.StorageBuffers - 1),
-                groupsPerJob: (uint)((step2.ItemCount + SlangShaders.PoolThreads - 1) / SlangShaders.PoolThreads), uniforms: step2.UniformBuffers)
-            : null;
-        // A BUILD brick's passes: the globals (and kept state) read-only, the buffers each touches read-write.
-        ComputePipeline[] passes = compiled.Build is { } build
-            ? [.. build.Passes.Select(pass => ComputePipelines.Create(_device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
-            {
-                Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
-                NumReadWriteStorageBuffers = (uint)pass.Buffers.Length,
-                NumUniformBuffers = Math.Max(1, pass.Shader.UniformBuffers),
-                ThreadCountX = (uint)pass.Threads, ThreadCountY = 1, ThreadCountZ = 1,
-            }))]
-            : [];
-        // A TRACE brick: the depth to read, the globals (and kept state) read-only; the two textures it fills and the buffers it touches read-write.
-        ComputePipeline? trace = compiled.Trace is { } traced
-            ? ComputePipelines.Create(_device, traced.Shader.Spirv, "trace brick", new ComputePipelineCreateInfo
-            {
-                Format = ShaderFormat.SPIRV,
-                NumSamplers = 1,
-                NumReadonlyStorageBuffers = (uint)traced.Shader.StorageBuffers,
-                NumReadWriteStorageTextures = 2,
-                NumReadWriteStorageBuffers = (uint)traced.Buffers.Length,
-                NumUniformBuffers = SlangShaders.TraceUniforms,
-                ThreadCountX = (uint)traced.Width, ThreadCountY = (uint)traced.Height, ThreadCountZ = 1,
-            })
-            : null;
-        return new CanvasEffect(shader, compiled, update, vertex, pool, passes, trace);
+        return new CanvasEffect(shader, compiled, EffectCompute.Update(_device, compiled), vertex, EffectCompute.Pool(_device, compiled),
+            EffectCompute.Passes(_device, compiled), EffectCompute.Trace(_device, compiled));
     }
 
     /// <summary>

@@ -54,6 +54,7 @@ public static partial class SlangShaders
             CompileWrapped(WrapTrace(name, placed, arguments, width, height, keepsState, pool), "xanaduTrace", "compute", 0, 2,
                 [.. GlobalDefines(1, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
         CheckDeclared(name, compute, 0, 1);
+        CheckNoImages(name, "trace", build, compute, 1);
         if (used.Length > MaxStageBuffers)
             throw new InvalidOperationException(
                 $"{name}: trace touches {used.Length} of the stack's buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");
@@ -72,9 +73,6 @@ public static partial class SlangShaders
     private static string WrapTrace(string name, string source, string arguments, int width, int height, bool keepsState, PoolShape? pool)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source)
-            ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y; i.time = time; shading.time = time;"
-            : "";
         string state = keepsState
             ? $"[[vk::binding({1 + Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
             : "";
@@ -99,9 +97,7 @@ public static partial class SlangShaders
             [numthreads({{width}}, {{height}}, 1)]
             void xanaduTrace(uint3 id : SV_DispatchThreadID, uint3 tile : SV_GroupID, uint3 local : SV_GroupThreadID)
             {
-                time = frame.time;
-                beat = frame.beat;
-                dt = xanaduTraceQuad.dt;
+                {{Clocks("frame.time", "frame.beat", "xanaduTraceQuad.dt")}}
                 {{load}}
                 group.thread = local.xy;
                 group.place = tile.xy;
@@ -110,8 +106,9 @@ public static partial class SlangShaders
                 group.low = float2(xanaduTraceQuad.origin + int2(tile.xy * uint2({{width}}, {{height}})));
                 group.high = group.low + float2({{width}}, {{height}});
                 int2 at = xanaduTraceQuad.origin + int2(id.xy);
+                group.pixel = uint2(max(at, int2(0)));
                 ItemInput i = tracedInput(float2(at) + 0.5, xanaduTraceQuad.corner, xanaduTraceQuad.xAxis, xanaduTraceQuad.yAxis);
-                {{clock}}
+                {{TimelineClock(source, shading: true)}}
                 traced.depth = 0.0;
                 float4 shown = effect0::trace({{arguments}});
                 if (all(id.xy < xanaduTraceQuad.size))

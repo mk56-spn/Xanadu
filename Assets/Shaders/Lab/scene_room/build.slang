@@ -1,10 +1,15 @@
 // A room recorded with xanadu.scene: a box on a plinth that thumps on every beat, a ball
 // melted on it, a hoop that flashes each bar, pillars in the corners and a ring of pins that
-// bob in turn. BUILD records it once a frame; TRACE shoots it.
+// bob in turn. The graph records it once a frame, shoots it a pixel at a time into two images,
+// and presents them on the item.
 import xanadu;
 
 [Buffer(256)] RWStructuredBuffer<scene.Part> parts;
 [Buffer(129)] RWStructuredBuffer<scene.Object> objects;
+[Image(rgba16f)] RWTexture2D<float4> shown;
+[Image(r32f)] RWTexture2D<float> shownDepth;
+
+[Options("lit|steps|tile lists|normals")] uniform int view;
 
 [Default(colours.hotPink)] uniform colour tint;
 /// How hard the box thumps on the beat.
@@ -42,4 +47,22 @@ void record(uint i)
     s.finish();
 }
 
-void build() { record(); }
+/// The room through a camera swinging slowly round it, lit by a lamp under the ceiling.
+[Pixels(8, 8)]
+void shoot(ItemInput i, Canvas canvas)
+{
+    Camera camera = Camera(1100, canvas.size.y * 0.9).orbited(sin(time * 0.25) * 0.7, 0.3);
+    // A closed room keeps the sun out: a lamp hangs under the ceiling instead.
+    Lighting light = Lighting().sunless().lamp(float3(-350, -550, -300), colour(1.5, 1.35, 1.2), 1200);
+    light.sky = colour(0.18, 0.2, 0.28);
+    light.ground = colour(0.1, 0.08, 0.07);
+    shown[group.pixel] = scene.shot(parts, objects, camera, canvas, light, view);
+    shownDepth[group.pixel] = traced.depth;
+}
+
+void graph()
+{
+    record();
+    shoot();
+    present(shown, shownDepth);
+}

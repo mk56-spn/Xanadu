@@ -235,7 +235,8 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
     /// takes a slice of the frame's depth to spread them over.
     /// </summary>
     private bool OwnsDepth(CanvasMaterial? material) =>
-        _pipelines.Effect(material) is { } effect && (effect.Vertex is not null || effect.Trace is not null);
+        _pipelines.Effect(material) is { } effect
+        && (effect.Vertex is not null || effect.Trace is not null || effect.Compiled.Build?.Shape.Presents == true);
 
     /// <summary>The effect's steps at the draw-order depth after <paramref name="sequence"/>; returns the depth steps it takes.</summary>
     /// <param name="particles">Draws the triangles once per particle of this field instead (a particle mesh); its deform is left out.</param>

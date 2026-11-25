@@ -10,6 +10,7 @@ using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Entity = Friflo.Engine.ECS.Entity;
+using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Rendering.Passes;
 
@@ -57,9 +58,10 @@ internal struct PoolJob
 /// buffer on the GPU, so the count the passes wrote this frame is the count drawn.
 /// </para>
 /// </remarks>
-internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, CanvasPipelines pipelines, MaterialStore materials,
-    GlobalBindings globals) : IDisposable
+internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, FrameTargets targets, CanvasPipelines pipelines,
+    MaterialStore materials, GlobalBindings globals) : IDisposable
 {
+    private readonly GraphPasses _graphs = new(device, targets, materials, globals);
     private readonly GraphicsDevice _device = device;
     private readonly CanvasFrame _frame = frame;
     private readonly List<Step> _steps = frame.Steps;
@@ -75,6 +77,7 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
     /// </summary>
     public void Run(CommandBuffer commands, float dt, float time)
     {
+        _graphs.BeginFrame();
         foreach (Step step in _steps)
         {
             if (step.Material is not { } material || !_materials.FirstRun(material, _frame.Number))
@@ -94,14 +97,14 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
                     // build() calls the passes, once or many times each: it runs when the graph reaches the first.
                     case BrickKind.Build when !built:
                         built = true;
-                        RunBuild(commands, material, effect, dt, time);
+                        _graphs.Run(commands, material, effect, step, dt, time);
                         break;
                 }
             }
 
             // The graph was drawn at the defaults; this material's values may call passes they don't. BUILD is the last compute.
             if (!built)
-                RunBuild(commands, material, effect, dt, time);
+                _graphs.Run(commands, material, effect, step, dt, time);
         }
     }
 
@@ -128,7 +131,7 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
 
         Buffer state = held.Buffer;
 
-        commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time });
+        commands.PushComputeUniformData(new UpdateUniforms { Dt = dt, Time = time, Beat = ShaderClock.Beat });
         if (compiled.ParamsSize > 0)
             ShaderParams.Push(commands, compiled, material, null, stage: ParamsStage.Compute);
         ComputePass pass = commands.BeginComputePass(new StorageBufferReadWriteBinding(state, cycle: false));
@@ -174,15 +177,8 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
             ShaderParams.Push(commands, compiled, material, null, stage: ParamsStage.Compute);
         // Its inputs after the jobs: the globals, then kept state when the stack keeps some.
         operation.Submit(job);
-        operation.Run(commands, pool.Items, _globals.Bound(compiled.StorageBuffers - 1, _materials.State(material)), new UpdateUniforms { Dt = dt, Time = time });
+        operation.Run(commands, pool.Items, _globals.Bound(compiled.StorageBuffers - 1, _materials.State(material)), new UpdateUniforms { Dt = dt, Time = time, Beat = ShaderClock.Beat });
     }
-
-    /// <summary>Bytes of zeros a new BUILD buffer is cleared from, a piece at a time.</summary>
-    private const uint ZeroPiece = 1 << 20;
-
-    private readonly HashSet<CanvasEffect> _brokenSchedules = new(ReferenceEqualityComparer.Instance);
-    private readonly List<StackBuild.Run> _calls = [];
-    private TransferBuffer? _zeroPiece;
 
     /// <summary>This frame's indirect draws: a step's place in the steps, to its args' place in <see cref="_drawArgs"/>.</summary>
     private readonly Dictionary<int, uint> _drawSlots = [];
@@ -200,62 +196,6 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
     public const uint MostCopyVertices = 96;
 
     private readonly HashSet<CanvasEffect> _heavyCopies = new(ReferenceEqualityComparer.Instance);
-
-    /// <summary>A stack's BUILD passes, run in the order its <c>build()</c> calls them this frame.</summary>
-    private void RunBuild(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect, float dt, float time)
-    {
-        if (effect.Compiled.Build is not { } build)
-            return;
-
-        Entity entity = _materials.For(material);
-        if (!entity.TryGetComponent(out BuildBuffers kept) || kept.Effect != effect)
-        {
-            if (kept.Buffers is not null)
-                MaterialStore.Release(kept.Buffers);
-            entity.AddComponent(kept = new BuildBuffers(effect, MakeBuffers(commands, build)));
-        }
-
-        _calls.Clear();
-        try
-        {
-            build.Shape.Walk(name => Uniform(effect.Compiled, material, name), _calls);
-        }
-        catch (BuildProblem problem)
-        {
-            // Its values made the schedule impossible (a loop that won't end): said once, nothing run.
-            if (_brokenSchedules.Add(effect))
-                Console.Error.WriteLine($"Shader stack {material.Shader}: build() can't run: {problem.Message}");
-            return;
-        }
-
-        Buffer? state = _materials.State(material);
-        foreach (StackBuild.Run call in _calls)
-            Dispatch(commands, effect, kept.Buffers, build.Passes[call.Pass], call, state, material, dt, time);
-    }
-
-    private void Dispatch(CommandBuffer commands, CanvasEffect effect, Buffer[] buffers, CompiledPass pass, StackBuild.Run call,
-        Buffer? state, CanvasMaterial material, float dt, float time)
-    {
-        if (call.Groups == 0)
-            return;
-        using GpuScope scope = commands.Scope(pass.Name);
-        commands.PushComputeUniformData(new PassUniforms
-        {
-            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, A = call.A, B = call.B, C = call.C, D = call.D,
-        });
-        if (pass.Shader.ParamsSize > 0 && pass.Shader.UniformBuffers > 1)
-            ShaderParams.Push(commands, pass.Shader, material, null, stage: ParamsStage.Compute);
-
-        Span<StorageBufferReadWriteBinding> writes = stackalloc StorageBufferReadWriteBinding[pass.Buffers.Length];
-        for (int k = 0; k < writes.Length; k++)
-            writes[k] = new StorageBufferReadWriteBinding(buffers[pass.Buffers[k]], cycle: false);
-        ComputePass compute = commands.BeginComputePass([], writes);
-        compute.BindComputePipeline(effect.Passes[call.Pass]);
-        if (pass.Shader.StorageBuffers > 0)
-            compute.BindStorageBuffers(_globals.Bound(pass.Shader.StorageBuffers, state));
-        compute.Dispatch(Math.Min(call.Groups, 65535u), 1, 1);
-        commands.EndComputePass(compute);
-    }
 
     /// <summary>
     /// Every step of a <c>[Draws]</c> stack gets args of its own: its vertices and where they
@@ -301,40 +241,14 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
         return effect.Compiled.Build is { Shape.Draws: >= 0 and var draws } && _materials.Built(material) is { } built ? built[draws] : null;
     }
 
-    /// <summary>A uniform's value as the schedule reads it: the material's, else its default; null for a name that isn't one.</summary>
-    private static BuildValue? Uniform(CompiledShader compiled, CanvasMaterial material, string name) =>
-        compiled.ScheduleValue(name, material.Values.TryGetValue(name, out Vector4 set) ? set : null);
-
-    /// <summary>The brick's buffers, each cleared to zeros.</summary>
-    private Buffer[] MakeBuffers(CommandBuffer commands, CompiledBuild build)
-    {
-        if (_zeroPiece is null)
-        {
-            _zeroPiece = TransferBuffer.Create<byte>(_device, "build zeros", TransferBufferUsage.Upload, ZeroPiece);
-            _zeroPiece.Map<byte>(cycle: false).Clear();
-            _zeroPiece.Unmap();
-        }
-
-        var buffers = new Buffer[build.Bytes.Length];
-        CopyPass copy = commands.BeginCopyPass();
-        for (int k = 0; k < buffers.Length; k++)
-        {
-            uint bytes = (uint)((build.Bytes[k] + 3) / 4 * 4);
-            buffers[k] = Buffer.Create<byte>(_device, $"stack {build.Shape.Buffers[k].Name}",
-                BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead, bytes);
-            for (uint at = 0; at < bytes; at += ZeroPiece)
-                copy.UploadToBuffer<byte>(_zeroPiece, buffers[k], 0, at, Math.Min(ZeroPiece, bytes - at), cycle: false);
-        }
-
-        commands.EndCopyPass(copy);
-        return buffers;
-    }
-
     public void Dispose()
     {
-        _zeroPiece?.Dispose();
+        _graphs.Dispose();
         _drawArgs.Dispose();
     }
+
+    /// <summary>The images a material's graph presented this frame; false when it presented none.</summary>
+    public bool Presented(CanvasMaterial? material, out Texture colour, out Texture? depth) => _graphs.Presented(material, out colour, out depth);
 
     /// <summary>The slot of a step's indirect args this frame, when its stack draws by a <c>[Draws]</c> buffer.</summary>
     public bool DrawSlot(int step, out uint slot) => _drawSlots.TryGetValue(step, out slot);

@@ -20,7 +20,7 @@
 595 Model/Animation/RigPackage.cs
 504 Model/Animation/XifDrawer.cs
 446 Model/Animator/AnimatorTimelineModel.cs
-481 Rendering/CanvasPipelines.cs
+443 Rendering/CanvasPipelines.cs
 585 Rendering/CanvasTree.cs
 439 Rendering/ResidentTree.cs
 449 Screens/Animator/AnimatorLayout.cs

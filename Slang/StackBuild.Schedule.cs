@@ -77,6 +77,8 @@ public sealed partial class StackBuild
         }
 
         string name = tokens.ExpectName();
+        if (name == "present" && scope.Library is null && tokens.Is("("))
+            return [Present(tokens, first)];
         StackLibrary? library = scope.Library;
         if (tokens.Take("."))
         {
@@ -85,6 +87,32 @@ public sealed partial class StackBuild
         }
 
         return [Call(tokens, scope, library, name, first)];
+    }
+
+    /// <summary><c>present(colour)</c> or <c>present(colour, depth)</c>: images the graph declares, the colour four channels, the depth one float.</summary>
+    private BuildPresent Present(BuildTokens tokens, BuildToken first)
+    {
+        tokens.Expect("(");
+        int colour = Image(tokens, "the colour to show", ["rgba16f", "rgba8", "rgba32f"]);
+        int depth = -1;
+        if (tokens.Take(","))
+            depth = Image(tokens, "its depth, pixels into the screen", ["r32f", "r16f"]);
+        tokens.Expect(")");
+        tokens.Expect(";");
+        Presents = true;
+        return new BuildPresent(first.Index, colour, depth);
+    }
+
+    private int Image(BuildTokens tokens, string what, string[] formats)
+    {
+        BuildToken given = tokens.Peek;
+        string name = tokens.ExpectName();
+        int image = Images.ToList().FindIndex(declared => declared.Name == name);
+        if (image < 0)
+            throw new BuildProblem(given.Index, $"present takes images for {what}; {name} isn't an [Image] this graph declares.");
+        if (!formats.Contains(Images[image].Format))
+            throw new BuildProblem(given.Index, $"present takes a {string.Join(" or ", formats)} image for {what}; {name} is {Images[image].Format}.");
+        return image;
     }
 
     private BuildLoop Loop(BuildTokens tokens, Scope scope, BuildToken first)

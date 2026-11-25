@@ -15,6 +15,9 @@ public enum GraphResourceKind
     /// <summary>A BUILD brick's <c>[Buffer]</c> (or <c>[Draws]</c>), kept from frame to frame.</summary>
     Buffer,
 
+    /// <summary>A graph's <c>[Image]</c>, the target's size, kept from frame to frame.</summary>
+    Image,
+
     /// <summary>The target's depth: a trace writes it, triangles test and write it.</summary>
     Depth,
 
@@ -87,6 +90,9 @@ public sealed class StackGraph
         int[] buffers = fragment.Build is { } built
             ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i]))]
             : [];
+        int[] images = fragment.Build is { } imaged
+            ? [.. imaged.Shape.Images.Select(image => graph.Resource(GraphResourceKind.Image, image.Name, 0))]
+            : [];
         int screen = fragment.ReadsScreen ? graph.Resource(GraphResourceKind.Screen, "screen", 0) : -1;
 
         // Kept state is bound by every stage below the update.
@@ -133,13 +139,32 @@ public sealed class StackGraph
                 runs.Clear();
             }
 
-            foreach (IGrouping<int, StackBuild.Run> calls in runs.Where(run => run.Groups > 0).GroupBy(run => run.Pass))
+            foreach (IGrouping<int, StackBuild.Run> calls in runs
+                         .Where(run => run.Pass >= 0 && (run.Groups > 0 || build.Passes[run.Pass].Tile is not null)).GroupBy(run => run.Pass))
             {
                 CompiledPass compiled = build.Passes[calls.Key];
                 long threads = calls.Sum(run => run.Over > 0 ? run.Over : (long)run.Groups * compiled.Threads);
                 int pass = graph.Pass(compiled.Name, BrickKind.Build, true, calls.Count(), threads);
                 ReadsState(pass);
                 Uses(pass, compiled.Buffers, compiled.Access);
+                foreach (int image in compiled.Images)
+                    graph.Edge(pass, images[image], GraphAccess.ReadWrite);
+            }
+
+            // What it presents lands on the frame, its depth with it.
+            if (runs.LastOrDefault(run => run.Presents) is { Presents: true } shown)
+            {
+                int present = graph.Pass("present", BrickKind.Build, false);
+                graph.Edge(present, images[(int)shown.A], GraphAccess.Read);
+                if (shown.B != StackBuild.Run.None)
+                {
+                    graph.Edge(present, images[(int)shown.B], GraphAccess.Read);
+                    graph.Edge(present, depth, GraphAccess.Write);
+                }
+
+                graph.Edge(present, frame, GraphAccess.Write);
+                if (build.Alone)
+                    return graph;
             }
         }
 

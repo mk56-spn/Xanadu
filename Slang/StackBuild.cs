@@ -13,6 +13,13 @@ namespace Xanadu.Slang;
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Draws = false);
 
 /// <summary>
+/// An image a graph declares: <c>[Image(format)] RWTexture2D&lt;T&gt; name;</c>, the target's size, kept on the GPU
+/// from frame to frame. Passes read and write it; <c>present</c> shows it on the item.
+/// </summary>
+/// <param name="Format">Its texel format as Slang names it: rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui.</param>
+public sealed record BuildImage(string Name, string Format, string Type, int Start, int End);
+
+/// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
 /// extra threads of the last group turned away) or <c>[Pass(threads, groups: g)]</c> (g whole
 /// groups, every thread run: what code with barriers needs), on <c>void name(uint i, uint …)</c>.
@@ -34,6 +41,15 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// <summary>For a library's pass, the brick buffer (its place in <see cref="StackBuild.Buffers"/>) each buffer parameter gets, in order.</summary>
     public int[] Bound { get; init; } = [];
 
+    /// <summary>
+    /// A pixel pass (<c>[Pixels(w, h)]</c>): compute over the item's pixels on the target in tiles of w × h, called as
+    /// <c>trace</c> is, with <c>ItemInput</c> and <c>Canvas</c>; null for a pass over elements or groups.
+    /// </summary>
+    public (int Width, int Height)? Pixels { get; init; }
+
+    /// <summary>A pixel pass's parameters as written, for its call.</summary>
+    public string Signature { get; init; } = "";
+
     /// <summary>What build() calls it: <c>link</c>, or <c>bvh.link</c> for a library's.</summary>
     public string Called => Library is null ? Name : $"{Library.Name}.{Name}";
 }
@@ -43,6 +59,9 @@ public abstract record BuildStep(int Index);
 
 /// <summary>A pass run: <c>hist(round);</c>.</summary>
 public sealed record BuildCall(int Index, int Pass, BuildExpression[] Arguments) : BuildStep(Index);
+
+/// <summary><c>present(colour, depth);</c>: the images the item shows this frame, by their places in <see cref="StackBuild.Images"/> (depth -1 for none).</summary>
+public sealed record BuildPresent(int Index, int Colour, int Depth) : BuildStep(Index);
 
 /// <summary><c>for (uint v = start; test; update) body</c>; <paramref name="Op"/> is <c>++</c>, <c>--</c> or an assignment like <c>+=</c>.</summary>
 public sealed record BuildLoop(int Index, string Variable, BuildExpression Start, BuildExpression Test, string Op, BuildExpression? By,
@@ -82,6 +101,9 @@ public sealed partial class StackBuild
     /// <summary>The most passes one frame's schedule may run.</summary>
     public const int MaxCalls = 1024;
 
+    /// <summary>Where a stage that doesn't touch the images puts them: past anything bound.</summary>
+    public const int UnplacedImage = 96;
+
     /// <summary>The most arguments a pass takes after <c>i</c>.</summary>
     public const int MaxArguments = 4;
 
@@ -93,6 +115,12 @@ public sealed partial class StackBuild
     private readonly List<BuildPass> _passes;
 
     public IReadOnlyList<BuildBuffer> Buffers { get; }
+
+    /// <summary>The images it declares, in order.</summary>
+    public IReadOnlyList<BuildImage> Images { get; }
+
+    /// <summary>Whether the schedule shows images on the item (<c>present</c>): the item then draws them, not a quad of its own.</summary>
+    public bool Presents { get; private set; }
 
     /// <summary>The <c>[Draws]</c> buffer's place in <see cref="Buffers"/>, or -1: without one the stack's quad is drawn once.</summary>
     public int Draws { get; }
@@ -109,6 +137,7 @@ public sealed partial class StackBuild
         _schedule = schedule;
         List<BuildBuffer> buffers = ReadBuffers();
         Buffers = buffers;
+        Images = ReadImages();
         Draws = buffers.FindIndex(buffer => buffer.Draws);
         _passes = BuildPasses.Read(code, Constant, library: false);
         Schedule = ReadSchedule();
@@ -121,24 +150,38 @@ public sealed partial class StackBuild
         Match entry = BuildEntry().Match(code);
         if (!entry.Success)
         {
-            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Pass)\s*\(|Draws\s*\])");
+            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Pass|Image|Pixels)\s*\(|Draws\s*\])");
             if (stray.Success)
-                throw new BuildProblem(stray.Index, "[Buffer], [Draws] and [Pass] belong in a BUILD brick, with a void build() that runs the passes.");
+                throw new BuildProblem(stray.Index, "[Buffer], [Image], [Draws], [Pass] and [Pixels] belong in a BUILD brick, with a void graph() that runs the passes.");
             return null;
         }
 
         int open = code.IndexOf('{', entry.Index + entry.Length);
         int close = BuildText.Matching(code, open);
         if (open < 0 || close < 0)
-            throw new BuildProblem(entry.Index, "build() needs a body in braces.");
+            throw new BuildProblem(entry.Index, "graph() needs a body in braces.");
         return new StackBuild(code, (entry.Index, close + 1));
     }
 
-    [GeneratedRegex(@"\bvoid\s+build\s*\(\s*\)")]
+    /// <summary>The schedule: <c>graph()</c>, or <c>build()</c> as stacks first named it.</summary>
+    [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex BuildEntry();
+
+    [GeneratedRegex(@"\[\s*Image\s*\(\s*(?<format>\w+)\s*\)\s*\]\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
+    private static partial Regex ImageDeclaration();
+
+    /// <summary>The image formats a graph may declare, and the texel type each is read as.</summary>
+    public static readonly IReadOnlyDictionary<string, string> ImageFormats = new Dictionary<string, string>
+    {
+        ["rgba16f"] = "float4", ["rgba8"] = "float4", ["rgba32f"] = "float4", ["rg16f"] = "float2",
+        ["r16f"] = "float", ["r32f"] = "float", ["r32ui"] = "uint",
+    };
 
     [GeneratedRegex(@"\[\s*(?:Buffer\s*\((?<size>[^\]]*)\)|(?<draws>Draws))\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex BufferDeclaration();
+
+    /// <summary>Whether a brick's graph shows images on the item (<c>present(…)</c>): with no SHADE brick, that is all it draws.</summary>
+    public static bool PresentsIn(string brick) => Regex.IsMatch(BuildText.Blank(brick), @"\bpresent\s*\(");
 
     /// <summary>A <c>static const</c> of the body, worked out; null when there is none by that name or it can't be.</summary>
     public BuildValue? Constant(string name) => _constants.Of(name);
@@ -177,6 +220,29 @@ public sealed partial class StackBuild
         return buffers;
     }
 
+    private List<BuildImage> ReadImages()
+    {
+        var images = new List<BuildImage>();
+        var declared = ImageDeclaration().Matches(_code);
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*Image\s*\("))
+            if (!declared.Any(match => match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui).");
+
+        foreach (Match match in declared)
+        {
+            string name = match.Groups["name"].Value, format = match.Groups["format"].Value, type = match.Groups["type"].Value;
+            if (!ImageFormats.TryGetValue(format, out string? texel))
+                throw new BuildProblem(match.Index, $"{format} isn't an image format; use rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui.");
+            if (texel != type)
+                throw new BuildProblem(match.Index, $"a {format} image holds {texel}: [Image({format})] RWTexture2D<{texel}> {name};");
+            if (images.Any(image => image.Name == name) || Buffers.Any(buffer => buffer.Name == name))
+                throw new BuildProblem(match.Index, $"{name} is declared twice.");
+            images.Add(new BuildImage(name, format, type, match.Index, match.Index + match.Length));
+        }
+
+        return images;
+    }
+
     // ---- the body as each stage compiles it --------------------------------------------
 
     /// <summary>
@@ -186,13 +252,22 @@ public sealed partial class StackBuild
     /// <c>globallycoherent</c> is left off, so a buffer can be lent to a library's function (Slang
     /// takes no coherent parameter); the compile marks the binding coherent after (<see cref="SpirvCoherence"/>).
     /// </summary>
-    public string Rewrite(string source, int set, Func<int, int> binding)
+    /// <remarks>Images go at <paramref name="image"/>'s binding in the same set, or past anything bound when it is null.</remarks>
+    public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null)
     {
         var spans = new List<(int Start, int End, string Text)>();
         for (int k = 0; k < Buffers.Count; k++)
         {
             BuildBuffer buffer = Buffers[k];
             spans.Add((buffer.Start, buffer.End, $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{buffer.Type}> {buffer.Name};"));
+        }
+
+        for (int k = 0; k < Images.Count; k++)
+        {
+            BuildImage declared = Images[k];
+            int at = image?.Invoke(k) ?? UnplacedImage + k;
+            spans.Add((declared.Start, declared.End,
+                $"[[vk::binding({at}, {set})]] [[vk::image_format(\"{declared.Format}\")]] RWTexture2D<{declared.Type}> {declared.Name};"));
         }
 
         foreach (BuildPass pass in _passes.Where(pass => pass.Library is null))

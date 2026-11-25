@@ -382,9 +382,11 @@ public struct Group
     public uint threads;
     public float2 low;
     public float2 high;
+    /// The pixel this thread works on, on the target: where a pixel pass writes its images (`colour[group.pixel] = …`).
+    public uint2 pixel;
 };
 
-/// The TRACE thread running now (all zeros elsewhere).
+/// The TRACE or pixel-pass thread running now (all zeros elsewhere).
 public static Group group = {};
 
 /// Where a BUILD pass's thread sits: its place in its work group (`thread`, from 0 to the

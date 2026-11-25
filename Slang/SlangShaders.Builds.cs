@@ -7,13 +7,24 @@ namespace Xanadu.Slang;
 /// A BUILD brick's pass, compiled: its compute stage, the stack buffers it binds (by their place in
 /// <see cref="StackBuild.Buffers"/>), and how it really uses each (read, write or both), in the same order.
 /// </summary>
-public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buffers, int Threads, GraphAccess[] Access);
+public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buffers, int Threads, GraphAccess[] Access)
+{
+    /// <summary>The graph's images it binds (by their place in <see cref="StackBuild.Images"/>), read-write before its buffers.</summary>
+    public int[] Images { get; init; } = [];
+
+    /// <summary>A pixel pass's tile; null for a pass over elements or groups.</summary>
+    public (int Width, int Height)? Tile { get; init; }
+}
 
 /// <summary>
 /// A stack's BUILD brick, compiled: the brick as read (its schedule runs on the CPU), each
 /// buffer's bytes, and every pass. Set on the fragment.
 /// </summary>
-public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[] Passes);
+public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[] Passes)
+{
+    /// <summary>Whether what it presents is all the stack draws: no SHADE brick, so no quad of its own after it.</summary>
+    public bool Alone { get; init; }
+}
 
 /// <summary>
 /// The BUILD brick (<see cref="BrickKind.Build"/>): buffers kept on the GPU and compute passes
@@ -92,6 +103,7 @@ public static partial class SlangShaders
             if (SpirvScan.Binds(compiled.Spirv, 1, Unplaced + k))
                 throw new InvalidOperationException(
                     $"{name}: {stage} runs before the BUILD brick's passes and can't read {build.Buffers[k].Name}; only the passes, deform and shade can.");
+        CheckNoImages(name, stage, build, compiled, 1);
     }
 
     /// <summary>Throws when a graphics stage reads more storage buffers than SDL_GPU binds.</summary>
@@ -123,7 +135,13 @@ public static partial class SlangShaders
         for (int p = 0; p < passes.Length; p++)
         {
             BuildPass pass = build.Passes[p];
-            (CompiledShader compute, int[] used, GraphAccess[] access) = PlacedWithAccess(build, source, 1, 0, placed =>
+            if (pass.Pixels is not null)
+            {
+                passes[p] = CompilePixels(name, source, build, p, keepsState, pool);
+                continue;
+            }
+
+            (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
                 CompileWrapped(WrapPass(name, placed, build, pass, keepsState, pool), "xanaduPass", "compute", 0, 2,
                     [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]));
             CheckDeclared(name, compute, 0, 0);
@@ -135,10 +153,10 @@ public static partial class SlangShaders
             passes[p] = new CompiledPass(Named(build, p),
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
                     storageBuffers: Globals.Count + (keepsState ? 1 : 0)),
-                used, pass.Threads, access);
+                used, pass.Threads, access) { Images = images };
         }
 
-        var compiled = new CompiledBuild(build, bytes, passes);
+        var compiled = new CompiledBuild(build, bytes, passes) { Alone = build.Presents && source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
         // Walked once with the defaults: a schedule that can't run says so now, not every frame.
         try
         {
@@ -169,7 +187,6 @@ public static partial class SlangShaders
     private static string WrapPass(string name, string source, StackBuild build, BuildPass pass, bool keepsState, PoolShape? pool)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
         string state = keepsState
             ? $"[[vk::binding({Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
             : "";
@@ -200,10 +217,8 @@ public static partial class SlangShaders
             [numthreads({{pass.Threads}}, 1, 1)]
             void xanaduPass(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID, uint3 local : SV_GroupThreadID)
             {
-                time = xanaduPassFrame.time;
-                beat = xanaduPassFrame.beat;
-                dt = xanaduPassFrame.dt;
-                {{clock}}
+                {{Clocks("xanaduPassFrame.time", "xanaduPassFrame.beat", "xanaduPassFrame.dt")}}
+                {{TimelineClock(source, shading: false)}}
                 {{load}}
                 dispatch.thread = local.x;
                 dispatch.group = group.x;

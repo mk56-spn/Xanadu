@@ -86,7 +86,7 @@ internal sealed class CanvasRenderer : IDisposable
         _grids = new GridCutter(device, _frame.Steps);
         _collect = new CanvasCollect(tree, _residents, _targets.FullClip);
         _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids);
-        _stacks = new StackPasses(device, _frame, Pipelines, _materials, _globals);
+        _stacks = new StackPasses(device, _frame, _targets, Pipelines, _materials, _globals);
         _traces = new TracePass(device, _frame, _targets, _materials, _globals);
         _draw = new DrawPass(device, _frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles,
             _materials, _globals, _stacks, _traces, _grids, _vertices);

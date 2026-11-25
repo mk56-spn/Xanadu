@@ -6,7 +6,16 @@ namespace Xanadu.Slang;
 public sealed partial class StackBuild
 {
     /// <summary>One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups), and its arguments.</summary>
-    public readonly record struct Run(int Pass, uint Groups, uint Over, uint A, uint B, uint C, uint D);
+    public readonly record struct Run(int Pass, uint Groups, uint Over, uint A, uint B, uint C, uint D)
+    {
+        /// <summary>The pass a <c>present</c> runs as: the images shown are <see cref="A"/> (colour) and <see cref="B"/> (depth, or <see cref="None"/>).</summary>
+        public const int Present = -1;
+
+        /// <summary>No image.</summary>
+        public const uint None = uint.MaxValue;
+
+        public bool Presents => Pass == Present;
+    }
 
     /// <summary>
     /// This frame's passes in order, the uniforms read through <paramref name="uniform"/> (null for
@@ -42,6 +51,9 @@ public sealed partial class StackBuild
                 case BuildInline inline:
                     WalkInline(inline, lookup, runs);
                     break;
+                case BuildPresent present:
+                    runs.Add(new Run(Run.Present, 0, 0, (uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth, 0, 0));
+                    break;
             }
         }
     }
@@ -67,6 +79,8 @@ public sealed partial class StackBuild
             at = call.Index;
         }
 
+        if (pass.Pixels is not null)
+            return new Run(call.Pass, 0, 0, args[0], args[1], args[2], args[3]);
         uint over = 0, groups;
         if (pass.Over is { } elements)
         {

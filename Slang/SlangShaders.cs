@@ -585,6 +585,7 @@ public static partial class SlangShaders
                 $"{name}: expected {globalsAt} samplers before the globals but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 3 up, with no gaps.");
         CheckDeclared(name, fragment, 2, globalsAt);
         CheckStageBuffers(name, "shade", own + buffers.Length, build, buffers);
+        CheckNoImages(name, "shade", build, fragment, 2);
 
         CompiledShader? vertex = Deforms(source) ? CompileVertex(name, source, updates, pool, build) : null;
         CompiledShader? update = null;
@@ -656,6 +657,7 @@ public static partial class SlangShaders
             WrapVertex(name, placed, keepsState, pool), "xanaduVertex", "vertex", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]));
         CheckStageBuffers(name, "deform", own + buffers.Length, build, buffers);
+        CheckNoImages(name, "deform", build, compiled, 0);
         if (SpirvScan.BindsSet(compiled.Spirv, 2) || SpirvScan.BindsSet(compiled.Spirv, 3))
             throw new InvalidOperationException(
                 $"{name}: deform can't read textures (sampleItem, sampleScreen or the effect's own); only shade can, and both can read sampleDepth.");
@@ -773,9 +775,7 @@ public static partial class SlangShaders
     public static string Wrap(string name, string source, int stateBinding = -1, string? shadeWith = null, PoolShape? pool = null, int poolBinding = -1)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source)
-            ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y; i.time = time; shading.time = time;"
-            : "";
+        string clock = TimelineClock(source, shading: true);
         // Read once per pixel, before shade, into a static the body sees as `state`.
         string state = stateBinding == StateDeclaredOnly ? "static State state;"
             : stateBinding < 0 ? "" : $$"""
@@ -830,7 +830,7 @@ public static partial class SlangShaders
     public static string WrapVertex(string name, string source, bool keepsState = false, PoolShape? pool = null)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
+        string clock = TimelineClock(source, shading: false);
         string state = keepsState ? "static State state;" : "";
         // A pool's items follow the globals in vertex set 0; the instance picks the one being drawn.
         string items = pool is null ? "" : $"[[vk::binding({1 + Globals.Count}, 0)]] StructuredBuffer<XanaduSlot> xanaduPoolIn;";
@@ -895,7 +895,6 @@ public static partial class SlangShaders
     public static string WrapUpdate(string name, string source, PoolShape? pool = null)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -907,15 +906,15 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
-            struct XanaduUpdateFrame { float dt; float time; float2 pad; };
+            struct XanaduUpdateFrame { float dt; float time; float beat; float pad; };
             [[vk::binding(0, 2)]] ConstantBuffer<XanaduUpdateFrame> xanaduUpdateFrame;
             [[vk::binding(0, 1)]] RWStructuredBuffer<effect0::State> xanaduStateOut;
             [shader("compute")]
             [numthreads(1, 1, 1)]
             void xanaduUpdate()
             {
-                time = xanaduUpdateFrame.time;
-                {{clock}}
+                {{Clocks("xanaduUpdateFrame.time", "xanaduUpdateFrame.beat", "xanaduUpdateFrame.dt")}}
+                {{TimelineClock(source, shading: false)}}
                 effect0::State s = xanaduStateOut[0];
                 effect0::update(s, xanaduUpdateFrame.dt);
                 xanaduStateOut[0] = s;
@@ -1145,7 +1144,8 @@ public static partial class SlangShaders
                 type.TryGetProperty("resultType", out JsonElement item) && item.TryGetProperty("sizes", out JsonElement itemSizes))
                 foreach (JsonElement size in itemSizes.EnumerateArray())
                     itemBytes = Math.Max(itemBytes, size.GetProperty("value").GetInt32());
-            if (space == samplerSpace && kind == "resource" && !buffer)
+            bool image = type.TryGetProperty("access", out JsonElement access) && access.GetString() == "readWrite"; // a graph's image
+            if (space == samplerSpace && kind == "resource" && !buffer && !image)
                 samplers[index] = name;
             else if (space == uniformSpace && kind == "constantBuffer")
             {

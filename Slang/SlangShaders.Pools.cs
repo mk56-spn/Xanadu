@@ -87,7 +87,6 @@ public static partial class SlangShaders
     private static string WrapPool(string name, string source, PoolShape pool, bool keepsState)
     {
         (string imports, string code, string label) = Split(name, source);
-        string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
         string state = keepsState
             ? $"[[vk::binding({1 + Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
             : "";
@@ -159,7 +158,7 @@ public static partial class SlangShaders
             }
             #line 1 "{{label}} (wrapper)"
             struct XanaduPoolJob { uint first; uint reset; uint births; uint born; uint parity; uint pad0; uint pad1; uint pad2; };
-            struct XanaduPoolFrame { float dt; float time; float2 pad; };
+            struct XanaduPoolFrame { float dt; float time; float beat; float pad; };
             [[vk::binding(0, 0)]] StructuredBuffer<XanaduPoolJob> xanaduPoolJobs;
             [[vk::binding(0, 1)]] RWStructuredBuffer<effect0::XanaduSlot> xanaduPool;
             [[vk::binding(0, 2)]] ConstantBuffer<XanaduPoolFrame> xanaduPoolFrame;
@@ -171,9 +170,8 @@ public static partial class SlangShaders
                 uint i = group.x * {{PoolThreads}} + thread.x;
                 if (i >= {{pool.Count}}u)
                     return;
-                time = xanaduPoolFrame.time;
-                dt = xanaduPoolFrame.dt;
-                {{clock}}
+                {{Clocks("xanaduPoolFrame.time", "xanaduPoolFrame.beat", "xanaduPoolFrame.dt")}}
+                {{TimelineClock(source, shading: false)}}
                 {{load}}
             {{body}}
             }

@@ -58,6 +58,12 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"\[\s*Pass\s*\(")]
     public static partial Regex PassMarker();
 
+    [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
+    private static partial Regex PixelsDeclaration();
+
+    /// <summary>The most threads a pixel pass's tile holds.</summary>
+    private const int MostTileThreads = 1024;
+
     [GeneratedRegex(@"^RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s+(?<name>\w+)$")]
     private static partial Regex BufferParameter();
 
@@ -101,8 +107,8 @@ internal static partial class BuildPasses
         foreach (Match match in declared)
         {
             string name = match.Groups["name"].Value;
-            if (name == "build")
-                throw new BuildProblem(match.Index, "build is the schedule; give the pass another name.");
+            if (name is "build" or "graph" or "present")
+                throw new BuildProblem(match.Index, $"{name} is taken by the schedule; give the pass another name.");
             if (passes.Any(pass => pass.Name == name))
                 throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");
             (int threads, BuildExpression? over, BuildExpression? groups) = Shape(name, match.Groups["args"], constant);
@@ -110,7 +116,38 @@ internal static partial class BuildPasses
             passes.Add(new BuildPass(name, threads, over, groups, parameters, match.Index, match.Index + match.Groups["attribute"].Length));
         }
 
+        if (!library)
+            ReadPixels(code, passes);
         return passes;
+    }
+
+    /// <summary>
+    /// The brick's pixel passes: <c>[Pixels(w, h)] void name(ItemInput i, Canvas canvas)</c>, compute over the item's
+    /// pixels in tiles of w × h, taking what <c>shade</c> may take.
+    /// </summary>
+    private static void ReadPixels(string code, List<BuildPass> passes)
+    {
+        var declared = PixelsDeclaration().Matches(code);
+        foreach (Match marker in Regex.Matches(code, @"\[\s*Pixels\s*\("))
+            if (!declared.Any(match => match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write a pixel pass as [Pixels(8, 8)] void name(ItemInput i, Canvas canvas).");
+
+        foreach (Match match in declared)
+        {
+            string name = match.Groups["name"].Value;
+            if (name is "build" or "graph" or "present")
+                throw new BuildProblem(match.Index, $"{name} is taken; give the pass another name.");
+            if (passes.Any(pass => pass.Name == name))
+                throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");
+            int width = int.Parse(match.Groups["w"].Value), height = int.Parse(match.Groups["h"].Value);
+            if (width < 1 || height < 1 || width * height > MostTileThreads)
+                throw new BuildProblem(match.Index, $"a tile holds 1 to {MostTileThreads} threads, not {width} × {height}.");
+            passes.Add(new BuildPass(name, width * height, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
+            {
+                Pixels = (width, height),
+                Signature = match.Groups["params"].Value,
+            });
+        }
     }
 
     private static (int, BuildExpression?, BuildExpression?) Shape(string name, Group args, System.Func<string, BuildValue?> constant)

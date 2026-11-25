@@ -13,6 +13,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 using Rect = MoonWorks.Graphics.Rect;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
+using MwColor = MoonWorks.Graphics.Color;
 
 namespace Xanadu.Rendering.Passes;
 
@@ -110,22 +111,58 @@ internal sealed class TracePass(GraphicsDevice device, CanvasFrame frame, FrameT
     }
 
     /// <summary>The pixels the quad covers on the target, within the clip; null when none.</summary>
-    private (int X, int Y, int Width, int Height)? Box(RestFrame rest, Rect clip)
+    private (int X, int Y, int Width, int Height)? Box(RestFrame rest, Rect clip) => BoxOf(rest, clip, _targets.Width, _targets.Height);
+
+    /// <summary>The pixels a quad covers on a target <paramref name="targetWidth"/> × <paramref name="targetHeight"/>, within the clip; null when none.</summary>
+    public static (int X, int Y, int Width, int Height)? BoxOf(RestFrame rest, Rect clip, uint targetWidth, uint targetHeight)
     {
         Vector2 a = rest.Corner, b = a + rest.XAxis, c = a + rest.YAxis, d = b + rest.YAxis;
         Vector2 low = Vector2.Min(Vector2.Min(a, b), Vector2.Min(c, d));
         Vector2 high = Vector2.Max(Vector2.Max(a, b), Vector2.Max(c, d));
         int x0 = Math.Max((int)MathF.Floor(low.X), Math.Max(clip.X, 0));
         int y0 = Math.Max((int)MathF.Floor(low.Y), Math.Max(clip.Y, 0));
-        int x1 = Math.Min((int)MathF.Ceiling(high.X), Math.Min(clip.X + clip.W, (int)_targets.Width));
-        int y1 = Math.Min((int)MathF.Ceiling(high.Y), Math.Min(clip.Y + clip.H, (int)_targets.Height));
+        int x1 = Math.Min((int)MathF.Ceiling(high.X), Math.Min(clip.X + clip.W, (int)targetWidth));
+        int y1 = Math.Min((int)MathF.Ceiling(high.Y), Math.Min(clip.Y + clip.H, (int)targetHeight));
         return x1 > x0 && y1 > y0 ? (x0, y0, x1 - x0, y1 - y0) : null;
     }
 
     /// <summary>The last trace's textures drawn into the pass over its box, with its depth in the step's slice.</summary>
-    public void Draw(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples)
+    public void Draw(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples) =>
+        DrawOver(commands, pass, step, samples, _tracedColour!, _tracedDepth!, _tracedBox);
+
+    /// <summary>
+    /// A graph's presented images drawn into the pass over the step's quad, as a trace's are: colour blended as the
+    /// material blends, depth (none reads as the item's plane) in the step's slice. False when the quad is off screen.
+    /// </summary>
+    public bool DrawPresented(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples, Texture colour, Texture? depth)
     {
-        (int x, int y, int width, int height) = _tracedBox;
+        if (step.Mesh is not { } mesh || step.Start >= mesh.Vertices.Count)
+            return false;
+        if (Box(mesh.Vertices[(int)step.Start].Rest, step.Clip) is not { } box)
+            return false;
+        DrawOver(commands, pass, step, samples, colour, depth ?? _flatDepth!, box);
+        return true;
+    }
+
+    /// <summary>
+    /// Makes, once, a depth texture of zeros the target's size: the item's own plane, for an image presented without a
+    /// depth. Call it outside any render pass, before the draws.
+    /// </summary>
+    public void Prepare(CommandBuffer commands)
+    {
+        if (_flatDepth is not null)
+            return;
+        _flatDepth = Texture.Create2D(_device, "flat depth", _targets.Width, _targets.Height, TextureFormat.R32Float,
+            TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget);
+        commands.EndRenderPass(commands.BeginRenderPass(new ColorTargetInfo(_flatDepth, new MwColor(0, 0, 0, 0))));
+    }
+
+    private Texture? _flatDepth;
+
+    private void DrawOver(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples, Texture colour, Texture depth,
+        (int X, int Y, int Width, int Height) box)
+    {
+        (int x, int y, int width, int height) = box;
         var view = new TracedView
         {
             ScreenWidth = _targets.Width, ScreenHeight = _targets.Height, Depth = step.Depth, Span = step.Span,
@@ -136,8 +173,8 @@ internal sealed class TracePass(GraphicsDevice device, CanvasFrame frame, FrameT
         commands.PushVertexUniformData(view);
         commands.PushFragmentUniformData(view);
         pass.BindFragmentSamplers(
-            new TextureSamplerBinding(_tracedColour!, _device.PointSampler),
-            new TextureSamplerBinding(_tracedDepth!, _device.PointSampler));
+            new TextureSamplerBinding(colour, _device.PointSampler),
+            new TextureSamplerBinding(depth, _device.PointSampler));
         pass.DrawPrimitives(6, 1, 0, 0);
     }
 
@@ -203,5 +240,6 @@ internal sealed class TracePass(GraphicsDevice device, CanvasFrame frame, FrameT
         _tracedFragment?.Dispose();
         _tracedColour?.Dispose();
         _tracedDepth?.Dispose();
+        _flatDepth?.Dispose();
     }
 }

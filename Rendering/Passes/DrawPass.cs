@@ -126,6 +126,7 @@ internal sealed class DrawPass(GraphicsDevice device, CanvasFrame frame, FrameTa
         SampleCount samples = msaa ? _targets.Samples : SampleCount.One;
         if (job.StepCount > 0 && ReadsDepth(job))
             FillDepth(commands, job);
+        _traces.Prepare(commands);
         RenderPass pass = _targets.BeginPass(commands, job.Target, job.Clear, msaa, load: false);
         if (job.StepCount == 0)
         {
@@ -169,6 +170,17 @@ internal sealed class DrawPass(GraphicsDevice device, CanvasFrame frame, FrameTa
                 CopyCount++;
                 pass = _targets.BeginPass(commands, job.Target, job.Clear, msaa, load: true);
                 effectState = false;
+            }
+
+            // A graph that presents draws its images where the item is; its passes ran before any pass draws.
+            if (step.Kind == StepKind.Effect && effect.Compiled.Build is { Shape.Presents: true } graph)
+            {
+                if (_stacks.Presented(step.Material, out Texture? colour, out Texture? shownDepth)
+                    && _traces.DrawPresented(commands, pass, step, samples, colour, shownDepth))
+                    BatchCount++;
+                effectState = false;
+                if (graph.Alone)
+                    continue;
             }
 
             if (effect.Trace is not null && step.Kind == StepKind.Effect)

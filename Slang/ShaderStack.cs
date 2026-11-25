@@ -142,7 +142,7 @@ public static partial class ShaderStack
     {
         BrickKind.Update => ["update"],
         BrickKind.Step => ["start", "step"],
-        BrickKind.Build => ["build"],
+        BrickKind.Build => ["graph", "build"],
         BrickKind.Trace => ["trace"],
         BrickKind.Deform => ["deform"],
         BrickKind.Shade => ["shade"],
@@ -157,7 +157,7 @@ public static partial class ShaderStack
     {
         BrickKind.Update => ("void update(inout State s, float dt)", UpdateEntry()),
         BrickKind.Step => ("[Pool(count)] void step(inout Item t, uint i, float dt) (or [Pool(count, rate)] bool step)", StepEntry()),
-        BrickKind.Build => ("void build(), calling its passes in order", BuildEntry()),
+        BrickKind.Build => ("void graph(), calling its passes in order", BuildEntry()),
         BrickKind.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
         BrickKind.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
         BrickKind.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
@@ -170,7 +170,7 @@ public static partial class ShaderStack
     [GeneratedRegex(@"\b(?:void|bool)\s+step\s*\(")]
     private static partial Regex StepEntry();
 
-    [GeneratedRegex(@"\bvoid\s+build\s*\(\s*\)")]
+    [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex BuildEntry();
 
     [GeneratedRegex(@"\b(?:float4|colour)\s+trace\s*\(")]
@@ -211,7 +211,7 @@ public static partial class ShaderStack
 
         // Without a shade brick the item keeps its own colour, or, under a trace, draws nothing of its own.
         if (!bricks.Any(brick => brick.Kind == BrickKind.Shade))
-            composed.Append(bricks.Any(brick => brick.Kind == BrickKind.Trace)
+            composed.Append(bricks.Any(brick => brick.Kind == BrickKind.Trace || (brick.Kind == BrickKind.Build && StackBuild.PresentsIn(brick.Text)))
                 ? $"#line 1 \"{name} (no shade brick)\"\n{TracedAlone}\n"
                 : $"#line 1 \"{name} (no shade brick)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
         return composed.ToString();
