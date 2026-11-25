@@ -321,7 +321,19 @@ they fail the same way at `ade5f91c`, before this work.
 - **Images per call:** draws read images by name; a library present is called with images. Lowering `present(x, d)`
   to a generated draw in the stack's source covers it.
 
-Next: the board underlay (dogfood), which needs a buffer from the host.
+Stage D, first piece (2026-11-25):
+
+- **Static graphs flattened:** lowering notes whether the walk read any of the stack's values
+  (`GraphPlan.ReadsValues`). A schedule that read none is lowered once per compile and kept (`LoweredGraph`, keyed by
+  the effect like the other material state); one that reads values is lowered every frame as before.
+- **Checked:** trails (reads none) and sizes (reads `coarse`) look as before.
+
+Seen once and not again: right after a build, the shader tool showed "syntax error" on the first `[Image]` line of
+trails and sizes at frame 120, as if a compile had seen the declarations without the rewrite. Two more runs, one right
+after the Slang tests, were clean.
+
+Next: the board underlay (dogfood), which needs a buffer from the host (a UI library change: asked first). Then the
+rest of stage D: prelude compute batched into levelled passes, and problems per material instead of `Console.Error`.
 
 Also still open:
 

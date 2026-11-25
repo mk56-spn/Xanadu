@@ -38,9 +38,13 @@ internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
     public Buffer[] Buffers = buffers;
 }
 
-/// <summary>A schedule's graph lowered with its material's values this frame (<see cref="Xanadu.Slang.GraphPlan"/>).</summary>
-internal struct LoweredGraph(Xanadu.Slang.GraphPlan plan) : IComponent
+/// <summary>
+/// A schedule's graph lowered with its material's values (<see cref="Xanadu.Slang.GraphPlan"/>), for one compile of its
+/// effect: again each frame while it reads values, once when it reads none.
+/// </summary>
+internal struct LoweredGraph(CanvasEffect effect, Xanadu.Slang.GraphPlan plan) : IComponent
 {
+    public CanvasEffect Effect = effect;
     public Xanadu.Slang.GraphPlan Plan = plan;
 }
 

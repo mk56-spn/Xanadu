@@ -90,6 +90,12 @@ public sealed class GraphPlan
     /// <summary>Whether a node runs mid-frame, so the item breaks the pass.</summary>
     public bool BreaksPass { get; private set; }
 
+    /// <summary>
+    /// Whether the last lowering read any of the stack's values. A schedule that read none comes out the same every
+    /// frame, so it is lowered once (Docs/render-graph.md, stage D: static graphs flattened).
+    /// </summary>
+    public bool ReadsValues { get; private set; }
+
     /// <summary>Why the schedule can't run with these values (a loop that won't end); null when it can.</summary>
     public string? Problem { get; private set; }
 
@@ -129,6 +135,7 @@ public sealed class GraphPlan
     {
         _nodes.Clear();
         BreaksPass = false;
+        ReadsValues = false;
         Problem = null;
         if (fragment.Update is not null)
             Add(NodeKind.Update, NodePlace.Prelude);
@@ -141,7 +148,13 @@ public sealed class GraphPlan
             _runs.Clear();
             try
             {
-                build.Shape.Walk(uniform ?? (name => fragment.ScheduleValue(name, null)), _runs);
+                Func<string, BuildValue?> values = uniform ?? (name => fragment.ScheduleValue(name, null));
+                build.Shape.Walk(name =>
+                {
+                    BuildValue? value = values(name);
+                    ReadsValues |= value is not null;
+                    return value;
+                }, _runs);
             }
             catch (BuildProblem problem)
             {

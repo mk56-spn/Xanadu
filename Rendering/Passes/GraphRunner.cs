@@ -179,8 +179,11 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         if (effect.Compiled.Build is null)
             return effect.Plan;
         Entity entity = materials.For(material);
-        if (!entity.TryGetComponent(out LoweredGraph lowered))
-            entity.AddComponent(lowered = new LoweredGraph(new GraphPlan()));
+        bool had = entity.TryGetComponent(out LoweredGraph lowered) && lowered.Effect == effect;
+        if (had && !lowered.Plan.ReadsValues && lowered.Plan.Problem is null)
+            return lowered.Plan;
+        if (!had)
+            entity.AddComponent(lowered = new LoweredGraph(effect, new GraphPlan()));
         CompiledShader compiled = effect.Compiled;
         lowered.Plan.Lower(compiled, name => compiled.ScheduleValue(name, material.Values.TryGetValue(name, out Vector4 set) ? set : null));
         // Its values made the schedule impossible (a loop that won't end): said once, nothing of it run.
