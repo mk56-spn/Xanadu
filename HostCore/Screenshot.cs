@@ -36,7 +36,7 @@ internal static class Screenshot
 
         var png = new MemoryStream();
         png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
-        var header = new byte[13];
+        byte[] header = new byte[13];
         WriteBig(header, 0, (uint)width);
         WriteBig(header, 4, (uint)height);
         header[8] = 8; header[9] = 6; // 8-bit RGBA
@@ -48,7 +48,7 @@ internal static class Screenshot
 
     private static void Chunk(Stream png, string type, byte[] data)
     {
-        var buffer = new byte[4];
+        byte[] buffer = new byte[4];
         WriteBig(buffer, 0, (uint)data.Length);
         png.Write(buffer);
         byte[] typeBytes = System.Text.Encoding.ASCII.GetBytes(type);

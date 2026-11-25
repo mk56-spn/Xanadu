@@ -28,7 +28,7 @@ internal static class PreviewMesh
             }
         }
 
-        var indices = new int[columns * rows * 6];
+        int[] indices = new int[columns * rows * 6];
         int n = 0;
         for (int y = 0; y < rows; y++)
         {

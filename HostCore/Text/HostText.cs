@@ -184,7 +184,7 @@ internal sealed unsafe class HostText : IDisposable
             return new GlyphBitmap(0, 0, 0, 0, []);
 
         int w = right - left, h = bottom - top;
-        var coverage = new byte[w * h];
+        byte[] coverage = new byte[w * h];
         foreach ((GlyphBitmap bitmap, int x, int y) in pieces)
             for (int row = 0; row < bitmap.Height; row++)
                 for (int col = 0; col < bitmap.Width; col++)

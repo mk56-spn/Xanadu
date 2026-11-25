@@ -100,7 +100,7 @@ internal sealed class HostResidentTree(CanvasTree canvas) : IResidentTree
     public int SlotCount => _slotCount;
 
     /// <summary>Its buffers and frame place, kept by the renderer.</summary>
-    public ResidentGpu? Gpu;
+    public Friflo.Engine.ECS.Entity Gpu;
 
     public CanvasItem? ItemAt(int slot) => _items[slot];
 

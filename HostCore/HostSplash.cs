@@ -63,7 +63,7 @@ internal sealed class HostSplash : IDisposable
     }
 
     /// <summary>Records the splash into <paramref name="target"/>, filling it.</summary>
-    public void Draw(CommandBuffer commands, Texture target, float progress)
+    private void Draw(CommandBuffer commands, Texture target, float progress)
     {
         Color background = Palette.Background;
         commands.EndRenderPass(commands.BeginRenderPass(
@@ -110,7 +110,7 @@ internal sealed class HostSplash : IDisposable
             return null;
         try
         {
-            var rgba = new byte[width * height * 4];
+            byte[] rgba = new byte[width * height * 4];
             byte[] under = [Byte(background.R), Byte(background.G), Byte(background.B)];
             for (int i = 0; i < rgba.Length; i += 4)
             {
@@ -119,7 +119,7 @@ internal sealed class HostSplash : IDisposable
                     rgba[i + c] = (byte)((pixels[i + c] * alpha + under[c] * (255 - alpha) + 127) / 255);
                 rgba[i + 3] = 255;
             }
-            return uploader.CreateTexture2D<byte>("splash icon", rgba, TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, width, height);
+            return uploader.CreateTexture2D("splash icon", rgba, TextureFormat.R8G8B8A8Unorm, TextureUsageFlags.Sampler, width, height);
         }
         finally
         {

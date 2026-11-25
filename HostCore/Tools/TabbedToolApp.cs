@@ -157,7 +157,7 @@ internal abstract class TabbedToolApp : HostApp
     /// <summary>The terminal's <c>tab</c>: each tab by its name, squashed to one lower-case word (a repeat gets its number).</summary>
     private void AddTabCommand()
     {
-        var names = new string[_tabs.Length];
+        string[] names = new string[_tabs.Length];
         for (int i = 0; i < _tabs.Length; i++)
         {
             string name = new([.. _tabs[i].Name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);

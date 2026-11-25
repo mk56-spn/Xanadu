@@ -340,7 +340,7 @@ internal struct Primitive
         Vector2 a, Vector2 b, Vector2 c, Color ca, Color cb, Color cc,
         Vector2 ua, Vector2 ub, Vector2 uc, uint ia, uint ib, uint ic)
     {
-        var rest = RestFrame.Of(a, b, c, ua, ub, uc).Transformed(t);
+        RestFrame rest = RestFrame.Of(a, b, c, ua, ub, uc).Transformed(t);
         into.Add(new CanvasVertex(t * a, ua, ca * tint, a, rest, ia));
         into.Add(new CanvasVertex(t * b, ub, cb * tint, b, rest, ib));
         into.Add(new CanvasVertex(t * c, uc, cc * tint, c, rest, ic));

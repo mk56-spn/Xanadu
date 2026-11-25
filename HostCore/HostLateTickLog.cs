@@ -26,11 +26,11 @@ internal static class HostLateTickLog
     {
         if (!message.StartsWith(Prefix, System.StringComparison.Ordinal))
             return false;
-        var parts = message[Prefix.Length..].Split(' ');
+        string[] parts = message[Prefix.Length..].Split(' ');
         // parts: {accumulated} ms to {max} ms
         return parts.Length >= 4
-            && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.CurrentCulture, out var accumulated)
-            && double.TryParse(parts[3], NumberStyles.Float, CultureInfo.CurrentCulture, out var max)
+            && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.CurrentCulture, out double accumulated)
+            && double.TryParse(parts[3], NumberStyles.Float, CultureInfo.CurrentCulture, out double max)
             && accumulated - max < IgnoreUnderMs;
     }
 }

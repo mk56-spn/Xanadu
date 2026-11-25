@@ -15,8 +15,14 @@ namespace Xanadu.Host.Rendering;
 /// vertices, so a grid resized every frame (the shader tool's preview while its
 /// divider is dragged) costs it nothing more than one standing still.
 /// </summary>
-internal sealed partial class CanvasRenderer
+internal sealed class GridCutter(GraphicsDevice device, List<Step> steps) : IDisposable
 {
+    private readonly GraphicsDevice _device = device;
+    private readonly List<Step> _steps = steps;
+
+    /// <summary>The frame's cut grids, read as vertices by the effect draws.</summary>
+    public readonly GpuArray<uint> Vertices = new(device, "grid vertices", BufferUsageFlags.Vertex | BufferUsageFlags.ComputeStorageWrite);
+
     /// <summary>grid_cut.slang's <c>GridJob</c>.</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct GridJob
@@ -34,13 +40,11 @@ internal sealed partial class CanvasRenderer
     private const int VertexWords = 17;
 
     private ComputeOperation<GridJob>? _gridCut;
-    private Buffer? _gridVertices;
-    private uint _gridVertexCapacity;
     private int _gridVertexCount;
     private uint _gridMostCells;
 
     /// <summary>Forgets the grids planned so far: the build starts again.</summary>
-    private void ClearGrids()
+    public void Clear()
     {
         _gridCut?.Clear();
         _gridVertexCount = 0;
@@ -52,7 +56,7 @@ internal sealed partial class CanvasRenderer
     /// of one texture; false (nothing added) when the range holds a triangle or a disc, which only
     /// the CPU cuts.
     /// </summary>
-    private bool AddGrid(CanvasItem item, in Entry entry, int from, int to, int columns, int rows, StepKind kind,
+    public bool Add(CanvasItem item, in Entry entry, int from, int to, int columns, int rows, StepKind kind,
         CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values, float depth, float span)
     {
         for (int i = from; i < to; i++)
@@ -118,28 +122,20 @@ internal sealed partial class CanvasRenderer
     }
 
     /// <summary>Cuts the frame's grids into the grid vertex buffer, in one dispatch.</summary>
-    private void CutGrids(CommandBuffer commands)
+    public void Cut(CommandBuffer commands)
     {
         if (_gridCut is null || _gridCut.Count == 0)
             return;
 
         // The buffer is read as vertices and written as plain words.
         uint words = (uint)(_gridVertexCount * VertexWords);
-        if (_gridVertices is null || words > _gridVertexCapacity)
-        {
-            _gridVertices?.Dispose();
-            _gridVertexCapacity = Math.Max(words, _gridVertexCapacity * 2);
-            _gridVertices = Buffer.Create<uint>(_device, "grid vertices",
-                BufferUsageFlags.Vertex | BufferUsageFlags.ComputeStorageWrite, _gridVertexCapacity);
-        }
-
-        _gridCut.Run(commands, _gridVertices, [], new GridUniforms(),
+        _gridCut.Run(commands, Vertices.Ensure((int)words), [], new GridUniforms(),
             (_gridMostCells + ComputeOperation<GridJob>.Threads - 1) / ComputeOperation<GridJob>.Threads);
     }
 
-    private void DisposeGrids()
+    public void Dispose()
     {
         _gridCut?.Dispose();
-        _gridVertices?.Dispose();
+        Vertices.Dispose();
     }
 }

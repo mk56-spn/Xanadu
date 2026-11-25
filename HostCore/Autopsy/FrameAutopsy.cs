@@ -204,7 +204,7 @@ public static class XfaBinary
                     long start = reader.ReadInt64();
                     var keep = (AutopsyKeep)reader.ReadByte();
                     uint values = Count(reader, (uint)autopsy.Tracks.Count, "value");
-                    var array = new float[values];
+                    float[] array = new float[values];
                     for (int v = 0; v < array.Length; v++)
                         array[v] = reader.ReadSingle();
                     autopsy.Frames.Add(new AutopsyFrame(number, keep, array, start));

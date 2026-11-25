@@ -16,7 +16,7 @@ internal static class GlyphStrips
     public static Texture Build(GraphicsDevice device, HostText text, GlyphAtlas atlas)
     {
         int cell = atlas.CellSize, width = cell * Math.Max(1, atlas.Count);
-        var pixels = new uint[width * cell];
+        uint[] pixels = new uint[width * cell];
         Array.Fill(pixels, 0x00FFFFFFu);
         float room = cell * atlas.Fill;
         for (int i = 0; i < atlas.Count; i++)

@@ -77,7 +77,7 @@ internal sealed unsafe class FontFace : IDisposable
         try
         {
             uint count = mm->num_axis;
-            var coords = new nint[count];
+            IntPtr[] coords = new nint[count];
             bool found = false;
             for (int i = 0; i < count; i++)
             {
@@ -289,7 +289,7 @@ internal sealed unsafe class FontFace : IDisposable
         if (width == 0 || height == 0)
             return new GlyphBitmap(0, 0, left, top, []);
 
-        var coverage = new byte[width * height];
+        byte[] coverage = new byte[width * height];
         for (int y = 0; y < height; y++)
         {
             byte* row = bitmap.buffer + (bitmap.pitch >= 0 ? y : y - height + 1) * bitmap.pitch;

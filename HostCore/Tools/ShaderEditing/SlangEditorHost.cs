@@ -416,7 +416,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
 
     private int[] Depths(IReadOnlyList<string> lines)
     {
-        var depths = new int[lines.Count];
+        int[] depths = new int[lines.Count];
         List<Bracket> brackets = SlangBrackets.Find(lines, Tokens);
         int next = 0, braces = 0, groups = 0;
         for (int line = 0; line < lines.Count; line++)
@@ -477,7 +477,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     /// <summary>Puts the caret at the start of the declaration of the name at (or just before) it; false when the code doesn't declare one.</summary>
     private bool GoToDeclaration(TextBuffer buffer)
     {
-        var found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column);
+        (int Line, int Column)? found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column);
         if (found is null && buffer.Column > 0)
             found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column - 1);
         if (found is not { } at)
@@ -494,7 +494,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         _rename = null;
         if (ReadOnly)
             return;
-        var found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column);
+        (string Name, List<(int Line, int Column)> Places)? found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column);
         if (found is null && buffer.Column > 0)
             found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column - 1);
         if (found is not { } rename)

@@ -68,7 +68,7 @@ internal sealed class HostTextures(GraphicsDevice device, CanvasTree tree, Canva
             byte* data = ImageUtils.GetPixelDataFromBytes(File.ReadAllBytes(file), out uint width, out uint height, out uint size);
             if (data is not null)
             {
-                var pixels = new byte[size];
+                byte[] pixels = new byte[size];
                 Marshal.Copy((IntPtr)data, pixels, 0, (int)size);
                 ImageUtils.FreeBufferData((IntPtr)data);
                 rid = Create((int)width, (int)height, pixels, mipmaps: true);

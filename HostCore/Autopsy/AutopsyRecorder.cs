@@ -281,7 +281,7 @@ internal sealed class AutopsyRecorder
         };
         result.Tracks.AddRange(_autopsy.Tracks);
 
-        var mean = new float[_autopsy.Tracks.Count];
+        float[] mean = new float[_autopsy.Tracks.Count];
         for (int i = 0; i < mean.Length; i++)
             mean[i] = _finished == 0 || i >= _sums.Length ? float.NaN : (float)(_sums[i] / _finished);
         result.Frames.Add(new AutopsyFrame(-1, AutopsyKeep.Mean, mean));
@@ -306,7 +306,7 @@ internal sealed class AutopsyRecorder
 
     private float[] NewValues()
     {
-        var values = new float[_autopsy.Tracks.Count];
+        float[] values = new float[_autopsy.Tracks.Count];
         Array.Fill(values, float.NaN);
         return values;
     }

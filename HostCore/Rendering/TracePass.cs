@@ -40,19 +40,25 @@ internal struct TracedView
 /// stack's own triangles draw after it, tested against that depth. The textures are the
 /// target's size and shared by every trace: each runs and is drawn before the next.
 /// </summary>
-internal sealed partial class CanvasRenderer
+internal sealed class TracePass(GraphicsDevice device, CanvasFrame frame, FrameTargets targets, MaterialStore materials,
+    GlobalBindings globals) : IDisposable
 {
+    private readonly GraphicsDevice _device = device;
+    private readonly CanvasFrame _frame = frame;
+    private readonly FrameTargets _targets = targets;
+    private readonly MaterialStore _materials = materials;
+    private readonly GlobalBindings _globals = globals;
+
     private Texture? _tracedColour, _tracedDepth;
     private Shader? _tracedVertex, _tracedFragment;
     private readonly Dictionary<(BlendMode, CustomBlend?, SampleCount), GraphicsPipeline> _tracedPipelines = [];
     private readonly HashSet<CanvasEffect> _untraceable = new(ReferenceEqualityComparer.Instance);
-    private float _traceDt;
 
-    /// <summary>The box the last trace filled, which <see cref="DrawTraced"/> draws.</summary>
+    /// <summary>The box the last trace filled, which <see cref="Draw"/> draws.</summary>
     private (int X, int Y, int Width, int Height) _tracedBox;
 
     /// <summary>Runs the step's trace into the two textures; false when there is nothing to draw (off screen, or no quad to trace).</summary>
-    private bool RunTrace(CommandBuffer commands, CanvasEffect effect, Step step, float time)
+    public bool Run(CommandBuffer commands, CanvasEffect effect, Step step, float time)
     {
         if (step.Mesh is not { } mesh || step.Start >= mesh.Vertices.Count)
         {
@@ -69,16 +75,16 @@ internal sealed partial class CanvasRenderer
         CompiledTrace trace = effect.Compiled.Trace!;
         EnsureTraceTextures();
         using GpuScope scope = commands.Scope("trace");
-        commands.PushComputeUniformData(FrameUniforms.Now(_width, _height, time));
+        commands.PushComputeUniformData(FrameUniforms.Now(_targets.Width, _targets.Height, time));
         if (trace.Shader.ParamsSize > 0)
-            PushParams(commands, trace.Shader, step.Material, step.Values, stage: ParamsStage.Compute);
+            ShaderParams.Push(commands, trace.Shader, step.Material, step.Values, stage: ParamsStage.Compute);
         commands.PushComputeUniformData(new TraceQuad
         {
             Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis,
-            OriginX = x, OriginY = y, Width = (uint)width, Height = (uint)height, Dt = _traceDt,
+            OriginX = x, OriginY = y, Width = (uint)width, Height = (uint)height, Dt = _frame.Dt,
         }, 2);
 
-        Buffer[]? built = BuildBuffers(step.Material);
+        Buffer[]? built = _materials.Built(step.Material);
         Span<StorageBufferReadWriteBinding> buffers = stackalloc StorageBufferReadWriteBinding[trace.Buffers.Length];
         for (int k = 0; k < buffers.Length; k++)
         {
@@ -90,10 +96,10 @@ internal sealed partial class CanvasRenderer
         ComputePass compute = commands.BeginComputePass(
             [new StorageTextureReadWriteBinding(_tracedColour!), new StorageTextureReadWriteBinding(_tracedDepth!)], buffers);
         compute.BindComputePipeline(effect.Trace!);
-        compute.BindSamplers(new TextureSamplerBinding(_depthRead, _device.PointSampler));
-        Buffer? state = step.Material is { } kept && _states.TryGetValue(kept, out Buffer? held) ? held : null;
+        compute.BindSamplers(new TextureSamplerBinding(_targets.DepthRead, _device.PointSampler));
+        Buffer? state = _materials.State(step.Material);
         if (trace.Shader.StorageBuffers > 0)
-            compute.BindStorageBuffers(Bound(trace.Shader.StorageBuffers, state));
+            compute.BindStorageBuffers(_globals.Bound(trace.Shader.StorageBuffers, state));
         compute.Dispatch((uint)(width + trace.Width - 1) / (uint)trace.Width, (uint)(height + trace.Height - 1) / (uint)trace.Height, 1);
         commands.EndComputePass(compute);
         _tracedBox = (x, y, width, height);
@@ -108,18 +114,18 @@ internal sealed partial class CanvasRenderer
         Vector2 high = Vector2.Max(Vector2.Max(a, b), Vector2.Max(c, d));
         int x0 = Math.Max((int)MathF.Floor(low.X), Math.Max(clip.X, 0));
         int y0 = Math.Max((int)MathF.Floor(low.Y), Math.Max(clip.Y, 0));
-        int x1 = Math.Min((int)MathF.Ceiling(high.X), Math.Min(clip.X + clip.W, (int)_width));
-        int y1 = Math.Min((int)MathF.Ceiling(high.Y), Math.Min(clip.Y + clip.H, (int)_height));
+        int x1 = Math.Min((int)MathF.Ceiling(high.X), Math.Min(clip.X + clip.W, (int)_targets.Width));
+        int y1 = Math.Min((int)MathF.Ceiling(high.Y), Math.Min(clip.Y + clip.H, (int)_targets.Height));
         return x1 > x0 && y1 > y0 ? (x0, y0, x1 - x0, y1 - y0) : null;
     }
 
     /// <summary>The last trace's textures drawn into the pass over its box, with its depth in the step's slice.</summary>
-    private void DrawTraced(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples)
+    public void Draw(CommandBuffer commands, RenderPass pass, Step step, SampleCount samples)
     {
         (int x, int y, int width, int height) = _tracedBox;
         var view = new TracedView
         {
-            ScreenWidth = _width, ScreenHeight = _height, Depth = step.Depth, Span = step.Span,
+            ScreenWidth = _targets.Width, ScreenHeight = _targets.Height, Depth = step.Depth, Span = step.Span,
             OriginX = x, OriginY = y, Width = width, Height = height,
         };
         pass.BindGraphicsPipeline(TracedPipeline(step.Material, samples));
@@ -130,16 +136,15 @@ internal sealed partial class CanvasRenderer
             new TextureSamplerBinding(_tracedColour!, _device.PointSampler),
             new TextureSamplerBinding(_tracedDepth!, _device.PointSampler));
         pass.DrawPrimitives(6, 1, 0, 0);
-        LastBatchCount++;
     }
 
     private void EnsureTraceTextures()
     {
         if (_tracedColour is not null)
             return;
-        _tracedColour = Texture.Create2D(_device, "traced colour", _width, _height, TextureFormat.R16G16B16A16Float,
+        _tracedColour = Texture.Create2D(_device, "traced colour", _targets.Width, _targets.Height, TextureFormat.R16G16B16A16Float,
             TextureUsageFlags.ComputeStorageWrite | TextureUsageFlags.Sampler);
-        _tracedDepth = Texture.Create2D(_device, "traced depth", _width, _height, TextureFormat.R32Float,
+        _tracedDepth = Texture.Create2D(_device, "traced depth", _targets.Width, _targets.Height, TextureFormat.R32Float,
             TextureUsageFlags.ComputeStorageWrite | TextureUsageFlags.Sampler);
     }
 
@@ -175,19 +180,19 @@ internal sealed partial class CanvasRenderer
                 [
                     new ColorTargetDescription
                     {
-                        Format = _format,
+                        Format = _targets.Format,
                         BlendState = custom is { } state ? CanvasPipelines.Blend(state) : CanvasPipelines.Blend(blend),
                     },
                 ],
                 HasDepthStencilTarget = true,
-                DepthStencilFormat = _depthFormat,
+                DepthStencilFormat = _targets.DepthFormat,
             },
         });
         _tracedPipelines[(blend, custom, samples)] = pipeline;
         return pipeline;
     }
 
-    private void DisposeTraces()
+    public void Dispose()
     {
         foreach (GraphicsPipeline pipeline in _tracedPipelines.Values)
             pipeline.Dispose();

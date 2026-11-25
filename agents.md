@@ -206,7 +206,12 @@ A system that paints its own canvas from a panel's rectangle must check
   fit for your use case.
 - Prefer splitting things into files within reason; `main` should not become too
   large.
-- Try and keep files under 400 lines.
+- **400 lines per C# file, enforced by the build** (`Directory.Build.targets`,
+  error XAN0400). Files that were already longer are held at their current
+  length in `LineCap.txt`: they can shrink, never grow, and when one shrinks
+  the build warns (XAN0401) until its entry is lowered. Never add a file to
+  `LineCap.txt` or raise an entry; split a real type out instead (not a
+  partial-class file; `#region` only to organise what's left).
 - Lean towards arrow syntax (`=>`) when it reads well: one-expression methods,
   properties and getters. Keep a block body when the logic needs statements or
   an arrow would turn into one long hard-to-read line.

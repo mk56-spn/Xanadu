@@ -103,7 +103,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
         float half = strokeWidth / 2;
         bool fill = filled && closed;
         int count = points.Length;
-        var mask = new float[w * h];
+        float[] mask = new float[w * h];
         for (int y = 0; y < h; y++)
         {
             for (int x = 0; x < w; x++)
@@ -135,7 +135,7 @@ internal sealed class HostShapeGlow(ICanvasServer server)
         }
 
         byte[] alpha = GlowBlur.Blur(mask, w, h, glow.Radius, glow.Intensity);
-        var pixels = new byte[w * h * 4];
+        byte[] pixels = new byte[w * h * 4];
         for (int i = 0; i < alpha.Length; i++)
         {
             pixels[i * 4] = 255;

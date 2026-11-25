@@ -1,0 +1,73 @@
+<Project>
+  <!--
+    Line cap: no C# file of ours goes over 400 lines (agents.md, Code). Going
+    over fails the build (XAN0400), the same as a banned symbol does.
+    Files that were already over the cap are listed in LineCap.txt with a ceiling
+    each. They may shrink but never grow. When one shrinks, the build warns
+    (XAN0401) until its ceiling is lowered to match, so it can't grow back.
+    External and generated files (obj/) are left alone.
+    Near the cap, split out a real type; don't move half a class into a
+    partial-class file.
+  -->
+  <PropertyGroup>
+    <XanaduLineCap Condition="'$(XanaduLineCap)' == ''">400</XanaduLineCap>
+    <XanaduLineCapRoot>$(MSBuildThisFileDirectory)</XanaduLineCapRoot>
+  </PropertyGroup>
+
+  <Target Name="XanaduLineCap" BeforeTargets="CoreCompile" Condition="!$(MSBuildProjectDirectory.Contains('External'))">
+    <XanaduCheckLineCap Files="@(Compile)" Root="$(XanaduLineCapRoot)" Baseline="$(XanaduLineCapRoot)LineCap.txt" Cap="$(XanaduLineCap)" />
+  </Target>
+
+  <UsingTask TaskName="XanaduCheckLineCap" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Root ParameterType="System.String" Required="true" />
+      <Baseline ParameterType="System.String" Required="true" />
+      <Cap ParameterType="System.Int32" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+var root = Path.GetFullPath(Root);
+var ceilings = new Dictionary<string, int>(StringComparer.Ordinal);
+if (File.Exists(Baseline))
+{
+    foreach (var raw in File.ReadAllLines(Baseline))
+    {
+        var line = raw.Trim();
+        if (line.Length == 0 || line[0] == '#') continue;
+        var space = line.IndexOf(' ');
+        if (space > 0 && int.TryParse(line.Substring(0, space), out var n))
+            ceilings[line.Substring(space + 1).Trim()] = n;
+    }
+}
+foreach (var item in Files)
+{
+    var full = item.GetMetadata("FullPath");
+    if (!full.StartsWith(root, StringComparison.Ordinal)) continue;
+    var rel = full.Substring(root.Length).Replace('\\', '/');
+    if (rel.StartsWith("External/") || rel.Contains("/obj/") || rel.Contains("/bin/")) continue;
+    if (!File.Exists(full)) continue;
+    var count = 0;
+    foreach (var c in File.ReadAllText(full)) if (c == '\n') count++;
+    var listed = ceilings.TryGetValue(rel, out var ceiling);
+    var max = listed ? ceiling : Cap;
+    if (count > max)
+    {
+        var why = listed
+            ? $"{rel} grew to {count} lines; it was already over the {Cap}-line cap and may not pass {ceiling}. Split a real type out of it."
+            : $"{rel} is {count} lines, over the {Cap}-line cap. Split a real type out of it; don't add it to LineCap.txt.";
+        Log.LogError(null, "XAN0400", null, full, count, 0, 0, 0, why);
+    }
+    else if (listed && count < ceiling)
+    {
+        var fix = count <= Cap ? "delete its line" : $"lower its entry to {count}";
+        Log.LogWarning(null, "XAN0401", null, Baseline, 0, 0, 0, 0, $"{rel} shrank to {count} lines; in LineCap.txt, {fix}.");
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+</Project>

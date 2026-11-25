@@ -15,7 +15,7 @@ internal static class GlowBlur
 
     private static float[] MakeWeights()
     {
-        var weights = new float[Taps * 2 + 1];
+        float[] weights = new float[Taps * 2 + 1];
         float total = 0;
         for (int i = -Taps; i <= Taps; i++)
         {
@@ -42,11 +42,11 @@ internal static class GlowBlur
     public static byte[] Blur(float[] mask, int w, int h, float radius, float intensity)
     {
         float step = Step(radius);
-        var across = new float[w * h];
+        float[] across = new float[w * h];
         Pass(mask, across, w, h, step, 1, 0);
         Pass(across, mask, w, h, step, 0, 1);
 
-        var coverage = new byte[w * h];
+        byte[] coverage = new byte[w * h];
         for (int i = 0; i < coverage.Length; i++)
             coverage[i] = (byte)(Math.Clamp(mask[i] * intensity, 0f, 1f) * 255f + 0.5f);
         return coverage;

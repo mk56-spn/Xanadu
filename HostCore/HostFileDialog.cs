@@ -72,7 +72,7 @@ internal sealed unsafe class HostFileDialog : IDisposable
     /// <summary>Runs the follow-up for any file picked since the last call.</summary>
     public void Poll()
     {
-        while (_picked.TryDequeue(out var picked))
+        while (_picked.TryDequeue(out (string Path, Action<string> Then) picked))
             picked.Then(picked.Path);
     }
 
