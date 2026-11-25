@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
-using Xanadu.Host.Rendering;
+using Xanadu.Rendering;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems.Canvas;

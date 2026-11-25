@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS.Systems;
-using Xanadu.Host.Text;
+using Xanadu.Rendering.Text;
 
 namespace Xanadu.Labs.Experiments.EcsRender.Systems;
 

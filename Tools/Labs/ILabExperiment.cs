@@ -9,11 +9,11 @@ namespace Xanadu.Labs;
 /// canvas (<see cref="Show"/> mints its id; <see cref="Hide"/> forgets it).
 /// </summary>
 internal sealed record LabContext(
-    Xanadu.Host.Rendering.CanvasPipelines Pipelines,
+    Xanadu.Rendering.CanvasPipelines Pipelines,
     MoonWorks.Graphics.GraphicsDevice Device,
     System.Func<Texture, Handle> Show,
     System.Action<Handle> Hide,
-    Xanadu.Host.Text.HostText Text,
+    Xanadu.Rendering.Text.HostText Text,
     Friflo.Engine.ECS.EntityStore Entities);
 
 /// <summary>

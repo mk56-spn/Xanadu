@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Drawing on the GPU (Docs/host.md §5.3): the canvas tree and its renderer, compute
+    operations and particles, text (shaping, the glyph atlas, glows) and the host's own
+    shaders. It knows Core, Slang and the UI's canvas contracts, never the host's window
+    or any exe; HostCore builds the frame loop on it.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Xanadu.Rendering</AssemblyName>
+    <RootNamespace>Xanadu.Rendering</RootNamespace>
+    <IsRidAgnostic>false</IsRidAgnostic>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Xanadu.HostCore" />
+    <InternalsVisibleTo Include="Xanadu.Host" />
+    <InternalsVisibleTo Include="Xanadu.Labs" />
+    <InternalsVisibleTo Include="Xanadu.AnimatorTool" />
+    <InternalsVisibleTo Include="Xanadu.DevTools" />
+    <InternalsVisibleTo Include="Xanadu.ShaderTool" />
+    <InternalsVisibleTo Include="Xanadu.Ui.Showcase" />
+    <InternalsVisibleTo Include="Xanadu.VisualTests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../External/MoonWorks/MoonWorks.csproj" />
+    <ProjectReference Include="../Core/Xanadu.Core.csproj" />
+    <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
+    <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
+    <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
+    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
+    <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Shaders" />
+  </ItemGroup>
+  <Import Project="../Core/Maths/Maths.props" />
+</Project>

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Xanadu.Host.Rendering;
+using Xanadu.Rendering;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;

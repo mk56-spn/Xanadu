@@ -10,8 +10,8 @@ using SDL3;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Theme;
 using Xanadu.Host.Input;
-using Xanadu.Host.Rendering;
-using Xanadu.Host.Text;
+using Xanadu.Rendering;
+using Xanadu.Rendering.Text;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems;
@@ -87,7 +87,7 @@ internal abstract class HostApp : Game
     protected HostTextInput TextInput { get; }
     protected HostFps Fps { get; } = new();
 
-    private readonly Rendering.VulkanMemoryBudget _gpuMemory = new();
+    private readonly VulkanMemoryBudget _gpuMemory = new();
     protected EntityStore Entities { get; } = new();
 
     /// <summary>The host's UI; null with <see cref="HostUi.None"/>.</summary>
@@ -182,7 +182,7 @@ internal abstract class HostApp : Game
         HostPlatform.ApplyWindowMode = ApplyWindowMode;
         TextInput = new HostTextInput(Entities, MainWindow);
         HostPlatform.TextEntry = TextInput;
-        HostPlatform.MeasureMono = (text, size) => Text.Width(text, Xanadu.Host.Text.FontKind.Mono, size);
+        HostPlatform.MeasureMono = (text, size) => Text.Width(text, Xanadu.Rendering.Text.FontKind.Mono, size);
         _probe = HostFrameProbe.Enabled ? new HostFrameProbe() : null;
 
         if (ui != HostUi.None)

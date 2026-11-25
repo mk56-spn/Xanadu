@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     What every MoonWorks exe shares (Docs/host.md): the window and frame
-    loop (HostApp), the canvas tree and renderer, text, input and
-    native dialogs. The game (Host) and the tools (Tools/Labs, …) build on it.
+    loop (HostApp), input, native dialogs, the frame autopsy and the tool
+    shell, drawing through Rendering. The game (Host) and the tools (Tools/Labs, …) build on it.
     It knows the UI and Core assemblies, never the game's.
   -->
   <PropertyGroup>
@@ -29,13 +29,8 @@
     <ProjectReference Include="../Core/Xanadu.Core.csproj" />
     <ProjectReference Include="../Slang/Xanadu.Slang.csproj" />
     <ProjectReference Include="../UI/Xanadu.Ui.csproj" />
-    <PackageReference Include="FreeTypeSharp" Version="3.1.0" />
-    <PackageReference Include="HarfBuzzSharp" Version="14.4.0" />
-    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.4.0" />
+    <ProjectReference Include="../Rendering/Xanadu.Rendering.csproj" />
     <PackageReference Include="Friflo.Engine.ECS" Version="4.0.0-preview.2" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Shaders" />
   </ItemGroup>
   <!--
     Native libraries from External/fetch-moonlibs.sh (or .ps1), copied next to every exe that
@@ -57,7 +52,7 @@
     <Error Text="MoonWorks native libraries for $(MoonlibsPlatform) are missing: run External/fetch-moonlibs.sh (Linux) or External/fetch-moonlibs.ps1 (Windows)" />
   </Target>
   <!--
-    The GPU timing layer (Native/gpu_times_layer.c, Rendering/GpuTimes.cs): built with gcc against
+    The GPU timing layer (Native/gpu_times_layer.c, read by Rendering/GpuTimes.cs): built with gcc against
     External/fetch-vulkan-headers.sh's headers and copied next to every exe with its manifest.
     Without the headers it is skipped and XANADU_GPU_TIMES=1 says so.
   -->

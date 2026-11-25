@@ -147,8 +147,15 @@ The rest is under "Later" (§6).
   fonts, keyboard, pointer and text input, `HostPlatform` wiring, vsync and
   window mode, F12, `--shot`, the GPU timing layer and the frame autopsy. An
   exe derives from it, builds its ECS world on `Canvas`, and runs it in `Tick`.
-  It copies the moonlibs, `HostCore/Shaders/*` and the timing layer next to
-  every exe.
+  It copies the moonlibs and the timing layer next to every exe.
+- **`Rendering`** (library, level 3: Core, Slang, UI): drawing on the GPU. The
+  canvas tree and `CanvasRenderer`, which runs the frame as passes over one
+  `CanvasFrame` (`Frame/`: collect and build steps; `Passes/`: expand, grids,
+  stacks, trace, draw; `Gpu/`: growable buffers, targets, primitive pipelines,
+  the primitive pool; `Kept/`: what stays between frames, as entities in one
+  store: materials, kept meshes, resident trees, globals). Also compute
+  operations, particles, text (`Text/`) and the host's shaders (`Shaders/*`,
+  copied next to every exe).
 - **The game** is spread over the role projects (`Model`, `Serialisation`,
   `Storage`, `Drawers`, `Logic`, `Screens`). `Game/Xanadu.csproj` is the
   wiring (`Game/Wiring`: the system root, scenes, groups) and **`Game/Host`**
@@ -201,7 +208,7 @@ host fills; tests leave the headless defaults.
 
 ### 5.3 Canvas tree and renderer
 
-- **Recordings.** A canvas item (`CanvasTree`, `HostCore/Rendering`) records
+- **Recordings.** A canvas item (`CanvasTree`, `Rendering`) records
   *primitives* (`Primitive.cs`), not triangles: boxes (rect, rounded, stroked,
   two-colour ramp), discs and rings, textured quads (one per glyph, one per
   sprite) and free triangles (polygons, mitred polylines, meshes). Lines are
@@ -215,7 +222,7 @@ host fills; tests leave the headless defaults.
   parenting, transform, visibility or opacity sync systems. Game groups and
   tools still hang items under the root with a z.
 - **Resident UI.** The UI's drawn entities live on the GPU between frames
-  (`IResidentTree`, `HostCore/Rendering/ResidentTree.cs`): a slot per entity
+  (`IResidentTree`, `Rendering/ResidentTree.cs`): a slot per entity
   holding its node (parent slot, local transform, opacity, the clip it gives
   its children) and its item's own transform, tint, clip and pool range.
   - *The UI side* (`UiResidentSync`): **structure** (which entities draw,
@@ -299,7 +306,7 @@ host fills; tests leave the headless defaults.
 ### 5.4 Text
 
 - **FreeType + HarfBuzz** (`FreeTypeSharp`, `HarfBuzzSharp`; MIT, own natives),
-  host only (`HostCore/Text`). Regular text is Source Sans 3 at weight 400,
+  host only (`Rendering/Text`). Regular text is Source Sans 3 at weight 400,
   bold the same file at 700; mono is JetBrains Mono.
 - `HostText` owns the font files, faces and a glyph cache keyed by (face, size,
   glyph, look). `FontFace` shapes with HarfBuzz and renders with FreeType at
@@ -426,7 +433,7 @@ host fills; tests leave the headless defaults.
 - **Seam:** `IParticleServer.Emit(item, effect, seeds, strip, cells)` via
   `HostPlatform.Particles`; `CanvasParticleEmitter` on the playfield;
   `ParticleStream` (`IParticleFlow`) for rig streams and trails.
-- **Host** (`HostCore/Rendering/CanvasParticles.cs`, `HostCore/Shaders/particles.slang`):
+- **Host** (`Rendering/CanvasParticles.cs`, `Rendering/Shaders/particles.slang`):
   an item gets a `ParticleField` on its first burst, a ring of 8,192 slots:
   its own range of one particle arena (a full ring cuts off the oldest).
   Written slots upload each frame; every live field is a job of one compute
@@ -434,7 +441,7 @@ host fills; tests leave the headless defaults.
   instanced draw (reading from its range's first slot) right after its item's
   own draws, so z, groups and layers order it like any item. Per-effect
   gravity, ramp and scale curve live in one table of 32 samples each.
-- **Compute operations** (`HostCore/Rendering/Compute`): the model all GPU
+- **Compute operations** (`Rendering/Compute`): the model all GPU
   compute is moving to, the engine's first so players' later can be the same.
   A `ComputeOperation<TJob>` is a pipeline plus a job list: jobs submitted in
   a frame run in one dispatch, (groups per job, jobs, 1), the shader taking
@@ -444,7 +451,7 @@ host fills; tests leave the headless defaults.
   growth so ranges keep their offsets. Users: particles (one arena) and
   `[Grid]` cutting (jobs of different sizes write a frame vertex buffer, the
   run's groups sized to the biggest), and a stack's STEP brick
-  (`HostCore/Rendering/CanvasRenderer.Pools.cs`), the player-shaped one: the
+  (`Rendering/Passes/StackPasses.cs`), the player-shaped one: the
   brick's `start`/`step` wrapped into the operation's contract
   (`SlangShaders.Pools.cs`), each material its own pool buffer stepped once a
   frame, then its draw instanced by the item count, the vertex and fragment
@@ -619,7 +626,7 @@ host fills; tests leave the headless defaults.
 ### 5.10 Perf tooling
 
 - **GPU times** (`HostCore/Native/gpu_times_layer.c`, manifest
-  `xanadu_gpu_times.json`, reader `HostCore/Rendering/GpuTimes.cs`): a Vulkan
+  `xanadu_gpu_times.json`, reader `Rendering/GpuTimes.cs`): a Vulkan
   layer that puts timestamps around every SDL debug group and command buffer.
   HostCore's csproj builds it with gcc against headers from
   `External/fetch-vulkan-headers.sh` (gitignored); without them it's skipped.

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
 using Xanadu.Core.Theme;
-using Xanadu.Host.Rendering;
+using Xanadu.Rendering;
 using Xanadu.Host.Tools;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;

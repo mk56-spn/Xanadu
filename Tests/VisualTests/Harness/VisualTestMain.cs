@@ -6,7 +6,7 @@ using Friflo.Engine.ECS.Systems;
 using MoonWorks.Input;
 using Xanadu.Model.Ecs;
 using Xanadu.Host;
-using Xanadu.Host.Rendering;
+using Xanadu.Rendering;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Storage;
 using Xanadu.Ui.Systems;
