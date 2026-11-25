@@ -79,8 +79,6 @@ public sealed partial class StackBuild
         string name = tokens.ExpectName();
         if (name == "present" && scope.Library is null && tokens.Is("("))
             return [Present(tokens, first)];
-        if (name == "clear" && scope.Library is null && tokens.Is("("))
-            return [Clear(tokens, first)];
         StackLibrary? library = scope.Library;
         if (tokens.Take("."))
         {
@@ -105,17 +103,6 @@ public sealed partial class StackBuild
         return new BuildPresent(first.Index, colour, depth);
     }
 
-    /// <summary><c>clear(image)</c> or <c>clear(image, value)</c>.</summary>
-    private BuildClear Clear(BuildTokens tokens, BuildToken first)
-    {
-        tokens.Expect("(");
-        int image = Image(tokens, "the image to clear", [.. ImageFormats.Keys]);
-        BuildExpression? value = tokens.Take(",") ? tokens.Expression() : null;
-        tokens.Expect(")");
-        tokens.Expect(";");
-        return new BuildClear(first.Index, image, value);
-    }
-
     /// <summary>
     /// A draw's call: the colour image it draws into and the depth it writes, if any; a Surface draw names Surfaces'
     /// three images, depth, normals and bases.
@@ -126,17 +113,17 @@ public sealed partial class StackBuild
         int[] targets;
         if (_passes[pass].Draw!.Value.Surfaced)
         {
-            int depth = Image(tokens, "the Surfaces depth, pixels into the screen", ["r32f"]);
+            int depth = Image(tokens, "the Surfaces depth, pixels into the screen", ["r32f"], box: true);
             tokens.Expect(",");
-            int normals = Image(tokens, "the Surfaces normals", ["rgba16f", "rgba32f"]);
+            int normals = Image(tokens, "the Surfaces normals", ["rgba16f", "rgba32f"], box: true);
             tokens.Expect(",");
-            int bases = Image(tokens, "the Surfaces bases", ["rgba16f", "rgba8", "rgba32f"]);
+            int bases = Image(tokens, "the Surfaces bases", ["rgba16f", "rgba8", "rgba32f"], box: true);
             targets = [depth, normals, bases];
         }
         else
         {
-            int colour = Image(tokens, "the colour it draws into", ["rgba16f", "rgba8", "rgba32f"]);
-            targets = tokens.Take(",") ? [colour, Image(tokens, "the depth it writes, pixels into the screen", ["r32f"])] : [colour];
+            int colour = Image(tokens, "the colour it draws into", ["rgba16f", "rgba8", "rgba32f"], box: true);
+            targets = tokens.Take(",") ? [colour, Image(tokens, "the depth it writes, pixels into the screen", ["r32f"], box: true)] : [colour];
         }
 
         tokens.Expect(")");
@@ -144,15 +131,18 @@ public sealed partial class StackBuild
         return new BuildDraw(first.Index, pass, targets);
     }
 
-    private int Image(BuildTokens tokens, string what, string[] formats)
+    /// <summary>An image named for <paramref name="what"/>; a draw's (<paramref name="box"/>) must be the item's box's size, as its depth is.</summary>
+    private int Image(BuildTokens tokens, string what, string[] formats, bool box = false)
     {
         BuildToken given = tokens.Peek;
         string name = tokens.ExpectName();
         int image = Images.ToList().FindIndex(declared => declared.Name == name);
         if (image < 0)
-            throw new BuildProblem(given.Index, $"present takes images for {what}; {name} isn't an [Image] this graph declares.");
+            throw new BuildProblem(given.Index, $"{what}: {name} isn't an [Image] this graph declares.");
         if (!formats.Contains(Images[image].Format))
-            throw new BuildProblem(given.Index, $"present takes a {string.Join(" or ", formats)} image for {what}; {name} is {Images[image].Format}.");
+            throw new BuildProblem(given.Index, $"{what} is a {string.Join(" or ", formats)} image; {name} is {Images[image].Format}.");
+        if (box && !Images[image].Size.Box)
+            throw new BuildProblem(given.Index, $"{what}: a draw renders over the item's box, so {name} must be the box's size, not scaled or fixed.");
         return image;
     }
 

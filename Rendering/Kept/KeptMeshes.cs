@@ -53,8 +53,11 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
     private readonly ArchetypeQuery<KeptMesh> _meshes = store.Query<KeptMesh>();
     private readonly GpuStaging<CanvasVertex> _staging = new(device, "kept effect upload");
 
-    /// <summary>The range's vertices for this frame, cut again only when what they come from changed.</summary>
-    public KeptVertices Cut(CanvasItem item, Transform2D transform, Color color, int from, int to, int columns, int rows, long frame)
+    /// <summary>
+    /// The entity keeping the range's vertices (<see cref="KeptMesh"/>) for this frame, cut again only when what they come
+    /// from changed. It stands for the range from frame to frame, so what else the item keeps (its graph's held images) sits on it.
+    /// </summary>
+    public Entity Cut(CanvasItem item, Transform2D transform, Color color, int from, int to, int columns, int rows, long frame)
     {
         var hash = new HashCode();
         hash.AddBytes(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(item.Primitives).Slice(from, to - from)));
@@ -70,7 +73,7 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
         kept.LastFrame = frame;
         KeptVertices mesh = kept.Mesh;
         if (mesh.Gpu.Buffer is not null && kept.Hash == content && kept.Transform == transform && kept.Color == color)
-            return mesh;
+            return entity;
 
         kept.Hash = content;
         kept.Transform = transform;
@@ -96,14 +99,14 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
 
         if (mesh.Vertices.Count > start)
             mesh.Pieces.Add(((uint)start, (uint)(mesh.Vertices.Count - start), texture));
-        return mesh;
+        return entity;
     }
 
     /// <summary>Sends the meshes cut again this frame, and lets go of those no longer drawn.</summary>
     public void Upload(CommandBuffer commands, long frame)
     {
         Friflo.Engine.ECS.CommandBuffer deletes = store.GetCommandBuffer();
-        SendOrDrop each = _meshes.EachEntity(new SendOrDrop(commands, _staging, deletes, frame));
+        SendOrDrop each = _meshes.EachEntity(new SendOrDrop(store, commands, _staging, deletes, frame));
         if (each.Copy is { } copy)
             commands.EndCopyPass(copy);
         deletes.Playback();
@@ -111,11 +114,12 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
 
     public void Dispose()
     {
-        _meshes.Each(new DisposeMeshes());
+        _meshes.EachEntity(new DisposeMeshes(store));
         _staging.Dispose();
     }
 
-    private struct SendOrDrop(CommandBuffer commands, GpuStaging<CanvasVertex> staging, Friflo.Engine.ECS.CommandBuffer deletes, long frame)
+    private struct SendOrDrop(EntityStore store, CommandBuffer commands, GpuStaging<CanvasVertex> staging, Friflo.Engine.ECS.CommandBuffer deletes,
+        long frame)
         : IEachEntity<KeptMesh>
     {
         public CopyPass? Copy;
@@ -125,6 +129,7 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
             if (frame - kept.LastFrame > KeptFrames)
             {
                 kept.Mesh.Gpu.Dispose();
+                HeldImages.Release(store.GetEntityById(id));
                 deletes.DeleteEntity(id);
                 return;
             }
@@ -138,8 +143,12 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
         }
     }
 
-    private struct DisposeMeshes : IEach<KeptMesh>
+    private struct DisposeMeshes(EntityStore store) : IEachEntity<KeptMesh>
     {
-        public void Execute(ref KeptMesh kept) => kept.Mesh.Gpu.Dispose();
+        public void Execute(ref KeptMesh kept, int id)
+        {
+            kept.Mesh.Gpu.Dispose();
+            HeldImages.Release(store.GetEntityById(id));
+        }
     }
 }

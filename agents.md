@@ -1,5 +1,18 @@
 # Xanadu agent rules
 
+## Nothing is shipped
+
+**We are developing a game, not maintaining a released one.** Nothing in this repo is shipped, live or relied on
+by anyone: no shader, screen, file format, API, test or tool. So, whatever the job:
+
+- Never frame work as "don't break existing X", "keep X working unchanged" or "backwards compatible". There is no
+  existing user to protect.
+- Existing code never constrains a design. When a better way exists, the old code moves onto it: rewrite it,
+  convert it, or delete it.
+- No compatibility layers, shims, fallbacks for old data or "legacy" paths kept alive beside the new one.
+- The bar for a change is that the thing still does its job (judged by eye where it's visual) and costs no more,
+  not that it's identical to before.
+
 ## Architecture
 
 - **Do not try and skirt around the ECS. Always use the ECS.**

@@ -1,119 +1,286 @@
-# Render graph: status and next steps
+# Render graph: one path for every shader
 
-Handoff for the shader-land restructure (2026-11-25). The proposal is the artifact
-"Shader Land Structure": https://claude.ai/artifact/3B7y8SVr71759LEirbDNQR
+Design for review (2026-11-25), then where the code stands. The first proposal is the artifact "Shader Land
+Structure": https://claude.ai/artifact/3B7y8SVr71759LEirbDNQR. This replaces its phase plan. Phases 1b and 2
+were built around `Lab/scene_room`, and this design starts from the other end.
 
-## The goal
+## The starting point: most graphs are one node
 
-One render graph per effect instead of a fixed stack of bricks, so a scene, a mesh
-in the same room, cheaper backdrops or new lighting are library code plus a line of
-`graph()`, never a pipeline change. All 3D stays inside the effect; the game only
-sees an item drawing pixels.
+Every shader runs through the graph. The stacks in the repo today (72, Lab included):
 
-Four layers:
+| Bricks | Stacks | Its graph |
+|---|---|---|
+| shade | 49 | one draw, into the canvas |
+| deform + shade | 12 | one draw, into the canvas |
+| deform + shade + step | 5 | a compute node, then one instanced draw |
+| shade + update | 1 | a compute node, then one draw |
+| anything with build or trace | 5 | a real graph |
 
-1. **Resources:** buffers, images and values, declared in code.
-2. **Nodes:** compute, draw and copy.
-3. **`graph()`:** the CPU-walked schedule.
-4. **Library contracts:** `View`, `Surfaces`, `Lights`.
+So 61 of 72 graphs are "fragment node, exit". The design is judged on two things:
 
-Phases:
+- **The trivial graph costs nothing.** A shade-only stack draws exactly as it does today: no CPU walk, no extra
+  pass, no extra resource, the same draw call in the job's render pass.
+- **It holds at the game's scale.** Thousands of items, hundreds of materials, in the game and not only in the Lab.
 
-1. Core
-2. Contracts
-3. Port the producers
-4. Light views and AO
-5. Effect to effect
+Everything else is built on top of those two.
 
-## Done and committed
+**The shaders are work in progress like everything else.** They don't constrain the design. A shader is moved onto the graph
+wherever the graph does its job better: tiling, a blur as separate passes, a march that stops at drawn depth, work
+shared per material instead of redone per pixel. Brick syntax stays only as long as it's the shortest way to
+write the common case.
 
-- `c4f9741b`: `xanadu.scene` (Assets/Shaders/Library/xanadu/scene.slang).
-  - Solids are recorded in a BUILD pass into `scene.Part` / `scene.Object` buffers.
-  - `scene.shot` marches them with tile lists, per-ray box gathers and box-distance skipping for shadows and AO.
-  - `beat` now reaches BUILD passes.
-- `2c40a361`: phase 1a, the graph core.
-  - `void graph()` is the schedule; `build()` is still accepted as an alias.
-  - `[Image(format)] RWTexture2D<T> name;` declares per-material images, the target's size. Formats: rgba16f, rgba8, rgba32f, rg16f, r16f, r32f, r32ui.
-  - `[Pixels(w, h)] void name(ItemInput i, Canvas canvas)` is compute over the item's box. It writes images at `group.pixel`, a new field on `Group` in stage.slang.
-  - `present(colour[, depth])` draws images on the item through the TRACE draw path (`TracePass.DrawPresented`). With no SHADE brick it is all the item draws (`CompiledBuild.Alone`).
-  - One clock preamble (`SlangShaders.Clocks` / `TimelineClock` in SlangShaders.Pixels.cs) sets time, beat and dt in every compute wrapper. Pool steps and `update` now get `beat` too (`UpdateUniforms.Beat`).
-  - Host side:
-    - `Rendering/Passes/GraphPasses.cs` was split out of StackPasses.
-    - `Rendering/EffectCompute.cs` was split out of CanvasPipelines.
-    - Pass pipelines declare their storage textures, and pixel passes get 2-D tiles.
-  - Reflection skips read-write images when counting samplers (SlangShaders.cs).
-  - `Lab/scene_room` runs on graph + pixels + present, with no TRACE brick (about 2.1–2.4 ms at preview size; the old trace took 1.81).
+## Rules
 
-## Done: phase 1b, draw nodes
+1. **One path.** The renderer runs graphs and nothing else. Bricks are sugar while they're the shortest way to
+   write a graph: a stack without `graph()` gets the graph its bricks imply. A brick kind that stops paying for
+   itself (TRACE, likely) is dropped, and its shaders are rewritten as graphs. `GraphPasses`, `StackPasses`, `TracePass` and the effect half of `DrawPass` become one
+   runner with node kinds, not four code paths with their own bindings.
+2. **The pipeline is generic; contracts live in Slang.** The C# compiler knows resources, node kinds and
+   bindings. It never knows a library type (`Surface`, `Camera`, `Lighting`). A library contract that needs
+   pipeline help asks for a generic feature (a draw with several outputs, a resource with a clear value).
+3. **The graph says what it reads and writes; the runner decides where it runs.** Placement (before the canvas
+   pass, or inside it), scope (per material or per item) and lifetimes come from the graph's declared and scanned
+   access, not from special cases.
 
-What's written:
+## The canvas is a resource
 
-- **Declaring a draw:** `[Draw(across, down, shade: fn)] ItemVertex name(ItemVertex v)` plus `float4 fn(ItemInput i[, Canvas canvas])`.
-  - Read in `BuildPasses.ReadDraws`.
-  - Compiled in `Slang/SlangShaders.Draws.cs` (`CompiledDraw`, `WrapDrawVertex`, `WrapDrawFragment`).
-  - The grid comes from `SV_VertexID`. The quad is vertex uniform 0 (`DrawQuad`).
-  - Its depth is squashed as `z = 0.5 + 0.5 d / (|d| + 1024)`. The fragment writes colour to target 0 and linear depth to target 1.
-- **Calling a draw:** `name(colour[, depth]);` in `graph()` (`BuildDraw`, a `Run` with A and B as images).
-- **`clear(image[, value])`:** `BuildClear`, `Run.Clear` = -2, with the value's float bits in B.
-- **Host:**
-  - `CanvasEffect` moved to `Rendering/CanvasEffect.cs`. It holds `Draws` (shaders) and caches pipelines per draw (`DrawPipeline`).
-  - `BuildBuffers.Z` is a per-graph depth texture, cleared at the frame's first draw.
-  - `GraphPasses.RunDraw` runs the draws.
-  - LineCap: CanvasPipelines.cs was lowered to 403.
-- **The board:** `StackGraph` shows draws and the images they write.
-- **The demo:** `Lab/scene_room/build.slang` draws a mesh `Torus` (`ringDrawn` / `ringLook`) into `shown`/`shownDepth` before `shoot`. `shoot` keeps only SDF hits nearer than the depth already drawn.
+`graph()` names the canvas through three built-in resources:
 
-Status: runs. The torus sits in the marched room, hiding and hidden correctly.
-Two fixes got it going:
+| Name | What | Who may touch it |
+|---|---|---|
+| `frame` | the job's target as drawn so far, at the item's place in tree order | exit draws write it, blended as placed |
+| `screen` | a copy of `frame` up to this item | anyone reads it; reading it costs a copy (shared per pass, as today) |
+| `depth` | the canvas depth up to this item | anyone reads it (`sampleDepth` today) |
 
-- A draw binds its vertex stage's samplers too (white, like the fragment's).
-- `clear` sets `ColorTargetInfo.ClearColor` as an `FColor`. MoonWorks' `Color` is bytes, so it clamped 1e30 to 1.
+An **exit** is a draw node whose target is `frame`. It runs inside the job's render pass, depth-tested against
+the canvas and blended as the item is placed. A graph has one or more exits, in order.
 
-## Done: phase 2, the contracts
+The implied graphs:
 
-`xanadu.light` (Assets/Shaders/Library/xanadu/light.slang) is what producers and the lighting share.
+```slang
+// shade                    → void graph() { shade(frame); }
+// deform + shade           → the same; deform is the draw's vertex stage
+// + step                   → void graph() { step(); shade(frame); }   // instanced by the pool
+// + trace                  → void graph() { trace(); present(traced, tracedDepth); shade(frame); }
+```
 
-- **`Material` and `Lighting`** moved there from `xanadu.scene` unchanged. They are the `Lights` of the proposal:
-  `Lighting` already held the sun, lamps, sky, ground, fog and far, so no second type was made.
-- **No `View` type.** `Camera` already is one. The depth convention is defined once, on it:
-  - `camera.screenDepth(p)` is pixels into the screen, 0 on the orbit centre. `ItemVertex.place`, `traced.depth` and
-    Surfaces all use it.
-  - `camera.along(pixel, depth)` turns a depth back into the march's `t`.
-- **`Surface`** is one pixel before lighting: found, depth, normal and `Material`.
-  `Surface.facing(toEye)` flips it for open sheets.
-- **`Surfaces`** is three images the effect declares and wraps (`Surfaces(depth, normals, bases)`):
-  - depth: r32f, cleared to `Surfaces.EMPTY` (1e30);
-  - normals: rgba16f, xyz the normal, w the shine;
-  - bases: rgba16f, rgb the colour, a the glow.
-  - A pixel pass reads it with `at`/`depthAt` and writes it with `put`.
-- **`IShadows`** is where shadows and AO come from: `Unshadowed`, or `scene.shadows(parts, objects, camera, canvas,
-  light)`. The latter lists the tile and casts the scene's soft SDF shadows and AO on every surface, whoever drew it.
-- **`light.lit(surface, position, camera, caster)`** is the one lighting function. `scene.lit` now calls it.
-  `light.deferred(surfaces, camera, canvas, caster)` lights a pixel pass's pixel.
-- **Surface draws:** a `[Draw]` whose shade returns `Surface` is called `name(depth, normals, bases)` and writes all
-  three as MRT. Host side, draws take one to three colour targets (`Run.Target(k)`), and pipelines are keyed by their
-  formats.
-- **`scene.shoot(parts, objects, camera, canvas, light, surfaces)`** marches only out to the depth already there and
-  puts what it hits.
-- **`Lab/scene_room`** runs the whole chain: `clear` ×3, `record`, `ringDrawn` (Surface draw), `shoot`, `illuminate`
-  (deferred with `scene.shadows`), `present(shown, depth)`. The torus gets the lamp, the room's occlusion and the
-  scene's shadows. It casts none yet (phase 4).
-  - It lost its `view` option (steps, tile lists, normals). `scene.shot` still has those views; Surfaces has no cost
-    view yet.
+`present` stops being a special case. It's a library draw node whose shade samples the two images, with `frame`
+as its target.
 
-Faint lighter squares on the floor round some pins come from before this work (AO or tile lists). They're worth a look
-some time.
+## Two places a node runs: before the pass, or inside it
 
-## Next, in order
+SDL_GPU can't run compute or begin another render pass inside a render pass. So the runner splits every graph
+in two:
 
-1. Phase 3: draw the room as a closed-form box (`room.box` Surface draw) so the march only covers bounded objects.
-   The target is beating 1.81 ms with the torus in. Measure first: shoot + illuminate now list the tile twice.
-2. Phase 4: shadow depth per light from the same geometry schedule; screen-space AO; SDF soft shadows and AO as
-   opt-in nodes.
-3. Later:
-   - `[Surfaces]` sugar, so one declaration makes the three images and the clears.
-   - A cost view on Surfaces.
-   - Surfaces sampled by forward draws (sparks).
+- **Prelude:** everything that doesn't read `frame`, `screen` or `depth`. That's compute, draws into the graph's
+  own images, and copies. All of it runs before the job's render pass begins, where `StackPasses.Run` sits today.
+  It's batched across graphs (below).
+- **Exits:** the draws into `frame`. They run in tree order inside the pass, like today's effect steps.
+
+A node that reads the canvas so far (`screen`, `depth`) but isn't an exit is **mid-frame**. A trace that reads
+the depth is the one case today. It ends the pass, runs, and starts it again, as `TracePass` does. That's allowed,
+but the editor shows it as a cost (a pass break per item), the way a screen read is shown.
+
+A trivial graph has no prelude and one exit, so the runner does what `DrawPass` does today.
+
+## Scope: per material or per item
+
+Today a stack's compute runs once per material per frame, and its draws run per item. Phase 1b's pixel passes and
+draws took "the item's box" from whichever item came first, which breaks for two items on one material. Each node
+needs a scope:
+
+- **Per material:** a node that reads no item data runs once a frame, however many items show the material. Its
+  resources are the material's. Examples: `record()`, a pool step, `update`.
+- **Per item:** a node that reads the item runs once per placement. Its resources are that item's. Examples:
+  a `[Pixels]` pass over the item's box, a draw over its quad, any exit, anything reading per-item values
+  (`step.Values`).
+
+Scope is inferred from what the node binds (the item-quad uniform, per-item params). A resource takes the scope of
+the narrowest node that writes it. `scene_room` becomes: `record` per material, `ringDrawn`, `shoot`,
+`illuminate` and `present` per item. Two items showing the same room each march their own box, and share one
+recording.
+
+## Resources: sizes, lifetimes, clears
+
+Today every `[Image]` is the full target size, kept for ever, one set per material. Four images for `scene_room` is
+about 66 MB. That can't hold for hundreds of materials.
+
+- **Size.** `[Image(format)]` is the item's box by default, not the target. `[Image(format, scale: 0.5)]` is
+  relative to the box. `[Image(format, 256, 256)]` is fixed. A per-material image has no box, so it must be fixed
+  size.
+- **Lifetime:**
+  - **frame** (the default): it exists from its first writer to its last reader. The runner takes it from a pool
+    bucketed by (format, size) and gives it back. Graphs that don't overlap reuse the same memory.
+  - **kept** (`[Kept]`): it survives frames, per material or per item.
+  - **history** (`[History]`): last frame's copy, double-buffered and swapped by the runner. That's the frame
+    history the stack graph plan was waiting on.
+- **Clear value on the declaration.** `[Image(r32f, clear: 1e30)]`. The runner clears it at first use: as a
+  load-op on the first draw, or a fill before the first compute. Library contracts carry their own clears, and
+  `clear()` calls in `graph()` go away. A graph's draw depth is a declared resource too, a frame-lifetime one,
+  not a hidden `BuildBuffers.Z`.
+
+## Nodes
+
+Three kinds, plus the exit as a draw into `frame`.
+
+- **Compute:** `[Pass(threads, over)]` over elements or groups; `[Pixels(w, h)]` over an image or the item's box.
+- **Draw:**
+  - **Geometry:** the item's quad as a grid (today's deform), a kept mesh, or N instances (a pool, or a count
+    from a buffer, today's `[Draws]`).
+  - **Outputs:** they come from the shade's return type. A `float4` is one target. A struct is one target per
+    field, in order, each a `float`, `float2` or `float4`. The call names one image per output; the formats are
+    checked against the fields. SDL_GPU's colour-target limit is the cap (4, to confirm).
+  - **Depth for the shade:** the wrapper gives the shade the pixel's depth (pixels into the screen) on
+    `ItemInput`, so a shade can write its own depth output. There's no hard-wired "target 1 is depth".
+  - **Library side:** Surfaces then needs nothing from C#. `Surface` gets a `texels(depth)` method that returns
+    a plain output struct, and the shade returns that.
+- **Copy:** blit, mip, history swap, the screen copy.
+
+Arguments are lists. A call carries its image and value arguments as an array, not the fixed `A/B/C/D` slots of
+`StackBuild.Run`.
+
+## Cost at scale
+
+- **Static graphs are flattened when they compile.** A schedule with no uniform-dependent branch or loop is turned
+  into a fixed node list once. The per-frame CPU walk is only for schedules that read values, once per scope.
+- **Prelude compute is batched across graphs.** SDL_GPU orders storage writes only between passes, which is why
+  each call is its own pass today. But two nodes that share no written resource can go in one compute pass. Nodes
+  of different graphs never share resources, so all of a frame's per-material prelude can be a handful of passes,
+  levelled by dependency. That replaces the "5 levels × 5 slots" idea in `Docs/shader-pipeline.md` §8: the levels
+  come from the graph instead of being fixed slots.
+- **Exits don't get worse.** Each effect step is its own draw today, and that stays. Later, consecutive exits of
+  one material with no per-item prelude could become one instanced draw, but that's not part of this work.
+- **No per-frame logging.** A graph that can't run records one problem for the material, and the editor's
+  PROBLEMS panel shows it. `Console.Error` stays for start-up.
+
+## The Lab-only gate
+
+The game already draws through the trivial path. Compute nodes, pools and graphs are refused outside `Lab/` today
+(the `new_shader_8` failure). That gate comes off once stage B is in and measured.
+
+## Work, in order
+
+Shaders change freely along the way. The bar is that each still does its job, judged by eye, and that the trivial
+path costs no more than today: the canvas's draw and copy counts and the frame time don't go up for plain stacks.
+The check each time: the visual tests, and shots of a few plain, deform, pool and graph stacks.
+
+- **Alongside every stage: convert shaders onto the graph.** Go through the shaders for work the graph does
+  better:
+  - tiling or repeated cells (an instanced draw or a tiled compute instead of a per-pixel loop);
+  - multi-tap blurs and filters (separable passes into frame images);
+  - anything recomputed per pixel that's the same for the whole item (a per-material node);
+  - TRACE stacks (a graph);
+  - screen reads that could read a graph image instead.
+
+  Port them in the stage that makes them possible, and drop brick kinds nothing needs any more.
+
+- **A. Lowering and one runner.** Done (2026-11-25), except `present` as a library draw, which moved to C: a
+  draw can't read images until draws take image arguments. Every stack compiles to a graph, its bricks lowered as above.
+  One runner does the prelude and the exits. `StackPasses`, `GraphPasses`, `TracePass` and the effect half of `DrawPass`
+  fold into node kinds. `frame` / `screen` / `depth` become resources.
+- **B. Scope and resources.** Per-material and per-item nodes; item-sized frame images from a pool; `[Kept]`,
+  `[History]`; clear values on declarations, `clear()` gone. `scene_room` with two items on one material is the
+  test. Done (2026-11-25).
+- **C. Generic draws.** Outputs from the shade's return struct; depth on `ItemInput`; argument lists instead of
+  `A/B/C/D`; draws that read images, so `present` becomes a library draw and traced.slang goes. The `Surface` special case comes out of `SlangShaders.Draws.cs` and `BuildPasses.ReadDraws`.
+- **D. Cost.** Flatten static graphs; batch prelude compute into levelled passes; problems per material.
+- **E. Then the 3D work resumes** on top: `room.box`, shadow depth per light from the same geometry, screen-space
+  AO, `[Surfaces]` sugar if it's still wanted once clears live on declarations.
+
+## Decisions (2026-11-25)
+
+1. **Scope** is inferred from what a node binds.
+2. **Default image size** is the item's box.
+3. **Mid-frame nodes** are allowed; the editor shows the pass break as a cost.
+4. **Names** as written: `frame`, `screen`, `depth`, prelude, exit, `[Kept]`, `[History]`.
+
+## Where the code is now (2026-11-25)
+
+Stage A is in. The commits it builds on:
+
+- `2c40a361` graph core: `graph()`, `[Image]`, `[Pixels]`, `present`, one clock preamble for every compute stage.
+- `d7e23c63` draw nodes: `[Draw(across, down, shade: fn)]` into graph images against a per-graph depth, and
+  `clear(image, value)`.
+- `ade5f91c` the library contracts in `xanadu.light` (`Material`, `Lighting`, `Surface`, `Surfaces`, `IShadows`,
+  `Lighting.lit` / `deferred`, `Camera.screenDepth` / `along`) and `scene.shoot` / `scene.shadows` on them.
+
+Stage A:
+
+- **Lowering:** `Slang/GraphPlan.cs`. A compiled stack becomes an ordered list of `GraphNode`s (`Update`, `Step`,
+  `Compute`, `Pixels`, `Draw`, `Clear`, `Trace`, `Present`, `Shade`), each placed `Prelude`, `MidFrame` or `Exit`.
+  A shade-only stack is one `Shade` exit, kept on the effect (`CanvasEffect.Plan`) and never lowered again. A
+  schedule is lowered each frame with its material's values (`LoweredGraph` on the material's entity).
+- **A trace is graph nodes:** a `Trace` node writing two images the graph keeps (after its `[Image]`s), then a
+  `Present` exit. It's mid-frame only when it reads the canvas depth; otherwise it runs in the prelude with no pass
+  break. That's `bvh_march` and `trace_wave` today.
+- **The board draws the plan:** `StackGraph.Of` walks the same `GraphPlan`, so what the board shows is what runs. A
+  mid-frame node says "breaks pass".
+- **One runner, node kinds:** `Rendering/Passes/`
+  - `GraphRunner`: the prelude for every material drawn, and the mid-frame nodes;
+  - `ComputeNodes`: update, step, pass, pixels, trace;
+  - `ImageDraws`: draw, clear;
+  - `GraphResources`: the kept buffers and images;
+  - `IndirectDraws`: `[Draws]` args;
+  - `ExitDraws`: present and shade.
+
+  `DrawPass` keeps the pass itself: the pre-pass, primitives, particles, the screen copy, and breaking the pass for
+  mid-frame nodes.
+
+Stage B, first half (2026-11-25):
+
+- **Scope:** `GraphNode.Scope`. Update, step and `[Pass]` are per material: they run the first time a step shows the
+  material in a frame, on its buffers. Pixels, draws, traces and the exits are per item: they run for every step
+  showing it (not for particle meshes, which borrow the shade only). A `[Pass]` that touches an image is a compile
+  error: it has no box to size it by.
+- **Item images:** `Rendering/Passes/ItemImages.cs`. Each item's `[Image]`s and a trace's two are its box's size
+  (rounded up to 64), taken from a pool bucketed by format and size, cleared on taking (cycled, so last frame's use
+  can still be in flight), and given back when the next frame begins. A bucket unused for 120 frames is let go. Draws
+  get a box-sized depth from the same pool, cleared by the item's first draw. `BuildBuffers` keeps only buffers.
+- **Addressing:** `group.pixel` is the texel in the item's images, from the box's top left; `i.pixel` and
+  `group.low`/`high` stay on the target. A draw renders through a viewport moved by the box's corner, and its
+  fragment wrapper adds the corner back (`DrawBoxSlot`) before building `ItemInput`. Present reads at the pixel's
+  place in the box.
+- **Clears:** `[Image(format, clear: value)]`; `clear()` is gone from the schedule language.
+- **Checked:** scene_room, bvh_march and trace_wave look as before; two items on scene_room's material (a smaller
+  second copy in the preview) each march, draw and light their own box over one recording.
+
+Stage B, second half (2026-11-25):
+
+- **`[Kept] [Image(format)] RWTexture2D<T> name;`** holds its texels from frame to frame, cleared only when made.
+- **`[History(source)] RWTexture2D<T> name;`** is what `source` held at the end of last frame (its format and clear
+  come from the source). The two swap textures each frame and the source is cleared: nothing is copied. A `[Kept]`
+  image takes no history (it already has last frame's texels).
+- **Where they live:** `HeldImages` (`Rendering/Kept/HeldImages.cs`), a relation on the entity keeping the item's
+  range (`KeptMesh`, keyed `(item, from)`), one per piece, keyed by where the piece starts. Steps carry that entity
+  (`Step.Kept`). Held images are made again for a new compile or a new rounded size, and let go with the range.
+- **Checked:** `Lab/trails`, a comet whose trail fades through `[History]` over paint spots that pile up in a
+  `[Kept]` image on the beat.
+
+Stage B, sizes (2026-11-25):
+
+- **`[Image(format, scale: s)]`** is the box times s, rounded up (s above 0, at most 4). **`[Image(format, w, h)]`**
+  is fixed. `clear:` comes last. A history takes its source's size. `ImageSize` (`Slang/BuildImage.cs`) turns a
+  declaration and a box into texels.
+- **`[Pixels(w, h, over: image)]`** runs a thread a texel of that image instead of a pixel of the box: `group.pixel`
+  is the texel, `i.pixel` where its centre falls on the box (`TraceQuad.Stretch`, pixels per texel). Without `over:`
+  it is the box, as before; reading a smaller image from there is the pass's own sum (`glow[group.pixel / 4]`).
+- **Per-material images:** an image a `[Pass]` touches is the material's, one for every item showing it, and so
+  are its history or source (`CompiledBuild.MaterialImages`). It must be fixed: a `[Pass]` has no box. Frame ones come
+  from the pool once a frame; `[Kept]` and histories are held on the material's entity (`HeldImages` keyed
+  `uint.MaxValue`). Item nodes read them; an item node writing one writes for every item.
+- **Draws** still need box-sized targets (the draw depth is the box's): naming a scaled or fixed one is a compile error.
+- **Present** stretches what it shows over the box: colour filtered, depth read nearest. A box-sized image samples at
+  its texel's centres, so exactly as before.
+- **Checked:** `Lab/sizes`, a 64 × 64 palette painted by a `[Pass]`, soft blobs worked out at a quarter of the box
+  with `over:`, sharp rings at full size over them; `coarse` presents the quarter image alone. scene_room and trails
+  look as before.
+
+Next: stage C.
+
+Also still open:
+
+- `scene_room` lost its `view` option (steps, tile lists, normals) when it moved to Surfaces.
+- Faint lighter squares on the floor round some pins predate this work (AO or tile lists).
 
 ## Known failures (not from this work)
 

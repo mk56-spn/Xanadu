@@ -47,7 +47,9 @@ public sealed class StackGraphTests
         // Bound read-write, as compute is; its code only reads.
         Assert.That(Access(graph, "trace", "nodes"), Is.EqualTo(GraphAccess.Read));
         Assert.That(Access(graph, "countSparks", "drawn"), Is.EqualTo(GraphAccess.Write));
-        Assert.That(Access(graph, "trace", "depth")!.Value.HasFlag(GraphAccess.Write));
+        // The trace writes its two images; the present lands them, depth with it.
+        Assert.That(Access(graph, "trace", "traced"), Is.EqualTo(GraphAccess.Write));
+        Assert.That(Access(graph, "present", "depth")!.Value.HasFlag(GraphAccess.Write));
         // Its sparks are [Translucent]: they test the depth and never write it.
         Assert.That(Access(graph, "deform", "depth"), Is.EqualTo(GraphAccess.Read));
     }

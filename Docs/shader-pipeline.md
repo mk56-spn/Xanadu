@@ -192,7 +192,7 @@ float4 shade(Canvas canvas)
   CPU walks each frame (loops and ifs over constants and uniforms); each call is
   its own compute pass, so a pass sees what the ones before it wrote. The
   wrapper places every buffer and each stage binds only what it reads
-  (`Slang/StackBuild.cs`, `SlangShaders.Builds.cs`; `Rendering/Passes/StackPasses.cs`
+  (`Slang/StackBuild.cs`, `SlangShaders.Builds.cs`; `Rendering/Passes/GraphRunner.cs`
   runs it). `Docs/shaders.md` §21; `Lab/build_bars`, `Lab/bvh_march`.
 - **Library passes (built 2026-11-25):** library modules ship `[Pass]`
   functions and `[Schedule]`s (pass calls, loops, ifs) that `build()` calls by
@@ -214,13 +214,13 @@ float4 shade(Canvas canvas)
   draws them over the box (`Rendering/Shaders/traced.slang`), depth into the
   step's slice as a deform's corners go (`traced.depth`, pixels into the
   screen). The stack's own triangles draw after it, depth-tested.
-  `Rendering/Passes/TracePass.cs`, `SlangShaders.Traces.cs`; `Docs/shaders.md` §22;
+  `Rendering/Passes/ComputeNodes.cs` + `ExitDraws.cs`, `SlangShaders.Traces.cs`; `Docs/shaders.md` §22;
   `Lab/trace_wave`, `Lab/bvh_march`. `[Translucent]` on deform (test, never
   write depth) came with it, for the sparks.
 - **Draws (built 2026-11-24, user's choice of syntax):** a BUILD brick may
   declare `[Draws] RWStructuredBuffer<uint> name;`, one uint its passes write:
   the copies of the stack's quad drawn this frame. The renderer draws such a
-  step indirectly (`FillDraws` in `Rendering/Passes/StackPasses.cs`: the step's
+  step indirectly (`Rendering/Passes/IndirectDraws.cs`: the step's
   vertices and start go up from the CPU, the copies are copied in from the
   buffer on the GPU), and deform and shade read the copy as `copy`. `dt` is a
   global in passes and pool steps. `Lab/particles` is the whole particle lab on

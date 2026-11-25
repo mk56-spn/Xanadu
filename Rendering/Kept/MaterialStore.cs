@@ -1,13 +1,12 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
-using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Rendering.Kept;
 
 /// <summary>
 /// The GPU state each material's stack keeps between frames, as one entity per material
-/// (MaterialComponents.cs): its state, its pool, its graph's buffers and images. Forgetting a
+/// (MaterialComponents.cs): its state, its pool, its graph's buffers. Forgetting a
 /// material deletes its entity and lets go of all of it at once.
 /// </summary>
 internal sealed class MaterialStore : IDisposable
@@ -50,10 +49,6 @@ internal sealed class MaterialStore : IDisposable
     public Buffer[]? Built(CanvasMaterial? material) =>
         Find(material) is { IsNull: false } entity && entity.TryGetComponent(out BuildBuffers built) ? built.Buffers : null;
 
-    /// <summary>A graph's images, made for its effect's compile; null before its passes first ran.</summary>
-    public Texture[]? Images(CanvasMaterial? material) =>
-        Find(material) is { IsNull: false } entity && entity.TryGetComponent(out BuildBuffers built) ? built.Images : null;
-
     /// <summary>Whether this is the first time <paramref name="frame"/> the material's compute runs; marks it run.</summary>
     public bool FirstRun(CanvasMaterial material, long frame)
     {
@@ -76,6 +71,7 @@ internal sealed class MaterialStore : IDisposable
             pool.Items.Dispose();
         if (entity.TryGetComponent(out BuildBuffers built))
             Release(built);
+        HeldImages.Release(entity);
         entity.DeleteEntity();
     }
 
@@ -83,9 +79,6 @@ internal sealed class MaterialStore : IDisposable
     {
         foreach (Buffer buffer in built.Buffers)
             buffer.Dispose();
-        foreach (Texture image in built.Images)
-            image.Dispose();
-        built.Z?.Dispose();
     }
 
     public void Dispose()
@@ -93,6 +86,12 @@ internal sealed class MaterialStore : IDisposable
         _states.Each(new DisposeStates());
         _pools.Each(new DisposePools());
         _builds.Each(new DisposeBuilds());
+        _store.Query<MaterialOf>().EachEntity(new DisposeHeld(_store));
+    }
+
+    private struct DisposeHeld(EntityStore store) : IEachEntity<MaterialOf>
+    {
+        public void Execute(ref MaterialOf material, int id) => HeldImages.Release(store.GetEntityById(id));
     }
 
     private struct DisposeStates : IEach<StateBuffer>

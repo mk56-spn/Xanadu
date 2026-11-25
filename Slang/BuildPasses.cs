@@ -58,7 +58,7 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"\[\s*Pass\s*\(")]
     public static partial Regex PassMarker();
 
-    [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
+    [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*(?:,\s*over\s*:\s*(?<over>\w+)\s*)?\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
     private static partial Regex PixelsDeclaration();
 
     [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
@@ -139,7 +139,7 @@ internal static partial class BuildPasses
         var declared = PixelsDeclaration().Matches(code);
         foreach (Match marker in Regex.Matches(code, @"\[\s*Pixels\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a pixel pass as [Pixels(8, 8)] void name(ItemInput i, Canvas canvas).");
+                throw new BuildProblem(marker.Index, "write a pixel pass as [Pixels(8, 8)] void name(ItemInput i, Canvas canvas), or [Pixels(8, 8, over: image)] to run over an image's texels instead of the item's box.");
 
         foreach (Match match in declared)
         {
@@ -154,6 +154,7 @@ internal static partial class BuildPasses
             passes.Add(new BuildPass(name, width * height, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
                 Pixels = (width, height),
+                PixelsOver = match.Groups["over"] is { Success: true } over ? over.Value : null,
                 Signature = match.Groups["params"].Value,
             });
         }
@@ -174,7 +175,7 @@ internal static partial class BuildPasses
         foreach (Match match in declared)
         {
             string name = match.Groups["name"].Value;
-            if (name is "build" or "graph" or "present" or "clear" or "deform")
+            if (name is "build" or "graph" or "present" or "deform")
                 throw new BuildProblem(match.Index, $"{name} is taken; give the draw another name.");
             if (passes.Any(pass => pass.Name == name))
                 throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");

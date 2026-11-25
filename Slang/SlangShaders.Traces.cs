@@ -106,15 +106,15 @@ public static partial class SlangShaders
                 group.low = float2(xanaduTraceQuad.origin + int2(tile.xy * uint2({{width}}, {{height}})));
                 group.high = group.low + float2({{width}}, {{height}});
                 int2 at = xanaduTraceQuad.origin + int2(id.xy);
-                group.pixel = uint2(max(at, int2(0)));
+                group.pixel = id.xy;
                 ItemInput i = tracedInput(float2(at) + 0.5, xanaduTraceQuad.corner, xanaduTraceQuad.xAxis, xanaduTraceQuad.yAxis);
                 {{TimelineClock(source, shading: true)}}
                 traced.depth = 0.0;
                 float4 shown = effect0::trace({{arguments}});
                 if (all(id.xy < xanaduTraceQuad.size))
                 {
-                    xanaduTracedColour[uint2(at)] = shown;
-                    xanaduTracedDepth[uint2(at)] = traced.depth;
+                    xanaduTracedColour[id.xy] = shown;
+                    xanaduTracedDepth[id.xy] = traced.depth;
                 }
             }
             """;

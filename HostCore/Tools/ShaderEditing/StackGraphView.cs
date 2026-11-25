@@ -61,6 +61,9 @@ internal sealed class StackGraphView
             string what = pass.Brick == BrickKind.Build
                 ? $"{(pass.Calls > 1 ? $"×{pass.Calls} · " : "")}{Threads(pass.Threads)}"
                 : pass.Compute ? "compute" : "draw";
+            // A mid-frame node waits for the canvas drawn so far: the item's pass is broken for it.
+            if (pass.Place == NodePlace.MidFrame)
+                what += " · breaks pass";
             passes[i] = _board.Add(new Rect2(0, i * (Height + Gap), Width, Height), $"{pass.Name}\n{what}", BrickStrip.Category(pass.Brick)).Id;
         }
 
@@ -137,7 +140,7 @@ internal sealed class StackGraphView
 
     /// <summary>What the graph shows, as text: two compiles with the same key draw the same board.</summary>
     private static string Key(StackGraph graph) =>
-        string.Join(";", graph.Passes.Select(p => $"{p.Name}:{p.Calls}:{p.Threads}")) + "|" + graph.ScheduleProblem + "|" +
+        string.Join(";", graph.Passes.Select(p => $"{p.Name}:{p.Calls}:{p.Threads}:{p.Place}")) + "|" + graph.ScheduleProblem + "|" +
         string.Join(";", graph.Resources.Select(r => $"{r.Name}:{r.Bytes}")) + "|" +
         string.Join(";", graph.Edges.Select(e => $"{e.Pass}-{e.Resource}-{(int)e.Access}"));
 }

@@ -4,10 +4,10 @@
 // gets the room's lamp, shadows and occlusion.
 //
 //     // build.slang
-//     [Image(r32f)]    RWTexture2D<float>  depth;     // pixels into the screen; clear to Surfaces.EMPTY
-//     [Image(rgba16f)] RWTexture2D<float4> normals;   // xyz which way it faces, w its shine
-//     [Image(rgba16f)] RWTexture2D<float4> bases;     // rgb its colour, a its glow
-//     [Image(rgba16f)] RWTexture2D<float4> shown;
+//     [Image(r32f, clear: 1e30)] RWTexture2D<float>  depth;     // pixels into the screen; empty is Surfaces.EMPTY
+//     [Image(rgba16f)]           RWTexture2D<float4> normals;   // xyz which way it faces, w its shine
+//     [Image(rgba16f)]           RWTexture2D<float4> bases;     // rgb its colour, a its glow
+//     [Image(rgba16f)]           RWTexture2D<float4> shown;
 //
 //     Surfaces surfaces() { return Surfaces(depth, normals, bases); }
 //
@@ -23,7 +23,6 @@
 //
 //     void graph()
 //     {
-//         clear(depth, 1e30); clear(normals); clear(bases);
 //         ringDrawn(depth, normals, bases);              // a Surface draw names the three images
 //         illuminate();
 //         present(shown, depth);
@@ -167,7 +166,7 @@ public struct Surface
 /// draw writes all three; a pixel pass puts and reads them at its pixel.
 public struct Surfaces
 {
-    /// What a cleared depth holds: nothing there. Clear the depth image to it (1e30).
+    /// What a cleared depth holds: nothing there. Declare the depth image cleared to it: `clear: 1e30`.
     public static const float EMPTY = 1e30;
 
     public RWTexture2D<float> depth;

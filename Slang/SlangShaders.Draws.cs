@@ -14,13 +14,17 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
 /// item's quad, made from the vertex index (no vertex buffer), moved by <c>name</c> as a deform moves corners, coloured
 /// by <c>fn</c> as shade colours pixels, into the images its call names: the colour, and the depth as pixels into the
 /// screen; or, when <c>fn</c> gives a <c>Surface</c> (xanadu.light), into Surfaces' depth, normals and bases. They test
-/// and write the graph's own depth, cleared at the frame's first draw, so the nearest surface wins
-/// whatever the order. Bindings as a stack's deform and shade have them: vertex set 0 the depth sampler then the
-/// globals, set 1 the view at 0, the values at 1 and the frame at 2; fragment set 2 the samplers then the globals, set 3
-/// the frame at 0 and the values at 1. They don't read the graph's buffers or images yet.
+/// and write the item's own draw depth, cleared before its first draw, so the nearest surface wins whatever the order.
+/// The images are the item's box, so the box's corner reaches the fragment to put its position back on the target.
+/// Bindings as a stack's deform and shade have them: vertex set 0 the depth sampler then the globals, set 1 the view at
+/// 0, the values at 1 and the frame at 2; fragment set 2 the samplers then the globals, set 3 the frame at 0, the values
+/// at 1 and the box at 2. They don't read the graph's buffers or images yet.
 /// </summary>
 public static partial class SlangShaders
 {
+    /// <summary>A draw fragment's uniform slot for the item's box corner on the target (set 3): its images are the box's size.</summary>
+    public const int DrawBoxSlot = 2;
+
     private static CompiledPass CompileDraw(string name, string source, StackBuild build, int p, bool keepsState, PoolShape? pool)
     {
         BuildPass pass = build.Passes[p];
@@ -111,6 +115,7 @@ public static partial class SlangShaders
               [shader("fragment")]
               XanaduDrawn xanaduDrawFragment(ItemVaryings v)
               {
+                  v.position.xy += xanaduDrawBox.origin;
                   ItemInput i = input(v);
                   {{TimelineClock(source, shading: true)}}
                   Surface s = effect0::{{shade}}({{arguments}});
@@ -128,6 +133,7 @@ public static partial class SlangShaders
               [shader("fragment")]
               XanaduDrawn xanaduDrawFragment(ItemVaryings v)
               {
+                  v.position.xy += xanaduDrawBox.origin;
                   ItemInput i = input(v);
                   {{TimelineClock(source, shading: true)}}
                   i.colour = effect0::{{shade}}({{arguments}});
@@ -151,6 +157,10 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
+            // The item's box on the target: the draw renders into images its size, so a fragment's position is
+            // the box's, and the box's corner puts it back on the target before its input is built.
+            struct XanaduDrawBox { float2 origin; float2 pad; };
+            [[vk::binding({{DrawBoxSlot}}, 3)]] ConstantBuffer<XanaduDrawBox> xanaduDrawBox;
             // Pixels into the screen, from the squashed z: z = 0.5 + 0.5 d / (|d| + 1024), undone.
             float xanaduDrawnDepth(ItemVaryings v)
             {

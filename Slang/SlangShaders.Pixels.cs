@@ -5,7 +5,10 @@ namespace Xanadu.Slang;
 /// <summary>
 /// A graph's pixel passes (<c>[Pixels(w, h)]</c>): compute over the item's pixels on the target, a
 /// thread a pixel in tiles of w × h, called with <c>ItemInput</c> and <c>Canvas</c> as <c>trace</c>
-/// is. They write the graph's images themselves (<c>colour[group.pixel] = …</c>). Bindings, as every
+/// is. They write the item's images themselves at <c>group.pixel</c>, the texel under the thread
+/// (<c>colour[group.pixel] = …</c>): images are the item's box, from its top left. With
+/// <c>over: name</c> a thread is a texel of that image instead (a scaled or fixed one), and
+/// <c>i.pixel</c> is where the texel's centre falls on the box. Bindings, as every
 /// pass has them: the globals and kept state read-only in set 0; the images it touches, then the
 /// buffers, read-write in set 1; the frame at uniform 0, the values at 1 and the quad at 2 of set 2.
 /// </summary>
@@ -61,7 +64,7 @@ public static partial class SlangShaders
             throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a pixel pass can't read the canvas depth (sampleDepth) yet.");
         var shader = new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
             storageBuffers: Globals.Count + (keepsState ? 1 : 0));
-        return new CompiledPass(Named(build, p), shader, used, pass.Threads, access) { Images = images, Tile = (width, height) };
+        return new CompiledPass(Named(build, p), shader, used, pass.Threads, access) { Images = images, Tile = (width, height), OverImage = pass.OverImage };
     }
 
     /// <summary>
@@ -87,7 +90,7 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
-            struct XanaduTraceQuad { float2 corner; float2 xAxis; float2 yAxis; int2 origin; uint2 size; float dt; float pad; };
+            struct XanaduTraceQuad { float2 corner; float2 xAxis; float2 yAxis; int2 origin; uint2 size; float dt; float pad; float2 stretch; float2 pad2; };
             [[vk::binding(2, 2)]] ConstantBuffer<XanaduTraceQuad> xanaduTraceQuad;
             [shader("compute")]
             [numthreads({{width}}, {{height}}, 1)]
@@ -99,11 +102,13 @@ public static partial class SlangShaders
                 group.place = tile.xy;
                 group.index = local.y * {{width}} + local.x;
                 group.threads = {{width * height}};
-                group.low = float2(xanaduTraceQuad.origin + int2(tile.xy * uint2({{width}}, {{height}})));
-                group.high = group.low + float2({{width}}, {{height}});
-                int2 at = xanaduTraceQuad.origin + int2(id.xy);
-                group.pixel = uint2(max(at, int2(0)));
-                ItemInput i = tracedInput(float2(at) + 0.5, xanaduTraceQuad.corner, xanaduTraceQuad.xAxis, xanaduTraceQuad.yAxis);
+                // Pixels on the target per texel: 1 over the box, more over a smaller image (over: name).
+                float2 stretch = xanaduTraceQuad.stretch;
+                group.low = float2(xanaduTraceQuad.origin) + float2(tile.xy * uint2({{width}}, {{height}})) * stretch;
+                group.high = group.low + float2({{width}}, {{height}}) * stretch;
+                group.pixel = id.xy;
+                ItemInput i = tracedInput(float2(xanaduTraceQuad.origin) + (float2(id.xy) + 0.5) * stretch,
+                    xanaduTraceQuad.corner, xanaduTraceQuad.xAxis, xanaduTraceQuad.yAxis);
                 {{TimelineClock(source, shading: true)}}
                 effect0::{{pass}}({{arguments}});
             }

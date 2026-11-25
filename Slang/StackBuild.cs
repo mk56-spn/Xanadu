@@ -13,13 +13,6 @@ namespace Xanadu.Slang;
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Draws = false);
 
 /// <summary>
-/// An image a graph declares: <c>[Image(format)] RWTexture2D&lt;T&gt; name;</c>, the target's size, kept on the GPU
-/// from frame to frame. Passes read and write it; <c>present</c> shows it on the item.
-/// </summary>
-/// <param name="Format">Its texel format as Slang names it: rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui.</param>
-public sealed record BuildImage(string Name, string Format, string Type, int Start, int End);
-
-/// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
 /// extra threads of the last group turned away) or <c>[Pass(threads, groups: g)]</c> (g whole
 /// groups, every thread run: what code with barriers needs), on <c>void name(uint i, uint …)</c>.
@@ -47,6 +40,12 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// </summary>
     public (int Width, int Height)? Pixels { get; init; }
 
+    /// <summary>The image a pixel pass runs over (<c>over: name</c>), as written; null for the item's box.</summary>
+    public string? PixelsOver { get; init; }
+
+    /// <summary><see cref="PixelsOver"/>'s place in <see cref="StackBuild.Images"/>, or -1 for the item's box.</summary>
+    public int OverImage { get; init; } = -1;
+
     /// <summary>
     /// A draw (<c>[Draw]</c>): its grid's cells, the function that shades it, and whether that gives a <c>Surface</c>
     /// (written into Surfaces' three images) rather than a colour; null for a compute pass.
@@ -71,9 +70,6 @@ public sealed record BuildCall(int Index, int Pass, BuildExpression[] Arguments)
 /// <c>vase(colour[, depth]);</c>, or a Surface draw's <c>vase(depth, normals, bases);</c>.
 /// </summary>
 public sealed record BuildDraw(int Index, int Pass, int[] Targets) : BuildStep(Index);
-
-/// <summary><c>clear(image)</c> or <c>clear(image, value)</c>: every texel of the image set to the value (0 when none).</summary>
-public sealed record BuildClear(int Index, int Image, BuildExpression? Value) : BuildStep(Index);
 
 /// <summary><c>present(colour, depth);</c>: the images the item shows this frame, by their places in <see cref="StackBuild.Images"/> (depth -1 for none).</summary>
 public sealed record BuildPresent(int Index, int Colour, int Depth) : BuildStep(Index);
@@ -155,6 +151,15 @@ public sealed partial class StackBuild
         Images = ReadImages();
         Draws = buffers.FindIndex(buffer => buffer.Draws);
         _passes = BuildPasses.Read(code, Constant, library: false);
+        for (int p = 0; p < _passes.Count; p++)
+            if (_passes[p].PixelsOver is { } over)
+            {
+                int image = Images.ToList().FindIndex(declared => declared.Name == over);
+                if (image < 0)
+                    throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name} runs over {over}, which isn't an [Image] this graph declares.");
+                _passes[p] = _passes[p] with { OverImage = image };
+            }
+
         Schedule = ReadSchedule();
     }
 
@@ -165,9 +170,9 @@ public sealed partial class StackBuild
         Match entry = BuildEntry().Match(code);
         if (!entry.Success)
         {
-            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Pass|Image|Pixels|Draw)\s*\(|Draws\s*\])");
+            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Pass|Image|History|Pixels|Draw)\s*\(|(?:Draws|Kept)\s*\])");
             if (stray.Success)
-                throw new BuildProblem(stray.Index, "[Buffer], [Image], [Draws], [Pass], [Pixels] and [Draw] belong in a BUILD brick, with a void graph() that runs them.");
+                throw new BuildProblem(stray.Index, "[Buffer], [Image], [Kept], [History], [Draws], [Pass], [Pixels] and [Draw] belong in a BUILD brick, with a void graph() that runs them.");
             return null;
         }
 
@@ -182,8 +187,11 @@ public sealed partial class StackBuild
     [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex BuildEntry();
 
-    [GeneratedRegex(@"\[\s*Image\s*\(\s*(?<format>\w+)\s*\)\s*\]\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"(?<kept>\[\s*Kept\s*\]\s*)?(?<image>\[\s*Image\s*\(\s*(?<format>\w+)\s*(?:,\s*scale\s*:\s*(?<scale>[^,\)\]]+?)\s*)?(?:,\s*(?<w>[^,:\)\]]+?)\s*,\s*(?<h>[^,:\)\]]+?)\s*)?(?:,\s*clear\s*:\s*(?<clear>[^\)\]]+?)\s*)?\)\s*\])\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex ImageDeclaration();
+
+    [GeneratedRegex(@"\[\s*History\s*\(\s*(?<source>\w+)\s*\)\s*\]\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
+    private static partial Regex HistoryDeclaration();
 
     /// <summary>The image formats a graph may declare, and the texel type each is read as.</summary>
     public static readonly IReadOnlyDictionary<string, string> ImageFormats = new Dictionary<string, string>
@@ -240,8 +248,11 @@ public sealed partial class StackBuild
         var images = new List<BuildImage>();
         var declared = ImageDeclaration().Matches(_code);
         foreach (Match marker in Regex.Matches(_code, @"\[\s*Image\s*\("))
-            if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui).");
+            if (!declared.Any(match => match.Groups["image"].Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (the item's box), [Image(format, scale: 0.5)] (a part of it) or [Image(format, 256, 256)] (fixed), with clear: value last if wanted (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui), [Kept] before it to keep it from frame to frame.");
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*Kept\s*\]"))
+            if (!declared.Any(match => match.Groups["kept"].Success && match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "[Kept] goes on an image: [Kept] [Image(format)] RWTexture2D<T> name;.");
 
         foreach (Match match in declared)
         {
@@ -250,12 +261,69 @@ public sealed partial class StackBuild
                 throw new BuildProblem(match.Index, $"{format} isn't an image format; use rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui.");
             if (texel != type)
                 throw new BuildProblem(match.Index, $"a {format} image holds {texel}: [Image({format})] RWTexture2D<{texel}> {name};");
-            if (images.Any(image => image.Name == name) || Buffers.Any(buffer => buffer.Name == name))
-                throw new BuildProblem(match.Index, $"{name} is declared twice.");
-            images.Add(new BuildImage(name, format, type, match.Index, match.Index + match.Length));
+            Declare(images, name, match.Index);
+            float clear = 0f;
+            if (match.Groups["clear"] is { Success: true } value)
+                clear = (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, Constant).Number;
+            images.Add(new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length,
+                match.Groups["kept"].Success ? ImageLife.Kept : ImageLife.Frame, Size: SizeOf(match, name)));
+        }
+
+        var histories = HistoryDeclaration().Matches(_code);
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*History\s*\("))
+            if (!histories.Any(match => match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write a history as [History(image)] RWTexture2D<T> name;: last frame's copy of an image this graph declares.");
+
+        // After every image, so a history may come before its source.
+        int sources = images.Count;
+        foreach (Match match in histories)
+        {
+            string name = match.Groups["name"].Value, from = match.Groups["source"].Value, type = match.Groups["type"].Value;
+            int source = images.FindIndex(0, sources, image => image.Name == from);
+            if (source < 0)
+                throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an [Image] this graph declares.");
+            BuildImage of = images[source];
+            if (of.Life == ImageLife.Kept)
+                throw new BuildProblem(match.Index, $"{from} is [Kept]: it already holds last frame's texels, so it needs no history.");
+            if (images.Any(image => image.Source == source))
+                throw new BuildProblem(match.Index, $"{from} has a history already.");
+            if (type != of.Type)
+                throw new BuildProblem(match.Index, $"{from} holds {of.Type}, so its history does too: [History({from})] RWTexture2D<{of.Type}> {name};");
+            Declare(images, name, match.Index);
+            images.Add(new BuildImage(name, of.Format, of.Type, of.Clear, match.Index, match.Index + match.Length, ImageLife.History, source, of.Size));
         }
 
         return images;
+    }
+
+    /// <summary>An image's size as its declaration gives it: a scale of the box, a fixed size, or neither.</summary>
+    private ImageSize SizeOf(Match match, string name)
+    {
+        double Number(Group group) => BuildPasses.Evaluate(BuildPasses.ParseAt(group.Value, group.Index), group.Index, Constant).Number;
+        bool scaled = match.Groups["scale"].Success, sized = match.Groups["w"].Success;
+        if (scaled && sized)
+            throw new BuildProblem(match.Index, $"{name} has a scale or a size, not both.");
+        if (scaled)
+        {
+            double scale = Number(match.Groups["scale"]);
+            if (scale is <= 0 or > 4)
+                throw new BuildProblem(match.Groups["scale"].Index, $"a scale is above 0 and at most 4 ({name} has {scale}).");
+            return new ImageSize((float)scale);
+        }
+
+        if (!sized)
+            return default;
+        double width = Number(match.Groups["w"]), height = Number(match.Groups["h"]);
+        if (width != Math.Floor(width) || height != Math.Floor(height) || width is < 1 or > 8192 || height is < 1 or > 8192)
+            throw new BuildProblem(match.Groups["w"].Index, $"a fixed size is whole texels, 1 to 8192 each way ({name} is {width} × {height}).");
+        return new ImageSize(0, (int)width, (int)height);
+    }
+
+    /// <summary>Throws when <paramref name="name"/> is an image or buffer already.</summary>
+    private void Declare(List<BuildImage> images, string name, int at)
+    {
+        if (images.Any(image => image.Name == name) || Buffers.Any(buffer => buffer.Name == name))
+            throw new BuildProblem(at, $"{name} is declared twice.");
     }
 
     // ---- the body as each stage compiles it --------------------------------------------

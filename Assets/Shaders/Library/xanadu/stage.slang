@@ -382,7 +382,9 @@ public struct Group
     public uint threads;
     public float2 low;
     public float2 high;
-    /// The pixel this thread works on, on the target: where a pixel pass writes its images (`colour[group.pixel] = …`).
+    /// The texel this thread works on in the item's images, which cover the item's box from its top
+    /// left: where a pixel pass reads and writes them (`colour[group.pixel] = …`). Its place on the
+    /// target is `i.pixel`.
     public uint2 pixel;
 };
 

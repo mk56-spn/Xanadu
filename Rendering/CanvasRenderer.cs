@@ -30,7 +30,7 @@ namespace Xanadu.Rendering;
 /// <para>
 /// The frame runs as passes over one <see cref="CanvasFrame"/>: collect
 /// (<see cref="CanvasCollect"/>), build (<see cref="StepBuilder"/>), upload, expand
-/// (<see cref="PlacedPrimitives"/>), grids, globals, stacks (<see cref="StackPasses"/>),
+/// (<see cref="PlacedPrimitives"/>), grids, globals, graph preludes (<see cref="GraphRunner"/>),
 /// particles, then each job's draw (<see cref="DrawPass"/>). What is kept between frames
 /// lives in one entity store: materials, kept meshes, resident trees and globals.
 /// </para>
@@ -59,8 +59,8 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly GridCutter _grids;
     private readonly CanvasCollect _collect;
     private readonly StepBuilder _builder;
-    private readonly StackPasses _stacks;
-    private readonly TracePass _traces;
+    private readonly GraphRunner _graphs;
+    private readonly ExitDraws _exits;
     private readonly DrawPass _draw;
 
     private float _lastTime = float.NaN;
@@ -86,10 +86,9 @@ internal sealed class CanvasRenderer : IDisposable
         _grids = new GridCutter(device, _frame.Steps);
         _collect = new CanvasCollect(tree, _residents, _targets.FullClip);
         _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids);
-        _stacks = new StackPasses(device, _frame, _targets, Pipelines, _materials, _globals);
-        _traces = new TracePass(device, _frame, _targets, _materials, _globals);
-        _draw = new DrawPass(device, _frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles,
-            _materials, _globals, _stacks, _traces, _grids, _vertices);
+        _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals);
+        _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices, _graphs.Indirect);
+        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits);
     }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
@@ -156,10 +155,8 @@ internal sealed class CanvasRenderer : IDisposable
         _frame.Dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _frame.Time = time;
         _lastTime = time;
-        using (commands.Scope("shader stacks"))
-            _stacks.Run(commands, _frame.Dt, time);
-        using (commands.Scope("shader draws"))
-            _stacks.FillDraws(commands);
+        using (commands.Scope("shader graphs"))
+            _graphs.Prelude(commands);
         using (commands.Scope("particles step"))
             Particles.Step(commands, _frame.Dt);
         phases?.Lap(HostFramePhases.Phase.ShaderStates, ref lap);
@@ -193,8 +190,8 @@ internal sealed class CanvasRenderer : IDisposable
         _primitives.Dispose();
         _targets.Dispose();
         _materials.Dispose();
-        _stacks.Dispose();
-        _traces.Dispose();
+        _graphs.Dispose();
+        _exits.Dispose();
         _vertices.Dispose();
         _pool.Dispose();
         _placed.Dispose();

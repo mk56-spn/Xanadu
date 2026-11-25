@@ -6,6 +6,7 @@ using Xanadu.Core.Rendering;
 using Xanadu.Rendering.Kept;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
+using Entity = Friflo.Engine.ECS.Entity;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 
@@ -29,13 +30,14 @@ internal enum StepKind
 /// <summary>
 /// One draw, in order: a run of primitives (with up to <see cref="PrimitivePipelines.Slots"/>
 /// textures, from <see cref="FirstTexture"/> in the texture list), an effect's
-/// vertices, or a particle field.
+/// vertices, or a particle field. A kept effect range's step carries the entity keeping it (<see cref="Kept"/>): the
+/// item's range from frame to frame, where its graph holds the images that outlive a frame.
 /// </summary>
 internal readonly record struct Step(
     StepKind Kind, uint Start, uint Count, int FirstTexture = 0,
     Rect Clip = default, CanvasMaterial? Material = null, IReadOnlyDictionary<string, Vector4>? Values = null, ulong Texture = 0,
     ParticleField? Particles = null, Transform2D Transform = default, Color Color = default, float Depth = 0, float Span = 0,
-    KeptVertices? Mesh = null, bool Grid = false);
+    KeptVertices? Mesh = null, bool Grid = false, Entity Kept = default);
 
 /// <summary>One root drawn into one target.</summary>
 internal sealed class Job(CanvasItem root, Texture target, MwColor clear)

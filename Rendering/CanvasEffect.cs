@@ -1,10 +1,16 @@
 using System.Collections.Generic;
+using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering.Compute;
 using Xanadu.Slang;
 using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Rendering;
+
+/// <summary>An image a graph's items get, as the GPU makes it (<see cref="GraphPlan.Images"/>).</summary>
+/// <param name="Source">For a history, the place of the image it is last frame's copy of; -1 otherwise.</param>
+/// <param name="Material">The material's, one for all its items, rather than each item's.</param>
+internal readonly record struct GraphImage(string Name, TextureFormat Format, float Clear, ImageLife Life, int Source, ImageSize Size, bool Material);
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
 internal sealed class CanvasEffect(
@@ -33,8 +39,34 @@ internal sealed class CanvasEffect(
     /// <summary>A TRACE brick's compute stage, a thread a pixel of the quad; null without one.</summary>
     public ComputePipeline? Trace { get; } = trace;
 
-    /// <summary>Its passes and what they share, in the order they run: what the renderer walks each frame.</summary>
-    public StackGraph Graph { get; } = StackGraph.Of(compiled);
+    /// <summary>Its graph lowered at the default values: what a stack with no schedule runs every frame.</summary>
+    public GraphPlan Plan { get; } = GraphPlan.Of(compiled);
+
+    /// <summary>The graph's images (<see cref="GraphPlan.Images"/>), as the GPU makes them.</summary>
+    public GraphImage[] Images { get; } =
+        [.. GraphPlan.Images(compiled).Select(image =>
+            new GraphImage(image.Name, FormatOf(image.Format), image.Clear, image.Life, image.Source, image.Size, image.Material))];
+
+    /// <summary>Whether an item's image outlives the frame (<c>[Kept]</c>, <c>[History]</c>), so each item holds some of its own.</summary>
+    public bool HoldsImages { get; } = GraphPlan.Images(compiled).Any(image => image.Life != ImageLife.Frame && !image.Material);
+
+    /// <summary>Whether any image is the material's, so the material holds a set for its items to share.</summary>
+    public bool SharesImages { get; } = GraphPlan.Images(compiled).Any(image => image.Material);
+
+    /// <summary>Whether its graph draws into its images, so each item needs a draw depth too.</summary>
+    public bool DrawsImages { get; } = compiled.Build?.Passes.Any(pass => pass.Drawn is not null) == true;
+
+    /// <summary>An image's texel format, from the name Slang gives it.</summary>
+    private static TextureFormat FormatOf(string format) => format switch
+    {
+        "rgba16f" => TextureFormat.R16G16B16A16Float,
+        "rgba8" => TextureFormat.R8G8B8A8Unorm,
+        "rgba32f" => TextureFormat.R32G32B32A32Float,
+        "rg16f" => TextureFormat.R16G16Float,
+        "r16f" => TextureFormat.R16Float,
+        "r32f" => TextureFormat.R32Float,
+        _ => TextureFormat.R32Uint,
+    };
 
     private readonly Dictionary<(int Pass, TextureFormat A, TextureFormat B, TextureFormat C, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];
 

@@ -4,6 +4,7 @@ using Xanadu.Rendering.Gpu;
 using Xanadu.Rendering.Kept;
 using Xanadu.Rendering.Passes;
 using Xanadu.Ui.Systems.Canvas;
+using Entity = Friflo.Engine.ECS.Entity;
 
 namespace Xanadu.Rendering.Frame;
 
@@ -264,12 +265,13 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
         // frame after frame, and cutting them again each frame was the bulk of a frame's CPU in the shader tool.
         if (particles is null)
         {
-            KeptVertices mesh = _keptMeshes.Cut(item, entry.Transform, entry.Color, from, to, columns, rows, _frame.Number);
+            Entity kept = _keptMeshes.Cut(item, entry.Transform, entry.Color, from, to, columns, rows, _frame.Number);
+            KeptVertices mesh = kept.GetComponent<KeptMesh>().Mesh;
             foreach ((uint pieceStart, uint pieceCount, ulong pieceTexture) in mesh.Pieces)
             {
                 _steps.Add(new Step(kind, pieceStart, pieceCount,
                     Clip: entry.Clip, Material: material, Values: values, Texture: pieceTexture, Depth: depth, Span: span,
-                    Transform: entry.Transform, Mesh: mesh));
+                    Transform: entry.Transform, Mesh: mesh, Kept: kept));
             }
 
             return taken;

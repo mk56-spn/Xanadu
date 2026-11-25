@@ -7,7 +7,7 @@ import xanadu;
 
 [Buffer(256)] RWStructuredBuffer<scene.Part> parts;
 [Buffer(129)] RWStructuredBuffer<scene.Object> objects;
-[Image(r32f)] RWTexture2D<float> depth;
+[Image(r32f, clear: 1e30)] RWTexture2D<float> depth;
 [Image(rgba16f)] RWTexture2D<float4> normals;
 [Image(rgba16f)] RWTexture2D<float4> bases;
 [Image(rgba16f)] RWTexture2D<float4> shown;
@@ -89,9 +89,6 @@ void illuminate(ItemInput i, Canvas canvas)
 
 void graph()
 {
-    clear(depth, 1e30);
-    clear(normals);
-    clear(bases);
     record();
     ringDrawn(depth, normals, bases);
     shoot();

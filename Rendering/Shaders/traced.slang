@@ -1,5 +1,5 @@
-// A TRACE brick's result drawn into the frame (CanvasRenderer.Traces.cs): the box it filled,
-// its colour as it left it, its depth (pixels into the screen, as a deform's corners have it)
+// A graph's images presented on the frame (ExitDraws.Present): the item's box, its images the
+// box's size or stretched over it, the colour as the graph left it, its depth (pixels into the screen, as a deform's corners have it)
 // squashed into the step's slice of the frame's depth the way a deform's vertex wrapper does,
 // so the stack's own triangles drawn after it hide behind it or show in front. Pixels it left
 // clear write nothing.
@@ -11,6 +11,9 @@ struct View
     float span;
     float2 origin;
     float2 size;
+    // Pixels of the box per texel of the colour and of the depth: 1 for a box-sized image.
+    float2 colourStretch;
+    float2 depthStretch;
 };
 
 [[vk::binding(0, 1)]] ConstantBuffer<View> vertexView;
@@ -43,11 +46,15 @@ struct Shown
 [shader("fragment")]
 Shown show(Covered c)
 {
-    float2 uv = c.position.xy / fragmentView.screen;
-    float4 colour = tracedColour.SampleLevel(uv, 0.0);
+    // The images cover the item's box from its top left. A box-sized one is sampled at its texel's centre, so
+    // exactly; a smaller or fixed one is stretched over the box, filtered. Depth is never blended between texels.
+    float2 inBox = c.position.xy - fragmentView.origin;
+    float2 size;
+    tracedColour.GetDimensions(size.x, size.y);
+    float4 colour = tracedColour.SampleLevel(inBox / fragmentView.colourStretch / size, 0.0);
     if (colour.a <= 0.0)
         discard;
-    float d = tracedDepth.SampleLevel(uv, 0.0).r;
+    float d = tracedDepth.Load(int3(int2(inBox / fragmentView.depthStretch), 0)).r;
     float near = 0.5 - 0.5 * d / (abs(d) + 1024.0);
     Shown o;
     o.colour = colour;

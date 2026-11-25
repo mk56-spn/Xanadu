@@ -1,7 +1,6 @@
 using Friflo.Engine.ECS;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
-using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Rendering.Kept;
 
@@ -32,15 +31,17 @@ internal struct ItemPool(CanvasEffect effect, Buffer items) : IComponent
     public uint Parity;
 }
 
-/// <summary>A graph's buffers and images, made for one compile of its effect.</summary>
-internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers, Texture[] images, Texture? z) : IComponent
+/// <summary>A graph's buffers, the material's own, made for one compile of its effect. Its images are each item's (ItemImages).</summary>
+internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
 {
     public CanvasEffect Effect = effect;
     public Buffer[] Buffers = buffers;
-    public Texture[] Images = images;
+}
 
-    /// <summary>The depth its draws test and write, cleared at each frame's first draw; null when it has no draws.</summary>
-    public Texture? Z = z;
+/// <summary>A schedule's graph lowered with its material's values this frame (<see cref="Xanadu.Slang.GraphPlan"/>).</summary>
+internal struct LoweredGraph(Xanadu.Slang.GraphPlan plan) : IComponent
+{
+    public Xanadu.Slang.GraphPlan Plan = plan;
 }
 
 /// <summary>The frame a stack's compute passes last ran, so they run once a frame however many draws share it.</summary>

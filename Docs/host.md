@@ -451,7 +451,7 @@ host fills; tests leave the headless defaults.
   growth so ranges keep their offsets. Users: particles (one arena) and
   `[Grid]` cutting (jobs of different sizes write a frame vertex buffer, the
   run's groups sized to the biggest), and a stack's STEP brick
-  (`Rendering/Passes/StackPasses.cs`), the player-shaped one: the
+  (`Rendering/Passes/GraphRunner.cs`), the player-shaped one: the
   brick's `start`/`step` wrapped into the operation's contract
   (`SlangShaders.Pools.cs`), each material its own pool buffer stepped once a
   frame, then its draw instanced by the item count, the vertex and fragment

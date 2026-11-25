@@ -15,6 +15,9 @@ public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buff
     /// <summary>A pixel pass's tile; null for a pass over elements or groups.</summary>
     public (int Width, int Height)? Tile { get; init; }
 
+    /// <summary>The image a pixel pass runs over, a thread a texel; -1 for the item's box.</summary>
+    public int OverImage { get; init; } = -1;
+
     /// <summary>A draw's stages; null for a compute pass.</summary>
     public CompiledDraw? Drawn { get; init; }
 }
@@ -25,6 +28,12 @@ public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buff
 /// </summary>
 public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[] Passes)
 {
+    /// <summary>
+    /// By image: whether it is the material's, one for every item showing it, rather than each item's. An image a
+    /// <c>[Pass]</c> touches is (the pass runs once for the material), and so is its history or source.
+    /// </summary>
+    public bool[] MaterialImages { get; init; } = [];
+
     /// <summary>Whether what it presents is all the stack draws: no SHADE brick, so no quad of its own after it.</summary>
     public bool Alone { get; init; }
 }
@@ -156,6 +165,11 @@ public static partial class SlangShaders
             CheckDeclared(name, compute, 0, 0);
             if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
                 throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a pass can't read the depth (sampleDepth); only shade and deform can.");
+            // A [Pass] runs once for the material, so the images it touches are the material's: they need a size of their own.
+            foreach (int image in images)
+                if (!build.Images[image].Size.Fixed)
+                    throw new InvalidOperationException(
+                        $"{Where(name, source, pass.Start)}: error: {pass.Name} runs once for the material, and {build.Images[image].Name} is sized by each item's box; give it a fixed size ([Image(format, w, h)]) to make it the material's, or touch it from a [Pixels] pass or a [Draw].");
             if (used.Length > MaxStageBuffers)
                 throw new InvalidOperationException(
                     $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");
@@ -165,7 +179,7 @@ public static partial class SlangShaders
                 used, pass.Threads, access) { Images = images };
         }
 
-        var compiled = new CompiledBuild(build, bytes, passes) { Alone = build.Presents && source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
+        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = build.Presents && source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
         // Walked once with the defaults: a schedule that can't run says so now, not every frame.
         try
         {
@@ -182,6 +196,20 @@ public static partial class SlangShaders
     }
 
     /// <summary>What the board and the timings call pass <paramref name="p"/>: a library pass lent other buffers a second time is <c>sort.hist 2</c>.</summary>
+    /// <summary>The images a <c>[Pass]</c> touches, with each one's history or source: the material's (<see cref="CompiledBuild.MaterialImages"/>).</summary>
+    private static bool[] MaterialImages(StackBuild build, CompiledPass[] passes)
+    {
+        var material = new bool[build.Images.Count];
+        foreach (CompiledPass pass in passes)
+            if (pass.Tile is null && pass.Drawn is null)
+                foreach (int image in pass.Images)
+                    material[image] = true;
+        for (int k = 0; k < material.Length; k++)
+            if (build.Images[k].Source is >= 0 and var source && (material[k] || material[source]))
+                material[k] = material[source] = true;
+        return material;
+    }
+
     private static string Named(StackBuild build, int p)
     {
         BuildPass pass = build.Passes[p];
