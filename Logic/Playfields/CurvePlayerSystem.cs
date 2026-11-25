@@ -57,14 +57,14 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
             else if (body.Dashing)
             {
                 // Instant: straight to where it ends. A pad it reaches ends it below, in TouchPads.
-                if (Sweep(ref body, entity.Store, playfield))
+                if (Sweep(ref body, entity.Store, playfield, clock))
                     EndDash(ref body, entity, clock);
             }
             else
             {
                 // In an updraft's column the draft holds the body up; elsewhere gravity has it.
                 if (DraftHolding(entity.Store, body.Position) is { } draft)
-                    body.Velocity.Y = Drafts.Lift(draft, body.Position.Y, body.Velocity.Y, playhead.Tempo.BeatAt(clock), delta);
+                    body.Velocity.Y = Drafts.Lift(draft, body.Position.Y, body.Velocity.Y, delta);
                 else
                     body.Velocity.Y += PlayRules.Gravity * delta;
                 body.Position += body.Velocity * delta;
@@ -130,6 +130,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
                 body.Dash = way;
                 body.DashFrom = body.Position;
                 body.DashStartMs = release;
+                body.RunSide = way.X != 0f ? MathF.Sign(way.X) : body.RunSide;
                 body.Velocity = way;
                 break;
             case EntranceExit.Orb when entrance.EndMs > entrance.TimeMs:
@@ -153,7 +154,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     /// (left dashing, for the pad to end). True when the dash is over here.
     /// Enders the body starts in are passed out of, not stopped in.
     /// </summary>
-    private bool Sweep(ref CurveBody body, EntityStore store, Playfield playfield)
+    private bool Sweep(ref CurveBody body, EntityStore store, Playfield playfield, double clock)
     {
         Vector2 way = body.Dash;
         Vector2 from = body.Position;
@@ -167,7 +168,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
             {
                 foreach (DashStop stop in stops.Span)
                 {
-                    if (!over && DashStops.Holds(stop, body.Position) && !DashStops.Holds(stop, from))
+                    if (!over && stop.LiveAt(clock) && DashStops.Holds(stop, body.Position) && !DashStops.Holds(stop, from))
                     {
                         body.Position = DashStops.StopAt(stop, body.Position, way);
                         over = true;
@@ -181,7 +182,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
                 break;
             }
 
-            if (ReachesPad(store, body.Position))
+            if (ReachesPad(store, body.Position, clock))
                 break;
         }
 
@@ -190,12 +191,12 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     }
 
     /// <summary>Whether the body has just come onto an untimed pad it wasn't on, which then ends the dash.</summary>
-    private bool ReachesPad(EntityStore store, Vector2 at)
+    private bool ReachesPad(EntityStore store, Vector2 at, double clock)
     {
         foreach (Entity padEntity in store.Query<Pad>().Entities)
         {
             Pad pad = padEntity.GetComponent<Pad>();
-            if (!pad.IsTimed && !_touching.Contains(padEntity.Id) && Pads.Touches(pad, at))
+            if (!pad.IsTimed && pad.LiveAt(clock) && !_touching.Contains(padEntity.Id) && Pads.Touches(pad, at))
                 return true;
         }
 
@@ -230,7 +231,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     /// <summary>
     /// Fires every pad the body has just come onto: its upward speed is set
     /// (never added), and a dash that reached it ends there, carrying on
-    /// sideways at cruise speed the way it went. A ride on an orb passes pads by.
+    /// sideways at cruise speed its run's way. A ride on an orb passes pads by.
     /// </summary>
     private void TouchPads(Entity entity, ref CurveBody body, double clock)
     {
@@ -238,7 +239,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
         foreach (Entity padEntity in entity.Store.Query<Pad>().Entities)
         {
             ref Pad pad = ref padEntity.GetComponent<Pad>();
-            if (pad.IsTimed || !Pads.Touches(pad, body.Position))
+            if (pad.IsTimed || !pad.LiveAt(clock) || !Pads.Touches(pad, body.Position))
                 continue;
 
             _touchingNow.Add(padEntity.Id);
@@ -247,9 +248,8 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
 
             if (body.Dashing)
             {
-                float side = MathF.Abs(body.Dash.X) > 0.5f ? MathF.Sign(body.Dash.X) : MathF.Sign(body.Velocity.X);
                 body.Dash = Vector2.Zero;
-                body.Velocity.X = side * PlayRules.CruiseSpeed;
+                body.Velocity.X = body.RunSide * PlayRules.CruiseSpeed;
             }
 
             body.Velocity.Y = -pad.Speed;
@@ -271,14 +271,13 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
         foreach (Entity padEntity in entity.Store.Query<Pad>().Entities)
         {
             ref Pad pad = ref padEntity.GetComponent<Pad>();
-            if (!pad.IsTimed || pad.TimeMs <= was || pad.TimeMs > clock || !Pads.Reaches(pad, body.Position))
+            if (!pad.IsTimed || !pad.LiveAt(pad.TimeMs) || pad.TimeMs <= was || pad.TimeMs > clock || !Pads.Reaches(pad, body.Position))
                 continue;
 
             if (body.Dashing)
             {
-                float side = MathF.Abs(body.Dash.X) > 0.5f ? MathF.Sign(body.Dash.X) : MathF.Sign(body.Velocity.X);
                 body.Dash = Vector2.Zero;
-                body.Velocity.X = side * PlayRules.CruiseSpeed;
+                body.Velocity.X = body.RunSide * PlayRules.CruiseSpeed;
             }
 
             body.Position = Pads.StandingOn(pad);
@@ -360,7 +359,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
     }
 
     /// <summary>
-    /// A dash is over: the body runs right again at cruise speed, and gravity
+    /// A dash is over: the body runs on its way (<see cref="CurveBody.RunSide"/>) at cruise speed, and gravity
     /// takes it from wherever the wall stopped it.
     /// </summary>
     private void EndDash(ref CurveBody body, Entity entity, double clock)
@@ -368,7 +367,7 @@ public sealed class CurvePlayerSystem : QuerySystem<Player, Position, PlayfieldV
         body.ImpactWay = body.Dash;
         body.ImpactMs = clock;
         body.Dash = Vector2.Zero;
-        body.Velocity = PlayRules.SpawnVelocity;
+        body.Velocity = new Vector2(body.RunSide * PlayRules.CruiseSpeed, 0f);
 
         // The wall takes the hit: sparks thrown back off it, and a kick.
         PlayfieldView view = entity.GetComponent<PlayfieldView>();

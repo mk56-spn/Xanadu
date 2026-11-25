@@ -17,7 +17,6 @@ import xanadu;
 [Default(1)] uniform bool tiles;
 
 static const uint K = 8;                    // blobs a ray marches at once: the nearest-entering
-static const uint STACK = 32;               // the BVH walk's stack
 static const uint PILLARS = 10;
 static const uint TILE = 8;                 // pixels a tile's side: [Tile(TILE, TILE)]
 static const uint THREADS = TILE * TILE;
@@ -99,28 +98,6 @@ groupshared uint listed;                    // how many the tile found (past LIS
 groupshared uint front[THREADS];            // the subtrees the tile's threads walk, a thread each
 groupshared uint fronts;
 
-/// What a tile sees: inside the four planes through the eye and its corners, nearer than `far`.
-struct TileView
-{
-    float3 eye;
-    float3 planes[4];
-    float far;
-
-    bool sees(Node node)
-    {
-        float3 lo = node.low - eye, hi = node.high - eye;
-        if (length(clamp(float3(0), lo, hi)) >= far)
-            return false;
-        for (uint k = 0; k < 4; k++)
-        {
-            // The box's corner furthest along the plane's normal.
-            if (dot(planes[k], select(planes[k] >= 0, hi, lo)) < 0)
-                return false;
-        }
-        return true;
-    }
-};
-
 /// How far the floor is along a ray, or the far limit when it never meets it.
 float floorAlong(Ray ray)
 {
@@ -128,11 +105,12 @@ float floorAlong(Ray ray)
     return ray.direction.y > 1e-4 && t > 0 ? min(t, 200 * U) : 200 * U;
 }
 
-TileView tileView(Camera camera, Canvas canvas)
+/// What a tile sees: inside the four planes through the eye and its corners, nearer than the floor behind them.
+Frustum tileView(Camera camera, Canvas canvas)
 {
     float2 corners[4] = { group.low, float2(group.high.x, group.low.y), group.high, float2(group.low.x, group.high.y) };
     float3 dirs[4];
-    TileView v;
+    Frustum v;
     v.far = 0;
     for (uint k = 0; k < 4; k++)
     {
@@ -154,14 +132,14 @@ TileView tileView(Camera camera, Canvas canvas)
 
 /// The tile's list: the blobs it sees, sorted by the nearest any of its rays can enter them.
 /// Every thread of the tile calls it (it waits for them all).
-void listTile(TileView v)
+void listTile(Frustum v)
 {
     uint n = count();
     if (group.index == 0)
     {
         listed = 0;
         // Breadth first from the root while every inner node can still open into both children.
-        fronts = v.sees(nodes[0]) ? 1 : 0;
+        fronts = v.sees(nodes[0].box) ? 1 : 0;
         front[0] = 0;
         bool inner = true;
         while (inner && fronts > 0 && fronts * 2 <= THREADS)
@@ -172,15 +150,15 @@ void listTile(TileView v)
             for (uint k = 0; k < fronts; k++)
             {
                 uint node = front[k];
-                if (node >= n - 1)
+                if (bvh.isLeaf(node, n))
                 {
                     next[m++] = node;
                     continue;
                 }
                 uint l = nodes[node].left, r = nodes[node].right;
-                if (v.sees(nodes[l]))
+                if (v.sees(nodes[l].box))
                     next[m++] = l;
-                if (v.sees(nodes[r]))
+                if (v.sees(nodes[r].box))
                     next[m++] = r;
                 inner = true;
             }
@@ -193,32 +171,8 @@ void listTile(TileView v)
 
     if (group.index < fronts)
     {
-        uint stack[STACK];
-        uint top = 0;
-        uint node = front[group.index];
-        while (true)
-        {
-            if (v.sees(nodes[node]))
-            {
-                if (node >= n - 1)
-                {
-                    uint at;
-                    InterlockedAdd(listed, 1, at);
-                    if (at < LISTED)
-                        listPlaces[at] = nodes[node].left;
-                }
-                else
-                {
-                    if (top < STACK)
-                        stack[top++] = nodes[node].right;
-                    node = nodes[node].left;
-                    continue;
-                }
-            }
-            if (top == 0)
-                break;
-            node = stack[--top];
-        }
+        ListVisit visit = { v };
+        bvh.walk(nodes, n, front[group.index], visit);
     }
     GroupMemoryBarrierWithGroupSync();
 
@@ -231,7 +185,7 @@ void listTile(TileView v)
     {
         if (k < many)
         {
-            float4 b = balls[MAX + listPlaces[k]];
+            float4 b = sorted[listPlaces[k]];
             listKeys[k] = length(b.xyz - v.eye) - b.w - blend();
         }
         else
@@ -260,7 +214,7 @@ void listTile(TileView v)
     }
     for (uint k = group.index; k < many; k += THREADS)
     {
-        listBalls[k] = balls[MAX + listPlaces[k]];
+        listBalls[k] = sorted[listPlaces[k]];
         listIds[k] = ids[listPlaces[k]];
     }
     GroupMemoryBarrierWithGroupSync();
@@ -296,57 +250,10 @@ void gather(inout Gather g, Ray ray, float from, float limit, bool fromList, ino
         return;
     }
 
-    uint n = count();
-    float3 inverse = 1.0 / ray.direction;
-    uint stack[STACK];
-    uint top = 0;
-    uint node = 0;
-    while (true)
-    {
-        visits++;
-        Node here = nodes[node];
-        if (node >= n - 1)
-        {
-            float4 b = balls[MAX + here.left];
-            Span span = Ball(b).grown(grow).entered(ray);
-            if (!span.missed && span.far > from && span.near < limit)
-                g.add(b, here.right, span, ray, from);
-        }
-        else
-        {
-            Node l = nodes[here.left], r = nodes[here.right];
-            Span a = Bounds(l.low, l.high).entered(ray, inverse);
-            Span b = Bounds(r.low, r.high).entered(ray, inverse);
-            float far = g.horizon(limit);
-            bool reachA = a.far >= max(a.near, from) && a.near < limit;
-            bool reachB = b.far >= max(b.near, from) && b.near < limit;
-            bool useA = reachA && a.near < far;
-            bool useB = reachB && b.near < far;
-            // A box skipped only for entering past a full list still bounds the window.
-            if (reachA && !useA)
-                g.cut = min(g.cut, a.near);
-            if (reachB && !useB)
-                g.cut = min(g.cut, b.near);
-            if (useA && useB)
-            {
-                // Nearer first, so the list fills with near blobs and prunes the far box.
-                bool aFirst = a.near <= b.near;
-                node = aFirst ? here.left : here.right;
-                if (top < STACK)
-                    stack[top++] = aFirst ? here.right : here.left;
-                continue;
-            }
-            if (useA || useB)
-            {
-                node = useA ? here.left : here.right;
-                continue;
-            }
-        }
-
-        if (top == 0)
-            break;
-        node = stack[--top];
-    }
+    GatherVisit visit = { g, ray, 1.0 / ray.direction, from, limit, grow, visits };
+    bvh.walk(nodes, count(), 0, visit);
+    g = visit.g;
+    visits = visit.visits;
 }
 
 // ---- the floor and the pillars ---------------------------------------------------
@@ -423,40 +330,10 @@ float blobShadow(float3 p, float3 toSun, float4 b)
 /// penumbra of. The slow way, to check the grid against.
 float walkedShadow(float3 p, float3 toSun, inout uint visits)
 {
-    float margin = penumbra();
-    uint n = count();
-    Ray up = Ray(p, toSun);
-    float3 inverse = 1.0 / toSun;
-    float lit = 1.0;
-    uint stack[STACK];
-    uint top = 0;
-    uint node = 0;
-    while (true)
-    {
-        visits++;
-        Node here = nodes[node];
-        Span s = Bounds(here.low - margin, here.high + margin).entered(up, inverse);
-        if (!s.missed && s.far >= 0)
-        {
-            if (node >= n - 1)
-            {
-                lit = min(lit, blobShadow(p, toSun, balls[MAX + here.left]));
-                if (lit < 0.01)
-                    return 0.0;
-            }
-            else
-            {
-                if (top < STACK)
-                    stack[top++] = here.right;
-                node = here.left;
-                continue;
-            }
-        }
-        if (top == 0)
-            break;
-        node = stack[--top];
-    }
-    return lit;
+    ShadowVisit visit = { p, toSun, Ray(p, toSun), 1.0 / toSun, penumbra(), 1.0, visits };
+    bvh.walk(nodes, count(), 0, visit);
+    visits = visit.visits;
+    return visit.lit < 0.01 ? 0.0 : visit.lit;
 }
 
 /// How lit p is: the pillars hard, then every blob listed in p's cell of the sun's grid (or met walking the BVH).
@@ -502,6 +379,92 @@ float3 heat(float x)
     x = saturate(x);
     return saturate(float3(1.5 * x, 2.2 * x - 0.6, 3.0 * x - 2.0) + float3(0.05, 0.04, 0.12) * (1.0 - x));
 }
+
+// ---- the walks' visitors ---------------------------------------------------------
+
+/// A tile's subtree walk: every leaf its frustum sees goes on the list.
+struct ListVisit : bvh.IVisit
+{
+    Frustum view;
+
+    [mutating] float near(bvh.Node node) { return view.sees(node.box) ? 0.0 : bvh.SKIP; }
+
+    [mutating]
+    bool leaf(bvh.Node node)
+    {
+        uint at;
+        InterlockedAdd(listed, 1, at);
+        if (at < LISTED)
+            listPlaces[at] = node.left;
+        return false;
+    }
+};
+
+/// A ray's gather by walking the BVH: boxes it enters between from and limit, nearer first, so
+/// the gather fills with near blobs and prunes the far boxes.
+struct GatherVisit : bvh.IVisit
+{
+    Gather g;
+    Ray ray;
+    float3 inverse;
+    float from;
+    float limit;
+    float grow;
+    uint visits;
+
+    [mutating]
+    float near(bvh.Node node)
+    {
+        visits++;
+        Span s = node.box.entered(ray, inverse);
+        if (s.far < max(s.near, from) || s.near >= limit)
+            return bvh.SKIP;
+        // A box skipped only for entering past a full gather still bounds the window.
+        if (s.near >= g.horizon(limit))
+        {
+            g.cut = min(g.cut, s.near);
+            return bvh.SKIP;
+        }
+        return s.near;
+    }
+
+    [mutating]
+    bool leaf(bvh.Node node)
+    {
+        float4 b = sorted[node.left];
+        Span span = Ball(b).grown(grow).entered(ray);
+        if (!span.missed && span.far > from && span.near < limit)
+            g.add(b, node.right, span, ray, from);
+        return false;
+    }
+};
+
+/// The way to the sun from p, walking the BVH: every box it passes within a penumbra of darkens it.
+struct ShadowVisit : bvh.IVisit
+{
+    float3 p;
+    float3 toSun;
+    Ray up;
+    float3 inverse;
+    float margin;
+    float lit;
+    uint visits;
+
+    [mutating]
+    float near(bvh.Node node)
+    {
+        visits++;
+        Span s = node.box.grown(margin).entered(up, inverse);
+        return !s.missed && s.far >= 0 ? s.near : bvh.SKIP;
+    }
+
+    [mutating]
+    bool leaf(bvh.Node node)
+    {
+        lit = min(lit, blobShadow(p, toSun, sorted[node.left]));
+        return lit < 0.01;
+    }
+};
 
 [Tile(TILE, TILE)]
 float4 trace(ItemInput i, Canvas canvas)

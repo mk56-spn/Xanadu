@@ -42,6 +42,9 @@ public static class UiLayers
     // The shader editor's values column, over its code and chrome (the shader tool and the lab's editor tabs).
     public const int ShaderEditorValues = 72;
 
+    /// <summary>The shader tool's grid of every shader, over its editor and the values column.</summary>
+    public const int ShaderPicker = 75;
+
     // Menu scenes. The shared background and the settings backdrop never coexist.
     public const int MenuBackground = 99;
     public const int Menu = 100;

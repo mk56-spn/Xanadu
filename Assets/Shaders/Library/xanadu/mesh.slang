@@ -57,6 +57,17 @@ public struct Placement3
 
     /// A point in the thing's own space, placed.
     public float3 toWorld(float3 p) { return rotate3(p * scale, angles) + offset; }
+
+    /// A world point in the thing's own space: toWorld undone.
+    public float3 toLocal(float3 p) { return unrotate3(p - offset, angles) / scale; }
+}
+
+/// p turned back by `angles`: rotate3 undone (z, then y, then x, each the other way).
+public float3 unrotate3(float3 p, float3 angles)
+{
+    p = rotate3(p, float3(0.0, 0.0, -angles.z));
+    p = rotate3(p, float3(0.0, -angles.y, 0.0));
+    return rotate3(p, float3(-angles.x, 0.0, 0.0));
 }
 
 /// Anything placed in 3D: surfaces. moved, turned and scaled work on all of them.

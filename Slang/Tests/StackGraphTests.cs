@@ -60,7 +60,9 @@ public sealed class StackGraphTests
         StackGraph dark = StackGraph.Of(compiled, name => compiled.ScheduleValue(name, name == "shadows" ? new Vector4(0) : null));
 
         Assert.That(lit.Passes.First().Name, Is.EqualTo("countSparks"));
-        Assert.That(lit.Passes.Single(p => p.Name == "hist").Calls, Is.EqualTo(4));
+        // The library's radix sort: a histogram pass over each half of the keys, two rounds each.
+        Assert.That(lit.Passes.Where(p => p.Name.StartsWith("sort.hist")).Select(p => (p.Name, p.Calls)),
+            Is.EqualTo(((string, int)[])[("sort.hist", 2), ("sort.hist 2", 2)]));
         Assert.That(lit.Passes.Select(p => p.Name), Does.Contain("lightFill"));
         Assert.That(dark.Passes.Select(p => p.Name), Does.Not.Contain("lightFill"));
     }

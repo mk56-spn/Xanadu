@@ -111,6 +111,9 @@ public struct Ball
     /// The same ball, `by` bigger all round: what a melt can reach.
     public Ball grown(float by) { return Ball(centre, radius + by); }
 
+    /// The box round it: what a BVH leaf keeps.
+    public property Bounds box { get { return Bounds(centre - radius, centre + radius); } }
+
     /// How far p is from its surface (negative inside).
     public float distance(float3 p) { return length(p - centre) - radius; }
 
@@ -155,6 +158,30 @@ public struct Bounds
 
     /// Where `ray` is inside it; see the other entered for crossing many.
     public Span entered(Ray ray) { return entered(ray, 1.0 / ray.direction); }
+};
+
+/// What a bundle of rays from one eye can see: inside four planes through the eye (each normal
+/// pointing in), nearer than `far`. A tile of the screen's rays, say, to list the boxes it sees.
+public struct Frustum
+{
+    public float3 eye;
+    public float3 planes[4];
+    public float far;
+
+    /// Whether any of it can see into `box`: some of the box inside every plane, and nearer than far.
+    public bool sees(Bounds box)
+    {
+        float3 lo = box.low - eye, hi = box.high - eye;
+        if (length(clamp(float3(0), lo, hi)) >= far)
+            return false;
+        for (uint k = 0; k < 4; k++)
+        {
+            // The box's corner furthest along the plane's normal.
+            if (dot(planes[k], select(planes[k] >= 0, hi, lo)) < 0)
+                return false;
+        }
+        return true;
+    }
 };
 
 /// What a field says at a point: how far the surface is, which way is out, its colour there.

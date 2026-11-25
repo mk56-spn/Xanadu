@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Core.Rendering;
 using Xanadu.Rendering.Frame;
 using Xanadu.Rendering.Gpu;
 using Xanadu.Rendering.Kept;
@@ -12,12 +13,14 @@ using Entity = Friflo.Engine.ECS.Entity;
 
 namespace Xanadu.Rendering.Passes;
 
-/// <summary>What a BUILD pass reads at uniform 0: the frame's clock, the elements for <c>over:</c>, and the call's arguments.</summary>
+/// <summary>What a BUILD pass reads at uniform 0: the frame's clock and beat, the elements for <c>over:</c>, and the call's arguments.</summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct PassUniforms
 {
     public float Dt, Time;
-    public uint Over, Pad, A, B, C, D;
+    public uint Over;
+    public float Beat;
+    public uint A, B, C, D;
 }
 
 /// <summary>
@@ -238,7 +241,7 @@ internal sealed class StackPasses(GraphicsDevice device, CanvasFrame frame, Canv
         using GpuScope scope = commands.Scope(pass.Name);
         commands.PushComputeUniformData(new PassUniforms
         {
-            Dt = dt, Time = time, Over = call.Over, A = call.A, B = call.B, C = call.C, D = call.D,
+            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, A = call.A, B = call.B, C = call.C, D = call.D,
         });
         if (pass.Shader.ParamsSize > 0 && pass.Shader.UniformBuffers > 1)
             ShaderParams.Push(commands, pass.Shader, material, null, stage: ParamsStage.Compute);

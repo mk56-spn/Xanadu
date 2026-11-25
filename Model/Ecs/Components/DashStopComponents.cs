@@ -12,4 +12,13 @@ public struct DashStop(Vector2 position) : IComponent
 {
     /// <summary>The marker's centre, playfield units.</summary>
     public Vector2 Position = position;
+
+    /// <summary>When it comes into the level, ms (<see cref="Playfields.SongSpans"/>); the default is always there.</summary>
+    public long FromMs = long.MinValue;
+
+    /// <summary>When it leaves the level, ms.</summary>
+    public long ToMs = long.MaxValue;
+
+    /// <summary>Whether it is in the level at song time <paramref name="ms"/>.</summary>
+    public readonly bool LiveAt(double ms) => Playfields.SongSpans.Holds(FromMs, ToMs, ms);
 }

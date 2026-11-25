@@ -80,6 +80,12 @@ public struct CurveBody() : IComponent
     /// <summary>Where the last dash ended, playfield units: it is instant, so a smear is left from <see cref="DashFrom"/> to here.</summary>
     public Vector2 DashTo;
 
+    /// <summary>
+    /// Which way the body runs, 1 right or -1 left: a sideways dash turns it
+    /// its own way, an up or down dash keeps it, an orb sends it right.
+    /// </summary>
+    public float RunSide = 1f;
+
     /// <summary>When the last dash went off, on the body's song clock, ms.</summary>
     public double DashStartMs = double.NegativeInfinity;
 

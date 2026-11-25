@@ -1645,6 +1645,48 @@ void build()
   stands still).
 - **Lab only for now**, as pools are.
 
+### Passes from the library
+
+Some passes are the same in every stack, such as a sort or a tree build. The library
+ships them, and `build()` calls them by module name:
+
+```slang
+void build()
+{
+    uint n = 1024 << 2 * spheres;
+    animate();                                          // the brick's own: keys[i] = bvh.morton(…)
+    sort.radix(n, keys, ids, keysB, idsB, counts);      // xanadu.sort
+    leaves();                                           // nodes[n - 1 + i] = bvh.leaf(…)
+    bvh.tree(n, keys, nodes, parents, arrivals);        // xanadu.bvh: link, then refit
+    if (shadows && sunGrid)
+    {
+        lightCount();
+        sort.scan(CELLS, 0, light);                     // counts into starts, in place
+        lightFill();
+    }
+}
+```
+
+- **The library owns no buffer.** Every call lends it the brick's buffers by
+  name, so two calls (or two stacks) never share one. The comment at the top
+  of each module lists the buffers it wants and their sizes.
+- **Passes and schedules.** A library `[Pass]` is called like the brick's own
+  (`sort.scan(n, at, counts)`, with no `i`). A `[Schedule]` (`sort.radix`,
+  `bvh.tree`) is a body of pass calls, loops and ifs. It is spread into
+  `build()` where it is called, so in the GRAPH view each of its passes shows
+  as its own node (`sort.hist`, `bvh.link`, …).
+- **Shipped:** `xanadu.sort` has `radix` (stable 32-bit key/id sort, four
+  8-bit rounds) and `scan` (exclusive prefix sum in one group). `xanadu.bvh`
+  has `morton`, `leaf` and `tree` (Karras' LBVH, linked then refit with
+  atomics; `nodes` and `arrivals` must be `globallycoherent`). It also has
+  `walk`, which deform, shade and trace can use: a visitor (`bvh.IVisit`)
+  says how near each box is (`bvh.SKIP` leaves it out) and what to do at a
+  leaf, and the walk opens the nearer child first.
+- **Writing one:** a library module's `[Pass]` functions take `uint i` (or
+  nothing, for `groups:`), then uints and `RWStructuredBuffer` parameters. A
+  `[Schedule] void name(…)` takes the same kinds of parameters and calls only
+  passes. `Slang/StackLibrary.cs` reads them.
+
 ## 22. Trace: a compute pass over the pixels
 
 Some looks need the pixels to work together: a raymarcher whose rays share the

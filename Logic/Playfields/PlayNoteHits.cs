@@ -56,6 +56,7 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         body.HoldOpen = true;
         body.Ride = orb;
         body.RideKey = action;
+        body.RunSide = 1f;
         double now = Math.Max(body.SongMs, orb.TimeMs);
         body.Position = Orbs.At(orb, now) + Orbs.Hang;
         body.Velocity = Orbs.Velocity(orb, now);
@@ -96,6 +97,8 @@ public sealed class PlayNoteHits(PlayNoteContext context, PlayNoteActions action
         body.DashFrom = body.Position;
         body.DashStartMs = body.SongMs;
         body.Velocity = direction;
+        if (direction.X != 0f)
+            body.RunSide = MathF.Sign(direction.X);
 
         // A spray thrown back the way the body came from, and a harder kick than a tap's.
         if (playfield.TryGetComponent(out PlayfieldView view))

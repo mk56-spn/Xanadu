@@ -14,6 +14,11 @@ namespace Xanadu.Screens.Play;
 /// <summary>Reuses the editor playfield to play a selected level.</summary>
 public static class PlayScene
 {
+    /// <summary>The field size, units, the view would fit whole before <see cref="PlayZoom"/>: every level is drawn at one size, whatever its field.</summary>
+    private static readonly Vector2 ViewUnits = new(3000, 1500);
+
+    /// <summary>How far the play view is zoomed in past fitting <see cref="ViewUnits"/>; the camera follows the body across the rest.</summary>
+    private const float PlayZoom = 1.6f;
 
     public static void Build(
         EntityStore entities,
@@ -31,11 +36,10 @@ public static class PlayScene
         Vector2 screen = UiStage.Full.Size;
 
         // The whole screen (the 1920 x 1080 design stage, scaled to the window)
-        // is the view, and the whole field fits it: the camera stands still.
+        // is the view, showing ViewUnits zoomed in by PlayZoom; the camera
+        // follows the body across what no longer fits.
         var viewport = new Rect2(Vector2.Zero, screen);
-        float scale = Math.Min(
-            screen.X / Math.Max(1, document.PlayfieldWidth),
-            screen.Y / Math.Max(1, document.PlayfieldHeight));
+        float scale = PlayZoom * Math.Min(screen.X / ViewUnits.X, screen.Y / ViewUnits.Y);
 
         float fieldWidth = document.PlayfieldWidth * scale;
         float fieldHeight = document.PlayfieldHeight * scale;

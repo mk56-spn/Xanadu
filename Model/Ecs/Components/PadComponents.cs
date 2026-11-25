@@ -27,6 +27,15 @@ public struct Pad(Vector2 position, float speed, long timeMs = -1) : IComponent
 
     public readonly bool IsTimed => TimeMs >= 0;
 
+    /// <summary>When it comes into the level, ms (<see cref="Playfields.SongSpans"/>); the default is always there.</summary>
+    public long FromMs = long.MinValue;
+
+    /// <summary>When it leaves the level, ms.</summary>
+    public long ToMs = long.MaxValue;
+
+    /// <summary>Whether it is in the level at song time <paramref name="ms"/>.</summary>
+    public readonly bool LiveAt(double ms) => Playfields.SongSpans.Holds(FromMs, ToMs, ms);
+
     /// <summary>When it last launched the body, on the body's song clock, ms; play only, for its spring.</summary>
     public double FiredMs = double.NegativeInfinity;
 }

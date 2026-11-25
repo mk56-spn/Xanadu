@@ -11,7 +11,6 @@ using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
-using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Ui;
@@ -23,12 +22,13 @@ namespace Xanadu.Tools.Shaders;
 #pragma warning disable RS0030
 
 /// <summary>
-/// The shader tool: every shipped shader stack in a list on the left, each with a
-/// live thumbnail; the picked one's bricks in the shared Slang editor
+/// The shader tool: the picked shader stack's bricks in the shared Slang editor
 /// (<see cref="ShaderCodeEditor"/>), its pipeline over the code, with its preview
 /// and problems on the right. Edits (bricks added and removed too) stay in memory,
 /// kept per stack while others are picked, until saved (Ctrl+S or SAVE) or put
-/// back (REVERT). NEW makes a stack, a shade brick from its template
+/// back (REVERT). The bar's SHADERS button opens every shipped stack as a grid of
+/// live thumbnails (<see cref="ShaderGrid"/>) over the editor, so the editor keeps the
+/// whole width; a card opens its stack. NEW makes a stack, a shade brick from its template
 /// (<see cref="ShaderFiles.Create"/>), and opens it. It is all containers: the code, its
 /// status bar, the divider, the preview and the column under it are slots the
 /// editor reads its boxes from; dragging the divider only resizes a container.
@@ -40,8 +40,6 @@ internal sealed class ShaderToolApp : HostApp
 
     private const float Margin = UiMetrics.Space.Lg;
     private const float Gap = UiMetrics.Space.Md;
-    private const float ListWidth = 300;
-    private const float ThumbWidth = 112, ThumbHeight = 63;
 
     /// <summary>Frames a lab-only effect's still is drawn for (its update fills its state first), then it stops.</summary>
     private const int StillFrames = 4;
@@ -65,16 +63,12 @@ internal sealed class ShaderToolApp : HostApp
     private const int StageZ = UiLayers.Base + 1;
 
     private readonly List<ShaderFile> _files;
-    private readonly List<Entity> _rows = [];
-
-    /// <summary>The column inside the list's scroll that holds a row per file.</summary>
-    private UiNode _rowList;
-    private readonly List<Entity> _thumbs = [];
+    private ShaderGrid _grid = null!;
 
     /// <summary>Edited bricks not yet saved, by stack; a stack without an entry is as on disk.</summary>
     private readonly Dictionary<ShaderFile, List<Brick>> _unsaved = [];
 
-    private Entity _title, _save, _revert, _note, _new, _graphButton, _trianglesButton, _uvButton;
+    private Entity _shaders, _title, _save, _revert, _note, _graphButton, _trianglesButton, _uvButton;
 
     /// <summary>The preview's overlays, kept across shaders: the triangles' edges, and where uv is 0 and 1.</summary>
     private bool _showGraph, _showTriangles, _showUv;
@@ -118,21 +112,11 @@ internal sealed class ShaderToolApp : HostApp
         UiNode body = page.Row().Gap(Gap).Cross(StackCrossAlignment.Stretch).Grow();
         _body = body;
 
-        UiNode list = body.Panel().Width(ListWidth).Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch);
-        UiNode head = list.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
-        head.Text("SHADERS", UiType.Section).AccentText().Grow();
-        _new = head.Button("NEW", UiType.Small).Secondary().Tooltip("Make a new effect from the template and open it");
-        // The rows scroll under the head when there are more than fit.
-        var rows = new Column(gap: UiMetrics.Space.Sm, cross: StackCrossAlignment.Stretch);
-        list.Add(new Scroll(grow: 1, stretch: true) { rows });
-        _rowList = rows.Node;
-        for (int i = 0; i < _files.Count; i++)
-            AddRow(i);
-
         // The editor: code over its status bar, the divider, then the preview over its column.
         UiNode editor = body.Row().Cross(StackCrossAlignment.Stretch).Grow();
         UiNode code = editor.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch).Grow().MinWidth(MinCode);
         UiNode bar = code.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
+        _shaders = bar.Button("SHADERS", UiType.Small).Secondary().Tooltip("Every shader as a grid of thumbnails: pick one to open it");
         _title = bar.Text("", UiType.Label).AccentText().Grow();
         // Sized for its longest words: a text box is measured from what it holds when made.
         _note = bar.Text("unsaved changes", UiType.Small, align: TextAlign.Right).DimText();
@@ -154,23 +138,14 @@ internal sealed class ShaderToolApp : HostApp
         _side = side;
         _preview = side.Column().Height(PreviewHeight(_sideWidth));
         _sideSlot = side.Column().Grow();
+
+        _grid = new ShaderGrid(UiNode.Layer(Entities, default, UiLayers.ShaderPicker, null, UiStage.Full).Theme(UiThemes.Tools));
+        for (int i = 0; i < _files.Count; i++)
+            AddCard(i);
     }
 
-    /// <summary>A file's row in the list: its thumbnail and its name.</summary>
-    private void AddRow(int i)
-    {
-        UiNode row = _rowList.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
-        // The effect as shipped, drawn live with its own defaults; saving makes it compile again. A box the
-        // thumbnail's size clips it: an effect that moves its own vertices (a deform) would draw past it.
-        UiNode frame = row.Column().Size(ThumbWidth, ThumbHeight).Clip();
-        string path = _files[i].Path;
-        _thumbs.Add((SlangShaders.IsLabOnly(path)
-                ? frame.Image(Still(i), new Vector2(ThumbWidth, ThumbHeight))
-                : frame.Rect(Colors.White, size: new Vector2(ThumbWidth, ThumbHeight)).With(new UiMaterial(new CanvasMaterial(path))))
-            .Input()
-            .Tooltip(path));
-        _rows.Add(row.Button(_files[i].Name, UiType.Small).Quiet().Grow().Height(ThumbHeight));
-    }
+    /// <summary>A file's card in the grid; saving makes its thumbnail compile again.</summary>
+    private void AddCard(int i) => _grid.Add(_files[i], SlangShaders.IsLabOnly(_files[i].Path) ? Still(i) : null);
 
     /// <summary>NEW: writes a fresh effect from the template, lists it and opens it.</summary>
     private void New()
@@ -182,7 +157,7 @@ internal sealed class ShaderToolApp : HostApp
         }
 
         _files.Add(file!);
-        AddRow(_files.Count - 1);
+        AddCard(_files.Count - 1);
         _wanted = _files.Count - 1;
     }
 
@@ -239,13 +214,7 @@ internal sealed class ShaderToolApp : HostApp
         if (!UiLayout.Settled(_codeSlot) || !UiLayout.Settled(_sideSlot))
             return;
 
-        if (Clicked(_new))
-            New();
-        for (int i = 0; i < _files.Count; i++)
-        {
-            if (Clicked(_rows[i]) || Clicked(_thumbs[i]))
-                _wanted = i;
-        }
+        PickFromGrid();
 
         if (_wanted != _picked)
             Pick(_wanted);
@@ -271,9 +240,11 @@ internal sealed class ShaderToolApp : HostApp
         UiLayout.SetDisabled(_trianglesButton, copies);
         UiLayout.SetDisabled(_uvButton, copies);
 
-        var frame = new ToolFrame(delta, time, Pointer.Position, Pointer.LeftDown, Inputs, Pointer.TakeWheel());
+        // Under the grid the code gets no press and no wheel: those are the grid's.
+        bool free = !_grid.Open;
+        var frame = new ToolFrame(delta, time, Pointer.Position, free && Pointer.LeftDown, Inputs, free ? Pointer.TakeWheel() : 0);
         Drag(frame);
-        _code.Update(frame, pointerFree: !_dragging);
+        _code.Update(frame, pointerFree: free && !_dragging);
         ShowChanges();
     }
 
@@ -310,15 +281,29 @@ internal sealed class ShaderToolApp : HostApp
         _seenVersion = -1;
 
         UiText.Set(_title, file.Path);
-        for (int i = 0; i < _rows.Count; i++)
+        _grid.Mark(index);
+    }
+
+    /// <summary>SHADERS opens the grid; a card picks and closes it, as do CLOSE, Escape and a press around the panel.</summary>
+    private void PickFromGrid()
+    {
+        if (Clicked(_shaders))
+            _grid.Show(true);
+        if (!_grid.Open)
+            return;
+
+        if (Clicked(_grid.NewButton))
+            New();
+        for (int i = 0; i < _files.Count; i++)
         {
-            // Bright blue only for the one open; the rest at rest.
-            UiNode row = UiNode.Wrap(_rows[i]);
-            if (i == index)
-                row.Primary();
-            else
-                row.Quiet();
-            _rows[i].AddTag<Dirty>();
+            if (Clicked(_grid.Cards[i]) || Clicked(_grid.Thumbs[i]))
+                _wanted = i;
+        }
+
+        if (_wanted != _picked || Clicked(_grid.CloseButton) || Clicked(_grid.Scrim) || Inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Escape))
+        {
+            _grid.Show(false);
+            _code?.Focus();
         }
     }
 
@@ -396,7 +381,7 @@ internal sealed class ShaderToolApp : HostApp
         UiLayout.SetDisabled(_save, !changed);
         UiLayout.SetDisabled(_revert, !changed);
         for (int i = 0; i < _files.Count; i++)
-            UiText.Set(_rows[i], _unsaved.ContainsKey(_files[i]) ? _files[i].Name + " •" : _files[i].Name);
+            _grid.Name(i, _unsaved.ContainsKey(_files[i]) ? _files[i].Name + " •" : _files[i].Name);
     }
 
     /// <summary>The divider: a press on it drags the preview column's edge; only the column's container width changes.</summary>
@@ -437,7 +422,7 @@ internal sealed class ShaderToolApp : HostApp
     private float ClampSide(float width)
     {
         Rect2 body = UiLayout.Box(_body);
-        float most = MathF.Min(body.Size.X - ListWidth - Gap * 2 - MinCode, (body.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
+        float most = MathF.Min(body.Size.X - Gap - MinCode, (body.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
         return MathF.Round(Math.Clamp(width, MinSide, MathF.Max(MinSide, most)));
     }
 

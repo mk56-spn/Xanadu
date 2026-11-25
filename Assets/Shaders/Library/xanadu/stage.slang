@@ -387,6 +387,18 @@ public struct Group
 /// The TRACE thread running now (all zeros elsewhere).
 public static Group group = {};
 
+/// Where a BUILD pass's thread sits: its place in its work group (`thread`, from 0 to the
+/// pass's threads) and the group's place among the dispatch's (`group`), for handing out
+/// groupshared work. A library's passes read it as a brick's do.
+public struct Dispatch
+{
+    public uint thread;
+    public uint group;
+};
+
+/// The BUILD pass thread running now (all zeros elsewhere).
+public static Dispatch dispatch = {};
+
 /// What `trace` says about its pixel besides its colour.
 public struct Traced
 {

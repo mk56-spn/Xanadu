@@ -15,7 +15,7 @@
 546 Logic/Animator/Commands/AnimatorEditing.cs
 435 Logic/Animator/Commands/AnimatorKeyCommands.cs
 476 Logic/Bench/BenchSystem.cs
-426 Logic/Playfields/CurvePlayerSystem.cs
+425 Logic/Playfields/CurvePlayerSystem.cs
 438 Model/Animation/RigClothSimulation.cs
 595 Model/Animation/RigPackage.cs
 504 Model/Animation/XifDrawer.cs
@@ -50,7 +50,7 @@
 406 Tools/Labs/Experiments/PointerHistoryLab.cs
 461 Tools/Labs/Experiments/SpawnerPreview.cs
 453 Tools/Labs/Experiments/TransparencyLab.cs
-457 Tools/Shaders/ShaderToolApp.cs
+442 Tools/Shaders/ShaderToolApp.cs
 424 UI/Ecs/Ui/TextEditorComponents.cs
 423 UI/Ecs/Ui/UiBuilder.cs
 559 UI/Editing/TextBuffer.cs

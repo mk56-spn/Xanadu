@@ -249,18 +249,22 @@ public static class XmfBinary
         return chord;
     }
 
-    /// <summary>A pad: its centre, its launch speed, and its time (-1 fires on touch).</summary>
+    /// <summary>A pad: its centre, its launch speed, its time (-1 fires on touch), then when it is in the level.</summary>
     private static void WritePad(BinaryWriter writer, PadDocument pad)
     {
         writer.Write(pad.X);
         writer.Write(pad.Y);
         writer.Write(pad.Speed);
         writer.Write(pad.TimeMs);
+        writer.Write(pad.FromMs);
+        writer.Write(pad.ToMs);
     }
 
     private static PadDocument ReadPad(BinaryReader reader)
     {
         var pad = new PadDocument { X = reader.ReadSingle(), Y = reader.ReadSingle(), Speed = reader.ReadSingle(), TimeMs = reader.ReadInt64() };
+        if (XmfRecords.More(reader))
+            pad = new PadDocument { X = pad.X, Y = pad.Y, Speed = pad.Speed, TimeMs = pad.TimeMs, FromMs = reader.ReadInt64(), ToMs = reader.ReadInt64() };
         if (!float.IsFinite(pad.X) || !float.IsFinite(pad.Y) || !float.IsFinite(pad.Speed))
             throw new FormatException("XMF pad is not on the field.");
         return pad;
@@ -282,16 +286,20 @@ public static class XmfBinary
         return draft;
     }
 
-    /// <summary>A dash ender: its centre.</summary>
+    /// <summary>A dash ender: its centre, then when it is in the level.</summary>
     private static void WriteDashStop(BinaryWriter writer, DashStopDocument stop)
     {
         writer.Write(stop.X);
         writer.Write(stop.Y);
+        writer.Write(stop.FromMs);
+        writer.Write(stop.ToMs);
     }
 
     private static DashStopDocument ReadDashStop(BinaryReader reader)
     {
         var stop = new DashStopDocument { X = reader.ReadSingle(), Y = reader.ReadSingle() };
+        if (XmfRecords.More(reader))
+            stop = new DashStopDocument { X = stop.X, Y = stop.Y, FromMs = reader.ReadInt64(), ToMs = reader.ReadInt64() };
         if (!float.IsFinite(stop.X) || !float.IsFinite(stop.Y))
             throw new FormatException("XMF dash ender is not on the field.");
         return stop;

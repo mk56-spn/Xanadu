@@ -37,3 +37,6 @@ Tools/Labs/Playground/spawner.slang
 
 # Vulkan headers for the GPU timing layer: fetched by External/fetch-vulkan-headers.sh
 External/vulkan-headers/
+
+# Agent tool: the replay solver for checking gameplay (not part of the game)
+Tools/Solver/

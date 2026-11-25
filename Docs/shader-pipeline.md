@@ -194,6 +194,17 @@ float4 shade(Canvas canvas)
   wrapper places every buffer and each stage binds only what it reads
   (`Slang/StackBuild.cs`, `SlangShaders.Builds.cs`; `Rendering/Passes/StackPasses.cs`
   runs it). `Docs/shaders.md` §21; `Lab/build_bars`, `Lab/bvh_march`.
+- **Library passes (built 2026-11-25):** library modules ship `[Pass]`
+  functions and `[Schedule]`s (pass calls, loops, ifs) that `build()` calls by
+  module name, lending the brick's buffers as parameters; the library owns no
+  buffer. A schedule is spread into the caller's walk, so the graph shows its
+  passes one by one. `Slang/StackLibrary.cs` reads a module; `StackBuild.Walk.cs`
+  spreads calls; `BuildPasses.cs` / `BuildText.cs` are the shared pass reader
+  and comment blanker; `SpirvCoherence.cs` declares `globallycoherent` buffers
+  plain to Slang (its coherent type can't be passed to a plain parameter) and
+  patches the `Coherent` decoration into the SPIR-V at their bindings after. Shipped: `xanadu.sort` (radix, scan), `xanadu.bvh`
+  (morton, leaf, tree = link + refit, `walk` with an `IVisit` visitor).
+  `Lab/bvh_march` is built from them. `Docs/shaders.md` §21.
 - **TRACE brick (built 2026-11-24, user's choice over `[Tile]` on SHADE):**
   `trace.slang` between BUILD and DEFORM, `[Tile(w, h)] float4 trace(…)`:
   compute, a thread a pixel over the quad's box on the target, tiles that share

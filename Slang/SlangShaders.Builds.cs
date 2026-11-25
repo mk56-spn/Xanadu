@@ -72,6 +72,8 @@ public static partial class SlangShaders
         int[] used = [.. Enumerable.Range(0, count).Where(k => SpirvScan.Binds(shader.Spirv, set, first + k))];
         if (used.Length != count)
             shader = compile(build.Rewrite(source, set, k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k));
+        int[] coherent = [.. used.Select((k, at) => (k, at)).Where(pair => build.Buffers[pair.k].Coherent).Select(pair => first + pair.at)];
+        shader = SpirvCoherence.Applied(shader, set, coherent);
         return (shader, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, set, first + at))]);
     }
 
@@ -122,7 +124,7 @@ public static partial class SlangShaders
         {
             BuildPass pass = build.Passes[p];
             (CompiledShader compute, int[] used, GraphAccess[] access) = PlacedWithAccess(build, source, 1, 0, placed =>
-                CompileWrapped(WrapPass(name, placed, pass, keepsState, pool), "xanaduPass", "compute", 0, 2,
+                CompileWrapped(WrapPass(name, placed, build, pass, keepsState, pool), "xanaduPass", "compute", 0, 2,
                     [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]));
             CheckDeclared(name, compute, 0, 0);
             if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
@@ -130,7 +132,7 @@ public static partial class SlangShaders
             if (used.Length > MaxStageBuffers)
                 throw new InvalidOperationException(
                     $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");
-            passes[p] = new CompiledPass(pass.Name,
+            passes[p] = new CompiledPass(Named(build, p),
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
                     storageBuffers: Globals.Count + (keepsState ? 1 : 0)),
                 used, pass.Threads, access);
@@ -152,11 +154,19 @@ public static partial class SlangShaders
         return compiled;
     }
 
+    /// <summary>What the board and the timings call pass <paramref name="p"/>: a library pass lent other buffers a second time is <c>sort.hist 2</c>.</summary>
+    private static string Named(StackBuild build, int p)
+    {
+        BuildPass pass = build.Passes[p];
+        int before = build.Passes.Take(p).Count(other => other.Library is not null && other.Called == pass.Called);
+        return before == 0 ? pass.Called : $"{pass.Called} {before + 1}";
+    }
+
     /// <summary>
     /// One pass as a compute entry: thread <c>i</c> of the dispatch, turned away past <c>over:</c>,
     /// with <c>dispatch</c> saying its place in its group and the call's arguments after <c>i</c>.
     /// </summary>
-    private static string WrapPass(string name, string source, BuildPass pass, bool keepsState, PoolShape? pool)
+    private static string WrapPass(string name, string source, StackBuild build, BuildPass pass, bool keepsState, PoolShape? pool)
     {
         (string imports, string code, string label) = Split(name, source);
         string clock = DrivesClock(source) ? $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" : "";
@@ -165,9 +175,16 @@ public static partial class SlangShaders
             : "";
         string load = keepsState ? "effect0::state = effect0::xanaduStateIn[0];" : "";
         string guard = pass.Over is null ? "" : "if (id.x >= xanaduPassFrame.over) return;";
-        string arguments = string.Concat(pass.Arguments.Select((_, k) => $", xanaduPassFrame.args[{k}]"));
+        // A brick's pass takes its uints; a library's takes them and the brick buffers the call lent, in the order declared.
+        int number = 0, lent = 0;
+        string arguments = string.Concat(pass.Parameters.Select(parameter => parameter.IsBuffer
+            ? $", effect0::{build.Buffers[pass.Bound[lent++]].Name}"
+            : $", xanaduPassFrame.args[{number++}]"));
+        string called = pass.Library is { } library ? $"{library.Name}.{pass.Name}" : $"effect0::{pass.Name}";
+        string module = pass.Library is { } from ? $"import {from.Module};" : "";
         return $$"""
             import xanadu.stage;
+            {{module}}
             {{imports}}
             namespace effect0 {
             #line 1 "{{label}}"
@@ -177,20 +194,21 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
-            struct XanaduPassFrame { float dt; float time; uint over; uint pad; uint4 args; };
+            struct XanaduPassFrame { float dt; float time; uint over; float beat; uint4 args; };
             [[vk::binding(0, 2)]] ConstantBuffer<XanaduPassFrame> xanaduPassFrame;
             [shader("compute")]
             [numthreads({{pass.Threads}}, 1, 1)]
             void xanaduPass(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID, uint3 local : SV_GroupThreadID)
             {
                 time = xanaduPassFrame.time;
+                beat = xanaduPassFrame.beat;
                 dt = xanaduPassFrame.dt;
                 {{clock}}
                 {{load}}
-                effect0::dispatch.thread = local.x;
-                effect0::dispatch.group = group.x;
+                dispatch.thread = local.x;
+                dispatch.group = group.x;
                 {{guard}}
-                effect0::{{pass.Name}}(id.x{{arguments}});
+                {{called}}(id.x{{arguments}});
             }
             """;
     }

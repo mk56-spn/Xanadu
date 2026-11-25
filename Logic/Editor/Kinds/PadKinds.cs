@@ -51,10 +51,18 @@ public sealed class PadItemKind : ItemKind<Pad, PadDocument>
         return x != 0 ? x : a.Position.Y.CompareTo(b.Position.Y);
     }
 
-    protected override bool Same(in Pad a, in Pad b) => a.Position == b.Position && a.Speed == b.Speed && a.TimeMs == b.TimeMs;
+    protected override bool Same(in Pad a, in Pad b) =>
+        a.Position == b.Position && a.Speed == b.Speed && a.TimeMs == b.TimeMs && a.FromMs == b.FromMs && a.ToMs == b.ToMs;
 
     protected override Pad? Pasted(Pad value, Vector2 offset, long timeMs, Playfield playfield, EntityStore entities) =>
-        value.IsTimed ? value with { TimeMs = timeMs } : value with { Position = value.Position + offset };
+        value.IsTimed ? Shifted(value, timeMs - value.TimeMs) with { TimeMs = timeMs } : value with { Position = value.Position + offset };
+
+    /// <summary>The pad with its song span moved by <paramref name="by"/> ms, an endless end staying endless.</summary>
+    private static Pad Shifted(Pad pad, long by) => pad with
+    {
+        FromMs = pad.FromMs == long.MinValue ? pad.FromMs : pad.FromMs + by,
+        ToMs = pad.ToMs == long.MaxValue ? pad.ToMs : pad.ToMs + by,
+    };
 
     protected override List<PadDocument> List(LevelDocument level) => level.Pads;
 

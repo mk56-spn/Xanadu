@@ -8,8 +8,8 @@ namespace Xanadu.Model.Playfields;
 /// The updraft's shape and pull (<see cref="Draft"/>). Every emitter is the
 /// same width; a long stretch is a row of them. In its column (from the
 /// emitter up to the field's top) the body's vertical speed eases toward a
-/// speed that closes on the hover height, capped both ways, and the hover
-/// bobs on the beat. Sideways speed is left alone. All numbers are placeholders.
+/// speed that closes on the hover height, capped both ways; the hover holds
+/// still. Sideways speed is left alone. All numbers are placeholders.
 /// </summary>
 public static class Drafts
 {
@@ -90,21 +90,17 @@ public static class Drafts
     /// <summary>How quickly the vertical speed eases to the wanted one, per second.</summary>
     private const float Ease = 8f;
 
-    /// <summary>How far the hover bobs up and down with the beat, units.</summary>
-    public const float Bob = 28f;
-
     /// <summary>Whether the body's centre is in the draft's column.</summary>
     public static bool Holds(in Draft draft, Vector2 body) =>
         MathF.Abs(body.X - draft.Position.X) <= Diameter / 2f && body.Y <= draft.Position.Y;
 
-    /// <summary>Where the draft holds the body's centre at a beat: its hover, bobbing.</summary>
-    public static float HoverY(in Draft draft, double beat) =>
-        draft.Position.Y - draft.Height + Bob * MathF.Sin((float)(beat * Math.Tau));
+    /// <summary>Where the draft holds the body's centre: its hover.</summary>
+    public static float HoverY(in Draft draft) => draft.Position.Y - draft.Height;
 
     /// <summary>The body's vertical speed after <paramref name="delta"/> seconds in the draft.</summary>
-    public static float Lift(in Draft draft, float y, float speedY, double beat, float delta)
+    public static float Lift(in Draft draft, float y, float speedY, float delta)
     {
-        float wanted = Math.Clamp((HoverY(draft, beat) - y) * Pull, -MaxRise, MaxSink);
+        float wanted = Math.Clamp((HoverY(draft) - y) * Pull, -MaxRise, MaxSink);
         return speedY + (wanted - speedY) * (1f - MathF.Exp(-Ease * delta));
     }
 }

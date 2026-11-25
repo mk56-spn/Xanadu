@@ -83,7 +83,7 @@ public sealed class ChordDocument
     };
 }
 
-/// <summary>A pad as saved: its centre and the upward speed it launches at.</summary>
+/// <summary>A pad as saved: its centre, the upward speed it launches at, and when it is in the level.</summary>
 public sealed class PadDocument
 {
     public float X { get; init; }
@@ -95,7 +95,12 @@ public sealed class PadDocument
     /// <summary>A timed pad's time, ms; -1 fires on touch.</summary>
     public long TimeMs { get; init; } = -1;
 
-    public Pad ToPad() => new(new Vector2(X, Y), Speed, TimeMs);
+    /// <summary>When it is in the level, ms (<see cref="Playfields.SongSpans"/>).</summary>
+    public long FromMs { get; init; } = long.MinValue;
+
+    public long ToMs { get; init; } = long.MaxValue;
+
+    public Pad ToPad() => new(new Vector2(X, Y), Speed, TimeMs) { FromMs = FromMs, ToMs = ToMs };
 
     public static PadDocument From(in Pad pad) => new()
     {
@@ -103,6 +108,8 @@ public sealed class PadDocument
         Y = pad.Position.Y,
         Speed = pad.Speed,
         TimeMs = pad.TimeMs,
+        FromMs = pad.FromMs,
+        ToMs = pad.ToMs,
     };
 }
 
@@ -125,16 +132,21 @@ public sealed class DraftDocument
     };
 }
 
-/// <summary>A dash ender as saved: its centre.</summary>
+/// <summary>A dash ender as saved: its centre and when it is in the level.</summary>
 public sealed class DashStopDocument
 {
     public float X { get; init; }
 
     public float Y { get; init; }
 
-    public DashStop ToDashStop() => new(new Vector2(X, Y));
+    public long FromMs { get; init; } = long.MinValue;
 
-    public static DashStopDocument From(in DashStop stop) => new() { X = stop.Position.X, Y = stop.Position.Y };
+    public long ToMs { get; init; } = long.MaxValue;
+
+    public DashStop ToDashStop() => new(new Vector2(X, Y)) { FromMs = FromMs, ToMs = ToMs };
+
+    public static DashStopDocument From(in DashStop stop) =>
+        new() { X = stop.Position.X, Y = stop.Position.Y, FromMs = stop.FromMs, ToMs = stop.ToMs };
 }
 
 /// <summary>A note as saved: an action note at its time and place.</summary>

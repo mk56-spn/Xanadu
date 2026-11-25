@@ -58,6 +58,9 @@ internal static class XmfRecords
         writer.Write(stream.GetBuffer(), 0, (int)stream.Length);
     }
 
+    /// <summary>Whether a record's reader still has bytes: a field appended later was written.</summary>
+    internal static bool More(BinaryReader record) => record.BaseStream.Position < record.BaseStream.Length;
+
     /// <summary>Reads one record with its own reader, which ends where the record does.</summary>
     internal static T Read<T>(BinaryReader reader, string what, Func<BinaryReader, T> read)
     {

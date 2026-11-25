@@ -63,8 +63,8 @@ public static partial class SlangModules
         GlobalDeclaration().Replace(source, match =>
             $"[[vk::binding({GlobalBindingDefine(match.Groups[2].Value)}, {GlobalSetDefine})]]{match.Groups[1].Value}");
 
-    /// <summary>A library module as it is compiled: vector constants as getters, globals bound.</summary>
-    public static string Prepared(string source) => WithGlobalBindings(AsGetters(source));
+    /// <summary>A library module as it is compiled: vector constants as getters, globals bound, BUILD passes' markers and schedules blanked.</summary>
+    public static string Prepared(string source) => WithGlobalBindings(AsGetters(StackLibrary.Prepared(source)));
 
     /// <summary>
     /// Builds every module under <paramref name="library"/> into <paramref name="folder"/>, each

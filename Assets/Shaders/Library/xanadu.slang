@@ -7,8 +7,11 @@
 // pictures and their filters (filter). Everything else is under its own name: colours., sdf., anchor.,
 // ease., eases., blend., gradient., pattern., sprite., noise., filter., pictures., tonemap., shaping., complex.,
 // steps. (Step), looks. and beats. (with the Lightning and Sunburst shapes), 3D from the grid:
-// surfaces, Camera, lights. and mesh. (mesh), 3D by marching: Ray, Ball, Span, Melt, Hit (march), and
-// a particle system's shapes, moves and looks under particles. (particles).
+// surfaces, Camera, lights. and mesh. (mesh), 3D by marching: Ray, Ball, Span, Bounds, Frustum, Melt, Hit (march),
+// 3D scenes of solids recorded in a BUILD pass and shot in TRACE: Solid (Block, Orb, Plane, Pillar, Pill, Hoop, Cone),
+// Material, Lighting, Scene and scene.shot (scene),
+// a particle system's shapes, moves and looks under particles. (particles), and for BUILD bricks, GPU sorts and
+// prefix sums under sort. (sort) and a BVH rebuilt every frame, with its walk, under bvh. (bvh).
 // Nothing here knows the game: its play state and chart are `import rhythm;`.
 module xanadu;
 
@@ -30,4 +33,7 @@ __exported import xanadu.steps;
 __exported import xanadu.looks;
 __exported import xanadu.mesh;
 __exported import xanadu.march;
+__exported import xanadu.scene;
 __exported import xanadu.particles;
+__exported import xanadu.sort;
+__exported import xanadu.bvh;

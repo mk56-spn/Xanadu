@@ -180,13 +180,15 @@ public sealed class EditorNoteInputSystem : QuerySystem<Note>
         Note placed = EditorPlacementNote.Build(editor, time, point);
         if (placed.IsOrb)
             placed.EndMs = time + (long)TempoMap.BeatMs(playhead.Tempo.At(time).Bpm) * 2;
+        // Pads and dash enders are in the level only round the time they were placed at.
+        var span = SongSpans.Around(time);
         Entity created = mode switch
         {
             EditorPlacementMode.Chord => EditorItems.Place(_entities, new Chord(time, point)),
-            EditorPlacementMode.Pad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed)),
-            EditorPlacementMode.TimedPad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed, time)),
+            EditorPlacementMode.Pad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed) { FromMs = span.FromMs, ToMs = span.ToMs }),
+            EditorPlacementMode.TimedPad => EditorItems.Place(_entities, new Pad(point, Pads.DefaultSpeed, time) { FromMs = span.FromMs, ToMs = span.ToMs }),
             EditorPlacementMode.Draft => EditorItems.Place(_entities, new Draft(point, Drafts.DefaultHeight)),
-            EditorPlacementMode.DashStop => EditorItems.Place(_entities, new DashStop(point)),
+            EditorPlacementMode.DashStop => EditorItems.Place(_entities, new DashStop(point) { FromMs = span.FromMs, ToMs = span.ToMs }),
             EditorPlacementMode.Grass => EditorItems.Place(_entities, new Deco(point, Named(Decos.Grass()))),
             EditorPlacementMode.Flare => EditorItems.Place(_entities, new Deco(point, Named(Decos.Flare()))),
             _ => EditorItems.Place(_entities, placed),
