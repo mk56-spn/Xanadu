@@ -444,9 +444,12 @@ Stage D, the rest (2026-11-25):
 - **Checked:** shots of trace_wave, sizes (and sizes' quarter-size glow presented alone, stretched, against the last
   commit's), scene_room, bvh_march, trails, post and cached look as before.
 
-Next: stage E on the confirmed drawing model, starting (user's go, 2026-11-25) with the shared scene: SDFs and mesh
-draws writing one depth + id image, a resolve pass, one lighting pass, shadows from every maker; xanadu.scene keeps its
-authoring and loses its plumbing, xanadu.light moves onto ids + resolve. The mesh core comes after.
+Next: stage E on the confirmed drawing model, starting (user's call, 2026-11-25) with the mesh core: a paged meshlet
+pool in kept buffers, generators as passes that rerun only when their inputs change (today's grid surfaces first, built
+once), one vertex-pulled counted draw for every mesh, and 2D and 3D front doors over the same core; xanadu.mesh is
+rebuilt onto it. Then the shared scene: SDFs and mesh draws writing one depth + id image, a resolve pass, one lighting
+pass, shadows from every maker; xanadu.scene keeps its authoring and loses its plumbing, xanadu.light moves onto ids +
+resolve.
 
 Also still open:
 
