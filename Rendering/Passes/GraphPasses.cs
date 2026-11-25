@@ -168,8 +168,8 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
     }
 
     /// <summary>
-    /// A draw: its grid over the item's quad into the images the call names, colour (and depth, pixels into the screen),
-    /// tested and written against the graph's own depth.
+    /// A draw: its grid over the item's quad into the images the call names, colour (and depth, pixels into the screen)
+    /// or Surfaces' three, tested and written against the graph's own depth.
     /// </summary>
     private void RunDraw(CommandBuffer commands, CanvasEffect effect, BuildBuffers kept, CompiledDraw draw, StackBuild.Run call,
         CanvasMaterial material, Step step, float time, bool clearZ)
@@ -182,9 +182,17 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
         }
 
         RestFrame rest = mesh.Vertices[(int)step.Start].Rest;
-        Texture colour = kept.Images[(int)call.A];
-        Texture? depth = call.B == StackBuild.Run.None ? null : kept.Images[(int)call.B];
-        GraphicsPipeline pipeline = effect.DrawPipeline(_device, call.Pass, colour.Format, depth is not null, ZFormat);
+        int count = 0;
+        Span<ColorTargetInfo> targets = stackalloc ColorTargetInfo[3];
+        Span<TextureFormat> formats = stackalloc TextureFormat[3];
+        for (; count < 3 && call.Target(count) != StackBuild.Run.None; count++)
+        {
+            Texture image = kept.Images[(int)call.Target(count)];
+            targets[count] = new ColorTargetInfo(image, LoadOp.Load);
+            formats[count] = image.Format;
+        }
+
+        GraphicsPipeline pipeline = effect.DrawPipeline(_device, call.Pass, formats[..count], ZFormat);
         using GpuScope scope = commands.Scope(effect.Compiled.Build!.Passes[call.Pass].Name);
 
         var z = new DepthStencilTargetInfo
@@ -196,9 +204,7 @@ internal sealed class GraphPasses(GraphicsDevice device, FrameTargets targets, M
             StencilLoadOp = LoadOp.DontCare,
             StencilStoreOp = StoreOp.DontCare,
         };
-        RenderPass pass = depth is null
-            ? commands.BeginRenderPass(z, new ColorTargetInfo(colour, LoadOp.Load))
-            : commands.BeginRenderPass(z, new ColorTargetInfo(colour, LoadOp.Load), new ColorTargetInfo(depth, LoadOp.Load));
+        RenderPass pass = commands.BeginRenderPass(z, targets[..count]);
         pass.BindGraphicsPipeline(pipeline);
         FrameUniforms frame = FrameUniforms.Now(_targets.Width, _targets.Height, time);
         commands.PushVertexUniformData(new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis });

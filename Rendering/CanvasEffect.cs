@@ -36,18 +36,22 @@ internal sealed class CanvasEffect(
     /// <summary>Its passes and what they share, in the order they run: what the renderer walks each frame.</summary>
     public StackGraph Graph { get; } = StackGraph.Of(compiled);
 
-    private readonly Dictionary<(int Pass, TextureFormat Colour, bool Depth, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];
+    private readonly Dictionary<(int Pass, TextureFormat A, TextureFormat B, TextureFormat C, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];
 
     /// <summary>
-    /// Draw <paramref name="pass"/>'s pipeline into a colour image of <paramref name="colour"/> (and an r32f depth image when
-    /// <paramref name="depth"/>), tested against a depth of <paramref name="z"/>: made the first time, kept with the effect.
+    /// Draw <paramref name="pass"/>'s pipeline into colour targets of <paramref name="targets"/> (one to three), tested
+    /// against a depth of <paramref name="z"/>: made the first time, kept with the effect.
     /// </summary>
-    public GraphicsPipeline DrawPipeline(GraphicsDevice device, int pass, TextureFormat colour, bool depth, TextureFormat z)
+    public GraphicsPipeline DrawPipeline(GraphicsDevice device, int pass, ReadOnlySpan<TextureFormat> targets, TextureFormat z)
     {
-        if (_drawPipelines.TryGetValue((pass, colour, depth, z), out GraphicsPipeline? made))
+        TextureFormat Format(ReadOnlySpan<TextureFormat> all, int k) => k < all.Length ? all[k] : TextureFormat.Invalid;
+        var key = (pass, Format(targets, 0), Format(targets, 1), Format(targets, 2), z);
+        if (_drawPipelines.TryGetValue(key, out GraphicsPipeline? made))
             return made;
+        var descriptions = new ColorTargetDescription[targets.Length];
+        for (int k = 0; k < descriptions.Length; k++)
+            descriptions[k] = new ColorTargetDescription { Format = targets[k], BlendState = ColorTargetBlendState.NoBlend };
         (Shader vertexStage, Shader fragmentStage) = Draws[pass]!.Value;
-        ColorTargetDescription Target(TextureFormat format) => new() { Format = format, BlendState = ColorTargetBlendState.NoBlend };
         made = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
         {
             VertexShader = vertexStage,
@@ -59,12 +63,12 @@ internal sealed class CanvasEffect(
             DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
             TargetInfo = new GraphicsPipelineTargetInfo
             {
-                ColorTargetDescriptions = depth ? [Target(colour), Target(TextureFormat.R32Float)] : [Target(colour)],
+                ColorTargetDescriptions = descriptions,
                 HasDepthStencilTarget = true,
                 DepthStencilFormat = z,
             },
         });
-        _drawPipelines[(pass, colour, depth, z)] = made;
+        _drawPipelines[key] = made;
         return made;
     }
 

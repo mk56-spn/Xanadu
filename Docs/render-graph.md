@@ -69,14 +69,51 @@ Two fixes got it going:
 - A draw binds its vertex stage's samplers too (white, like the fragment's).
 - `clear` sets `ColorTargetInfo.ClearColor` as an `FColor`. MoonWorks' `Color` is bytes, so it clamped 1e30 to 1.
 
+## Done: phase 2, the contracts
+
+`xanadu.light` (Assets/Shaders/Library/xanadu/light.slang) is what producers and the lighting share.
+
+- **`Material` and `Lighting`** moved there from `xanadu.scene` unchanged. They are the `Lights` of the proposal:
+  `Lighting` already held the sun, lamps, sky, ground, fog and far, so no second type was made.
+- **No `View` type.** `Camera` already is one. The depth convention is defined once, on it:
+  - `camera.screenDepth(p)` is pixels into the screen, 0 on the orbit centre. `ItemVertex.place`, `traced.depth` and
+    Surfaces all use it.
+  - `camera.along(pixel, depth)` turns a depth back into the march's `t`.
+- **`Surface`** is one pixel before lighting: found, depth, normal and `Material`.
+  `Surface.facing(toEye)` flips it for open sheets.
+- **`Surfaces`** is three images the effect declares and wraps (`Surfaces(depth, normals, bases)`):
+  - depth: r32f, cleared to `Surfaces.EMPTY` (1e30);
+  - normals: rgba16f, xyz the normal, w the shine;
+  - bases: rgba16f, rgb the colour, a the glow.
+  - A pixel pass reads it with `at`/`depthAt` and writes it with `put`.
+- **`IShadows`** is where shadows and AO come from: `Unshadowed`, or `scene.shadows(parts, objects, camera, canvas,
+  light)`. The latter lists the tile and casts the scene's soft SDF shadows and AO on every surface, whoever drew it.
+- **`light.lit(surface, position, camera, caster)`** is the one lighting function. `scene.lit` now calls it.
+  `light.deferred(surfaces, camera, canvas, caster)` lights a pixel pass's pixel.
+- **Surface draws:** a `[Draw]` whose shade returns `Surface` is called `name(depth, normals, bases)` and writes all
+  three as MRT. Host side, draws take one to three colour targets (`Run.Target(k)`), and pipelines are keyed by their
+  formats.
+- **`scene.shoot(parts, objects, camera, canvas, light, surfaces)`** marches only out to the depth already there and
+  puts what it hits.
+- **`Lab/scene_room`** runs the whole chain: `clear` ×3, `record`, `ringDrawn` (Surface draw), `shoot`, `illuminate`
+  (deferred with `scene.shadows`), `present(shown, depth)`. The torus gets the lamp, the room's occlusion and the
+  scene's shadows. It casts none yet (phase 4).
+  - It lost its `view` option (steps, tile lists, normals). `scene.shot` still has those views; Surfaces has no cost
+    view yet.
+
+Faint lighter squares on the floor round some pins come from before this work (AO or tile lists). They're worth a look
+some time.
+
 ## Next, in order
 
-1. Phase 2, the contracts:
-   - `View`, `Surfaces` (depth, normal, base, shine, glow) and `Lights` in library modules.
-   - `light.deferred` as a pixel pass, so meshes get the room's lamp, shadows and AO.
-   - `scene.shoot` writes `Surfaces` and stops at the existing depth (pass a limit into the march, so hidden pixels cost nothing).
-2. Phase 3: draw the room as a closed-form box (`room.box` draw) so the march only covers bounded objects. The target is beating 1.81 ms with the vase/torus in.
-3. Phase 4: shadow depth per light from the same geometry schedule; screen-space AO; SDF soft shadows and AO as opt-in nodes.
+1. Phase 3: draw the room as a closed-form box (`room.box` Surface draw) so the march only covers bounded objects.
+   The target is beating 1.81 ms with the torus in. Measure first: shoot + illuminate now list the tile twice.
+2. Phase 4: shadow depth per light from the same geometry schedule; screen-space AO; SDF soft shadows and AO as
+   opt-in nodes.
+3. Later:
+   - `[Surfaces]` sugar, so one declaration makes the three images and the clears.
+   - A cost view on Surfaces.
+   - Surfaces sampled by forward draws (sparks).
 
 ## Known failures (not from this work)
 

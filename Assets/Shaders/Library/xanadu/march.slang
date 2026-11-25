@@ -272,6 +272,13 @@ public extension Camera
         return Ray(eye, d);
     }
 
+    /// How far along the ray through `pixel` a point `screenDepth` pixels into the screen is:
+    /// from a drawn depth back to the march's t (a limit, or the point itself).
+    public float along(float2 pixel, float screenDepth)
+    {
+        return (screenDepth + distance) * length(float3(pixel, focal)) / focal;
+    }
+
     /// The exact box a ball takes on screen: across each axis, the two planes through the eye
     /// that just touch it. Draw a quad there (in deform) and march only inside it.
     public Footprint outlined(Ball ball)

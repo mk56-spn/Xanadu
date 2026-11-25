@@ -116,15 +116,32 @@ public sealed partial class StackBuild
         return new BuildClear(first.Index, image, value);
     }
 
-    /// <summary>A draw's call: the colour image it draws into, and the depth image it writes its depths to, if any.</summary>
+    /// <summary>
+    /// A draw's call: the colour image it draws into and the depth it writes, if any; a Surface draw names Surfaces'
+    /// three images, depth, normals and bases.
+    /// </summary>
     private BuildDraw DrawCall(BuildTokens tokens, int pass, BuildToken first)
     {
         tokens.Expect("(");
-        int colour = Image(tokens, "the colour it draws into", ["rgba16f", "rgba8", "rgba32f"]);
-        int depth = tokens.Take(",") ? Image(tokens, "the depth it writes, pixels into the screen", ["r32f"]) : -1;
+        int[] targets;
+        if (_passes[pass].Draw!.Value.Surfaced)
+        {
+            int depth = Image(tokens, "the Surfaces depth, pixels into the screen", ["r32f"]);
+            tokens.Expect(",");
+            int normals = Image(tokens, "the Surfaces normals", ["rgba16f", "rgba32f"]);
+            tokens.Expect(",");
+            int bases = Image(tokens, "the Surfaces bases", ["rgba16f", "rgba8", "rgba32f"]);
+            targets = [depth, normals, bases];
+        }
+        else
+        {
+            int colour = Image(tokens, "the colour it draws into", ["rgba16f", "rgba8", "rgba32f"]);
+            targets = tokens.Take(",") ? [colour, Image(tokens, "the depth it writes, pixels into the screen", ["r32f"])] : [colour];
+        }
+
         tokens.Expect(")");
         tokens.Expect(";");
-        return new BuildDraw(first.Index, pass, colour, depth);
+        return new BuildDraw(first.Index, pass, targets);
     }
 
     private int Image(BuildTokens tokens, string what, string[] formats)

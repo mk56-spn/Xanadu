@@ -1,15 +1,16 @@
 // A room recorded with xanadu.scene: a box on a plinth that thumps on every beat, a ball
 // melted on it, a hoop that flashes each bar, pillars in the corners and a ring of pins that
-// bob in turn. The graph records it once a frame, shoots it a pixel at a time into two images,
-// and presents them on the item.
+// bob in turn, with a mesh torus drawn into the same room. The graph records the scene once a
+// frame, draws the torus into the Surfaces, marches the scene only where it is nearer, lights
+// every surface once with the scene's shadows, and presents the result on the item.
 import xanadu;
 
 [Buffer(256)] RWStructuredBuffer<scene.Part> parts;
 [Buffer(129)] RWStructuredBuffer<scene.Object> objects;
+[Image(r32f)] RWTexture2D<float> depth;
+[Image(rgba16f)] RWTexture2D<float4> normals;
+[Image(rgba16f)] RWTexture2D<float4> bases;
 [Image(rgba16f)] RWTexture2D<float4> shown;
-[Image(r32f)] RWTexture2D<float> shownDepth;
-
-[Options("lit|steps|tile lists|normals")] uniform int view;
 
 [Default(colours.hotPink)] uniform colour tint;
 /// How hard the box thumps on the beat.
@@ -50,6 +51,17 @@ void record(uint i)
 /// The camera, swinging slowly round the room: the same for the mesh and the march.
 Camera eye(float2 size) { return Camera(1100, size.y * 0.9).orbited(sin(time * 0.25) * 0.7, 0.3); }
 
+/// A closed room keeps the sun out: a lamp hangs under the ceiling instead.
+Lighting lighting()
+{
+    Lighting light = Lighting().sunless().lamp(float3(-350, -550, -300), colour(1.5, 1.35, 1.2), 1200);
+    light.sky = colour(0.18, 0.2, 0.28);
+    light.ground = colour(0.1, 0.08, 0.07);
+    return light;
+}
+
+Surfaces surfaces() { return Surfaces(depth, normals, bases); }
+
 /// A ring of real triangles (xanadu.mesh), turning on the beat in a corner.
 Torus ring() { return Torus(160, 40).turned(float3(1.1, beat * 0.5, 0.3)).moved(float3(-620, 60, 380)); }
 
@@ -60,32 +72,29 @@ ItemVertex ringDrawn(ItemVertex v)
     return v;
 }
 
-float4 ringLook(ItemInput i, Canvas canvas) { return ring().lit(i.uv, eye(canvas.size), colours.orange); }
+Surface ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), Material(colours.orange, 40)); }
 
-/// The room, marched where it is nearer than what was drawn.
+/// The scene, marched only where it is nearer than the torus.
 [Pixels(8, 8)]
-void shoot(ItemInput i, Canvas canvas)
+void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), surfaces()); }
+
+/// Every surface lit once, whoever drew it, in the scene's shadows.
+[Pixels(8, 8)]
+void illuminate(ItemInput i, Canvas canvas)
 {
     Camera camera = eye(canvas.size);
-    // A closed room keeps the sun out: a lamp hangs under the ceiling instead.
-    Lighting light = Lighting().sunless().lamp(float3(-350, -550, -300), colour(1.5, 1.35, 1.2), 1200);
-    light.sky = colour(0.18, 0.2, 0.28);
-    light.ground = colour(0.1, 0.08, 0.07);
-    float drawn = shownDepth[group.pixel];
-    colour c = scene.shot(parts, objects, camera, canvas, light, view);
-    if (c.a > 0 && traced.depth < drawn)
-    {
-        shown[group.pixel] = c;
-        shownDepth[group.pixel] = traced.depth;
-    }
+    Lighting light = lighting();
+    shown[group.pixel] = light.deferred(surfaces(), camera, canvas, scene.shadows(parts, objects, camera, canvas, light));
 }
 
 void graph()
 {
-    clear(shown);
-    clear(shownDepth, 1e30);
+    clear(depth, 1e30);
+    clear(normals);
+    clear(bases);
     record();
-    ringDrawn(shown, shownDepth);
+    ringDrawn(depth, normals, bases);
     shoot();
-    present(shown, shownDepth);
+    illuminate();
+    present(shown, depth);
 }

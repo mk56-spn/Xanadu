@@ -153,9 +153,8 @@ public sealed class StackGraph
                 // A draw writes the images its calls name.
                 foreach (StackBuild.Run run in calls.Where(_ => compiled.Drawn is not null))
                 {
-                    graph.Edge(pass, images[(int)run.A], GraphAccess.Write);
-                    if (run.B != StackBuild.Run.None)
-                        graph.Edge(pass, images[(int)run.B], GraphAccess.Write);
+                    for (int k = 0; k < 3 && run.Target(k) != StackBuild.Run.None; k++)
+                        graph.Edge(pass, images[(int)run.Target(k)], GraphAccess.Write);
                 }
             }
 

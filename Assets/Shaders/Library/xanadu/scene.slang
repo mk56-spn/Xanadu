@@ -41,6 +41,7 @@ import xanadu.math;
 import xanadu.colour;
 import xanadu.mesh;
 import xanadu.march;
+import xanadu.light;
 
 // ---- Solids --------------------------------------------------------------------------
 
@@ -134,94 +135,6 @@ public Solid Pill(float radius, float height) { return Solid(scene.PILL, float4(
 public Solid Hoop(float radius, float thickness) { return Solid(scene.HOOP, float4(radius, thickness, 0.0, 0.0)); }
 /// A cone standing on its base, tip up: `radius` across the base, `height` tall, centred.
 public Solid Cone(float radius, float height) { return Solid(scene.CONE, float4(radius, height, 0.0, 0.0)); }
-
-// ---- Materials --------------------------------------------------------------------------
-
-/// What a surface is made of: its colour, how tight its highlight is (0 none), how much light
-/// of its own it gives (0 none, 1 its colour at full whatever the light, more for HDR).
-public struct Material
-{
-    public colour base;
-    public float shine;
-    public float glow;
-
-    public __init(colour base, float shine = 30.0, float glow = 0.0) { this.base = base; this.shine = shine; this.glow = glow; }
-
-    /// A copy giving `amount` light of its own.
-    public Material glowing(float amount) { Material m = this; m.glow = amount; return m; }
-
-    /// Between this one and `other`, `t` of the way.
-    public Material mixed(Material other, float t) { return Material(lerp(base, other.base, t), lerp(shine, other.shine, t), lerp(glow, other.glow, t)); }
-};
-
-// ---- The light ---------------------------------------------------------------------------
-
-/// The light a scene is shot in: a sun, up to four lamps, the sky's light from above and the
-/// ground's from below, and what shows where nothing is. A closed room keeps the sun out.
-public struct Lighting
-{
-    /// Towards the sun (normalised).
-    public float3 sun;
-    /// The sun's colour; black turns it off.
-    public colour sunlight;
-    /// Each lamp's place (xyz) and how far it reaches before it is down to half (w).
-    public float4 lampAt[4];
-    public colour lampLight[4];
-    public uint lamps;
-    public colour sky;
-    public colour ground;
-    /// What a ray that meets nothing shows: transparent lets what is behind the item show.
-    public colour background;
-    /// How sharp shadows are: higher is harder; 0 turns them off.
-    public float shadows;
-    /// How dark creases and corners get (ambient occlusion), 0 for none.
-    public float occlusion;
-    /// Fog from `fog.x` to `fog.y` away from the camera, fading to the background; 0, 0 for none.
-    public float2 fog;
-    /// How far rays and shadows look.
-    public float far;
-
-    public __init()
-    {
-        sun = normalize(float3(-0.5, -0.8, -0.6));
-        sunlight = colour(1.0, 0.95, 0.85);
-        for (uint k = 0; k < 4; k++)
-        {
-            lampAt[k] = float4(0.0);
-            lampLight[k] = colours.black;
-        }
-        lamps = 0;
-        sky = colour(0.4, 0.5, 0.65);
-        ground = colour(0.2, 0.16, 0.12);
-        background = colours.transparent;
-        shadows = 16.0;
-        occlusion = 1.0;
-        fog = float2(0.0);
-        far = 8000.0;
-    }
-
-    /// A copy with the sun towards `direction`.
-    public Lighting sunFrom(float3 direction) { Lighting l = this; l.sun = normalize(direction); return l; }
-
-    /// A copy without the sun.
-    public Lighting sunless() { Lighting l = this; l.sunlight = colours.black; return l; }
-
-    /// A copy with one more lamp at `position`, in `light`, reaching `reach` (past four, ignored).
-    public Lighting lamp(float3 position, colour light, float reach = 1000.0)
-    {
-        Lighting l = this;
-        if (l.lamps < 4)
-        {
-            l.lampAt[l.lamps] = float4(position, reach);
-            l.lampLight[l.lamps] = light;
-            l.lamps++;
-        }
-        return l;
-    }
-
-    /// A copy fogged from `near` to `far` towards `into` (which becomes the background too).
-    public Lighting fogged(float near, float far, colour into) { Lighting l = this; l.fog = float2(near, far); l.background = into; return l; }
-};
 
 // ---- Recording ---------------------------------------------------------------------------
 
@@ -925,51 +838,60 @@ public namespace scene
         return saturate(1.0 - closed * 1.5);
     }
 
-    /// The light one source gives a point: diffuse and highlight, `amount` of it.
-    float3 lightFrom(float3 n, float3 toLight, float3 toEye, float3 base, Material m, float3 light, float amount)
+    /// A recorded scene as a shadow caster, for Lighting.lit and deferred: its soft shadows and
+    /// its occlusion, asked of the tile's lists when `listed`.
+    public struct Shadows : IShadows
     {
-        float3 rgb = base * amount;
-        if (m.shine > 0.0)
-            rgb += lights.specular(n, toLight, toEye, m.shine) * amount * 0.4;
-        return light * rgb;
+        RWStructuredBuffer<Part> parts;
+        RWStructuredBuffer<Object> objects;
+        bool listed;
+
+        public __init(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, bool listed)
+        {
+            this.parts = parts;
+            this.objects = objects;
+            this.listed = listed;
+        }
+
+        public float shadow(float3 p, float3 toLight, float far, float hardness)
+        {
+            return scene.shadow(parts, objects, p, toLight, far, hardness, listed);
+        }
+
+        public float open(float3 p, float3 normal, float reach) { return occlusion(parts, objects, p, normal, reach, listed); }
+    };
+
+    /// The scene casting shadows on this pixel pass's tile, whoever drew what is there: lists
+    /// the tile first, so every thread of the tile must call it.
+    public Shadows shadows(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light)
+    {
+        listTile(objects, tileView(camera, canvas, light.far), light);
+        return Shadows(parts, objects, seenCount <= LISTED && shadowingCount <= LISTED);
     }
 
-    /// A hit lit: the sun and each lamp (shadowed), the sky from above and the ground from
-    /// below (occluded), its own glow, and fog.
+    /// A hit lit: Lighting.lit with the scene's own shadows and occlusion.
     public colour lit(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Shot hit, Ray ray, Camera camera, Lighting light, bool listed)
     {
-        Material m = objectMaterial(parts, objects[1 + hit.object], hit.position);
-        float3 n = hit.normal;
-        float3 toEye = -ray.direction;
-        float3 base = m.base.rgb;
-        float3 from = hit.position + n * max(1.5, hit.t * 1e-3);
-        float3 rgb = float3(0.0);
-        if (any(light.sunlight.rgb > 0.0))
-        {
-            float sun = lights.diffuse(n, light.sun);
-            if (light.shadows > 0.0 && sun > 0.0)
-                sun *= shadow(parts, objects, from, light.sun, light.far, light.shadows, listed);
-            rgb += lightFrom(n, light.sun, toEye, base, m, light.sunlight.rgb, sun);
-        }
-        for (uint l = 0; l < light.lamps; l++)
-        {
-            float3 to = light.lampAt[l].xyz - hit.position;
-            float away = length(to);
-            float3 toLamp = to / max(away, 1e-3);
-            float fall = away / max(light.lampAt[l].w, 1.0);
-            float lamp = lights.diffuse(n, toLamp) / (1.0 + fall * fall);
-            if (light.shadows > 0.0 && lamp > 1e-3)
-                lamp *= shadow(parts, objects, from, toLamp, away, light.shadows, listed);
-            rgb += lightFrom(n, toLamp, toEye, base, m, light.lampLight[l].rgb, lamp);
-        }
-        float open = light.occlusion > 0.0 ? lerp(1.0, occlusion(parts, objects, hit.position, n, 60.0, listed), light.occlusion) : 1.0;
-        float above = saturate(0.5 - 0.5 * n.y);   // up is -y
-        rgb += base * (light.sky.rgb * above + light.ground.rgb * (1.0 - above)) * open * 0.6;
-        rgb += base * m.glow;
-        colour c = colour(rgb, 1.0);
-        if (light.fog.y > light.fog.x)
-            c = lerp(c, light.background, camera.fog(hit.position, light.fog.x, light.fog.y));
-        return c;
+        Surface s = Surface(hit.normal, objectMaterial(parts, objects[1 + hit.object], hit.position));
+        return light.lit(s, hit.position, camera, Shadows(parts, objects, listed));
+    }
+
+    /// The scene through `camera` into this pixel pass's Surfaces, out to `light.far` but only
+    /// where it is nearer than what is there already: draw cheap things first and the march
+    /// stops at them, so pixels they cover cost little. Lists the tile, so every thread of the
+    /// tile must call it. Light them after with Lighting.deferred.
+    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Surfaces into)
+    {
+        listTile(objects, tileView(camera, canvas, light.far), light);
+        bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
+        float drawn = into.depthAt(group.pixel);
+        float limit = drawn < Surfaces.EMPTY * 0.5 ? min(light.far, camera.along(canvas.centred, drawn)) : light.far;
+        Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed);
+        if (!hit.found)
+            return;
+        Surface s = Surface(hit.normal, objectMaterial(parts, objects[1 + hit.object], hit.position));
+        s.depth = camera.screenDepth(hit.position);
+        into.put(group.pixel, s);
     }
 
     /// The heat scale the cost views use: dark, red, yellow, white.
@@ -1003,7 +925,7 @@ public namespace scene
                 traced.depth = 1e6;
             return light.background;
         }
-        traced.depth = camera.depth(hit.position) - camera.distance;
+        traced.depth = camera.screenDepth(hit.position);
         if (view == NORMALS)
             return colour(hit.normal * 0.5 + 0.5, 1.0);
         return lit(parts, objects, hit, ray, camera, light, listed);

@@ -47,8 +47,11 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// </summary>
     public (int Width, int Height)? Pixels { get; init; }
 
-    /// <summary>A draw (<c>[Draw]</c>): its grid's cells and the function that shades it; null for a compute pass.</summary>
-    public (int Across, int Down, string Shade)? Draw { get; init; }
+    /// <summary>
+    /// A draw (<c>[Draw]</c>): its grid's cells, the function that shades it, and whether that gives a <c>Surface</c>
+    /// (written into Surfaces' three images) rather than a colour; null for a compute pass.
+    /// </summary>
+    public (int Across, int Down, string Shade, bool Surfaced)? Draw { get; init; }
 
     /// <summary>A pixel pass's parameters as written, for its call.</summary>
     public string Signature { get; init; } = "";
@@ -63,8 +66,11 @@ public abstract record BuildStep(int Index);
 /// <summary>A pass run: <c>hist(round);</c>.</summary>
 public sealed record BuildCall(int Index, int Pass, BuildExpression[] Arguments) : BuildStep(Index);
 
-/// <summary>A draw run: <c>vase(colour, depth);</c>, into images by their places in <see cref="StackBuild.Images"/> (depth -1 for none).</summary>
-public sealed record BuildDraw(int Index, int Pass, int Colour, int Depth) : BuildStep(Index);
+/// <summary>
+/// A draw run into images by their places in <see cref="StackBuild.Images"/>, its colour targets in order:
+/// <c>vase(colour[, depth]);</c>, or a Surface draw's <c>vase(depth, normals, bases);</c>.
+/// </summary>
+public sealed record BuildDraw(int Index, int Pass, int[] Targets) : BuildStep(Index);
 
 /// <summary><c>clear(image)</c> or <c>clear(image, value)</c>: every texel of the image set to the value (0 when none).</summary>
 public sealed record BuildClear(int Index, int Image, BuildExpression? Value) : BuildStep(Index);

@@ -1725,7 +1725,7 @@ float4 trace(ItemInput i, Canvas canvas)
   thread as one number, `group.threads` how many, and `group.low`/`group.high`
   the tile's corners on the target in pixels (for working out what the tile sees).
 - **Depth:** set `traced.depth`, pixels into the screen as deform's `v.depth`
-  (`camera.depth(p) - camera.distance` for a point of a 3D scene). The
+  (`camera.screenDepth(p)` for a point of a 3D scene). The
   stack's own triangles drawn after it are tested against it, so they hide
   behind it or show in front. A pixel left clear (alpha 0) sets no depth.
   Sparks and glows over it want `[Translucent]` on their deform (§15).

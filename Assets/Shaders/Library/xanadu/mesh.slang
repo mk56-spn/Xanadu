@@ -121,6 +121,10 @@ public struct Camera
     /// How far ahead of the camera a world point is.
     public float depth(float3 p) { return viewed(p).z; }
 
+    /// How far into the screen a world point is, in pixels: 0 on the orbit's centre (the item's
+    /// plane), as ItemVertex.depth, traced.depth and Surfaces measure it.
+    public float screenDepth(float3 p) { return depth(p) - distance; }
+
     /// How much fog lies between the camera and `p`, 0 nearer than `near` to 1 at `far` and
     /// beyond: lerp a colour towards the sky by it so distance fades.
     public float fog(float3 p, float near, float far) { return smoothstep(near, far, depth(p)); }
@@ -843,7 +847,7 @@ public extension ItemVertex
     [mutating] public void place(float3 p, Camera camera)
     {
         position = rest.position + camera.projected(p);
-        depth = camera.depth(p) - camera.distance;
+        depth = camera.screenDepth(p);
     }
 
     /// A copy moved to where `p` lands through `camera`, with its depth.
