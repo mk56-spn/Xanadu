@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering.Compute;
+using Xanadu.Core.Rendering;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
 using Shader = MoonWorks.Graphics.Shader;
 
 namespace Xanadu.Rendering;
@@ -104,9 +106,52 @@ internal sealed class CanvasEffect(
         return made;
     }
 
+    private readonly Dictionary<(int Pass, BlendMode Blend, CustomBlend? Custom, SampleCount Samples), GraphicsPipeline> _exitPipelines = [];
+
+    /// <summary>
+    /// Draw <paramref name="pass"/>'s pipeline onto the frame (an exit): blended as <paramref name="material"/> says, depth
+    /// tested and written as a deforming effect's is, at the job's sample count. Made the first time, kept with the effect.
+    /// </summary>
+    public GraphicsPipeline ExitPipeline(GraphicsDevice device, int pass, CanvasMaterial? material, SampleCount samples, TextureFormat format,
+        TextureFormat z)
+    {
+        BlendMode blend = material?.Blend ?? BlendMode.Mix;
+        CustomBlend? custom = material?.Custom?.PipelineKey;
+        if (_exitPipelines.TryGetValue((pass, blend, custom, samples), out GraphicsPipeline? made))
+            return made;
+        (Shader vertexStage, Shader fragmentStage) = Draws[pass]!.Value;
+        made = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
+        {
+            VertexShader = vertexStage,
+            FragmentShader = fragmentStage,
+            VertexInputState = VertexInputState.Empty,
+            PrimitiveType = PrimitiveType.TriangleList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = new MultisampleState { SampleCount = samples },
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
+            TargetInfo = new GraphicsPipelineTargetInfo
+            {
+                ColorTargetDescriptions =
+                [
+                    new ColorTargetDescription
+                    {
+                        Format = format,
+                        BlendState = custom is { } state ? CanvasPipelines.Blend(state) : CanvasPipelines.Blend(blend),
+                    },
+                ],
+                HasDepthStencilTarget = true,
+                DepthStencilFormat = z,
+            },
+        });
+        _exitPipelines[(pass, blend, custom, samples)] = made;
+        return made;
+    }
+
     public void Dispose()
     {
         foreach (GraphicsPipeline pipeline in _drawPipelines.Values)
+            pipeline.Dispose();
+        foreach (GraphicsPipeline pipeline in _exitPipelines.Values)
             pipeline.Dispose();
         foreach (ComputePipeline? pass in Passes)
             pass?.Dispose();

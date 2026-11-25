@@ -103,11 +103,22 @@ public sealed partial class StackBuild
         return new BuildPresent(first.Index, colour, depth);
     }
 
-    /// <summary>A draw's call: an image for each of its outputs (<see cref="DrawOutput"/>), in order.</summary>
+    /// <summary>A draw's call: an image for each of its outputs (<see cref="DrawOutput"/>), in order; or <c>frame</c> for a colour shade.</summary>
     private BuildDraw DrawCall(BuildTokens tokens, int pass, BuildToken first)
     {
         tokens.Expect("(");
         (_, _, string shade, DrawOutput[] outputs) = _passes[pass].Draw!.Value;
+        // Onto the frame: an exit, drawn in the job's pass where the item is placed.
+        if (tokens.Peek.Text == "frame")
+        {
+            if (outputs[0].Field is not null)
+                throw new BuildProblem(tokens.Peek.Index, $"{shade} returns a struct; only a colour (float4) can be drawn onto the frame.");
+            tokens.Next();
+            tokens.Expect(")");
+            tokens.Expect(";");
+            return new BuildDraw(first.Index, pass, [BuildDraw.Frame]);
+        }
+
         var targets = new int[outputs.Length];
         for (int k = 0; k < outputs.Length; k++)
         {

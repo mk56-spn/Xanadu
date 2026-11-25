@@ -176,6 +176,13 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
                 }
                 else if (node.Kind == NodeKind.Shade && _exits.Shade(commands, pass, s, step, effect, samples, frame, ref clocked))
                     BatchCount++;
+                else if (node is { Kind: NodeKind.Draw, Place: NodePlace.Exit } && step.Mesh is { } mesh && step.Start < mesh.Vertices.Count)
+                {
+                    if (_graphs.Draws.Exit(commands, pass, effect, _graphs.Images(s), mesh.Vertices[(int)step.Start].Rest, node.Call, step, samples,
+                            frame.Time))
+                        BatchCount++;
+                    clocked = false;
+                }
             }
         }
 

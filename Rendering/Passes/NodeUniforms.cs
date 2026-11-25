@@ -53,5 +53,15 @@ internal struct TracedView
 [StructLayout(LayoutKind.Sequential)]
 internal struct DrawQuad
 {
-    public Vector2 Corner, XAxis, YAxis, Pad;
+    public Vector2 Corner, XAxis, YAxis;
+
+    /// <summary>Where z lands: (0, 1) for the item's own draw depth, its slice of the canvas depth onto the frame.</summary>
+    public Vector2 Slice;
+}
+
+/// <summary>A draw node's fragment placing (uniform 2 of set 3, <c>XanaduDrawBox</c>): the shift onto the target, the box's corner, the slice.</summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct DrawBox
+{
+    public Vector2 Shift, Origin, Slice, Pad;
 }

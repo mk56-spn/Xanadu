@@ -17,6 +17,12 @@ public sealed partial class StackBuild
         /// <summary>No image.</summary>
         public const uint None = uint.MaxValue;
 
+        /// <summary>The frame, as a draw's target: the draw is an exit.</summary>
+        public const uint Frame = uint.MaxValue - 1;
+
+        /// <summary>Whether it is a draw onto the frame.</summary>
+        public bool OntoFrame => A == Frame;
+
         public bool Presents => Pass == Present;
     }
 
@@ -67,7 +73,8 @@ public sealed partial class StackBuild
     }
 
     /// <summary>A draw's <paramref name="k"/>th colour target, <see cref="Run.None"/> past its last.</summary>
-    private static uint Target(BuildDraw draw, int k) => k < draw.Targets.Length ? (uint)draw.Targets[k] : Run.None;
+    private static uint Target(BuildDraw draw, int k) =>
+        k >= draw.Targets.Length ? Run.None : draw.Targets[k] == BuildDraw.Frame ? Run.Frame : (uint)draw.Targets[k];
 
     private Run Dispatch(BuildCall call, Func<string, BuildValue?> lookup, int count)
     {

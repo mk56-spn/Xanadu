@@ -2,14 +2,13 @@
 // a [Pass] paints it once a frame, however many items show the stack, and every item reads it.
 // `glow` is a quarter of the box: soft blobs worked out a texel at a time over it
 // ([Pixels(…, over: glow)]), each texel standing for 4 × 4 pixels. `shown` is the box: sharp
-// rings drawn at full size over the glow, read back at a quarter. A waving sheet of triangles is
-// drawn into `sheet`, its shade reading the glow by name at the pixel's texel. `coarse` presents
-// the glow alone, stretched over the box.
+// rings drawn at full size over the glow, read back at a quarter. A waving band of triangles is
+// drawn straight onto the frame after them, its shade reading the glow by name at the pixel's
+// texel. `coarse` presents the glow alone, stretched over the box.
 import xanadu;
 
 [Image(rgba16f, 64, 64)] RWTexture2D<float4> palette;
 [Image(rgba16f, scale: 0.25)] RWTexture2D<float4> glow;
-[Image(rgba16f)] RWTexture2D<float4> sheet;
 [Image(rgba16f)] RWTexture2D<float4> shown;
 
 /// Show the quarter-size glow alone, stretched over the box.
@@ -63,8 +62,7 @@ float4 sheetLook(ItemInput i)
 [Pixels(8, 8)]
 void rings(ItemInput i, Canvas canvas)
 {
-    float4 band = sheet[group.pixel];
-    float4 under = band + glow[group.pixel / 4] * (1 - band.a);
+    float4 under = glow[group.pixel / 4];
     float ring = 0;
     for (int k = 0; k < blobs; k++)
         ring = max(ring, sdf.filled(abs(length(canvas.centred - blob(k, canvas.size)) - 40 - 12 * beats.pulse()) - 2, 1));
@@ -79,8 +77,8 @@ void graph()
         present(glow);
     else
     {
-        sheetDrawn(sheet);
         rings();
         present(shown);
+        sheetDrawn(frame);
     }
 }

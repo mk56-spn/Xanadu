@@ -30,6 +30,9 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     private readonly HashSet<CanvasEffect> _uncut = new(ReferenceEqualityComparer.Instance);
     private readonly ImageDraws _draws = new(device, targets, globals);
 
+    /// <summary>The draw nodes: into the item's images here, onto the frame from the pass (<see cref="ImageDraws.Exit"/>).</summary>
+    public ImageDraws Draws => _draws;
+
     /// <summary>Each step's images this frame, by its place in the frame's steps; null until its first item node.</summary>
     private readonly List<ItemSet?> _sets = [];
 

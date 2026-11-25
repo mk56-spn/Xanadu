@@ -17,7 +17,7 @@ public enum NodeKind
     /// <summary>A <c>[Pixels]</c> call: compute over the item's box.</summary>
     Pixels,
 
-    /// <summary>A <c>[Draw]</c> call into the graph's own images.</summary>
+    /// <summary>A <c>[Draw]</c> call into the graph's own images, or onto the frame (an exit).</summary>
     Draw,
 
     /// <summary>The TRACE brick: compute over the item's box into the trace's two images.</summary>
@@ -159,7 +159,7 @@ public sealed class GraphPlan
 
                 CompiledPass pass = build.Passes[run.Pass];
                 if (pass.Drawn is not null)
-                    Add(NodeKind.Draw, NodePlace.Prelude, run);
+                    Add(NodeKind.Draw, run.OntoFrame ? NodePlace.Exit : NodePlace.Prelude, run);
                 else if (pass.Tile is not null)
                     Add(NodeKind.Pixels, NodePlace.Prelude, run);
                 else if (run.Groups > 0)

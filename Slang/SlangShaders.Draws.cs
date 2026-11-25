@@ -113,8 +113,9 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
-            // The item's quad on the target: its corner and sides.
-            struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 pad; };
+            // The item's quad on the target: its corner and sides; and the slice of depth it lands in, 0..1 for
+            // the item's own draw depth, the item's slice of the canvas depth for a draw onto the frame.
+            struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; };
             [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
             [shader("vertex")]
             ItemVaryings xanaduDrawVertex(uint index : SV_VertexID)
@@ -130,8 +131,9 @@ public static partial class SlangShaders
                 ItemVertex v = { position, uv, float4(1.0), uv * size, canvasFrom(q.xAxis, q.yAxis, q.corner, uv), index, 0.0 };
                 ItemVertex d = effect0::{{deform}}(v);
                 ItemVaryings o = varyings(d);
-                // The deform's depth squashed into 0..1 as the canvas does it, nearer smaller (tested less-or-equal).
-                o.position.z = 0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0);
+                // The deform's depth squashed into 0..1 as the canvas does it, nearer smaller (tested less-or-equal),
+                // then into the slice.
+                o.position.z = q.slice.x + q.slice.y * (0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0));
                 o.rest = position;
                 o.instance = 0;
                 return o;
@@ -168,20 +170,21 @@ public static partial class SlangShaders
             {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
-            // The item's box on the target: the draw renders into images its size, so a fragment's position is
-            // the box's, and the box's corner puts it back on the target before its input is built.
-            struct XanaduDrawBox { float2 origin; float2 pad; };
+            // Where the fragment is: a draw into images renders them the box's size, so its position is the box's
+            // and `shift` (the box's corner) puts it back on the target; a draw onto the frame isn't shifted.
+            // `origin` is the box's corner, for the texel in the item's images.
+            struct XanaduDrawBox { float2 shift; float2 origin; float2 slice; float2 pad; };
             [[vk::binding({{DrawBoxSlot}}, 3)]] ConstantBuffer<XanaduDrawBox> xanaduDrawBox;
             struct XanaduDrawn { {{fields}} };
             [shader("fragment")]
             XanaduDrawn xanaduDrawFragment(ItemVaryings v)
             {
+                v.position.xy += xanaduDrawBox.shift;
                 // The texel under the pixel in the item's images, as a pixel pass has it.
-                group.pixel = uint2(v.position.xy);
-                v.position.xy += xanaduDrawBox.origin;
+                group.pixel = uint2(max(v.position.xy - xanaduDrawBox.origin, 0.0));
                 ItemInput i = input(v);
-                // Pixels into the screen, from the squashed z: z = 0.5 + 0.5 d / (|d| + 1024), undone.
-                float r = v.position.z * 2.0 - 1.0;
+                // Pixels into the screen, from z: out of the slice, then z = 0.5 + 0.5 d / (|d| + 1024) undone.
+                float r = (v.position.z - xanaduDrawBox.slice.x) / max(xanaduDrawBox.slice.y, 1e-9) * 2.0 - 1.0;
                 i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);
                 shading = i;
                 {{TimelineClock(source, shading: true)}}

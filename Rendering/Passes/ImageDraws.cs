@@ -1,3 +1,4 @@
+using System.Numerics;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
 using Xanadu.Rendering.Frame;
@@ -9,15 +10,14 @@ using Texture = MoonWorks.Graphics.Texture;
 namespace Xanadu.Rendering.Passes;
 
 /// <summary>
-/// A graph's <c>[Draw]</c> node, before the job's pass: a grid over the item's quad into the item's images (one for each
-/// output of its shade) against the item's own draw depth. The images are the item's box, so the viewport is the
-/// target moved by the box's corner, and the fragment gets the corner back to place its pixel on the target.
+/// A graph's <c>[Draw]</c> nodes: a grid over the item's quad. Into the item's images (one for each output of its shade),
+/// before the job's pass, against the item's own draw depth: the images are the item's box, so the viewport is the target
+/// moved by the box's corner, and the fragment gets the corner back to place its pixel on the target. Or onto the frame
+/// (an exit), inside the job's pass where the item is placed: blended as its material says, its depth in the item's slice
+/// of the canvas depth. Either way its shade reads the item's images at <c>group.pixel</c>.
 /// </summary>
 internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, GlobalBindings globals)
 {
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    private struct DrawBox { public float X, Y, Pad0, Pad1; }
-
     /// <summary>The images a draw's shade reads, gathered for binding; grown as needed, never shrunk.</summary>
     private Texture[] _read = new Texture[4];
 
@@ -52,15 +52,41 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         pass.BindGraphicsPipeline(pipeline);
         // The vertex stage places the grid on the target; the target moved by the box's corner lands the box on the images.
         pass.SetViewport(new Viewport(-set.Box.X, -set.Box.Y, targets.Width, targets.Height));
+        var corner = new Vector2(set.Box.X, set.Box.Y);
+        Bind(commands, pass, draw, set, rest, step, time, corner, new Vector2(0, 1));
+        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
+        commands.EndRenderPass(pass);
+    }
+
+    /// <summary>A draw onto the frame, inside the job's pass. False when the item has no images to read (no box).</summary>
+    public bool Exit(CommandBuffer commands, RenderPass pass, CanvasEffect effect, ItemSet? set, RestFrame rest, StackBuild.Run call,
+        Step step, SampleCount samples, float time)
+    {
+        CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
+        if (set is null && draw.Reads.Length > 0)
+            return false;
+        pass.BindGraphicsPipeline(effect.ExitPipeline(device, call.Pass, step.Material, samples, targets.Format, targets.DepthFormat));
+        pass.SetViewport(new Viewport(0, 0, targets.Width, targets.Height));
+        pass.SetScissor(step.Clip);
+        Bind(commands, pass, draw, set, rest, step, time, Vector2.Zero, new Vector2(step.Depth - step.Span, step.Span));
+        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
+        return true;
+    }
+
+    /// <summary>Both stages' uniforms, samplers, read images and globals: the grid moved by <paramref name="shift"/>, its z in <paramref name="slice"/>.</summary>
+    private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, ItemSet? set, RestFrame rest, Step step, float time,
+        Vector2 shift, Vector2 slice)
+    {
         FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time);
-        commands.PushVertexUniformData(new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis });
+        commands.PushVertexUniformData(new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis, Slice = slice });
         commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
         if (draw.Vertex.ParamsSize > 0)
             ShaderParams.Push(commands, draw.Vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
         commands.PushFragmentUniformData(frame);
         if (draw.Fragment.ParamsSize > 0)
             ShaderParams.Push(commands, draw.Fragment, step.Material, step.Values);
-        commands.PushFragmentUniformData(new DrawBox { X = set.Box.X, Y = set.Box.Y }, SlangShaders.DrawBoxSlot);
+        var origin = set is null ? Vector2.Zero : new Vector2(set.Box.X, set.Box.Y);
+        commands.PushFragmentUniformData(new DrawBox { Shift = shift, Origin = origin, Slice = slice }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
             pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex.StorageBuffers));
         // Neither stage gets a texture of its own yet: any sampler it declares sees white.
@@ -77,13 +103,11 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
             if (_read.Length < draw.Reads.Length)
                 _read = new Texture[draw.Reads.Length];
             for (int k = 0; k < draw.Reads.Length; k++)
-                _read[k] = set.Images[draw.Reads[k]];
+                _read[k] = set!.Images[draw.Reads[k]];
             pass.BindFragmentStorageTextures(_read.AsSpan(0, draw.Reads.Length));
         }
 
         if (draw.Fragment.StorageBuffers > 0)
             pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment.StorageBuffers));
-        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
-        commands.EndRenderPass(pass);
     }
 }

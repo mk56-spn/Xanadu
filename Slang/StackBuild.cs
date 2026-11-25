@@ -66,10 +66,16 @@ public abstract record BuildStep(int Index);
 public sealed record BuildCall(int Index, int Pass, BuildExpression[] Arguments) : BuildStep(Index);
 
 /// <summary>
-/// A draw run into images by their places in <see cref="StackBuild.Images"/>, its colour targets in order:
-/// <c>vase(colour[, depth]);</c>, or a Surface draw's <c>vase(depth, normals, bases);</c>.
+/// A draw run into images by their places in <see cref="StackBuild.Images"/>, one for each output in order:
+/// <c>vase(colour);</c>, <c>vase(depth, normals, bases);</c>; or onto the frame, <c>vase(frame);</c> (<see cref="Frame"/>).
 /// </summary>
-public sealed record BuildDraw(int Index, int Pass, int[] Targets) : BuildStep(Index);
+public sealed record BuildDraw(int Index, int Pass, int[] Targets) : BuildStep(Index)
+{
+    /// <summary>The target that is the frame: the draw is an exit.</summary>
+    public const int Frame = -2;
+
+    public bool Exits => Targets is [Frame];
+}
 
 /// <summary><c>present(colour, depth);</c>: the images the item shows this frame, by their places in <see cref="StackBuild.Images"/> (depth -1 for none).</summary>
 public sealed record BuildPresent(int Index, int Colour, int Depth) : BuildStep(Index);

@@ -295,7 +295,17 @@ Stage C, first half (2026-11-25):
 - **Checked:** scene_room as before; `Lab/sizes` has a waving band drawn into `sheet`, its shade reading the quarter
   `glow` under it.
 
-Next: draws onto `frame` (exits), then argument lists.
+- **Draws onto the frame:** `band(frame);` makes a draw an exit (colour shades only). It runs in the job's pass in plan
+  order with the other exits, blended as the material says, its z in the item's slice of the canvas depth (the
+  vertex stage's `slice`), and still reads the item's images (`group.pixel` from the box's corner). Image draws and
+  exits are one compile; `ImageDraws.Draw` / `Exit` share their binding.
+- **Checked:** `Lab/sizes`' band is drawn onto the frame over the present, reading the glow; scene_room with a still
+  torus matches the previous commit's shot.
+
+Visual tests: nine scene tests (`ui-tree`, `song-select`, `settings`, `pause`, …) time out waiting for their screen;
+they fail the same way at `ade5f91c`, before this work.
+
+Next: argument lists.
 
 Also still open:
 

@@ -149,17 +149,25 @@ public sealed class StackGraph
                     }
                     else
                     {
-                        int pass = graph.Pass(compiled.Name, BrickKind.Build, true, 1, threads);
+                        int pass = graph.Pass(compiled.Name, BrickKind.Build, true, 1, threads, place: node.Place);
                         called[node.Call.Pass] = seen = pass;
                         ReadsState(pass);
                         Uses(pass, compiled.Buffers, compiled.Access);
                         foreach (int image in compiled.Images)
                             graph.Edge(pass, images[image], GraphAccess.ReadWrite);
+                        foreach (int image in compiled.Drawn?.Reads ?? [])
+                            graph.Edge(pass, images[image], GraphAccess.Read);
                     }
 
                     // A draw writes the images its calls name.
-                    for (int k = 0; node.Kind == NodeKind.Draw && k < DrawOutput.Most && node.Call.Target(k) != StackBuild.Run.None; k++)
-                        graph.Edge(seen, images[(int)node.Call.Target(k)], GraphAccess.Write);
+                    if (node.Kind == NodeKind.Draw && node.Call.OntoFrame)
+                    {
+                        graph.Edge(seen, frame, GraphAccess.Write);
+                        graph.Edge(seen, depth, GraphAccess.ReadWrite);
+                    }
+                    else
+                        for (int k = 0; node.Kind == NodeKind.Draw && k < DrawOutput.Most && node.Call.Target(k) != StackBuild.Run.None; k++)
+                            graph.Edge(seen, images[(int)node.Call.Target(k)], GraphAccess.Write);
                     break;
                 }
 
