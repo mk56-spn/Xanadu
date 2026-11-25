@@ -12,6 +12,17 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// </summary>
 internal sealed partial class ShaderCodeEditor
 {
+    /// <summary>Where the preview draws instead of its slot (the whole stage, for a full-size shot); null for its slot.</summary>
+    public static Rect2? FillPreview { get; set; }
+
+    /// <summary>The preview's item, drawn over the whole UI while it fills the stage, so a shot shows the shader alone.</summary>
+    private static Handle OnTop(Handle item)
+    {
+        if (FillPreview is not null)
+            Xanadu.Ui.Systems.Canvas.CanvasServer.Current.SetZIndex(item, 1_000_000);
+        return item;
+    }
+
     /// <summary>The stack's name, as its files' labels carry it; null while editing one text.</summary>
     private readonly string? _stack;
 
