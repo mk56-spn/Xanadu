@@ -96,6 +96,9 @@ public sealed class GraphPlan
     /// </summary>
     public bool ReadsValues { get; private set; }
 
+    /// <summary>Whether a mid-frame node reads the screen copy: the break copies the canvas drawn so far first.</summary>
+    public bool ReadsScreen { get; private set; }
+
     /// <summary>Why the schedule can't run with these values (a loop that won't end); null when it can.</summary>
     public string? Problem { get; private set; }
 
@@ -135,6 +138,7 @@ public sealed class GraphPlan
     {
         _nodes.Clear();
         BreaksPass = false;
+        ReadsScreen = false;
         ReadsValues = false;
         Problem = null;
         if (fragment.Update is not null)
@@ -170,11 +174,14 @@ public sealed class GraphPlan
                     continue;
                 }
 
+                // A pixel pass reading the canvas so far waits for it, mid-frame, and so does every item node after it.
                 CompiledPass pass = build.Passes[run.Pass];
+                ReadsScreen |= pass.ReadsScreen;
+                NodePlace item = BreaksPass || pass.ReadsDepth || pass.ReadsScreen ? NodePlace.MidFrame : NodePlace.Prelude;
                 if (pass.Drawn is not null)
-                    Add(NodeKind.Draw, run.OntoFrame ? NodePlace.Exit : NodePlace.Prelude, run);
+                    Add(NodeKind.Draw, run.OntoFrame ? NodePlace.Exit : item, run);
                 else if (pass.Tile is not null)
-                    Add(NodeKind.Pixels, NodePlace.Prelude, run);
+                    Add(NodeKind.Pixels, item, run);
                 else if (run.Groups > 0)
                     Add(NodeKind.Compute, NodePlace.Prelude, run);
             }

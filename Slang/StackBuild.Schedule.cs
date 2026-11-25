@@ -99,7 +99,6 @@ public sealed partial class StackBuild
             depth = Image(tokens, "its depth, pixels into the screen", ["r32f", "r16f"]);
         tokens.Expect(")");
         tokens.Expect(";");
-        Presents = true;
         return new BuildPresent(first.Index, colour, depth);
     }
 
@@ -277,7 +276,7 @@ public sealed partial class StackBuild
                 ? lent.GetValueOrDefault(name, -1)
                 : Buffers.ToList().FindIndex(declared => declared.Name == name);
             if (buffer < 0)
-                throw new BuildProblem(given.Index, $"{called} takes a buffer for {parameters[k].Name}; {name} isn't one {(scope.Lent is null ? "this brick declares" : "the schedule was lent")}.");
+                throw new BuildProblem(given.Index, $"{called} takes a buffer for {parameters[k].Name}; {name} isn't one {(scope.Lent is null ? "the stack declares" : "the schedule was lent")}.");
             if (Element(Buffers[buffer].Type) != Element(parameters[k].BufferType!))
                 throw new BuildProblem(given.Index,
                     $"{called} takes RWStructuredBuffer<{parameters[k].BufferType}> for {parameters[k].Name}; {Buffers[buffer].Name} holds {Buffers[buffer].Type}.");

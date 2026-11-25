@@ -9,7 +9,7 @@ namespace Xanadu.Slang;
 public sealed record CompiledTrace(CompiledShader Shader, int[] Buffers, int Width, int Height, bool Alone, GraphAccess[] Access);
 
 /// <summary>
-/// The TRACE brick (<see cref="BrickKind.Trace"/>): <c>trace</c> as compute, a thread a pixel over
+/// The TRACE brick (<see cref="StackRole.Trace"/>): <c>trace</c> as compute, a thread a pixel over
 /// the quad's box on the target, in tiles of <c>[Tile(w, h)]</c>. Every thread of a tile runs
 /// <c>trace</c>, even past the box's edge, so barriers in it are met by all; only those inside
 /// write. Its bindings: the depth (sampler 0), the globals and any kept state read-only in set 0;

@@ -60,7 +60,7 @@ public sealed class StackLibraryTests
         """;
 
     private static string Body(string build) =>
-        ShaderStack.Compose("s", [new Brick(BrickKind.Build, build), new Brick(BrickKind.Shade, Shade)]);
+        ShaderStack.Compose("s", [new StackFile("build.slang", build), new StackFile("shade.slang", Shade)]);
 
     private static CompiledBuild Compiled(string build = Tree) => SlangShaders.CompileEffectBody("s", Body(build), keepsState: true).Build!;
 

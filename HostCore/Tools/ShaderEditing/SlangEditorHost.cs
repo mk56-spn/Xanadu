@@ -84,7 +84,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     /// <summary>Ctrl+S in the code; null leaves the key to nobody.</summary>
     public Action? Save { get; init; }
 
-    /// <summary>The colour each brick entry's name takes where it is declared (<c>shade</c>, <c>deform</c>, …).</summary>
+    /// <summary>The colour each stack entry's name takes where it is declared (<c>shade</c>, <c>deform</c>, …).</summary>
     public IReadOnlyDictionary<string, Color> EntryColours { get; init; } = new Dictionary<string, Color>();
 
     [GeneratedRegex(@"^\s*[\w:<>]+\s+(\w+)\s*\(")]
@@ -225,7 +225,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
                 colours[c] = Colours[token.Kind];
         }
 
-        // A brick's entry where it is declared (a type, the name, then its bracket), in its kind's colour.
+        // A stack entry where it is declared (a type, the name, then its bracket), in its role's colour.
         if (EntryColours.Count > 0 && Declared().Match(text) is { Success: true } declared
             && EntryColours.TryGetValue(declared.Groups[1].Value, out Color entry))
         {

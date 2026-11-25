@@ -15,7 +15,9 @@ namespace Xanadu.Ui.Systems.Ui;
 /// boxes, bent round the boxes in their way), boxes with their text wrapped and
 /// centred, the selection, the link dot and resize corner under the
 /// pointer, a line being dragged, and the caret while a box is typed into. Colours
-/// are the theme's roles and categories. Redrawn whole every frame.
+/// are the theme's roles and categories. Redrawn whole every frame. A board with an
+/// <see cref="BoardState.Underlay"/> draws it over its box between its backing and its
+/// boxes, and leaves its lines to it, drawing only their arrowheads.
 /// </summary>
 public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
@@ -41,21 +43,27 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
     {
         if (!state.HasItem)
         {
-            state.Item = CanvasServer.Current.CreateItem();
-            if (entity.TryGetComponent(out VisualItem visual))
-                CanvasServer.Current.SetParent(state.Item, visual.Value);
-            CanvasServer.Current.SetClip(state.Item, true);
+            // Made in drawing order: siblings draw in the order they were made.
+            state.Back = Made(entity);
+            state.Under = Made(entity);
+            state.Item = Made(entity);
             state.HasItem = true;
         }
 
         Handle item = state.Item;
         Rect2 area = new(state.Local(state.Area.Position), state.Area.Size);
-        CanvasServer.Current.SetCustomRect(item, true, area);
-        canvas.Clear(item);
+        foreach (Handle each in (ReadOnlySpan<Handle>)[state.Back, state.Under, item])
+        {
+            CanvasServer.Current.SetCustomRect(each, true, area);
+            canvas.Clear(each);
+        }
 
         UiThemeRoles roles = UiThemes.Of(entity);
-        canvas.DrawRect(item, area, roles.Inset);
-        Grid(item, state, area, roles);
+        canvas.DrawRect(state.Back, area, roles.Inset);
+        Grid(state.Back, state, area, roles);
+        CanvasServer.Current.SetMaterial(state.Under, state.Underlay);
+        if (state.Underlay is not null)
+            canvas.DrawRect(state.Under, area, Colors.White);
 
         _boxes.Clear();
         foreach (BoardBox box in board.PaintOrder())
@@ -79,6 +87,16 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             Box(item, state, box, false, roles);
         if (!entity.Tags.Has<ReadOnly>())
             Handles(item, board, state, roles);
+    }
+
+    /// <summary>A canvas item of the board's, under its node's, clipped.</summary>
+    private static Handle Made(Entity entity)
+    {
+        Handle item = CanvasServer.Current.CreateItem();
+        if (entity.TryGetComponent(out VisualItem visual))
+            CanvasServer.Current.SetParent(item, visual.Value);
+        CanvasServer.Current.SetClip(item, true);
+        return item;
     }
 
     private void Grid(Handle item, BoardState state, Rect2 area, UiThemeRoles roles)
@@ -174,7 +192,7 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         Color colour = state.SelectedLink == link ? roles.Accent : roles.TextDim;
         float width = state.SelectedLink == link ? LineWidth + 1 : LineWidth;
         int next = 0;
-        for (int i = 1; i < path.Count; i++)
+        for (int i = 1; i < path.Count && state.Underlay is null; i++)
         {
             Vector2 from = state.Local(state.ToScreen(path[i - 1])), to = state.Local(state.ToScreen(path[i]));
             int first = next;

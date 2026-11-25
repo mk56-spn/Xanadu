@@ -29,7 +29,6 @@
 421 Screens/Play/PlayHudBuilder.cs
 437 Screens/SongSelect/SongSelectScene.List.cs
 591 Serialisation/Items/XifBinary.Rig.cs
-411 Slang/ShaderStack.cs
 620 Slang/SlangClips.cs
 523 Slang/SlangColourConversions.cs
 459 Slang/SlangCompletions.Code.cs

@@ -23,7 +23,7 @@ public sealed partial class StackBuild
     }
 
     /// <summary>
-    /// One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups), and its call's values: a
+    /// One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups; a draw's copies), and its call's values: a
     /// pass's arguments, a draw's targets (<see cref="None"/> past its last), or for a present the colour then the depth.
     /// </summary>
     public readonly record struct Run(int Pass, uint Groups, uint Over, RunValues Values)
@@ -50,6 +50,9 @@ public sealed partial class StackBuild
         public bool OntoFrame => Values[0] == Frame;
 
         public bool Presents => Pass == Present;
+
+        /// <summary>A draw's copies, from its <c>copies:</c> (1 without one); a draw counted on the GPU ignores it.</summary>
+        public uint Copies => Over;
     }
 
     /// <summary>
@@ -89,7 +92,10 @@ public sealed partial class StackBuild
                 case BuildDraw draw:
                     if (runs.Count >= MaxCalls)
                         throw new BuildProblem(draw.Index, $"graph() runs more than {MaxCalls} passes a frame.");
-                    runs.Add(new Run(draw.Pass, 0, 0, RunValues.Of([Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)])));
+                    // Over is the copies drawn; a draw counted on the GPU reads them there.
+                    BuildPass drawn = Passes[draw.Pass];
+                    uint copies = drawn.Copies is { } n ? (uint)Math.Max(0, BuildPasses.Evaluate(n, drawn.Start, lookup).Long) : 1;
+                    runs.Add(new Run(draw.Pass, 0, copies, RunValues.Of([Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)])));
                     break;
                 case BuildPresent present:
                     runs.Add(new Run(Run.Present, 0, 0, RunValues.Of([(uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth], Run.None)));

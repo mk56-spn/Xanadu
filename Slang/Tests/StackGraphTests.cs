@@ -42,8 +42,8 @@ public sealed class StackGraphTests
         StackGraph graph = Graph("bvh_march");
         string[] passes = [.. graph.Passes.Select(p => p.Name)];
 
-        Assert.That(graph.Passes.TakeWhile(p => p.Brick == BrickKind.Build).Count(), Is.GreaterThan(3));
-        Assert.That(passes.ToList().IndexOf("trace"), Is.GreaterThan(passes.ToList().FindLastIndex(n => graph.Passes.First(p => p.Name == n).Brick == BrickKind.Build)));
+        Assert.That(graph.Passes.TakeWhile(p => p.Role == StackRole.Graph).Count(), Is.GreaterThan(3));
+        Assert.That(passes.ToList().IndexOf("trace"), Is.GreaterThan(passes.ToList().FindLastIndex(n => graph.Passes.First(p => p.Name == n).Role == StackRole.Graph)));
         // Bound read-write, as compute is; its code only reads.
         Assert.That(Access(graph, "trace", "nodes"), Is.EqualTo(GraphAccess.Read));
         Assert.That(Access(graph, "countSparks", "drawn"), Is.EqualTo(GraphAccess.Write));

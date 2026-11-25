@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// The STEP brick (<see cref="BrickKind.Step"/>): <c>[Pool(count)]</c> items of the
+/// The STEP brick (<see cref="StackRole.Step"/>): <c>[Pool(count)]</c> items of the
 /// author's own struct kept on the GPU, stepped once a frame by a compute
 /// entry on the <c>ComputeOperation</c> contract (jobs at read-only binding 0,
 /// the globals after them, the items at read-write binding 0, the frame at

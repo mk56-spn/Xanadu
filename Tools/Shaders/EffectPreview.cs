@@ -81,9 +81,9 @@ internal sealed class EffectPreview : IEditorPreview
 
     public string[] Help =>
     [
-        "A stack of bricks, run top to bottom: UPDATE, STEP, BUILD and TRACE (compute, lab only), DEFORM deform(v), SHADE shade(...).",
-        "A brick reads what the bricks above it declare. SHADE: uniforms and float4 shade(ItemInput i, Canvas canvas).",
-        "Ctrl+S saves every brick to the folder. Picking another stack keeps these edits until the tool closes.",
+        "A stack is every .slang file in its folder, read as one: void graph() runs its passes and draws; shade alone draws the item.",
+        "Entries: graph(), shade(ItemInput i, Canvas canvas), deform(v); older update, step and trace (lab only). GRAPH shows what runs.",
+        "Ctrl+S saves every file to the folder. Picking another stack keeps these edits until the tool closes.",
     ];
 
     public PreviewBuild Compile(string source)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Ui.Editing;
+using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Ui.Ecs.Ui;
 
@@ -47,8 +48,15 @@ public sealed class BoardState
     /// <summary>The screen point the canvas item's (0, 0) sits at.</summary>
     public Vector2 Origin;
 
-    /// <summary>The canvas item it draws into, clipped to <see cref="Area"/>; made by the draw system.</summary>
-    public Handle Item;
+    /// <summary>The canvas items it draws into, clipped to <see cref="Area"/>, made by the draw system: the backing and
+    /// grid, then <see cref="Underlay"/>'s, then the lines and boxes.</summary>
+    public Handle Back, Under, Item;
+
+    /// <summary>
+    /// A material drawn over the board's box between its backing and its lines and boxes (a stack's graph drawing onto
+    /// the frame there); null for none. With one, the board draws only its lines' arrowheads, leaving the lines to it.
+    /// </summary>
+    public CanvasMaterial? Underlay;
 
     public bool HasItem;
 

@@ -188,6 +188,21 @@ The check each time: the visual tests, and shots of a few plain, deform, pool an
   along them from writer to reader, a half-scale glow under costly nodes and pass breaks, and frame images fading in
   at their first writer and out at their last reader. It needs a generic way for the host to hand a stack a buffer
   (the edges); a fixed count of edges as values does for a first cut.
+- **C2. Graphs, not bricks (decided 2026-11-25).** The runtime is one graph path, but authoring was still
+  brick-shaped: `graph()` lived in a BUILD brick, declarations "belonged in a BUILD brick", the item's quad was implied
+  by a SHADE brick, and the tool built stacks from a strip of brick kinds. Rule 1 taken at its word:
+  1. **Copies on `[Draw]`** (done): a count (a number, a value, or a buffer the GPU fills) and `copy` in the draw's vertex
+     and shade, drawn indirectly when the count is on the GPU. Several counted draws in one graph.
+  2. **A stack is a graph** (done): a stack that declares `graph()` is described by it alone, in whichever file it sits.
+     No BUILD kind; resources and nodes may be declared in any of the stack's files.
+  3. **Bricks only as sugar** for a stack with no `graph()` that is `shade` (and maybe `deform`): one draw onto the
+     frame. STEP, UPDATE and TRACE stop being kinds: a pool is a `[Pass]` over a kept buffer plus a counted draw, an
+     update a `[Pass]` over one kept struct, a trace a `[Pixels]` pass and `present`. Their stacks are rewritten as
+     graphs. **Full-screen passes stay first-class:** before TRACE goes, any `[Pixels]` pass reads the canvas so far
+     (`screen`, `depth`) and runs mid-frame for it (done 2026-11-25, `Lab/post`), so nothing a trace could do is lost.
+  4. **The tool shows the graph** (done, with 2), not a strip of brick kinds.
+  5. **The board's wires** (done) as the first thing written that way: a host buffer, a counted `[Draw]`, `wire(frame);`.
+     No image, no backing taken from the board.
 - **D. Cost.** Flatten static graphs; batch prelude compute into levelled passes; problems per material.
 - **E. Then the 3D work resumes** on top: `room.box`, shadow depth per light from the same geometry, screen-space
   AO, `[Surfaces]` sugar if it's still wanted once clears live on declarations.
@@ -332,8 +347,43 @@ Seen once and not again: right after a build, the shader tool showed "syntax err
 trails and sizes at frame 120, as if a compile had seen the declarations without the rewrite. Two more runs, one right
 after the Slang tests, were clean.
 
-Next: the board underlay (dogfood), which needs a buffer from the host (a UI library change: asked first). Then the
-rest of stage D: prelude compute batched into levelled passes, and problems per material instead of `Console.Error`.
+Stage C dogfood and C2 so far (2026-11-25):
+
+- **Host buffers:** `[Host(size)] RWStructuredBuffer<T> name;` is a BUILD buffer the host fills from
+  `CanvasMaterial.SetBuffer(name, span)`, uploaded in the prelude when the material's `BufferVersion` moves
+  (`GraphResources.For`); past the buffer's size is cut off. The count in use goes as a value.
+- **C2.1, copies on `[Draw]`:** `[Draw(across, down, shade: fn, copies: n)]` draws the grid n times, `copy` its number in
+  both stages. n is a number, constant or value (lowered into the run's `Over`, `Run.Copies`), or a uint buffer whose
+  first element the graph's passes write: then it draws indirectly from per-material args (`BuildBuffers.DrawArgs`),
+  the count copied in during the prelude (`GraphResources.Count`). A draw's stages read the graph's buffers (after their
+  globals), and the board shows those reads. `Lab/copies` has both: spokes by a value, dots by a GPU count.
+- **No quad of its own:** a stack with a graph (or a trace) and no SHADE brick draws only what its graph draws, whether
+  or not it presents; any graph takes a slice of the frame's depth.
+- **C2.5, the board's wires:** `Lab/graph_board` is two counted draws onto the frame: a glow quad per hot box and a
+  line quad per straight piece of wire (round-ended, so bends join), carrying pulses from writer to reader. The board
+  draws three canvas items, its backing and grid, then `BoardState.Underlay`'s, then its boxes; with an underlay it
+  leaves its lines to it and draws only their arrowheads. `GraphUnderlay` (`HostCore/Tools/ShaderEditing`) feeds it the
+  board's own routed wires (`Board.Paths()`, once per board shown), placed by the view's pan and zoom each frame.
+- **`[Pixels]` reads the canvas so far:** a pixel pass declares compute samplers 0 (the canvas depth) and 1 (the screen
+  copy) before its globals (`XANADU_SCREEN_BINDING`/`SET` in xanadu.stage), so `sampleDepth` and `sampleScreen` work
+  in it. One that reads either is mid-frame (`CompiledPass.ReadsDepth` / `ReadsScreen`), and so is every item node
+  after it in the plan; the break copies the screen first when one reads it (`GraphPlan.ReadsScreen`). Over an item
+  the size of the screen it is a full-screen post pass. `Lab/post`: a half-size bloom off the canvas, a depth tint
+  and a lens reading the canvas through a bend.
+- **Not yet:** frame images fading in at their first writer and out at their last reader; hops where wires cross; the
+  underlay lives in `Lab/` for the gate.
+- **Checked:** shots of the GRAPH view on `Lab/scene_room` and `Lab/post`, and of `Lab/copies`, `Lab/post` and
+  `Lab/bvh_march`.
+
+- **C2.2 and C2.4, files, not bricks:** a stack is its folder's `.slang` files, named freely (`StackFile`), composed
+  as one body under each file's label (`ShaderStack.Compose`, ordered by the first role each holds, then name). What
+  a file does is its entries (`StackRole`: Update, Step, Graph, Trace, Deform, Shade, from `RolesOf`), each at most
+  once in the stack; declarations sit in any file. The shader tool's brick strip is gone: `FileStrip` lists the files,
+  coloured by role, with `+ FILE` (named as you type), rename and remove; GRAPH is the overview. `Lab/graph_board` is
+  three files (`board`, `wires`, `hot`).
+
+Next: stage C2 step 3 (STEP, UPDATE, TRACE ported onto graphs and dropped as roles); then the rest of stage D: prelude compute batched into levelled
+passes, and problems per material instead of `Console.Error`.
 
 Also still open:
 

@@ -16,7 +16,7 @@ internal sealed partial class ShaderCodeEditor
         int version = Version;
         (string joined, List<Placed> places) = Joined();
         string? stack = _stack;
-        List<Brick> bricks = Bricks;
+        List<StackFile> files = Files;
         Compiling?.Invoke(joined);
 
         if (!_everCompiled)
@@ -33,9 +33,9 @@ internal sealed partial class ShaderCodeEditor
             string source = joined;
             try
             {
-                // Composing checks the stack's shape (each brick's entry), worded as Slang's errors are.
+                // Composing checks the stack's shape (each entry once, the files named plainly), worded as Slang's errors are.
                 if (stack is not null)
-                    source = ShaderStack.Compose(stack, bricks);
+                    source = ShaderStack.Compose(stack, files);
                 var build = (PreviewBuild?)view.Compile(source);
                 return new Compiled(version, source, places, build, null, clock.ElapsedMilliseconds, SlangShaders.SlangMilliseconds, lint.Result);
             }
@@ -110,8 +110,8 @@ internal sealed partial class ShaderCodeEditor
     /// <summary>The last compile's colour conversions, each on the text it is in, at its own line.</summary>
     private void SpreadConversions(List<Placed> places, string source, IReadOnlyList<ColourConversion> conversions)
     {
-        foreach (Tab brick in _bricks)
-            brick.Conversions = [];
+        foreach (Tab file in _files)
+            file.Conversions = [];
         string[] lines = source.Split('\n');
         foreach (ColourConversion conversion in conversions)
         {
@@ -124,19 +124,20 @@ internal sealed partial class ShaderCodeEditor
     }
 
     /// <summary>
-    /// The last compile's problems, each on the text whose label it carries (a brick's own
+    /// The last compile's problems, each on the text whose label it carries (a file's own
     /// lines), with the warnings read over the whole; the ones on none of them are global.
     /// </summary>
     private void SpreadProblems(List<Placed> places, string source, string? error, List<SlangProblem> lint)
     {
-        foreach (Tab brick in _bricks)
-            brick.Problems = [];
+        foreach (Tab file in _files)
+            file.Problems = [];
+        _looksVersion = -1;
         string[] lines = source.Split('\n');
         // Slang's wording of each problem a text took, before a missing ; is moved and reworded.
         var placed = new List<string>();
         foreach (Placed place in places)
         {
-            if (!_bricks.Contains(place.Tab))
+            if (!_files.Contains(place.Tab))
                 continue;
             string[] own = lines[Math.Min(place.Start, lines.Length)..Math.Min(lines.Length, place.Start + place.Count)];
             List<SlangProblem> slang = error is null ? [] : [.. SlangProblems.Parse(error, LabelOf(place.Tab), own).Where(problem => problem.Line > 0)];

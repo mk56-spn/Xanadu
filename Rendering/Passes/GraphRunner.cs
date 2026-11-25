@@ -28,7 +28,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     private readonly ComputeNodes _compute = new(device, targets, materials, globals);
     private readonly HashSet<CanvasEffect> _brokenSchedules = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<CanvasEffect> _uncut = new(ReferenceEqualityComparer.Instance);
-    private readonly ImageDraws _draws = new(device, targets, globals);
+    private readonly ImageDraws _draws = new(device, targets, globals, materials);
 
     /// <summary>The draw nodes: into the item's images here, onto the frame from the pass (<see cref="ImageDraws.Exit"/>).</summary>
     public ImageDraws Draws => _draws;
@@ -81,6 +81,9 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
             bool item = step.Kind == StepKind.Effect;
             foreach (GraphNode node in plan.Nodes)
             {
+                // A draw counted on the GPU takes its count once a frame, wherever it draws, after the passes before it.
+                if (first && kept is { } counting && node.Kind == NodeKind.Draw && effect.Compiled.Build!.Passes[node.Call.Pass].Drawn!.CopiesBuffer >= 0)
+                    GraphResources.Count(commands, counting, effect.Compiled.Build, node.Call.Pass);
                 if (node.Place == NodePlace.Prelude && (node.Scope == NodeScope.Material ? first : item))
                     Run(commands, node, effect, step, s, ref kept);
             }
@@ -133,7 +136,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
                 _compute.Trace(commands, effect, kept.Value, set, rest, step, frame.Dt, frame.Time);
                 break;
             case NodeKind.Draw:
-                _draws.Draw(commands, effect, set, rest, node.Call, step, frame.Time);
+                _draws.Draw(commands, effect, kept.Value, set, rest, node.Call, step, frame.Time);
                 break;
         }
     }

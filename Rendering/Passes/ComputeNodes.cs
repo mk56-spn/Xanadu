@@ -126,6 +126,9 @@ internal sealed class ComputeNodes(GraphicsDevice device, FrameTargets targets, 
         PushBox(commands, pass.Shader, step, rest, set.Box, dt, time, pass.OverImage < 0 ? Vector2.One : set.Stretch(pass.OverImage));
         ComputePass compute = Begin(commands, set.Images, pass.Images, kept.Buffers, pass.Buffers, effect.Passes[call.Pass]!, pass.Shader,
             step.Material!);
+        // The canvas so far: its depth and the screen copy, fresh when the pass reads them (it then runs mid-frame).
+        compute.BindSamplers(new TextureSamplerBinding(targets.DepthRead, device.PointSampler),
+            new TextureSamplerBinding(targets.Screen, targets.Sampler));
         (int tileWidth, int tileHeight) = pass.Tile!.Value;
         compute.Dispatch((width + (uint)tileWidth - 1) / (uint)tileWidth, (height + (uint)tileHeight - 1) / (uint)tileHeight, 1);
         commands.EndComputePass(compute);

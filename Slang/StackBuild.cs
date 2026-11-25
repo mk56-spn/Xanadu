@@ -4,13 +4,18 @@ using System.Text.RegularExpressions;
 
 namespace Xanadu.Slang;
 
-/// <summary>A buffer a BUILD brick declares: <c>[Buffer(size)] RWStructuredBuffer&lt;T&gt; name;</c>, kept on the GPU from frame to frame.</summary>
+/// <summary>
+/// A buffer a BUILD brick declares: <c>[Buffer(size)] RWStructuredBuffer&lt;T&gt; name;</c>, kept on the GPU from frame to
+/// frame, or <c>[Host(size)]</c>: the same, filled by the host from the material's buffer of that name
+/// (<c>CanvasMaterial.SetBuffer</c>) whenever that changes, for the passes to read.
+/// </summary>
 /// <param name="Count">Elements, from the size expression.</param>
 /// <param name="Start">Where its declaration starts in the body (the attribute), for the rewrite.</param>
 /// <param name="End">Just past its <c>;</c>.</param>
 /// <param name="Draws">Marked <c>[Draws]</c> in place of <c>[Buffer(size)]</c>: one uint the passes write, the copies of the
 /// stack's quad drawn this frame.</param>
-public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Draws = false);
+/// <param name="Host">Marked <c>[Host(size)]</c>: the host writes it.</param>
+public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Draws = false, bool Host = false);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -27,6 +32,15 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
 {
     /// <summary>The uint parameters after <c>i</c>, by name, in order: what the pass frame's arguments carry.</summary>
     public string[] Arguments { get; } = [.. Parameters.Where(parameter => !parameter.IsBuffer).Select(parameter => parameter.Name)];
+
+    /// <summary>A draw's <c>copies:</c>, worked out when lowered; null for one copy, or when <see cref="CopiesBuffer"/> counts them.</summary>
+    public BuildExpression? Copies { get; init; }
+
+    /// <summary>A draw's <c>copies:</c> when it is a bare name, which may be a buffer's.</summary>
+    public string? CopiesName { get; init; }
+
+    /// <summary>The uint buffer whose first element counts a draw's copies on the GPU (its place in the buffers), or -1.</summary>
+    public int CopiesBuffer { get; init; } = -1;
 
     /// <summary>The library module it comes from; null for the brick's own.</summary>
     public StackLibrary? Library { get; init; }
@@ -105,7 +119,7 @@ public sealed class BuildProblem(int index, string message) : Exception(message)
 }
 
 /// <summary>
-/// A stack's BUILD brick (<see cref="BrickKind.Build"/>), read: the buffers it keeps, the
+/// A stack's BUILD brick (<see cref="StackRole.Graph"/>), read: the buffers it keeps, the
 /// passes it declares and the <c>build()</c> schedule that orders them. The schedule never
 /// runs on the GPU: the CPU walks it every frame (its loops and ifs over constants, uniforms
 /// and loop variables) and each call becomes a compute pass of its own, since SDL_GPU orders
@@ -136,9 +150,6 @@ public sealed partial class StackBuild
     /// <summary>The images it declares, in order.</summary>
     public IReadOnlyList<BuildImage> Images { get; }
 
-    /// <summary>Whether the schedule shows images on the item (<c>present</c>): the item then draws them, not a quad of its own.</summary>
-    public bool Presents { get; private set; }
-
     /// <summary>The <c>[Draws]</c> buffer's place in <see cref="Buffers"/>, or -1: without one the stack's quad is drawn once.</summary>
     public int Draws { get; }
 
@@ -158,6 +169,11 @@ public sealed partial class StackBuild
         Draws = buffers.FindIndex(buffer => buffer.Draws);
         _passes = BuildPasses.Read(code, Constant, library: false);
         for (int p = 0; p < _passes.Count; p++)
+        {
+            if (_passes[p].CopiesName is { } counted && buffers.FindIndex(buffer => buffer.Name == counted) is var count and >= 0)
+                _passes[p] = buffers[count].Type == "uint"
+                    ? _passes[p] with { Copies = null, CopiesBuffer = count }
+                    : throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name}'s copies come from {counted}, so it holds uints: its first is the count.");
             if (_passes[p].PixelsOver is { } over)
             {
                 int image = Images.ToList().FindIndex(declared => declared.Name == over);
@@ -165,6 +181,7 @@ public sealed partial class StackBuild
                     throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name} runs over {over}, which isn't an [Image] this graph declares.");
                 _passes[p] = _passes[p] with { OverImage = image };
             }
+        }
 
         Schedule = ReadSchedule();
     }
@@ -176,9 +193,9 @@ public sealed partial class StackBuild
         Match entry = BuildEntry().Match(code);
         if (!entry.Success)
         {
-            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Pass|Image|History|Pixels|Draw)\s*\(|(?:Draws|Kept)\s*\])");
+            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Host|Pass|Image|History|Pixels|Draw)\s*\(|(?:Draws|Kept)\s*\])");
             if (stray.Success)
-                throw new BuildProblem(stray.Index, "[Buffer], [Image], [Kept], [History], [Draws], [Pass], [Pixels] and [Draw] belong in a BUILD brick, with a void graph() that runs them.");
+                throw new BuildProblem(stray.Index, "[Buffer], [Host], [Image], [Kept], [History], [Draws], [Pass], [Pixels] and [Draw] belong to a graph: declare a void graph() that runs them, in any of the stack's files.");
             return null;
         }
 
@@ -206,11 +223,8 @@ public sealed partial class StackBuild
         ["r16f"] = "float", ["r32f"] = "float", ["r32ui"] = "uint",
     };
 
-    [GeneratedRegex(@"\[\s*(?:Buffer\s*\((?<size>[^\]]*)\)|(?<draws>Draws))\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"\[\s*(?:(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)|(?<draws>Draws))\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex BufferDeclaration();
-
-    /// <summary>Whether a brick's graph shows images on the item (<c>present(…)</c>): with no SHADE brick, that is all it draws.</summary>
-    public static bool PresentsIn(string brick) => Regex.IsMatch(BuildText.Blank(brick), @"\bpresent\s*\(");
 
     /// <summary>A <c>static const</c> of the body, worked out; null when there is none by that name or it can't be.</summary>
     public BuildValue? Constant(string name) => _constants.Of(name);
@@ -219,9 +233,9 @@ public sealed partial class StackBuild
     {
         var buffers = new List<BuildBuffer>();
         var declared = BufferDeclaration().Matches(_code);
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer\s*\(|Draws\s*\])"))
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer\s*\(|Host\s*\(|Draws\s*\])"))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), or [Draws] RWStructuredBuffer<uint> name;.");
+                throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), [Host(size)] for one the host fills, or [Draws] RWStructuredBuffer<uint> name;.");
 
         foreach (Match match in declared)
         {
@@ -243,7 +257,7 @@ public sealed partial class StackBuild
             if (!count.Whole || count.Long < 1)
                 throw new BuildProblem(size.Index, $"a buffer's size is a whole number of elements, at least 1 ({name} has {count}).");
             buffers.Add(new BuildBuffer(name, match.Groups["type"].Value, count.Long, match.Groups["coherent"].Success,
-                match.Index, match.Index + match.Length));
+                match.Index, match.Index + match.Length, Host: match.Groups["host"].Success));
         }
 
         return buffers;

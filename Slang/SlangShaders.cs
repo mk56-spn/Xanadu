@@ -550,18 +550,18 @@ public static partial class SlangShaders
             throw new InvalidOperationException($"{name}: update() and kept state work only in the lab for now (and in {LabFolder}, which the game never loads).");
         PoolShape? pool = PoolOf(name, source);
         if (pool is not null && !keepsState)
-            throw new InvalidOperationException($"{name}: a STEP brick runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
+            throw new InvalidOperationException($"{name}: a pool (step) runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
         StackBuild? build = BuildOf(name, source);
         if (build is not null && !keepsState)
-            throw new InvalidOperationException($"{name}: a BUILD brick runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
+            throw new InvalidOperationException($"{name}: a graph runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
         bool traces = Traces(source);
         if (traces && !keepsState)
-            throw new InvalidOperationException($"{name}: a TRACE brick runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
+            throw new InvalidOperationException($"{name}: a trace runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
 
         if (shadeWith is not null)
         {
             if (pool is not null || build is not null || traces)
-                throw new InvalidOperationException($"{name}: the editor's overlays don't draw pools, BUILD or TRACE bricks yet.");
+                throw new InvalidOperationException($"{name}: the editor's overlays don't draw pools, graphs or traces yet.");
             // Only the body's deform and values matter: the fragment is the library's, reading no state.
             int first = StorageBinding(source);
             CompiledShader overlay = CompileWrapped(

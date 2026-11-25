@@ -31,11 +31,21 @@ internal struct ItemPool(CanvasEffect effect, Buffer items) : IComponent
     public uint Parity;
 }
 
-/// <summary>A graph's buffers, the material's own, made for one compile of its effect. Its images are each item's (ItemImages).</summary>
+/// <summary>
+/// A graph's buffers, the material's own, made for one compile of its effect. Its images are each item's (ItemImages).
+/// <see cref="HostVersion"/> is the material's <see cref="CanvasMaterial.BufferVersion"/> its <c>[Host]</c> buffers hold.
+/// </summary>
 internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
 {
     public CanvasEffect Effect = effect;
     public Buffer[] Buffers = buffers;
+    public int HostVersion = -1;
+
+    /// <summary>
+    /// Indirect args for the graph's draws counted on the GPU, 16 bytes a pass by its place: its vertices, then the copies
+    /// copied in from its count each frame (<c>GraphResources.Count</c>); null when no draw is counted.
+    /// </summary>
+    public Buffer? DrawArgs;
 }
 
 /// <summary>

@@ -12,7 +12,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// the left in the order they run, coloured like their bricks on the strip, the data they
 /// share down the right, each level with the passes that use it, and an arrow for every way data goes: pass to resource for a
 /// write, resource to pass for a read, both for read-write. Remade on every compile that
-/// changes it; pans and zooms, and fits itself to its box when remade.
+/// changes it; pans and zooms, and fits itself to its box when remade. Under it a stack (<see cref="GraphUnderlay"/>)
+/// sends pulses along the wires and glows under costly passes and the ones that break the item's pass.
 /// </summary>
 internal sealed class StackGraphView
 {
@@ -29,6 +30,7 @@ internal sealed class StackGraphView
 
     private readonly UiNode _node;
     private readonly Board _board = new();
+    private readonly GraphUnderlay _underlay;
     private string _shown = "", _shape = "";
     private bool _fit;
 
@@ -37,6 +39,7 @@ internal sealed class StackGraphView
     public StackGraphView(UiNode parent)
     {
         _node = parent.Board(_board).Grow().Tag<ReadOnly>().Hidden();
+        _underlay = new GraphUnderlay(_board);
     }
 
     /// <summary>Shows a compile's graph; a graph like the one shown changes nothing, so the view keeps its pan and zoom.</summary>
@@ -52,19 +55,23 @@ internal sealed class StackGraphView
         _board.Boxes.Clear();
         _board.Links.Clear();
         _board.NextId = 1;
+        _underlay.Rebuilt();
+        UiThemeRoles roles = UiThemes.Of(_node.Entity);
 
         int[] passes = new int[graph.Passes.Count];
         for (int i = 0; i < passes.Length; i++)
         {
             GraphPass pass = graph.Passes[i];
-            // A BUILD pass is named by its function and says what build() asks of it this frame; the brick's own passes run once.
-            string what = pass.Brick == BrickKind.Build
+            // A graph pass is named by its function and says what graph() asks of it this frame; the other roles' passes run once.
+            string what = pass.Role == StackRole.Graph
                 ? $"{(pass.Calls > 1 ? $"×{pass.Calls} · " : "")}{Threads(pass.Threads)}"
                 : pass.Compute ? "compute" : "draw";
             // A mid-frame node waits for the canvas drawn so far: the item's pass is broken for it.
             if (pass.Place == NodePlace.MidFrame)
                 what += " · breaks pass";
-            passes[i] = _board.Add(new Rect2(0, i * (Height + Gap), Width, Height), $"{pass.Name}\n{what}", BrickStrip.Category(pass.Brick)).Id;
+            passes[i] = _board.Add(new Rect2(0, i * (Height + Gap), Width, Height), $"{pass.Name}\n{what}", FileStrip.Category(pass.Role)).Id;
+            if (Heat(pass, roles) is { } tone)
+                _underlay.Mark(passes[i], tone);
         }
 
         // Each resource level with the passes that use it, as near as the others leave room for.
@@ -99,13 +106,14 @@ internal sealed class StackGraphView
             _board.Add(new Rect2(0, -(Height + Gap) * 2, Width * 2 + Apart, Height * 1.5f), $"build() can't run: {problem}", TargetCategory);
     }
 
-    /// <summary>Each frame: fits a newly made graph to the box once the box has its size.</summary>
+    /// <summary>Each frame: fits a newly made graph to the box once the box has its size, and feeds the underlay.</summary>
     public void Update()
     {
-        if (!_fit || _node.Entity.IsNull)
+        if (_node.Entity.IsNull || !_node.Entity.Enabled)
             return;
         BoardState state = _node.Entity.GetComponent<UiBoard>().State;
-        if (state.Area.Size.X <= 0 || _board.Boxes.Count == 0)
+        _underlay.Update(state, UiThemes.Of(_node.Entity));
+        if (!_fit || state.Area.Size.X <= 0 || _board.Boxes.Count == 0)
             return;
 
         Rect2 all = _board.Boxes.Select(box => box.Rect).Aggregate((a, b) => a.Merge(b));
@@ -115,6 +123,19 @@ internal sealed class StackGraphView
     }
 
     public void Delete() => UiLayout.DeleteSubtree(_node.Entity);
+
+    /// <summary>
+    /// How a pass glows under its box: a pass break strongly, in the bad tone; a BUILD pass by how many threads it
+    /// runs, from a faint glow at a thousand to full at ten million; nothing for the rest.
+    /// </summary>
+    private static Color? Heat(GraphPass pass, UiThemeRoles roles)
+    {
+        if (pass.Place == NodePlace.MidFrame)
+            return roles.Bad with { A = 0.7f };
+        if (pass.Threads < 1000)
+            return null;
+        return roles.Warn with { A = 0.15f + 0.5f * Math.Clamp((MathF.Log10(pass.Threads) - 3) / 4, 0, 1) };
+    }
 
     /// <summary>The first pass that touches a resource.</summary>
     private static int First(StackGraph graph, int resource) =>

@@ -14,15 +14,16 @@ namespace Xanadu.Rendering.Passes;
 /// before the job's pass, against the item's own draw depth: the images are the item's box, so the viewport is the target
 /// moved by the box's corner, and the fragment gets the corner back to place its pixel on the target. Or onto the frame
 /// (an exit), inside the job's pass where the item is placed: blended as its material says, its depth in the item's slice
-/// of the canvas depth. Either way its shade reads the item's images at <c>group.pixel</c>.
+/// of the canvas depth. Either way its shade reads the item's images at <c>group.pixel</c>, both stages read the graph's
+/// buffers, and the grid is drawn once per copy: as many as its call says, or as its count buffer holds (indirect).
 /// </summary>
-internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, GlobalBindings globals)
+internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, GlobalBindings globals, MaterialStore materials)
 {
     /// <summary>The images a draw's shade reads, gathered for binding; grown as needed, never shrunk.</summary>
     private Texture[] _read = new Texture[4];
 
     /// <summary>A draw's grid over the item's quad into the images the call names; the item's first draw starts its depth afresh.</summary>
-    public void Draw(CommandBuffer commands, CanvasEffect effect, ItemSet set, RestFrame rest, StackBuild.Run call, Step step, float time)
+    public void Draw(CommandBuffer commands, CanvasEffect effect, BuildBuffers kept, ItemSet set, RestFrame rest, StackBuild.Run call, Step step, float time)
     {
         CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
         int count = 0;
@@ -53,8 +54,8 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         // The vertex stage places the grid on the target; the target moved by the box's corner lands the box on the images.
         pass.SetViewport(new Viewport(-set.Box.X, -set.Box.Y, targets.Width, targets.Height));
         var corner = new Vector2(set.Box.X, set.Box.Y);
-        Bind(commands, pass, draw, set, rest, step, time, corner, new Vector2(0, 1));
-        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
+        Bind(commands, pass, draw, kept, set, rest, step, time, corner, new Vector2(0, 1));
+        Issue(pass, draw, kept, call);
         commands.EndRenderPass(pass);
     }
 
@@ -63,18 +64,31 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         Step step, SampleCount samples, float time)
     {
         CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
-        if (set is null && draw.Reads.Length > 0)
+        if ((set is null && draw.Reads.Length > 0) || materials.Find(step.Material!) is not { IsNull: false } entity ||
+            !entity.TryGetComponent(out BuildBuffers kept))
             return false;
         pass.BindGraphicsPipeline(effect.ExitPipeline(device, call.Pass, step.Material, samples, targets.Format, targets.DepthFormat));
         pass.SetViewport(new Viewport(0, 0, targets.Width, targets.Height));
         pass.SetScissor(step.Clip);
-        Bind(commands, pass, draw, set, rest, step, time, Vector2.Zero, new Vector2(step.Depth - step.Span, step.Span));
-        pass.DrawPrimitives(draw.Vertices, 1, 0, 0);
+        Bind(commands, pass, draw, kept, set, rest, step, time, Vector2.Zero, new Vector2(step.Depth - step.Span, step.Span));
+        Issue(pass, draw, kept, call);
         return true;
     }
 
+    /// <summary>The grid, once per copy: indirect when the GPU counted them, else as many as the call says.</summary>
+    private static void Issue(RenderPass pass, CompiledDraw draw, BuildBuffers kept, StackBuild.Run call)
+    {
+        if (draw.CopiesBuffer < 0)
+        {
+            if (call.Copies > 0)
+                pass.DrawPrimitives(draw.Vertices, call.Copies, 0, 0);
+        }
+        else if (kept.DrawArgs is { } args)
+            pass.DrawPrimitivesIndirect(args, (uint)call.Pass * IndirectDraws.ArgsBytes, 1);
+    }
+
     /// <summary>Both stages' uniforms, samplers, read images and globals: the grid moved by <paramref name="shift"/>, its z in <paramref name="slice"/>.</summary>
-    private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, ItemSet? set, RestFrame rest, Step step, float time,
+    private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, BuildBuffers kept, ItemSet? set, RestFrame rest, Step step, float time,
         Vector2 shift, Vector2 slice)
     {
         FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time);
@@ -88,7 +102,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         var origin = set is null ? Vector2.Zero : new Vector2(set.Box.X, set.Box.Y);
         commands.PushFragmentUniformData(new DrawBox { Shift = shift, Origin = origin, Slice = slice }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
-            pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex.StorageBuffers));
+            pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, null, null, kept.Buffers));
         // Neither stage gets a texture of its own yet: any sampler it declares sees white.
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Math.Max(draw.Vertex.Samplers.Length, draw.Fragment.Samplers.Length)];
         for (int k = 0; k < samplers.Length; k++)
@@ -108,6 +122,6 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         }
 
         if (draw.Fragment.StorageBuffers > 0)
-            pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment.StorageBuffers));
+            pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment, null, null, kept.Buffers));
     }
 }

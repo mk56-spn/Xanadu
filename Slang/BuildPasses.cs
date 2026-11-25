@@ -61,7 +61,7 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*(?:,\s*over\s*:\s*(?<over>\w+)\s*)?\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
     private static partial Regex PixelsDeclaration();
 
-    [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
+    [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
     private static partial Regex DrawDeclaration();
 
     /// <summary>The most cells a draw's grid has along a side.</summary>
@@ -163,14 +163,16 @@ internal static partial class BuildPasses
     /// <summary>
     /// The brick's draws: <c>[Draw(cells across, cells down, shade: fn)] ItemVertex name(ItemVertex v)</c>, a grid of
     /// triangles over the item's quad moved by <c>name</c> as a deform moves corners and coloured by <c>fn</c> as shade
-    /// colours pixels, drawn into the images its call names.
+    /// colours pixels, drawn into the images its call names. <c>copies: n</c> last draws the grid n times, each copy
+    /// seeing its number as <c>copy</c>: n a number, a constant or a value, or a uint buffer whose first element the
+    /// graph's passes write (drawn indirectly, the count never coming back to the CPU).
     /// </summary>
     private static void ReadDraws(string code, List<BuildPass> passes)
     {
         var declared = DrawDeclaration().Matches(code);
         foreach (Match marker in Regex.Matches(code, @"\[\s*Draw\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type.");
+                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type; copies: n last draws it n times.");
 
         foreach (Match match in declared)
         {
@@ -182,9 +184,12 @@ internal static partial class BuildPasses
             int across = int.Parse(match.Groups["w"].Value), down = int.Parse(match.Groups["h"].Value);
             if (across < 1 || down < 1 || across > MostCells || down > MostCells)
                 throw new BuildProblem(match.Index, $"a draw's grid has 1 to {MostCells} cells a side, not {across} × {down}.");
+            Group copies = match.Groups["copies"];
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
                 Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index)),
+                Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,
+                CopiesName = copies.Success && Regex.IsMatch(copies.Value, @"^\w+$") ? copies.Value : null,
             });
         }
     }

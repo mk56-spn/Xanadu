@@ -11,7 +11,7 @@ internal static class EffectCompute
 {
     /// <summary>A kept-state effect's update: the globals read-only, the state read-write, one thread.</summary>
     public static ComputePipeline? Update(GraphicsDevice device, CompiledShader compiled) => compiled.Update is { } step
-        ? ComputePipelines.Create(device, step.Spirv, "update brick", new ComputePipelineCreateInfo
+        ? ComputePipelines.Create(device, step.Spirv, "update", new ComputePipelineCreateInfo
         {
             Format = ShaderFormat.SPIRV,
             NumReadonlyStorageBuffers = (uint)step.StorageBuffers,
@@ -35,6 +35,7 @@ internal static class EffectCompute
         ? [.. build.Passes.Select(pass => pass.Drawn is not null ? null : ComputePipelines.Create(device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
         {
             Format = ShaderFormat.SPIRV,
+            NumSamplers = pass.Tile is null ? 0u : SlangShaders.PixelSamplers,
             NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
             NumReadWriteStorageTextures = (uint)pass.Images.Length,
             NumReadWriteStorageBuffers = (uint)pass.Buffers.Length,
@@ -60,7 +61,7 @@ internal static class EffectCompute
 
     /// <summary>A TRACE brick: the depth to read, the globals (and kept state) read-only; the two textures it fills and the buffers it touches read-write.</summary>
     public static ComputePipeline? Trace(GraphicsDevice device, CompiledShader compiled) => compiled.Trace is { } traced
-        ? ComputePipelines.Create(device, traced.Shader.Spirv, "trace brick", new ComputePipelineCreateInfo
+        ? ComputePipelines.Create(device, traced.Shader.Spirv, "trace", new ComputePipelineCreateInfo
         {
             Format = ShaderFormat.SPIRV,
             NumSamplers = 1,

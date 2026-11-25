@@ -18,6 +18,12 @@ public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buff
     /// <summary>The image a pixel pass runs over, a thread a texel; -1 for the item's box.</summary>
     public int OverImage { get; init; } = -1;
 
+    /// <summary>A pixel pass reads the canvas depth or the screen copy: the canvas drawn so far, so it runs mid-frame.</summary>
+    public bool ReadsDepth { get; init; }
+
+    /// <inheritdoc cref="ReadsDepth"/>
+    public bool ReadsScreen { get; init; }
+
     /// <summary>A draw's stages; null for a compute pass.</summary>
     public CompiledDraw? Drawn { get; init; }
 }
@@ -34,12 +40,12 @@ public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[
     /// </summary>
     public bool[] MaterialImages { get; init; } = [];
 
-    /// <summary>Whether what it presents is all the stack draws: no SHADE brick, so no quad of its own after it.</summary>
+    /// <summary>Whether what the graph draws is all the stack draws: no SHADE brick, so no quad of its own after it.</summary>
     public bool Alone { get; init; }
 }
 
 /// <summary>
-/// The BUILD brick (<see cref="BrickKind.Build"/>): buffers kept on the GPU and compute passes
+/// The BUILD brick (<see cref="StackRole.Graph"/>): buffers kept on the GPU and compute passes
 /// over them, run in the order <c>build()</c> lists. Every stage compiles the whole body, so
 /// every stage declares every buffer; each binds only the ones it really reads (a first compile
 /// says which, a second places those after its own buffers and the rest where nothing looks).
@@ -114,7 +120,7 @@ public static partial class SlangShaders
         for (int k = 0; k < build.Buffers.Count; k++)
             if (SpirvScan.Binds(compiled.Spirv, 1, Unplaced + k))
                 throw new InvalidOperationException(
-                    $"{name}: {stage} runs before the BUILD brick's passes and can't read {build.Buffers[k].Name}; only the passes, deform and shade can.");
+                    $"{name}: {stage} runs before the graph's passes and can't read {build.Buffers[k].Name}; only the passes, deform and shade can.");
         CheckNoImages(name, stage, build, compiled, 1);
     }
 
@@ -179,7 +185,7 @@ public static partial class SlangShaders
                 used, pass.Threads, access) { Images = images };
         }
 
-        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = build.Presents && source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
+        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
         // Walked once with the defaults: a schedule that can't run says so now, not every frame.
         try
         {

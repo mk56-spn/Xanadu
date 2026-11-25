@@ -12,7 +12,7 @@ internal sealed record ShaderFile(string Path, string Name);
 /// <summary>
 /// The shader tool's only door to the disk: which stacks ship (every
 /// <see cref="ShaderStack"/> folder under <c>Assets/Shaders</c> outside the
-/// library, as the renderer warms them), their bricks, saving them, and making new ones.
+/// library, as the renderer warms them), their files, saving them, and making new ones.
 /// </summary>
 internal static class ShaderFiles
 {
@@ -30,7 +30,7 @@ internal static class ShaderFiles
     }
 
     /// <summary>
-    /// Makes a new stack, a shade brick from its template, at the top of <c>Assets/Shaders</c>,
+    /// Makes a new stack, one shade file (<see cref="ShaderStack.NewStack"/>), at the top of <c>Assets/Shaders</c>,
     /// named <c>new_shader</c> (then <c>new_shader_2</c>, …) so it never overwrites one; false (and
     /// the message) when the disk refuses. Rename the folder to give it a real name.
     /// </summary>
@@ -41,20 +41,20 @@ internal static class ShaderFiles
             name = $"new_shader_{n}";
 
         file = new ShaderFile($"{Root}/{name}", name);
-        if (Write(file, [new Brick(BrickKind.Shade, ShaderStack.Template(BrickKind.Shade))], out error))
+        if (Write(file, [ShaderStack.NewStack()], out error))
             return true;
         file = null;
         return false;
     }
 
-    public static List<Brick> Read(ShaderFile file) => ShaderStack.Read(GamePaths.Full(file.Path));
+    public static List<StackFile> Read(ShaderFile file) => ShaderStack.Read(GamePaths.Full(file.Path));
 
-    /// <summary>Writes the bricks into the stack's folder, deleting the files of bricks it no longer has; false (and the message) when the disk refuses.</summary>
-    public static bool Write(ShaderFile file, IReadOnlyList<Brick> bricks, out string? error)
+    /// <summary>Writes the files into the stack's folder, deleting the ones it no longer has; false (and the message) when the disk refuses.</summary>
+    public static bool Write(ShaderFile file, IReadOnlyList<StackFile> files, out string? error)
     {
         try
         {
-            ShaderStack.Write(GamePaths.Full(file.Path), bricks);
+            ShaderStack.Write(GamePaths.Full(file.Path), files);
             error = null;
             return true;
         }

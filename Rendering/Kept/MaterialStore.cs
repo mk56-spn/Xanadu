@@ -79,6 +79,7 @@ internal sealed class MaterialStore : IDisposable
     {
         foreach (Buffer buffer in built.Buffers)
             buffer.Dispose();
+        built.DrawArgs?.Dispose();
     }
 
     public void Dispose()

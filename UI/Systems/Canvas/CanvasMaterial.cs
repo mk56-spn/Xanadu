@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Xanadu.Core.Rendering;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
@@ -49,6 +50,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Vector4> _values = [];
     private readonly Dictionary<string, Handle> _textures = [];
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
+    private readonly Dictionary<string, byte[]> _buffers = [];
 
     /// <summary>
     /// The effect's path, such as <c>Assets/Shaders/note_background</c>;
@@ -141,6 +143,27 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
 
         _textures[name] = texture;
         Version++;
+    }
+
+    /// <summary>
+    /// Data for the stack's <c>[Host(size)] RWStructuredBuffer&lt;T&gt; name;</c>, by name, as bytes laid out as the
+    /// shader's <c>T</c> (std430). The host uploads them when <see cref="BufferVersion"/> moves; past the buffer's
+    /// size is cut off, and what isn't covered keeps what was there.
+    /// </summary>
+    public IReadOnlyDictionary<string, byte[]> Buffers => _buffers;
+
+    /// <summary>Goes up whenever a buffer's data is set.</summary>
+    public int BufferVersion { get; private set; }
+
+    /// <summary>Sets a host buffer's data (see <see cref="Buffers"/>); data the same as last time changes nothing.</summary>
+    public void SetBuffer<T>(string name, ReadOnlySpan<T> data) where T : unmanaged
+    {
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(data);
+        if (_buffers.TryGetValue(name, out byte[]? old) && bytes.SequenceEqual(old))
+            return;
+
+        _buffers[name] = bytes.ToArray();
+        BufferVersion++;
     }
 
     /// <summary>The value set under <paramref name="name"/>, or <paramref name="fallback"/>.</summary>

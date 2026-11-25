@@ -55,25 +55,29 @@ overload.
 
 ## 1. A shader
 
-A shader is a **stack of bricks**: a folder under `Assets/Shaders` with one
-file per brick, and its path is the shader's name (`Assets/Shaders/Items/orb`).
-The bricks run in this order, and each one reads what the bricks above it
-declare:
+A shader is a **stack**: a folder under `Assets/Shaders` whose `.slang` files
+are read as one, and its path is the shader's name (`Assets/Shaders/Items/orb`).
+Files are named as you like (`wires.slang`, `look.slang`); everything declared in
+one is in sight of the others. What the stack does comes from the entry functions
+it declares, each at most once, in any file:
 
-| Brick | File | Entry | Runs |
-|---|---|---|---|
-| UPDATE | `update.slang` | `void update(inout State s, float dt)` | once a frame on the GPU (§14) |
-| STEP | `step.slang` | `void step(inout Item t, uint i, float dt)` | once a frame on every item (§20) |
-| BUILD | `build.slang` | `void build()`, calling `[Pass]` functions | its passes, in order, once a frame (§21) |
-| DEFORM | `deform.slang` | `ItemVertex deform(ItemVertex v)` | on every corner (§15) |
-| SHADE | `shade.slang` | `float4 shade(…)` | on every pixel |
+| Entry | Runs |
+|---|---|
+| `void graph()` | the stack's render graph: its passes and draws, in order, once a frame (§21) |
+| `float4 shade(…)` | on every pixel of the item: with no graph, the stack's one draw |
+| `ItemVertex deform(ItemVertex v)` | on every corner of the item's quad (§15) |
+| `void update(inout State s, float dt)` | once a frame on the GPU (§14); becoming a graph pass |
+| `void step(inout Item t, uint i, float dt)` | once a frame on every item (§20); becoming a graph pass |
+| `float4 trace(…)` | over every pixel of the quad (§22); becoming a `[Pixels]` pass |
 
-Most shaders are a shade brick alone, and that is what the rest of this
-section is about. Blend isn't a brick: it's set where the shader is placed. In
-the shader tool the strip over the code shows the stack's bricks in this
-order; `+ DEFORM` adds one from a template, and the open one can be removed.
+Most shaders are a `shade` alone, and that is what the rest of this section is
+about. A stack with a `graph()` and no `shade` draws only what its graph draws.
+Blend isn't in the code: it's set where the shader is placed. In the shader tool
+the strip over the code lists the stack's files (coloured by the entry each
+holds); `+ FILE` adds one, and the open one can be renamed or removed. GRAPH
+shows what runs.
 
-A level's shader slot (and every shade brick) holds an
+A level's shader slot (and every stack's shade) holds an
 *effect body*: some uniforms and one function, `shade`, which returns the
 pixel's colour.
 

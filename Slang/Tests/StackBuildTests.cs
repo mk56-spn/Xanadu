@@ -61,7 +61,7 @@ public sealed class StackBuildTests
         """;
 
     private static string Body(string build, string shade = Shade) =>
-        ShaderStack.Compose("s", [new Brick(BrickKind.Build, build), new Brick(BrickKind.Shade, shade)]);
+        ShaderStack.Compose("s", [new StackFile("build.slang", build), new StackFile("shade.slang", shade)]);
 
     [Test]
     public void BuffersAreSizedFromTheBricksConstants()
@@ -136,7 +136,7 @@ public sealed class StackBuildTests
         string wrong = Sort.Replace("keys[i] = N - i;", "keys[i] = nope;");
         Exception error = Assert.Catch(() => SlangShaders.CompileEffectBody("s", Body(wrong), keepsState: true))!;
 
-        List<SlangProblem> problems = SlangProblems.Parse(error.Message, ShaderStack.Label("s", BrickKind.Build));
+        List<SlangProblem> problems = SlangProblems.Parse(error.Message, ShaderStack.Label("s", "build.slang"));
         Assert.That(problems, Has.Count.GreaterThan(0));
         Assert.That(problems[0].Line, Is.EqualTo(15));
     }

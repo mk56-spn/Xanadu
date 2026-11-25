@@ -226,6 +226,16 @@ float4 shade(Canvas canvas)
   global in passes and pool steps. `Lab/particles` is the whole particle lab on
   it (free slots, emitters, death bursts, trail rings, the field); its moves,
   shapes and looks are `xanadu.particles`.
+- **Host buffers (built 2026-11-25, quick version):** `[Host(size)]
+  RWStructuredBuffer<T> name;` in a BUILD brick is a buffer the host fills from
+  `CanvasMaterial.SetBuffer(name, span)` (bytes laid out as `T`, std430), uploaded
+  in the prelude whenever the material's `BufferVersion` moves
+  (`Rendering/Passes/GraphResources.cs`); the count in use goes as a value. Passes
+  read it, and so do `[Draw]`s. `Lab/graph_board` (the shader tool's GRAPH board
+  wires) is drawn from it.
+- **Copies on draws (built 2026-11-25):** `[Draw(across, down, shade: fn, copies:
+  n)]`, n a number, a value or a uint buffer the passes count into (indirect);
+  `copy` in both stages. `Lab/copies`.
 
 - Today: host only (`Rendering/Shaders/particles.slang`), outside the DSL. A
   compute step moves every particle (motion, life, colour, look), then one

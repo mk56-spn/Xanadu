@@ -22,9 +22,9 @@ namespace Xanadu.Tools.Shaders;
 #pragma warning disable RS0030
 
 /// <summary>
-/// The shader tool: the picked shader stack's bricks in the shared Slang editor
+/// The shader tool: the picked shader stack's files in the shared Slang editor
 /// (<see cref="ShaderCodeEditor"/>), its pipeline over the code, with its preview
-/// and problems on the right. Edits (bricks added and removed too) stay in memory,
+/// and problems on the right. Edits (files added, renamed and removed too) stay in memory,
 /// kept per stack while others are picked, until saved (Ctrl+S or SAVE) or put
 /// back (REVERT). The bar's SHADERS button opens every shipped stack as a grid of
 /// live thumbnails (<see cref="ShaderGrid"/>) over the editor, so the editor keeps the
@@ -65,8 +65,8 @@ internal sealed class ShaderToolApp : HostApp
     private readonly List<ShaderFile> _files;
     private ShaderGrid _grid = null!;
 
-    /// <summary>Edited bricks not yet saved, by stack; a stack without an entry is as on disk.</summary>
-    private readonly Dictionary<ShaderFile, List<Brick>> _unsaved = [];
+    /// <summary>Edited files not yet saved, by stack; a stack without an entry is as on disk.</summary>
+    private readonly Dictionary<ShaderFile, List<StackFile>> _unsaved = [];
 
     private Entity _shaders, _title, _save, _revert, _note, _graphButton, _trianglesButton, _uvButton;
 
@@ -82,8 +82,8 @@ internal sealed class ShaderToolApp : HostApp
     private ShaderCodeEditor? _code;
     private Handle _codeItem;
 
-    /// <summary>The bricks as last saved or read, for telling whether the code has changes.</summary>
-    private List<Brick> _disk = [];
+    /// <summary>The files as last saved or read, for telling whether the code has changes.</summary>
+    private List<StackFile> _disk = [];
     private int _seenVersion = -1;
 
     private float _sideWidth = SideWidth;
@@ -248,7 +248,7 @@ internal sealed class ShaderToolApp : HostApp
         ShowChanges();
     }
 
-    /// <summary>Opens a stack: its unsaved bricks if it has some, else the folder's.</summary>
+    /// <summary>Opens a stack: its unsaved files if it has some, else the folder's.</summary>
     private void Pick(int index)
     {
         if (_picked >= 0 && _code is not null)
@@ -260,7 +260,7 @@ internal sealed class ShaderToolApp : HostApp
         _picked = index;
         ShaderFile file = _files[index];
         _disk = ShaderFiles.Read(file);
-        List<Brick> bricks = _unsaved.GetValueOrDefault(file, _disk);
+        List<StackFile> files = _unsaved.GetValueOrDefault(file, _disk);
 
         _codeItem = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(_codeItem, Canvas.RootHandle);
@@ -268,7 +268,7 @@ internal sealed class ShaderToolApp : HostApp
         var slots = new ShaderEditorSlots(UiNode.Wrap(_codeSlot), UiNode.Wrap(_barSlot), UiNode.Wrap(_preview),
             UiNode.Wrap(_sideSlot), UiNode.Wrap(_dividerSlot));
         _effect = null;
-        _code = new ShaderCodeEditor(Entities, _codeItem, slots, file.Path, bricks,
+        _code = new ShaderCodeEditor(Entities, _codeItem, slots, file.Path, files,
             item =>
             {
                 _effect = new EffectPreview(Renderer.Pipelines, item, file.Path, SlangShaders.IsLabOnly(file.Path));
@@ -320,15 +320,15 @@ internal sealed class ShaderToolApp : HostApp
         _effect?.ShowOverlays(_showTriangles, _showUv);
     }
 
-    /// <summary>Remembers the open stack's bricks while another is picked, if they differ from the folder.</summary>
+    /// <summary>Remembers the open stack's files while another is picked, if they differ from the folder.</summary>
     private void Keep()
     {
         ShaderFile file = _files[_picked];
-        List<Brick> bricks = _code!.Bricks;
-        if (bricks.SequenceEqual(_disk))
+        List<StackFile> files = _code!.Files;
+        if (files.SequenceEqual(_disk))
             _unsaved.Remove(file);
         else
-            _unsaved[file] = bricks;
+            _unsaved[file] = files;
     }
 
     private void Save()
@@ -337,14 +337,14 @@ internal sealed class ShaderToolApp : HostApp
             return;
 
         ShaderFile file = _files[_picked];
-        List<Brick> bricks = _code.Bricks;
-        if (!ShaderFiles.Write(file, bricks, out string? error))
+        List<StackFile> files = _code.Files;
+        if (!ShaderFiles.Write(file, files, out string? error))
         {
             UiText.Set(_note, "not saved: " + error);
             return;
         }
 
-        _disk = bricks;
+        _disk = files;
         _unsaved.Remove(file);
         _seenVersion = -1;
         // The thumbnail draws the file, so it compiles again from what was just written.
@@ -352,7 +352,7 @@ internal sealed class ShaderToolApp : HostApp
         Redraw(_picked);
     }
 
-    /// <summary>Puts the folder's bricks back: a fresh editor on them.</summary>
+    /// <summary>Puts the folder's files back: a fresh editor on them.</summary>
     private void Revert()
     {
         _unsaved.Remove(_files[_picked]);
@@ -363,17 +363,17 @@ internal sealed class ShaderToolApp : HostApp
         Pick(index);
     }
 
-    /// <summary>Marks the list and the bar when the bricks differ from the folder; checked only when they change.</summary>
+    /// <summary>Marks the list and the bar when the files differ from the folder; checked only when they change.</summary>
     private void ShowChanges()
     {
         if (_code!.Version == _seenVersion)
             return;
 
         _seenVersion = _code.Version;
-        List<Brick> bricks = _code.Bricks;
-        bool changed = !bricks.SequenceEqual(_disk);
+        List<StackFile> files = _code.Files;
+        bool changed = !files.SequenceEqual(_disk);
         if (changed)
-            _unsaved[_files[_picked]] = bricks;
+            _unsaved[_files[_picked]] = files;
         else
             _unsaved.Remove(_files[_picked]);
 

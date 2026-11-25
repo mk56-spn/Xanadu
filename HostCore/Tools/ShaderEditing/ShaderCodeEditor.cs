@@ -42,11 +42,11 @@ internal readonly record struct ShaderEditorSlots(UiNode Code, UiNode Bar, UiNod
 /// compiles, owns the problems and the clips.
 /// </para>
 /// <para>
-/// It edits one text (the lab's slots) or a shader stack's bricks (the shader tool):
-/// then the pipeline strip (<see cref="BrickStrip"/>) over the code picks the brick
-/// in the first tab, adds and removes them, and the editor composes them
+/// It edits one text (the lab's slots) or a shader stack's files (the shader tool):
+/// then the file strip (<see cref="FileStrip"/>) over the code picks the file in the
+/// first tab, adds, renames and removes them, and the editor composes them
 /// (<see cref="ShaderStack.Compose"/>) for each compile, every problem landing on its
-/// own brick.
+/// own file.
 /// </para>
 /// </summary>
 internal sealed partial class ShaderCodeEditor : IDisposable
@@ -78,13 +78,13 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     private SlangCompletions _completions;
     private SlangLibraryDeclarations _declarations;
 
-    /// <summary>One open text: the shader's own or one of its bricks (no path), or a library module's.</summary>
+    /// <summary>One open text: the shader's own or one of its stack's files (no path), or a library module's.</summary>
     private sealed class Tab(string label, string? path, TextBuffer buffer, TextHistory history, string disk)
     {
-        public readonly string Label = label;
+        public string Label = label;
 
-        /// <summary>The brick it is; null for a single text or a library module.</summary>
-        public BrickKind? Kind;
+        /// <summary>The stack file it is, by name; null for a single text or a library module.</summary>
+        public string? File;
 
         /// <summary>The last compile's problems and colour conversions on this text's own lines.</summary>
         public List<SlangProblem> Problems = [];
@@ -123,13 +123,13 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         }
     }
 
-    /// <summary>The open texts: the shader's own (the open brick) first, then library modules.</summary>
+    /// <summary>The open texts: the shader's own (the open file) first, then library modules.</summary>
     private readonly List<Tab> _tabs = [];
     private int _open;
     private readonly EditorTabs _strip;
     private LibraryPlace? _goTo;
 
-    /// <summary>The shader's text in the first tab: the one text, or the brick open.</summary>
+    /// <summary>The shader's text in the first tab: the one text, or the stack's file open.</summary>
     private Tab Main => _tabs[0];
     private readonly CompletionPopup _popup;
     private readonly HoverPopup _hover;
@@ -161,34 +161,34 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     /// <summary>Edits one text: its problems carry the preview's label.</summary>
     /// <param name="preview">Makes the preview, drawing under the item it is given.</param>
     public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string text, Func<Handle, IEditorPreview> preview)
-        : this(entities, parent, slots, [new Brick(BrickKind.Shade, text)], null, preview)
+        : this(entities, parent, slots, [new StackFile("shade.slang", text)], null, preview)
     {
     }
 
-    /// <summary>Edits a shader stack's bricks; <paramref name="stack"/> names it, as <see cref="ShaderStack.Compose"/> labels them.</summary>
-    public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string stack, IReadOnlyList<Brick> bricks,
+    /// <summary>Edits a shader stack's files; <paramref name="stack"/> names it, as <see cref="ShaderStack.Compose"/> labels them.</summary>
+    public ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, string stack, IReadOnlyList<StackFile> files,
         Func<Handle, IEditorPreview> preview)
-        : this(entities, parent, slots, bricks, stack, preview)
+        : this(entities, parent, slots, files, stack, preview)
     {
     }
 
-    private ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, IReadOnlyList<Brick> bricks, string? stack,
+    private ShaderCodeEditor(EntityStore entities, Handle parent, ShaderEditorSlots slots, IReadOnlyList<StackFile> files, string? stack,
         Func<Handle, IEditorPreview> preview)
     {
         _stack = stack;
-        if (bricks.Count == 0)
-            bricks = [new Brick(BrickKind.Shade, ShaderStack.Template(BrickKind.Shade))];
-        Brick first = FirstOpen(bricks);
+        if (files.Count == 0)
+            files = [ShaderStack.NewStack()];
+        StackFile first = FirstOpen(files);
         _slots = slots;
         _preview = UiLayout.Box(slots.Preview.Entity);
         _pointer = _preview.GetCenter();
         // The text as opened is usually in the shader cache; the first edit isn't, and shouldn't wait for Slang to start.
         SlangShaders.Prepare();
 
-        // The code's column: the pipeline (a stack's), the tab strip, then the code taking the rest.
+        // The code's column: the files (a stack's), the tab strip, then the code taking the rest.
         slots.Code.Cross(StackCrossAlignment.Stretch);
         if (stack is not null)
-            _brickStrip = new BrickStrip(slots.Code);
+            _fileStrip = new FileStrip(slots.Code);
         _strip = new EditorTabs(entities, slots.Code);
         _code = slots.Code.Column().Grow();
         _graph = new StackGraphView(slots.Code);
@@ -213,7 +213,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         {
             if (Unjoin(_clipPlaces, line + 1) is not ({ } tab, int own))
                 return;
-            OpenBrick(tab);
+            OpenFile(tab);
             Main.Buffer.Place(own - 1, column);
             Focus();
         };
@@ -234,12 +234,12 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) {
             Save = Save,
             GoElsewhere = GoElsewhere,
-            EntryColours = ShaderStack.Kinds.SelectMany(kind => ShaderStack.Entries(kind).Select(name => (name, kind)))
-                .ToDictionary(entry => entry.name, entry => BrickStrip.Colour(entry.kind)),
+            EntryColours = ShaderStack.Roles.SelectMany(role => ShaderStack.Entries(role).Select(name => (name, role)))
+                .ToDictionary(entry => entry.name, entry => FileStrip.Colour(entry.role)),
         };
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
         editor.Host = _host;
-        MakeBricks(bricks, first, editor.Buffer, editor.History);
+        MakeFiles(files, first, editor.Buffer, editor.History);
     }
 
     /// <summary>The library's completions and where its names are declared, from the modules as they are on disk.</summary>
@@ -409,20 +409,20 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         return true;
     }
 
-    /// <summary>The one text as it is now, whichever tab is open (a stack's first brick; see <see cref="Bricks"/>).</summary>
-    public string Text => _bricks[0].Buffer.Text;
+    /// <summary>The one text as it is now, whichever tab is open (a stack's first file; see <see cref="Files"/>).</summary>
+    public string Text => _files[0].Buffer.Text;
 
-    /// <summary>A stack's bricks as they are now, in pipeline order.</summary>
-    public List<Brick> Bricks => [.. _bricks.Select(brick => new Brick(brick.Kind ?? BrickKind.Shade, brick.Buffer.Text))];
+    /// <summary>A stack's files as they are now, by name.</summary>
+    public List<StackFile> Files => [.. _files.Select(file => new StackFile(file.File ?? "shade.slang", file.Buffer.Text))];
 
-    /// <summary>Changes with every edit of the shader's text, and every brick added or removed.</summary>
+    /// <summary>Changes with every edit of the shader's text, and every file added, renamed or removed.</summary>
     public int Version
     {
         get
         {
             int version = _structure;
-            foreach (Tab brick in _bricks)
-                version = unchecked(version * 31 + brick.Buffer.Version);
+            foreach (Tab file in _files)
+                version = unchecked(version * 31 + file.Buffer.Version);
             return version;
         }
     }
@@ -451,7 +451,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     /// <summary>The last stack that compiled: its graph is read again each frame, with the values as they are tuned now.</summary>
     private CompiledShader? _compiledStack;
 
-    /// <summary>Where the editor says what a brick still needs; nothing is said without one.</summary>
+    /// <summary>Where the editor says what it couldn't do (a name refused); nothing is said without one.</summary>
     public ToastSystem? Toasts { get; set; }
 
     /// <summary>Called with the text just before each compile; the lab saves its working copy there.</summary>
@@ -596,7 +596,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
-        DrawBricks();
+        DrawFiles();
     }
 
     /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
@@ -633,9 +633,9 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         if (_points.Point(Main.Buffer, Main.History, _completions.ParameterNames, _preview, _tuning, frame.Mouse, frame.Held, pressed, Focus))
             return;
 
-        if (pressed && PressBricks(frame.Mouse))
-            Focus();
-        else if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
+        if (pressed && PressFiles(frame.Mouse))
+            return;
+        if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
         {
             if (tab.Close)
                 Close(tab.Tab);
@@ -646,7 +646,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         else if (pressed && _chrome.ProblemAt(frame.Mouse) is { } problem && _shownProblems.IndexOf(problem) is >= 0 and int index
                  && _listed[index] is { } on)
         {
-            OpenBrick(on);
+            OpenFile(on);
             Main.Buffer.Place(problem.Line - 1, problem.Column - 1);
             Focus();
         }
@@ -657,7 +657,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         TextEditors.Delete(_editor);
         _tuning.Dispose();
         _strip.Dispose();
-        _brickStrip?.Dispose();
+        _fileStrip?.Dispose();
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);

@@ -49,22 +49,32 @@ public static partial class SlangShaders
                     $"{name}: {stage} can't touch the image {build.Images[k].Name}; the graph's passes read and write images, and present shows them.");
     }
 
-    /// <summary>A pixel pass compiled: its compute stage, with the images and buffers it binds.</summary>
+    /// <summary>The samplers a pixel pass declares before its globals: the canvas depth, then the screen copy.</summary>
+    public const int PixelSamplers = 2;
+
+    /// <summary>
+    /// A pixel pass compiled: its compute stage, with the images and buffers it binds. It may read the canvas drawn so
+    /// far (<c>sampleScreen</c>, <c>sampleDepth</c>); one that does runs mid-frame, in a break of the item's pass.
+    /// </summary>
     private static CompiledPass CompilePixels(string name, string source, StackBuild build, int p, bool keepsState, PoolShape? pool)
     {
         BuildPass pass = build.Passes[p];
         (int width, int height) = pass.Pixels!.Value;
         string arguments = ShadeSignature.Arguments("float4 shade(" + pass.Signature + ")", out string problem)
                            ?? throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: {problem.Replace("shade", pass.Name)}");
+        // The canvas so far is compute samplers 0 (its depth) and 1 (the screen copy), always declared; the globals after.
         (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
             CompileWrapped(WrapPixels(name, placed, pass.Name, arguments, width, height, keepsState, pool), "xanaduPixels", "compute", 0, 2,
-                [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0", "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
-        CheckDeclared(name, compute, 0, 0);
-        if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
-            throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a pixel pass can't read the canvas depth (sampleDepth) yet.");
+                [.. GlobalDefines(PixelSamplers, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_SCREEN_BINDING=1", "XANADU_SCREEN_SET=0",
+                    "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
+        CheckDeclared(name, compute, 0, PixelSamplers);
         var shader = new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
             storageBuffers: Globals.Count + (keepsState ? 1 : 0));
-        return new CompiledPass(Named(build, p), shader, used, pass.Threads, access) { Images = images, Tile = (width, height), OverImage = pass.OverImage };
+        return new CompiledPass(Named(build, p), shader, used, pass.Threads, access)
+        {
+            Images = images, Tile = (width, height), OverImage = pass.OverImage,
+            ReadsDepth = SpirvScan.Binds(compute.Spirv, 0, 0), ReadsScreen = SpirvScan.Binds(compute.Spirv, 0, 1),
+        };
     }
 
     /// <summary>
@@ -76,7 +86,7 @@ public static partial class SlangShaders
     {
         (string imports, string code, string label) = Split(name, source);
         string state = keepsState
-            ? $"[[vk::binding({Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
+            ? $"[[vk::binding({PixelSamplers + Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
             : "";
         string load = keepsState ? "effect0::state = effect0::xanaduStateIn[0];" : "";
         return $$"""

@@ -161,6 +161,13 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
             {
                 // Mid-frame nodes read the canvas so far: the pass ends, they run, and it starts again.
                 commands.EndRenderPass(pass);
+                if (plan.ReadsScreen)
+                {
+                    _targets.CopyScreen(commands, job.Target);
+                    CopyCount++;
+                    copied = true;
+                }
+
                 _graphs.MidFrame(commands, plan, effect, step, s);
                 pass = _targets.BeginPass(commands, job.Target, job.Clear, msaa, load: true);
                 clocked = false;

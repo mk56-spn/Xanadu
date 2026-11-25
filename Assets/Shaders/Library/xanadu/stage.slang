@@ -193,7 +193,14 @@ public struct Frame
 };
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
-[[vk::binding(1, 2)]] public Sampler2D screenTexture;
+// The screen copy is fragment sampler 1; a pixel pass reads it as compute sampler 1 (the host says).
+#ifndef XANADU_SCREEN_BINDING
+#define XANADU_SCREEN_BINDING 1
+#endif
+#ifndef XANADU_SCREEN_SET
+#define XANADU_SCREEN_SET 2
+#endif
+[[vk::binding(XANADU_SCREEN_BINDING, XANADU_SCREEN_SET)]] public Sampler2D screenTexture;
 // The depth is fragment sampler 2; a deforming effect's vertex stage reads it as
 // vertex sampler 0 (the host says, when it compiles one).
 #ifndef XANADU_DEPTH_BINDING

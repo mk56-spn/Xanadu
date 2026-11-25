@@ -7,161 +7,89 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// One kind of brick in a <see cref="ShaderStack"/>, in pipeline order: what runs
-/// first comes first. Each kind is one file in the stack's folder and owns one entry.
+/// What an entry function makes the code around it do, in the order it runs: what a stack's files hold is read from
+/// these, never from their names. A stack with <c>graph()</c> is described by it; <c>shade</c> and <c>deform</c> alone are
+/// shorthand for one draw onto the frame. UPDATE, STEP and TRACE are the older kinds, until they become graphs.
 /// </summary>
-public enum BrickKind
+public enum StackRole
 {
-    /// <summary><c>update.slang</c>: one struct the GPU keeps, <c>update</c> once a frame; every later brick reads <c>state</c>.</summary>
+    /// <summary><c>void update(inout State s, float dt)</c>: one struct the GPU keeps, read below as <c>state</c>.</summary>
     Update,
 
-    /// <summary><c>step.slang</c>: a pool of <c>[Pool(count)]</c> items the GPU keeps, <c>step</c> on each once a frame; each is drawn once, as <c>item</c>.</summary>
+    /// <summary><c>[Pool(count)] void step(inout Item t, uint i, float dt)</c>: items the GPU keeps, each drawn once as <c>item</c>.</summary>
     Step,
 
-    /// <summary>
-    /// <c>build.slang</c>: buffers the GPU keeps, compute passes over them, and <c>build()</c>, the order
-    /// the passes run in each frame; deform and shade read the buffers.
-    /// </summary>
-    Build,
+    /// <summary><c>void graph()</c>: the stack's resources and nodes, run in its order each frame.</summary>
+    Graph,
 
-    /// <summary>
-    /// <c>trace.slang</c>: <c>trace</c>, compute run on every pixel of the quad in tiles that may share
-    /// memory; its colour and depth land first, under the stack's own triangles.
-    /// </summary>
+    /// <summary><c>float4 trace(…)</c>: compute over every pixel of the quad, landing under its triangles.</summary>
     Trace,
 
-    /// <summary><c>deform.slang</c>: <c>deform</c>, run on every corner before it lands.</summary>
+    /// <summary><c>ItemVertex deform(ItemVertex v)</c>: run on every corner before it lands.</summary>
     Deform,
 
-    /// <summary><c>shade.slang</c>: <c>shade</c>, run on every pixel.</summary>
+    /// <summary><c>float4 shade(…)</c>: run on every pixel the stack's quad covers.</summary>
     Shade,
 }
 
-/// <summary>One brick's code: its kind and its text.</summary>
-public sealed record Brick(BrickKind Kind, string Text);
+/// <summary>One file of a stack: its name in the stack's folder (<c>wires.slang</c>) and its code.</summary>
+public sealed record StackFile(string Name, string Text);
 
 /// <summary>
-/// A shader stack: bricks that compose one pipeline, a folder on disk with a
-/// file per brick (<see cref="FileName"/>). Most stacks are a shade brick
-/// alone; some add a deform brick; some start with compute (update, or a pool its step moves).
-/// Bricks run in <see cref="BrickKind"/> order and data flows down: a brick
-/// reads what the bricks above it keep and declare. Blend isn't a brick: it
-/// is set where the stack is placed.
+/// A shader stack: a folder of <c>.slang</c> files compiled as one effect body (<see cref="Compose"/>), each under its own
+/// <c>#line</c> mark so Slang's errors land on the file's own lines (<see cref="Label"/>). The files are named as their
+/// author likes; what each does comes from the entry functions it declares (<see cref="RolesOf"/>), each of which the
+/// stack has at most once. Blend isn't in the code: it is set where the stack is placed.
 /// </summary>
-/// <remarks>
-/// The bricks compile as one effect body (<see cref="Compose"/>), each marked
-/// with <c>#line 1 "stack/kind.slang"</c>, so Slang's errors land on the
-/// brick's own lines under its own label (<see cref="Label"/>).
-/// </remarks>
 public static partial class ShaderStack
 {
-    /// <summary>Every kind, in pipeline order.</summary>
-    public static readonly BrickKind[] Kinds = Enum.GetValues<BrickKind>();
+    /// <summary>Every role, in the order it runs.</summary>
+    public static readonly StackRole[] Roles = Enum.GetValues<StackRole>();
 
-    public static string FileName(BrickKind kind) => kind switch
-    {
-        BrickKind.Update => "update.slang",
-        BrickKind.Step => "step.slang",
-        BrickKind.Build => "build.slang",
-        BrickKind.Trace => "trace.slang",
-        BrickKind.Deform => "deform.slang",
-        BrickKind.Shade => "shade.slang",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-    };
+    /// <summary>A stack file's extension.</summary>
+    public const string Extension = ".slang";
 
-    /// <summary>The brick's name as the editor shows it.</summary>
-    public static string Title(BrickKind kind) => kind.ToString().ToUpperInvariant();
+    /// <summary>The role's name as the editor shows it.</summary>
+    public static string Title(StackRole role) => role.ToString().ToUpperInvariant();
 
-    /// <summary>
-    /// What a brick of this kind is, at length, for hovering it in the editor: what it runs,
-    /// when, what it reads, what it hands down, and what it is good for.
-    /// </summary>
-    public static string Description(BrickKind kind) => kind switch
-    {
-        BrickKind.Update =>
-            "UPDATE (update.slang) is compute that runs once a frame on a single GPU thread, before anything is drawn. " +
-            "It keeps one struct of yours, State, on the GPU from frame to frame: void update(inout State s, float dt) " +
-            "changes it, and every brick below reads it as `state`. It starts as zeros after each compile. " +
-            "Use it for things the whole effect shares and that build up over time: a value easing towards a target, " +
-            "a counter, a smoothed beat. Lab and shader tool only for now.",
-        BrickKind.Step =>
-            "STEP (step.slang) is a pool: [Pool(count)] items of your own struct kept on the GPU, each moved once a frame by " +
-            "[Pool(count)] void step(inout Item t, uint i, float dt), one GPU thread per item; start(i) makes each after a compile. " +
-            "Each item is drawn once: DEFORM places it (reading it as `item`) and SHADE colours it. With [Pool(count, rate)] and a " +
-            "bool step, the engine bears that many a second into dead slots and frees those whose step returns false. " +
-            "Use it for swarms, sparks and particles that each move on their own. Needs a DEFORM brick. Lab only for now.",
-        BrickKind.Build =>
-            "BUILD (build.slang) is compute over buffers you declare ([Buffer(size)] RWStructuredBuffer<T> name), kept on " +
-            "the GPU and zeroed after each compile. [Pass(threads, over: n)] functions work on them, a thread each, or " +
-            "groups: g for whole groups that share groupshared memory. void build() runs on the CPU every frame and calls " +
-            "the passes in order, each its own dispatch, so a pass sees everything the ones before it wrote; it may loop " +
-            "and branch on constants and uniforms. TRACE, DEFORM and SHADE read the buffers, and a [Draws] buffer sets how " +
-            "many copies of the quad are drawn. Use it for work no single item can do alone: sorting, building a tree, " +
-            "counting into cells. Lab only for now.",
-        BrickKind.Trace =>
-            "TRACE (trace.slang) runs trace(...) as compute, one GPU thread per pixel of the quad, before the stack's own " +
-            "triangles draw. Threads come in tiles, [Tile(w, h)] (8 × 8 by default), that share groupshared memory and " +
-            "wait for each other (GroupMemoryBarrierWithGroupSync); `group` says where a thread sits. What it returns " +
-            "lands on the frame first, and traced.depth (pixels into the screen) sets how deep each pixel is, so DEFORM " +
-            "and SHADE copies drawn after it hide behind it or show in front. It reads the uniforms, globals, state, the " +
-            "depth and the BUILD buffers. Use it for raymarchers whose rays share what a tile sees, or blurs that load a " +
-            "block once. Without a SHADE brick the trace is all the stack draws. Lab only for now.",
-        BrickKind.Deform =>
-            "DEFORM (deform.slang) runs ItemVertex deform(ItemVertex v) on every corner of the quad before it lands on " +
-            "the target: move v.position to move or bend the shape, set v.depth so overlapping parts sort themselves. " +
-            "[Grid(columns, rows)] cuts the quad into cells, giving it corners inside to bend; [Translucent] makes its " +
-            "triangles test the depth without writing it, for glows. With a pool or a [Draws] buffer it runs once per " +
-            "copy, and `copy` (or `item`) says which. Use it for waves, 3D surfaces, and placing each particle.",
-        BrickKind.Shade =>
-            "SHADE (shade.slang) runs float4 shade(...) on every pixel the stack's triangles cover and returns its colour. " +
-            "It takes Canvas (the quad: size, centre, `centred` for this pixel) and ItemInput (uv, the item's colour and " +
-            "texture, screen place), either, both or neither. It can read the screen drawn so far, the depth, its own " +
-            "textures, the uniforms, globals, state, the pool's item and the BUILD buffers. Most stacks are this brick " +
-            "alone. Without one, the item keeps its own colour (or, under a TRACE, only the trace draws).",
-        _ => "",
-    };
-
-    /// <summary>What the blend after the bricks is, at length, for hovering it.</summary>
+    /// <summary>What blend is, at length, for hovering it.</summary>
     public const string BlendDescription =
-        "Blend isn't a brick: it is how the stack's colour mixes with what is already on the frame (mix, add, subtract, " +
-        "multiply, premultiplied, or a custom one), set where the stack is placed (on the item or its material), not in " +
-        "the code. The same stack can glow additively in one place and mix plainly in another.";
+        "Blend isn't in the code: it is how the stack's colour mixes with what is already on the frame (mix, add, subtract, " +
+        "multiply, premultiplied, or a custom one), set where the stack is placed (on the item or its material). The same " +
+        "stack can glow additively in one place and mix plainly in another.";
 
-    /// <summary>
-    /// The bricks a kind can't work without. When one needs the other back, adding either
-    /// adds both; when only one needs the other, adding it says what is missing.
-    /// </summary>
-    public static BrickKind[] Needs(BrickKind kind) => kind switch
+    /// <summary>The functions a role's entry declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
+    public static string[] Entries(StackRole role) => role switch
     {
-        BrickKind.Step => [BrickKind.Deform],
+        StackRole.Update => ["update"],
+        StackRole.Step => ["start", "step"],
+        StackRole.Graph => ["graph"],
+        StackRole.Trace => ["trace"],
+        StackRole.Deform => ["deform"],
+        StackRole.Shade => ["shade"],
         _ => [],
     };
 
-    /// <summary>The functions a kind's brick declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
-    public static string[] Entries(BrickKind kind) => kind switch
+    /// <summary>The roles a file's code takes on, in the order they run, from the entries it declares.</summary>
+    public static IEnumerable<StackRole> RolesOf(string text)
     {
-        BrickKind.Update => ["update"],
-        BrickKind.Step => ["start", "step"],
-        BrickKind.Build => ["graph", "build"],
-        BrickKind.Trace => ["trace"],
-        BrickKind.Deform => ["deform"],
-        BrickKind.Shade => ["shade"],
-        _ => [],
-    };
+        string code = StripComments(text);
+        return Roles.Where(role => EntryOf(role).Pattern.IsMatch(code));
+    }
 
-    /// <summary>The label Slang's errors carry for a brick of stack <paramref name="name"/>.</summary>
-    public static string Label(string name, BrickKind kind) => $"{name}/{FileName(kind)}".Replace("\"", "'");
+    /// <summary>The label Slang's errors carry for file <paramref name="file"/> of stack <paramref name="name"/>.</summary>
+    public static string Label(string name, string file) => $"{name}/{file}".Replace("\"", "'");
 
-    /// <summary>The entry a kind's brick must declare, and the pattern that finds it.</summary>
-    private static (string Entry, Regex Pattern) EntryOf(BrickKind kind) => kind switch
+    /// <summary>The entry a role is found by, as written, and the pattern that finds it.</summary>
+    private static (string Entry, Regex Pattern) EntryOf(StackRole role) => role switch
     {
-        BrickKind.Update => ("void update(inout State s, float dt)", UpdateEntry()),
-        BrickKind.Step => ("[Pool(count)] void step(inout Item t, uint i, float dt) (or [Pool(count, rate)] bool step)", StepEntry()),
-        BrickKind.Build => ("void graph(), calling its passes in order", BuildEntry()),
-        BrickKind.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
-        BrickKind.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
-        BrickKind.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        StackRole.Update => ("void update(inout State s, float dt)", UpdateEntry()),
+        StackRole.Step => ("[Pool(count)] void step(inout Item t, uint i, float dt)", StepEntry()),
+        StackRole.Graph => ("void graph()", GraphEntry()),
+        StackRole.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
+        StackRole.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
+        StackRole.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
+        _ => throw new ArgumentOutOfRangeException(nameof(role)),
     };
 
     [GeneratedRegex(@"\bvoid\s+update\s*\(")]
@@ -171,7 +99,7 @@ public static partial class ShaderStack
     private static partial Regex StepEntry();
 
     [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
-    private static partial Regex BuildEntry();
+    private static partial Regex GraphEntry();
 
     [GeneratedRegex(@"\b(?:float4|colour)\s+trace\s*\(")]
     private static partial Regex TraceEntry();
@@ -183,71 +111,86 @@ public static partial class ShaderStack
     private static partial Regex ShadeEntry();
 
     /// <summary>
-    /// The bricks as one effect body, in pipeline order, each under its own
-    /// <c>#line</c> mark. Throws, worded as Slang's errors are (so the editor puts
-    /// the problem on the brick), when the stack can't work: no bricks, a brick
-    /// without its entry or with another kind's, or a pool with nothing to place its items.
+    /// The files as one effect body, each under its own <c>#line</c> mark. Throws, worded as Slang's errors are (so the
+    /// editor puts the problem on the file), when the stack can't work: no files, a name used twice or not a
+    /// <c>.slang</c> one, an entry declared twice, or a pool with nothing to place its items.
     /// </summary>
-    public static string Compose(string name, IReadOnlyList<Brick> bricks)
+    public static string Compose(string name, IReadOnlyList<StackFile> files)
     {
-        Check(name, bricks);
-        return Join(name, bricks);
+        Check(name, files);
+        return Join(name, files);
     }
 
     /// <summary>
-    /// The bricks as one body without checking them (<see cref="Compose"/> checks first): for reading
-    /// the code as a whole (the editor's clips and warnings) while a brick is half written.
+    /// The files as one body without checking them (<see cref="Compose"/> checks first): for reading the code as a whole
+    /// (the editor's clips and warnings) while a file is half written. Files run in the order of the first role each
+    /// holds (one with none goes with the graph), then by name.
     /// </summary>
-    public static string Join(string name, IReadOnlyList<Brick> bricks)
+    public static string Join(string name, IReadOnlyList<StackFile> files)
     {
         var composed = new StringBuilder();
-        foreach (Brick brick in bricks.OrderBy(brick => brick.Kind))
+        foreach (StackFile file in Ordered(files))
         {
-            composed.Append("#line 1 \"").Append(Label(name, brick.Kind)).Append("\"\n");
-            composed.Append(brick.Text.ReplaceLineEndings("\n"));
-            if (!brick.Text.EndsWith('\n'))
+            composed.Append("#line 1 \"").Append(Label(name, file.Name)).Append("\"\n");
+            composed.Append(file.Text.ReplaceLineEndings("\n"));
+            if (!file.Text.EndsWith('\n'))
                 composed.Append('\n');
         }
 
-        // Without a shade brick the item keeps its own colour, or, under a trace, draws nothing of its own.
-        if (!bricks.Any(brick => brick.Kind == BrickKind.Shade))
-            composed.Append(bricks.Any(brick => brick.Kind == BrickKind.Trace || (brick.Kind == BrickKind.Build && StackBuild.PresentsIn(brick.Text)))
-                ? $"#line 1 \"{name} (no shade brick)\"\n{TracedAlone}\n"
-                : $"#line 1 \"{name} (no shade brick)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
+        // Without a shade the item keeps its own colour, or, with a graph or a trace, draws only what that draws.
+        HashSet<StackRole> roles = [.. files.SelectMany(file => RolesOf(file.Text))];
+        if (!roles.Contains(StackRole.Shade))
+            composed.Append(roles.Contains(StackRole.Graph) || roles.Contains(StackRole.Trace)
+                ? $"#line 1 \"{name} (no shade)\"\n{TracedAlone}\n"
+                : $"#line 1 \"{name} (no shade)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
         return composed.ToString();
     }
 
-    /// <summary>The shade a stack with a TRACE brick and no SHADE brick gets: its quad is never drawn, only the trace.</summary>
+    /// <summary>The files in the order they compose.</summary>
+    public static IEnumerable<StackFile> Ordered(IEnumerable<StackFile> files) =>
+        files.OrderBy(file => RolesOf(file.Text).DefaultIfEmpty(StackRole.Graph).First()).ThenBy(file => file.Name, StringComparer.Ordinal);
+
+    /// <summary>The shade a stack with a graph or a trace and no shade gets: its quad is never drawn, only what the graph draws.</summary>
     public const string TracedAlone = "float4 shade(ItemInput i) { return float4(0); } // traced alone";
 
-    private static void Check(string name, IReadOnlyList<Brick> bricks)
+    private static void Check(string name, IReadOnlyList<StackFile> files)
     {
-        if (bricks.Count == 0)
-            throw new InvalidOperationException($"{name}(1): error: a stack needs at least one brick.");
+        if (files.Count == 0)
+            throw new InvalidOperationException($"{name}(1): error: a stack needs at least one file.");
 
-        foreach (IGrouping<BrickKind, Brick> twice in bricks.GroupBy(brick => brick.Kind).Where(group => group.Count() > 1))
-            throw new InvalidOperationException($"{Label(name, twice.Key)}(1): error: a stack has one {Title(twice.Key)} brick.");
-
-        foreach (Brick brick in bricks)
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var held = new Dictionary<StackRole, string>();
+        foreach (StackFile file in files)
         {
-            string code = StripComments(brick.Text);
-            (string entry, Regex own) = EntryOf(brick.Kind);
-            if (!own.IsMatch(code))
-                throw new InvalidOperationException($"{Label(name, brick.Kind)}(1): error: the {Title(brick.Kind)} brick declares {entry}.");
+            if (!IsFileName(file.Name))
+                throw new InvalidOperationException($"{Label(name, file.Name)}(1): error: a stack's file is a plain name ending in {Extension}.");
+            if (!seen.Add(file.Name))
+                throw new InvalidOperationException($"{Label(name, file.Name)}(1): error: the stack has two files called {file.Name}.");
 
-            foreach (BrickKind other in Kinds.Where(kind => kind != brick.Kind))
+            string code = StripComments(file.Text);
+            foreach (StackRole role in Roles)
             {
-                Match stray = EntryOf(other).Pattern.Match(code);
-                if (stray.Success)
+                MatchCollection found = EntryOf(role).Pattern.Matches(code);
+                if (found.Count == 0)
+                    continue;
+                if (found.Count > 1 || held.ContainsKey(role))
                     throw new InvalidOperationException(
-                        $"{Label(name, brick.Kind)}({LineAt(code, stray.Index)}): error: {EntryOf(other).Entry.Split('(')[0].Split(' ')[^1]} belongs in the {Title(other)} brick ({FileName(other)}).");
+                        $"{Label(name, file.Name)}({LineAt(code, found[^1].Index)}): error: the stack has one {Entries(role)[^1]}" +
+                        (held.TryGetValue(role, out string? first) && first != file.Name ? $"; it is already in {first}." : "."));
+                held[role] = file.Name;
             }
         }
 
-        if (bricks.Any(brick => brick.Kind == BrickKind.Step) && !bricks.Any(brick => brick.Kind == BrickKind.Deform))
+        if (held.TryGetValue(StackRole.Step, out string? pool) && !held.ContainsKey(StackRole.Deform))
             throw new InvalidOperationException(
-                $"{Label(name, BrickKind.Step)}(1): error: a pool's items are drawn by a DEFORM brick: add one, and place each item there with deform.");
+                $"{Label(name, pool)}(1): error: a pool's items are placed by a deform: declare ItemVertex deform(ItemVertex v) and place each item there.");
     }
+
+    /// <summary>Whether a name can be a stack's file: a plain name (letters, digits, _ and -) ending in <see cref="Extension"/>.</summary>
+    public static bool IsFileName(string name) => FileNamePattern().IsMatch(name);
+
+    [GeneratedRegex(@"^[A-Za-z0-9_-]+\.slang$")]
+    private static partial Regex FileNamePattern();
 
     private static int LineAt(string text, int index) => 1 + text.AsSpan(0, index).Count('\n');
 
@@ -255,151 +198,65 @@ public static partial class ShaderStack
         Regex.Replace(Regex.Replace(source, @"/\*.*?\*/", match => new string('\n', match.Value.Count(c => c == '\n')), RegexOptions.Singleline),
             @"//[^\n]*", "");
 
-    /// <summary>What a new brick of this kind starts as: a working one that changes nothing much, explained.</summary>
-    public static string Template(BrickKind kind) => kind switch
+    /// <summary>A new stack: one file with a shade that changes nothing much, explained.</summary>
+    public static StackFile NewStack() => new("shade.slang", """
+        // shade runs on every pixel of the item and returns its colour. A stack is every .slang file in its
+        // folder, read as one: add files for its other parts, and a void graph() to run passes and draws.
+        import xanadu;
+
+        [Default(colours.gold)] uniform colour tint;
+
+        float4 shade(ItemInput i, Canvas canvas)
+        {
+            colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);
+            let blob = Circle(120 + 20 * sin(time * 2));
+            return lerp(sky, tint, blob.filled(canvas.centred, 2));
+        }
+
+        """);
+
+    /// <summary>A new file for a stack: everything in it is in sight of the stack's other files, and theirs in its.</summary>
+    public static string NewFile(string name) => $"""
+        // {name}: read with the stack's other files as one. Declare resources ([Buffer], [Image], [Host]), passes
+        // ([Pass], [Pixels], [Draw]) and functions here; void graph() (in any one file) runs them in order each frame.
+        import xanadu;
+
+        """;
+
+    /// <summary>A name for a new file that the stack hasn't got: <c>part.slang</c>, <c>part2.slang</c>, …</summary>
+    public static string FreeName(IEnumerable<string> taken, string stem = "part")
     {
-        BrickKind.Update => """
-            // UPDATE: one struct the GPU keeps from frame to frame.
-            // update runs once a frame on one GPU thread; every later brick reads it as `state`.
-            import xanadu;
-
-            // Where it eases towards, in pixels from the centre: drag its dot on the preview.
-            [Default(200, 0)] uniform float2 target;
-
-            struct State { float2 follow; };
-
-            void update(inout State s, float dt)
-            {
-                s.follow = lerp(s.follow, target, 1 - exp(-dt * 4));
-            }
-
-            """,
-        BrickKind.Step => """
-            // STEP: items the GPU keeps from frame to frame, as many as [Pool(n)] on step says.
-            // start(i) makes item i after every compile; step moves it once a frame.
-            // The DEFORM brick draws each item once: it reads the one it is drawing as `item`.
-            import xanadu;
-
-            struct Item { float2 position; float2 velocity; };
-
-            Item start(uint i)
-            {
-                Item t;
-                t.position = (random2(float2(i, 1)) - 0.5) * 800;
-                t.velocity = (random2(float2(i, 2)) - 0.5) * 200;
-                return t;
-            }
-
-            [Pool(1000)]
-            void step(inout Item t, uint i, float dt)
-            {
-                t.position += t.velocity * dt;
-            }
-
-            """,
-        BrickKind.Build => """
-            // BUILD: buffers the GPU keeps from frame to frame, and passes that work on them.
-            // Each [Pass] runs `threads` a group: over: n gives a thread to each of n (the rest
-            // turned away), groups: g runs g whole groups (for code with barriers). build() runs
-            // on the CPU each frame: it calls the passes in order, each one its own dispatch, so
-            // a pass sees everything the passes before it wrote. DEFORM and SHADE read the buffers.
-            import xanadu;
-
-            static const uint cells = 4096;
-
-            // The wrapper places every buffer: never write a binding.
-            [Buffer(cells)] RWStructuredBuffer<float> heights;
-
-            [Pass(256, over: cells)]
-            void grow(uint i)
-            {
-                heights[i] = 0.5 + 0.5 * sin(time * 2 + i * 0.01);
-            }
-
-            void build()
-            {
-                grow();
-            }
-
-            """,
-        BrickKind.Trace => """
-            // TRACE: trace runs on every pixel of the quad as compute, in tiles of [Tile(w, h)]
-            // threads. A tile's threads may share groupshared memory and wait for each other
-            // (GroupMemoryBarrierWithGroupSync): load what the tile needs once, then all read it.
-            // group says where a thread sits: group.thread in its tile, group.place the tile's.
-            // traced.depth (pixels into the screen) lets the stack's own triangles drawn after
-            // it hide behind it. It lands first; DEFORM and SHADE draw over it.
-            import xanadu;
-
-            groupshared float wave[8];
-
-            [Tile(8, 8)]
-            float4 trace(ItemInput i, Canvas canvas)
-            {
-                // One thread a column loads, everyone reads.
-                if (group.thread.y == 0)
-                    wave[group.thread.x] = sin(time * 2 + (group.place.x * 8 + group.thread.x) * 0.05) * 60;
-                GroupMemoryBarrierWithGroupSync();
-                float d = canvas.centred.y - wave[group.thread.x];
-                traced.depth = d;
-                return lerp(colours.midnightBlue, colours.skyBlue, saturate(0.5 - d / 200));
-            }
-
-            """,
-        BrickKind.Deform => """
-            // DEFORM: deform runs on every corner before it lands; move v.position to move the shape.
-            import xanadu;
-
-            ItemVertex deform(ItemVertex v)
-            {
-                v.position.y += sin(time * 3 + v.uv.x * 6) * 6;
-                return v;
-            }
-
-            """,
-        BrickKind.Shade => """
-            // SHADE: shade runs on every pixel and returns its colour.
-            import xanadu;
-
-            [Default(colours.gold)] uniform colour tint;
-
-            float4 shade(ItemInput i, Canvas canvas)
-            {
-                colour sky = lerp(colours.midnightBlue, colours.darkSlateBlue, i.uv.y);
-                let blob = Circle(120 + 20 * sin(time * 2));
-                return lerp(sky, tint, blob.filled(canvas.centred, 2));
-            }
-
-            """,
-        _ => "",
-    };
+        var names = new HashSet<string>(taken, StringComparer.OrdinalIgnoreCase);
+        for (int k = 1; ; k++)
+        {
+            string name = k == 1 ? stem + Extension : $"{stem}{k}{Extension}";
+            if (!names.Contains(name))
+                return name;
+        }
+    }
 
     // ---- on disk -------------------------------------------------------------------
 
-    /// <summary>Whether a folder is a stack: it holds at least one brick file.</summary>
+    /// <summary>Whether a folder is a stack: it holds at least one <c>.slang</c> file.</summary>
     public static bool IsStack(string folder) =>
-        Directory.Exists(folder) && Kinds.Any(kind => File.Exists(Path.Combine(folder, FileName(kind))));
+        Directory.Exists(folder) && Directory.EnumerateFiles(folder, "*" + Extension).Any();
 
-    /// <summary>The bricks in a stack's folder, in pipeline order.</summary>
-    public static List<Brick> Read(string folder) =>
+    /// <summary>The stack's files, by name.</summary>
+    public static List<StackFile> Read(string folder) =>
     [
-        .. Kinds.Select(kind => (kind, file: Path.Combine(folder, FileName(kind))))
-            .Where(brick => File.Exists(brick.file))
-            .Select(brick => new Brick(brick.kind, File.ReadAllText(brick.file))),
+        .. Directory.EnumerateFiles(folder, "*" + Extension).Order(StringComparer.Ordinal)
+            .Select(file => new StackFile(Path.GetFileName(file), File.ReadAllText(file))),
     ];
 
-    /// <summary>Writes the bricks into the folder (made if needed) and deletes the files of kinds it no longer has.</summary>
-    public static void Write(string folder, IReadOnlyList<Brick> bricks)
+    /// <summary>Writes the files into the folder (made if needed) and deletes the <c>.slang</c> files it no longer has.</summary>
+    public static void Write(string folder, IReadOnlyList<StackFile> files)
     {
         Directory.CreateDirectory(folder);
-        foreach (BrickKind kind in Kinds)
-        {
-            string file = Path.Combine(folder, FileName(kind));
-            if (bricks.FirstOrDefault(brick => brick.Kind == kind) is { } brick)
-                File.WriteAllText(file, brick.Text);
-            else if (File.Exists(file))
-                File.Delete(file);
-        }
+        foreach (StackFile file in files)
+            File.WriteAllText(Path.Combine(folder, file.Name), file.Text);
+        foreach (string old in Directory.EnumerateFiles(folder, "*" + Extension))
+            if (!files.Any(file => string.Equals(file.Name, Path.GetFileName(old), StringComparison.OrdinalIgnoreCase)))
+                File.Delete(old);
     }
 
     /// <summary>Every stack under <paramref name="root"/> (full paths), outside <paramref name="skip"/>, in order.</summary>
