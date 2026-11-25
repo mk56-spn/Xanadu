@@ -182,7 +182,7 @@ The rest is under "Later" (§6).
   `--play[=<name or file>]`, `--editor`, `--shot=<png>` (`--shot-frame=<n>`,
   default 60), `--resolution=WxH`.
 - `GamePaths.RootMarker` (`Xanadu.sln`) marks the game folder, which every
-  relative path is under (`Assets/Shaders/flare`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`; `%APPDATA%\xanadu` on Windows).
+  relative path is under (`Assets/Shaders/Game/flare`); `user://` is `~/.local/share/xanadu` (`$XDG_DATA_HOME/xanadu`; `%APPDATA%\xanadu` on Windows).
 
 ### 5.2 Seams the game draws through
 
@@ -367,7 +367,7 @@ host fills; tests leave the headless defaults.
   one body written exactly as level shader slots are (below) and compiled
   through the same wrapper, so the lab, the shader tool and the game read one
   form, and Slang's errors land on the brick's own lines. A material names the
-  folder (`Assets/Shaders/Items/orb`).
+  folder (`Assets/Shaders/Game/orb`).
 - **Level shader slots** hold an effect body: global `uniform`s (tagged
   `[Instance]` when a group's item-shader track may key them, with
   `[Default(...)]`s) and a `float4 shade(…)` taking any of `Canvas` and

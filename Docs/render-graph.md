@@ -160,6 +160,10 @@ in the game, the editor and the shader tool alike. A stack without one compiles 
 trivial path's cost doesn't move (no timing pass was run for it). `Lab/` stays the experiments folder: the game's
 start-up compile skips it and the shader tool gives its cards a still.
 
+Since 2026-11-26 the game draws any stack a node names, not only an allow-list: `CommonShaders.IsKnown` accepts
+every folder under `Assets/Shaders/` but the library, and the renderer compiles it on first draw (a missing one draws
+plain). Lab stacks aren't warmed at start, so a level using one compiles it when it first shows.
+
 ## Work, in order
 
 Shaders change freely along the way. The bar is that each still does its job, judged by eye, and that the trivial
@@ -227,6 +231,15 @@ The check each time: the visual tests, and shots of a few plain, deform, pool an
   First pieces: `room.box`, shadow depth per light from the same geometry, screen-space
   AO, `[Surfaces]` sugar if it's still wanted once clears live on declarations.
 
+## Plain names (2026-11-25)
+
+Declarations say what a thing is, not its GPU type: `[Size(n)] List<T> name;` (a structured buffer), `Counter name;`
+(one uint; `name.add(1)`), `Image<T> name;` (a storage texture) with `[Scale(s)]`, `[Size(w, h)]`, `[Clear(v)]`,
+`[Kept]`, `[Cached]`, `[History(source)]`. An image's format follows what it holds (float r32f, float2 rg16f,
+float4 rgba16f, uint r32ui); `[Precise]` and `[Compact]` change it. Atomics on uint lists are `list.add(at, by)`,
+`take`, `keepLarger`, `keepSmaller` (`xanadu.store`). Reader: `Slang/BuildDeclarations.cs`. The design sections
+above keep the older `[Image(format, …)]` spelling as written at the time.
+
 ## Decisions (2026-11-25)
 
 1. **Scope** is inferred from what a node binds.
@@ -280,14 +293,14 @@ Stage B, first half (2026-11-25):
   `group.low`/`high` stay on the target. A draw renders through a viewport moved by the box's corner, and its
   fragment wrapper adds the corner back (`DrawBoxSlot`) before building `ItemInput`. Present reads at the pixel's
   place in the box.
-- **Clears:** `[Image(format, clear: value)]`; `clear()` is gone from the schedule language.
+- **Clears:** `[Clear(value)] Image<T> name;`; `clear()` is gone from the schedule language.
 - **Checked:** scene_room, bvh_march and trace_wave look as before; two items on scene_room's material (a smaller
   second copy in the preview) each march, draw and light their own box over one recording.
 
 Stage B, second half (2026-11-25):
 
-- **`[Kept] [Image(format)] RWTexture2D<T> name;`** holds its texels from frame to frame, cleared only when made.
-- **`[History(source)] RWTexture2D<T> name;`** is what `source` held at the end of last frame (its format and clear
+- **`[Kept] Image<T> name;`** holds its texels from frame to frame, cleared only when made.
+- **`[History(source)] Image<T> name;`** is what `source` held at the end of last frame (its format and clear
   come from the source). The two swap textures each frame and the source is cleared: nothing is copied. A `[Kept]`
   image takes no history (it already has last frame's texels).
 - **Where they live:** `HeldImages` (`Rendering/Kept/HeldImages.cs`), a relation on the entity keeping the item's
@@ -298,7 +311,7 @@ Stage B, second half (2026-11-25):
 
 Stage B, sizes (2026-11-25):
 
-- **`[Image(format, scale: s)]`** is the box times s, rounded up (s above 0, at most 4). **`[Image(format, w, h)]`**
+- **`[Scale(s)]`** is the box times s, rounded up (s above 0, at most 4). **`[Size(w, h)]`**
   is fixed. `clear:` comes last. A history takes its source's size. `ImageSize` (`Slang/BuildImage.cs`) turns a
   declaration and a box into texels.
 - **`[Pixels(w, h, over: image)]`** runs a thread a texel of that image instead of a pixel of the box: `group.pixel`
@@ -358,7 +371,7 @@ after the Slang tests, were clean.
 
 Stage C dogfood and C2 so far (2026-11-25):
 
-- **Host buffers:** `[Host(size)] RWStructuredBuffer<T> name;` is a BUILD buffer the host fills from
+- **Host buffers:** `[Host] [Size(n)] List<T> name;` is a BUILD buffer the host fills from
   `CanvasMaterial.SetBuffer(name, span)`, uploaded in the prelude when the material's `BufferVersion` moves
   (`GraphResources.For`); past the buffer's size is cut off. The count in use goes as a value.
 - **C2.1, copies on `[Draw]`:** `[Draw(across, down, shade: fn, copies: n)]` draws the grid n times, `copy` its number in
@@ -407,7 +420,7 @@ C2.3, STEP, UPDATE and TRACE gone (2026-11-25):
 
 Stage D, the rest (2026-11-25):
 
-- **Caches:** `[Cached] [Image(format)] RWTexture2D<T> name;` is held like a `[Kept]` image (`ImageLife.Cached`). A node
+- **Caches:** `[Cached] Image<T> name;` is held like a `[Kept]` image (`ImageLife.Cached`). A node
   that touches only cached images (a draw's targets and reads too) and writes no buffer fills the cache
   (`GraphNode.Fills`, worked out when lowered): it runs only when the cache is stale, so the frame pays a read for it.
   Stale means just made (new compile, new rounded size, new item) or the material's stamp moved: its `Version` (values,
@@ -448,7 +461,7 @@ Stage D, the rest (2026-11-25):
 
 Stage E, first slice: the mesh core (2026-11-25):
 
-- **`[Cached]` buffers:** `[Cached] [Buffer(n)] RWStructuredBuffer<T> name;` (`BuildBuffer.Cached`). A node fills
+- **`[Cached]` buffers:** `[Cached] [Size(n)] List<T> name;` (`BuildBuffer.Cached`). A node fills
   caches when it touches at least one cached image or writes a cached buffer, every image it touches and every buffer
   it writes is cached, and every buffer it reads is cached or `[Host]` (`GraphPlan.Fills`, `Steady`). A material's fill
   passes run when its cached images or its cached buffers are stale; the buffers' stamp is `BuildBuffers.Filled`,

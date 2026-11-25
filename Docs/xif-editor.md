@@ -27,7 +27,7 @@ A shader may tag uniforms `[Fit]`. When it does, **FIT TO SHAPE** shows above
 its settings: on, the drawer fills those uniforms' x and y with the shape's
 half size, in item units, the same pixel units a hand-set value uses (the
 flare's box). Any shape fits, by its bounding box. Sizes in shaders are pixels
-(item units × `xif_unit`), never fractions of the shape.
+(item units × `unit`), never fractions of the shape.
 
 On the right: name; **SHAPES**, one row per shape with a swatch in its colour
 (click the row to pick the shape, its swatch to open the colour picker for it

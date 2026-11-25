@@ -66,7 +66,7 @@ bottom first. A layer is an ordinary effect, the same file that draws on its own
 
 - `Slang/ShaderLayers.Stitch` puts each layer's code in a namespace of its own
   (helpers never clash), lifts the uniforms out so params stay global by name
-  (a uniform two layers declare, like `xif_unit`, is shared), and writes one
+  (a uniform two layers declare, like `tint`, is shared), and writes one
   `deform` calling the layers' in order and one `shade` that hands each layer
   the colour so far as `i.colour`. `[Grid]` is the finest any layer asks for.
   A layer that keeps state can't be stacked.
@@ -75,7 +75,7 @@ bottom first. A layer is an ordinary effect, the same file that draws on its own
   stitch and compile them the first time they are drawn, and keep them.
 - Starter layers in `Assets/Shaders/Layers/`: sway, gradient, tint, dissolve
   (`CommonShaders.Layers`). Any common shader can be a layer.
-- Grass is now a stack (sway + gradient) over no shader; `Items/grass.slang`
+- Grass is now a stack (sway + gradient) over no shader; `Game/grass`
   is no longer used.
 - The Xif editor's LAYERS list adds (+ LAYER), reorders and removes layers;
   the settings show every layer's params. `--edit-xif=part@base+layer+…` in
@@ -89,7 +89,7 @@ stitched header reads "stack".
 geometry, uv, the copy's number and its own params, and gets back position
 and colour only. uv runs 0..1 across the geometry's box (y down, 1 at its
 bottom); uv.x's whole part is the copy's number and its fraction the place
-across. `xif_unit` is screen pixels per playfield unit, `xif_seed` the
+across. `unit` (on the frame, and `i.unit`) is screen pixels per playfield unit, `xif_seed` the
 instancer's seed. The node's shader params go in by name.
 
 ## Tree rules
@@ -215,7 +215,7 @@ module chunks. A reference node stores the target `Id` instead of modules.
    instancer and a simulation. Play passes no chain or cloth simulation
    yet; the stand-in has neither. Stock decos
    live in `Model/Playfields/Decos.cs`: grass (one blade, 40 copies,
-   `Items/grass.slang`, which bends tips by `looks.wind`) and a flare
+   `Game/grass`, which bends tips by `looks.wind`) and a flare
    (a square, `flare.slang`). The editor's Decor tools place them (grass is
    key 0); they select, move, copy, undo and save like any item. The host
    demo has grass along its floor and a flare.

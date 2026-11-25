@@ -56,7 +56,7 @@ overload.
 ## 1. A shader
 
 A shader is a **stack**: a folder under `Assets/Shaders` whose `.slang` files
-are read as one, and its path is the shader's name (`Assets/Shaders/Items/orb`).
+are read as one, and its path is the shader's name (`Assets/Shaders/Game/orb`).
 Files are named as you like (`wires.slang`, `look.slang`); everything declared in
 one is in sight of the others. What the stack does comes from the entry functions
 it declares, each at most once, in any file:
@@ -776,7 +776,7 @@ for the whole run, so a shader can look at any note, past or coming:
 A note's clock runs on the song, not real time, so pausing holds it and a
 seek shows the frame it lands on. The game's hit bar is one quad per hit,
 told its note's index, and everything else comes from here
-(`Assets/Shaders/hit_bar`):
+(`Assets/Shaders/Game/hit_bar`):
 
 ```slang
 uniform float hit_note;
@@ -1104,14 +1104,14 @@ corners and places them through a **camera** (`mesh.pulled`, 3D) or flat on the
 item (`mesh.flat`, 2D, x and y in pixels, z the layer). On `[Cached]` buffers the
 generator runs only when a value changes, so a mesh is built once and every
 frame only draws it; the draw still turns and moves it (`Placement3`). A shape
-that changes every frame (waves, a morph) goes in plain `[Buffer]`s and is built
+that changes every frame (waves, a morph) goes in plain Lists and is built
 each frame.
 
 ```slang
 static const uint PAGES = 16;                        // a 32 x 32 grid (mesh.pagesFor)
-[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Size(PAGES * 128)] List<MeshVertex> corners;
+[Cached] [Size(PAGES * 128)] List<uint> triangles;
+[Cached] [Size(PAGES)] List<Meshlet> meshlets;
 
 Camera camera() { return Camera(900).orbited(0, 0.3); }
 
@@ -1605,7 +1605,7 @@ import xanadu;
 static const uint BARS = 256;
 
 // Two halves: the heights grow wrote, then each smoothing's result in the other half.
-[Buffer(2 * BARS)] RWStructuredBuffer<float> heights;
+[Size(2 * BARS)] List<float> heights;
 
 [Options("0|1|2|3|4|5|6|7|8")] [Default(4)] uniform int passes;
 
@@ -1627,10 +1627,10 @@ void build()
 }
 ```
 
-- **Buffers:** `[Buffer(size)] RWStructuredBuffer<T> name;`, `size` elements
+- **Lists:** `[Size(n)] List<T> name;`, `n` elements
   of any struct of yours. The size is worked out on the CPU, so it is made of
   numbers and `static const`s. `globallycoherent` may go before
-  `RWStructuredBuffer` (for atomics that hand work up a tree). Never write a
+  `List` (for atomics that hand work up a tree). Never write a
   binding: the engine places every buffer, and each pass, deform and shade
   binds only the ones it really uses. They start as zeros and keep what they
   hold from frame to frame.
@@ -1651,7 +1651,7 @@ void build()
   state and a pool's items. Past that the compile says so: share a buffer
   between arrays (`Lab/bvh_march` keeps two arrays in each half of `keys`).
   A frame runs at most 1,024 passes; a buffer takes at most 256 MB.
-- **Drawing many from a build:** declare `[Draws] RWStructuredBuffer<uint> drawn;`
+- **Drawing many from a build:** declare `[Draws] List<uint> drawn;`
   and have a pass write `drawn[0]`: the stack's quad is drawn that many times
   this frame (the count never comes back to the CPU). DEFORM and SHADE read
   which one they draw as `copy` and place it themselves, as a pool's deform
@@ -1700,7 +1700,7 @@ void build()
   says how near each box is (`bvh.SKIP` leaves it out) and what to do at a
   leaf, and the walk opens the nearer child first.
 - **Writing one:** a library module's `[Pass]` functions take `uint i` (or
-  nothing, for `groups:`), then uints and `RWStructuredBuffer` parameters. A
+  nothing, for `groups:`), then uints and `List<T>` parameters. A
   `[Schedule] void name(…)` takes the same kinds of parameters and calls only
   passes. `Slang/StackLibrary.cs` reads them.
 

@@ -187,7 +187,7 @@ float4 shade(Canvas canvas)
   lab's FOUNTAIN on it. Bursts (rockets into shells) would be the engine
   bearing N in another pool per death: not built.
 - **BUILD brick (built 2026-11-24, lab only):** named buffers
-  (`[Buffer(size)] RWStructuredBuffer<T> name;`) and compute passes
+  (`[Size(n)] List<T> name;`) and compute passes
   (`[Pass(threads, over: n | groups: g)]`), ordered by `void build()`, which the
   CPU walks each frame (loops and ifs over constants and uniforms); each call is
   its own compute pass, so a pass sees what the ones before it wrote. The
@@ -222,7 +222,7 @@ float4 shade(Canvas canvas)
   `[CoversBox] [Draw]` onto the frame (`Slang/PresentDraws.cs`); traced.slang,
   `SlangShaders.Traces.cs` and the present pipeline are deleted.
 - **Draws (built 2026-11-24, user's choice of syntax):** a BUILD brick may
-  declare `[Draws] RWStructuredBuffer<uint> name;`, one uint its passes write:
+  declare `[Draws] List<uint> name;`, one uint its passes write:
   the copies of the stack's quad drawn this frame. The renderer draws such a
   step indirectly (`Rendering/Passes/IndirectDraws.cs`: the step's
   vertices and start go up from the CPU, the copies are copied in from the
@@ -230,8 +230,8 @@ float4 shade(Canvas canvas)
   global in passes and pool steps. `Lab/particles` is the whole particle lab on
   it (free slots, emitters, death bursts, trail rings, the field); its moves,
   shapes and looks are `xanadu.particles`.
-- **Host buffers (built 2026-11-25, quick version):** `[Host(size)]
-  RWStructuredBuffer<T> name;` in a BUILD brick is a buffer the host fills from
+- **Host buffers (built 2026-11-25, quick version):** `[Host] [Size(n)]
+  List<T> name;` in a BUILD brick is a buffer the host fills from
   `CanvasMaterial.SetBuffer(name, span)` (bytes laid out as `T`, std430), uploaded
   in the prelude whenever the material's `BufferVersion` moves
   (`Rendering/Passes/GraphResources.cs`); the count in use goes as a value. Passes

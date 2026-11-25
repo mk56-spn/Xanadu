@@ -79,7 +79,7 @@ it directly.
 | Geometry and flex | `.Size(w, h)` `.Width(w)` `.Height(h)` `.Grow(w)` `.Stretch()` `.IgnoreLayout()` `.Anchor(UiEdge)` |
 | Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` |
 | Lists, lines, meters | `UiLists.SetCount / Reveal / Row / Pool / OnChanged`, the `UiList` component (`First`, `Shown`, `Count`), `UiConnectors.Join`, `UiMeters.Set` |
-| More structure | `.Grid(n)` `.Edge(UiEdge.X)` `.Collapsible(...)` `.Dropdown(...)` `.IconButton` `.Image` `.Shape` (no spec yet: use `Custom`) |
+| More structure | `.Grid(n)` `.Edge(UiEdge.X)` `.Collapsible(...)` `.Dropdown(...)` `.TabbedPicker(tabs, width)` (long lists in categories) `.IconButton` `.Image` `.Shape` (no spec yet: use `Custom`) |
 
 ### Defaults
 
