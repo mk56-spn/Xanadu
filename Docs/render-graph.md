@@ -444,7 +444,9 @@ Stage D, the rest (2026-11-25):
 - **Checked:** shots of trace_wave, sizes (and sizes' quarter-size glow presented alone, stretched, against the last
   commit's), scene_room, bvh_march, trails, post and cached look as before.
 
-Next: stage E on the confirmed drawing model.
+Next: stage E on the confirmed drawing model, starting (user's go, 2026-11-25) with the shared scene: SDFs and mesh
+draws writing one depth + id image, a resolve pass, one lighting pass, shadows from every maker; xanadu.scene keeps its
+authoring and loses its plumbing, xanadu.light moves onto ids + resolve. The mesh core comes after.
 
 Also still open:
 
