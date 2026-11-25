@@ -14,7 +14,7 @@ namespace Xanadu.Model.Playfields;
 public static class Drafts
 {
     /// <summary>The shader that draws a draft's look.</summary>
-    public const string Shader = "Assets/Shaders/Items/draft";
+    public const string Shader = "Assets/Shaders/Game/draft";
 
     private static readonly Dictionary<float, Xif> Looks = [];
 

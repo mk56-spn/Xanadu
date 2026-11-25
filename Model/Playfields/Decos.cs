@@ -12,7 +12,7 @@ namespace Xanadu.Model.Playfields;
 public static class Decos
 {
     /// <summary>The lens flare effect: a core, a halo and streaks over a square.</summary>
-    public const string FlareShader = "Assets/Shaders/flare";
+    public const string FlareShader = "Assets/Shaders/Game/flare";
 
     /// <summary>The box a deco covers, in its own space around its origin: its geometry, spread by its instancer.</summary>
     public static Rect2 LocalBounds(Xif xif)

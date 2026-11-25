@@ -54,4 +54,4 @@
 559 UI/Editing/TextBuffer.cs
 437 UI/Systems/Rendering/UiResidentSync.cs
 407 UI/Systems/Ui/TextEditorInputSystem.cs
-1077 UI/Systems/Ui/XifEditorSystem.cs
+1020 UI/Systems/Ui/XifEditorSystem.cs

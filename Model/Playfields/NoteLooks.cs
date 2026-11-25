@@ -11,8 +11,8 @@ namespace Xanadu.Model.Playfields;
 /// </summary>
 public static class NoteLooks
 {
-    public const string NoteShader = "Assets/Shaders/Items/note";
-    public const string DashShader = "Assets/Shaders/Items/dash_note";
+    public const string NoteShader = "Assets/Shaders/Game/note";
+    public const string DashShader = "Assets/Shaders/Game/dash_note";
 
     /// <summary>The dash's diamond's half diagonal, playfield units.</summary>
     public const float DiamondReach = 14f;
@@ -24,8 +24,8 @@ public static class NoteLooks
         new Vector2(Chords.DashSize.X / 2f + 2f, System.MathF.Max(Chords.DashSize.Y / 2f, DiamondReach + 2f)),
         new() { ["dash_tint"] = [1f, 1f, 1f, 1f], ["dash_shape"] = [Chords.DashSize.X, Chords.DashSize.Y, DiamondReach, 0f] });
 
-    public const string LineShader = "Assets/Shaders/Items/chord_line";
-    public const string DotShader = "Assets/Shaders/Items/dot";
+    public const string LineShader = "Assets/Shaders/Game/chord_line";
+    public const string DotShader = "Assets/Shaders/Game/dot";
 
     /// <summary>A chord's line: a unit quad (0..1 along, -1..1 across) the drawer stretches over it; <c>line_shape.x</c> is how far along it fades in.</summary>
     public static Xif Line => _line ??= Quad("chord line", LineShader, new Vector2(0.5f, 1f),
@@ -34,8 +34,8 @@ public static class NoteLooks
     /// <summary>A round dot, a unit quad either way of its middle, sized by the drawer.</summary>
     public static Xif Dot => _dot ??= Quad("dot", DotShader, Vector2.One, new() { ["dot_tint"] = [1f, 1f, 1f, 1f] });
 
-    public const string PopShader = "Assets/Shaders/Items/note_pop";
-    public const string DashPopShader = "Assets/Shaders/Items/dash_pop";
+    public const string PopShader = "Assets/Shaders/Game/note_pop";
+    public const string DashPopShader = "Assets/Shaders/Game/dash_pop";
 
     /// <summary>A hit note's pop: a unit quad either way of its middle the drawer sizes in pixels to hold the shockwave.</summary>
     public static Xif Pop => _pop ??= Quad("note pop", PopShader, Vector2.One,

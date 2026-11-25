@@ -6,7 +6,7 @@ namespace Xanadu.Core.Storage;
 
 /// <summary>
 /// The one place paths become real ones. A relative path is under the game
-/// folder (<c>Assets/Shaders/flare</c>); <c>user://</c> is the player's
+/// folder (<c>Assets/Shaders/Game/flare</c>); <c>user://</c> is the player's
 /// folder (<c>~/.local/share/xanadu</c>, <c>%APPDATA%\xanadu</c> on Windows); an absolute path comes
 /// back unchanged. Hosts set the folders with <see cref="UseRoots"/>; otherwise
 /// they are found on first use.

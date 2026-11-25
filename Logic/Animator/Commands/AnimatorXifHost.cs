@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Items;
 using Xanadu.Model.Animation;
@@ -160,11 +161,31 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
         return choices;
     }
 
+    /// <summary>
+    /// "None", then every stack on disk, tabbed by its folder: the game's own first,
+    /// the rest by name, loose ones last. Read once, when the animator first builds.
+    /// </summary>
     private static List<XifShaderChoice> BuildChoices()
     {
-        var choices = new List<XifShaderChoice> { new("NONE", new XifShaderRef()) };
-        foreach (string path in CommonShaders.Paths)
-            choices.Add(new XifShaderChoice(Path.GetFileNameWithoutExtension(path).ToUpperInvariant(), XifShaderRef.OfCommon(path)));
+        const string first = "Game";
+        var choices = new List<XifShaderChoice> { new("NONE", new XifShaderRef(), TabName(first)) };
+        IEnumerable<string> stacks = CommonShaders.All()
+            .Where(CommonShaders.IsKnown)
+            .OrderBy(path => CommonShaders.CategoryOf(path) switch
+            {
+                first => 0,
+                CommonShaders.Loose => 2,
+                _ => 1,
+            })
+            .ThenBy(CommonShaders.CategoryOf, StringComparer.Ordinal)
+            .ThenBy(path => path, StringComparer.Ordinal);
+        foreach (string path in stacks)
+        {
+            choices.Add(new XifShaderChoice(CommonShaders.NameOf(path).ToUpperInvariant(), XifShaderRef.OfCommon(path),
+                TabName(CommonShaders.CategoryOf(path))));
+        }
         return choices;
     }
+
+    private static string TabName(string category) => category.ToUpperInvariant();
 }

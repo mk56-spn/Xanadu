@@ -596,7 +596,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
-        DrawFiles();
+        DrawFiles(frame);
     }
 
     /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
@@ -633,7 +633,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         if (_points.Point(Main.Buffer, Main.History, _completions.ParameterNames, _preview, _tuning, frame.Mouse, frame.Held, pressed, Focus))
             return;
 
-        if (pressed && PressFiles(frame.Mouse))
+        if (PressFiles())
             return;
         if (pressed && _strip.TabAt(frame.Mouse) is { } tab)
         {
@@ -657,7 +657,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         TextEditors.Delete(_editor);
         _tuning.Dispose();
         _strip.Dispose();
-        _fileStrip?.Dispose();
+        DisposeFiles();
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);

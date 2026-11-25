@@ -12,8 +12,8 @@ namespace Xanadu.Model.Playfields;
 /// </summary>
 public static class Rifts
 {
-    public const string Shader = "Assets/Shaders/Items/rift";
-    public const string FlareShader = "Assets/Shaders/Items/rift_flare";
+    public const string Shader = "Assets/Shaders/Game/rift";
+    public const string FlareShader = "Assets/Shaders/Game/rift_flare";
 
     /// <summary>The seam's half height and half the body's width, playfield units.</summary>
     public static float HalfHeight => PlayRules.BodyHeight * 0.8f;

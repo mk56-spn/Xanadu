@@ -7,7 +7,7 @@ namespace Xanadu.Model.Playfields;
 public static class Pads
 {
     /// <summary>The shader that draws a pad's look.</summary>
-    public const string Shader = "Assets/Shaders/Items/pad";
+    public const string Shader = "Assets/Shaders/Game/pad";
 
     /// <summary>
     /// What every pad looks like: a quad centred on it with room above for the

@@ -3,10 +3,11 @@ using Xanadu.Host;
 using Xanadu.Tools.Shaders;
 
 // dotnet run --project Tools/Shaders                        -> the shader tool, on the first shipped effect
-// dotnet run --project Tools/Shaders -- --open=<name>       -> opens that one first (note_background, Ui/colour_hue, or its path)
+// dotnet run --project Tools/Shaders -- --open=<name>       -> opens that one first (Game/note_background, Ui/colour_hue, or its path)
 // dotnet run --project Tools/Shaders -- --graph            -> starts with the render graph where the code is (GRAPH on)
 // dotnet run --project Tools/Shaders -- --fill             -> the preview over the whole window (a full-size shot)
 // dotnet run --project Tools/Shaders -- --expand           -> starts with the preview expanded (its corner button brings the editor back)
+// dotnet run --project Tools/Shaders -- --add-file         -> starts with "+ FILE"'s list of kinds of file up (a stack only)
 // dotnet run --project Tools/Shaders -- --shot=<png>        -> saves frame 60 and quits (--shot-frame=<n> to pick)
 // dotnet run --project Tools/Shaders -- --resolution=WxH    -> window size (default 1600x900)
 string? shot = null, open = null;
@@ -25,6 +26,8 @@ foreach (string arg in args)
         graph = true;
     else if (arg == "--expand")
         Xanadu.Host.Tools.ShaderEditing.PreviewExpand.StartExpanded = true;
+    else if (arg == "--add-file")
+        Xanadu.Host.Tools.ShaderEditing.FilePresets.StartOpen = true;
     else if (arg == "--fill")
         Xanadu.Host.Tools.ShaderEditing.ShaderCodeEditor.FillPreview = new Rect2(0, 0, 1920, 1080);
     else if (arg.StartsWith("--resolution=", StringComparison.Ordinal))

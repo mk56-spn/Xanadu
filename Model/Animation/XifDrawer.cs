@@ -47,7 +47,7 @@ public readonly record struct XifTint(Color Modulate, Color Flash, float FlashAm
 /// <remarks>
 /// What a shader is handed (the seam the shader stack keeps): uv runs 0..1
 /// across the geometry's box (y down), and uv.x's whole part is the copy's
-/// number, its fraction the place across; <c>xif_unit</c> is target pixels
+/// number, its fraction the place across; <c>unit</c> (the frame's, from <see cref="CanvasMaterial.Unit"/>) is target pixels
 /// per Xif unit and <c>xif_seed</c> the instancer's seed. The node's params
 /// go in by name. Triangulations are kept per geometry until
 /// <see cref="Forget"/>, so whoever edits geometry in place calls it.
@@ -409,7 +409,7 @@ public sealed partial class XifDrawer
                 canvas.SetShaderValue(name, value, channels);
             }
         }
-        canvas.SetShaderValue("xif_unit", new Vector4(batch.Unit, 0f, 0f, 0f), 1);
+        canvas.SetShaderValue(CanvasMaterial.Unit, new Vector4(batch.Unit, 0f, 0f, 0f), 1);
         canvas.SetShaderValue("xif_seed", new Vector4(batch.Seed, 0f, 0f, 0f), 1);
     }
 

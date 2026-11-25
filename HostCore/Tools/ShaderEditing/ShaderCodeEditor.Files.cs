@@ -47,6 +47,9 @@ internal sealed partial class ShaderCodeEditor
     /// <summary>A stack's files over the code; none for one text.</summary>
     private readonly FileStrip? _fileStrip;
 
+    /// <summary>The kinds of file "+ FILE" offers, made the first time it is pressed.</summary>
+    private FilePresets? _presets;
+
     /// <summary>Goes up as files are added, renamed and removed.</summary>
     private int _structure;
 
@@ -145,11 +148,41 @@ internal sealed partial class ShaderCodeEditor
         ListProblems();
     }
 
-    /// <summary>Adds a file, opens it and puts its name up for typing.</summary>
-    private void AddFile()
+    /// <summary>The roles the stack's files take now.</summary>
+    private HashSet<StackRole> Roles() => [.. _files.SelectMany(file => ShaderStack.RolesOf(file.Buffer.Text))];
+
+    /// <summary>Puts up the kinds of file to add, over the code; the code lets go of the keys meanwhile.</summary>
+    private void ShowPresets()
     {
-        string name = ShaderStack.FreeName(_files.Select(file => file.File!));
-        Tab tab = NewFile(new StackFile(name, ShaderStack.NewFile(name)));
+        _presets ??= new FilePresets(_editor.Store);
+        _presets.Show(UiLayout.Box(_code.Entity), Roles());
+        _editor.RemoveTag<TextEditorFocused>();
+    }
+
+    /// <summary>The preset list's answer, every frame it is up: a kind picked adds its file; Escape or CANCEL lets it go.</summary>
+    private void FollowPresets(in ToolFrame frame)
+    {
+        if (FilePresets.StartOpen && UiLayout.Box(_code.Entity).Size.X > 0)
+        {
+            FilePresets.StartOpen = false;
+            ShowPresets();
+        }
+
+        if (_presets is not { Open: true } presets)
+            return;
+        if (frame.Inputs?.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Escape) == true)
+            presets.Cancel();
+        if (presets.Take(out bool cancelled) is { } preset)
+            AddFile(preset);
+        else if (cancelled)
+            Focus();
+    }
+
+    /// <summary>Adds a file of <paramref name="preset"/>'s kind, opens it and puts its name up for typing.</summary>
+    private void AddFile(StackPreset preset)
+    {
+        string name = ShaderStack.FreeName(_files.Select(file => file.File!), preset.Stem);
+        Tab tab = NewFile(new StackFile(name, preset.Text(name, Roles().Contains(StackRole.Graph))));
         _files.Add(tab);
         _files.Sort((a, b) => string.CompareOrdinal(a.File, b.File));
         Changed();
@@ -234,10 +267,11 @@ internal sealed partial class ShaderCodeEditor
     }
 
     /// <summary>The file strip, following the files and their problems; a name typed there is taken once its field lets go.</summary>
-    private void DrawFiles()
+    private void DrawFiles(in ToolFrame frame)
     {
         if (_fileStrip is null)
             return;
+        FollowPresets(frame);
         if (_fileStrip.Renaming is { } renaming && _fileStrip.Renamed() is { } typed)
         {
             RenameFile(renaming, typed);
@@ -254,10 +288,18 @@ internal sealed partial class ShaderCodeEditor
         _fileStrip.Draw(_looks, Main.File!);
     }
 
-    /// <summary>A press on the file strip: open, add, rename or remove a file. True when it took the press.</summary>
-    private bool PressFiles(Vector2 point)
+    private void DisposeFiles()
     {
-        if (_fileStrip?.At(point, Main.File!) is not (FilePress press, string name))
+        _fileStrip?.Dispose();
+        _presets?.Dispose();
+    }
+
+    /// <summary>A press on the file strip's buttons: open, add, rename or remove a file. True when there was one.</summary>
+    private bool PressFiles()
+    {
+        if (_presets is { Open: true })
+            return true; // the list has the pointer
+        if (_fileStrip?.TakePress() is not (FilePress press, string name))
             return false;
         switch (press)
         {
@@ -265,7 +307,7 @@ internal sealed partial class ShaderCodeEditor
                 OpenFile(_files.Find(file => file.File == name)!);
                 break;
             case FilePress.Add:
-                AddFile();
+                ShowPresets();
                 return true;
             case FilePress.Rename:
                 _fileStrip.Rename(name);
