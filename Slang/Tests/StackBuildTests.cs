@@ -103,7 +103,7 @@ public sealed class StackBuildTests
         build.Walk(name => name == "spin" ? BuildValue.Of(false) : null, off);
 
         Assert.That(on.Select(run => run.Pass), Is.EqualTo((int[])[0, 1, 1, 1, 1, 2]));
-        Assert.That(on.Where(run => run.Pass == 1).Select(run => run.A), Is.EqualTo((uint[])[0, 1, 2, 3]));
+        Assert.That(on.Where(run => run.Pass == 1).Select(run => run.Values[0]), Is.EqualTo((uint[])[0, 1, 2, 3]));
         Assert.That(off, Has.Count.EqualTo(5));
         // over: N is a thread each, rounded up to whole groups; groups: is taken as written.
         Assert.That(on[0].Groups, Is.EqualTo(4u));

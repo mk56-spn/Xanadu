@@ -188,12 +188,12 @@ public sealed class StackGraph
                 // What it presents lands on the frame, its depth with it.
                 case NodeKind.Present:
                 {
-                    int present = graph.Pass("present", fragment.Trace is not null && node.Call.A == GraphPlan.TracedImage(fragment) ? BrickKind.Trace : BrickKind.Build,
+                    int present = graph.Pass("present", fragment.Trace is not null && node.Call.Shown == GraphPlan.TracedImage(fragment) ? BrickKind.Trace : BrickKind.Build,
                         false, place: NodePlace.Exit);
-                    graph.Edge(present, images[(int)node.Call.A], GraphAccess.Read);
-                    if (node.Call.B != StackBuild.Run.None)
+                    graph.Edge(present, images[(int)node.Call.Shown], GraphAccess.Read);
+                    if (node.Call.ShownDepth != StackBuild.Run.None)
                     {
-                        graph.Edge(present, images[(int)node.Call.B], GraphAccess.Read);
+                        graph.Edge(present, images[(int)node.Call.ShownDepth], GraphAccess.Read);
                         graph.Edge(present, depth, GraphAccess.ReadWrite);
                     }
 

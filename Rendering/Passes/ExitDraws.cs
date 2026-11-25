@@ -74,13 +74,13 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         if (set is null)
             return false;
         (int x, int y, int width, int height) = set.Box;
-        Texture colour = set.Images[(int)call.A];
-        Texture depth = call.B == StackBuild.Run.None ? _flatDepth! : set.Images[(int)call.B];
+        Texture colour = set.Images[(int)call.Shown];
+        Texture depth = call.ShownDepth == StackBuild.Run.None ? _flatDepth! : set.Images[(int)call.ShownDepth];
         var view = new TracedView
         {
             ScreenWidth = targets.Width, ScreenHeight = targets.Height, Depth = step.Depth, Span = step.Span,
             OriginX = x, OriginY = y, Width = width, Height = height,
-            ColourStretch = set.Stretch((int)call.A), DepthStretch = call.B == StackBuild.Run.None ? Vector2.One : set.Stretch((int)call.B),
+            ColourStretch = set.Stretch((int)call.Shown), DepthStretch = call.ShownDepth == StackBuild.Run.None ? Vector2.One : set.Stretch((int)call.ShownDepth),
         };
         pass.BindGraphicsPipeline(PresentPipeline(step.Material, samples));
         pass.SetScissor(step.Clip);

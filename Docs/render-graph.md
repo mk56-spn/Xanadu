@@ -305,7 +305,23 @@ Stage C, first half (2026-11-25):
 Visual tests: nine scene tests (`ui-tree`, `song-select`, `settings`, `pause`, …) time out waiting for their screen;
 they fail the same way at `ade5f91c`, before this work.
 
-Next: argument lists.
+- **Argument lists:** a `Run` carries its call's values as `RunValues`, an inline array of four (`run.Values[k]`):
+  a pass's uints, a draw's targets, a present's colour and depth (`Shown`, `ShownDepth`). Four is the real cap on
+  both sides (the pass uniforms' four uints, SDL_GPU's four colour targets), and the schedule is lowered every frame,
+  so it stays in place rather than an array per call.
+
+`present` as a library draw is still to do. What it needs, found on the way:
+
+- **A depth output:** present writes per-pixel depth from an image. A draw's struct field with the Slang semantic
+  `: SV_Depth` (pixels into the screen, put into the slice by the wrapper) is the generic form.
+- **Filtered reads:** present stretches a scaled image with filtering; draws read `RWTexture2D` only. A library
+  bilinear read (four loads) does, or draws learn sampled reads.
+- **The box, not the quad:** present covers the item's box; a `[Draw]` covers its quad. A turned item's trace fills
+  the box, so a quad draw would cut its corners. Either a box geometry for draws or accept the cut.
+- **Images per call:** draws read images by name; a library present is called with images. Lowering `present(x, d)`
+  to a generated draw in the stack's source covers it.
+
+Next: the board underlay (dogfood), which needs a buffer from the host.
 
 Also still open:
 

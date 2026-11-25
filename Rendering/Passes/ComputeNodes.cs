@@ -103,7 +103,7 @@ internal sealed class ComputeNodes(GraphicsDevice device, FrameTargets targets, 
         using GpuScope scope = commands.Scope(pass.Name);
         commands.PushComputeUniformData(new PassUniforms
         {
-            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, A = call.A, B = call.B, C = call.C, D = call.D,
+            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, A = call.Values[0], B = call.Values[1], C = call.Values[2], D = call.Values[3],
         });
         if (pass.Shader.ParamsSize > 0 && pass.Shader.UniformBuffers > 1)
             ShaderParams.Push(commands, pass.Shader, material, null, stage: ParamsStage.Compute);

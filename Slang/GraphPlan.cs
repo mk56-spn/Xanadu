@@ -174,7 +174,7 @@ public sealed class GraphPlan
             // A trace that reads the canvas depth must wait for the canvas drawn so far; one that doesn't runs before.
             Add(NodeKind.Trace, trace.Shader.ReadsDepth ? NodePlace.MidFrame : NodePlace.Prelude);
             uint colour = (uint)TracedImage(fragment);
-            Add(NodeKind.Present, NodePlace.Exit, new StackBuild.Run(StackBuild.Run.Present, 0, 0, colour, colour + 1, 0, 0));
+            Add(NodeKind.Present, NodePlace.Exit, new StackBuild.Run(StackBuild.Run.Present, 0, 0, StackBuild.RunValues.Of([colour, colour + 1], StackBuild.Run.None)));
             alone |= trace.Alone;
         }
 

@@ -105,9 +105,9 @@ public sealed class StackLibraryTests
         ]));
         // Its passes size themselves from the arguments they were given, never the brick's names.
         StackBuild.Run hist = runs[1];
-        Assert.That((hist.Groups, hist.A, hist.B), Is.EqualTo((16u, 4096u, 0u)));
-        Assert.That(runs[4].B, Is.EqualTo(1u));
-        Assert.That(runs[2].A, Is.EqualTo(256u * 16));
+        Assert.That((hist.Groups, hist.Values[0], hist.Values[1]), Is.EqualTo((16u, 4096u, 0u)));
+        Assert.That(runs[4].Values[1], Is.EqualTo(1u));
+        Assert.That(runs[2].Values[0], Is.EqualTo(256u * 16));
         Assert.That((runs[14].Over, runs[15].Over), Is.EqualTo((4095u, 4096u)));
     }
 

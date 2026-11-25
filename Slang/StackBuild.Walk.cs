@@ -1,18 +1,44 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Xanadu.Slang;
 
 /// <summary>A BUILD brick's schedule walked on the CPU each frame into the passes to dispatch.</summary>
 public sealed partial class StackBuild
 {
-    /// <summary>One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups), and its arguments.</summary>
-    public readonly record struct Run(int Pass, uint Groups, uint Over, uint A, uint B, uint C, uint D)
+    /// <summary>A call's values, in order, held in place: a pass's uint arguments, a draw's targets, what a present shows.</summary>
+    [InlineArray(MaxArguments)]
+    public struct RunValues
     {
-        /// <summary>A draw's targets, in order (<see cref="A"/> to <see cref="D"/>; <see cref="None"/> past its last).</summary>
-        public uint Target(int k) => k switch { 0 => A, 1 => B, 2 => C, 3 => D, _ => None };
+        private uint _first;
 
-        /// <summary>The pass a <c>present</c> runs as: the images shown are <see cref="A"/> (colour) and <see cref="B"/> (depth, or <see cref="None"/>).</summary>
+        /// <summary>The values given, the rest <paramref name="rest"/>.</summary>
+        public static RunValues Of(ReadOnlySpan<uint> given, uint rest = 0)
+        {
+            var values = new RunValues();
+            for (int k = 0; k < MaxArguments; k++)
+                values[k] = k < given.Length ? given[k] : rest;
+            return values;
+        }
+    }
+
+    /// <summary>
+    /// One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups), and its call's values: a
+    /// pass's arguments, a draw's targets (<see cref="None"/> past its last), or for a present the colour then the depth.
+    /// </summary>
+    public readonly record struct Run(int Pass, uint Groups, uint Over, RunValues Values)
+    {
+        /// <summary>A draw's <paramref name="k"/>th target; <see cref="None"/> past its last.</summary>
+        public uint Target(int k) => k < MaxArguments ? Values[k] : None;
+
+        /// <summary>The pass a <c>present</c> runs as: it shows <see cref="Shown"/>, and <see cref="ShownDepth"/> unless that is <see cref="None"/>.</summary>
         public const int Present = -1;
+
+        /// <summary>A present's colour image.</summary>
+        public uint Shown => Values[0];
+
+        /// <summary>A present's depth image, or <see cref="None"/>.</summary>
+        public uint ShownDepth => Values[1];
 
         /// <summary>No image.</summary>
         public const uint None = uint.MaxValue;
@@ -21,7 +47,7 @@ public sealed partial class StackBuild
         public const uint Frame = uint.MaxValue - 1;
 
         /// <summary>Whether it is a draw onto the frame.</summary>
-        public bool OntoFrame => A == Frame;
+        public bool OntoFrame => Values[0] == Frame;
 
         public bool Presents => Pass == Present;
     }
@@ -63,10 +89,10 @@ public sealed partial class StackBuild
                 case BuildDraw draw:
                     if (runs.Count >= MaxCalls)
                         throw new BuildProblem(draw.Index, $"graph() runs more than {MaxCalls} passes a frame.");
-                    runs.Add(new Run(draw.Pass, 0, 0, Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)));
+                    runs.Add(new Run(draw.Pass, 0, 0, RunValues.Of([Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)])));
                     break;
                 case BuildPresent present:
-                    runs.Add(new Run(Run.Present, 0, 0, (uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth, 0, 0));
+                    runs.Add(new Run(Run.Present, 0, 0, RunValues.Of([(uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth], Run.None)));
                     break;
             }
         }
@@ -98,7 +124,7 @@ public sealed partial class StackBuild
         }
 
         if (pass.Pixels is not null)
-            return new Run(call.Pass, 0, 0, args[0], args[1], args[2], args[3]);
+            return new Run(call.Pass, 0, 0, RunValues.Of(args));
         uint over = 0, groups;
         if (pass.Over is { } elements)
         {
@@ -107,7 +133,7 @@ public sealed partial class StackBuild
         }
         else
             groups = (uint)Math.Max(0, BuildPasses.Evaluate(pass.Groups!, at, sizes).Long);
-        return new Run(call.Pass, groups, over, args[0], args[1], args[2], args[3]);
+        return new Run(call.Pass, groups, over, RunValues.Of(args));
     }
 
     private void WalkLoop(BuildLoop loop, Func<string, BuildValue?> lookup, Dictionary<string, BuildValue> variables, List<Run> runs)
