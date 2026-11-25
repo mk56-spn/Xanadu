@@ -1,10 +1,10 @@
 // xanadu.scene: 3D scenes of solids, composed in code and marched fast. A graph's [Pass] records
 // the scene once a frame into two buffers; a [Pixels] pass shoots it, a tile of pixels at a time.
 //
-//     [Image(rgba16f)] RWTexture2D<float4> shown;
-//     [Image(r32f)] RWTexture2D<float> shownDepth;
-//     [Buffer(512)] RWStructuredBuffer<scene.Part> parts;       // every solid, as data
-//     [Buffer(129)] RWStructuredBuffer<scene.Object> objects;   // 0 is the header, then one per object
+//     Image<float4> shown;
+//     Image<float> shownDepth;
+//     [Size(512)] List<scene.Part> parts;       // every solid, as data
+//     [Size(129)] List<scene.Object> objects;   // 0 is the header, then one per object
 //
 //     [Pass(1, over: 1)]
 //     void record(uint i)
@@ -149,8 +149,8 @@ public Solid Cone(float radius, float height) { return Solid(scene.CONE, float4(
 /// object, melt / cut / keep change it, finish closes the last one and writes the count.
 public struct Scene
 {
-    RWStructuredBuffer<scene.Part> parts;
-    RWStructuredBuffer<scene.Object> objects;
+    List<scene.Part> parts;
+    List<scene.Object> objects;
     uint partCount;
     uint objectCount;
     uint mostParts;
@@ -158,7 +158,7 @@ public struct Scene
     scene.Object open;
     bool isOpen;
 
-    public __init(RWStructuredBuffer<scene.Part> parts, RWStructuredBuffer<scene.Object> objects)
+    public __init(List<scene.Part> parts, List<scene.Object> objects)
     {
         this.parts = parts;
         this.objects = objects;
@@ -487,7 +487,7 @@ public namespace scene
     }
 
     /// How far world point p is from an object: its parts, in order.
-    public float objectDistance(RWStructuredBuffer<Part> parts, Object o, float3 p)
+    public float objectDistance(List<Part> parts, Object o, float3 p)
     {
         float d = 1e30;
         for (uint k = o.first; k < o.first + o.count; k++)
@@ -520,7 +520,7 @@ public namespace scene
     }
 
     /// An object's material at p (on its surface): its parts' materials, melts blended.
-    public Material objectMaterial(RWStructuredBuffer<Part> parts, Object o, float3 p)
+    public Material objectMaterial(List<Part> parts, Object o, float3 p)
     {
         float d = 1e30;
         Material m = Material(colours.white);
@@ -553,7 +553,7 @@ public namespace scene
     public float boxDistance(Object o, float3 p) { return length(max(max(o.low - p, p - o.high), 0.0)); }
 
     /// How many objects the scene holds.
-    public uint objectCount(RWStructuredBuffer<Object> objects) { return objects[0].first; }
+    public uint objectCount(List<Object> objects) { return objects[0].first; }
 
     /// Whether an object's box is everywhere (a plane, an inverted solid).
     bool endless(Object o) { return o.high.x - o.low.x > ENDLESS; }
@@ -612,7 +612,7 @@ public namespace scene
 
     /// The tile's lists: the objects it sees, and those whose shadows can fall in it. Every
     /// thread of the tile calls it (it waits for them all).
-    void listTile(RWStructuredBuffer<Object> objects, Frustum v, Lighting light)
+    void listTile(List<Object> objects, Frustum v, Lighting light)
     {
         if (group.index == 0)
         {
@@ -656,7 +656,7 @@ public namespace scene
         float cut;
 
         [mutating]
-        void gather(RWStructuredBuffer<Object> objects, Ray ray, float from, float limit, bool listed, uint skip)
+        void gather(List<Object> objects, Ray ray, float from, float limit, bool listed, uint skip)
         {
             kept = 0;
             cut = limit;
@@ -703,7 +703,7 @@ public namespace scene
 
         /// A safe step from t along the ray (p there): how far each object still ahead is,
         /// worked out fully only for those whose box the ray is in or about to enter.
-        float distance(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, float3 p, float t, inout uint nearest)
+        float distance(List<Part> parts, List<Object> objects, float3 p, float t, inout uint nearest)
         {
             float d = 1e30;
             for (uint k = 0; k < kept; k++)
@@ -727,7 +727,7 @@ public namespace scene
         }
 
         /// How far p is from what is near it of the list: for the normal at a hit.
-        float near(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, float3 p, float reach)
+        float near(List<Part> parts, List<Object> objects, float3 p, float reach)
         {
             float d = 1e30;
             for (uint k = 0; k < kept; k++)
@@ -743,7 +743,7 @@ public namespace scene
     /// The ray marched through the scene out to `limit`, gathering what it crosses as it goes. It stops
     /// within `pixel` of the surface per pixel of distance (half a pixel's width: 0.5 / the camera's
     /// focal), finer gains nothing on screen; the hit's normal only when `normal` asks for it.
-    public Shot marched(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, float limit, bool listed,
+    public Shot marched(List<Part> parts, List<Object> objects, Ray ray, float limit, bool listed,
         float pixel = 2e-4, bool normal = true, float start = 0.0)
     {
         Shot s = {};
@@ -805,7 +805,7 @@ public namespace scene
 
     /// Whether an object is a hollow: one plain inverted convex solid (a room, a dome), so from anywhere inside
     /// it, nothing of it stands between two points. Its one part in `a`.
-    bool hollow(RWStructuredBuffer<Part> parts, Object o, out Part a)
+    bool hollow(List<Part> parts, Object o, out Part a)
     {
         a = parts[o.first];
         return o.count == 1 && (a.flags & 3u) == ADD && (a.flags & ~3u) == INVERTED && a.spacing.w == 0.0
@@ -813,7 +813,7 @@ public namespace scene
     }
 
     /// The square-cornered hollow block the ray starts inside, if any, and in `exit` how far along it leaves it.
-    uint roomAround(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, bool listed, inout float exit)
+    uint roomAround(List<Part> parts, List<Object> objects, Ray ray, bool listed, inout float exit)
     {
         uint found = NONE;
         uint n = listed ? seenCount : objectCount(objects);
@@ -846,7 +846,7 @@ public namespace scene
     /// How much of the light towards `toLight` reaches p, 0..1, looking `far`: soft at
     /// `hardness` (Quilez's penumbra from the closest miss). Only the tile's shadowing objects
     /// whose box the way passes near are asked, and fully only when near enough to darken it.
-    public float shadow(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, float3 p, float3 toLight, float far,
+    public float shadow(List<Part> parts, List<Object> objects, float3 p, float3 toLight, float far,
         float hardness, bool listed)
     {
         uint ids[SHADOW_RAY];
@@ -907,7 +907,7 @@ public namespace scene
     /// How open p is, 0..1: 1 out in the open, less in creases and corners. Five steps out
     /// along the normal, `reach` pixels in all; an object only counts where its box is nearer
     /// than the step.
-    public float occlusion(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, float3 p, float3 normal, float reach, bool listed)
+    public float occlusion(List<Part> parts, List<Object> objects, float3 p, float3 normal, float reach, bool listed)
     {
         float closed = 0.0;
         float weight = 1.0;
@@ -933,11 +933,11 @@ public namespace scene
     /// its occlusion, asked of the tile's lists when `listed`.
     public struct Shadows : IShadows
     {
-        RWStructuredBuffer<Part> parts;
-        RWStructuredBuffer<Object> objects;
+        List<Part> parts;
+        List<Object> objects;
         bool listed;
 
-        public __init(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, bool listed)
+        public __init(List<Part> parts, List<Object> objects, bool listed)
         {
             this.parts = parts;
             this.objects = objects;
@@ -954,14 +954,14 @@ public namespace scene
 
     /// The scene casting shadows on this pixel pass's tile, whoever drew what is there: lists
     /// the tile first, so every thread of the tile must call it.
-    public Shadows shadows(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light)
+    public Shadows shadows(List<Part> parts, List<Object> objects, Camera camera, Canvas canvas, Lighting light)
     {
         listTile(objects, tileView(camera, canvas, light.far), light);
         return Shadows(parts, objects, seenCount <= LISTED && shadowingCount <= LISTED);
     }
 
     /// A hit lit: Lighting.lit with the scene's own shadows and occlusion.
-    public colour lit(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Shot hit, Ray ray, Camera camera, Lighting light, bool listed)
+    public colour lit(List<Part> parts, List<Object> objects, Shot hit, Ray ray, Camera camera, Lighting light, bool listed)
     {
         Surface s = Surface(hit.normal, objectMaterial(parts, objects[1 + hit.object], hit.position));
         return light.lit(s, hit.position, camera, Shadows(parts, objects, listed));
@@ -971,7 +971,7 @@ public namespace scene
     /// where it is nearer than what is there already: draw cheap things first and the march
     /// stops at them, so pixels they cover cost little. Lists the tile, so every thread of the
     /// tile must call it. Rebuild what it found with scene.surface and light it once after.
-    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Visibility into,
+    public void shoot(List<Part> parts, List<Object> objects, Camera camera, Canvas canvas, Lighting light, Visibility into,
         float start = 0.0)
     {
         listTile(objects, tileView(camera, canvas, light.far), light);
@@ -988,7 +988,7 @@ public namespace scene
     /// gets before anything but a room it starts in comes within it: no ray through those pixels
     /// meets anything nearer, so shoot can start them there (Docs/render-graph.md: coarse to fine).
     /// Lists the tile, so every thread of it must call it.
-    public float coneDepth(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, uint every)
+    public float coneDepth(List<Part> parts, List<Object> objects, Camera camera, Canvas canvas, Lighting light, uint every)
     {
         listTile(objects, tileView(camera, canvas, light.far), light);
         bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
@@ -1003,7 +1003,7 @@ public namespace scene
 
     /// The surface of the object a pixel shows (a makers.sdf id, as shoot writes it): its normal
     /// from that object's field round the point, its material there, melts blended.
-    public Surface surface(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Seen seen)
+    public Surface surface(List<Part> parts, List<Object> objects, Seen seen)
     {
         Object o = objects[1 + makers.index(seen.id)];
         float3 p = seen.position;
@@ -1029,7 +1029,7 @@ public namespace scene
     /// is how far into the screen it is, for present (1e6 for the background; 0 where nothing
     /// shows). Every thread of the tile must call it. `view` shows the cost instead:
     /// scene.STEPS, scene.TILE_LISTS (red where a list overflowed), scene.NORMALS.
-    public colour shot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light,
+    public colour shot(List<Part> parts, List<Object> objects, Camera camera, Canvas canvas, Lighting light,
         out float depth, uint view = LIT)
     {
         depth = 0.0;

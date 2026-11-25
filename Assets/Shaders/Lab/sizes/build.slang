@@ -7,9 +7,9 @@
 // texel. `coarse` presents the glow alone, stretched over the box.
 import xanadu;
 
-[Image(rgba16f, 64, 64)] RWTexture2D<float4> palette;
-[Image(rgba16f, scale: 0.25)] RWTexture2D<float4> glow;
-[Image(rgba16f)] RWTexture2D<float4> shown;
+[Size(64, 64)] Image<float4> palette;
+[Scale(0.25)] Image<float4> glow;
+Image<float4> shown;
 
 /// Show the quarter-size glow alone, stretched over the box.
 [Default(0)] uniform int coarse;

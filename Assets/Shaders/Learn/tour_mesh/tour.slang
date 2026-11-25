@@ -10,13 +10,9 @@ static const uint LIVE = 3;
 static const uint KEPT_SHAPES[KEPT] = { 0, 1, 2, 3, 5, 6, 7, 10, 11 };
 static const uint LIVE_SHAPES[LIVE] = { 4, 8, 9 };
 
-[Cached] [Buffer(KEPT * EACH * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(KEPT * EACH * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(KEPT * EACH)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Pages(KEPT * EACH)] Meshes pool;
 
-[Buffer(LIVE * EACH * 128)] RWStructuredBuffer<MeshVertex> liveCorners;
-[Buffer(LIVE * EACH * 128)] RWStructuredBuffer<uint> liveTriangles;
-[Buffer(LIVE * EACH)] RWStructuredBuffer<Meshlet> liveMeshlets;
+[Pages(LIVE * EACH)] Meshes livePool;
 
 // Laid out for a quad 810 px tall; `scale` fits it to the real one.
 Camera camera(float scale) { return Camera(1400 * scale).orbited(0, 0.25); }
@@ -50,19 +46,21 @@ Placement3 placed(uint k, float scale)
 [Pass(128, over: KEPT * EACH * 128)]
 void make(uint i)
 {
-    uint n = i / (EACH * 128), t = i % (EACH * 128), first = n * EACH, k = KEPT_SHAPES[n];
+    MeshPage p = pool.page(i, EACH);
+    uint k = KEPT_SHAPES[p.object];
+    p.object = k;
     uint2 cells = uint2(32);
     switch (k)
     {
-        case 0: mesh.grid(Sphere(100), t, cells, first, k, corners, triangles, meshlets); break;
-        case 1: mesh.grid(Torus(85, 30), t, cells, first, k, corners, triangles, meshlets); break;
-        case 2: mesh.grid(Cylinder(70, 170), t, cells, first, k, corners, triangles, meshlets); break;
-        case 3: mesh.grid(Cylinder(85, 170, 0, 1), t, cells, first, k, corners, triangles, meshlets); break;
-        case 5: mesh.grid(vase().lathed(), t, cells, first, k, corners, triangles, meshlets); break;
-        case 6: mesh.grid(spine().ribbon(50, 1), t, cells, first, k, corners, triangles, meshlets); break;
-        case 7: mesh.grid(spine().tube(22, 0.3), t, cells, first, k, corners, triangles, meshlets); break;
-        case 10: mesh.grid(Sphere(100), t, cells, first, k, corners, triangles, meshlets); break;
-        default: mesh.grid(Torus(80, 34), t, cells, first, k, corners, triangles, meshlets); break;
+        case 0: pool.grid(Sphere(100), p, cells); break;
+        case 1: pool.grid(Torus(85, 30), p, cells); break;
+        case 2: pool.grid(Cylinder(70, 170), p, cells); break;
+        case 3: pool.grid(Cylinder(85, 170, 0, 1), p, cells); break;
+        case 5: pool.grid(vase().lathed(), p, cells); break;
+        case 6: pool.grid(spine().ribbon(50, 1), p, cells); break;
+        case 7: pool.grid(spine().tube(22, 0.3), p, cells); break;
+        case 10: pool.grid(Sphere(100), p, cells); break;
+        default: pool.grid(Torus(80, 34), p, cells); break;
     }
 }
 
@@ -70,13 +68,15 @@ void make(uint i)
 [Pass(128, over: LIVE * EACH * 128)]
 void remake(uint i)
 {
-    uint n = i / (EACH * 128), t = i % (EACH * 128), first = n * EACH, k = LIVE_SHAPES[n];
+    MeshPage p = livePool.page(i, EACH);
+    uint k = LIVE_SHAPES[p.object];
+    p.object = k;
     uint2 cells = uint2(32);
     switch (k)
     {
-        case 4: mesh.grid(flag(), t, cells, first, k, liveCorners, liveTriangles, liveMeshlets); break;
-        case 8: mesh.grid(land(), t, cells, first, k, liveCorners, liveTriangles, liveMeshlets); break;
-        default: mesh.grid(Sphere(95).lumpy(16, 60, time * 0.5), t, cells, first, k, liveCorners, liveTriangles, liveMeshlets); break;
+        case 4: livePool.grid(flag(), p, cells); break;
+        case 8: livePool.grid(land(), p, cells); break;
+        default: livePool.grid(Sphere(95).lumpy(16, 60, time * 0.5), p, cells); break;
     }
 }
 
@@ -84,18 +84,18 @@ void remake(uint i)
 ItemVertex shown(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(meshlets[copy].object, scale), camera(scale), corners, triangles, meshlets);
+    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera(scale));
 }
 
 [Draw(64, 1, shade: live, copies: LIVE * EACH)]
 ItemVertex moving(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(liveMeshlets[copy].object, scale), camera(scale), liveCorners, liveTriangles, liveMeshlets);
+    return livePool.pulled(v, placed(livePool.objectOf(copy), scale), camera(scale));
 }
 
-float4 kept(ItemInput i) { return look(i, meshlets[copy].object); }
-float4 live(ItemInput i) { return look(i, liveMeshlets[copy].object); }
+float4 kept(ItemInput i) { return look(i, pool.objectOf(copy)); }
+float4 live(ItemInput i) { return look(i, livePool.objectOf(copy)); }
 
 float4 look(ItemInput i, uint k)
 {

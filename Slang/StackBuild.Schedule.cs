@@ -138,13 +138,29 @@ public sealed partial class StackBuild
         string name = tokens.ExpectName();
         int image = Images.ToList().FindIndex(declared => declared.Name == name);
         if (image < 0)
-            throw new BuildProblem(given.Index, $"{what}: {name} isn't an [Image] this graph declares.");
+            throw new BuildProblem(given.Index, $"{what}: {name} isn't an Image this graph declares.");
         if (!formats.Contains(Images[image].Format))
-            throw new BuildProblem(given.Index, $"{what} is a {string.Join(" or ", formats)} image; {name} is {Images[image].Format}.");
+            throw new BuildProblem(given.Index, $"{what} is an Image<{Texel(formats[0])}>; {name} is {Describe(Images[image])}.");
         if (box && !Images[image].Size.Box)
             throw new BuildProblem(given.Index, $"{what}: a draw renders over the item's box, so {name} must be the box's size, not scaled or fixed.");
         return image;
     }
+
+    private static string Texel(string format) => format switch
+    {
+        "r32f" or "r16f" => "float",
+        "rg16f" => "float2",
+        "r32ui" => "uint",
+        _ => "float4",
+    };
+
+    /// <summary>How an image's declaration reads: <c>an Image&lt;float&gt;</c>, <c>a [Compact] Image&lt;float&gt;</c>.</summary>
+    private static string Describe(BuildImage image) => image.Format switch
+    {
+        "rgba32f" => "a [Precise] Image<float4>",
+        "rgba8" or "r16f" => $"a [Compact] Image<{image.Type}>",
+        _ => $"an Image<{image.Type}>",
+    };
 
     private BuildLoop Loop(BuildTokens tokens, Scope scope, BuildToken first)
     {
@@ -279,7 +295,7 @@ public sealed partial class StackBuild
                 throw new BuildProblem(given.Index, $"{called} takes a buffer for {parameters[k].Name}; {name} isn't one {(scope.Lent is null ? "the stack declares" : "the schedule was lent")}.");
             if (Element(Buffers[buffer].Type) != Element(parameters[k].BufferType!))
                 throw new BuildProblem(given.Index,
-                    $"{called} takes RWStructuredBuffer<{parameters[k].BufferType}> for {parameters[k].Name}; {Buffers[buffer].Name} holds {Buffers[buffer].Type}.");
+                    $"{called} takes List<{parameters[k].BufferType}> for {parameters[k].Name}; {Buffers[buffer].Name} holds {Buffers[buffer].Type}.");
             buffers.Add(buffer);
         }
 

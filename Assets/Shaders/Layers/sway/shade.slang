@@ -4,7 +4,6 @@
 // Stacked over other shaders it only moves; the colour passes through.
 import xanadu;
 
-[Default(1)] uniform float xif_unit;
 [Default(0)] uniform float xif_seed;
 // How far the top bends at full wind (item units), how fast it sways, how hard gusts push (0..1).
 [Default(16, 1, 0.5)] uniform float4 sway_wind;

@@ -13,7 +13,7 @@ public sealed class CopiesLintTests
     public void AGridOnAStackThatDrawsCopiesIsFlaggedOnTheGrid()
     {
         SlangProblem problem = SlangLint.Check("""
-            [Draws] RWStructuredBuffer<uint> drawn;
+            [Draws] List<uint> drawn;
             void build() { }
             [Grid(72, 72)] ItemVertex deform(ItemVertex v) { return v; }
             """, Types).Single();
@@ -31,7 +31,7 @@ public sealed class CopiesLintTests
     public void ABendThatPlacesCopiesNeedsNoGrid()
     {
         Assert.That(SlangLint.Check("""
-            [Draws] RWStructuredBuffer<uint> drawn;
+            [Draws] List<uint> drawn;
             void build() { }
             ItemVertex deform(ItemVertex v) { v.position = v.position.wave(2); return v; }
             """, Types), Is.Empty);

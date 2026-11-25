@@ -33,6 +33,6 @@ public sealed class ShippedEffectsTests
         Assert.That(SlangShaders.IsLabOnly("/home/x/game/Assets/Shaders/Lab/a"), Is.True);
         Assert.That(SlangShaders.IsLabOnly(@"C:\game\Assets\Shaders\Lab\a.slang"), Is.True);
         Assert.That(SlangShaders.IsLabOnly("Assets/Shaders/Misc/Lab"), Is.False);
-        Assert.That(SlangShaders.IsLabOnly("Assets/Shaders/note_background"), Is.False);
+        Assert.That(SlangShaders.IsLabOnly("Assets/Shaders/Game/note_background"), Is.False);
     }
 }

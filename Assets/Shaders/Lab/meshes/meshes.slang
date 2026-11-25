@@ -14,13 +14,9 @@ static const uint SEA = 36;                      // pages the ocean's 48 x 48 gr
 /// How lumpy the rock is: change it and the cached shapes are built again.
 [Default(16)] uniform float lumps;
 
-[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Pages(PAGES)] Meshes pool;
 
-[Buffer(SEA * 128)] RWStructuredBuffer<MeshVertex> seaCorners;
-[Buffer(SEA * 128)] RWStructuredBuffer<uint> seaTriangles;
-[Buffer(SEA)] RWStructuredBuffer<Meshlet> seaMeshlets;
+[Pages(SEA)] Meshes seaPool;
 
 Camera camera() { return Camera(1400).orbited(0, 0.25); }
 
@@ -43,17 +39,18 @@ Placement3 placed(uint k, float scale)
 [Pass(128, over: PAGES * 128)]
 void make(uint i)
 {
-    uint k = i / (EACH * 128), t = i % (EACH * 128), first = k * EACH;
+    MeshPage p = pool.page(i, EACH);
+    uint k = p.object;
     uint2 cells = uint2(32);
     switch (k)
     {
-        case 0: mesh.grid(Sphere(100), t, cells, first, k, corners, triangles, meshlets); break;
-        case 1: mesh.grid(Torus(85, 30), t, cells, first, k, corners, triangles, meshlets); break;
-        case 2: mesh.grid(Cylinder(85, 170, 0, 1), t, cells, first, k, corners, triangles, meshlets); break;
-        case 3: mesh.grid(vase().lathed(), t, cells, first, k, corners, triangles, meshlets); break;
-        case 4: mesh.grid(spine().tube(22, 0.3), t, cells, first, k, corners, triangles, meshlets); break;
-        case 5: mesh.grid(Sphere(95).lumpy(lumps, 60, 0), t, cells, first, k, corners, triangles, meshlets); break;
-        default: mesh.grid(Klein(70, 26), t, cells, first, k, corners, triangles, meshlets); break;
+        case 0: pool.grid(Sphere(100), p, cells); break;
+        case 1: pool.grid(Torus(85, 30), p, cells); break;
+        case 2: pool.grid(Cylinder(85, 170, 0, 1), p, cells); break;
+        case 3: pool.grid(vase().lathed(), p, cells); break;
+        case 4: pool.grid(spine().tube(22, 0.3), p, cells); break;
+        case 5: pool.grid(Sphere(95).lumpy(lumps, 60, 0), p, cells); break;
+        default: pool.grid(Klein(70, 26), p, cells); break;
     }
 }
 
@@ -61,19 +58,19 @@ void make(uint i)
 [Pass(128, over: SEA * 128)]
 void sea(uint i)
 {
-    mesh.grid(Ocean(float2(280, 240), 18, 120, 0.6, 0.3), i, uint2(48), 0, 0, seaCorners, seaTriangles, seaMeshlets);
+    seaPool.grid(Ocean(float2(280, 240), 18, 120, 0.6, 0.3), i, uint2(48), 0, 0);
 }
 
 [Draw(64, 1, shade: look, copies: PAGES)]
 ItemVertex shown(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(meshlets[copy].object, scale), camera(), corners, triangles, meshlets);
+    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera());
 }
 
 float4 look(ItemInput i)
 {
-    uint k = meshlets[copy].object;
+    uint k = pool.objectOf(copy);
     colour base = colours.oklch(0.72, 0.13, float(k) / 8);
     base.paint(Checker(1.0 / 8).filled((i.uv - 0.5) * float2(2, 1), 0.01) * 0.35, colours.white);
     return mesh.lit(i, camera(), base);
@@ -87,7 +84,7 @@ ItemVertex waves(ItemVertex v)
     p.offset = slot(7) * scale + float3(0, 30, 0) * scale;
     p.angles = float3(0.45, 0, 0);
     p.scale = scale;
-    return mesh.pulled(v, p, camera(), seaCorners, seaTriangles, seaMeshlets);
+    return seaPool.pulled(v, p, camera());
 }
 
 float4 water(ItemInput i) { return mesh.lit(i, camera(), colours.oklch(0.55, 0.12, 0.62), 80); }

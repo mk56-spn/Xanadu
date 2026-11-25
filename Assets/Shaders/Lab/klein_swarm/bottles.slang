@@ -47,8 +47,8 @@ Bottle start(uint i)
     return b;
 }
 
-[Buffer(BOTTLES)] RWStructuredBuffer<Bottle> bottles;
-[Buffer(1)] RWStructuredBuffer<uint> made;
+[Size(BOTTLES)] List<Bottle> bottles;
+[Size(1)] List<uint> made;
 
 [Pass(64, over: BOTTLES)]
 void move(uint i)

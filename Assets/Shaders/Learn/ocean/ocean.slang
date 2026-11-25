@@ -11,9 +11,7 @@ static const uint STEPS = 4;
 [Default(16)] uniform float waveHeight;
 [Default(0.5)] uniform float choppiness;
 
-[Buffer(STEPS * EACH * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Buffer(STEPS * EACH * 128)] RWStructuredBuffer<uint> triangles;
-[Buffer(STEPS * EACH)] RWStructuredBuffer<Meshlet> meshlets;
+[Pages(STEPS * EACH)] Meshes pool;
 
 // Laid out for a quad 810 px tall; `s` fits it to the real one.
 Camera camera(float s) { return Camera(900 * s).orbited(0, 0.3); }
@@ -33,23 +31,24 @@ Placement3 placed(uint k, float s)
 [Pass(128, over: STEPS * EACH * 128)]
 void make(uint i)
 {
-    uint k = i / (EACH * 128), t = i % (EACH * 128), first = k * EACH;
+    MeshPage p = pool.page(i, EACH);
+    uint k = p.object;
     if (k == 0)
-        mesh.grid(Sheet(float2(460, 420)).turned(float3(PI / 2, 0, 0)), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Sheet(float2(460, 420)).turned(float3(PI / 2, 0, 0)), p, CELLS);
     else
-        mesh.grid(sea(), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(sea(), p, CELLS);
 }
 
 [Draw(64, 1, shade: look, copies: STEPS * EACH)]
 ItemVertex shown(ItemVertex v)
 {
     float s = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(meshlets[copy].object, s), camera(s), corners, triangles, meshlets);
+    return pool.pulled(v, placed(pool.objectOf(copy), s), camera(s));
 }
 
 float4 look(ItemInput i)
 {
-    uint k = meshlets[copy].object;
+    uint k = pool.objectOf(copy);
     float s = i.rest.size.y / 810;
 
     // 1 and 2: the bare mesh, flat and then shaped by the waves.

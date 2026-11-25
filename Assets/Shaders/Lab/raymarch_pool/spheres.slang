@@ -40,7 +40,7 @@ colour hueOf(uint index) { return colours.hue(index / float(SPHERES)); }
 /// Where it is now, and the spheres close enough to melt into it (surfaces within twice
 /// BLEND), the nearest NEAR of them. The motion is a function of time, so each sphere works
 /// out the others itself, once a frame, and no pixel has to.
-[Buffer(SPHERES)] RWStructuredBuffer<Sphere> spheres;
+[Size(SPHERES)] List<Sphere> spheres;
 
 [Pass(64, over: SPHERES)]
 void place(uint i)

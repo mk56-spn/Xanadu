@@ -6,22 +6,20 @@
 // room's shadows; present shows the result on the item.
 import xanadu;
 
-[Buffer(256)] RWStructuredBuffer<scene.Part> parts;
-[Buffer(129)] RWStructuredBuffer<scene.Object> objects;
-[Image(r32f, clear: 1e30)] RWTexture2D<float> depth;
-[Image(r32ui)] RWTexture2D<uint> ids;
-[Image(rgba16f)] RWTexture2D<float4> shown;
+[Size(256)] List<scene.Part> parts;
+[Size(129)] List<scene.Object> objects;
+[Clear(1e30)] Image<float> depth;
+Image<uint> ids;
+Image<float4> shown;
 /// How far each 8 x 8 block's cone got: where its pixels' marches start.
-[Image(r32f, scale: 0.125)] RWTexture2D<float> coarse;
+[Scale(0.125)] Image<float> coarse;
 /// Shadows (x sun, y the lamp) and occlusion (w) at half size: ShadowMask.
-[Image(rgba16f, scale: 0.5)] RWTexture2D<float4> shadowed;
+[Scale(0.5)] Image<float4> shadowed;
 /// The lamp's shadow map all round: six faces, how far the meshes are from the lamp each way.
-[Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+[Clear(1e30)] Image<float> lampDepth;
 
 static const uint RING = 16;                     // pages the torus's 32 x 32 grid takes (mesh.pagesFor)
-[Cached] [Buffer(RING * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(RING * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(RING)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Pages(RING)] Meshes pool;
 
 [Default(colours.hotPink)] uniform colour tint;
 /// How hard the box thumps on the beat.
@@ -88,16 +86,16 @@ Placement3 ring()
 }
 
 [Pass(128, over: RING * 128)]
-void make(uint i) { mesh.grid(Torus(160, 40), i, uint2(32), 0, 0, corners, triangles, meshlets); }
+void make(uint i) { pool.grid(Torus(160, 40), i, uint2(32), 0, 0); }
 
 [Draw(64, 1, shade: ringSeen, copies: RING)]
-ItemVertex ringDrawn(ItemVertex v) { return mesh.pulled(v, ring(), eye(v.rest.size), corners, triangles, meshlets); }
+ItemVertex ringDrawn(ItemVertex v) { return pool.pulled(v, ring(), eye(v.rest.size)); }
 
 IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 
 /// The torus again, from the lamp, into each face of its shadow map: so it shadows the room as the room shadows it.
 [Draw(64, 1, shade: fromLamp, copies: RING * 6)]
-ItemVertex ringFromLamp(ItemVertex v) { return LampShadow.pulled(v, ring(), LAMP, RING, corners, triangles, meshlets); }
+ItemVertex ringFromLamp(ItemVertex v) { return LampShadow.pulled(v, ring(), LAMP, RING, pool); }
 
 float fromLamp(ItemInput i) { return LampShadow.depthOf(i, RING); }
 
@@ -114,7 +112,7 @@ void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.
 Surface surfaceOf(Seen s)
 {
     return s.maker == makers.MESH
-        ? Surface(s.onMesh(ring(), corners, triangles).normal, Material(colours.orange, 40))
+        ? Surface(s.onMesh(ring(), pool).normal, Material(colours.orange, 40))
         : scene.surface(parts, objects, s);
 }
 

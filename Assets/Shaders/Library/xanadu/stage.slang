@@ -37,6 +37,7 @@
 //
 // A rect has four corners; [Grid(columns, rows)] on deform cuts it into cells.
 module stage;
+__exported import xanadu.store;
 
 /// @hidden
 public static const int VERSION = 1;
@@ -181,6 +182,8 @@ public struct Frame
     public float itemPremultiplied;
     /// Music beats since the music started, from whoever plays it (the game: its song's timing).
     public float beat;
+    /// Screen pixels per item unit for the item being drawn: the host sets it (1 when the item has none).
+    public float unit;
 };
 
 [[vk::binding(0, 2)]] public Sampler2D itemTexture;
@@ -275,6 +278,8 @@ public struct ItemInput
     public float3 normal;
     /// Seconds since the game started; the global `time` is the same, and reaches everywhere.
     public float time;
+    /// Screen pixels per item unit, never 0; the global `unit` is the same.
+    public float unit;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
     /// After a `deform` it follows the moved corners, so shapes drawn with it bend with them:
     /// `centred` runs with uv across the whole bent mesh in the quad's own `size` (rest's),
@@ -285,6 +290,9 @@ public struct ItemInput
     /// straight on the target while the mesh bends (the bent mesh still bounds what shows).
     /// The same as `canvas` without a `deform`.
     public Canvas rest;
+
+    /// `units` of the item as pixels, never under `least`: a line two units wide is i.pixels(2, 1).
+    public float pixels(float units, float least = 0.0) { return max(units * unit, least); }
 };
 
 /// A canvas from its two sides, its uv-(0, 0) corner, and this pixel's uv on it.
@@ -415,10 +423,14 @@ public static Dispatch dispatch = {};
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;
 
+/// Screen pixels per item unit for the item being drawn, never 0: an item's sizes in its own
+/// units times this are pixels. Set before `deform` and `shade` run (i.unit is the same).
+public static float unit = 1.0;
+
 /// An image read between its texels as a sampler's linear filter does: `at` in texels (the
 /// first texel's centre is 0.5), clamped to the `size` texels it covers. For an image read at
 /// another size than it was made, such as a quarter-size glow shown over the whole box.
-public float4 filtered(RWTexture2D<float4> image, float2 at, float2 size)
+public float4 filtered(Image<float4> image, float2 at, float2 size)
 {
     float2 p = clamp(at - 0.5, 0.0, max(size - 1.0, 0.0));
     int2 a = int2(floor(p));
@@ -434,6 +446,7 @@ public void vertexClock()
 {
     time = frame.time;
     beat = frame.beat;
+    unit = max(frame.unit, 1e-4);
 }
 
 /// The shader editor's triangle overlay: drawn line-filled through the effect's own
@@ -492,6 +505,8 @@ public ItemInput input(ItemVaryings v)
     i.time = frame.time;
     time = frame.time;
     beat = frame.beat;
+    unit = max(frame.unit, 1e-4);
+    i.unit = unit;
     i.canvas = canvasOf(v);
     i.rest = restCanvasOf(v, i.canvas);
     // Painted on the bent mesh: centred runs with uv over every triangle, measured in the
@@ -521,6 +536,7 @@ public ItemInput tracedInput(float2 pixel, float2 corner, float2 xAxis, float2 y
     i.normal = float3(0.0);
     i.screenUv = pixel / frame.screen;
     i.time = time;
+    i.unit = unit;
     i.canvas = canvasFrom(xAxis, yAxis, corner, uv);
     i.rest = i.canvas;
     shading = i;

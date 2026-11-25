@@ -2,11 +2,9 @@
 // ridden, and while it waits for its head a ring closing onto it. The drawer
 // sets orb_tint (the orb's colour: grey once missed) and orb_state from the orb
 // each frame. Drawn on a quad with room for the glow and the ring. Sizes are
-// item units, made screen pixels with xif_unit.
+// item units, made screen pixels with `unit`.
 import xanadu;
 
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 // The core's radius (item units).
 [Default(22)] uniform float orb_radius;
 [Default(1, 0.82, 0.35, 1)] uniform colour orb_tint;
@@ -15,7 +13,6 @@ import xanadu;
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     float radius = orb_radius * unit;
     float shown = orb_state.x;
     float lit = orb_state.y;

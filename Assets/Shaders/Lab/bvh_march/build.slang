@@ -41,19 +41,19 @@ float blend() { return melt * radius(); }
 /// The way to the sun.
 float3 sun() { return normalize(float3(-0.45, -0.8, 0.35)); }
 
-[Buffer(MAX)] RWStructuredBuffer<float4> balls;                 // blobs by id
-[Buffer(MAX)] RWStructuredBuffer<float4> sorted;                // the same, in sorted order
-[Buffer(MAX)] RWStructuredBuffer<uint> keys;                    // Morton codes, sorted in place
-[Buffer(MAX)] RWStructuredBuffer<uint> ids;                     // the blob at each place, once sorted
-[Buffer(MAX)] RWStructuredBuffer<uint> keysB;                   // the sort's other half
-[Buffer(MAX)] RWStructuredBuffer<uint> idsB;
-[Buffer(MAX)] RWStructuredBuffer<uint> counts;                  // the sort's histograms: 256 a block of 256
-[Buffer(2 * MAX)] globallycoherent RWStructuredBuffer<bvh.Node> nodes;  // inner 0..n-2, leaves n-1..2n-2
-[Buffer(2 * MAX)] RWStructuredBuffer<uint> parents;             // each node's parent
-[Buffer(MAX)] globallycoherent RWStructuredBuffer<uint> arrivals;   // children arrived at each inner node
-[Buffer(2 * CELLS + ENTRIES)] RWStructuredBuffer<uint> light;   // cell starts, cell ends, then blob ids
-[Image(rgba16f)] RWTexture2D<float4> marched;                   // what the march sees, a pixel each
-[Image(r32f)] RWTexture2D<float> marchedDepth;                   // and how far into the screen
+[Size(MAX)] List<float4> balls;                 // blobs by id
+[Size(MAX)] List<float4> sorted;                // the same, in sorted order
+[Size(MAX)] List<uint> keys;                    // Morton codes, sorted in place
+[Size(MAX)] List<uint> ids;                     // the blob at each place, once sorted
+[Size(MAX)] List<uint> keysB;                   // the sort's other half
+[Size(MAX)] List<uint> idsB;
+[Size(MAX)] List<uint> counts;                  // the sort's histograms: 256 a block of 256
+[Size(2 * MAX)] globallycoherent List<bvh.Node> nodes;  // inner 0..n-2, leaves n-1..2n-2
+[Size(2 * MAX)] List<uint> parents;             // each node's parent
+[Size(MAX)] globallycoherent List<uint> arrivals;   // children arrived at each inner node
+[Size(2 * CELLS + ENTRIES)] List<uint> light;   // cell starts, cell ends, then blob ids
+Image<float4> marched;                   // what the march sees, a pixel each
+Image<float> marchedDepth;                   // and how far into the screen
 
 // ---- animate -----------------------------------------------------------------
 
@@ -130,10 +130,9 @@ void clearLight(uint i) { light[i] = 0; }
 void lightCount(uint i)
 {
     int4 cells = cellsOf(balls[i]);
-    uint ignored;
     for (int y = cells.y; y <= cells.w; y++)
         for (int x = cells.x; x <= cells.z; x++)
-            InterlockedAdd(light[y * LIGHT + x], 1, ignored);
+            light.add(y * LIGHT + x, 1);
 }
 
 /// The fill cursors start where each cell's entries do (the counts, scanned in place).
@@ -148,8 +147,7 @@ void lightFill(uint i)
     {
         for (int x = cells.x; x <= cells.z; x++)
         {
-            uint slot;
-            InterlockedAdd(light[CELLS + y * LIGHT + x], 1, slot);
+            uint slot = light.add(CELLS + y * LIGHT + x, 1);
             if (slot < ENTRIES)
                 light[2 * CELLS + slot] = i;
         }

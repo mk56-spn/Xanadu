@@ -6,8 +6,8 @@
 // whole screen and it is a full-screen post pass.
 import xanadu;
 
-[Image(rgba16f, scale: 0.5)] RWTexture2D<float4> bloom;
-[Image(rgba16f)] RWTexture2D<float4> shown;
+[Scale(0.5)] Image<float4> bloom;
+Image<float4> shown;
 
 /// How bright the canvas must be to bloom.
 [Default(0.55)] uniform float threshold;

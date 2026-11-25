@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// A schedule a library module declares: <c>[Schedule] void sort(uint n, RWStructuredBuffer&lt;uint&gt; keys, …)</c>,
+/// A schedule a library module declares: <c>[Schedule] void sort(uint n, List&lt;uint&gt; keys, …)</c>,
 /// a body of pass calls, loops and ifs that a brick's <c>build()</c> calls as if it were written there.
 /// </summary>
 /// <param name="Body">The body between its braces, as a range of the library's text.</param>
@@ -96,14 +96,14 @@ public sealed partial class StackLibrary
             foreach (string declared in match.Groups["params"].Value.Split(',', System.StringSplitOptions.TrimEntries | System.StringSplitOptions.RemoveEmptyEntries))
             {
                 string text = Regex.Replace(declared, @"\s+", " ");
-                Match buffer = Regex.Match(text, @"^RWStructuredBuffer ?< ?(?<type>[\w:.]+) ?> (?<name>\w+)$");
+                Match buffer = Regex.Match(text, @"^List ?< ?(?<type>[\w:.]+) ?> (?<name>\w+)$");
                 Match number = Regex.Match(text, @"^(?:uint|int) (\w+)$");
                 if (buffer.Success)
                     parameters.Add(new BuildParameter(buffer.Groups["name"].Value, buffer.Groups["type"].Value));
                 else if (number.Success)
                     parameters.Add(new BuildParameter(number.Groups[1].Value, null));
                 else
-                    throw new BuildProblem(match.Index, $"a schedule takes uints and RWStructuredBuffer<T>s: {name}(uint n, RWStructuredBuffer<uint> keys).");
+                    throw new BuildProblem(match.Index, $"a schedule takes uints and List<T>s: {name}(uint n, List<uint> keys).");
             }
 
             schedules.Add(new LibrarySchedule(name, [.. parameters], match.Index, (open + 1, close)));

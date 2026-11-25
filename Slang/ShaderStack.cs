@@ -187,14 +187,6 @@ public static partial class ShaderStack
 
         """);
 
-    /// <summary>A new file for a stack: everything in it is in sight of the stack's other files, and theirs in its.</summary>
-    public static string NewFile(string name) => $"""
-        // {name}: read with the stack's other files as one. Declare resources ([Buffer], [Image], [Host]), passes
-        // ([Pass], [Pixels], [Draw]) and functions here; void graph() (in any one file) runs them in order each frame.
-        import xanadu;
-
-        """;
-
     /// <summary>A name for a new file that the stack hasn't got: <c>part.slang</c>, <c>part2.slang</c>, …</summary>
     public static string FreeName(IEnumerable<string> taken, string stem = "part")
     {

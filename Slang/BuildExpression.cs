@@ -19,7 +19,7 @@ public readonly record struct BuildValue(double Number, bool Whole)
 }
 
 /// <summary>
-/// An expression the CPU works out from a BUILD brick: a <c>[Buffer]</c>'s size, a
+/// An expression the CPU works out from a BUILD brick: a list's size, a
 /// <c>[Pass]</c>'s threads, a schedule's loop bounds, conditions and arguments. The C
 /// operators over numbers and names (the brick's <c>static const</c>s, its uniforms,
 /// the schedule's loop variables); whole numbers stay whole, so <c>count / 256</c> divides as Slang does.

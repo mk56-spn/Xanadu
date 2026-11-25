@@ -22,11 +22,10 @@ static const uint CELLS = FIELD_W * FIELD_H;
 static const float DEPOSIT_SCALE = 1024;    // deposits sum as whole numbers: this many a unit of field
 static const float2 WORLD = float2(1280, 720);   // px, centred, y down
 
-// What the frame keeps at the head of `lists`.
-static const uint STARTED = 0, DEAD = 1, ALIVE = 2, TRAILED = 3, WRITTEN = 4, TO_READ = 5, PARITY = 6,
+// What the frame keeps in `lists`.
+static const uint STARTED = 0, WRITTEN = 4, TO_READ = 5, PARITY = 6,
                   FRAME = 7, HEAD = 8, SAMPLED = 9, TOTAL = 10, FIRST = 12, COUNT = 16, OWED = 20, QUEUED = 24;
 static const uint HEADER = 32;
-static const uint DEAD_LIST = HEADER, ALIVE_LIST = HEADER + CAP, TRAIL_LIST = HEADER + 2 * CAP;
 
 // Item pixels a world pixel: the world is the lab's 1280 x 720, drawn this much smaller or bigger.
 [Default(0.53)] uniform float zoom;
@@ -68,13 +67,16 @@ struct Death
     uint pad;
 };
 
-[Buffer(CAP)] RWStructuredBuffer<Particle> pool;
-[Buffer(CAP * TRAIL)] RWStructuredBuffer<float2> trails;     // each slot's past positions, a ring from the head
-[Buffer(HEADER + 3 * CAP)] RWStructuredBuffer<uint> lists;   // the head, free slots, alive, trailed
-[Buffer(2 * EVENTS)] RWStructuredBuffer<Death> deaths;       // last frame's half, this frame's half
-[Buffer(2 * CELLS)] RWStructuredBuffer<float> field;         // the half read, the half written
-[Buffer(CELLS)] RWStructuredBuffer<uint> deposits;
-[Buffer(1)] RWStructuredBuffer<uint> drawn;              // the copies `particle` draws
+[Size(CAP)] List<Particle> pool;
+[Size(CAP * TRAIL)] List<float2> trails;     // each slot's past positions, a ring from the head
+[Size(HEADER)] List<uint> lists;             // the frame's bookkeeping
+[Size(CAP)] Slots free;                      // the pool's free places
+[Size(CAP)] Gathered<uint> alive;            // the live ones, this frame
+[Size(CAP)] Gathered<uint> trailed;          // the live ones with a trail
+[Size(2 * EVENTS)] List<Death> deaths;       // last frame's half, this frame's half
+[Size(2 * CELLS)] List<float> field;         // the half read, the half written
+[Size(CELLS)] List<uint> deposits;
+Counter drawn;              // the copies `particle` draws
 
 // ---- the emitters ------------------------------------------------------------------
 
@@ -216,15 +218,9 @@ float rnd(uint seed, uint salt) { return random(uint3(seed, salt, 0x2545f491u));
 /// Takes a free slot and starts a particle of emitter `k` at `origin`; false when the pool is full.
 bool spawn(uint k, float2 origin, float2 parentVelocity, uint seed)
 {
-    uint before;
-    InterlockedAdd(lists[DEAD], 0xFFFFFFFFu, before);
-    if (int(before) <= 0)
-    {
-        InterlockedAdd(lists[DEAD], 1u);
+    uint slot;
+    if (!free.take(slot))
         return false;
-    }
-
-    uint slot = lists[DEAD_LIST + before - 1];
     Emitter e = emitterOf(k);
     float2 local = rotate(particles.onShape(e.shape, e.size, rnd(seed, 11), rnd(seed, 12)), e.turn);
     float heading = e.heading + (rnd(seed, 13) - 0.5) * e.spread;
@@ -250,16 +246,6 @@ bool spawn(uint k, float2 origin, float2 parentVelocity, uint seed)
 
 // ---- the frame ---------------------------------------------------------------------
 
-/// After a compile: every slot free (until the head says it has started).
-[Pass(256, over: CAP)]
-void reset(uint i)
-{
-    if (lists[STARTED] != 0)
-        return;
-    lists[DEAD_LIST + i] = CAP - 1 - i;
-    pool[i].alive = 0;
-}
-
 /// One thread: the frame's halves swap, last frame's deaths become this frame's bursts, and
 /// each emitter's births this frame (its rate's share, the fraction carried, and its burst).
 [Pass(1, over: 1)]
@@ -268,7 +254,6 @@ void plan(uint i)
     if (lists[STARTED] == 0)
     {
         lists[STARTED] = 1;
-        lists[DEAD] = CAP;
         for (uint k = 0; k < EMITTERS; k++)
             lists[QUEUED + k] = emitterOf(k).burst;
     }
@@ -276,8 +261,8 @@ void plan(uint i)
     lists[PARITY] = 1 - lists[PARITY];
     lists[TO_READ] = min(lists[WRITTEN], EVENTS);
     lists[WRITTEN] = 0;
-    lists[ALIVE] = 0;
-    lists[TRAILED] = 0;
+    alive.clear();
+    trailed.clear();
     bool moving = dt > 0;
     uint frame = lists[FRAME] + (moving ? 1 : 0);
     lists[FRAME] = frame;
@@ -349,13 +334,10 @@ void simulate(uint i)
     if (killed || p.age >= p.life || any(isnan(p.position)))
     {
         pool[i].alive = 0;
-        uint top;
-        InterlockedAdd(lists[DEAD], 1u, top);
-        lists[DEAD_LIST + top] = i;
+        free.give(i);
         if (e.child >= 0 && !killed)
         {
-            uint slot;
-            InterlockedAdd(lists[WRITTEN], 1u, slot);
+            uint slot = lists.add(WRITTEN, 1);
             if (slot < EVENTS)
             {
                 Death d;
@@ -376,24 +358,18 @@ void simulate(uint i)
     pool[i] = p;
 
     if (e.deposit > 0)
-        InterlockedAdd(deposits[cellOf(p.position)], uint(e.deposit * dt * DEPOSIT_SCALE));
+        deposits.add(cellOf(p.position), uint(e.deposit * dt * DEPOSIT_SCALE));
 
-    uint at;
-    InterlockedAdd(lists[ALIVE], 1u, at);
-    lists[ALIVE_LIST + at] = i;
+    alive.add(i);
     if (e.trail >= 2)
-    {
-        uint t;
-        InterlockedAdd(lists[TRAILED], 1u, t);
-        lists[TRAIL_LIST + t] = i;
-    }
+        trailed.add(i);
 }
 
 /// The copies to draw: the field, every trail segment, every live particle.
 [Pass(1, over: 1)]
 void finish(uint i)
 {
-    drawn[0] = 1 + lists[TRAILED] * (TRAIL - 1) + lists[ALIVE];
+    drawn[0] = 1 + trailed.count * (TRAIL - 1) + alive.count;
 }
 
 /// The field fades, spreads into its neighbours and takes this frame's deposits.
@@ -417,7 +393,6 @@ void spreadField(uint i)
 
 void graph()
 {
-    reset();
     plan();
     burst();
     emit();

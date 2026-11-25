@@ -5,10 +5,10 @@
 // for as long as the item is shown, and start over when its size changes.
 import xanadu;
 
-[Kept] [Image(rgba16f)] RWTexture2D<float4> paint;
-[Image(rgba16f)] RWTexture2D<float4> shown;
-[History(shown)] RWTexture2D<float4> before;
-[Image(rgba16f)] RWTexture2D<float4> seen;
+[Kept] Image<float4> paint;
+Image<float4> shown;
+[History(shown)] Image<float4> before;
+Image<float4> seen;
 
 /// How much of last frame's trail is left after a second.
 [Default(0.2)] uniform float linger;

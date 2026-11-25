@@ -6,7 +6,7 @@ import xanadu;
 static const uint BARS = 256;
 
 // Two halves: the heights `grow` wrote, then each smoothing's result in the other half.
-[Buffer(2 * BARS)] RWStructuredBuffer<float> heights;
+[Size(2 * BARS)] List<float> heights;
 
 // How many smoothing passes build() runs: each blurs the bars a little more.
 [Options("0|1|2|3|4|5|6|7|8")] [Default(4)] uniform int passes;

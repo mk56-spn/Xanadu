@@ -1,11 +1,11 @@
 // xanadu.sort: sorting and prefix sums on the GPU, as passes a graph calls in graph().
 // The library owns no buffer: each call lends it the stack's, by name.
 //
-//     [Buffer(MAX)] RWStructuredBuffer<uint> keys;      // what to sort by
-//     [Buffer(MAX)] RWStructuredBuffer<uint> ids;       // what rides along
-//     [Buffer(MAX)] RWStructuredBuffer<uint> keysB;     // the sort's other half
-//     [Buffer(MAX)] RWStructuredBuffer<uint> idsB;
-//     [Buffer(MAX)] RWStructuredBuffer<uint> counts;    // its histograms: 256 a block of 256
+//     [Size(MAX)] List<uint> keys;      // what to sort by
+//     [Size(MAX)] List<uint> ids;       // what rides along
+//     [Size(MAX)] List<uint> keysB;     // the sort's other half
+//     [Size(MAX)] List<uint> idsB;
+//     [Size(MAX)] List<uint> counts;    // its histograms: 256 a block of 256
 //
 //     void build()
 //     {
@@ -39,7 +39,7 @@ public namespace sort
 
     /// Each block's count of each digit of this round, digit-major: counts[digit * blocks + block].
     [Pass(BLOCK, groups: (n + BLOCK - 1) / BLOCK)]
-    public void hist(uint i, uint n, uint round, RWStructuredBuffer<uint> keys, RWStructuredBuffer<uint> counts)
+    public void hist(uint i, uint n, uint round, List<uint> keys, List<uint> counts)
     {
         blockCounts[dispatch.thread] = 0;
         GroupMemoryBarrierWithGroupSync();
@@ -54,7 +54,7 @@ public namespace sort
 
     /// One group: counts[at .. at + n) become, in place, where each starts (the sum of those before it).
     [Pass(SCAN, groups: 1)]
-    public void scan(uint i, uint n, uint at, RWStructuredBuffer<uint> counts)
+    public void scan(uint i, uint n, uint at, List<uint> counts)
     {
         uint chunk = (n + SCAN - 1) / SCAN;
         uint start = i * chunk;
@@ -84,8 +84,8 @@ public namespace sort
     /// Each pair to its place for this round's digit, from keys and ids into toKeys and toIds; stable,
     /// so the order earlier rounds gave holds.
     [Pass(BLOCK, groups: (n + BLOCK - 1) / BLOCK)]
-    public void scatter(uint i, uint n, uint round, RWStructuredBuffer<uint> keys, RWStructuredBuffer<uint> ids,
-        RWStructuredBuffer<uint> toKeys, RWStructuredBuffer<uint> toIds, RWStructuredBuffer<uint> counts)
+    public void scatter(uint i, uint n, uint round, List<uint> keys, List<uint> ids,
+        List<uint> toKeys, List<uint> toIds, List<uint> counts)
     {
         bool inside = i < n;
         uint key = inside ? keys[i] : 0;
@@ -105,8 +105,8 @@ public namespace sort
     /// n (key, id) pairs sorted by key, stably: four rounds of 8 bits, through keysB and idsB and back.
     /// counts holds DIGITS × blocks(n) uints.
     [Schedule]
-    public void radix(uint n, RWStructuredBuffer<uint> keys, RWStructuredBuffer<uint> ids,
-        RWStructuredBuffer<uint> keysB, RWStructuredBuffer<uint> idsB, RWStructuredBuffer<uint> counts)
+    public void radix(uint n, List<uint> keys, List<uint> ids,
+        List<uint> keysB, List<uint> idsB, List<uint> counts)
     {
         for (uint round = 0; round < 4; round += 2)
         {

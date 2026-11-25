@@ -6,10 +6,10 @@ namespace Xanadu.Slang;
 /// <summary>What a stack's data is: a graph's buffer or image, or the frame it lands on.</summary>
 public enum GraphResourceKind
 {
-    /// <summary>A graph's <c>[Buffer]</c> (or <c>[Host]</c>), kept from frame to frame.</summary>
+    /// <summary>A graph's <c>List</c> or <c>Counter</c>, kept from frame to frame.</summary>
     Buffer,
 
-    /// <summary>A graph's <c>[Image]</c>: each item's own (or the material's), for the frame unless kept or a history.</summary>
+    /// <summary>A graph's <c>Image</c>: each item's own (or the material's), for the frame unless kept or a history.</summary>
     Image,
 
     /// <summary>The target's depth: a present writes it, triangles test and write it, a mid-frame pass reads it.</summary>

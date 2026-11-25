@@ -8,7 +8,7 @@ struct Tiles
     uint sets[TILES * WORDS];   // each tile's spheres, a bit apiece: tile t's in sets[t * WORDS ..]
 };
 
-[Buffer(1)] RWStructuredBuffer<Tiles> tiles;
+[Size(1)] List<Tiles> tiles;
 
 [Pass(1, over: 1)]
 void bin(uint unused)

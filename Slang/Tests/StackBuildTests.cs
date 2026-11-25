@@ -20,9 +20,9 @@ public sealed class StackBuildTests
         static const uint N = 1024;
         static const uint BLOCK = 256;
 
-        [Buffer(2 * N)] RWStructuredBuffer<uint> keys;
-        [Buffer(N / BLOCK * 256)] RWStructuredBuffer<uint> counts;
-        [Buffer(N)] globallycoherent RWStructuredBuffer<float4> balls;
+        [Size(2 * N)] List<uint> keys;
+        [Size(N / BLOCK * 256)] List<uint> counts;
+        [Size(N)] globallycoherent List<float4> balls;
 
         uniform bool spin;
 
@@ -124,7 +124,7 @@ public sealed class StackBuildTests
     [Test]
     public void AGriddedDeformIsRefusedInAGraphThatWorksInTheItemsBox()
     {
-        const string graph = "import xanadu;\n[Image(rgba16f)] RWTexture2D<float4> shown;\n[Pixels(8, 8)]\nvoid paint(ItemInput i, Canvas canvas) { shown[group.pixel] = 1; }\nvoid graph() { paint(); present(shown); }\n";
+        const string graph = "import xanadu;\nImage<float4> shown;\n[Pixels(8, 8)]\nvoid paint(ItemInput i, Canvas canvas) { shown[group.pixel] = 1; }\nvoid graph() { paint(); present(shown); }\n";
         const string deform = "import xanadu;\n[Grid(8, 8)]\nItemVertex deform(ItemVertex v) { return v; }\n";
         string body = ShaderStack.Compose("s", [new StackFile("graph.slang", graph), new StackFile("bend.slang", deform)]);
         var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", body))!;
@@ -155,9 +155,29 @@ public sealed class StackBuildTests
     [Test]
     public void ABufferWithoutASizeTheCpuKnowsIsRefused()
     {
-        string wrong = Sort.Replace("[Buffer(2 * N)]", "[Buffer(2 * M)]");
+        string wrong = Sort.Replace("[Size(2 * N)]", "[Size(2 * M)]");
         var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong)))!;
 
         Assert.That(error.Message, Does.StartWith("s/build.slang(6): error:").And.Contain("'M'"));
+    }
+
+    [Test]
+    public void AFunctionNamedLikeAListIsRefused()
+    {
+        const string graph = "import xanadu;\n[Size(64)] List<float> heights;\nfloat heights(uint i) { return i; }\n"
+                             + "[Pass(64, over: 64)] void grow(uint i) { }\nvoid graph() { grow(); }\n";
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(graph)))!;
+
+        Assert.That(error.Message, Does.Contain("heights is already something the graph keeps; give this function another name."));
+    }
+
+    [Test]
+    public void ALocalNamedLikeAListIsRefusedButAFieldIsNot()
+    {
+        const string graph = "import xanadu;\nstruct Dot { float heights; };\n[Size(64)] List<float> heights;\n"
+                             + "[Pass(64, over: 64)] void grow(uint i) { float heights = 1; }\nvoid graph() { grow(); }\n";
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(graph)))!;
+
+        Assert.That(error.Message, Does.StartWith("s/build.slang(4): error:").And.Contain("give this variable another name"));
     }
 }

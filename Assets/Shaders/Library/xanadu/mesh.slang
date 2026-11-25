@@ -1,7 +1,7 @@
 // xanadu.mesh: 3D and 2D meshes. A surface says where each uv (0..1 across and down) sits
 // in 3D; a generator ([Pass], mesh.grid) builds it into the pool, pages of triangles in
 // buffers; one counted [Draw] pulls every page's corners and places them through a camera
-// (mesh.pulled, 3D) or flat on the item (mesh.flat, 2D). "The pool" below has the whole of it.
+// (pool.pulled, 3D) or flat on the item (pool.flat, 2D). "The pool" below has the whole of it.
 //
 // Space is in pixels: x right, y down, z into the screen, and with the camera's
 // default lens something at depth 0 shows 1:1, so Sphere(160) is 320 px across.
@@ -1049,31 +1049,25 @@ public namespace lights
 // draw shows every page, a page a copy, its corners pulled from the pool by their numbers:
 //
 //     static const uint PAGES = 2 * 16;                  // two objects, a 32 x 32 grid each (mesh.pagesFor)
-//     [Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
-//     [Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
-//     [Cached] [Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+//     [Cached] [Pages(PAGES)] Meshes pool;
 //
 //     [Pass(128, over: PAGES * 128)]
 //     void build(uint i)
 //     {
-//         uint k = i / (16 * 128), t = i % (16 * 128);
-//         if (k == 0) mesh.grid(Sphere(100), t, uint2(32), 0, k, corners, triangles, meshlets);
-//         else mesh.grid(Torus(90, 30), t, uint2(32), 16, k, corners, triangles, meshlets);
+//         MeshPage p = pool.page(i, 16);                 // which object, its thread, its first page
+//         if (p.object == 0) pool.grid(Sphere(100), p, uint2(32));
+//         else pool.grid(Torus(90, 30), p, uint2(32));
 //     }
 //
 //     [Draw(64, 1, shade: look, copies: PAGES)]                // 64 cells: a page's 128 triangles
-//     ItemVertex shown(ItemVertex v)
-//     {
-//         uint k = meshlets[copy].object;
-//         return mesh.pulled(v, placed(k), camera(), corners, triangles, meshlets);
-//     }
+//     ItemVertex shown(ItemVertex v) { return pool.pulled(v, placed(pool.objectOf(copy)), camera()); }
 //
 //     float4 look(ItemInput i) { return colour(mesh.lit(i, camera(), colours.gold), 1); }
 //
-// The same pool has two front doors: mesh.pulled for 3D (a placement and a camera, lit from
-// the world point and normal it hands the shade) and mesh.flat for 2D (x and y in pixels on
+// The same pool has two front doors: pool.pulled for 3D (a placement and a camera, lit from
+// the world point and normal it hands the shade) and pool.flat for 2D (x and y in pixels on
 // the item, z the layer, no camera, unlit). A mesh whose shape moves every frame (an ocean, a
-// waving flag) is built into plain [Buffer]s instead and rebuilt each frame; one that only
+// waving flag) is built into a pool without [Cached] instead and rebuilt each frame; one that only
 // turns or moves stays cached and is placed by the draw.
 
 /// One corner in the pool: where it sits in its object's own space, which way it faces, its uv.
@@ -1168,20 +1162,70 @@ public namespace mesh
         return n.x * n.y;
     }
 
-    /// Thread `t` of building surface `s` as a grid of `cells`, into the pages from `first` on,
-    /// each marked `object`: run it over pagesFor(cells) × PAGE threads (t from 0). Each page is
-    /// 8 × 8 cells of the grid (fewer at its right and bottom edges), cut into triangles as the
-    /// item's grid is, each corner placed with its normal and uv.
-    public void grid<S : ISurface>(S s, uint t, uint2 cells, uint first, uint object,
-        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    /// `base` lit at a pool draw's pixel as `lit` lights a surface (the studio's key, fill, sheen
+    /// and rim), from the world point and normal its vertex stage handed on. Two-sided.
+    public colour lit(ItemInput i, Camera camera, colour base, float shininess = 40.0)
     {
-        uint page = t / PAGE, k = t % PAGE;
-        uint2 pages = (cells + PATCH - 1) / PATCH;
-        if (page >= pages.x * pages.y)
+        SurfacePoint s;
+        s.position = i.world;
+        s.normal = normalize(i.normal);
+        return lights.studio(s, camera.eye, base, shininess);
+    }
+}
+
+/// Which object thread `i` of a pool's build works on, when each object takes `each` pages:
+/// its thread within that object and its first page (Meshes.page).
+public struct MeshPage
+{
+    public uint object;
+    public uint thread;
+    public uint first;
+};
+
+/// A graph's mesh pool, built into and drawn from: [Pages(n)] Meshes pool; (with [Cached] to
+/// build it only when the values move). Its corners, triangles and pages are the build's own.
+public struct Meshes
+{
+    public RWStructuredBuffer<MeshVertex> corners;
+    public RWStructuredBuffer<uint> triangles;
+    public RWStructuredBuffer<Meshlet> pages;
+
+    public __init(RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> pages)
+    {
+        this.corners = corners;
+        this.triangles = triangles;
+        this.pages = pages;
+    }
+
+    /// Thread `i` of a build where every object takes `each` pages, one after another from page 0.
+    public MeshPage page(uint i, uint each)
+    {
+        MeshPage p;
+        p.object = i / (each * mesh.PAGE);
+        p.thread = i % (each * mesh.PAGE);
+        p.first = p.object * each;
+        return p;
+    }
+
+    /// The object drawn page `n` (a draw's `copy`) belongs to.
+    public uint objectOf(uint n) { return pages[n].object; }
+
+    /// Builds surface `s` as a grid of `cells` for page p's object, at its pages.
+    public void grid<S : ISurface>(S s, MeshPage p, uint2 cells) { grid(s, p.thread, cells, p.first, p.object); }
+
+    /// Thread `t` of building surface `s` as a grid of `cells`, into the pages from `first` on,
+    /// each marked `object`: run it over mesh.pagesFor(cells) × mesh.PAGE threads (t from 0). Each
+    /// page is 8 × 8 cells of the grid (fewer at its right and bottom edges), cut into triangles as
+    /// the item's grid is, each corner placed with its normal and uv.
+    public void grid<S : ISurface>(S s, uint t, uint2 cells, uint first, uint object)
+    {
+        uint page = t / mesh.PAGE, k = t % mesh.PAGE;
+        uint2 count2 = (cells + mesh.PATCH - 1) / mesh.PATCH;
+        if (page >= count2.x * count2.y)
             return;
-        uint2 at = uint2(page % pages.x, page / pages.x) * PATCH;     // its first cell
-        uint2 size = min(cells - at, uint2(PATCH));                    // its cells
-        uint slot = (first + page) * PAGE + k;
+        uint2 at = uint2(page % count2.x, page / count2.x) * mesh.PATCH;    // its first cell
+        uint2 size = min(cells - at, uint2(mesh.PATCH));                     // its cells
+        uint slot = (first + page) * mesh.PAGE + k;
         uint across = size.x + 1;
         uint2 corner = uint2(k % across, k / across);
         if (corner.y <= size.y)
@@ -1212,34 +1256,32 @@ public namespace mesh
             m.triangles = count;
             m.corners = across * (size.y + 1);
             m.pad = 0;
-            meshlets[first + page] = m;
+            pages[first + page] = m;
         }
     }
 
-    /// The pool corner the draw's vertex `v` stands for (page `copy`, triangle v.index / 3);
-    /// false for a triangle its page doesn't use.
-    public bool corner(ItemVertex v, RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles,
-        RWStructuredBuffer<Meshlet> meshlets, out MeshVertex c)
+    /// The corner the draw's vertex `v` stands for (page `copy`, triangle v.index / 3); false for
+    /// a triangle its page doesn't use.
+    public bool corner(ItemVertex v, out MeshVertex c)
     {
         uint t = v.index / 3;
-        Meshlet m = meshlets[copy];
+        Meshlet m = pages[copy];
         if (t >= m.triangles)
         {
             c = {};
             return false;
         }
-        uint packed = triangles[copy * PAGE + t];
-        c = corners[copy * PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
+        uint packed = triangles[copy * mesh.PAGE + t];
+        c = corners[copy * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
         return true;
     }
 
     /// A 3D draw of the pool: the corner `v` stands for, placed by `placed` and seen through
     /// `camera`, with its world point, normal and uv set for the shade (i.world, i.normal, i.uv).
-    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera,
-        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera)
     {
         MeshVertex c;
-        if (!corner(v, corners, triangles, meshlets, c))
+        if (!corner(v, c))
         {
             v.fold();
             return v;
@@ -1255,11 +1297,10 @@ public namespace mesh
     /// A 2D draw of the pool: the corner's x and y are pixels on the item from its middle, z its
     /// layer (nearer layers win, as depth does), turned by `angle` radians, scaled by `scale` and
     /// moved by `offset`. No camera and no light: shade colours it as any item.
-    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale,
-        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale)
     {
         MeshVertex c;
-        if (!corner(v, corners, triangles, meshlets, c))
+        if (!corner(v, c))
         {
             v.fold();
             return v;
@@ -1273,14 +1314,4 @@ public namespace mesh
         v.normal = float3(0.0, 0.0, -1.0);
         return v;
     }
-
-    /// `base` lit at a pool draw's pixel as `lit` lights a surface (the studio's key, fill, sheen
-    /// and rim), from the world point and normal its vertex stage handed on. Two-sided.
-    public colour lit(ItemInput i, Camera camera, colour base, float shininess = 40.0)
-    {
-        SurfacePoint s;
-        s.position = i.world;
-        s.normal = normalize(i.normal);
-        return lights.studio(s, camera.eye, base, shininess);
-    }
-}
+};

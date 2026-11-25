@@ -3,9 +3,9 @@
 // (sort.radix), writes a leaf per thing (bvh.leaf), and calls bvh.tree to link the inner nodes
 // over the sorted codes and box them up from the leaves:
 //
-//     [Buffer(2 * MAX)] globallycoherent RWStructuredBuffer<bvh.Node> nodes;   // inner 0..n-2, leaves n-1..2n-2
-//     [Buffer(2 * MAX)] RWStructuredBuffer<uint> parents;                       // each node's parent
-//     [Buffer(MAX)] globallycoherent RWStructuredBuffer<uint> arrivals;         // children arrived at each inner node
+//     [Size(2 * MAX)] globallycoherent List<bvh.Node> nodes;   // inner 0..n-2, leaves n-1..2n-2
+//     [Size(2 * MAX)] List<uint> parents;                       // each node's parent
+//     [Size(MAX)] globallycoherent List<uint> arrivals;         // children arrived at each inner node
 //
 //     void build()
 //     {
@@ -76,7 +76,7 @@ public namespace bvh
     }
 
     /// The common prefix of the sorted codes at places a and b; equal codes go on into the places.
-    int prefix(RWStructuredBuffer<uint> keys, uint n, int a, int b)
+    int prefix(List<uint> keys, uint n, int a, int b)
     {
         if (b < 0 || b >= int(n))
             return -1;
@@ -89,8 +89,8 @@ public namespace bvh
     /// A thread an inner node (Karras 2012): the range of leaves it covers and where it splits,
     /// so its two children and their parent; arrivals cleared for refit.
     [Pass(256, over: n - 1)]
-    public void link(uint at, uint n, RWStructuredBuffer<uint> keys, RWStructuredBuffer<Node> nodes,
-        RWStructuredBuffer<uint> parents, RWStructuredBuffer<uint> arrivals)
+    public void link(uint at, uint n, List<uint> keys, List<Node> nodes,
+        List<uint> parents, List<uint> arrivals)
     {
         int i = int(at);
         int d = prefix(keys, n, i, i + 1) - prefix(keys, n, i, i - 1) >= 0 ? 1 : -1;
@@ -131,16 +131,14 @@ public namespace bvh
 
     /// A thread a leaf, up the tree from it: the second child to arrive at a node joins both boxes.
     [Pass(256, over: n)]
-    public void refit(uint i, uint n, RWStructuredBuffer<Node> nodes, RWStructuredBuffer<uint> parents,
-        RWStructuredBuffer<uint> arrivals)
+    public void refit(uint i, uint n, List<Node> nodes, List<uint> parents,
+        List<uint> arrivals)
     {
         uint up = parents[n - 1 + i];
         while (up != NONE)
         {
             AllMemoryBarrier();
-            uint before;
-            InterlockedAdd(arrivals[up], 1, before);
-            if (before == 0)
+            if (arrivals.add(up, 1) == 0)
                 return;
             AllMemoryBarrier();
             Node a = nodes[nodes[up].left];
@@ -153,8 +151,8 @@ public namespace bvh
 
     /// The tree over n sorted codes whose leaves are written: inner nodes linked, then boxed up.
     [Schedule]
-    public void tree(uint n, RWStructuredBuffer<uint> keys, RWStructuredBuffer<Node> nodes,
-        RWStructuredBuffer<uint> parents, RWStructuredBuffer<uint> arrivals)
+    public void tree(uint n, List<uint> keys, List<Node> nodes,
+        List<uint> parents, List<uint> arrivals)
     {
         link(n, keys, nodes, parents, arrivals);
         refit(n, nodes, parents, arrivals);
@@ -172,7 +170,7 @@ public namespace bvh
 
     /// Walks the tree over n things from `root`, depth first and nearer child first: each child
     /// asked how near it is, the nearer one opened now and the other kept for later.
-    public void walk<V : IVisit>(RWStructuredBuffer<Node> nodes, uint n, uint root, inout V visit)
+    public void walk<V : IVisit>(List<Node> nodes, uint n, uint root, inout V visit)
     {
         if (visit.near(nodes[root]) >= SKIP)
             return;

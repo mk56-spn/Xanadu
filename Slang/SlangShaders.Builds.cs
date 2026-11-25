@@ -166,7 +166,7 @@ public static partial class SlangShaders
             foreach (int image in images)
                 if (!build.Images[image].Size.Fixed)
                     throw new InvalidOperationException(
-                        $"{Where(name, source, pass.Start)}: error: {pass.Name} runs once for the material, and {build.Images[image].Name} is sized by each item's box; give it a fixed size ([Image(format, w, h)]) to make it the material's, or touch it from a [Pixels] pass or a [Draw].");
+                        $"{Where(name, source, pass.Start)}: error: {pass.Name} runs once for the material, and {build.Images[image].Name} is sized by each item's box; give it a fixed size ([Size(w, h)]) to make it the material's, or touch it from a [Pixels] pass or a [Draw].");
             if (used.Length > MaxStageBuffers)
                 throw new InvalidOperationException(
                     $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");

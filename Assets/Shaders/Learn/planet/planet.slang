@@ -7,9 +7,7 @@ static const uint2 CELLS = uint2(32, 16);
 static const uint EACH = 8;                      // pages a 32 x 16 grid takes (mesh.pagesFor)
 static const uint STEPS = 9;
 
-[Cached] [Buffer(STEPS * EACH * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(STEPS * EACH * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(STEPS * EACH)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Pages(STEPS * EACH)] Meshes pool;
 
 // Laid out for a quad 810 px tall; `scale` fits it to the real one.
 Camera camera(float scale) { return Camera(1500 * scale).orbited(0, 0.2); }
@@ -40,34 +38,35 @@ Placement3 placed(uint k, float scale)
 [Pass(128, over: STEPS * EACH * 128)]
 void make(uint i)
 {
-    uint k = i / (EACH * 128), t = i % (EACH * 128), first = k * EACH;
+    MeshPage p = pool.page(i, EACH);
+    uint k = p.object;
     // 1. The grid as it comes: a flat sheet, uv 0..1 across it.
     if (k == 0)
-        mesh.grid(Sheet(float2(300, 200)), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Sheet(float2(300, 200)), p, CELLS);
     // 2. Bent: u now goes part way round a cylinder.
     else if (k == 1)
-        mesh.grid(Bent(), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Bent(), p, CELLS);
     // 3. All the way round: a cylinder, u a whole turn.
     else if (k == 2)
-        mesh.grid(Cylinder(100, 200), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Cylinder(100, 200), p, CELLS);
     // 4. v from pole to pole: a sphere. 5. Coloured: depth hides its far side. 6. Lit. 7. Shiny, with a rim.
     else if (k < 8)
-        mesh.grid(Sphere(110), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Sphere(110), p, CELLS);
     // 8. 9. Painted and given mountains: pushed out along its normal by noise.
     else
-        mesh.grid(Sphere(110).lumpy(7, 70), t, CELLS, first, k, corners, triangles, meshlets);
+        pool.grid(Sphere(110).lumpy(7, 70), p, CELLS);
 }
 
 [Draw(64, 1, shade: look, copies: STEPS * EACH)]
 ItemVertex shown(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(meshlets[copy].object, scale), camera(scale), corners, triangles, meshlets);
+    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera(scale));
 }
 
 float4 look(ItemInput i)
 {
-    uint k = meshlets[copy].object;
+    uint k = pool.objectOf(copy);
     float2 uv = i.uv;
     float wire = mesh.wireframe(uv, float2(CELLS));
 

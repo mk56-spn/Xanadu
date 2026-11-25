@@ -1,7 +1,7 @@
 // The general purpose shape: one shape picked from a list, filled, outlined,
 // with a blurred copy underneath (a drop shadow, or a glow with no offset and a
 // bright colour). Draw it on a quad with room for the outline and the shadow.
-// Sizes are item units, made screen pixels with xif_unit.
+// Sizes are item units, made screen pixels with `unit`.
 //
 // sdf_shape picks the shape (by name in the editor); sdf_shape_params mean different things per shape
 // (unused ones are ignored). Width and height come from sdf_size.
@@ -23,8 +23,6 @@
 //  15 vesica      x: thinness (0..1)
 import xanadu;
 
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 // Which shape: picked by name in the editor.
 [Options("circle|box|ellipse|triangle|polygon|star|rhombus|cross|heart|ring|moon|squircle|egg|pie|trapezoid|vesica")]
 [Default(1)] uniform float sdf_shape;
@@ -49,7 +47,7 @@ import xanadu;
 [Default(18, 0)] uniform float2 sdf_shadow_blur;
 
 /// The picked shape, turned and grown, measured at `at` (pixels from the quad's middle).
-float distanceAt(float2 at, float unit)
+float distanceAt(float2 at)
 {
     float2 size = max(sdf_size * unit, float2(1e-3));
     float4 k = sdf_shape_params;
@@ -79,15 +77,14 @@ float distanceAt(float2 at, float unit)
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     float2 at = i.canvas.centred;
     colour c = colours.transparent;
 
     // Underneath: the shape again, moved, grown and blurred.
-    float shadow = distanceAt(at - sdf_shadow_offset * unit, unit) - sdf_shadow_blur.y * unit;
+    float shadow = distanceAt(at - sdf_shadow_offset * unit) - sdf_shadow_blur.y * unit;
     c.paint(sdf.filled(shadow, max(sdf_shadow_blur.x * unit, 1) * 2), sdf_shadow);
 
-    float d = distanceAt(at, unit);
+    float d = distanceAt(at);
     c.paint(sdf.filled(d), sdf_fill);
 
     // The outline, slid from just inside the edge to just outside it.

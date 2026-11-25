@@ -17,8 +17,8 @@ struct Dot
     float hue;
 };
 
-[Buffer(DOTS)] RWStructuredBuffer<Dot> dots;
-[Buffer(1)] RWStructuredBuffer<uint> made;
+[Size(DOTS)] List<Dot> dots;
+[Size(1)] List<uint> made;
 
 Dot start(uint i)
 {

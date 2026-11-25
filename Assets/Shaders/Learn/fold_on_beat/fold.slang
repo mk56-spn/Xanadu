@@ -10,9 +10,7 @@ import xanadu;
 static const uint2 CELLS = uint2(64, 40);
 static const uint PAGES = 40;                    // pages a 64 x 40 grid takes (mesh.pagesFor)
 
-[Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
-[Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+[Pages(PAGES)] Meshes pool;
 
 Camera camera(float s) { return Camera(1100 * s).orbited(sin(time * 0.3) * 0.3, 0.2); }
 
@@ -30,7 +28,7 @@ float folded()
 void make(uint i)
 {
     let card = Sheet(float2(560, 320)).waving(10, 1, time);
-    mesh.grid(card.morphed(Sphere(150), folded()), i, CELLS, 0, 0, corners, triangles, meshlets);
+    pool.grid(card.morphed(Sphere(150), folded()), i, CELLS, 0, 0);
 }
 
 [Draw(64, 1, shade: look, copies: PAGES)]
@@ -40,7 +38,7 @@ ItemVertex shown(ItemVertex v)
     Placement3 p = Placement3();
     p.angles = float3(0.2, sin(time * 0.5) * 0.5, 0);
     p.scale = s;
-    return mesh.pulled(v, p, camera(s), corners, triangles, meshlets);
+    return pool.pulled(v, p, camera(s));
 }
 
 float4 look(ItemInput i)

@@ -1,5 +1,5 @@
 // The entrance's rift, round its middle: everything near it the drawer sets
-// numbers for each frame, in item units (made screen pixels with xif_unit)
+// numbers for each frame, in item units (made screen pixels with `unit`)
 // unless a pixel width is said. Charging or dormant: a soft glow, motes
 // spiralling in, a ring imploding on the beat, the seam (two lenses), four pips
 // counting the beats in and an arrow the way a dash exit goes. Released
@@ -7,8 +7,6 @@
 // flung wide then snapping shut. The flare up and down the field is rift_flare.slang.
 import xanadu;
 
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 // Half the body's width, the seam's half height.
 [Default(30, 120)] uniform float2 rift_size;
 // The glow's radii and alpha.
@@ -54,7 +52,6 @@ struct Seam : IShape
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     float bodyHalf = rift_size.x * unit, halfHeight = rift_size.y * unit;
     colour c = colours.transparent;
 
@@ -111,14 +108,14 @@ float4 shade(ItemInput i)
             c.paint(Circle(rift_ring.x * unit).stroked(rift_ring.y), colours.white.withAlpha(rift_ring.z));
 
         // The seam: a wide faint lens round a bright sliver; a hairline when shut.
-        c.paint(Seam(max(rift_lens.x * unit, 0.5), halfHeight * 1.05), RiftBlue.withAlpha(rift_lens.z));
-        c.paint(Seam(max(rift_lens.y * unit, 0.5), halfHeight), SeamWhite.withAlpha(rift_lens.w));
+        c.paint(Seam(i.pixels(rift_lens.x, 0.5), halfHeight * 1.05), RiftBlue.withAlpha(rift_lens.z));
+        c.paint(Seam(i.pixels(rift_lens.y, 0.5), halfHeight), SeamWhite.withAlpha(rift_lens.w));
 
         // Four pips under it, one lighting per beat of the charge.
         if (rift_pips.y > 0.5)
         {
             float left = rift_pips.x;
-            float radius = max(rift_pips.w * unit, 2.5);
+            float radius = i.pixels(rift_pips.w, 2.5);
             float2 row = float2(0, halfHeight + 26 * unit);
             for (int k = 0; k < 4; k++)
             {

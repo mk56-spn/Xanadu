@@ -22,14 +22,14 @@ public sealed class StackLibraryTests
 
         uniform int many;
 
-        [Buffer(MAX)] RWStructuredBuffer<uint> keys;
-        [Buffer(MAX)] RWStructuredBuffer<uint> ids;
-        [Buffer(MAX)] RWStructuredBuffer<uint> keysB;
-        [Buffer(MAX)] RWStructuredBuffer<uint> idsB;
-        [Buffer(MAX)] RWStructuredBuffer<uint> counts;
-        [Buffer(2 * MAX)] globallycoherent RWStructuredBuffer<bvh.Node> nodes;
-        [Buffer(2 * MAX)] RWStructuredBuffer<uint> parents;
-        [Buffer(MAX)] globallycoherent RWStructuredBuffer<uint> arrivals;
+        [Size(MAX)] List<uint> keys;
+        [Size(MAX)] List<uint> ids;
+        [Size(MAX)] List<uint> keysB;
+        [Size(MAX)] List<uint> idsB;
+        [Size(MAX)] List<uint> counts;
+        [Size(2 * MAX)] globallycoherent List<bvh.Node> nodes;
+        [Size(2 * MAX)] List<uint> parents;
+        [Size(MAX)] globallycoherent List<uint> arrivals;
 
         [Pass(256, over: 1024 << many)]
         void code(uint i)
@@ -129,7 +129,7 @@ public sealed class StackLibraryTests
         string wrong = Tree.Replace("bvh.tree(n, keys, nodes,", "bvh.tree(n, nodes, nodes,");
         var error = Assert.Throws<System.InvalidOperationException>(() => Compiled(wrong))!;
 
-        Assert.That(error.Message, Does.StartWith("s/build.slang(32): error:").And.Contain("bvh.tree takes RWStructuredBuffer<uint> for keys"));
+        Assert.That(error.Message, Does.StartWith("s/build.slang(32): error:").And.Contain("bvh.tree takes List<uint> for keys"));
     }
 
     [Test]

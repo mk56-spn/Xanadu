@@ -5,11 +5,9 @@
 // none), and in the editor a ring marking it as timed (pad_state.z: the ring's
 // alpha; 0 none). The drawer sets pad_state from the pad each frame. Drawn on a
 // quad with room above for the column and round it for the rings. Sizes are
-// item units, made screen pixels with xif_unit.
+// item units, made screen pixels with `unit`.
 import xanadu;
 
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 // The slab's half width and half height (item units).
 [Default(75, 14)] uniform float2 pad_half;
 [Default(1, 0.35, 0.75, 1)] uniform colour pad_tint;
@@ -18,7 +16,6 @@ import xanadu;
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     float2 half = pad_half * unit;
     float spring = saturate(pad_state.x);
 
@@ -39,7 +36,7 @@ float4 shade(ItemInput i)
 
     // The slab with its bright border, and a white flash over it as it fires.
     let slab = Box(half * 2).measured();
-    c.paint(slab, Look(pad_tint.withAlpha(0.9), colours.white.withAlpha(0.7 + 0.3 * spring), max(2 * unit, 1)));
+    c.paint(slab, Look(pad_tint.withAlpha(0.9), colours.white.withAlpha(0.7 + 0.3 * spring), i.pixels(2, 1)));
     c.paint(slab, colours.white.withAlpha(0.7 * spring));
 
     // Three chevrons over it, springing up as it fires.
@@ -48,7 +45,7 @@ float4 shade(ItemInput i)
     for (int k = 0; k < 3; k++)
     {
         float2 tip = float2((k - 1) * half.x * 0.55, -half.y - lift * (0.6 + 0.25 * k));
-        Polyline chevron = Polyline(max(3 * unit, 2)).added(tip + float2(-wing.x, wing.y)).added(tip).added(tip + wing);
+        Polyline chevron = Polyline(i.pixels(3, 2)).added(tip + float2(-wing.x, wing.y)).added(tip).added(tip + wing);
         c.paint(chevron, colours.white.withAlpha(0.55 + 0.45 * spring));
     }
 

@@ -13,7 +13,7 @@ public sealed class ShaderStackTests
 
     private const string Fragment = "import xanadu;\nfloat4 shade(Canvas canvas) { return float4(1, 0, 0, 1); }\n";
     private const string Vertex = "import xanadu;\nItemVertex deform(ItemVertex v) { return v; }\n";
-    private const string Graph = "import xanadu;\n[Buffer(64)] RWStructuredBuffer<float> heights;\n[Pass(64, over: 64)] void grow(uint i) { heights[i] = i; }\nvoid graph() { grow(); }\n";
+    private const string Graph = "import xanadu;\n[Size(64)] List<float> heights;\n[Pass(64, over: 64)] void grow(uint i) { heights[i] = i; }\nvoid graph() { grow(); }\n";
 
     [Test]
     public void FilesComposeInTheOrderTheirRolesRunUnderTheirOwnLabels()
@@ -45,7 +45,7 @@ public sealed class ShaderStackTests
     [Test]
     public void DeclarationsMaySitInAnotherFileThanTheGraph()
     {
-        const string declared = "import xanadu;\n[Buffer(64)] RWStructuredBuffer<float> heights;\n[Pass(64, over: 64)] void grow(uint i) { heights[i] = i; }\n";
+        const string declared = "import xanadu;\n[Size(64)] List<float> heights;\n[Pass(64, over: 64)] void grow(uint i) { heights[i] = i; }\n";
         const string run = "import xanadu;\nvoid graph() { grow(); }\n";
         string body = ShaderStack.Compose("Lab/s", [new StackFile("heights.slang", declared), new StackFile("run.slang", run), new StackFile("look.slang", Fragment)]);
 

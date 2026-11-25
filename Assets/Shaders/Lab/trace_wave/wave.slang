@@ -5,8 +5,8 @@
 // depth putting it in front of or behind what else the item draws.
 import xanadu;
 
-[Image(rgba16f)] RWTexture2D<float4> shown;
-[Image(r32f)] RWTexture2D<float> depth;
+Image<float4> shown;
+Image<float> depth;
 
 groupshared float wave[8];
 

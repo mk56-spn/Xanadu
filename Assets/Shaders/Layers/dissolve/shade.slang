@@ -3,14 +3,13 @@
 // item units; edge the rim's width (0..1 of the amount) and colour.
 import xanadu;
 
-[Default(1)] uniform float xif_unit;
 [Default(0.35)] uniform float dissolve_amount;
 [Default(40)] uniform float dissolve_scale;
 [Default(1, 0.55, 0.15, 0.08)] uniform float4 dissolve_edge;
 
 float4 shade(ItemInput i)
 {
-    float n = noise.fbm(i.local / max(dissolve_scale * xif_unit, 1e-3), 4);
+    float n = noise.fbm(i.local / max(dissolve_scale * unit, 1e-3), 4);
     float cut = dissolve_amount * (1.0 + dissolve_edge.a);
     float left = n - cut;
     if (left < 0.0)

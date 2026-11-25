@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>A pass's parameter after its thread: a uint its calls pass, or (in a library) a buffer the call lends it.</summary>
-/// <param name="BufferType">The element type of a <c>RWStructuredBuffer&lt;T&gt;</c> parameter; null for a uint.</param>
+/// <param name="BufferType">The element type of a <c>List&lt;T&gt;</c> parameter; null for a uint.</param>
 public sealed record BuildParameter(string Name, string? BufferType)
 {
     public bool IsBuffer => BufferType is not null;
@@ -70,7 +70,7 @@ internal static partial class BuildPasses
     /// <summary>The most threads a pixel pass's tile holds.</summary>
     private const int MostTileThreads = 1024;
 
-    [GeneratedRegex(@"^RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s+(?<name>\w+)$")]
+    [GeneratedRegex(@"^List\s*<\s*(?<type>[\w:.]+)\s*>\s+(?<name>\w+)$")]
     private static partial Regex BufferParameter();
 
     public static BuildExpression ParseAt(string text, int index)
@@ -254,7 +254,7 @@ internal static partial class BuildPasses
             }
             else
                 throw new BuildProblem(parameters.Index, library
-                    ? $"a library pass takes uint i (its thread), then uints and RWStructuredBuffer<T>s its calls pass it: {name}(uint i, uint n, RWStructuredBuffer<uint> keys)."
+                    ? $"a library pass takes uint i (its thread), then uints and List<T>s its calls pass it: {name}(uint i, uint n, List<uint> keys)."
                     : $"a pass takes uint i (its thread), then up to {StackBuild.MaxArguments} uints its calls in build() pass it: {name}(uint i, uint round).");
         }
 

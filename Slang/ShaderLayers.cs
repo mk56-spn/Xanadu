@@ -16,7 +16,7 @@ namespace Xanadu.Slang;
 /// </summary>
 /// <remarks>
 /// Uniforms stay global: they are lifted out of the layers, so params are set by
-/// name as for one shader, and two layers declaring the same one (<c>xif_unit</c>)
+/// name as for one shader, and two layers declaring the same one (<c>tint</c>)
 /// share it, the lower layer's declaration winning. A layer that keeps state
 /// (<c>update</c>) can't be stacked. The deform's <c>[Grid]</c> is the finest any
 /// layer asks for.

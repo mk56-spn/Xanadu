@@ -13,8 +13,8 @@ struct Dot
     float size;
 };
 
-[Buffer(MOST)] RWStructuredBuffer<Dot> dots;
-[Buffer(1)] RWStructuredBuffer<uint> lit;
+[Size(MOST)] List<Dot> dots;
+Counter lit;
 
 /// How many of the ring's dots there are.
 [Default(40)] uniform int ring;

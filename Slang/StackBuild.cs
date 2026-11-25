@@ -5,17 +5,19 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// A buffer a BUILD brick declares: <c>[Buffer(size)] RWStructuredBuffer&lt;T&gt; name;</c>, kept on the GPU from frame to
-/// frame, or <c>[Host(size)]</c>: the same, filled by the host from the material's buffer of that name
+/// A list a graph declares: <c>[Size(n)] List&lt;T&gt; name;</c>, kept on the GPU from frame to frame (a
+/// <c>Counter name;</c> is a list of one uint), or <c>[Host]</c> before it: the same, filled by the host from the material's buffer of that name
 /// (<c>CanvasMaterial.SetBuffer</c>) whenever that changes, for the passes to read.
 /// </summary>
 /// <param name="Count">Elements, from the size expression.</param>
 /// <param name="Start">Where its declaration starts in the body (the attribute), for the rewrite.</param>
 /// <param name="End">Just past its <c>;</c>.</param>
-/// <param name="Host">Marked <c>[Host(size)]</c>: the host writes it.</param>
+/// <param name="Host">Marked <c>[Host]</c>: the host writes it.</param>
 /// <param name="Cached">Marked <c>[Cached]</c> before it: the passes writing it run only when it goes stale (just made, or
 /// the material's values moved), so a mesh built from values is built once, not every frame.</param>
-public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false);
+/// <param name="Bundle">The <see cref="BuildBundle"/> it is a part of, by name; null for a list of its own.</param>
+public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false,
+    string? Bundle = null);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -50,6 +52,9 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
 
     /// <summary>The uint buffer whose first element counts a draw's copies on the GPU (its place in the buffers), or -1.</summary>
     public int CopiesBuffer { get; init; } = -1;
+
+    /// <summary>Where in <see cref="CopiesBuffer"/> the count sits, in uints: a bundle's place in the bookkeeping, else 0.</summary>
+    public long CopiesAt { get; init; }
 
     /// <summary>The library module it comes from; null for the brick's own.</summary>
     public StackLibrary? Library { get; init; }
@@ -156,6 +161,9 @@ public sealed partial class StackBuild
 
     public IReadOnlyList<BuildBuffer> Buffers { get; }
 
+    /// <summary>The declarations that keep several of <see cref="Buffers"/> under one name, in order.</summary>
+    public IReadOnlyList<BuildBundle> Bundles { get; }
+
     /// <summary>Some buffer is <c>[Cached]</c>: the runner asks once a frame whether they need filling.</summary>
     public bool CachesBuffers { get; }
 
@@ -173,22 +181,27 @@ public sealed partial class StackBuild
         _code = code;
         _constants = new BuildConstants(code);
         _schedule = schedule;
-        List<BuildBuffer> buffers = ReadBuffers();
+        (List<BuildBuffer> buffers, List<BuildImage> images, List<BuildBundle> bundles) = BuildDeclarations.Read(code, Constant);
         Buffers = buffers;
+        Bundles = bundles;
         CachesBuffers = buffers.Exists(buffer => buffer.Cached);
-        Images = ReadImages();
+        Images = images;
         _passes = BuildPasses.Read(code, Constant, library: false);
         for (int p = 0; p < _passes.Count; p++)
         {
-            if (_passes[p].CopiesName is { } counted && buffers.FindIndex(buffer => buffer.Name == counted) is var count and >= 0)
+            if (_passes[p].CopiesName is { } counted && bundles.Find(bundle => bundle.Name == counted) is { } bundle)
+                _passes[p] = bundle.CountAt >= 0
+                    ? _passes[p] with { Copies = null, CopiesBuffer = buffers.FindIndex(buffer => buffer.Name == BundleKinds.Bookkeeping), CopiesAt = bundle.CountAt }
+                    : throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name}'s copies come from {counted}, a {bundle.Type}, which has no count to draw by.");
+            else if (_passes[p].CopiesName is { } named && buffers.FindIndex(buffer => buffer.Name == named) is var count and >= 0)
                 _passes[p] = buffers[count].Type == "uint"
                     ? _passes[p] with { Copies = null, CopiesBuffer = count }
-                    : throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name}'s copies come from {counted}, so it holds uints: its first is the count.");
+                    : throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name}'s copies come from {named}, so it holds uints: its first is the count.");
             if (_passes[p].PixelsOver is { } over)
             {
                 int image = Images.ToList().FindIndex(declared => declared.Name == over);
                 if (image < 0)
-                    throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name} runs over {over}, which isn't an [Image] this graph declares.");
+                    throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name} runs over {over}, which isn't an Image this graph declares.");
                 _passes[p] = _passes[p] with { OverImage = image };
             }
         }
@@ -203,9 +216,9 @@ public sealed partial class StackBuild
         Match entry = BuildEntry().Match(code);
         if (!entry.Success)
         {
-            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Host|Pass|Image|History|Pixels|Draw)\s*\(|(?:Kept|Cached)\s*\])");
-            if (stray.Success)
-                throw new BuildProblem(stray.Index, "[Buffer], [Host], [Image], [Kept], [Cached], [History], [Pass], [Pixels] and [Draw] belong to a graph: declare a void graph() that runs them, in any of the stack's files.");
+            Match stray = Regex.Match(code, @"\[\s*(?:Pass|Pixels|Draw)\s*\(");
+            if (stray.Success || BuildDeclarations.Any(code))
+                throw new BuildProblem(stray.Success ? stray.Index : 0, "Lists, Counters, Images, [Pass], [Pixels] and [Draw] belong to a graph: declare a void graph() that runs them, in any of the stack's files.");
             return null;
         }
 
@@ -220,141 +233,8 @@ public sealed partial class StackBuild
     [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex BuildEntry();
 
-    [GeneratedRegex(@"(?<kept>\[\s*(?<life>Kept|Cached)\s*\]\s*)?(?<image>\[\s*Image\s*\(\s*(?<format>\w+)\s*(?:,\s*scale\s*:\s*(?<scale>[^,\)\]]+?)\s*)?(?:,\s*(?<w>[^,:\)\]]+?)\s*,\s*(?<h>[^,:\)\]]+?)\s*)?(?:,\s*clear\s*:\s*(?<clear>[^\)\]]+?)\s*)?\)\s*\])\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
-    private static partial Regex ImageDeclaration();
-
-    [GeneratedRegex(@"\[\s*History\s*\(\s*(?<source>\w+)\s*\)\s*\]\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
-    private static partial Regex HistoryDeclaration();
-
-    /// <summary>The image formats a graph may declare, and the texel type each is read as.</summary>
-    public static readonly IReadOnlyDictionary<string, string> ImageFormats = new Dictionary<string, string>
-    {
-        ["rgba16f"] = "float4", ["rgba8"] = "float4", ["rgba32f"] = "float4", ["rg16f"] = "float2",
-        ["r16f"] = "float", ["r32f"] = "float", ["r32ui"] = "uint",
-    };
-
-    [GeneratedRegex(@"(?<cached>\[\s*Cached\s*\]\s*)?\[\s*(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
-    private static partial Regex BufferDeclaration();
-
     /// <summary>A <c>static const</c> of the body, worked out; null when there is none by that name or it can't be.</summary>
     public BuildValue? Constant(string name) => _constants.Of(name);
-
-    private List<BuildBuffer> ReadBuffers()
-    {
-        var buffers = new List<BuildBuffer>();
-        var declared = BufferDeclaration().Matches(_code);
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer|Host)\s*\("))
-            if (!declared.Any(match => match.Index == marker.Index || match.Groups["cached"].Success && match.Index + match.Groups["cached"].Length == marker.Index))
-                throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), or [Host(size)] for one the host fills.");
-
-        foreach (Match match in declared)
-        {
-            string name = match.Groups["name"].Value;
-            if (buffers.Any(buffer => buffer.Name == name))
-                throw new BuildProblem(match.Index, $"the buffer {name} is declared twice.");
-            Group size = match.Groups["size"];
-            BuildValue count = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, Constant);
-            if (!count.Whole || count.Long < 1)
-                throw new BuildProblem(size.Index, $"a buffer's size is a whole number of elements, at least 1 ({name} has {count}).");
-            buffers.Add(new BuildBuffer(name, match.Groups["type"].Value, count.Long, match.Groups["coherent"].Success,
-                match.Index, match.Index + match.Length, Host: match.Groups["host"].Success, Cached: match.Groups["cached"].Success));
-        }
-
-        return buffers;
-    }
-
-    private static ImageLife LifeOf(Match image) => image.Groups["life"].Value switch
-    {
-        "Kept" => ImageLife.Kept,
-        "Cached" => ImageLife.Cached,
-        _ => ImageLife.Frame,
-    };
-
-    private List<BuildImage> ReadImages()
-    {
-        var images = new List<BuildImage>();
-        var declared = ImageDeclaration().Matches(_code);
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*Image\s*\("))
-            if (!declared.Any(match => match.Groups["image"].Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (the item's box), [Image(format, scale: 0.5)] (a part of it) or [Image(format, 256, 256)] (fixed), with clear: value last if wanted (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui), [Kept] before it to keep it from frame to frame, or [Cached] to fill it only when the values change.");
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*(Kept|Cached)\s*\]"))
-            if (!declared.Any(match => match.Groups["kept"].Success && match.Index == marker.Index)
-                && !(marker.Groups[1].Value == "Cached" && Buffers.Any(buffer => buffer.Cached && buffer.Start == marker.Index)))
-                throw new BuildProblem(marker.Index, marker.Groups[1].Value == "Kept"
-                    ? "[Kept] goes on an image (buffers are always kept): [Kept] [Image(format)] RWTexture2D<T> name;."
-                    : "[Cached] goes on an image or a buffer: [Cached] [Image(format)] RWTexture2D<T> name; or [Cached] [Buffer(size)] RWStructuredBuffer<T> name;.");
-
-        foreach (Match match in declared)
-        {
-            string name = match.Groups["name"].Value, format = match.Groups["format"].Value, type = match.Groups["type"].Value;
-            if (!ImageFormats.TryGetValue(format, out string? texel))
-                throw new BuildProblem(match.Index, $"{format} isn't an image format; use rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui.");
-            if (texel != type)
-                throw new BuildProblem(match.Index, $"a {format} image holds {texel}: [Image({format})] RWTexture2D<{texel}> {name};");
-            Declare(images, name, match.Index);
-            float clear = 0f;
-            if (match.Groups["clear"] is { Success: true } value)
-                clear = (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, Constant).Number;
-            images.Add(new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length,
-                LifeOf(match), Size: SizeOf(match, name)));
-        }
-
-        var histories = HistoryDeclaration().Matches(_code);
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*History\s*\("))
-            if (!histories.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a history as [History(image)] RWTexture2D<T> name;: last frame's copy of an image this graph declares.");
-
-        // After every image, so a history may come before its source.
-        int sources = images.Count;
-        foreach (Match match in histories)
-        {
-            string name = match.Groups["name"].Value, from = match.Groups["source"].Value, type = match.Groups["type"].Value;
-            int source = images.FindIndex(0, sources, image => image.Name == from);
-            if (source < 0)
-                throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an [Image] this graph declares.");
-            BuildImage of = images[source];
-            if (of.Life is ImageLife.Kept or ImageLife.Cached)
-                throw new BuildProblem(match.Index, $"{from} is [{of.Life}]: it already holds last frame's texels, so it needs no history.");
-            if (images.Any(image => image.Source == source))
-                throw new BuildProblem(match.Index, $"{from} has a history already.");
-            if (type != of.Type)
-                throw new BuildProblem(match.Index, $"{from} holds {of.Type}, so its history does too: [History({from})] RWTexture2D<{of.Type}> {name};");
-            Declare(images, name, match.Index);
-            images.Add(new BuildImage(name, of.Format, of.Type, of.Clear, match.Index, match.Index + match.Length, ImageLife.History, source, of.Size));
-        }
-
-        return images;
-    }
-
-    /// <summary>An image's size as its declaration gives it: a scale of the box, a fixed size, or neither.</summary>
-    private ImageSize SizeOf(Match match, string name)
-    {
-        double Number(Group group) => BuildPasses.Evaluate(BuildPasses.ParseAt(group.Value, group.Index), group.Index, Constant).Number;
-        bool scaled = match.Groups["scale"].Success, sized = match.Groups["w"].Success;
-        if (scaled && sized)
-            throw new BuildProblem(match.Index, $"{name} has a scale or a size, not both.");
-        if (scaled)
-        {
-            double scale = Number(match.Groups["scale"]);
-            if (scale is <= 0 or > 4)
-                throw new BuildProblem(match.Groups["scale"].Index, $"a scale is above 0 and at most 4 ({name} has {scale}).");
-            return new ImageSize((float)scale);
-        }
-
-        if (!sized)
-            return default;
-        double width = Number(match.Groups["w"]), height = Number(match.Groups["h"]);
-        if (width != Math.Floor(width) || height != Math.Floor(height) || width is < 1 or > 8192 || height is < 1 or > 8192)
-            throw new BuildProblem(match.Groups["w"].Index, $"a fixed size is whole texels, 1 to 8192 each way ({name} is {width} × {height}).");
-        return new ImageSize(0, (int)width, (int)height);
-    }
-
-    /// <summary>Throws when <paramref name="name"/> is an image or buffer already.</summary>
-    private void Declare(List<BuildImage> images, string name, int at)
-    {
-        if (images.Any(image => image.Name == name) || Buffers.Any(buffer => buffer.Name == name))
-            throw new BuildProblem(at, $"{name} is declared twice.");
-    }
 
     // ---- the body as each stage compiles it --------------------------------------------
 
@@ -372,11 +252,12 @@ public sealed partial class StackBuild
     public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null, int? imageSet = null)
     {
         var spans = new List<(int Start, int End, string Text)>();
+        string Declared(int k) => $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{Buffers[k].Type}> {Buffers[k].Name};";
         for (int k = 0; k < Buffers.Count; k++)
-        {
-            BuildBuffer buffer = Buffers[k];
-            spans.Add((buffer.Start, buffer.End, $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{buffer.Type}> {buffer.Name};"));
-        }
+            if (Buffers[k].Bundle is null)
+                spans.Add((Buffers[k].Start, Buffers[k].End, Declared(k)));
+        foreach (BuildBundle bundle in Bundles)
+            spans.Add((bundle.Start, bundle.End, BundleKinds.Rewritten(bundle, Buffers, Declared)));
 
         for (int k = 0; k < Images.Count; k++)
         {

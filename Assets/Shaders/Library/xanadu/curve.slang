@@ -216,9 +216,9 @@ public struct Helix : ICurve3
 /// loops `q` times through the ring's hole, weaving `swing` px either side of a ring `radius`
 /// round. (2, 3) is the trefoil, (3, 2) its cousin, (2, 5) a five-lobed star; p and q with no
 /// common factor give one unbroken knot. It crosses over itself, which the pool's draw sorts
-/// by depth (mesh.pulled).
+/// by depth (Meshes.pulled).
 ///
-///     mesh.grid(TorusKnot(120, 50, 2, 3).tube(18), t, uint2(64, 16), 0, 0, corners, triangles, meshlets)
+///     pool.grid(TorusKnot(120, 50, 2, 3).tube(18), t, uint2(64, 16), 0, 0)
 public struct TorusKnot : ICurve3
 {
     public float radius;

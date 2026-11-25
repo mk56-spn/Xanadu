@@ -10,9 +10,7 @@ static const float LENGTH = 4000;
 static const uint2 CELLS = uint2(96, 56);
 static const uint PAGES = 84;                    // pages a 96 x 56 grid takes (mesh.pagesFor)
 
-[Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
-[Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+[Pages(PAGES)] Meshes pool;
 
 Camera camera(float scale) { return Camera(10 * scale, 700 * scale); }
 
@@ -32,7 +30,7 @@ struct Tunnel : ISurface
 }
 
 [Pass(128, over: PAGES * 128)]
-void make(uint i) { mesh.grid(Tunnel(), i, CELLS, 0, 0, corners, triangles, meshlets); }
+void make(uint i) { pool.grid(Tunnel(), i, CELLS, 0, 0); }
 
 [Draw(64, 1, shade: look, copies: PAGES)]
 ItemVertex shown(ItemVertex v)
@@ -40,7 +38,7 @@ ItemVertex shown(ItemVertex v)
     float scale = v.rest.size.y / 810;
     Placement3 p = Placement3();
     p.scale = scale;
-    return mesh.pulled(v, p, camera(scale), corners, triangles, meshlets);
+    return pool.pulled(v, p, camera(scale));
 }
 
 float4 look(ItemInput i)

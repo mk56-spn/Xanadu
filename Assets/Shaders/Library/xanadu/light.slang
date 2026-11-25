@@ -5,14 +5,14 @@
 // triangle) and lights it once, whoever made it, so a mesh drawn into a marched room gets the
 // room's lamp, shadows and occlusion.
 //
-//     [Image(r32f, clear: 1e30)] RWTexture2D<float> depth;    // pixels into the screen; empty is Visibility.EMPTY
-//     [Image(r32ui)]             RWTexture2D<uint>  ids;      // whose: makers.NONE where nothing is
-//     [Image(rgba16f)]           RWTexture2D<float4> shown;
+//     [Clear(1e30)] Image<float> depth;    // pixels into the screen; empty is Visibility.EMPTY
+//     Image<uint> ids;      // whose: makers.NONE where nothing is
+//     Image<float4> shown;
 //
 //     Visibility seen() { return Visibility(depth, ids); }
 //
 //     [Draw(64, 1, shade: ringSeen, copies: PAGES)]    // a pool draw writes depth and ids
-//     ItemVertex ringDrawn(ItemVertex v) { return mesh.pulled(v, placed(), eye(v.rest.size), corners, triangles, meshlets); }
+//     ItemVertex ringDrawn(ItemVertex v) { return pool.pulled(v, placed(), eye(v.rest.size)); }
 //     IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 //
 //     [Pixels(8, 8)]
@@ -20,7 +20,7 @@
 //     {
 //         Camera camera = eye(canvas.size);
 //         Seen s = seen().at(group.pixel, camera, canvas);
-//         Surface here = Surface(s.onMesh(placed(), corners, triangles).normal, colours.orange);
+//         Surface here = Surface(s.onMesh(placed(), pool).normal, colours.orange);
 //         shown[group.pixel] = Lighting().deferred(s, here, camera, Unshadowed());
 //     }
 //
@@ -212,14 +212,14 @@ public extension Seen
 {
     /// The pool triangle this pixel shows (a makers.mesh id), placed by `placed` as its draw
     /// placed it: the ray meets the triangle, and its corners' normals and uvs are blended there.
-    public MeshPoint onMesh(Placement3 placed, RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles)
+    public MeshPoint onMesh(Placement3 placed, Meshes pool)
     {
         uint n = makers.index(id);
         uint base = n - n % mesh.PAGE;
-        uint packed = triangles[n];
-        MeshVertex a = corners[base + (packed & 0xFFu)];
-        MeshVertex b = corners[base + ((packed >> 8) & 0xFFu)];
-        MeshVertex c = corners[base + ((packed >> 16) & 0xFFu)];
+        uint packed = pool.triangles[n];
+        MeshVertex a = pool.corners[base + (packed & 0xFFu)];
+        MeshVertex b = pool.corners[base + ((packed >> 8) & 0xFFu)];
+        MeshVertex c = pool.corners[base + ((packed >> 16) & 0xFFu)];
         float3 pa = placed.toWorld(a.position), pb = placed.toWorld(b.position), pc = placed.toWorld(c.position);
         // Möller-Trumbore: where the ray crosses the triangle's plane, in its two edges.
         float3 e1 = pb - pa, e2 = pc - pa;
@@ -245,10 +245,10 @@ public struct Visibility
     /// What a cleared depth holds: nothing there. Declare the depth image cleared to it: `clear: 1e30`.
     public static const float EMPTY = 1e30;
 
-    public RWTexture2D<float> depth;
-    public RWTexture2D<uint> ids;
+    public Image<float> depth;
+    public Image<uint> ids;
 
-    public __init(RWTexture2D<float> depth, RWTexture2D<uint> ids)
+    public __init(Image<float> depth, Image<uint> ids)
     {
         this.depth = depth;
         this.ids = ids;
@@ -340,19 +340,19 @@ public BothShadows<A, B> both<A : IShadows, B : IShadows>(A a, B b) { return Bot
 /// looking at the origin) sees it, in an image the item's box's size, drawn by any maker's draw
 /// through that camera. Darkens only light `light`; no occlusion of its own.
 ///
-///     [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+///     [Clear(1e30)] Image<float> lampDepth;
 ///     [Draw(64, 1, shade: fromLamp, copies: PAGES)]
-///     ItemVertex seenByLamp(ItemVertex v) { return mesh.pulled(v, placed(), lampEye(v.rest.size), corners, triangles, meshlets); }
+///     ItemVertex seenByLamp(ItemVertex v) { return pool.pulled(v, placed(), lampEye(v.rest.size)); }
 ///     float fromLamp(ItemInput i) { return i.depth; }
 ///     // graph(): seenByLamp(lampDepth);   lighting: ShadowMap(Lighting.LAMP, lampDepth, lampEye(canvas.size), canvas.size)
 public struct ShadowMap : IShadows
 {
     public uint light;
-    public RWTexture2D<float> depth;
+    public Image<float> depth;
     public Camera camera;
     public float2 size;
 
-    public __init(uint light, RWTexture2D<float> depth, Camera camera, float2 size)
+    public __init(uint light, Image<float> depth, Camera camera, float2 size)
     {
         this.light = light;
         this.depth = depth;
@@ -393,19 +393,19 @@ public struct ShadowMap : IShadows
 /// LampShadow.pulled over six times its pages (a sixth a face), its shade LampShadow.depthOf; the
 /// lighting asks it for light `light` only.
 ///
-///     [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+///     [Clear(1e30)] Image<float> lampDepth;
 ///     [Draw(64, 1, shade: fromLamp, copies: PAGES * 6)]
-///     ItemVertex seenByLamp(ItemVertex v) { return LampShadow.pulled(v, placed(), LAMP, PAGES, corners, triangles, meshlets); }
+///     ItemVertex seenByLamp(ItemVertex v) { return LampShadow.pulled(v, placed(), LAMP, PAGES, pool); }
 ///     float fromLamp(ItemInput i) { return LampShadow.depthOf(i, PAGES); }
 ///     // lighting: LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)
 public struct LampShadow : IShadows
 {
     public uint light;
-    public RWTexture2D<float> depth;
+    public Image<float> depth;
     public float3 lamp;
     public float2 size;
 
-    public __init(uint light, RWTexture2D<float> depth, float3 lamp, float2 size)
+    public __init(uint light, Image<float> depth, float3 lamp, float2 size)
     {
         this.light = light;
         this.depth = depth;
@@ -454,24 +454,23 @@ public struct LampShadow : IShadows
     /// A pool draw's corner as face `copy / pages` sees it from `lamp`, for the lamp's map: the
     /// page is `copy % pages`. A triangle with a corner behind the face is folded away (the face it
     /// faces draws it).
-    public static ItemVertex pulled(ItemVertex v, Placement3 placed, float3 lamp, uint pages,
-        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    public static ItemVertex pulled(ItemVertex v, Placement3 placed, float3 lamp, uint pages, Meshes pool)
     {
         uint face = copy / pages;
         uint page = copy % pages;
         uint t = v.index / 3;
-        Meshlet m = meshlets[page];
+        Meshlet m = pool.pages[page];
         float3x3 b = basis(face);
-        uint packed = t < m.triangles ? triangles[page * mesh.PAGE + t] : 0u;
+        uint packed = t < m.triangles ? pool.triangles[page * mesh.PAGE + t] : 0u;
         bool behind = t >= m.triangles;
         for (uint k = 0; k < 3 && !behind; k++)
-            behind = mul(b, placed.toWorld(corners[page * mesh.PAGE + ((packed >> (8 * k)) & 0xFFu)].position) - lamp).z < 1.0;
+            behind = mul(b, placed.toWorld(pool.corners[page * mesh.PAGE + ((packed >> (8 * k)) & 0xFFu)].position) - lamp).z < 1.0;
         if (behind)
         {
             v.fold();
             return v;
         }
-        float3 p = placed.toWorld(corners[page * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFFu)].position);
+        float3 p = placed.toWorld(pool.corners[page * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFFu)].position);
         float3 at = onFace(face, lamp, p, v.rest.size);
         v.position = v.rest.position - v.rest.size * 0.5 + at.xy;
         v.depth = at.z;
@@ -517,7 +516,7 @@ public struct LampShadow : IShadows
 /// included; no shadows of its own. Seen through `camera`, at this pixel pass's pixel.
 public struct ScreenOcclusion : IShadows
 {
-    public RWTexture2D<float> depth;
+    public Image<float> depth;
     public Camera camera;
     /// The pixel asked about in the full-size depth, its place on the box, and the box's size.
     public float2 pixel;
@@ -525,10 +524,10 @@ public struct ScreenOcclusion : IShadows
     public float2 size;
 
     /// At this pixel pass's own pixel.
-    public __init(RWTexture2D<float> depth, Camera camera, Canvas canvas) { this = ScreenOcclusion(depth, camera, float2(group.pixel), canvas.centred, canvas.size); }
+    public __init(Image<float> depth, Camera camera, Canvas canvas) { this = ScreenOcclusion(depth, camera, float2(group.pixel), canvas.centred, canvas.size); }
 
     /// At full-size `pixel` (`centred` on the box), from a pass over a smaller image (ShadowMask.of).
-    public __init(RWTexture2D<float> depth, Camera camera, float2 pixel, float2 centred, float2 size)
+    public __init(Image<float> depth, Camera camera, float2 pixel, float2 centred, float2 size)
     {
         this.depth = depth;
         this.camera = camera;
@@ -572,7 +571,7 @@ public struct ScreenOcclusion : IShadows
 /// pass reads it back (the constructor), each of the four nearest texels weighted by how near it
 /// is and by how like this pixel's its depth is, so an edge doesn't bleed across.
 ///
-///     [Image(rgba16f, scale: 0.5)] RWTexture2D<float4> shadowed;
+///     [Scale(0.5)] Image<float4> shadowed;
 ///     [Pixels(8, 8, over: shadowed)]
 ///     void shadowing(ItemInput i, Canvas canvas)
 ///     {
@@ -611,7 +610,7 @@ public struct ShadowMask : IShadows
     }
 
     /// The values at full-size `pixel`, `deep` into the screen, from `mask`, `every` pixels a texel.
-    public __init(RWTexture2D<float4> mask, RWTexture2D<float> depth, uint2 pixel, uint every, float deep)
+    public __init(Image<float4> mask, Image<float> depth, uint2 pixel, uint every, float deep)
     {
         uint2 dims;
         mask.GetDimensions(dims.x, dims.y);

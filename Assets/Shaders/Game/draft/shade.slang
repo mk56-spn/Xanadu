@@ -4,11 +4,9 @@
 // sets draft_state from the draft each frame (the song's seconds, where the
 // hover is, how bright its bar is). The quad runs from the top of the column
 // down to the slab's foot; the draft's place (the vent) is the middle of the
-// slab. Sizes are item units, made screen pixels with xif_unit.
+// slab. Sizes are item units, made screen pixels with `unit`.
 import xanadu;
 
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 // Half the emitter's width, how far the column reaches above the vent, the slab's height (item units).
 [Default(180, 750, 24, 0)] uniform float4 draft_box;
 [Default(0.55, 0.88, 1, 1)] uniform colour draft_tint;
@@ -19,11 +17,10 @@ static const int Wisps = 7;
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     float halfWidth = draft_box.x * unit, reach = draft_box.y * unit, slabHeight = draft_box.z * unit;
     // The vent, from the quad's middle: half way between the column's top and the slab's foot.
     float2 vent = float2(0, (reach - slabHeight * 0.5) * 0.5);
-    float line = max(3 * unit, 1.5);
+    float line = i.pixels(3, 1.5);
 
     colour c = colours.transparent;
 
@@ -46,7 +43,7 @@ float4 shade(ItemInput i)
     c.paint(Line(hover - float2(halfWidth * 0.5, 0), hover + float2(halfWidth * 0.5, 0), line), draft_tint.withAlpha(draft_state.z));
 
     // The emitter: a slab, outlined, with five vents across it.
-    float edge = max(2 * unit, 1);
+    float edge = i.pixels(2, 1);
     c.paint(Box(float2(halfWidth * 2, slabHeight)).moved(vent), Look(colour(draft_tint.rgb * float3(0.5, 0.5, 0.6)), draft_tint.withAlpha(1), edge));
     float ventHalf = slabHeight * 0.5 - 3;
     c.paint(Line(float2(0, -ventHalf), float2(0, ventHalf), edge).tiled(float2(halfWidth / 3, 1e5), float2(2, 0)).moved(vent),

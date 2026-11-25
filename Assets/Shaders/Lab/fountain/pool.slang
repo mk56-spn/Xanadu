@@ -39,9 +39,9 @@ struct Particle
 static const uint SLOTS = 8000;
 static const float RATE = 2500;
 
-[Buffer(SLOTS)] RWStructuredBuffer<Particle> slots;
+[Size(SLOTS)] List<Particle> slots;
 // Births so far, the first born this frame, how many, and the birth owed (a float's bits).
-[Buffer(4)] RWStructuredBuffer<uint> births;
+[Size(4)] List<uint> births;
 
 /// Birth number n: at the emitter, with its own direction, speed and length of life.
 Particle start(uint n)

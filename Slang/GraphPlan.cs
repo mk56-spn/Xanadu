@@ -95,7 +95,7 @@ public sealed class GraphPlan
     public string? Problem { get; private set; }
 
     /// <summary>
-    /// The graph's images, by the places its nodes name: the schedule's <c>[Image]</c>s. Each item showing the graph gets
+    /// The graph's images, by the places its nodes name: the schedule's <c>Image</c>s. Each item showing the graph gets
     /// its own, but for the material's.
     /// </summary>
     public static IEnumerable<PlannedImage> Images(CompiledShader fragment)

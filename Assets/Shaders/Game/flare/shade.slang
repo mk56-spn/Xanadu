@@ -1,6 +1,6 @@
 // A lens flare worked out per pixel round the middle of the shape it is drawn
 // on. Sizes are in item units (design pixels), turned into screen pixels with
-// xif_unit like the rest of the library, so it scales with the item and the
+// unit like the rest of the library, so it scales with the item and the
 // view, never with the shape's outline. FIT on the item sizes its box to the
 // shape; otherwise the box is its own and the shape only clips it. It holds
 // still: anything that moves it over time does so from outside. Ported from
@@ -17,8 +17,6 @@ import xanadu;
 [Default(1, 0.6, 0.25, 1)] uniform float4 flare_tint;
 // Streak falloff, heat.
 [Default(1.5, 0.7)] uniform float2 flare_shape;
-// Screen pixels per item unit; the drawer sets it.
-[Default(1)] uniform float xif_unit;
 
 // One streak: bright along its axis, fading to nothing at the box's edge,
 // a sharp line inside a softer spread that thins out towards the ends.
@@ -33,7 +31,6 @@ float streak(float along, float across, float thickness, float falloff)
 
 float4 shade(ItemInput i)
 {
-    float unit = max(xif_unit, 1e-4);
     // This pixel from the shape's middle, in item units.
     float2 p = i.canvas.centred / unit;
     float4 box = flare_box, light = flare_light;

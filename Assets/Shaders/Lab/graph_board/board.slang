@@ -28,8 +28,8 @@ struct Hot
     float4 tone;
 };
 
-[Host(WIRES)] RWStructuredBuffer<Wire> wires;
-[Host(HOT)] RWStructuredBuffer<Hot> hot;
+[Host] [Size(WIRES)] List<Wire> wires;
+[Host] [Size(HOT)] List<Hot> hot;
 
 [Default(0)] uniform int wireCount;
 [Default(0)] uniform int hotCount;

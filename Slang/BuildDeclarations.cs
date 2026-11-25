@@ -1,0 +1,282 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+namespace Xanadu.Slang;
+
+/// <summary>
+/// What a graph keeps, read from its declarations: lists, counters and images, each a type and a name with plain
+/// attributes before it.
+/// <code>
+/// [Size(256)] List&lt;Part&gt; parts;               // 256 parts, kept from frame to frame
+/// [Cached] [Size(RING)] List&lt;Meshlet&gt; meshlets; // filled only when the values change
+/// [Host] [Size(WIRES)] List&lt;Wire&gt; wires;         // the host fills it
+/// Counter drawn;                                // one uint to count with: drawn.add(1)
+/// Image&lt;float4&gt; shown;                          // the item's box, colour
+/// [Clear(1e30)] Image&lt;float&gt; depth;
+/// [Scale(0.5)] Image&lt;float4&gt; shadowed;          // half the box
+/// [Size(256, 256)] Image&lt;float&gt; heights;       // fixed
+/// [Kept] Image&lt;float4&gt; paint;                   // kept from frame to frame
+/// [History(shown)] Image&lt;float4&gt; before;        // last frame's shown
+/// </code>
+/// Gathered, Slots and Meshes keep several lists under one name (<see cref="BuildBundle"/>).
+/// An image's texel format comes from what it holds: <c>float</c> is r32f, <c>float2</c> rg16f, <c>float4</c> rgba16f,
+/// <c>uint</c> r32ui; <c>[Precise]</c> makes a float4 rgba32f and <c>[Compact]</c> makes a float4 rgba8, a float r16f.
+/// </summary>
+internal static partial class BuildDeclarations
+{
+    private const string Forms =
+        "[Size(n)] List<T> name; (with [Cached] or [Host] before it if wanted), Counter name;, or Image<T> name; "
+        + "(T float, float2, float4 or uint; with [Kept], [Cached] or [History(image)], [Scale(s)] or [Size(w, h)], "
+        + "[Clear(value)], and [Precise] or [Compact] before it if wanted), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
+        + "or [Pages(n)] Meshes name; (with [Cached] before them if wanted)";
+
+    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Pages"];
+
+    [GeneratedRegex(@"(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?<coherent>globallycoherent\s+)?\b(?<kind>List|Image|Counter|Gathered|Slots|Meshes)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<name>\w+)\s*;")]
+    private static partial Regex Declaration();
+
+    [GeneratedRegex(@"\[\s*(?<word>\w+)\s*(?:\((?<arguments>[^\]]*)\))?\s*\]")]
+    private static partial Regex Attribute();
+
+    /// <summary>A stray graph attribute's place in <paramref name="code"/>, or -1: one that sits on no declaration.</summary>
+    public static int Stray(string code)
+    {
+        HashSet<int> held = [.. Declaration().Matches(code).SelectMany(match => Attribute().Matches(match.Groups["attributes"].Value)
+            .Select(attribute => match.Groups["attributes"].Index + attribute.Index))];
+        foreach (Match attribute in Attribute().Matches(code))
+            if (Words.Contains(attribute.Groups["word"].Value) && !held.Contains(attribute.Index))
+                return attribute.Index;
+        return -1;
+    }
+
+    /// <summary>True when <paramref name="code"/> declares anything a graph keeps.</summary>
+    public static bool Any(string code) => Declaration().IsMatch(code) || Stray(code) >= 0;
+
+    /// <summary>The lists, images and bundles of <paramref name="code"/>, in order; throws <see cref="BuildProblem"/> when one is written wrong.</summary>
+    public static (List<BuildBuffer> Buffers, List<BuildImage> Images, List<BuildBundle> Bundles) Read(string code,
+        System.Func<string, BuildValue?> constant)
+    {
+        if (Stray(code) is var stray and >= 0)
+            throw new BuildProblem(stray, $"this attribute goes on a declaration: {Forms}.");
+
+        List<BuildBuffer> buffers = [];
+        List<BuildImage> images = [];
+        List<BuildBundle> bundles = [];
+        long book = 0;
+        string? keeper = null;
+        List<(Match Match, Dictionary<string, Argument?> Said)> histories = [];
+        foreach (Match match in Declaration().Matches(code))
+        {
+            string name = match.Groups["name"].Value, kind = match.Groups["kind"].Value;
+            if (name == BundleKinds.Bookkeeping || buffers.Any(buffer => buffer.Name == name || buffer.Bundle == name)
+                || images.Any(image => image.Name == name) || bundles.Any(bundle => bundle.Name == name))
+                throw new BuildProblem(match.Index, $"{name} is declared twice.");
+            Dictionary<string, Argument?> said = Said(match, kind);
+            if (kind == "Image" && said.ContainsKey("History"))
+                histories.Add((match, said));
+            else if (kind == "Image")
+                images.Add(ReadImage(match, said, constant));
+            else if (BundleKinds.Kinds.ContainsKey(kind))
+            {
+                bundles.Add(ReadBundle(match, said, kind, buffers, ref book, constant));
+                if (book > 0)
+                    keeper ??= bundles[^1].Name;
+            }
+            else
+                buffers.Add(ReadBuffer(match, said, kind, constant));
+        }
+
+        // After every image, so a history may come before its source.
+        int sources = images.Count;
+        foreach ((Match match, Dictionary<string, Argument?> said) in histories)
+            images.Add(ReadHistory(match, said, images, sources));
+        // The bookkeeping is declared with the first bundle that keeps anything in it.
+        if (keeper is not null)
+        {
+            BuildBundle first = bundles.Find(bundle => bundle.Name == keeper)!;
+            buffers.Add(new BuildBuffer(BundleKinds.Bookkeeping, "uint", book, false, first.Start, first.End, Bundle: keeper));
+        }
+
+        ClaimNames(code, [
+            .. buffers.Where(buffer => buffer.Bundle is null).Select(buffer => (buffer.Name, buffer.Start, buffer.End)),
+            .. images.Select(image => (image.Name, image.Start, image.End)),
+            .. bundles.Select(bundle => (bundle.Name, bundle.Start, bundle.End))]);
+        return (buffers, images, bundles);
+    }
+
+    /// <summary>Words that can stand before a name without declaring it: <c>return pool;</c> uses pool.</summary>
+    private static readonly HashSet<string> NotTypes = ["return", "case", "else", "goto", "throw", "new", "in", "out", "inout", "const", "static"];
+
+    [GeneratedRegex(@"(?<![\w.:])(?<type>[A-Za-z_]\w*(?:(?:\.|::)\w+)*(?:<[^<>;(){}]*>)?)\s+(?<name>[A-Za-z_]\w*)\s*(?=[(;=,)\[:])")]
+    private static partial Regex Named();
+
+    /// <summary>
+    /// Throws when anything else in <paramref name="code"/> (a function, a global, a local, a parameter) takes the name of
+    /// something the graph keeps: the graph's name would be hidden there, or clash outright, and Slang's word for it is far
+    /// from the declaration.
+    /// </summary>
+    private static void ClaimNames(string code, List<(string Name, int Start, int End)> kept)
+    {
+        // A struct's fields are reached through a value (p.alive), so they never hide a name.
+        List<(int Open, int Close)> structs = [];
+        foreach (Match body in Regex.Matches(code, @"\bstruct\s+\w+[^{;]*\{"))
+            structs.Add((body.Index, BuildText.Matching(code, body.Index + body.Length - 1)));
+        Dictionary<string, (int Start, int End)> owned = [];
+        foreach ((string name, int start, int end) in kept)
+            owned[name] = (start, end);
+        foreach (Match match in Named().Matches(code))
+        {
+            string name = match.Groups["name"].Value;
+            if (!owned.TryGetValue(name, out var declared) || match.Index >= declared.Start && match.Index < declared.End
+                || NotTypes.Contains(match.Groups["type"].Value) || structs.Exists(body => match.Index > body.Open && match.Index < body.Close))
+                continue;
+            bool function = code.AsSpan(match.Index + match.Length).TrimStart().StartsWith("(");
+            throw new BuildProblem(match.Groups["name"].Index,
+                $"{name} is already something the graph keeps; give this {(function ? "function" : "variable")} another name.");
+        }
+    }
+
+    /// <summary>A declaration's attributes, by word, with their arguments; throws for one that doesn't belong on its kind.</summary>
+    private static Dictionary<string, Argument?> Said(Match match, string kind)
+    {
+        string[] allowed = kind switch
+        {
+            "List" => ["Size", "Cached", "Host"],
+            "Counter" => [],
+            "Gathered" or "Slots" or "Meshes" => BundleKinds.Allowed(kind),
+            _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact"],
+        };
+        Dictionary<string, Argument?> said = [];
+        Group attributes = match.Groups["attributes"];
+        foreach (Match attribute in Attribute().Matches(attributes.Value))
+        {
+            string word = attribute.Groups["word"].Value;
+            if (!allowed.Contains(word))
+                throw new BuildProblem(attributes.Index + attribute.Index, kind == "Counter"
+                    ? "a Counter takes no attributes: Counter name;."
+                    : $"[{word}] doesn't go on a{(kind == "Image" ? "n" : "")} {kind}: {Forms}.");
+            if (!said.TryAdd(word, attribute.Groups["arguments"].Success
+                    ? new Argument(attribute.Groups["arguments"].Value, attributes.Index + attribute.Groups["arguments"].Index)
+                    : null))
+                throw new BuildProblem(attributes.Index + attribute.Index, $"[{word}] is said twice.");
+        }
+
+        if (match.Groups["coherent"].Success && kind != "List")
+            throw new BuildProblem(match.Index, "only a List can be globallycoherent.");
+        bool generic = kind is "List" or "Image" || BundleKinds.Kinds.TryGetValue(kind, out var bundle) && bundle.Generic;
+        if (!generic && match.Groups["type"].Success)
+            throw new BuildProblem(match.Index, $"a {kind} holds what it always does: {kind} {match.Groups["name"].Value};.");
+        if (generic && !match.Groups["type"].Success)
+            throw new BuildProblem(match.Index, $"say what a{(kind == "Image" ? "n" : "")} {kind} holds: {kind}<T> {match.Groups["name"].Value};.");
+        if (said.ContainsKey("Kept") && said.ContainsKey("Cached") || said.ContainsKey("History") && (said.ContainsKey("Kept") || said.ContainsKey("Cached")))
+            throw new BuildProblem(match.Index, "an image is [Kept], [Cached] or a [History], one of them.");
+        if (said.ContainsKey("Precise") && said.ContainsKey("Compact"))
+            throw new BuildProblem(match.Index, "an image is [Precise] or [Compact], not both.");
+        return said;
+    }
+
+    private static BuildBundle ReadBundle(Match match, Dictionary<string, Argument?> said, string kind, List<BuildBuffer> buffers,
+        ref long book, System.Func<string, BuildValue?> constant)
+    {
+        string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
+        string word = BundleKinds.Kinds[kind].SizeWord;
+        if (!said.TryGetValue(word, out Argument? size) || size is null)
+            throw new BuildProblem(match.Index, $"say how big {name} is: [{word}(n)] {kind}{(type == "" ? "" : $"<{type}>")} {name};.");
+        BuildValue value = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, constant);
+        if (!value.Whole || value.Long < 1)
+            throw new BuildProblem(size.Index, $"a {kind}'s {word.ToLowerInvariant()} is a whole number, at least 1 ({name} has {value}).");
+        return BundleKinds.Lay(kind, name, type, value.Long, said.ContainsKey("Cached"), match.Index, match.Index + match.Length, buffers, ref book);
+    }
+
+    private static BuildBuffer ReadBuffer(Match match, Dictionary<string, Argument?> said, string kind, System.Func<string, BuildValue?> constant)
+    {
+        string name = match.Groups["name"].Value;
+        long count = 1;
+        if (kind == "List")
+        {
+            if (!said.TryGetValue("Size", out Argument? size) || size is null)
+                throw new BuildProblem(match.Index, $"say how many {name} holds: [Size(n)] List<{match.Groups["type"].Value}> {name};.");
+            BuildValue value = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, constant);
+            if (!value.Whole || value.Long < 1)
+                throw new BuildProblem(size.Index, $"a list's size is a whole number of elements, at least 1 ({name} has {value}).");
+            count = value.Long;
+        }
+
+        return new BuildBuffer(name, kind == "Counter" ? "uint" : match.Groups["type"].Value, count, match.Groups["coherent"].Success,
+            match.Index, match.Index + match.Length, Host: said.ContainsKey("Host"), Cached: said.ContainsKey("Cached"));
+    }
+
+    private static BuildImage ReadImage(Match match, Dictionary<string, Argument?> said, System.Func<string, BuildValue?> constant)
+    {
+        string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
+        string format = (type, said.ContainsKey("Precise"), said.ContainsKey("Compact")) switch
+        {
+            ("float4", false, false) => "rgba16f",
+            ("float4", true, _) => "rgba32f",
+            ("float4", _, true) => "rgba8",
+            ("float", false, false) => "r32f",
+            ("float", false, true) => "r16f",
+            ("float2", false, false) => "rg16f",
+            ("uint", false, false) => "r32ui",
+            ("float" or "float2" or "uint", _, _) => throw new BuildProblem(match.Index,
+                $"an Image<{type}> has one precision; [Precise] and [Compact] are for float4 (and [Compact] for float)."),
+            _ => throw new BuildProblem(match.Index, $"an image holds float, float2, float4 or uint, not {type}."),
+        };
+        float clear = said.TryGetValue("Clear", out Argument? value) && value is not null
+            ? (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, constant).Number
+            : 0f;
+        ImageLife life = said.ContainsKey("Kept") ? ImageLife.Kept : said.ContainsKey("Cached") ? ImageLife.Cached : ImageLife.Frame;
+        return new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length, life,
+            Size: SizeOf(match, said, name, constant));
+    }
+
+    private static BuildImage ReadHistory(Match match, Dictionary<string, Argument?> said, List<BuildImage> images, int sources)
+    {
+        string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
+        if (said.Keys.Any(word => word != "History"))
+            throw new BuildProblem(match.Index, $"a history is its source's copy, so it takes nothing but [History(image)]: [History(image)] Image<T> {name};.");
+        string from = said["History"]?.Value.Trim() ?? "";
+        int source = images.FindIndex(0, sources, image => image.Name == from);
+        if (source < 0)
+            throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an Image this graph declares.");
+        BuildImage of = images[source];
+        if (of.Life is ImageLife.Kept or ImageLife.Cached)
+            throw new BuildProblem(match.Index, $"{from} is [{of.Life}]: it already holds last frame's texels, so it needs no history.");
+        if (images.Any(image => image.Source == source))
+            throw new BuildProblem(match.Index, $"{from} has a history already.");
+        if (type != of.Type)
+            throw new BuildProblem(match.Index, $"{from} holds {of.Type}, so its history does too: [History({from})] Image<{of.Type}> {name};.");
+        return new BuildImage(name, of.Format, of.Type, of.Clear, match.Index, match.Index + match.Length, ImageLife.History, source, of.Size);
+    }
+
+    /// <summary>An image's size as its declaration gives it: a scale of the box, a fixed size, or neither.</summary>
+    private static ImageSize SizeOf(Match match, Dictionary<string, Argument?> said, string name, System.Func<string, BuildValue?> constant)
+    {
+        double Number(string text, int at) => BuildPasses.Evaluate(BuildPasses.ParseAt(text, at), at, constant).Number;
+        said.TryGetValue("Scale", out Argument? scaled);
+        said.TryGetValue("Size", out Argument? sized);
+        if (scaled is not null && sized is not null)
+            throw new BuildProblem(match.Index, $"{name} has a scale or a size, not both.");
+        if (scaled is not null)
+        {
+            double scale = Number(scaled.Value, scaled.Index);
+            if (scale is <= 0 or > 4)
+                throw new BuildProblem(scaled.Index, $"a scale is above 0 and at most 4 ({name} has {scale}).");
+            return new ImageSize((float)scale);
+        }
+
+        if (sized is null)
+            return default;
+        string[] sides = sized.Value.Split(',');
+        if (sides.Length != 2)
+            throw new BuildProblem(sized.Index, $"an image's size is its width and height: [Size(256, 256)] Image<T> {name};.");
+        double width = Number(sides[0], sized.Index), height = Number(sides[1], sized.Index + sides[0].Length + 1);
+        if (width != System.Math.Floor(width) || height != System.Math.Floor(height) || width is < 1 or > 8192 || height is < 1 or > 8192)
+            throw new BuildProblem(sized.Index, $"a fixed size is whole texels, 1 to 8192 each way ({name} is {width} × {height}).");
+        return new ImageSize(0, (int)width, (int)height);
+    }
+
+    /// <summary>An attribute's argument text and where it starts in the code.</summary>
+    private sealed record Argument(string Value, int Index);
+}

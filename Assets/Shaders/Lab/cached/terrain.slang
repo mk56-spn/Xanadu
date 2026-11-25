@@ -5,9 +5,9 @@
 // range is still and the light isn't: the frame costs the lighting, not the march.
 import xanadu;
 
-[Cached] [Image(r32f, clear: 1e30)] RWTexture2D<float> far;
-[Cached] [Image(rgba16f)] RWTexture2D<float4> facing;
-[Image(rgba16f)] RWTexture2D<float4> shown;
+[Cached] [Clear(1e30)] Image<float> far;
+[Cached] Image<float4> facing;
+Image<float4> shown;
 
 /// Steps along each ray: the cost of carving, paid only when the cache is stale.
 [Default(600)] uniform int steps;

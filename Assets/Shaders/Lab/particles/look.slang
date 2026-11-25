@@ -19,16 +19,16 @@ Drawn drawnOf(uint c)
     Drawn d = { FIELD, 0, 0 };
     if (c == 0)
         return d;
-    uint segments = lists[TRAILED] * (TRAIL - 1);
+    uint segments = trailed.count * (TRAIL - 1);
     if (c - 1 < segments)
     {
         d.kind = SEGMENT;
-        d.slot = lists[TRAIL_LIST + (c - 1) / (TRAIL - 1)];
+        d.slot = trailed[(c - 1) / (TRAIL - 1)];
         d.segment = (c - 1) % (TRAIL - 1);
         return d;
     }
     d.kind = PARTICLE;
-    d.slot = lists[ALIVE_LIST + c - 1 - segments];
+    d.slot = alive[c - 1 - segments];
     return d;
 }
 

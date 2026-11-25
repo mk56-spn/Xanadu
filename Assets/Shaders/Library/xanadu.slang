@@ -1,6 +1,6 @@
 // xanadu: every shipped library module at once (`import xanadu;`).
 //
-// Global: ItemInput and friends (stage), PI, TAU, mod, rotate, random (math),
+// Global: ItemInput and friends (stage), List, Counter and Image (store), PI, TAU, mod, rotate, random (math),
 // the shapes (Circle, Box, …; shape; Grid, Stripes, Checker, …; pattern), the
 // gradients (Linear, Radial, Conical, Diamond, Spiral, …; gradient), Bezier (curve), colour and its paint
 // (colour, paint), clock, Clip and Keys (anim), the noises (Perlin, Simplex, ValueNoise, Worley; noise),
@@ -17,6 +17,7 @@
 module xanadu;
 
 __exported import xanadu.stage;
+__exported import xanadu.store;
 __exported import xanadu.math;
 __exported import xanadu.colour;
 __exported import xanadu.shape;

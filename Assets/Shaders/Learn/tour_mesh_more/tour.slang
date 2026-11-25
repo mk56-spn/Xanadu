@@ -10,13 +10,9 @@ static const uint LIVE = 2;
 static const uint KEPT_SHAPES[KEPT] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 11 };
 static const uint LIVE_SHAPES[LIVE] = { 9, 10 };
 
-[Cached] [Buffer(KEPT * EACH * 128)] RWStructuredBuffer<MeshVertex> corners;
-[Cached] [Buffer(KEPT * EACH * 128)] RWStructuredBuffer<uint> triangles;
-[Cached] [Buffer(KEPT * EACH)] RWStructuredBuffer<Meshlet> meshlets;
+[Cached] [Pages(KEPT * EACH)] Meshes pool;
 
-[Buffer(LIVE * EACH * 128)] RWStructuredBuffer<MeshVertex> liveCorners;
-[Buffer(LIVE * EACH * 128)] RWStructuredBuffer<uint> liveTriangles;
-[Buffer(LIVE * EACH)] RWStructuredBuffer<Meshlet> liveMeshlets;
+[Pages(LIVE * EACH)] Meshes livePool;
 
 // Laid out for a quad 810 px tall; `scale` fits it to the real one.
 Camera camera(float scale) { return Camera(1400 * scale).orbited(0, 0.3); }
@@ -49,21 +45,23 @@ Placement3 placed(uint k, float scale)
 [Pass(128, over: KEPT * EACH * 128)]
 void make(uint i)
 {
-    uint n = i / (EACH * 128), t = i % (EACH * 128), first = n * EACH, k = KEPT_SHAPES[n];
+    MeshPage p = pool.page(i, EACH);
+    uint k = KEPT_SHAPES[p.object];
+    p.object = k;
     uint2 cells = uint2(32);
     switch (k)
     {
-        case 0: mesh.grid(path().tube(16, 0.4), t, cells, first, k, corners, triangles, meshlets); break;
-        case 1: mesh.grid(Helix(60, 200, 3).tube(12), t, cells, first, k, corners, triangles, meshlets); break;
-        case 2: mesh.grid(path().ribbon(40, 1.5), t, cells, first, k, corners, triangles, meshlets); break;
-        case 3: mesh.grid(Helix(70, 160, 1.5).ribbon(30, 3), t, cells, first, k, corners, triangles, meshlets); break;
-        case 4: mesh.grid(Superquadric(100, 0.15, 0.15), t, cells, first, k, corners, triangles, meshlets); break;
-        case 5: mesh.grid(Superquadric(100, 1, 0.3), t, cells, first, k, corners, triangles, meshlets); break;
-        case 6: mesh.grid(Superquadric(100, 2, 2), t, cells, first, k, corners, triangles, meshlets); break;
-        case 7: mesh.grid(Superquadric(95, 3, 3), t, cells, first, k, corners, triangles, meshlets); break;
-        case 8: mesh.grid(Patch(float2(240, 200)).raised(1, 1, float3(0, 0, -150)).raised(2, 2, float3(0, 0, 120)).raised(3, 0, float3(0, 0, -80)),
-                    t, cells, first, k, corners, triangles, meshlets); break;
-        default: mesh.grid(Sheet(float2(260, 200)), t, cells, first, k, corners, triangles, meshlets); break;
+        case 0: pool.grid(path().tube(16, 0.4), p, cells); break;
+        case 1: pool.grid(Helix(60, 200, 3).tube(12), p, cells); break;
+        case 2: pool.grid(path().ribbon(40, 1.5), p, cells); break;
+        case 3: pool.grid(Helix(70, 160, 1.5).ribbon(30, 3), p, cells); break;
+        case 4: pool.grid(Superquadric(100, 0.15, 0.15), p, cells); break;
+        case 5: pool.grid(Superquadric(100, 1, 0.3), p, cells); break;
+        case 6: pool.grid(Superquadric(100, 2, 2), p, cells); break;
+        case 7: pool.grid(Superquadric(95, 3, 3), p, cells); break;
+        case 8: pool.grid(Patch(float2(240, 200)).raised(1, 1, float3(0, 0, -150)).raised(2, 2, float3(0, 0, 120)).raised(3, 0, float3(0, 0, -80)),
+                    p, cells); break;
+        default: pool.grid(Sheet(float2(260, 200)), p, cells); break;
     }
 }
 
@@ -71,30 +69,32 @@ void make(uint i)
 [Pass(128, over: LIVE * EACH * 128)]
 void remake(uint i)
 {
-    uint n = i / (EACH * 128), t = i % (EACH * 128), first = n * EACH, k = LIVE_SHAPES[n];
+    MeshPage p = livePool.page(i, EACH);
+    uint k = LIVE_SHAPES[p.object];
+    p.object = k;
     uint2 cells = uint2(32);
     if (k == 9)
-        mesh.grid(Sheet(float2(260, 200)).morphed(Sphere(100), sin01(time * 1.5)), t, cells, first, k, liveCorners, liveTriangles, liveMeshlets);
+        livePool.grid(Sheet(float2(260, 200)).morphed(Sphere(100), sin01(time * 1.5)), p, cells);
     else
-        mesh.grid(Cylinder(70, 180).morphed(Torus(80, 30).turned(float3(PI / 2, 0, 0)), sin01(time)), t, cells, first, k, liveCorners, liveTriangles, liveMeshlets);
+        livePool.grid(Cylinder(70, 180).morphed(Torus(80, 30).turned(float3(PI / 2, 0, 0)), sin01(time)), p, cells);
 }
 
 [Draw(64, 1, shade: kept, copies: KEPT * EACH)]
 ItemVertex shown(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(meshlets[copy].object, scale), camera(scale), corners, triangles, meshlets);
+    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera(scale));
 }
 
 [Draw(64, 1, shade: live, copies: LIVE * EACH)]
 ItemVertex moving(ItemVertex v)
 {
     float scale = v.rest.size.y / 810;
-    return mesh.pulled(v, placed(liveMeshlets[copy].object, scale), camera(scale), liveCorners, liveTriangles, liveMeshlets);
+    return livePool.pulled(v, placed(livePool.objectOf(copy), scale), camera(scale));
 }
 
-float4 kept(ItemInput i) { return look(i, meshlets[copy].object); }
-float4 live(ItemInput i) { return look(i, liveMeshlets[copy].object); }
+float4 kept(ItemInput i) { return look(i, pool.objectOf(copy)); }
+float4 live(ItemInput i) { return look(i, livePool.objectOf(copy)); }
 
 float4 look(ItemInput i, uint k)
 {

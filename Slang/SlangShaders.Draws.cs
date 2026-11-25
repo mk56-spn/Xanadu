@@ -16,6 +16,9 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
     /// <summary>The uint buffer counting its copies on the GPU (its place in the graph's buffers), or -1: its call says how many.</summary>
     public int CopiesBuffer { get; init; } = -1;
 
+    /// <summary>Where in <see cref="CopiesBuffer"/> the count sits, in uints.</summary>
+    public long CopiesAt { get; init; }
+
     /// <summary>Marked <c>[CoversBox]</c>: the host hands it the item's box as its quad, so it covers the box's pixels.</summary>
     public bool CoversBox { get; init; }
 
@@ -98,7 +101,7 @@ public static partial class SlangShaders
                 storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
-            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, Translucent = pass.Translucent, CoversBox = pass.CoversBox };
+            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, CoversBox = pass.CoversBox };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
