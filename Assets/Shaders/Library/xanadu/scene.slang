@@ -856,7 +856,7 @@ public namespace scene
             this.listed = listed;
         }
 
-        public float shadow(float3 p, float3 toLight, float far, float hardness)
+        public float shadow(uint light, float3 p, float3 toLight, float far, float hardness)
         {
             return scene.shadow(parts, objects, p, toLight, far, hardness, listed);
         }
@@ -879,22 +879,32 @@ public namespace scene
         return light.lit(s, hit.position, camera, Shadows(parts, objects, listed));
     }
 
-    /// The scene through `camera` into this pixel pass's Surfaces, out to `light.far` but only
+    /// The scene through `camera` into this pixel pass's Visibility, out to `light.far` but only
     /// where it is nearer than what is there already: draw cheap things first and the march
     /// stops at them, so pixels they cover cost little. Lists the tile, so every thread of the
-    /// tile must call it. Light them after with Lighting.deferred.
-    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Surfaces into)
+    /// tile must call it. Rebuild what it found with scene.surface and light it once after.
+    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Visibility into)
     {
         listTile(objects, tileView(camera, canvas, light.far), light);
         bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
         float drawn = into.depthAt(group.pixel);
-        float limit = drawn < Surfaces.EMPTY * 0.5 ? min(light.far, camera.along(canvas.centred, drawn)) : light.far;
+        float limit = drawn < Visibility.EMPTY * 0.5 ? min(light.far, camera.along(canvas.centred, drawn)) : light.far;
         Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed);
-        if (!hit.found)
-            return;
-        Surface s = Surface(hit.normal, objectMaterial(parts, objects[1 + hit.object], hit.position));
-        s.depth = camera.screenDepth(hit.position);
-        into.put(group.pixel, s);
+        if (hit.found)
+            into.put(group.pixel, camera.screenDepth(hit.position), makers.sdf(hit.object));
+    }
+
+    /// The surface of the object a pixel shows (a makers.sdf id, as shoot writes it): its normal
+    /// from that object's field round the point, its material there, melts blended.
+    public Surface surface(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Seen seen)
+    {
+        Object o = objects[1 + makers.index(seen.id)];
+        float3 p = seen.position;
+        float e = max(0.5, length(p - seen.ray.origin) * 5e-4);
+        const float2 k = float2(1.0, -1.0);
+        float3 n = k.xyy * objectDistance(parts, o, p + k.xyy * e) + k.yyx * objectDistance(parts, o, p + k.yyx * e)
+                 + k.yxy * objectDistance(parts, o, p + k.yxy * e) + k.xxx * objectDistance(parts, o, p + k.xxx * e);
+        return Surface(n, objectMaterial(parts, o, p));
     }
 
     /// The heat scale the cost views use: dark, red, yellow, white.

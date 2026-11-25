@@ -22,11 +22,15 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
     /// <summary>The images a draw's shade reads, gathered for binding; grown as needed, never shrunk.</summary>
     private Texture[] _read = new Texture[4];
 
-    /// <summary>A draw's grid over the item's quad into the images the call names; the item's first draw starts its depth afresh.</summary>
+    /// <summary>
+    /// A draw's grid over the item's quad into the images the call names. Its depth carries on from the draw before only
+    /// when that one wrote the same images; otherwise it starts afresh.
+    /// </summary>
     public void Draw(CommandBuffer commands, CanvasEffect effect, BuildBuffers kept, ItemSet set, RestFrame rest, StackBuild.Run call, Step step, float time)
     {
         CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
         int count = 0;
+        uint into = 0;
         Span<ColorTargetInfo> colours = stackalloc ColorTargetInfo[DrawOutput.Most];
         Span<TextureFormat> formats = stackalloc TextureFormat[DrawOutput.Most];
         for (; count < DrawOutput.Most && call.Target(count) != StackBuild.Run.None; count++)
@@ -34,6 +38,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
             Texture image = set.Images[(int)call.Target(count)];
             colours[count] = new ColorTargetInfo(image, LoadOp.Load);
             formats[count] = image.Format;
+            into = (into << 8) | call.Target(count);
         }
 
         GraphicsPipeline pipeline = effect.DrawPipeline(device, call.Pass, formats[..count], targets.DepthFormat);
@@ -42,13 +47,13 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         {
             Texture = set.Z!.Handle,
             ClearDepth = 1f,
-            LoadOp = set.Drawn ? LoadOp.Load : LoadOp.Clear,
+            LoadOp = set.DrawnInto == into ? LoadOp.Load : LoadOp.Clear,
             StoreOp = StoreOp.Store,
             StencilLoadOp = LoadOp.DontCare,
             StencilStoreOp = StoreOp.DontCare,
-            Cycle = !set.Drawn,
+            Cycle = set.DrawnInto != into,
         };
-        set.Drawn = true;
+        set.DrawnInto = into;
         RenderPass pass = commands.BeginRenderPass(z, colours[..count]);
         pass.BindGraphicsPipeline(pipeline);
         // The vertex stage places the grid on the target; the target moved by the box's corner lands the box on the images.
@@ -104,7 +109,10 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         if (draw.Fragment.ParamsSize > 0)
             ShaderParams.Push(commands, draw.Fragment, step.Material, step.Values);
         var origin = set is null ? Vector2.Zero : new Vector2(set.Box.X, set.Box.Y);
-        commands.PushFragmentUniformData(new DrawBox { Shift = shift, Origin = origin, Slice = slice }, SlangShaders.DrawBoxSlot);
+        commands.PushFragmentUniformData(new DrawBox
+        {
+            Shift = shift, Origin = origin, Slice = slice, Corner = quad.Corner, XAxis = quad.XAxis, YAxis = quad.YAxis,
+        }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
             pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, kept.Buffers));
         // Neither stage gets a texture of its own yet: any sampler it declares sees white.

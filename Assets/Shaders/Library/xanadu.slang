@@ -10,7 +10,7 @@
 // surfaces, Camera, lights. and mesh. (mesh), 3D by marching: Ray, Ball, Span, Bounds, Frustum, Melt, Hit (march),
 // 3D scenes of solids recorded in a BUILD pass and shot in TRACE: Solid (Block, Orb, Plane, Pillar, Pill, Hoop, Cone),
 // Scene, scene.shot, scene.shoot and scene.shadows (scene), what 3D producers and the lighting share:
-// Material, Lighting, Surface, Surfaces and IShadows (light),
+// Material, Lighting, Surface, Visibility, Seen, makers and IShadows (light),
 // a particle system's shapes, moves and looks under particles. (particles), and for BUILD bricks, GPU sorts and
 // prefix sums under sort. (sort) and a BVH rebuilt every frame, with its walk, under bvh. (bvh).
 // Nothing here knows the game: its play state and chart are `import rhythm;`.

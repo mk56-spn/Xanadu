@@ -1,35 +1,38 @@
-// xanadu.light: what every 3D producer and the lighting agree on. A producer (a draw, a march)
-// writes Surfaces, one Surface a pixel: how deep, facing which way, made of what. The lighting
-// reads them back and lights each once, whoever wrote it, so a mesh drawn into a marched room
-// gets the room's lamp, shadows and occlusion.
+// xanadu.light: the shared scene. Every maker (a mesh draw, a march, anything) writes only
+// how deep the nearest thing is and whose it is: Visibility, a depth image and an id image
+// (makers.sdf, makers.mesh). One pass then reads both back at each pixel (Seen), rebuilds the
+// surface there from its maker (scene.surface for a recorded scene, Seen.onMesh for a pool
+// triangle) and lights it once, whoever made it, so a mesh drawn into a marched room gets the
+// room's lamp, shadows and occlusion.
 //
-//     // build.slang
-//     [Image(r32f, clear: 1e30)] RWTexture2D<float>  depth;     // pixels into the screen; empty is Surfaces.EMPTY
-//     [Image(rgba16f)]           RWTexture2D<float4> normals;   // xyz which way it faces, w its shine
-//     [Image(rgba16f)]           RWTexture2D<float4> bases;     // rgb its colour, a its glow
+//     [Image(r32f, clear: 1e30)] RWTexture2D<float> depth;    // pixels into the screen; empty is Visibility.EMPTY
+//     [Image(r32ui)]             RWTexture2D<uint>  ids;      // whose: makers.NONE where nothing is
 //     [Image(rgba16f)]           RWTexture2D<float4> shown;
 //
-//     Surfaces surfaces() { return Surfaces(depth, normals, bases); }
+//     Visibility seen() { return Visibility(depth, ids); }
 //
-//     [Draw(96, 32, shade: ringLook)]                  // a draw whose shade gives a Surface's texels
-//     ItemVertex ringDrawn(ItemVertex v) { v.place(ring().at(v.uv), eye(v.rest.size)); return v; }
-//     SurfaceTexels ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), colours.orange).texels(i.depth); }
+//     [Draw(64, 1, shade: ringSeen, copies: PAGES)]    // a pool draw writes depth and ids
+//     ItemVertex ringDrawn(ItemVertex v) { return mesh.pulled(v, placed(), eye(v.rest.size), corners, triangles, meshlets); }
+//     IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 //
 //     [Pixels(8, 8)]
 //     void illuminate(ItemInput i, Canvas canvas)
 //     {
-//         shown[group.pixel] = Lighting().deferred(surfaces(), eye(canvas.size), canvas, Unshadowed());
+//         Camera camera = eye(canvas.size);
+//         Seen s = seen().at(group.pixel, camera, canvas);
+//         Surface here = Surface(s.onMesh(placed(), corners, triangles).normal, colours.orange);
+//         shown[group.pixel] = Lighting().deferred(s, here, camera, Unshadowed());
 //     }
 //
 //     void graph()
 //     {
-//         ringDrawn(depth, normals, bases);              // an image for each field of SurfaceTexels
+//         ringDrawn(depth, ids);                         // an image for each field of IdTexels
 //         illuminate();
 //         present(shown, depth);
 //     }
 //
 // Shadows and occlusion come from an IShadows: Unshadowed for none, scene.shadows(...) for a
-// recorded scene's soft SDF shadows, cast on everything in Surfaces.
+// recorded scene's soft SDF shadows, cast on everything seen.
 module light;
 import xanadu.stage;
 import xanadu.math;
@@ -102,6 +105,9 @@ public struct Lighting
         far = 8000.0;
     }
 
+    /// Which light IShadows.shadow is asked about: the sun, or lamp k as LAMP + k.
+    public static const uint SUN = 0, LAMP = 1;
+
     /// A copy with the sun towards `direction`.
     public Lighting sunFrom(float3 direction) { Lighting l = this; l.sun = normalize(direction); return l; }
 
@@ -126,31 +132,18 @@ public struct Lighting
 };
 
 
-// ---- Surfaces ----------------------------------------------------------------------------
+// ---- What a pixel shows --------------------------------------------------------------------
 
-/// What one pixel shows before it is lit: whether anything is there, how far into the screen
-/// (pixels, as ItemVertex.depth), which way it faces (world space, out of it), and its material.
+/// What a pixel shows before it is lit, as its maker rebuilt it: which way it faces (world
+/// space, out of it) and what it is made of.
 public struct Surface
 {
-    public bool found;
-    public float depth;
     public float3 normal;
     public Material material;
 
-    /// Nothing: the pixel stays empty.
-    public __init()
-    {
-        found = false;
-        depth = Surfaces.EMPTY;
-        normal = float3(0.0, 0.0, -1.0);
-        material = Material(colours.black, 0.0);
-    }
-
-    /// Something facing `normal`, made of `m`. A draw's depth is filled in by the draw.
+    /// Something facing `normal`, made of `m`.
     public __init(float3 normal, Material m)
     {
-        found = true;
-        depth = 0.0;
         this.normal = normalize(normal);
         material = m;
     }
@@ -159,80 +152,134 @@ public struct Surface
 
     /// A copy facing the eye, whichever side it was seen from: for open sheets lit on both sides.
     public Surface facing(float3 toEye) { Surface s = this; if (dot(s.normal, toEye) < 0.0) s.normal = -s.normal; return s; }
-
-    /// What a draw's shade returns to write it into Surfaces' three images, `depth` (the draw's
-    /// `i.depth`) in front. Nothing found leaves the pixel alone: a draw's shade only, since it
-    /// discards.
-    public SurfaceTexels texels(float depth)
-    {
-        if (!found)
-            discard;
-        SurfaceTexels t;
-        t.depth = depth;
-        t.normal = Surfaces.normalTexel(this);
-        t.base = Surfaces.baseTexel(this);
-        return t;
-    }
 };
 
-/// A Surface as Surfaces holds it, one field an image: what a draw writes (`Surface.texels`).
-public struct SurfaceTexels
+/// Whose a pixel is, as an id image holds it: the maker in the top two bits, then which of
+/// its things (a recorded scene's object, a pool's triangle). 0 is nothing.
+/// A pool page's size, out here: inside makers, `mesh` is makers.mesh.
+static const uint POOL_PAGE = mesh.PAGE;
+
+public namespace makers
+{
+    public static const uint NONE = 0, SDF = 1, MESH = 2;
+
+    /// A recorded scene's object (scene.Object, counted from 0).
+    public uint sdf(uint object) { return (SDF << 30) | object; }
+
+    /// A mesh pool's triangle: its page (a pool draw's `copy`) and its number there (`drawnTriangle`).
+    public uint mesh(uint page, uint triangle) { return (MESH << 30) | (page * POOL_PAGE + triangle); }
+
+    /// Which maker an id is: NONE, SDF or MESH.
+    public uint kind(uint id) { return id >> 30; }
+
+    /// Which of the maker's things it is.
+    public uint index(uint id) { return id & 0x3FFFFFFFu; }
+}
+
+/// What a draw's shade returns to write Visibility's two images (Visibility.texels).
+public struct IdTexels
 {
     public float depth;
-    public float4 normal;
-    public float4 base;
+    public uint id;
 };
 
-/// The images Surfaces live in, the graph's own: `depth` (r32f), `normals` (rgba16f: xyz the
-/// normal, w the shine) and `bases` (rgba16f or rgba8: rgb the colour, a the glow). A Surface
-/// draw writes all three; a pixel pass puts and reads them at its pixel.
-public struct Surfaces
+/// One pixel of Visibility, read back: whether anything is there, how deep, whose, and where
+/// in the world (on the ray through the pixel).
+public struct Seen
+{
+    public bool found;
+    public float depth;
+    public uint id;
+    public Ray ray;
+    public float3 position;
+
+    /// Its maker: makers.NONE, SDF or MESH.
+    public property uint maker { get { return makers.kind(id); } }
+};
+
+/// Where a pool triangle was seen: its normal (world space, out of its front) and uv there.
+public struct MeshPoint
+{
+    public float3 normal;
+    public float2 uv;
+};
+
+public extension Seen
+{
+    /// The pool triangle this pixel shows (a makers.mesh id), placed by `placed` as its draw
+    /// placed it: the ray meets the triangle, and its corners' normals and uvs are blended there.
+    public MeshPoint onMesh(Placement3 placed, RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles)
+    {
+        uint n = makers.index(id);
+        uint base = n - n % mesh.PAGE;
+        uint packed = triangles[n];
+        MeshVertex a = corners[base + (packed & 0xFFu)];
+        MeshVertex b = corners[base + ((packed >> 8) & 0xFFu)];
+        MeshVertex c = corners[base + ((packed >> 16) & 0xFFu)];
+        float3 pa = placed.toWorld(a.position), pb = placed.toWorld(b.position), pc = placed.toWorld(c.position);
+        // Möller-Trumbore: where the ray crosses the triangle's plane, in its two edges.
+        float3 e1 = pb - pa, e2 = pc - pa;
+        float3 q = cross(ray.direction, e2);
+        float det = dot(e1, q);
+        float3 from = ray.origin - pa;
+        float inv = abs(det) > 1e-12 ? 1.0 / det : 0.0;
+        float u = saturate(dot(from, q) * inv);
+        float v = saturate(dot(ray.direction, cross(from, e1)) * inv);
+        float w = max(1.0 - u - v, 0.0);
+        MeshPoint m;
+        m.normal = normalize(rotate3(a.normal * w + b.normal * u + c.normal * v, placed.angles));
+        m.uv = a.uv * w + b.uv * u + c.uv * v;
+        return m;
+    }
+}
+
+/// The shared scene's images, the graph's own: `depth` (r32f, pixels into the screen, cleared
+/// to EMPTY) and `ids` (r32ui, whose). A maker's draw writes both (texels); a pixel pass puts
+/// and reads them at its pixel.
+public struct Visibility
 {
     /// What a cleared depth holds: nothing there. Declare the depth image cleared to it: `clear: 1e30`.
     public static const float EMPTY = 1e30;
 
     public RWTexture2D<float> depth;
-    public RWTexture2D<float4> normals;
-    public RWTexture2D<float4> bases;
+    public RWTexture2D<uint> ids;
 
-    public __init(RWTexture2D<float> depth, RWTexture2D<float4> normals, RWTexture2D<float4> bases)
+    public __init(RWTexture2D<float> depth, RWTexture2D<uint> ids)
     {
         this.depth = depth;
-        this.normals = normals;
-        this.bases = bases;
+        this.ids = ids;
     }
 
-    /// How deep the surface at `pixel` is: EMPTY where nothing is.
+    /// How deep the nearest thing at `pixel` is: EMPTY where nothing is.
     public float depthAt(uint2 pixel) { return depth[pixel]; }
 
-    /// The surface at `pixel`.
-    public Surface at(uint2 pixel)
+    /// `id` put at `pixel`, `depth` deep, over whatever was there: test depthAt first to keep the nearest.
+    public void put(uint2 pixel, float depth, uint id)
     {
-        Surface s = Surface();
+        this.depth[pixel] = depth;
+        ids[pixel] = id;
+    }
+
+    /// What a draw's shade returns to write both images: `depth` (the draw's `i.depth`) and `id`.
+    public static IdTexels texels(float depth, uint id)
+    {
+        IdTexels t;
+        t.depth = depth;
+        t.id = id;
+        return t;
+    }
+
+    /// The pixel read back, seen through `camera` (a pixel pass's own pixel and canvas).
+    public Seen at(uint2 pixel, Camera camera, Canvas canvas)
+    {
+        Seen s;
         s.depth = depth[pixel];
-        if (s.depth >= EMPTY * 0.5)
-            return s;
-        float4 n = normals[pixel];
-        float4 b = bases[pixel];
-        s.found = true;
-        s.normal = n.xyz;
-        s.material = Material(colour(b.rgb, 1.0), n.w, b.a);
+        s.id = ids[pixel];
+        s.found = s.depth < EMPTY * 0.5 && s.id != makers.NONE;
+        s.ray = camera.ray(canvas.centred);
+        s.position = s.ray.at(camera.along(canvas.centred, s.found ? s.depth : 0.0));
         return s;
     }
-
-    /// `s` put at `pixel`, over whatever was there: test depthAt first to keep the nearest.
-    public void put(uint2 pixel, Surface s)
-    {
-        depth[pixel] = s.depth;
-        normals[pixel] = normalTexel(s);
-        bases[pixel] = baseTexel(s);
-    }
-
-    /// What a surface's normals texel holds.
-    public static float4 normalTexel(Surface s) { return float4(s.normal, s.material.shine); }
-
-    /// What a surface's bases texel holds.
-    public static float4 baseTexel(Surface s) { return float4(s.material.base.rgb, s.material.glow); }
 };
 
 // ---- Shadows ------------------------------------------------------------------------------
@@ -240,8 +287,9 @@ public struct Surfaces
 /// Where shadows and occlusion come from, for the lighting.
 public interface IShadows
 {
-    /// How much of the light towards `toLight` reaches p, 0..1, looking `far`; soft at `hardness`.
-    public float shadow(float3 p, float3 toLight, float far, float hardness);
+    /// How much of light `light` (Lighting.SUN, or Lighting.LAMP + k for lamp k), towards `toLight`,
+    /// reaches p, 0..1, looking `far`; soft at `hardness`.
+    public float shadow(uint light, float3 p, float3 toLight, float far, float hardness);
 
     /// How open p is, facing `normal`, 0..1: 1 in the open, less in creases. `reach` px out.
     public float open(float3 p, float3 normal, float reach);
@@ -250,7 +298,80 @@ public interface IShadows
 /// No shadows and no occlusion: every light reaches everything.
 public struct Unshadowed : IShadows
 {
-    public float shadow(float3 p, float3 toLight, float far, float hardness) { return 1.0; }
+    public float shadow(uint light, float3 p, float3 toLight, float far, float hardness) { return 1.0; }
+    public float open(float3 p, float3 normal, float reach) { return 1.0; }
+};
+
+/// Two casters at once (made by both(a, b)): a scene's soft SDF shadows and a lamp's shadow map
+/// of the meshes, so every maker shadows every other. Light is what both let through; open is the less open.
+public struct BothShadows<A : IShadows, B : IShadows> : IShadows
+{
+    public A a;
+    public B b;
+
+    public __init(A a, B b) { this.a = a; this.b = b; }
+
+    public float shadow(uint light, float3 p, float3 toLight, float far, float hardness)
+    {
+        float lit = a.shadow(light, p, toLight, far, hardness);
+        return lit > 0.0 ? lit * b.shadow(light, p, toLight, far, hardness) : 0.0;
+    }
+
+    public float open(float3 p, float3 normal, float reach) { return min(a.open(p, normal, reach), b.open(p, normal, reach)); }
+};
+
+/// `a` and `b` casting together (BothShadows): `both(scene.shadows(...), ShadowMap(...))`.
+public BothShadows<A, B> both<A : IShadows, B : IShadows>(A a, B b) { return BothShadows<A, B>(a, b); }
+
+/// One light's shadow map: how deep the nearest drawn thing is as `camera` (at the light,
+/// looking at the origin) sees it, in an image the item's box's size, drawn by any maker's draw
+/// through that camera. Darkens only light `light`; no occlusion of its own.
+///
+///     [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+///     [Draw(64, 1, shade: fromLamp, copies: PAGES)]
+///     ItemVertex seenByLamp(ItemVertex v) { return mesh.pulled(v, placed(), lampEye(v.rest.size), corners, triangles, meshlets); }
+///     float fromLamp(ItemInput i) { return i.depth; }
+///     // graph(): seenByLamp(lampDepth);   lighting: ShadowMap(Lighting.LAMP, lampDepth, lampEye(canvas.size), canvas.size)
+public struct ShadowMap : IShadows
+{
+    public uint light;
+    public RWTexture2D<float> depth;
+    public Camera camera;
+    public float2 size;
+
+    public __init(uint light, RWTexture2D<float> depth, Camera camera, float2 size)
+    {
+        this.light = light;
+        this.depth = depth;
+        this.camera = camera;
+        this.size = size;
+    }
+
+    public float shadow(uint asked, float3 p, float3 toLight, float far, float hardness)
+    {
+        if (asked != light)
+            return 1.0;
+        float3 v = camera.viewed(p);
+        if (v.z < 1.0)
+            return 1.0;
+        float2 at = size * 0.5 + v.xy * camera.focal / v.z;
+        float deep = v.z - camera.distance;
+        // Two of the map's texels at this distance, so a surface never shadows itself.
+        float bias = 2.0 + 2.0 * v.z / max(camera.focal, 1.0);
+        // Nine taps a texel apart: a soft edge rather than the map's stairs.
+        float lit = 0.0;
+        for (int y = -1; y <= 1; y++)
+            for (int x = -1; x <= 1; x++)
+            {
+                float2 q = at + float2(x, y);
+                if (any(q < 0.0) || any(q >= size))
+                    lit += 1.0;
+                else
+                    lit += depth[uint2(q)] < deep - bias ? 0.0 : 1.0;
+            }
+        return lit / 9.0;
+    }
+
     public float open(float3 p, float3 normal, float reach) { return 1.0; }
 };
 
@@ -282,7 +403,7 @@ public extension Lighting
         {
             float sunny = lights.diffuse(n, sun);
             if (shadows > 0.0 && sunny > 0.0)
-                sunny *= caster.shadow(from, sun, far, shadows);
+                sunny *= caster.shadow(SUN, from, sun, far, shadows);
             rgb += lightFrom(n, sun, toEye, m, sunlight.rgb, sunny);
         }
         for (uint l = 0; l < lamps; l++)
@@ -293,7 +414,7 @@ public extension Lighting
             float fall = gap / max(lampAt[l].w, 1.0);
             float lamp = lights.diffuse(n, toLamp) / (1.0 + fall * fall);
             if (shadows > 0.0 && lamp > 1e-3)
-                lamp *= caster.shadow(from, toLamp, gap, shadows);
+                lamp *= caster.shadow(LAMP + l, from, toLamp, gap, shadows);
             rgb += lightFrom(n, toLamp, toEye, m, lampLight[l].rgb, lamp);
         }
         float openness = occlusion > 0.0 ? lerp(1.0, caster.open(position, n, 60.0), occlusion) : 1.0;
@@ -306,15 +427,13 @@ public extension Lighting
         return c;
     }
 
-    /// This pixel's surface (a pixel pass's, at group.pixel) lit, seen through `camera`; the
-    /// background where nothing is. Every thread of the tile reaches it, so `shadows` may be
-    /// a caster that lists the tile (scene.shadows).
-    public colour deferred<S : IShadows>(Surfaces from, Camera camera, Canvas canvas, S caster)
+    /// What a pixel shows: `here`, the surface its maker rebuilt at `seen`, lit through `camera`;
+    /// the background where nothing is. Every thread of the tile reaches it, so `caster` may be
+    /// one that lists the tile (scene.shadows).
+    public colour deferred<S : IShadows>(Seen seen, Surface here, Camera camera, S caster)
     {
-        Surface s = from.at(group.pixel);
-        if (!s.found)
+        if (!seen.found)
             return background;
-        Ray ray = camera.ray(canvas.centred);
-        return lit(s, ray.at(camera.along(canvas.centred, s.depth)), camera, caster);
+        return lit(here, seen.position, camera, caster);
     }
 }

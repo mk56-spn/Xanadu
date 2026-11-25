@@ -66,7 +66,7 @@ public sealed class StackBuildTests
     [Test]
     public void BuffersAreSizedFromTheBricksConstants()
     {
-        CompiledBuild build = SlangShaders.CompileEffectBody("s", Body(Sort), runsGraphs: true).Build!;
+        CompiledBuild build = SlangShaders.CompileEffectBody("s", Body(Sort)).Build!;
 
         Assert.That(build.Shape.Buffers, Has.Count.EqualTo(3));
         Assert.That(build.Bytes, Is.EqualTo((long[])[2 * 1024 * 4, 1024 * 4, 1024 * 16]));
@@ -75,7 +75,7 @@ public sealed class StackBuildTests
     [Test]
     public void EachPassBindsOnlyTheBuffersItTouches()
     {
-        CompiledBuild build = SlangShaders.CompileEffectBody("s", Body(Sort), runsGraphs: true).Build!;
+        CompiledBuild build = SlangShaders.CompileEffectBody("s", Body(Sort)).Build!;
 
         Assert.That(build.Passes[0].Buffers, Is.EqualTo((int[])[0]));
         Assert.That(build.Passes[1].Buffers, Is.EqualTo((int[])[0, 1]));
@@ -86,7 +86,7 @@ public sealed class StackBuildTests
     [Test]
     public void ShadeBindsTheBuffersItReadsAfterTheGlobals()
     {
-        CompiledShader compiled = SlangShaders.CompileEffectBody("s", Body(Sort), runsGraphs: true);
+        CompiledShader compiled = SlangShaders.CompileEffectBody("s", Body(Sort));
 
         Assert.That(compiled.StackBuffers, Is.EqualTo((int[])[2]));
         Assert.That(compiled.StorageBuffers, Is.EqualTo(SlangShaders.Globals.Count + 1));
@@ -95,7 +95,7 @@ public sealed class StackBuildTests
     [Test]
     public void TheScheduleRunsInTheOrderWrittenWithItsLoopsAndIfs()
     {
-        StackBuild build = SlangShaders.CompileEffectBody("s", Body(Sort), runsGraphs: true).Build!.Shape;
+        StackBuild build = SlangShaders.CompileEffectBody("s", Body(Sort)).Build!.Shape;
         var on = new List<StackBuild.Run>();
         var off = new List<StackBuild.Run>();
 
@@ -116,7 +116,7 @@ public sealed class StackBuildTests
     public void ACallWithTheWrongArgumentsIsRefusedWhereItIs()
     {
         string wrong = Sort.Replace("count(round);", "count();");
-        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong), runsGraphs: true))!;
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong)))!;
 
         Assert.That(error.Message, Does.StartWith("s/build.slang(32): error:").And.Contain("count takes 1 argument"));
     }
@@ -127,7 +127,7 @@ public sealed class StackBuildTests
         const string graph = "import xanadu;\n[Image(rgba16f)] RWTexture2D<float4> shown;\n[Pixels(8, 8)]\nvoid paint(ItemInput i, Canvas canvas) { shown[group.pixel] = 1; }\nvoid graph() { paint(); present(shown); }\n";
         const string deform = "import xanadu;\n[Grid(8, 8)]\nItemVertex deform(ItemVertex v) { return v; }\n";
         string body = ShaderStack.Compose("s", [new StackFile("graph.slang", graph), new StackFile("bend.slang", deform)]);
-        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", body, runsGraphs: true))!;
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", body))!;
 
         Assert.That(error.Message, Does.StartWith("s/bend.slang(2): error:").And.Contain("drop the [Grid]"));
     }
@@ -136,7 +136,7 @@ public sealed class StackBuildTests
     public void CallingWhatIsntAPassIsRefused()
     {
         string wrong = Sort.Replace("seed();", "seeds();");
-        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong), runsGraphs: true))!;
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong)))!;
 
         Assert.That(error.Message, Does.StartWith("s/build.slang(30): error:").And.Contain("seeds isn't a pass"));
     }
@@ -145,7 +145,7 @@ public sealed class StackBuildTests
     public void SlangsErrorsInAPassLandOnItsOwnLine()
     {
         string wrong = Sort.Replace("keys[i] = N - i;", "keys[i] = nope;");
-        Exception error = Assert.Catch(() => SlangShaders.CompileEffectBody("s", Body(wrong), runsGraphs: true))!;
+        Exception error = Assert.Catch(() => SlangShaders.CompileEffectBody("s", Body(wrong)))!;
 
         List<SlangProblem> problems = SlangProblems.Parse(error.Message, ShaderStack.Label("s", "build.slang"));
         Assert.That(problems, Has.Count.GreaterThan(0));
@@ -156,12 +156,8 @@ public sealed class StackBuildTests
     public void ABufferWithoutASizeTheCpuKnowsIsRefused()
     {
         string wrong = Sort.Replace("[Buffer(2 * N)]", "[Buffer(2 * M)]");
-        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong), runsGraphs: true))!;
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(wrong)))!;
 
         Assert.That(error.Message, Does.StartWith("s/build.slang(6): error:").And.Contain("'M'"));
     }
-
-    [Test]
-    public void ABuildOutsideTheLabIsRefused() =>
-        Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(Sort)));
 }

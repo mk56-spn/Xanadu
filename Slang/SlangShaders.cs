@@ -439,15 +439,11 @@ public static partial class SlangShaders
     /// <c>shade</c>. <c>#line</c> keeps Slang's errors on the author's lines,
     /// under <paramref name="name"/>.
     /// </summary>
-    /// <param name="runsGraphs">
-    /// Whether a <c>graph()</c> may run: only where it allows it (the lab and the shader tool, for now);
-    /// elsewhere a stack with one is an error.
-    /// </param>
     /// <param name="shadeWith">
     /// A library function of <c>ItemInput</c> drawn instead of the body's <c>shade</c>, through the
     /// same vertex stage (<see cref="TrianglesOverlay"/>, <see cref="UvOverlay"/>); null for <c>shade</c>.
     /// </param>
-    public static CompiledShader CompileEffectBody(string name, string source, bool runsGraphs = false, string? shadeWith = null)
+    public static CompiledShader CompileEffectBody(string name, string source, string? shadeWith = null)
     {
         List<ColourConversion> conversions = [.. ColourConversionsOf(source)];
         string label = Split(name, "").Label;
@@ -456,7 +452,7 @@ public static partial class SlangShaders
             string compiled = SlangColourConversions.Apply(source, conversions, out int[] origin);
             try
             {
-                CompiledShader shader = CompileAsWritten(name, compiled, runsGraphs, shadeWith);
+                CompiledShader shader = CompileAsWritten(name, compiled, shadeWith);
                 RememberConversions(source, conversions);
                 return shader;
             }
@@ -510,12 +506,9 @@ public static partial class SlangShaders
             return _libraryText ??= string.Join("\n", LibraryModules().Select(module => module.Text));
     }
 
-    private static CompiledShader CompileAsWritten(string name, string source, bool runsGraphs, string? shadeWith)
+    private static CompiledShader CompileAsWritten(string name, string source, string? shadeWith)
     {
         StackBuild? build = BuildOf(name, source = PresentDraws.Lower(source));
-        if (build is not null && !runsGraphs)
-            throw new InvalidOperationException($"{name}: a graph runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
-
         if (shadeWith is not null)
         {
             if (build is not null)
@@ -598,8 +591,8 @@ public static partial class SlangShaders
         Regex.IsMatch(StripComments(source), @"\bItemVertex\s+deform\s*\(");
 
     /// <summary>
-    /// Effects for the lab and the shader tool only: graphs run in them, and the game never
-    /// loads them (its start-up compile skips the folder). Where effects live until levels run graphs.
+    /// Experiments: the game's start-up compile skips the folder, and the shader tool gives their
+    /// cards a still instead of a live thumbnail.
     /// </summary>
     public const string LabFolder = "Assets/Shaders/Lab/";
 
@@ -690,9 +683,10 @@ public static partial class SlangShaders
             }
             #line 1 "{{label}} (wrapper)"
             [shader("fragment")]
-            float4 xanaduFragment(ItemVaryings v) : SV_Target
+            float4 xanaduFragment(ItemVaryings v, bool front : SV_IsFrontFace) : SV_Target
             {
                 copy = v.instance;
+                frontFacing = !front;   // the grid winds clockwise on a y-down target, which the default front face calls back
                 ItemInput i = input(v);
                 {{clock}}
                 i.colour = {{shade}};
@@ -739,7 +733,7 @@ public static partial class SlangShaders
                 vertexClock();
                 copy = instance;
                 {{clock}}
-                ItemVertex v = { c.position, c.uv, c.colour, c.local, canvasFrom(c.restX, c.restY, c.restCorner, c.uv), c.index, 0.0 };
+                ItemVertex v = { c.position, c.uv, c.colour, c.local, canvasFrom(c.restX, c.restY, c.restCorner, c.uv), c.index, 0.0, float3(0.0), float3(0.0) };
                 ItemVertex d = effect0::deform(v);
                 ItemVaryings o = varyings(d);
                 // Depth squashed into 0..1 (0 depth in the middle, nearer is more), then into the slice:

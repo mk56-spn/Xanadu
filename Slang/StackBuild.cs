@@ -13,7 +13,9 @@ namespace Xanadu.Slang;
 /// <param name="Start">Where its declaration starts in the body (the attribute), for the rewrite.</param>
 /// <param name="End">Just past its <c>;</c>.</param>
 /// <param name="Host">Marked <c>[Host(size)]</c>: the host writes it.</param>
-public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false);
+/// <param name="Cached">Marked <c>[Cached]</c> before it: the passes writing it run only when it goes stale (just made, or
+/// the material's values moved), so a mesh built from values is built once, not every frame.</param>
+public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -154,6 +156,9 @@ public sealed partial class StackBuild
 
     public IReadOnlyList<BuildBuffer> Buffers { get; }
 
+    /// <summary>Some buffer is <c>[Cached]</c>: the runner asks once a frame whether they need filling.</summary>
+    public bool CachesBuffers { get; }
+
     /// <summary>The images it declares, in order.</summary>
     public IReadOnlyList<BuildImage> Images { get; }
 
@@ -170,6 +175,7 @@ public sealed partial class StackBuild
         _schedule = schedule;
         List<BuildBuffer> buffers = ReadBuffers();
         Buffers = buffers;
+        CachesBuffers = buffers.Exists(buffer => buffer.Cached);
         Images = ReadImages();
         _passes = BuildPasses.Read(code, Constant, library: false);
         for (int p = 0; p < _passes.Count; p++)
@@ -227,7 +233,7 @@ public sealed partial class StackBuild
         ["r16f"] = "float", ["r32f"] = "float", ["r32ui"] = "uint",
     };
 
-    [GeneratedRegex(@"\[\s*(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"(?<cached>\[\s*Cached\s*\]\s*)?\[\s*(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex BufferDeclaration();
 
     /// <summary>A <c>static const</c> of the body, worked out; null when there is none by that name or it can't be.</summary>
@@ -238,7 +244,7 @@ public sealed partial class StackBuild
         var buffers = new List<BuildBuffer>();
         var declared = BufferDeclaration().Matches(_code);
         foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer|Host)\s*\("))
-            if (!declared.Any(match => match.Index == marker.Index))
+            if (!declared.Any(match => match.Index == marker.Index || match.Groups["cached"].Success && match.Index + match.Groups["cached"].Length == marker.Index))
                 throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), or [Host(size)] for one the host fills.");
 
         foreach (Match match in declared)
@@ -251,7 +257,7 @@ public sealed partial class StackBuild
             if (!count.Whole || count.Long < 1)
                 throw new BuildProblem(size.Index, $"a buffer's size is a whole number of elements, at least 1 ({name} has {count}).");
             buffers.Add(new BuildBuffer(name, match.Groups["type"].Value, count.Long, match.Groups["coherent"].Success,
-                match.Index, match.Index + match.Length, Host: match.Groups["host"].Success));
+                match.Index, match.Index + match.Length, Host: match.Groups["host"].Success, Cached: match.Groups["cached"].Success));
         }
 
         return buffers;
@@ -272,8 +278,11 @@ public sealed partial class StackBuild
             if (!declared.Any(match => match.Groups["image"].Index == marker.Index))
                 throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (the item's box), [Image(format, scale: 0.5)] (a part of it) or [Image(format, 256, 256)] (fixed), with clear: value last if wanted (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui), [Kept] before it to keep it from frame to frame, or [Cached] to fill it only when the values change.");
         foreach (Match marker in Regex.Matches(_code, @"\[\s*(Kept|Cached)\s*\]"))
-            if (!declared.Any(match => match.Groups["kept"].Success && match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, $"[{marker.Groups[1].Value}] goes on an image: [{marker.Groups[1].Value}] [Image(format)] RWTexture2D<T> name;.");
+            if (!declared.Any(match => match.Groups["kept"].Success && match.Index == marker.Index)
+                && !(marker.Groups[1].Value == "Cached" && Buffers.Any(buffer => buffer.Cached && buffer.Start == marker.Index)))
+                throw new BuildProblem(marker.Index, marker.Groups[1].Value == "Kept"
+                    ? "[Kept] goes on an image (buffers are always kept): [Kept] [Image(format)] RWTexture2D<T> name;."
+                    : "[Cached] goes on an image or a buffer: [Cached] [Image(format)] RWTexture2D<T> name; or [Cached] [Buffer(size)] RWStructuredBuffer<T> name;.");
 
         foreach (Match match in declared)
         {

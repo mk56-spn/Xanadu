@@ -49,6 +49,19 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
     }
 
     /// <summary>
+    /// Whether the material's <c>[Cached]</c> buffers need filling this frame (just made, or <paramref name="stamp"/> moved
+    /// since they were filled), marking them filled at it: asked once a frame, before its first node runs.
+    /// </summary>
+    public bool Stale(CanvasMaterial material, long stamp)
+    {
+        ref BuildBuffers kept = ref materials.For(material).GetComponent<BuildBuffers>();
+        if (kept.Filled == stamp)
+            return false;
+        kept.Filled = stamp;
+        return true;
+    }
+
+    /// <summary>
     /// Pass <paramref name="pass"/>'s copies, a draw counted on the GPU, copied from its count into its args: after the
     /// passes that count them, before it draws.
     /// </summary>

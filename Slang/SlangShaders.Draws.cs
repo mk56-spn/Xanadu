@@ -27,7 +27,7 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
 /// A graph's draws (<c>[Draw(across, down, shade: fn)] ItemVertex name(ItemVertex v)</c>): a grid of triangles over the
 /// item's quad, made from the vertex index (no vertex buffer), moved by <c>name</c> as a deform moves corners, coloured
 /// by <c>fn</c> as shade colours pixels, into the images its call names, one for each output <c>fn</c> returns
-/// (<see cref="DrawOutput"/>): its colour, or each field of a struct, such as xanadu.light's <c>SurfaceTexels</c>. They test
+/// (<see cref="DrawOutput"/>): its colour, or each field of a struct, such as xanadu.light's <c>IdTexels</c>. They test
 /// and write the item's own draw depth, cleared before its first draw, so the nearest surface wins whatever the order.
 /// The images are the item's box, so the box's corner reaches the fragment to put its position back on the target.
 /// Bindings as a stack's deform and shade have them: vertex set 0 the depth sampler then the globals, set 1 the view at
@@ -140,8 +140,10 @@ public static partial class SlangShaders
             // the item's own draw depth, the item's slice of the canvas depth for a draw onto the frame.
             struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; };
             [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
+            // What a draw hands its shade beyond an item's: the 3D point and facing its deform set.
+            struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
             [shader("vertex")]
-            ItemVaryings xanaduDrawVertex(uint index : SV_VertexID, uint instance : SV_InstanceID)
+            XanaduDrawVaryings xanaduDrawVertex(uint index : SV_VertexID, uint instance : SV_InstanceID)
             {
                 vertexClock();
                 copy = instance;
@@ -152,7 +154,7 @@ public static partial class SlangShaders
                 XanaduDrawQuad q = xanaduDrawQuad;
                 float2 position = q.corner + uv.x * q.xAxis + uv.y * q.yAxis;
                 float2 size = float2(length(q.xAxis), length(q.yAxis));
-                ItemVertex v = { position, uv, float4(1.0), uv * size, canvasFrom(q.xAxis, q.yAxis, q.corner, uv), index, 0.0 };
+                ItemVertex v = { position, uv, float4(1.0), uv * size, canvasFrom(q.xAxis, q.yAxis, q.corner, uv), index, 0.0, float3(0.0), float3(0.0) };
                 ItemVertex d = effect0::{{deform}}(v);
                 ItemVaryings o = varyings(d);
                 // The deform's depth squashed into 0..1 as the canvas does it, nearer smaller (tested less-or-equal),
@@ -160,7 +162,8 @@ public static partial class SlangShaders
                 o.position.z = q.slice.x + q.slice.y * (0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0));
                 o.rest = position;
                 o.instance = instance;
-                return o;
+                XanaduDrawVaryings drawn = { o, d.world, d.normal, index / 3 };
+                return drawn;
             }
             """;
     }
@@ -175,7 +178,9 @@ public static partial class SlangShaders
         (string imports, string code, string label) = Split(name, source);
         string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"))
                         + (depth is null ? "" : " float xanaduDepth : SV_Depth;");
-        string written = outputs[0].Field is null
+        string written = outputs[0] is { Field: null, Type: not "float4" }
+            ? "o.o0 = effect0::SHADE(ARGUMENTS);"
+            : outputs[0].Field is null
             ? """
               float4 shown = effect0::SHADE(ARGUMENTS);
                   if (shown.a <= 0.0)
@@ -196,14 +201,19 @@ public static partial class SlangShaders
             #line 1 "{{label}} (wrapper)"
             // Where the fragment is: a draw into images renders them the box's size, so its position is the box's
             // and `shift` (the box's corner) puts it back on the target; a draw onto the frame isn't shifted.
-            // `origin` is the box's corner, for the texel in the item's images.
-            struct XanaduDrawBox { float2 shift; float2 origin; float2 slice; float2 pad; };
+            // `origin` is the box's corner, for the texel in the item's images; `corner` and the axes the item's
+            // quad at rest, so `i.rest` is the item's whatever uv the triangles carry (a mesh's own).
+            struct XanaduDrawBox { float2 shift; float2 origin; float2 slice; float2 corner; float2 xAxis; float2 yAxis; float2 pad; };
             [[vk::binding({{DrawBoxSlot}}, 3)]] ConstantBuffer<XanaduDrawBox> xanaduDrawBox;
             struct XanaduDrawn { {{fields}} };
+            struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
             [shader("fragment")]
-            XanaduDrawn xanaduDrawFragment(ItemVaryings v)
+            XanaduDrawn xanaduDrawFragment(XanaduDrawVaryings drawn, bool front : SV_IsFrontFace)
             {
+                ItemVaryings v = drawn.item;
                 copy = v.instance;
+                drawnTriangle = drawn.triangle;
+                frontFacing = !front;   // the grid winds clockwise on a y-down target, which the default front face calls back
                 v.position.xy += xanaduDrawBox.shift;
                 // The texel under the pixel in the item's images, as a pixel pass has it.
                 group.pixel = uint2(max(v.position.xy - xanaduDrawBox.origin, 0.0));
@@ -211,6 +221,10 @@ public static partial class SlangShaders
                 // Pixels into the screen, from z: out of the slice, then z = 0.5 + 0.5 d / (|d| + 1024) undone.
                 float r = (v.position.z - xanaduDrawBox.slice.x) / max(xanaduDrawBox.slice.y, 1e-9) * 2.0 - 1.0;
                 i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);
+                Canvas quad = canvasFrom(xanaduDrawBox.xAxis, xanaduDrawBox.yAxis, xanaduDrawBox.corner, float2(0.0));
+                i.rest = canvasFrom(quad.xAxis, quad.yAxis, quad.corner, quad.uvAt(v.position.xy));
+                i.world = drawn.world;
+                i.normal = drawn.normal;
                 shading = i;
                 {{TimelineClock(source, shading: true)}}
                 XanaduDrawn o;

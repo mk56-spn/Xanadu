@@ -67,11 +67,10 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     public string? Source { get; private init; }
 
     /// <summary>A material for a level shader's code; <paramref name="name"/> names it in errors and caches.</summary>
-    /// <param name="runsGraphs">Lets the code run a <c>graph()</c> (Docs/render-graph.md); the lab only, for now.</param>
     /// <param name="overlay">Draws one of the shader editor's overlays instead of the code's shade (see <see cref="Overlay"/>).</param>
     public static CanvasMaterial FromSource(
-        string name, string source, BlendMode blend = BlendMode.Mix, bool runsGraphs = false, MaterialOverlay overlay = MaterialOverlay.None) =>
-        new(name, blend) { Source = source, RunsGraphs = runsGraphs, Overlay = overlay };
+        string name, string source, BlendMode blend = BlendMode.Mix, MaterialOverlay overlay = MaterialOverlay.None) =>
+        new(name, blend) { Source = source, Overlay = overlay };
 
     /// <summary>
     /// Draws a look of the shader editor's instead of the effect's own shade, through
@@ -79,12 +78,6 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     /// triangles and the uv really land; values still feed the vertex stage.
     /// </summary>
     public MaterialOverlay Overlay { get; private init; }
-
-    /// <summary>
-    /// Whether the code may run a <c>graph()</c>: its buffers and images are the
-    /// material's own, made zeroed.
-    /// </summary>
-    public bool RunsGraphs { get; private init; }
 
     public BlendMode Blend { get; } = blend;
 

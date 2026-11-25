@@ -39,9 +39,12 @@ internal struct DrawQuad
     public Vector2 Slice;
 }
 
-/// <summary>A draw node's fragment placing (uniform 2 of set 3, <c>XanaduDrawBox</c>): the shift onto the target, the box's corner, the slice.</summary>
+/// <summary>
+/// A draw node's fragment placing (uniform 2 of set 3, <c>XanaduDrawBox</c>): the shift onto the target, the box's corner,
+/// the slice, and the item's quad at rest (as <see cref="DrawQuad"/> hands the vertex stage), for the shade's <c>i.rest</c>.
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct DrawBox
 {
-    public Vector2 Shift, Origin, Slice, Pad;
+    public Vector2 Shift, Origin, Slice, Corner, XAxis, YAxis, Pad;
 }

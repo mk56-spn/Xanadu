@@ -62,7 +62,7 @@ public sealed class StackLibraryTests
     private static string Body(string build) =>
         ShaderStack.Compose("s", [new StackFile("build.slang", build), new StackFile("shade.slang", Shade)]);
 
-    private static CompiledBuild Compiled(string build = Tree) => SlangShaders.CompileEffectBody("s", Body(build), runsGraphs: true).Build!;
+    private static CompiledBuild Compiled(string build = Tree) => SlangShaders.CompileEffectBody("s", Body(build)).Build!;
 
     private static int Buffer(CompiledBuild build, string name) => build.Shape.Buffers.ToList().FindIndex(buffer => buffer.Name == name);
 

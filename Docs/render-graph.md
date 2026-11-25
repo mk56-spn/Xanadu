@@ -153,10 +153,12 @@ Arguments are lists. A call carries its image and value arguments as an array, n
 - **No per-frame logging.** A graph that can't run records one problem for the material, and the editor's
   PROBLEMS panel shows it. `Console.Error` stays for start-up.
 
-## The Lab-only gate
+## The Lab-only gate (gone, 2026-11-25)
 
-The game already draws through the trivial path. Compute nodes, pools and graphs are refused outside `Lab/` today
-(the `new_shader_8` failure). That gate comes off once stage B is in and measured.
+Graphs used to be refused outside `Lab/`. The gate came off with stage E's first slice: any stack may run a graph,
+in the game, the editor and the shader tool alike. A stack without one compiles and draws exactly as before, so the
+trivial path's cost doesn't move (no timing pass was run for it). `Lab/` stays the experiments folder: the game's
+start-up compile skips it and the shader tool gives its cards a still.
 
 ## Work, in order
 
@@ -444,7 +446,74 @@ Stage D, the rest (2026-11-25):
 - **Checked:** shots of trace_wave, sizes (and sizes' quarter-size glow presented alone, stretched, against the last
   commit's), scene_room, bvh_march, trails, post and cached look as before.
 
-Next: stage E on the confirmed drawing model, starting (user's call, 2026-11-25) with the mesh core: a paged meshlet
+Stage E, first slice: the mesh core (2026-11-25):
+
+- **`[Cached]` buffers:** `[Cached] [Buffer(n)] RWStructuredBuffer<T> name;` (`BuildBuffer.Cached`). A node fills
+  caches when it touches at least one cached image or writes a cached buffer, every image it touches and every buffer
+  it writes is cached, and every buffer it reads is cached or `[Host]` (`GraphPlan.Fills`, `Steady`). A material's fill
+  passes run when its cached images or its cached buffers are stale; the buffers' stamp is `BuildBuffers.Filled`,
+  asked once a frame (`GraphResources.Stale`), stale when just made or the material's stamp moved.
+- **The pool** (xanadu.mesh, "The pool"): pages of `mesh.PAGE` (128) corners and 128 triangles, one object each.
+  `MeshVertex` (position, normal, uv in the object's own space), `Meshlet` (object, triangles and corners used),
+  triangles as three 8-bit corner numbers inside the page. A stack declares the three buffers, `[Cached]` for a mesh
+  built once, plain for one rebuilt every frame.
+- **Generators are passes:** `mesh.grid(surface, t, cells, first, object, …)` is thread t of building any
+  `ISurface` as a grid into pages from `first` (8 × 8 cells a page, `mesh.pagesFor`), called from the stack's own
+  `[Pass]` (a library pass can't take the stack's surface).
+- **One vertex-pulled draw:** `[Draw(64, 1, shade: …, copies: pages)]`, a page a copy; `mesh.corner` pulls the
+  corner for `v.index` from page `copy`, folding away triangles the page doesn't use. Two front doors over it:
+  `mesh.pulled(v, placement, camera, …)` (3D: the object placed live by the draw, so a cached mesh still turns and
+  moves) and `mesh.flat(v, offset, angle, scale, …)` (2D: x and y in pixels on the item, z the layer, unlit).
+  `mesh.lit(i, camera, base)` lights a pixel from what the vertex stage handed on. `Stroke` (`curve.stroked(width)`)
+  is the first 2D-native surface.
+- **What draws gained for it:** `ItemVertex.world` / `normal` carried to the shade as `i.world` / `i.normal` (a draw's
+  own varyings, so canvas items pay nothing), and `i.rest` in a draw's shade is the item's quad at rest from a uniform
+  (`DrawBox` carries the quad), whatever uv the triangles carry.
+- **Checked:** `Lab/meshes` (seven cached surfaces and a live ocean, two counted draws) and `Lab/flat_meshes` (cards
+  and strokes sorted by layer whatever the draw order); a probe logged the cached generator filling only on its first
+  frame and once when the tool set the values, over 150 frames; sizes, scene_room and copies look as before. Slang
+  tests pass but the known one.
+- **Then (same day):** the gate came off, and every Learn mesh stack moved onto the pool: `tour_mesh`,
+  `tour_mesh_more`, `tour_mesh_2d`, `tour_mesh_overlap` (shapes that only turn in `[Cached]` pages, the ones whose
+  shape moves rebuilt each frame into plain pages, two counted draws), `planet` (nine cached steps), `ocean`,
+  `beat_tunnel` and `fold_on_beat` (rebuilt each frame). `tour_bends` is one `[Draw(31, 17, copies: 9)]`. Gone from
+  xanadu.mesh: `deformed`, `mesh.split` and `Piece`; `place` stays (the pool's own draw and hand-made draws use it).
+  `mesh.facing()` is now the GPU's triangle facing (`SV_IsFrontFace`, read in both fragment wrappers into
+  `frontFacing`) instead of the uv-derivative winding (`uvWinding`, gone). The tours now look as they did or
+  better: the overlap tour's see-through patches are gone and tour_mesh's terrain takes its colour from its height.
+- **Not yet:** no culling per page yet (a page's bounds would
+  let a pass drop pages off screen or facing away); no index-list generator (anything that isn't a grid); paging is
+  static (each generator owns a fixed range of pages).
+
+Stage E, second slice: the shared scene (2026-11-25):
+
+- **Two images, not three:** every maker writes only `depth` (r32f) and `ids` (r32ui) (`Visibility` in xanadu.light).
+  An id is its maker in the top two bits and then which of its things: `makers.sdf(object)` for a recorded scene's
+  object, `makers.mesh(copy, drawnTriangle)` for one triangle of a pool page. `drawnTriangle` is new in xanadu.stage:
+  a draw's vertex stage hands `index / 3` on, flat, to its shade. `Surfaces`, `SurfaceTexels` and `Surface.texels`
+  are gone; `Surface` is a normal and a material.
+- **One resolve, in the light pass:** `Visibility.at(pixel, camera, canvas)` reads a `Seen` (found, depth, id, the
+  pixel's ray and world point). The maker rebuilds the surface: `scene.surface(parts, objects, seen)` takes the
+  normal from that object's field and its material there; `seen.onMesh(placement, corners, triangles)` meets the ray
+  with the pool triangle and blends its corners' normals and uvs. `Lighting.deferred(seen, surface, camera, caster)`
+  lights it once.
+- **Shadows from every maker:** `IShadows.shadow` now says which light it is asked about (`Lighting.SUN`,
+  `Lighting.LAMP + k`). `ShadowMap` is one light's depth as a camera at the light sees it (`Camera(eye, focal)`, new:
+  looking at the origin from a point), drawn by any maker's draw through that camera; nine taps, a bias of two texels.
+  `both(a, b)` casts two together, so the room's marched shadows fall on the torus and the torus's map shadow falls
+  on the room.
+- **What draws gained:** a shade may return a bare `float`, `float2` or `uint` (one image: a shadow map's depth); a
+  draw starts its depth test afresh when it writes different images from the draw before (`ItemSet.DrawnInto`), so a
+  draw from a lamp doesn't test against the camera's depth.
+- **Checked:** `Lab/scene_room` (the torus from the pool, the room marched only where nearer, one light pass, the
+  torus shadowing the floor), a debug view of the map's shadow; the Slang tests pass but the known one.
+- **Not yet:** shadow maps are one perspective view (a lamp lighting all round would want six); SDFs don't draw into
+  a map (they cast through the march, which is exact); xanadu.scene still keeps its own record buffers (they are its
+  authoring, not plumbing, now that `shoot` writes ids); screen-space AO and `room.box` are still to come.
+
+Next: prettify the GRAPH view (the stack's graph as the tool shows it).
+
+Was: stage E on the confirmed drawing model, starting (user's call, 2026-11-25) with the mesh core: a paged meshlet
 pool in kept buffers, generators as passes that rerun only when their inputs change (today's grid surfaces first, built
 once), one vertex-pulled counted draw for every mesh, and 2D and 3D front doors over the same core; xanadu.mesh is
 rebuilt onto it. Then the shared scene: SDFs and mesh draws writing one depth + id image, a resolve pass, one lighting

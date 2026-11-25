@@ -168,12 +168,14 @@ public sealed class GraphPlan
     }
 
     /// <summary>
-    /// Whether a call only fills caches: it touches at least one image and all of them are <c>[Cached]</c> (a draw's
-    /// targets too), and writes no buffer (a draw's stages can only read theirs).
+    /// Whether a call only fills caches: it touches at least one <c>[Cached]</c> image or writes a <c>[Cached]</c> buffer,
+    /// every image it touches is cached (a draw's targets too), every buffer it writes is cached, and every buffer it
+    /// reads is cached or the host's: nothing it reads can move without the material's stamp moving too.
     /// </summary>
     private static bool Fills(CompiledBuild build, CompiledPass pass, StackBuild.Run run)
     {
         IReadOnlyList<BuildImage> images = build.Shape.Images;
+        IReadOnlyList<BuildBuffer> buffers = build.Shape.Buffers;
         bool touches = false;
         foreach (int image in pass.Images)
         {
@@ -184,7 +186,9 @@ public sealed class GraphPlan
 
         if (pass.Drawn is { } drawn)
         {
-            if (Array.Exists(drawn.Reads, image => images[image].Life != ImageLife.Cached))
+            if (Array.Exists(drawn.Reads, image => images[image].Life != ImageLife.Cached)
+                || Array.Exists(drawn.Vertex.StackBuffers, buffer => !Steady(buffers[buffer]))
+                || Array.Exists(drawn.Fragment.StackBuffers, buffer => !Steady(buffers[buffer])))
                 return false;
             for (int k = 0; run.Target(k) != StackBuild.Run.None; k++)
             {
@@ -196,8 +200,24 @@ public sealed class GraphPlan
             return touches;
         }
 
-        return touches && !Array.Exists(pass.Access, access => access.HasFlag(GraphAccess.Write));
+        for (int k = 0; k < pass.Buffers.Length; k++)
+        {
+            BuildBuffer buffer = buffers[pass.Buffers[k]];
+            if (pass.Access[k].HasFlag(GraphAccess.Write))
+            {
+                if (!buffer.Cached)
+                    return false;
+                touches = true;
+            }
+            else if (!Steady(buffer))
+                return false;
+        }
+
+        return touches;
     }
+
+    /// <summary>A buffer that only changes with the material's stamp: cached, or filled by the host.</summary>
+    private static bool Steady(BuildBuffer buffer) => buffer.Cached || buffer.Host;
 
     private void Add(NodeKind kind, NodePlace place, StackBuild.Run call = default, bool fills = false)
     {

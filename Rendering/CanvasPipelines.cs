@@ -76,7 +76,7 @@ internal sealed class CanvasPipelines : IDisposable
         {
             try
             {
-                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.RunsGraphs, ShadeWith(material.Overlay)));
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, ShadeWith(material.Overlay)));
             }
             catch (Exception exception)
             {
@@ -90,7 +90,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     private static string SourceKey(CanvasMaterial material, string source) =>
-        (material.RunsGraphs ? "graph:" : "source:") + OverlayKey(material.Overlay) + source;
+        OverlayKey(material.Overlay) + source;
 
     private static string OverlayKey(MaterialOverlay overlay) =>
         overlay == MaterialOverlay.None ? "" : overlay + ":";
@@ -133,9 +133,9 @@ internal sealed class CanvasPipelines : IDisposable
 
         try
         {
-            // Its files as one body, written as level shaders are: the same wrapper calls its shade. Lab-only ones may run graphs.
+            // Its files as one body, written as level shaders are: the same wrapper calls its shade.
             string body = ShaderStack.Compose(path, ShaderStack.Read(folder));
-            return Make(SlangShaders.CompileEffectBody(path, body, SlangShaders.IsLabOnly(path), shadeWith));
+            return Make(SlangShaders.CompileEffectBody(path, body, shadeWith));
         }
         catch (Exception exception)
         {
@@ -158,7 +158,7 @@ internal sealed class CanvasPipelines : IDisposable
                 sources.Add((layer, ShaderStack.Compose(layer, ShaderStack.Read(folder))));
             }
 
-            return Make(SlangShaders.CompileEffectBody(key, ShaderLayers.Stitch(sources), runsGraphs: false, shadeWith));
+            return Make(SlangShaders.CompileEffectBody(key, ShaderLayers.Stitch(sources), shadeWith));
         }
         catch (Exception exception)
         {
@@ -254,7 +254,7 @@ internal sealed class CanvasPipelines : IDisposable
 
     /// <summary>
     /// Compiles every shipped effect (each shader stack, a folder of bricks, under <c>Assets/Shaders</c>
-    /// outside the library and the lab-only folder) with mix; called once at start, so screens and the
+    /// outside the library and the lab folder) with mix; called once at start, so screens and the
     /// playfield never compile one mid-song.
     /// </summary>
     public void WarmShipped(Action<int, int>? progress = null)

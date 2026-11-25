@@ -37,7 +37,7 @@ public sealed class ShaderStackTests
     {
         string body = ShaderStack.Compose("Lab/s", [new StackFile("heights.slang", Graph)]);
 
-        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, runsGraphs: true);
+        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body);
 
         Assert.That(compiled.Build!.Alone, Is.True);
     }
@@ -49,7 +49,7 @@ public sealed class ShaderStackTests
         const string run = "import xanadu;\nvoid graph() { grow(); }\n";
         string body = ShaderStack.Compose("Lab/s", [new StackFile("heights.slang", declared), new StackFile("run.slang", run), new StackFile("look.slang", Fragment)]);
 
-        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, runsGraphs: true);
+        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body);
 
         Assert.That(compiled.Build!.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "grow" }));
     }

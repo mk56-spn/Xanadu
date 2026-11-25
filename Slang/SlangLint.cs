@@ -25,8 +25,8 @@ namespace Xanadu.Slang;
 /// (<c>float length</c>, then <c>length(d)</c> in its scope). A value can't be called,
 /// so Slang says "no call operation found for type" at the call; the warning goes on
 /// the name, where the fix is.</item>
-/// <item>XS008: a <c>deform</c> that bends (a mesh surface, <c>place</c>, <c>wave</c>,
-/// <c>twist</c>, <c>bulge</c>, <c>sway</c>, <c>curl</c>, <c>jitter</c>, <c>mesh.split</c>)
+/// <item>XS008: a <c>deform</c> that bends (<c>place</c>, <c>wave</c>,
+/// <c>twist</c>, <c>bulge</c>, <c>sway</c>, <c>curl</c>, <c>jitter</c>)
 /// with no <c>[Grid(columns, rows)]</c> on it. The shader tool's preview draws its
 /// own grid, so it looks right there, but on a level item it has four corners and
 /// the bend comes out flat. Not on a stack with a <c>graph()</c>: its nodes need the quad uncut.</item>
@@ -309,7 +309,7 @@ public static partial class SlangLint
     private static partial Regex GridAttribute();
 
     /// <summary>Calls that need corners inside the quad: surfaces placed on it, and the moves that bend rather than squash, tilt or shift.</summary>
-    [GeneratedRegex(@"\.\s*(?:deformed|place|placed|wave|waved|twist|twisted|bulge|bulged|sway|swayed|curl|curled|jitter|jittered)\s*\(|\bmesh\s*\.\s*split\s*\(")]
+    [GeneratedRegex(@"\.\s*(?:place|placed|wave|waved|twist|twisted|bulge|bulged|sway|swayed|curl|curled|jitter|jittered)\s*\(")]
     private static partial Regex Bend();
 
     /// <summary>XS008: a deform that bends, with no [Grid] to give it corners to bend on a level item.</summary>

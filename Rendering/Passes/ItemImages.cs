@@ -19,8 +19,15 @@ internal sealed record ItemSet(Texture[] Images, (uint Width, uint Height)[] Ext
     public System.Numerics.Vector2 Stretch(int k) =>
         new((float)Box.Width / Math.Max(1u, Extents[k].Width), (float)Box.Height / Math.Max(1u, Extents[k].Height));
 
-    /// <summary>Whether a draw has written <see cref="Z"/> yet this frame; the first one clears it.</summary>
-    public bool Drawn { get; set; }
+    /// <summary>
+    /// The targets the last draw wrote <see cref="Z"/> with this frame (their numbers packed a byte each), or
+    /// <see cref="None"/>. Draws into the same images in a row share one depth test; a draw into others (a
+    /// shadow map from a lamp) starts it afresh.
+    /// </summary>
+    public uint DrawnInto { get; set; } = None;
+
+    /// <summary>No draw yet this frame.</summary>
+    public const uint None = uint.MaxValue;
 }
 
 /// <summary>

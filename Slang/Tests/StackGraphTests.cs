@@ -36,6 +36,17 @@ public sealed class StackGraphTests
     }
 
     [Test]
+    public void APassWritingOnlyCachedBuffersFillsThemAndOneWritingPlainBuffersRunsEveryFrame()
+    {
+        CompiledShader compiled = Compiled("meshes");
+        GraphNode[] nodes = [.. GraphPlan.Of(compiled).Nodes.Where(n => n.Kind == NodeKind.Compute)];
+        string[] names = [.. nodes.Select(n => compiled.Build!.Passes[n.Call.Pass].Name)];
+
+        Assert.That(names, Is.EqualTo(new[] { "make", "sea" }));
+        Assert.That(nodes.Select(n => n.Fills), Is.EqualTo(new[] { true, false }));
+    }
+
+    [Test]
     public void APresentIsADrawOverTheBoxOntoTheFrame()
     {
         CompiledShader compiled = Compiled("sizes");

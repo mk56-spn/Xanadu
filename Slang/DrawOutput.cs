@@ -7,8 +7,8 @@ namespace Xanadu.Slang;
 
 /// <summary>
 /// One target a <c>[Draw]</c> writes, from its shade's return type (Docs/render-graph.md, stage C): a <c>float4</c> (or
-/// <c>colour</c>) shade writes one, blended out where its alpha is 0; a shade returning a struct writes one per field,
-/// in order. Its call names an image for each, checked against the field's type.
+/// <c>colour</c>) shade writes one, blended out where its alpha is 0; a <c>float</c>, <c>float2</c> or <c>uint</c> shade
+/// writes that one value (a shadow map's depth); a shade returning a struct writes one per field, in order. Its call names an image for each, checked against the field's type.
 /// </summary>
 /// <param name="Field">The struct field it comes from; null for a shade that returns its colour.</param>
 /// <param name="Type">What the field holds: float, float2, float4 (a colour too) or uint.</param>
@@ -44,10 +44,12 @@ public sealed record DrawOutput(string? Field, string Type)
         string type = declared.Groups[1].Value;
         if (type is "float4" or "colour")
             return [new DrawOutput(null, "float4")];
+        if (type is "float" or "float2" or "uint")
+            return [new DrawOutput(null, type)];
 
         string body = StructBody(code, type)
                       ?? SlangShaders.LibraryModules().Select(module => StructBody(BuildText.Blank(module.Text), type)).FirstOrDefault(found => found is not null)
-                      ?? throw new BuildProblem(declared.Index, $"{shade} returns {type}, which is neither a float4 nor a struct the stack or the library declares.");
+                      ?? throw new BuildProblem(declared.Index, $"{shade} returns {type}, which is neither a float4, float, float2, uint nor a struct the stack or the library declares.");
         var outputs = new List<DrawOutput>();
         foreach (string part in TopLevel(body).Split(';'))
         {

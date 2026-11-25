@@ -204,8 +204,8 @@ float2 reach(float2 from, float2 to, float span) { return from + normalize(to - 
 
 ## XS008 · A bend without a `[Grid]` (warning) · checked
 
-A `deform` that bends the quad (a mesh surface's `deformed`, `place`, `wave`,
-`twist`, `bulge`, `sway`, `curl`, `jitter`, `mesh.split`) needs corners inside
+A `deform` that bends the quad (`place`, `wave`, `twist`, `bulge`, `sway`,
+`curl`, `jitter`) needs corners inside
 it. The shader tool's preview draws its own grid, so it looks right there, but
 a level item is four corners and the bend comes out flat.
 

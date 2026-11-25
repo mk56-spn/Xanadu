@@ -32,7 +32,11 @@ public enum GraphAccess
 }
 
 /// <summary>One piece of data the stack's passes share: its kind, its name, and its bytes (0 when the host sizes it).</summary>
-public sealed record GraphResource(GraphResourceKind Kind, string Name, long Bytes);
+public sealed record GraphResource(GraphResourceKind Kind, string Name, long Bytes)
+{
+    /// <summary>For an image: its format, size and how long it lasts (<c>rgba16f · box · kept</c>); empty otherwise.</summary>
+    public string Detail { get; init; } = "";
+}
 
 /// <summary>
 /// One pass of the stack, in the order they first run this frame: its name, the brick it comes
@@ -46,6 +50,9 @@ public sealed record GraphPass(string Name, StackRole Role, bool Compute, int Ca
 
     /// <summary>It fills <c>[Cached]</c> images: it runs only when they go stale, not every frame (<see cref="GraphNode.Fills"/>).</summary>
     public bool Fills { get; init; }
+
+    /// <summary>What sort of node it is: a <c>[Pass]</c>, a <c>[Pixels]</c> pass, a <c>[Draw]</c>, or the item's own quad.</summary>
+    public NodeKind Kind { get; init; } = NodeKind.Compute;
 }
 
 /// <summary>A pass touching a resource, by their places in <see cref="StackGraph.Passes"/> and <see cref="StackGraph.Resources"/>.</summary>
@@ -91,7 +98,7 @@ public sealed class StackGraph
         int[] buffers = fragment.Build is { } built
             ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i]))]
             : [];
-        int[] images = [.. GraphPlan.Images(fragment).Select(image => graph.Resource(GraphResourceKind.Image, image.Name, 0))];
+        int[] images = [.. GraphPlan.Images(fragment).Select(image => graph.Resource(GraphResourceKind.Image, image.Name, 0, Detail(image)))];
         int screen = fragment.ReadsScreen || fragment.Build?.Passes.Any(pass => pass.ReadsScreen) == true
             ? graph.Resource(GraphResourceKind.Screen, "screen", 0)
             : -1;
@@ -127,7 +134,7 @@ public sealed class StackGraph
                     }
                     else
                     {
-                        int pass = graph.Pass(compiled.Name, StackRole.Graph, true, 1, threads, place: node.Place, fills: node.Fills);
+                        int pass = graph.Pass(compiled.Name, StackRole.Graph, true, 1, threads, place: node.Place, fills: node.Fills, kind: node.Kind);
                         called[node.Call.Pass] = seen = pass;
                         Uses(pass, compiled.Buffers, compiled.Access);
                         foreach (int image in compiled.Images)
@@ -172,13 +179,13 @@ public sealed class StackGraph
     {
         if (fragment.Vertex is { } vertex)
         {
-            int deform = Pass("deform", StackRole.Deform, false, place: NodePlace.Exit);
+            int deform = Pass("deform", StackRole.Deform, false, place: NodePlace.Exit, kind: NodeKind.Shade);
             binds(deform, vertex.StackBuffers, GraphAccess.Read);
             // The triangles test the depth and, unless translucent, write it.
             Edge(deform, depth, vertex.Translucent ? GraphAccess.Read : GraphAccess.ReadWrite);
         }
 
-        int shade = Pass("shade", StackRole.Shade, false, place: NodePlace.Exit);
+        int shade = Pass("shade", StackRole.Shade, false, place: NodePlace.Exit, kind: NodeKind.Shade);
         binds(shade, fragment.StackBuffers, GraphAccess.Read);
         if (fragment.ReadsDepth)
             Edge(shade, depth, GraphAccess.Read);
@@ -193,16 +200,31 @@ public sealed class StackGraph
          _edges.Where(e => e.Resource == resource && e.Access.HasFlag(GraphAccess.Read)).Select(e => e.Pass).Distinct());
 
     private int Pass(string name, StackRole role, bool compute, int calls = 1, long threads = 0, NodePlace place = NodePlace.Prelude,
-        bool fills = false)
+        bool fills = false, NodeKind kind = NodeKind.Compute)
     {
-        _passes.Add(new GraphPass(name, role, compute, calls, threads) { Place = place, Fills = fills });
+        _passes.Add(new GraphPass(name, role, compute, calls, threads) { Place = place, Fills = fills, Kind = kind });
         return _passes.Count - 1;
     }
 
-    private int Resource(GraphResourceKind kind, string name, long bytes)
+    private int Resource(GraphResourceKind kind, string name, long bytes, string detail = "")
     {
-        _resources.Add(new GraphResource(kind, name, bytes));
+        _resources.Add(new GraphResource(kind, name, bytes) { Detail = detail });
         return _resources.Count - 1;
+    }
+
+    /// <summary>An image in a few words: its format, its size against the item's box, and how long it lasts.</summary>
+    private static string Detail(PlannedImage image)
+    {
+        string size = image.Size.Fixed ? $"{image.Size.Width}×{image.Size.Height}"
+            : image.Size.Box ? "box" : $"{image.Size.Scale:0.##}× box";
+        string life = image.Life switch
+        {
+            ImageLife.Kept => " · kept",
+            ImageLife.Cached => " · cached",
+            ImageLife.History => " · last frame",
+            _ => "",
+        };
+        return $"{image.Format} · {size}{life}";
     }
 
     private void Edge(int pass, int resource, GraphAccess access) => _edges.Add(new GraphEdge(pass, resource, access));

@@ -40,6 +40,9 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     /// </summary>
     private readonly Dictionary<CanvasMaterial, (Texture?[] Images, bool Stale)> _shared = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>The materials whose <c>[Cached]</c> buffers need filling this frame.</summary>
+    private readonly HashSet<CanvasMaterial> _staleBuffers = new(ReferenceEqualityComparer.Instance);
+
     /// <summary>Steps whose item has no box to work in (off screen, or its quad cut on the GPU).</summary>
     private readonly HashSet<int> _boxless = [];
 
@@ -65,6 +68,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         _images.Begin(frame.Number);
         _sets.Clear();
         _shared.Clear();
+        _staleBuffers.Clear();
         CollectionsMarshal.SetCount(_sets, frame.Steps.Count);
         _boxless.Clear();
         for (int s = 0; s < frame.Steps.Count; s++)
@@ -77,6 +81,8 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
             GraphPlan plan = first ? Lower(material, effect) : Plan(material, effect);
             // A schedule's buffers exist from its first frame, whether or not its values call anything yet.
             BuildBuffers? kept = effect.Compiled.Build is null || !first ? null : _resources.For(commands, material, effect);
+            if (kept is not null && effect.Compiled.Build!.Shape.CachesBuffers && _resources.Stale(material, Stamp(material)))
+                _staleBuffers.Add(material);
             // A particle mesh borrows the effect's shade only: its graph runs for the material's own items.
             bool item = step.Kind == StepKind.Effect;
             foreach (GraphNode node in plan.Nodes)
@@ -108,7 +114,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         if (node.Kind == NodeKind.Compute)
         {
             // A cache a [Pass] fills is the material's: filled when its values move.
-            if (node.Fills && !(effect.SharesImages && SharedStale(commands, material, effect)))
+            if (node.Fills && !_staleBuffers.Contains(material) && !(effect.SharesImages && SharedStale(commands, material, effect)))
                 return;
             _compute.Pass(commands, effect, kept.Value, Shared(commands, material, effect), node.Call, material, frame.Dt, frame.Time);
             return;

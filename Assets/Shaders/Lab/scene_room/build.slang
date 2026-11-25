@@ -1,16 +1,23 @@
 // A room recorded with xanadu.scene: a box on a plinth that thumps on every beat, a ball
 // melted on it, a hoop that flashes each bar, pillars in the corners and a ring of pins that
-// bob in turn, with a mesh torus drawn into the same room. The graph records the scene once a
-// frame, draws the torus into the Surfaces, marches the scene only where it is nearer, lights
-// every surface once with the scene's shadows, and presents the result on the item.
+// bob in turn, with a mesh torus from the pool in the same room. One shared scene: the torus
+// is drawn and the room marched (only where it is nearer) into one depth and one id image;
+// one pass then rebuilds each pixel's surface from whoever made it and lights it once, in the
+// room's shadows; present shows the result on the item.
 import xanadu;
 
 [Buffer(256)] RWStructuredBuffer<scene.Part> parts;
 [Buffer(129)] RWStructuredBuffer<scene.Object> objects;
 [Image(r32f, clear: 1e30)] RWTexture2D<float> depth;
-[Image(rgba16f)] RWTexture2D<float4> normals;
-[Image(rgba16f)] RWTexture2D<float4> bases;
+[Image(r32ui)] RWTexture2D<uint> ids;
 [Image(rgba16f)] RWTexture2D<float4> shown;
+/// The lamp's shadow map: how deep the meshes are as the lamp sees them.
+[Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+
+static const uint RING = 16;                     // pages the torus's 32 x 32 grid takes (mesh.pagesFor)
+[Cached] [Buffer(RING * 128)] RWStructuredBuffer<MeshVertex> corners;
+[Cached] [Buffer(RING * 128)] RWStructuredBuffer<uint> triangles;
+[Cached] [Buffer(RING)] RWStructuredBuffer<Meshlet> meshlets;
 
 [Default(colours.hotPink)] uniform colour tint;
 /// How hard the box thumps on the beat.
@@ -52,45 +59,69 @@ void record(uint i)
 Camera eye(float2 size) { return Camera(1100, size.y * 0.9).orbited(sin(time * 0.25) * 0.7, 0.3); }
 
 /// A closed room keeps the sun out: a lamp hangs under the ceiling instead.
+static const float3 LAMP = float3(-350, -550, -300);
+
 Lighting lighting()
 {
-    Lighting light = Lighting().sunless().lamp(float3(-350, -550, -300), colour(1.5, 1.35, 1.2), 1200);
+    Lighting light = Lighting().sunless().lamp(LAMP, colour(1.5, 1.35, 1.2), 1200);
     light.sky = colour(0.18, 0.2, 0.28);
     light.ground = colour(0.1, 0.08, 0.07);
     return light;
 }
 
-Surfaces surfaces() { return Surfaces(depth, normals, bases); }
+Visibility seen() { return Visibility(depth, ids); }
 
-/// A ring of real triangles (xanadu.mesh), turning on the beat in a corner.
-Torus ring() { return Torus(160, 40).turned(float3(1.1, beat * 0.5, 0.3)).moved(float3(-620, 60, 380)); }
-
-[Draw(96, 32, shade: ringLook)]
-ItemVertex ringDrawn(ItemVertex v)
+/// A ring of real triangles (xanadu.mesh's pool), built once, turning on the beat in a corner.
+Placement3 ring()
 {
-    v.place(ring().at(v.uv), eye(v.rest.size));
-    return v;
+    Placement3 p = Placement3();
+    p.offset = float3(-620, 60, 380);
+    p.angles = float3(1.1, beat * 0.5, 0.3);
+    return p;
 }
 
-SurfaceTexels ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), Material(colours.orange, 40)).texels(i.depth); }
+[Pass(128, over: RING * 128)]
+void make(uint i) { mesh.grid(Torus(160, 40), i, uint2(32), 0, 0, corners, triangles, meshlets); }
+
+[Draw(64, 1, shade: ringSeen, copies: RING)]
+ItemVertex ringDrawn(ItemVertex v) { return mesh.pulled(v, ring(), eye(v.rest.size), corners, triangles, meshlets); }
+
+IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
+
+/// The lamp as a camera, looking at the room's middle, wide enough to see most of the floor.
+Camera lampEye(float2 size) { return Camera(LAMP, size.x * 0.22); }
+
+/// The torus again, from the lamp, into its shadow map: so it shadows the room as the room shadows it.
+[Draw(64, 1, shade: fromLamp, copies: RING)]
+ItemVertex ringFromLamp(ItemVertex v) { return mesh.pulled(v, ring(), lampEye(v.rest.size), corners, triangles, meshlets); }
+
+float fromLamp(ItemInput i) { return i.depth; }
 
 /// The scene, marched only where it is nearer than the torus.
 [Pixels(8, 8)]
-void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), surfaces()); }
+void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), seen()); }
 
-/// Every surface lit once, whoever drew it, in the scene's shadows.
+/// Every pixel's surface rebuilt from whoever made it, then lit once, in every maker's shadows:
+/// the room's marched, the torus's from the lamp's map.
 [Pixels(8, 8)]
 void illuminate(ItemInput i, Canvas canvas)
 {
     Camera camera = eye(canvas.size);
     Lighting light = lighting();
-    shown[group.pixel] = light.deferred(surfaces(), camera, canvas, scene.shadows(parts, objects, camera, canvas, light));
+    Seen s = seen().at(group.pixel, camera, canvas);
+    Surface here = s.maker == makers.MESH
+        ? Surface(s.onMesh(ring(), corners, triangles).normal, Material(colours.orange, 40))
+        : scene.surface(parts, objects, s);
+    let shadows = both(scene.shadows(parts, objects, camera, canvas, light), ShadowMap(Lighting.LAMP, lampDepth, lampEye(canvas.size), canvas.size));
+    shown[group.pixel] = light.deferred(s, here, camera, shadows);
 }
 
 void graph()
 {
     record();
-    ringDrawn(depth, normals, bases);
+    make();
+    ringDrawn(depth, ids);
+    ringFromLamp(lampDepth);
     shoot();
     illuminate();
     present(shown, depth);

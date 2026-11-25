@@ -86,9 +86,9 @@ public struct GlobalAttribute
 
 /// Put on `deform`: every rect the effect draws is cut into `columns` × `rows` cells
 /// (uv 0..1 across, corners shared), so a deform has corners inside to bend, not just
-/// four at its edges. xanadu.mesh surfaces need one; the host caps each side at 256.
+/// four at its edges (a flag's wave, a page's curl); the host caps each side at 256.
 ///
-///     [Grid(64, 36)] ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
+///     [Grid(64, 36)] ItemVertex deform(ItemVertex v) { v.wave(12, 200, time); return v; }
 [__AttributeUsage(_AttributeTargets.Function)]
 public struct GridAttribute
 {
@@ -164,6 +164,11 @@ public struct ItemVertex
     /// they draw in order, later over earlier. It never moves the item past others:
     /// the effect keeps its place in the frame's draw order whatever its depth.
     public float depth;
+    /// In a graph's draw, the 3D point it stands for (xanadu.mesh sets both): where it is in the
+    /// world and which way it faces there, handed on across the triangle to its shade as
+    /// `i.world` and `i.normal`. Zero everywhere else.
+    public float3 world;
+    public float3 normal;
 };
 
 /// Per-frame values the host sets once.
@@ -263,6 +268,11 @@ public struct ItemInput
     /// How far into the screen this pixel is, in pixels (as ItemVertex.depth): a graph's draw
     /// gives it, so its shade can write it to an image. 0 everywhere else.
     public float depth;
+    /// In a graph's draw, the world point and the way the surface faces there, blended across
+    /// the triangle from what its vertex stage set (ItemVertex.world, normal): xanadu.mesh's
+    /// draws light with them. Zero everywhere else; normalize the normal before using it.
+    public float3 world;
+    public float3 normal;
     /// Seconds since the game started; the global `time` is the same, and reaches everywhere.
     public float time;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
@@ -346,12 +356,10 @@ public Canvas restCanvasOf(ItemVaryings v, Canvas bent)
 /// @hidden
 public static ItemInput shading = {};
 
-/// How uv winds on screen at the pixel: more than 0 when it reads left to right, top to
-/// bottom (the front of a surface built from it), less when mirrored. Worked out in input(),
-/// before any code of the effect's branches, since a derivative taken after a branch reads
-/// garbage where neighbouring pixels went the other way.
+/// Whether the pixel's triangle faces the screen as it was built (the GPU's own winding test):
+/// false where a bend turned it over. Set by the fragment wrappers; true in compute.
 /// @hidden
-public static float uvWinding = 0.0;
+public static bool frontFacing = true;
 
 /// Seconds since the game started, the same clock as frame.time, for any
 /// shader and any function it calls: no need to pass it down. Set before
@@ -365,6 +373,10 @@ public static float dt = 0.0;
 /// Which copy a draw is on: 0, unless its [Draw] has `copies:` (a number, a value, or a
 /// count a pass wrote on the GPU).
 public static uint copy = 0;
+
+/// Which triangle of a draw's grid the pixel is on (its first corner's number / 3), set in a
+/// draw's shade: with `copy`, one triangle of a mesh pool's page. 0 everywhere else.
+public static uint drawnTriangle = 0;
 
 /// Where a pixel pass's thread sits in its tile (a GPU work group): its pixel's place in the tile,
 /// the tile's place among the box's tiles, its place as one number
@@ -474,9 +486,9 @@ public ItemInput input(ItemVaryings v)
     i.local = v.local;
     i.pixel = v.position.xy;
     i.depth = 0.0;
+    i.world = float3(0.0);
+    i.normal = float3(0.0);
     i.screenUv = v.position.xy / frame.screen;
-    float2 uvDx = ddx(v.uv), uvDy = ddy(v.uv);
-    uvWinding = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
     i.time = frame.time;
     time = frame.time;
     beat = frame.beat;
@@ -505,8 +517,9 @@ public ItemInput tracedInput(float2 pixel, float2 corner, float2 xAxis, float2 y
     i.local = uv * at.size;
     i.pixel = pixel;
     i.depth = 0.0;
+    i.world = float3(0.0);
+    i.normal = float3(0.0);
     i.screenUv = pixel / frame.screen;
-    uvWinding = 1.0;
     i.time = time;
     i.canvas = canvasFrom(xAxis, yAxis, corner, uv);
     i.rest = i.canvas;

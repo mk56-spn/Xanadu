@@ -41,11 +41,11 @@ internal sealed class ShaderToolApp : HostApp
     private const float Margin = UiMetrics.Space.Lg;
     private const float Gap = UiMetrics.Space.Md;
 
-    /// <summary>Frames a lab-only effect's still is drawn for (its update fills its state first), then it stops.</summary>
+    /// <summary>Frames a lab effect's still is drawn for (its update fills its state first), then it stops.</summary>
     private const int StillFrames = 4;
 
     /// <summary>
-    /// Lab-only effects (raymarchers and the like) are too heavy to draw live in the list on
+    /// Lab effects (raymarchers and the like) are too heavy to draw live in the list on
     /// every frame, so each gets a still: drawn into a texture for <see cref="StillFrames"/>
     /// frames when the tool opens or the file is saved, then left as it is. By file index:
     /// the texture the thumbnail shows, and the offscreen item drawing it while it's live.
@@ -271,7 +271,7 @@ internal sealed class ShaderToolApp : HostApp
         _code = new ShaderCodeEditor(Entities, _codeItem, slots, file.Path, files,
             item =>
             {
-                _effect = new EffectPreview(Renderer, item, file.Path, SlangShaders.IsLabOnly(file.Path));
+                _effect = new EffectPreview(Renderer, item, file.Path);
                 _effect.ShowOverlays(_showTriangles, _showUv);
                 return _effect;
             });

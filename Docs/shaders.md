@@ -1095,34 +1095,53 @@ ItemVertex deform(ItemVertex v)
 }
 ```
 
-### 3D from the grid: `xanadu.mesh`
+### 3D and 2D meshes: `xanadu.mesh`
 
-The grid's uv says where each corner is on the quad; a **surface** says where
-that uv sits in 3D, a **camera** where that lands on screen, and `deform` moves
-the corner there. One small sum per corner: 3D at the cost of a
-2D effect.
+A **surface** says where each uv (0..1 across and down) sits in 3D. A **generator**
+(a `[Pass]` calling `mesh.grid`) builds it into the **pool**: pages of 128 corners
+and 128 triangles in three buffers. One counted `[Draw]` pulls every page's
+corners and places them through a **camera** (`mesh.pulled`, 3D) or flat on the
+item (`mesh.flat`, 2D, x and y in pixels, z the layer). On `[Cached]` buffers the
+generator runs only when a value changes, so a mesh is built once and every
+frame only draws it; the draw still turns and moves it (`Placement3`). A shape
+that changes every frame (waves, a morph) goes in plain `[Buffer]`s and is built
+each frame.
 
 ```slang
-Sphere ball() { return Sphere(160).turned(float3(0.3, time, 0)); }
+static const uint PAGES = 16;                        // a 32 x 32 grid (mesh.pagesFor)
+[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
+[Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
+[Cached] [Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+
 Camera camera() { return Camera(900).orbited(0, 0.3); }
 
-ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
+[Pass(128, over: PAGES * 128)]
+void make(uint i) { mesh.grid(Sphere(160), i, uint2(32), 0, 0, corners, triangles, meshlets); }
 
-float4 shade(ItemInput i)
+[Draw(64, 1, shade: look, copies: PAGES)]                // a page a copy
+ItemVertex shown(ItemVertex v)
 {
-    if (!mesh.facing()) return colours.transparent;      // its far side
+    Placement3 p = Placement3();
+    p.angles = float3(0.3, time, 0);
+    return mesh.pulled(v, p, camera(), corners, triangles, meshlets);
+}
+
+float4 look(ItemInput i)
+{
     colour c = colours.navy;
     c.paint(Checker(0.08).filled(i.uv), colours.gold);     // painted on in uv
-    return ball().lit(i.uv, camera(), c);
+    return mesh.lit(i, camera(), c);                       // from i.world and i.normal
 }
+
+void graph() { make(); shown(frame); }
 ```
 
 Space is pixels: x right, y down, z into the screen. `Camera(distance, focal)`
 looks along +z from `distance` in front of the origin; by default depth 0 shows
 1:1, so `Sphere(160)` is 320 px across. `camera.orbited(yaw, pitch)` swings it
-round; `projected(p)`, `depth(p)` and `eye` are there for your own maths. Build
-the surface in one function and call it from both stages: `deform` places the
-corners, and `shade` asks it again at `i.uv` for the normal.
+round; `projected(p)`, `depth(p)` and `eye` are there for your own maths. Several
+objects share a pool: give each its own range of pages (`first`) and its own
+number (`object`), and read `meshlets[copy].object` in the draw and its shade.
 
 | Surface | Is (u, v) |
 |---|---|
@@ -1154,7 +1173,6 @@ tip; `Learn/write_on.slang`).
 
 Every surface: `moved(float3)`, `turned(float3 angles)` (radians round x, y,
 z), `scaled(f)` and their verbs; `at(uv)`, `normalAt(uv)`, `pointAt(uv)`;
-`deformed(v, camera)` (or `deformed(v, camera, uv)` for a piece's own uv);
 `lit(uv, camera, base, shininess)`, a studio light (key, fill, sheen, rim).
 Your own: implement `ISurface` (`placement3` and `local(uv)`, u left to right
 and v top to bottom as seen from outside).
@@ -1163,23 +1181,18 @@ and v top to bottom as seen from outside).
   `lights.rim` and `lights.toon` (cel bands), each 0..1; `lights.matcap(normal,
   toEye, shadow, base, light)` for a stylised ceramic or clay look.
   `camera.fog(p, near, far)` fades with distance.
-- **Depth:** `deformed()` and `v.place(p, camera)` set the corner's `v.depth`
-  (pixels into the screen), so where a surface overlaps itself (a torus edge-on,
-  hills in front of hills) the nearest part wins per pixel. The effect keeps its
-  place in the frame's draw order: depth sorts only its own triangles. Left at 0,
-  triangles draw in order. `[Translucent]` on `deform` tests the depth but never
-  writes it: glows and sparks that blend over each other instead of cutting holes
-  in the ones behind. Translucent pixels still blend in grid order, so a
-  see-through closed surface hides its far side with `mesh.facing()` (the uv's
-  winding on screen, no normal needed); it is also a cheap cull for convex ones.
-- **Many from one grid:** `mesh.split(uv, count)` cuts the grid into pieces,
-  each its own surface (`Piece`: `.index`, `.uv`, `.seam`). Call it with `v.uv` in
-  `deform` and `i.uv` in `shade`, and hide `seam` pixels: one row of cells
-  stretched between two pieces. Give each piece whole cells of the `[Grid]`.
+- **Depth:** every pool corner carries its depth (pixels into the screen), so
+  where a surface overlaps itself (a torus edge-on, hills in front of hills) the
+  nearest part wins per pixel, and a closed surface's near side hides its far
+  side. `v.place(p, camera)` does the same for a draw or `deform` of your own.
+  `[Translucent]` on `deform` tests the depth but never writes it: glows and
+  sparks that blend over each other instead of cutting holes in the ones behind.
+  `mesh.facing()` says whether the pixel's triangle still faces the screen as it
+  was built: the back of a curling page.
 - **Seeing the triangles:** `mesh.wireframe(uv, cells)` draws each cell's edges
   and diagonal.
-- **Grid density is the silhouette:** lighting is worked out per pixel, so
-  surfaces shade smoothly, but their outline is as fine as the grid.
+- **Grid density is the silhouette:** normals are worked out per corner and
+  blended, so surfaces shade smoothly, but their outline is as fine as the grid.
 - `Learn/planet.slang` goes from the flat grid to a lit planet in nine steps;
   `Learn/tour_mesh.slang` shows every surface.
 

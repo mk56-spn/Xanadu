@@ -28,7 +28,6 @@ internal sealed class EffectPreview : IEditorPreview
     private readonly Handle _backdrop;
     private readonly Handle _item;
     private readonly string _label;
-    private readonly bool _runsGraphs;
     private CanvasMaterial? _material;
 
     /// <summary>The overlays, drawn over the effect: the triangles' edges, and the uv lines.</summary>
@@ -57,12 +56,10 @@ internal sealed class EffectPreview : IEditorPreview
     }
 
     /// <param name="item">Draws the backdrop; the effect goes in a child of it, so it draws over.</param>
-    /// <param name="runsGraphs">A lab-only effect (<see cref="SlangShaders.IsLabOnly"/>): its graph runs.</param>
-    public EffectPreview(CanvasRenderer renderer, Handle item, string label, bool runsGraphs)
+    public EffectPreview(CanvasRenderer renderer, Handle item, string label)
     {
         _renderer = renderer;
         _pipelines = renderer.Pipelines;
-        _runsGraphs = runsGraphs;
         _backdrop = item;
         _label = label;
         _item = CanvasServer.Current.CreateItem();
@@ -90,15 +87,15 @@ internal sealed class EffectPreview : IEditorPreview
 
     public PreviewBuild Compile(string source)
     {
-        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source, _runsGraphs);
+        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source);
         PreviewBuild build = new(source, compiled.Params, compiled);
         // Off the frame, so the overlays' first draw finds them in Slang's cache. Graphs have none (yet).
         if (Graphs(source))
             return build;
         if (_triangles.On)
-            SlangShaders.CompileEffectBody(Label, source, _runsGraphs, SlangShaders.TrianglesOverlay);
+            SlangShaders.CompileEffectBody(Label, source, SlangShaders.TrianglesOverlay);
         if (_uv.On)
-            SlangShaders.CompileEffectBody(Label, source, _runsGraphs, SlangShaders.UvOverlay);
+            SlangShaders.CompileEffectBody(Label, source, SlangShaders.UvOverlay);
         return build;
     }
 
@@ -122,7 +119,7 @@ internal sealed class EffectPreview : IEditorPreview
     {
         CanvasMaterial? previous = overlay.Material;
         overlay.Material = overlay.On && !_graph && _source is { } source
-            ? CanvasMaterial.FromSource(Label, source, runsGraphs: _runsGraphs, overlay: overlay.Kind)
+            ? CanvasMaterial.FromSource(Label, source, overlay: overlay.Kind)
             : null;
         CanvasServer.Current.SetVisible(overlay.Item, overlay.Material is not null);
         if (overlay.Material is not null)
@@ -136,7 +133,7 @@ internal sealed class EffectPreview : IEditorPreview
     public string Show(PreviewBuild build)
     {
         CanvasMaterial? previous = _material;
-        _material = CanvasMaterial.FromSource(Label, (string)build.Result, runsGraphs: _runsGraphs);
+        _material = CanvasMaterial.FromSource(Label, (string)build.Result);
         CanvasServer.Current.SetMaterial(_item, _material);
         if (previous is not null)
             _pipelines.Forget(previous);

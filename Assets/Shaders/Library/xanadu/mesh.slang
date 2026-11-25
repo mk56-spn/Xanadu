@@ -1,33 +1,18 @@
-// xanadu.mesh: 3D from a grid of triangles. The quad comes as a grid of cells
-// with uv 0..1 across it; a surface says where each uv sits in 3D, a camera
-// says where that lands on screen, and `deform` moves every corner there. The
-// GPU does one small sum per corner, no per-pixel geometry.
-//
-//     Sphere ball() { return Sphere(160).turned(float3(0.3, time, 0)); }
-//     Camera camera() { return Camera(900).orbited(0, 0.3); }
-//
-//     [Grid(64, 64)] ItemVertex deform(ItemVertex v) { return ball().deformed(v, camera()); }
-//
-//     float4 shade(ItemInput i)
-//     {
-//         if (!mesh.facing()) return colours.transparent;       // its far side
-//         colour c = colours.navy;
-//         c.paint(Checker(0.08).filled(i.uv), colours.gold);      // painted on in uv
-//         return ball().lit(i.uv, camera(), c);
-//     }
+// xanadu.mesh: 3D and 2D meshes. A surface says where each uv (0..1 across and down) sits
+// in 3D; a generator ([Pass], mesh.grid) builds it into the pool, pages of triangles in
+// buffers; one counted [Draw] pulls every page's corners and places them through a camera
+// (mesh.pulled, 3D) or flat on the item (mesh.flat, 2D). "The pool" below has the whole of it.
 //
 // Space is in pixels: x right, y down, z into the screen, and with the camera's
 // default lens something at depth 0 shows 1:1, so Sphere(160) is 320 px across.
-// Build the surface in one function and call it from both stages: deform places
-// the corners, shade asks it again for the normal at the pixel's uv.
 //
-// deformed() sets each corner's depth, so where a surface overlaps itself (a
-// torus seen edge-on, a tight tube, hills in front of hills) the nearest part
-// wins per pixel. Translucent surfaces still blend in grid order: hide a closed
-// surface's far side with mesh.facing() if it should not show through.
+// Each corner carries its depth, so where a surface overlaps itself (a torus seen edge-on, a
+// tight tube, hills in front of hills) the nearest part wins per pixel, and a closed
+// surface's far side is hidden by its near side. A draw's shade gets the world point and
+// normal (i.world, i.normal) to light by (mesh.lit).
 //
-// Shapes in shade still draw on the surface: canvas.centred runs with uv over
-// the mesh, so Circle(100).filled() is a circle painted on the sphere.
+// Shapes in shade still draw on the surface: i.uv is the surface's own, so
+// Checker(0.08).filled(i.uv) is painted on the sphere.
 module mesh;
 import xanadu.math;
 import xanadu.stage;
@@ -91,6 +76,16 @@ public struct Camera
     {
         this.distance = distance;
         this.focal = focal > 0.0 ? focal : distance;
+    }
+
+    /// A camera at `eye` looking at the origin, `focal` its lens: a lamp's view for its shadow map.
+    public __init(float3 eye, float focal)
+    {
+        distance = max(length(eye), 1e-3);
+        this.focal = focal;
+        // eye = -distance (sin yaw cos pitch, sin pitch, cos yaw cos pitch), from the orbit's turns.
+        pitch = asin(clamp(-eye.y / distance, -1.0, 1.0));
+        yaw = atan2(-eye.x, -eye.z);
     }
 
     /// A copy swung round the origin, `yaw` to the right and `pitch` up, in radians.
@@ -275,6 +270,24 @@ public struct Extrusion<C : ICurve2> : ISurface
     public float3 local(float2 uv) { return float3(path.at(uv.x), (uv.y - 0.5) * depth); }
 }
 
+/// A 2D curve drawn as a flat strip `width` wide, lying in the plane (z = 0): a brush stroke,
+/// a road, a vine. u along the curve, v across it; `taper` scales its width at the end (0 a
+/// point). For mesh.flat, the 2D door. Made by path.stroked(width).
+public struct Stroke<C : ICurve2> : ISurface
+{
+    public Placement3 placement3 = Placement3();
+    public C path;
+    public float width;
+    public float taper = 1.0;
+
+    public float3 local(float2 uv)
+    {
+        float2 along = normalize(path.tangent(uv.x) + float2(1e-6, 0.0));
+        float2 side = float2(-along.y, along.x);
+        return float3(path.at(uv.x) + side * (uv.y - 0.5) * width * lerp(1.0, taper, uv.x), 0.0);
+    }
+}
+
 /// A flat sheet `size` wide and high with a 2D shape raised out of it `height` px towards the
 /// camera, its sides sloping over `bevel` px: any library shape made solid, an embossed badge, a
 /// logo, a button. Made by shape.relief(size, height, bevel). The grid's cells set how crisp
@@ -303,6 +316,12 @@ public extension<C : ICurve2> C
 
     /// Stood up as a wall `depth` deep into the screen.
     public Extrusion<C> extruded(float depth) { Extrusion<C> e; e.placement3 = Placement3(); e.path = this; e.depth = depth; return e; }
+
+    /// Drawn as a flat strip `width` wide along it, `taper` times as wide at its end.
+    public Stroke<C> stroked(float width, float taper = 1.0)
+    {
+        Stroke<C> s; s.placement3 = Placement3(); s.path = this; s.width = width; s.taper = taper; return s;
+    }
 }
 
 /// What every 2D shape gives in 3D.
@@ -371,8 +390,8 @@ public extension<C : ICurve3> C
 
 /// A Möbius strip lying flat: a band `width` wide round a ring `radius` round that turns over
 /// `turns` times on its way (0.5, the classic, has one side and one edge; 1.5 knots it further).
-/// u goes round the ring, v across the band. One-sided, so don't hide its "back" with
-/// mesh.facing(): `lit` lights both sides, and depth sorts where it passes behind itself.
+/// u goes round the ring, v across the band. One-sided: `lit` lights both sides, and depth
+/// sorts where it passes behind itself.
 public struct Mobius : ISurface
 {
     public Placement3 placement3 = Placement3();
@@ -770,17 +789,6 @@ public extension<S : ISurface> S
         return s;
     }
 
-    /// The corner moved to where its uv lands through `camera`: what deform returns.
-    public ItemVertex deformed(ItemVertex v, Camera camera) { return deformed(v, camera, v.uv); }
-
-    /// The corner moved to where `uv` lands through `camera`, its own uv left as it is: for a
-    /// piece of a split grid (mesh.split), whose uv is the piece's.
-    public ItemVertex deformed(ItemVertex v, Camera camera, float2 uv)
-    {
-        v.place(at(uv), camera);
-        return v;
-    }
-
     /// `base` lit at uv as a studio would: a key light from the upper left, a fill, a sheen and a
     /// rim, seen through `camera`. Two-sided: the back of a sheet is lit as its front.
     public colour lit(float2 uv, Camera camera, colour base, float shininess = 40.0)
@@ -1032,57 +1040,87 @@ public namespace lights
     }
 }
 
-/// One piece of a grid split into several (mesh.split): which, and where in it.
-public struct Piece
+// ---- The pool: meshes built once, drawn by one draw ------------------------------------
+//
+// A graph keeps its meshes in a pool of pages (meshlets): each page holds up to mesh.PAGE
+// corners and mesh.PAGE triangles of one object, its triangles three corner numbers inside the
+// page. A generator is a [Pass] writing pages; on [Cached] buffers it runs only when the
+// material's values move, so a mesh is built once and every frame only draws it. One counted
+// draw shows every page, a page a copy, its corners pulled from the pool by their numbers:
+//
+//     static const uint PAGES = 2 * 16;                  // two objects, a 32 x 32 grid each (mesh.pagesFor)
+//     [Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<MeshVertex> corners;
+//     [Cached] [Buffer(PAGES * 128)] RWStructuredBuffer<uint> triangles;
+//     [Cached] [Buffer(PAGES)] RWStructuredBuffer<Meshlet> meshlets;
+//
+//     [Pass(128, over: PAGES * 128)]
+//     void build(uint i)
+//     {
+//         uint k = i / (16 * 128), t = i % (16 * 128);
+//         if (k == 0) mesh.grid(Sphere(100), t, uint2(32), 0, k, corners, triangles, meshlets);
+//         else mesh.grid(Torus(90, 30), t, uint2(32), 16, k, corners, triangles, meshlets);
+//     }
+//
+//     [Draw(64, 1, shade: look, copies: PAGES)]                // 64 cells: a page's 128 triangles
+//     ItemVertex shown(ItemVertex v)
+//     {
+//         uint k = meshlets[copy].object;
+//         return mesh.pulled(v, placed(k), camera(), corners, triangles, meshlets);
+//     }
+//
+//     float4 look(ItemInput i) { return colour(mesh.lit(i, camera(), colours.gold), 1); }
+//
+// The same pool has two front doors: mesh.pulled for 3D (a placement and a camera, lit from
+// the world point and normal it hands the shade) and mesh.flat for 2D (x and y in pixels on
+// the item, z the layer, no camera, unlit). A mesh whose shape moves every frame (an ocean, a
+// waving flag) is built into plain [Buffer]s instead and rebuilt each frame; one that only
+// turns or moves stays cached and is placed by the draw.
+
+/// One corner in the pool: where it sits in its object's own space, which way it faces, its uv.
+public struct MeshVertex
 {
-    /// Which piece: 0 at the top left, along the rows.
-    public int index;
-    /// Which column and row.
-    public int2 at;
-    /// 0..1 across this piece: give it to the piece's surface.
-    public float2 uv;
-    /// True on the one row or column of cells stretched between two pieces: hide it in shade.
-    public bool seam;
+    public float3 position;
+    public float u;
+    public float3 normal;
+    public float v;
+
+    /// Its uv on the surface it was built from.
+    public property float2 uv { get { return float2(u, v); } }
 };
+
+/// One page of the pool: whose it is, and how many of its triangles and corners are used.
+public struct Meshlet
+{
+    public uint object;
+    public uint triangles;
+    public uint corners;
+    public uint pad;
+};
+
+public extension ItemVertex
+{
+    /// Folded away: every corner of a triangle a page doesn't use lands on one point, so it
+    /// draws nothing.
+    [mutating] void fold()
+    {
+        position = rest.position;
+        depth = 0.0;
+    }
+}
+
 
 public namespace mesh
 {
-    /// The quad's grid split into `count` pieces across and down, each its own surface: draw a
-    /// different thing on each from one item. `cells` is the grid's size in cells (the
-    /// deform's [Grid]); each piece should get whole cells. Call it with
-    /// the same uv in deform (v.uv) and shade (i.uv), and hide `seam` pixels in shade.
-    ///
-    ///     Piece piece = mesh.split(v.uv, int2(3, 2));
-    ///     return surfaceFor(piece.index).deformed(v, camera(), piece.uv);
-    public Piece split(float2 uv, int2 count, float2 cells = float2(96.0, 54.0))
-    {
-        float2 n = float2(max(count, int2(1)));
-        float2 per = cells / n;                                 // cells per piece
-        float2 g = uv * cells;
-        // A hair's nudge so a corner exactly on a boundary goes to the piece on its right / below.
-        float2 which = clamp(floor((g + 0.01) / per), float2(0.0), n - 1.0);
-        float2 inside = g - which * per;                        // cells into the piece
-        Piece p;
-        p.at = int2(which);
-        p.index = p.at.y * count.x + p.at.x;
-        // Each piece's last cell is the seam, so its own cells run 0..per - 1.
-        p.uv = inside / max(per - 1.0, 1.0);
-        p.seam = any(inside > per - 1.0 + 1e-3);
-        return p;
-    }
-
-    /// Whether the pixel is on a surface's front, as you look at it: its uv reads left to right,
-    /// top to bottom on screen there (mirrored means you see its back). No normal needed:
-    /// return colours.transparent when it isn't, to hide a closed surface's far side.
+    /// Whether the pixel's triangle faces the screen as it was built: false where a bend turned
+    /// it over (a page curling, a card turning round), so its back can be painted apart.
     public bool facing()
     {
-        // Measured in input(), before the effect's own branches could spoil the derivatives.
-        return uvWinding > 0.0;
+        return frontFacing;
     }
 
     /// The triangles' edges at `uv` on a grid `cells` across and down, `width` screen pixels wide:
     /// each cell's sides and the diagonal that splits it into two triangles. Paint it on to see
-    /// the mesh a surface is made of (on a split piece, its uv and its own cells).
+    /// the mesh a surface is made of (the generator's cells, mesh.grid).
     public float wireframe(float2 uv, float2 cells = float2(96.0, 54.0), float width = 1.0)
     {
         float2 g = uv * cells;
@@ -1116,5 +1154,133 @@ public namespace mesh
         float3 reference = abs(along.y) > 0.95 ? float3(0.0, 0.0, -1.0) : float3(0.0, -1.0, 0.0);
         side = normalize(cross(along, reference));
         up = cross(side, along);
+    }
+
+    /// Corners and triangles a page holds; a draw of the pool is [Draw(64, 1, …)], a page a copy.
+    public static const uint PAGE = 128;
+    /// Cells across and down a page of a grid holds (9 × 9 corners, 128 triangles).
+    public static const uint PATCH = 8;
+
+    /// How many pages a grid of `cells` across and down takes: a page every 8 × 8 cells.
+    public uint pagesFor(uint2 cells)
+    {
+        uint2 n = (cells + PATCH - 1) / PATCH;
+        return n.x * n.y;
+    }
+
+    /// Thread `t` of building surface `s` as a grid of `cells`, into the pages from `first` on,
+    /// each marked `object`: run it over pagesFor(cells) × PAGE threads (t from 0). Each page is
+    /// 8 × 8 cells of the grid (fewer at its right and bottom edges), cut into triangles as the
+    /// item's grid is, each corner placed with its normal and uv.
+    public void grid<S : ISurface>(S s, uint t, uint2 cells, uint first, uint object,
+        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    {
+        uint page = t / PAGE, k = t % PAGE;
+        uint2 pages = (cells + PATCH - 1) / PATCH;
+        if (page >= pages.x * pages.y)
+            return;
+        uint2 at = uint2(page % pages.x, page / pages.x) * PATCH;     // its first cell
+        uint2 size = min(cells - at, uint2(PATCH));                    // its cells
+        uint slot = (first + page) * PAGE + k;
+        uint across = size.x + 1;
+        uint2 corner = uint2(k % across, k / across);
+        if (corner.y <= size.y)
+        {
+            float2 uv = float2(at + corner) / float2(cells);
+            MeshVertex c;
+            c.position = s.at(uv);
+            c.normal = s.normalAt(uv);
+            c.u = uv.x;
+            c.v = uv.y;
+            corners[slot] = c;
+        }
+
+        uint count = 2 * size.x * size.y;
+        if (k < count)
+        {
+            uint cell = k / 2;
+            uint a = (cell / size.x) * across + cell % size.x, b = a + 1, c = a + across, d = c + 1;
+            // Split top left to bottom right, as the item's grid is.
+            uint3 corners3 = (k & 1) == 0 ? uint3(a, b, d) : uint3(a, d, c);
+            triangles[slot] = corners3.x | (corners3.y << 8) | (corners3.z << 16);
+        }
+
+        if (k == 0)
+        {
+            Meshlet m;
+            m.object = object;
+            m.triangles = count;
+            m.corners = across * (size.y + 1);
+            m.pad = 0;
+            meshlets[first + page] = m;
+        }
+    }
+
+    /// The pool corner the draw's vertex `v` stands for (page `copy`, triangle v.index / 3);
+    /// false for a triangle its page doesn't use.
+    public bool corner(ItemVertex v, RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles,
+        RWStructuredBuffer<Meshlet> meshlets, out MeshVertex c)
+    {
+        uint t = v.index / 3;
+        Meshlet m = meshlets[copy];
+        if (t >= m.triangles)
+        {
+            c = {};
+            return false;
+        }
+        uint packed = triangles[copy * PAGE + t];
+        c = corners[copy * PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
+        return true;
+    }
+
+    /// A 3D draw of the pool: the corner `v` stands for, placed by `placed` and seen through
+    /// `camera`, with its world point, normal and uv set for the shade (i.world, i.normal, i.uv).
+    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera,
+        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    {
+        MeshVertex c;
+        if (!corner(v, corners, triangles, meshlets, c))
+        {
+            v.fold();
+            return v;
+        }
+        float3 p = placed.toWorld(c.position);
+        v.place(p, camera);
+        v.uv = c.uv;
+        v.world = p;
+        v.normal = rotate3(c.normal, placed.angles);
+        return v;
+    }
+
+    /// A 2D draw of the pool: the corner's x and y are pixels on the item from its middle, z its
+    /// layer (nearer layers win, as depth does), turned by `angle` radians, scaled by `scale` and
+    /// moved by `offset`. No camera and no light: shade colours it as any item.
+    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale,
+        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    {
+        MeshVertex c;
+        if (!corner(v, corners, triangles, meshlets, c))
+        {
+            v.fold();
+            return v;
+        }
+        float2 xy = rotate(c.position.xy * scale, angle) + offset;
+        v.position = v.rest.position + xy;
+        v.depth = c.position.z;
+        v.uv = c.uv;
+        v.local = xy;
+        v.world = float3(xy, c.position.z);
+        v.normal = float3(0.0, 0.0, -1.0);
+        return v;
+    }
+
+    /// `base` lit at a pool draw's pixel as `lit` lights a surface (the studio's key, fill, sheen
+    /// and rim), from the world point and normal its vertex stage handed on. Two-sided.
+    public colour lit(ItemInput i, Camera camera, colour base, float shininess = 40.0)
+    {
+        SurfacePoint s;
+        s.position = i.world;
+        s.normal = normalize(i.normal);
+        return lights.studio(s, camera.eye, base, shininess);
     }
 }

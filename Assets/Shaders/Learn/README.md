@@ -18,7 +18,7 @@ step's numbers and only that panel and the ones after it move.
 | `stained_glass` | Worley distance → Voronoi cells → lead walls → thickness → grain → light sweeping through |
 | `fire` | billowed noise → rising → a swaying teardrop → temperature → inferno colours → HDR and tonemapping |
 | `beat_hit` | the screen behind → a shockwave → colour fringes → a flash → vignette → zoom blur and grain |
-| `planet` | in 3D (`xanadu.mesh`): the flat grid → bent → a cylinder → a sphere → far side hidden → lit → shiny → painted → mountains, clouds and city lights |
+| `planet` | in 3D (`xanadu.mesh`'s pool): the flat grid → bent → a cylinder → a sphere → coloured, depth hiding its far side → lit → shiny → painted → mountains, clouds and city lights |
 | `beat_tunnel` | a tunnel of real triangles you fly down: a cylinder seen from inside, rings rushing past and flashing on the beat |
 | `ocean` | open water: the flat grid → Gerstner waves → lit → water (Fresnel sky, sun glint, foam, haze) |
 | `write_on` | a path drawing itself on: points → straight lines → a spline through them → traced part way → a glowing pen tip → looping |
@@ -38,7 +38,7 @@ One per library area, a panel for each thing in it:
 | `tour_filter` | every filter in `xanadu.filter`, reading the shader tool's own code |
 | `tour_looks` | every ready-made piece in `xanadu.looks` |
 | `tour_extras` | grading, halftone and hatching, beats, springs, digits, arrow, squircle, egg, Oklab gradients |
-| `tour_mesh` | every surface in `xanadu.mesh` from one grid: sphere, torus, cylinder, cone, waving sheet, lathe, ribbon, tube, terrain, lumpy, cel-shaded |
+| `tour_mesh` | every surface in `xanadu.mesh`, built into the pool (once, or every frame for the ones whose shape moves): sphere, torus, cylinder, cone, waving sheet, lathe, ribbon, tube, terrain, lumpy, cel-shaded |
 | `tour_mesh_more` | tubes and ribbons along a spline and a helix, superquadrics, a Bézier patch, morphs, a 2D spline |
-| `tour_bends` | the 2D corner moves: wave, twist, bulge, squash, sway, shake, jitter, tilt, page curl |
+| `tour_bends` | the 2D corner moves, one draw of nine copies: wave, twist, bulge, squash, sway, shake, jitter, tilt, page curl |
 | `tour_mesh_2d` | 2D made 3D: shapes raised as reliefs (star, heart, live digits, Truchet, hexagons, arrow), a spline lathed into a goblet, a spline extruded into a wall |

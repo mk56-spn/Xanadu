@@ -14,9 +14,9 @@ public sealed class ShippedEffectsTests
     internal static string[] Stacks() =>
         [.. ShaderStack.Under(Path.GetDirectoryName(ShippedLibrary.Path)!, skip: ShippedLibrary.Path)];
 
-    /// <summary>A stack compiled as the host compiles it: its bricks composed, lab-only ones allowed to keep state and pools.</summary>
+    /// <summary>A stack compiled as the host compiles it: its files composed.</summary>
     internal static CompiledShader Compile(string folder) =>
-        SlangShaders.CompileEffectBody(folder, ShaderStack.Compose(folder, ShaderStack.Read(folder)), SlangShaders.IsLabOnly(folder + "/"));
+        SlangShaders.CompileEffectBody(folder, ShaderStack.Compose(folder, ShaderStack.Read(folder)));
 
     [TestCaseSource(nameof(Stacks))]
     public void Compiles(string folder)
@@ -35,14 +35,4 @@ public sealed class ShippedEffectsTests
         Assert.That(SlangShaders.IsLabOnly("Assets/Shaders/Misc/Lab"), Is.False);
         Assert.That(SlangShaders.IsLabOnly("Assets/Shaders/note_background"), Is.False);
     }
-
-    /// <summary>Kept state anywhere else is still refused, so a level never gets it by accident.</summary>
-    [Test]
-    public void KeptStateOutsideTheLabFolderIsRefused()
-    {
-        string tiled = Path.Combine(Path.GetDirectoryName(ShippedLibrary.Path)!, "Lab", "raymarch_tiled");
-        string body = ShaderStack.Compose("Assets/Shaders/Misc/x", ShaderStack.Read(tiled));
-        Assert.Throws<System.InvalidOperationException>(() => SlangShaders.CompileEffectBody("Assets/Shaders/Misc/x", body));
-    }
-
 }
