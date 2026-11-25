@@ -196,7 +196,6 @@ internal sealed class CanvasRenderer : IDisposable
         _targets.Dispose();
         _materials.Dispose();
         _graphs.Dispose();
-        _exits.Dispose();
         _vertices.Dispose();
         _pool.Dispose();
         _placed.Dispose();

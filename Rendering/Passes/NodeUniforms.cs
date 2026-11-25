@@ -29,15 +29,6 @@ internal struct TraceQuad
     public Vector2 Pad2;
 }
 
-/// <summary>What traced.slang reads, in both stages: the target, the step's depth slice, the box drawn.</summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct TracedView
-{
-    public float ScreenWidth, ScreenHeight, Depth, Span;
-    public float OriginX, OriginY, Width, Height;
-    public Vector2 ColourStretch, DepthStretch;
-}
-
 /// <summary>A draw node's quad (vertex uniform 0, <c>XanaduDrawQuad</c> in SlangShaders.Draws): the item's corner and sides on the target.</summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct DrawQuad

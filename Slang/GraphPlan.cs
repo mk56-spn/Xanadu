@@ -14,9 +14,6 @@ public enum NodeKind
     /// <summary>A <c>[Draw]</c> call into the graph's own images, or onto the frame (an exit).</summary>
     Draw,
 
-    /// <summary>Images drawn onto the frame over the item's box: a <c>present</c>.</summary>
-    Present,
-
     /// <summary>The item's own quad (its deform places the corners, its shade colours them) drawn onto the frame.</summary>
     Shade,
 }
@@ -150,12 +147,6 @@ public sealed class GraphPlan
 
             foreach (StackBuild.Run run in _runs)
             {
-                if (run.Presents)
-                {
-                    Add(NodeKind.Present, NodePlace.Exit, run);
-                    continue;
-                }
-
                 // A pixel pass reading the canvas so far waits for it, mid-frame, and so does every item node after it.
                 CompiledPass pass = build.Passes[run.Pass];
                 ReadsScreen |= pass.ReadsScreen;

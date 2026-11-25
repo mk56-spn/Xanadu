@@ -343,17 +343,6 @@ they fail the same way at `ade5f91c`, before this work.
   both sides (the pass uniforms' four uints, SDL_GPU's four colour targets), and the schedule is lowered every frame,
   so it stays in place rather than an array per call.
 
-`present` as a library draw is still to do. What it needs, found on the way:
-
-- **A depth output:** present writes per-pixel depth from an image. A draw's struct field with the Slang semantic
-  `: SV_Depth` (pixels into the screen, put into the slice by the wrapper) is the generic form.
-- **Filtered reads:** present stretches a scaled image with filtering; draws read `RWTexture2D` only. A library
-  bilinear read (four loads) does, or draws learn sampled reads.
-- **The box, not the quad:** present covers the item's box; a `[Draw]` covers its quad. A turned item's trace fills
-  the box, so a quad draw would cut its corners. Either a box geometry for draws or accept the cut.
-- **Images per call:** draws read images by name; a library present is called with images. Lowering `present(x, d)`
-  to a generated draw in the stack's source covers it.
-
 Stage D, first piece (2026-11-25):
 
 - **Static graphs flattened:** lowering notes whether the walk read any of the stack's values
@@ -436,7 +425,26 @@ Stage D, the rest (2026-11-25):
 - **Not yet:** the stamp is the whole material's, so changing a value no fill reads (the range's `spin`) still refills
   it. Narrowing it to the values a fill's shader reads needs per-pass uniform use from reflection.
 
-Next: `present` as a library draw (its blockers are below), then stage E on the confirmed drawing model.
+`present` as a library draw (2026-11-25):
+
+- **Lowered before compiling** (`Slang/PresentDraws.cs`, called first in `CompileAsWritten`): each distinct
+  `present(colour[, depth])` becomes a generated draw named for its images (`present_shown_depth`), the call replaced on
+  its own line by `present_shown_depth(frame);`, the draws appended under the label `present (generated)`. A
+  `BuildPresent` that reaches the walk was never compiled, and says so.
+- **What it needed, now generic draw features:**
+  - `[CoversBox]` before a `[Draw]`: the host hands it the item's box as its quad (`CompiledDraw.CoversBox`), so a turned
+    item's images show whole; the draw sees the box as its canvas.
+  - A shade struct field `float name : SV_Depth` writes the pixel's depth (pixels into the screen), put into the slice
+    the way the vertex stage puts a corner's; it isn't a target. A draw onto the frame is one colour, plus maybe a depth.
+  - `filtered(image, at, size)` in xanadu.stage: a bilinear read of a storage image, for an image shown at another
+    size (a scaled or fixed one is stretched; its depth is read nearest). A box-sized one is read texel for pixel.
+- **Gone:** `NodeKind.Present`, `ExitDraws.Present` and its pipelines, the flat-depth texture, `TracedView`,
+  Rendering/Shaders/traced.slang, `Run.Present`/`Shown`/`ShownDepth`; and from xanadu.stage the dead `[Pool]` and
+  `[Tile]` attributes and the old role names in its comments.
+- **Checked:** shots of trace_wave, sizes (and sizes' quarter-size glow presented alone, stretched, against the last
+  commit's), scene_room, bvh_march, trails, post and cached look as before.
+
+Next: stage E on the confirmed drawing model.
 
 Also still open:
 

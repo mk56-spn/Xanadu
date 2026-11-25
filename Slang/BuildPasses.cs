@@ -187,13 +187,19 @@ internal static partial class BuildPasses
             Group copies = match.Groups["copies"];
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
-                Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index)),
+                Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index, out string? depth)),
+                DepthField = depth,
+                CoversBox = Marked(code, match.Index, "CoversBox"),
                 Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,
                 CopiesName = copies.Success && Regex.IsMatch(copies.Value, @"^\w+$") ? copies.Value : null,
-                Translucent = Regex.IsMatch(code[..match.Index], @"\[\s*Translucent\s*\]\s*$"),
+                Translucent = Marked(code, match.Index, "Translucent"),
             });
         }
     }
+
+    /// <summary>Whether the attributes just before <paramref name="at"/> include <c>[marker]</c>, in any order.</summary>
+    private static bool Marked(string code, int at, string marker) =>
+        Regex.Match(code[..at], @"(?:\[\s*\w+\s*\]\s*)*$").Value is var run && Regex.IsMatch(run, $@"\[\s*{marker}\s*\]");
 
     private static (int, BuildExpression?, BuildExpression?) Shape(string name, Group args, System.Func<string, BuildValue?> constant)
     {

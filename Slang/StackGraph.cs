@@ -158,21 +158,6 @@ public sealed class StackGraph
                     break;
                 }
 
-                // What it presents lands on the frame, its depth with it.
-                case NodeKind.Present:
-                {
-                    int present = graph.Pass("present", StackRole.Graph, false, place: NodePlace.Exit);
-                    graph.Edge(present, images[(int)node.Call.Shown], GraphAccess.Read);
-                    if (node.Call.ShownDepth != StackBuild.Run.None)
-                    {
-                        graph.Edge(present, images[(int)node.Call.ShownDepth], GraphAccess.Read);
-                        graph.Edge(present, depth, GraphAccess.ReadWrite);
-                    }
-
-                    graph.Edge(present, frame, GraphAccess.Write);
-                    break;
-                }
-
                 case NodeKind.Shade:
                     graph.Shade(fragment, frame, depth, screen, Binds);
                     break;

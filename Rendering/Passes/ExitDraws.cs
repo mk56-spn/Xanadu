@@ -18,12 +18,11 @@ namespace Xanadu.Rendering.Passes;
 
 /// <summary>
 /// A graph's exits: its draws into <c>frame</c>, inside the job's render pass at the item's place, depth tested against
-/// the canvas and blended as the item is placed. A present draws two of the graph's images over the item's box
-/// (traced.slang: colour blended, depth within the step's slice; none reads as the item's plane); a shade draws the
-/// item's own triangles, placed by its deform.
+/// the canvas and blended as the item is placed (a present is one of those, lowered to a draw: PresentDraws); a shade
+/// draws the item's own triangles, placed by its deform.
 /// </summary>
 internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, CanvasPipelines pipelines, Dictionary<ulong, Texture> textures,
-    CanvasParticles particles, MaterialStore materials, GlobalBindings globals, GridCutter grids, GpuArray<CanvasVertex> vertices) : IDisposable
+    CanvasParticles particles, MaterialStore materials, GlobalBindings globals, GridCutter grids, GpuArray<CanvasVertex> vertices)
 {
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Span; }
@@ -37,10 +36,6 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         public float XX, XY, YX, YY;
     }
 
-    private Texture? _flatDepth;
-    private Shader? _tracedVertex, _tracedFragment;
-    private readonly Dictionary<(BlendMode, CustomBlend?, SampleCount), GraphicsPipeline> _tracedPipelines = [];
-
     /// <summary>The pixels a quad covers on a target <paramref name="targetWidth"/> × <paramref name="targetHeight"/>, within the clip; null when none.</summary>
     public static (int X, int Y, int Width, int Height)? BoxOf(RestFrame rest, Rect clip, uint targetWidth, uint targetHeight)
     {
@@ -52,44 +47,6 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         int x1 = Math.Min((int)MathF.Ceiling(high.X), Math.Min(clip.X + clip.W, (int)targetWidth));
         int y1 = Math.Min((int)MathF.Ceiling(high.Y), Math.Min(clip.Y + clip.H, (int)targetHeight));
         return x1 > x0 && y1 > y0 ? (x0, y0, x1 - x0, y1 - y0) : null;
-    }
-
-    /// <summary>
-    /// Makes, once, a depth texture of zeros the target's size: the item's own plane, for an image presented without a
-    /// depth. Call it outside any render pass, before the draws.
-    /// </summary>
-    public void Prepare(CommandBuffer commands)
-    {
-        if (_flatDepth is not null)
-            return;
-        _flatDepth = Texture.Create2D(device, "flat depth", targets.Width, targets.Height, TextureFormat.R32Float,
-            TextureUsageFlags.Sampler | TextureUsageFlags.ColorTarget);
-        commands.EndRenderPass(commands.BeginRenderPass(new ColorTargetInfo(_flatDepth, new MwColor(0, 0, 0, 0))));
-    }
-
-    /// <summary>A present: the images the call names, the item's own, drawn over its box. False when there is nothing to draw.</summary>
-    public bool Present(CommandBuffer commands, RenderPass pass, Step step, ItemSet? set, SampleCount samples, StackBuild.Run call)
-    {
-        if (set is null)
-            return false;
-        (int x, int y, int width, int height) = set.Box;
-        Texture colour = set.Images[(int)call.Shown];
-        Texture depth = call.ShownDepth == StackBuild.Run.None ? _flatDepth! : set.Images[(int)call.ShownDepth];
-        var view = new TracedView
-        {
-            ScreenWidth = targets.Width, ScreenHeight = targets.Height, Depth = step.Depth, Span = step.Span,
-            OriginX = x, OriginY = y, Width = width, Height = height,
-            ColourStretch = set.Stretch((int)call.Shown), DepthStretch = call.ShownDepth == StackBuild.Run.None ? Vector2.One : set.Stretch((int)call.ShownDepth),
-        };
-        pass.BindGraphicsPipeline(PresentPipeline(step.Material, samples));
-        pass.SetScissor(step.Clip);
-        commands.PushVertexUniformData(view);
-        commands.PushFragmentUniformData(view);
-        pass.BindFragmentSamplers(
-            new TextureSamplerBinding(colour, device.LinearSampler),
-            new TextureSamplerBinding(depth, device.PointSampler));
-        pass.DrawPrimitives(6, 1, 0, 0);
-        return true;
     }
 
     /// <summary>
@@ -180,58 +137,5 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         }
 
         pass.BindFragmentSamplers(samplers[..count]);
-    }
-
-    /// <summary>traced.slang's pipeline for a material's blend: depth tested and written as a deforming effect's is.</summary>
-    private GraphicsPipeline PresentPipeline(CanvasMaterial? material, SampleCount samples)
-    {
-        BlendMode blend = material?.Blend ?? BlendMode.Mix;
-        CustomBlend? custom = material?.Custom?.PipelineKey;
-        if (_tracedPipelines.TryGetValue((blend, custom, samples), out GraphicsPipeline? pipeline))
-            return pipeline;
-
-        if (_tracedVertex is null)
-        {
-            string module = Path.Combine(AppContext.BaseDirectory, "Shaders", "traced.slang");
-            _tracedVertex = Shader.Create(device, SlangShaders.Compile(module, "cover", "vertex"), "main",
-                new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Vertex, NumUniformBuffers = 1 });
-            _tracedFragment = Shader.Create(device, SlangShaders.Compile(module, "show", "fragment"), "main",
-                new ShaderCreateInfo { Format = ShaderFormat.SPIRV, Stage = ShaderStage.Fragment, NumSamplers = 2, NumUniformBuffers = 1 });
-        }
-
-        pipeline = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
-        {
-            VertexShader = _tracedVertex,
-            FragmentShader = _tracedFragment!,
-            VertexInputState = VertexInputState.Empty,
-            PrimitiveType = PrimitiveType.TriangleList,
-            RasterizerState = RasterizerState.CCW_CullNone,
-            MultisampleState = new MultisampleState { SampleCount = samples },
-            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
-            TargetInfo = new GraphicsPipelineTargetInfo
-            {
-                ColorTargetDescriptions =
-                [
-                    new ColorTargetDescription
-                    {
-                        Format = targets.Format,
-                        BlendState = custom is { } state ? CanvasPipelines.Blend(state) : CanvasPipelines.Blend(blend),
-                    },
-                ],
-                HasDepthStencilTarget = true,
-                DepthStencilFormat = targets.DepthFormat,
-            },
-        });
-        _tracedPipelines[(blend, custom, samples)] = pipeline;
-        return pipeline;
-    }
-
-    public void Dispose()
-    {
-        foreach (GraphicsPipeline pipeline in _tracedPipelines.Values)
-            pipeline.Dispose();
-        _tracedVertex?.Dispose();
-        _tracedFragment?.Dispose();
-        _flatDepth?.Dispose();
     }
 }

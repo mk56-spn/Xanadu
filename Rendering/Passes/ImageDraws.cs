@@ -64,7 +64,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         Step step, SampleCount samples, float time)
     {
         CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
-        if ((set is null && draw.Reads.Length > 0) || materials.Find(step.Material!) is not { IsNull: false } entity ||
+        if ((set is null && (draw.Reads.Length > 0 || draw.CoversBox)) || materials.Find(step.Material!) is not { IsNull: false } entity ||
             !entity.TryGetComponent(out BuildBuffers kept))
             return false;
         pass.BindGraphicsPipeline(effect.ExitPipeline(device, call.Pass, step.Material, samples, targets.Format, targets.DepthFormat));
@@ -92,7 +92,11 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         Vector2 shift, Vector2 slice)
     {
         FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time);
-        commands.PushVertexUniformData(new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis, Slice = slice });
+        // A draw that covers the box is handed the box as its quad.
+        DrawQuad quad = draw.CoversBox && set is { Box: var box }
+            ? new DrawQuad { Corner = new Vector2(box.X, box.Y), XAxis = new Vector2(box.Width, 0), YAxis = new Vector2(0, box.Height), Slice = slice }
+            : new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis, Slice = slice };
+        commands.PushVertexUniformData(quad);
         commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
         if (draw.Vertex.ParamsSize > 0)
             ShaderParams.Push(commands, draw.Vertex, step.Material, step.Values, stage: ParamsStage.Vertex);

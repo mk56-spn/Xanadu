@@ -110,8 +110,8 @@ public sealed partial class StackBuild
         // Onto the frame: an exit, drawn in the job's pass where the item is placed.
         if (tokens.Peek.Text == "frame")
         {
-            if (outputs[0].Field is not null)
-                throw new BuildProblem(tokens.Peek.Index, $"{shade} returns a struct; only a colour (float4) can be drawn onto the frame.");
+            if (outputs is not [{ Type: "float4" }])
+                throw new BuildProblem(tokens.Peek.Index, $"{shade} writes {outputs.Length} images; only one colour (float4, and maybe a depth) can be drawn onto the frame.");
             tokens.Next();
             tokens.Expect(")");
             tokens.Expect(";");

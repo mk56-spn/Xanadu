@@ -141,7 +141,7 @@ public Solid Cone(float radius, float height) { return Solid(scene.CONE, float4(
 
 // ---- Recording ---------------------------------------------------------------------------
 
-/// The scene being recorded, in a BUILD pass, into the buffers it was given. add starts an
+/// The scene being recorded, in a [Pass], into the buffers it was given. add starts an
 /// object, melt / cut / keep change it, finish closes the last one and writes the count.
 public struct Scene
 {

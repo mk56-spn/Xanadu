@@ -217,6 +217,10 @@ float4 shade(Canvas canvas)
   `Rendering/Passes/ComputeNodes.cs` + `ExitDraws.cs`, `SlangShaders.Traces.cs`; `Docs/shaders.md` §22;
   `Lab/trace_wave`, `Lab/bvh_march`. `[Translucent]` on deform (test, never
   write depth) came with it, for the sparks.
+  **Gone 2026-11-25:** TRACE is a `[Pixels]` pass and `present` in a graph
+  (Docs/render-graph.md, C2.3), and `present` is lowered to a generated
+  `[CoversBox] [Draw]` onto the frame (`Slang/PresentDraws.cs`); traced.slang,
+  `SlangShaders.Traces.cs` and the present pipeline are deleted.
 - **Draws (built 2026-11-24, user's choice of syntax):** a BUILD brick may
   declare `[Draws] RWStructuredBuffer<uint> name;`, one uint its passes write:
   the copies of the stack's quad drawn this frame. The renderer draws such a

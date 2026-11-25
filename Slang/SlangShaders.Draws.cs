@@ -16,6 +16,9 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
     /// <summary>The uint buffer counting its copies on the GPU (its place in the graph's buffers), or -1: its call says how many.</summary>
     public int CopiesBuffer { get; init; } = -1;
 
+    /// <summary>Marked <c>[CoversBox]</c>: the host hands it the item's box as its quad, so it covers the box's pixels.</summary>
+    public bool CoversBox { get; init; }
+
     /// <summary>The vertices it draws: two triangles a cell.</summary>
     public uint Vertices => (uint)(Across * Down * 6);
 }
@@ -67,7 +70,7 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs),
+        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField),
             "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
@@ -95,7 +98,7 @@ public static partial class SlangShaders
                 storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
-            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, Translucent = pass.Translucent };
+            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, Translucent = pass.Translucent, CoversBox = pass.CoversBox };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
@@ -164,12 +167,14 @@ public static partial class SlangShaders
 
     /// <summary>
     /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where the alpha is 0, or
-    /// each field of the struct it returns, in order. The input's depth is the pixel's, pixels into the screen.
+    /// each field of the struct it returns, in order. The input's depth is the pixel's, pixels into the screen; a
+    /// <paramref name="depth"/> field puts its own back into the slice as the vertex stage puts a corner's.
     /// </summary>
-    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs)
+    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth)
     {
         (string imports, string code, string label) = Split(name, source);
-        string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"));
+        string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"))
+                        + (depth is null ? "" : " float xanaduDepth : SV_Depth;");
         string written = outputs[0].Field is null
             ? """
               float4 shown = effect0::SHADE(ARGUMENTS);
@@ -177,7 +182,8 @@ public static partial class SlangShaders
                       discard;
                   o.o0 = shown;
               """
-            : "let made = effect0::SHADE(ARGUMENTS);\n" + string.Join("\n", outputs.Select((output, k) => $"    o.o{k} = made.{output.Field};"));
+            : "let made = effect0::SHADE(ARGUMENTS);\n" + string.Join("\n", outputs.Select((output, k) => $"    o.o{k} = made.{output.Field};"))
+              + (depth is null ? "" : $"\n    o.xanaduDepth = xanaduDrawBox.slice.x + xanaduDrawBox.slice.y * (0.5 + 0.5 * made.{depth} / (abs(made.{depth}) + 1024.0));");
         written = written.Replace("SHADE", shade).Replace("ARGUMENTS", arguments);
         return $$"""
             import xanadu.stage;

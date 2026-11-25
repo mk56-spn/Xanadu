@@ -32,10 +32,12 @@ public sealed record DrawOutput(string? Field, string Type)
     /// <summary>
     /// The outputs of the shade <paramref name="shade"/>, from its return type: declared in <paramref name="code"/> (the
     /// body, comments blanked) or in a library module. Throws <see cref="BuildProblem"/> at <paramref name="at"/> when
-    /// it can't be drawn.
+    /// it can't be drawn. A float field marked <c>: SV_Depth</c> isn't a target: it is the pixel's depth, pixels into
+    /// the screen, written into the draw's depth (<paramref name="depth"/> names it; null without one).
     /// </summary>
-    internal static DrawOutput[] Of(string code, string shade, int at)
+    internal static DrawOutput[] Of(string code, string shade, int at, out string? depth)
     {
+        depth = null;
         Match declared = Regex.Match(code, $@"\b(\w+)\s+{Regex.Escape(shade)}\s*\(");
         if (!declared.Success)
             throw new BuildProblem(at, $"the draw is shaded by {shade}; declare float4 {shade}(ItemInput i), or a struct of outputs as its return type.");
@@ -49,9 +51,17 @@ public sealed record DrawOutput(string? Field, string Type)
         var outputs = new List<DrawOutput>();
         foreach (string part in TopLevel(body).Split(';'))
         {
-            Match field = Regex.Match(part, @"^\s*(?:public\s+)?(\w+)\s+(\w+)\s*$");
+            Match field = Regex.Match(part, @"^\s*(?:public\s+)?(\w+)\s+(\w+)\s*(?<depth>:\s*SV_Depth\s*)?$");
             if (!field.Success)
                 continue;
+            if (field.Groups["depth"].Success)
+            {
+                if (field.Groups[1].Value != "float" || depth is not null)
+                    throw new BuildProblem(declared.Index, $"a draw writes one depth, a float marked : SV_Depth; {type} has {field.Groups[2].Value}.");
+                depth = field.Groups[2].Value;
+                continue;
+            }
+
             string held = field.Groups[1].Value == "colour" ? "float4" : field.Groups[1].Value;
             if (held is not ("float" or "float2" or "float4" or "uint"))
                 throw new BuildProblem(declared.Index,

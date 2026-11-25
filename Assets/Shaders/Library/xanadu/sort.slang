@@ -1,5 +1,5 @@
-// xanadu.sort: sorting and prefix sums on the GPU, as passes a BUILD brick calls in build().
-// The library owns no buffer: each call lends it the brick's, by name.
+// xanadu.sort: sorting and prefix sums on the GPU, as passes a graph calls in graph().
+// The library owns no buffer: each call lends it the stack's, by name.
 //
 //     [Buffer(MAX)] RWStructuredBuffer<uint> keys;      // what to sort by
 //     [Buffer(MAX)] RWStructuredBuffer<uint> ids;       // what rides along
@@ -9,7 +9,7 @@
 //
 //     void build()
 //     {
-//         fill();                                       // a pass of the brick's own
+//         fill();                                       // a pass of the stack's own
 //         sort.radix(count, keys, ids, keysB, idsB, counts);
 //     }
 //

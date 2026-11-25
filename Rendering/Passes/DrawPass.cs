@@ -105,7 +105,6 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
         SampleCount samples = msaa ? _targets.Samples : SampleCount.One;
         if (job.StepCount > 0 && ReadsDepth(job))
             FillDepth(commands, job);
-        _exits.Prepare(commands);
         RenderPass pass = _targets.BeginPass(commands, job.Target, job.Clear, msaa, load: false);
         if (job.StepCount == 0)
         {
@@ -176,13 +175,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
 
             foreach (GraphNode node in plan.Nodes)
             {
-                if (node.Kind == NodeKind.Present)
-                {
-                    if (_exits.Present(commands, pass, step, _graphs.Images(s), samples, node.Call))
-                        BatchCount++;
-                    clocked = false;
-                }
-                else if (node.Kind == NodeKind.Shade && _exits.Shade(commands, pass, step, effect, samples, frame, ref clocked))
+                if (node.Kind == NodeKind.Shade && _exits.Shade(commands, pass, step, effect, samples, frame, ref clocked))
                     BatchCount++;
                 else if (node is { Kind: NodeKind.Draw, Place: NodePlace.Exit } && step.Mesh is { } mesh && step.Start < mesh.Vertices.Count)
                 {

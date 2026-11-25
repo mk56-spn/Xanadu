@@ -40,6 +40,12 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// <summary>A draw marked <c>[Translucent]</c> just before its <c>[Draw]</c>: it tests the depth and never writes it.</summary>
     public bool Translucent { get; init; }
 
+    /// <summary>A draw marked <c>[CoversBox]</c>: its grid covers the item's box on the target instead of its quad.</summary>
+    public bool CoversBox { get; init; }
+
+    /// <summary>A draw's shade field marked <c>: SV_Depth</c>, written as the pixel's depth; null when it writes the grid's.</summary>
+    public string? DepthField { get; init; }
+
     /// <summary>The uint buffer whose first element counts a draw's copies on the GPU (its place in the buffers), or -1.</summary>
     public int CopiesBuffer { get; init; } = -1;
 

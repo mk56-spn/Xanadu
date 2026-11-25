@@ -1,6 +1,6 @@
 // xanadu.particles: the pieces a particle system is made of, as plain functions over a
-// particle's place and velocity (pixels from the middle, y down, and px/s), so a BUILD
-// brick or a pool's step only says which ones it runs and in what order:
+// particle's place and velocity (pixels from the middle, y down, and px/s), so a graph
+// pass only says which ones it runs and in what order:
 //
 //     v = particles.forced(v, float2(0, 400));         // gravity
 //     v = particles.dragged(v, 0.5);

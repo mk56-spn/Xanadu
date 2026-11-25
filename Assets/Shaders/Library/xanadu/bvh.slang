@@ -1,5 +1,5 @@
 // xanadu.bvh: a bounding volume hierarchy rebuilt on the GPU every frame (Karras' LBVH), and
-// a walk through it. A BUILD brick gives each thing a Morton code (bvh.morton), sorts the codes
+// a walk through it. A graph gives each thing a Morton code (bvh.morton), sorts the codes
 // (sort.radix), writes a leaf per thing (bvh.leaf), and calls bvh.tree to link the inner nodes
 // over the sorted codes and box them up from the leaves:
 //

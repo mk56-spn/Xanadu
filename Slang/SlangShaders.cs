@@ -512,7 +512,7 @@ public static partial class SlangShaders
 
     private static CompiledShader CompileAsWritten(string name, string source, bool runsGraphs, string? shadeWith)
     {
-        StackBuild? build = BuildOf(name, source);
+        StackBuild? build = BuildOf(name, source = PresentDraws.Lower(source));
         if (build is not null && !runsGraphs)
             throw new InvalidOperationException($"{name}: a graph runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
 

@@ -106,29 +106,15 @@ public struct TranslucentAttribute
 {
 };
 
-/// Put on a STEP brick's `step`: the pool keeps `count` items (up to 262,144), each stepped
-/// once a frame. With a `rate`, the engine bears that many a second into free slots, and
-/// `step` returns bool: false frees its slot. Both written as numbers.
+/// Put before a graph's [Draw]: its grid covers the item's box on the target (the upright
+/// rectangle round it, where its images sit) instead of its quad, so a turned item's images
+/// show whole. Its deform and shade then see the box as the item: `canvas.size` is the box's.
+/// What `present(colour, depth)` is lowered to.
 ///
-///     [Pool(10000)] void step(inout Dot d, uint i, float dt) { ... }
-///     [Pool(8000, 2500)] bool step(inout Spark s, uint i, float dt) { ... }
+///     [CoversBox] [Draw(1, 1, shade: look)] ItemVertex shown(ItemVertex v) { return v; }
 [__AttributeUsage(_AttributeTargets.Function)]
-public struct PoolAttribute
+public struct CoversBoxAttribute
 {
-    int count;
-    float rate = 0;
-};
-
-/// Put on a TRACE brick's `trace`: it runs as compute, a thread a pixel over the quad, in
-/// tiles of `width` × `height` threads that may share `groupshared` memory and wait for each
-/// other (GroupMemoryBarrierWithGroupSync). `group` says where a thread sits. 8 × 8 without one.
-///
-///     [Tile(8, 8)] float4 trace(ItemInput i, Canvas canvas) { ... }
-[__AttributeUsage(_AttributeTargets.Function)]
-public struct TileAttribute
-{
-    int width;
-    int height;
 };
 
 /// Marks a level shader's global uniform as keyable per item: a group's
@@ -372,16 +358,16 @@ public static float uvWinding = 0.0;
 /// `shade` runs, and before `update` for kept state.
 public static float time = 0.0;
 
-/// Seconds since the last frame, for passes and pool steps that move things on:
+/// Seconds since the last frame, for passes that move things on:
 /// 0 while the clock stands still.
 public static float dt = 0.0;
 
-/// Which copy of the item's quad deform and shade are drawing: 0, unless a
-/// pool draws one per item or a BUILD brick's [Draws] buffer asks for more.
+/// Which copy a draw is on: 0, unless its [Draw] has `copies:` (a number, a value, or a
+/// count a pass wrote on the GPU).
 public static uint copy = 0;
 
-/// Where a TRACE thread sits in its tile (a GPU work group): its pixel's place in the tile,
-/// the tile's place among the quad's tiles, its place as one number
+/// Where a pixel pass's thread sits in its tile (a GPU work group): its pixel's place in the tile,
+/// the tile's place among the box's tiles, its place as one number
 /// (`thread.y * width + thread.x`) for handing out shares of groupshared work, how many
 /// threads a tile holds, and the tile's pixels on the target (`low` to `high`, corners).
 public struct Group
@@ -398,24 +384,36 @@ public struct Group
     public uint2 pixel;
 };
 
-/// The TRACE or pixel-pass thread running now (all zeros elsewhere).
+/// The pixel-pass thread running now (all zeros elsewhere).
 public static Group group = {};
 
-/// Where a BUILD pass's thread sits: its place in its work group (`thread`, from 0 to the
+/// Where a [Pass]'s thread sits: its place in its work group (`thread`, from 0 to the
 /// pass's threads) and the group's place among the dispatch's (`group`), for handing out
-/// groupshared work. A library's passes read it as a brick's do.
+/// groupshared work. A library's passes read it as the stack's own do.
 public struct Dispatch
 {
     public uint thread;
     public uint group;
 };
 
-/// The BUILD pass thread running now (all zeros elsewhere).
+/// The [Pass] thread running now (all zeros elsewhere).
 public static Dispatch dispatch = {};
 
 /// Music beats since the music started, for `clock.beats`: from the song's
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;
+
+/// An image read between its texels as a sampler's linear filter does: `at` in texels (the
+/// first texel's centre is 0.5), clamped to the `size` texels it covers. For an image read at
+/// another size than it was made, such as a quarter-size glow shown over the whole box.
+public float4 filtered(RWTexture2D<float4> image, float2 at, float2 size)
+{
+    float2 p = clamp(at - 0.5, 0.0, max(size - 1.0, 0.0));
+    int2 a = int2(floor(p));
+    int2 b = min(a + 1, int2(size) - 1);
+    float2 f = p - float2(a);
+    return lerp(lerp(image[a], image[int2(b.x, a.y)], f.x), lerp(image[int2(a.x, b.y)], image[b], f.x), f.y);
+}
 
 /// Sets the globals (time, beat) from the frame for a vertex stage, as input()
 /// does for a pixel.
@@ -493,7 +491,7 @@ public ItemInput input(ItemVaryings v)
     return i;
 }
 
-/// A TRACE thread's input: its pixel on the quad the host hands over (no derivatives in
+/// A pixel pass thread's input: its pixel on the quad the host hands over (no derivatives in
 /// compute), the item's colour as white, and `local` as uv across the quad's size.
 /// @hidden
 public ItemInput tracedInput(float2 pixel, float2 corner, float2 xAxis, float2 yAxis)

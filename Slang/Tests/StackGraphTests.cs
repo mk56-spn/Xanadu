@@ -36,6 +36,19 @@ public sealed class StackGraphTests
     }
 
     [Test]
+    public void APresentIsADrawOverTheBoxOntoTheFrame()
+    {
+        CompiledShader compiled = Compiled("sizes");
+        CompiledPass[] presents = [.. compiled.Build!.Passes.Where(p => p.Name.StartsWith("present_", StringComparison.Ordinal))];
+        GraphNode[] exits = [.. GraphPlan.Of(compiled).Nodes.Where(n => n.Place == NodePlace.Exit && n.Kind == NodeKind.Draw)];
+
+        // One draw per pair of images presented, each covering the box; the default values present `shown`.
+        Assert.That(presents.Select(p => p.Name), Is.EquivalentTo(new[] { "present_glow", "present_shown" }));
+        Assert.That(presents.All(p => p.Drawn!.CoversBox), Is.True);
+        Assert.That(exits.Select(n => compiled.Build.Passes[n.Call.Pass].Name), Does.Contain("present_shown"));
+    }
+
+    [Test]
     public void APoolIsAPassOverAKeptBufferThenACountedDraw()
     {
         StackGraph graph = Graph("swarm");
@@ -56,9 +69,10 @@ public sealed class StackGraphTests
         Assert.That(passes.ToList().IndexOf("march"), Is.GreaterThan(passes.ToList().IndexOf("lightFill")));
         // Bound read-write, as compute is; its code only reads.
         Assert.That(Access(graph, "march", "nodes"), Is.EqualTo(GraphAccess.Read));
-        // The march writes its two images; the present lands them, depth with it.
+        // The march writes its two images; the present, lowered to a draw, reads them and lands them, depth with it.
         Assert.That(Access(graph, "march", "marched"), Is.EqualTo(GraphAccess.ReadWrite));
-        Assert.That(Access(graph, "present", "depth")!.Value.HasFlag(GraphAccess.Write));
+        Assert.That(Access(graph, "present_marched_marchedDepth", "marchedDepth"), Is.EqualTo(GraphAccess.Read));
+        Assert.That(Access(graph, "present_marched_marchedDepth", "depth")!.Value.HasFlag(GraphAccess.Write));
         // Its sparks are drawn onto the frame.
         Assert.That(Access(graph, "spark", "frame"), Is.EqualTo(GraphAccess.Write));
     }

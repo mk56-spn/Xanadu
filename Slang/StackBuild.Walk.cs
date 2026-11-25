@@ -24,21 +24,12 @@ public sealed partial class StackBuild
 
     /// <summary>
     /// One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups; a draw's copies), and its call's values: a
-    /// pass's arguments, a draw's targets (<see cref="None"/> past its last), or for a present the colour then the depth.
+    /// pass's arguments, a draw's targets (<see cref="None"/> past its last).
     /// </summary>
     public readonly record struct Run(int Pass, uint Groups, uint Over, RunValues Values)
     {
         /// <summary>A draw's <paramref name="k"/>th target; <see cref="None"/> past its last.</summary>
         public uint Target(int k) => k < MaxArguments ? Values[k] : None;
-
-        /// <summary>The pass a <c>present</c> runs as: it shows <see cref="Shown"/>, and <see cref="ShownDepth"/> unless that is <see cref="None"/>.</summary>
-        public const int Present = -1;
-
-        /// <summary>A present's colour image.</summary>
-        public uint Shown => Values[0];
-
-        /// <summary>A present's depth image, or <see cref="None"/>.</summary>
-        public uint ShownDepth => Values[1];
 
         /// <summary>No image.</summary>
         public const uint None = uint.MaxValue;
@@ -48,8 +39,6 @@ public sealed partial class StackBuild
 
         /// <summary>Whether it is a draw onto the frame.</summary>
         public bool OntoFrame => Values[0] == Frame;
-
-        public bool Presents => Pass == Present;
 
         /// <summary>A draw's copies, from its <c>copies:</c> (1 without one); a draw counted on the GPU ignores it.</summary>
         public uint Copies => Over;
@@ -98,8 +87,8 @@ public sealed partial class StackBuild
                     runs.Add(new Run(draw.Pass, 0, copies, RunValues.Of([Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)])));
                     break;
                 case BuildPresent present:
-                    runs.Add(new Run(Run.Present, 0, 0, RunValues.Of([(uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth], Run.None)));
-                    break;
+                    // Lowered to a draw before anything compiles (PresentDraws): one still here was never compiled.
+                    throw new BuildProblem(present.Index, "present runs as a draw: compile the stack, which lowers it.");
             }
         }
     }
