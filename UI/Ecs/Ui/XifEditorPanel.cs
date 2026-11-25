@@ -23,6 +23,9 @@ public static class XifEditorPanel
     private const float SidePad = 8f;
 
     private const float Row = 28f;
+
+    /// <summary>How many shaders the open picker lists before it scrolls.</summary>
+    private const int ShaderRows = 10;
     private const float Header = 30f;
     private const float StepWidth = 34f;
 
@@ -106,8 +109,9 @@ public static class XifEditorPanel
         parts.PointLabel = points.Text("", UiType.Caption, UiTheme.TextDim).Size(SideWidth - 112, Row);
 
         Caption(side, "SHADER");
-        parts.Shader = Button(side, "", XifEditorActionKind.NextShader, editor, SideWidth,
-            "Draw the item with the next shader this tool allows");
+        parts.Shader = side.TabbedPicker(XifShaderTabs.Of(host.Shaders), SideWidth, rows: ShaderRows).Entity;
+        UiTabbedPickers.ButtonOf(parts.Shader).AddComponent(new UiTooltip("Pick the shader the item draws with, by folder"));
+        parts.Shader.OnPicked((tab, entry) => Systems.Ui.XifEditorShaders.PickShader(editor, tab, entry));
 
         // Shaders stacked over it, bottom first: each moves or colours what the one under it gave.
         parts.LayersCaption = side.Text("LAYERS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;
@@ -115,7 +119,7 @@ public static class XifEditorPanel
         IReadOnlyList<XifShaderChoice> layers = host.Layers;
         parts.LayerAdd = side.Dropdown(AddLayerText, layers.Select(layer => layer.Label).ToList(), 0, new Vector2(SideWidth, Row))
             .Button.Tooltip("Stack a shader over the item's: it moves or colours what the ones under it gave");
-        parts.LayerAdd.OnPicked(pick => Systems.Ui.XifEditorSystem.AddLayer(editor, pick));
+        parts.LayerAdd.OnPicked(pick => Systems.Ui.XifEditorShaders.AddLayer(editor, pick));
         UiLayout.SetHidden(parts.LayersCaption, layers.Count == 0);
         UiLayout.SetHidden(parts.LayerAdd, layers.Count == 0);
         parts.SettingsCaption = side.Text("SETTINGS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;

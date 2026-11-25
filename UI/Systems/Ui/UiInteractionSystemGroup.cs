@@ -35,6 +35,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(scroll);
         Add(new ToggleSystem());
         Add(new UiTabSystem());
+        Add(new UiTabbedPickerSystem());
         Add(new ButtonVisualSystem());
         Add(new DisabledVisualSystem());
         Add(new UiSliderSystem(pointer));

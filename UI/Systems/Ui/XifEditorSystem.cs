@@ -248,18 +248,10 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             case XifEditorActionKind.RemovePoint:
                 RemovePoint(ref editor, selected, point);
                 break;
-            case XifEditorActionKind.NextShader:
-                if (editor.Host.Shaders.Count == 0)
-                    break;
-                int current = ShaderIndex(editor.Host.Shaders, item.ShaderRef);
-                XifShaderChoice next = editor.Host.Shaders[(current + 1) % editor.Host.Shaders.Count];
-                editor.Host.Edit(() => XifEditing.SetShader(item, next.Shader));
-                editor.Status = $"SHADER {next.Label}";
-                break;
             case XifEditorActionKind.RemoveLayer:
                 if (item.Get<XifShader>()?.Layers is { } layers && arg >= 0 && arg < layers.Count)
                 {
-                    string gone = LayerLabel(editor.Host, layers[arg]);
+                    string gone = XifEditorShaders.LayerLabel(editor.Host, layers[arg]);
                     editor.Host.Edit(() => XifEditing.RemoveLayer(item, arg));
                     editor.Status = $"LAYER {gone} REMOVED";
                 }
@@ -324,7 +316,7 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             for (int i = layers.Count - 1; i >= 0; i--)
             {
                 UiNode row = column.Row().Gap(4);
-                row.Text(LayerLabel(editor.Host, layers[i]), UiType.Caption, UiTheme.Text)
+                row.Text(XifEditorShaders.LayerLabel(editor.Host, layers[i]), UiType.Caption, UiTheme.Text)
                     .Size(name, XifEditorPanel.ShapeRowHeight);
                 row.Button("▲", UiTheme.SmallFontSize).Size(small, XifEditorPanel.ShapeRowHeight)
                     .With(UiCommand.Of(XifEditorActionKind.LayerUp, arg: i, owner: panel))
@@ -337,52 +329,6 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
                     .Tooltip("Take this layer off the stack");
             }
         }
-    }
-
-    /// <summary>
-    /// A pick in the + LAYER list (<see cref="UiDropdowns.OnPicked"/> on
-    /// <see cref="XifEditorParts.LayerAdd"/>): stacks that shader over the open item.
-    /// </summary>
-    public static void AddLayer(Entity panel, int pick)
-    {
-        if (panel.IsNull || !panel.HasComponent<XifEditor>())
-            return;
-
-        ref XifEditor editor = ref panel.GetComponent<XifEditor>();
-        Xif? item = editor.Open ? editor.Host.Item : null;
-        IReadOnlyList<XifShaderChoice> choices = editor.Host.Layers;
-        if (item is null || pick < 0 || pick >= choices.Count)
-            return;
-        string path = choices[pick].Shader.Path;
-        string chosen = choices[pick].Label;
-        bool added = false;
-        editor.Host.Edit(() => added = XifEditing.AddLayer(item, path));
-        editor = ref panel.GetComponent<XifEditor>();
-        editor.Status = added ? $"LAYER {chosen} ADDED" : $"{chosen} IS ALREADY IN THE STACK";
-        Entity add = editor.Parts.LayerAdd;
-        if (!add.TryGetComponent(out Text shown) || shown.Value != XifEditorPanel.AddLayerText)
-            UiText.Set(add, XifEditorPanel.AddLayerText);
-    }
-
-    /// <summary>What a layer's row calls it: the host's label for it, else its file's name.</summary>
-    private static string LayerLabel(IXifEditorHost host, string path)
-    {
-        foreach (XifShaderChoice choice in host.Layers)
-        {
-            if (choice.Shader.Path == path)
-                return choice.Label;
-        }
-        return System.IO.Path.GetFileNameWithoutExtension(path).ToUpperInvariant();
-    }
-
-    private static int ShaderIndex(IReadOnlyList<XifShaderChoice> choices, XifShaderRef shader)
-    {
-        for (int i = 0; i < choices.Count; i++)
-        {
-            if (choices[i].Shader.Same(shader))
-                return i;
-        }
-        return -1;
     }
 
     // -------------------------------------------------------------- fields
@@ -1025,10 +971,7 @@ public sealed class XifEditorSystem : QuerySystem<XifEditor>
             ? $"{editor.Point + 1}/{handles.Count}  {handles[editor.Point].X:0.#}, {handles[editor.Point].Y:0.#}"
             : "");
 
-        XifShaderRef current = item.ShaderRef;
-        int index = ShaderIndex(editor.Host.Shaders, current);
-        string shader = index >= 0 ? editor.Host.Shaders[index].Label : current.IsNone ? "NONE" : "NOT ALLOWED HERE";
-        UiText.Set(editor.Parts.Shader, shader);
+        XifEditorShaders.Show(editor, item);
         UiText.Set(editor.Parts.Status, editor.Status ?? "");
     }
 

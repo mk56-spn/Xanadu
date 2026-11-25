@@ -103,8 +103,63 @@ public static partial class XifShaderParams
     }
 }
 
-/// <summary>One shader a host offers, with the label its button shows.</summary>
-public readonly record struct XifShaderChoice(string Label, XifShaderRef Shader);
+/// <summary>One shader a host offers: the label its row shows and the tab it's listed under.</summary>
+public readonly record struct XifShaderChoice(string Label, XifShaderRef Shader, string Category = "");
+
+/// <summary>A host's shader choices as the picker's tabs: one per category, in the order they first appear.</summary>
+public static class XifShaderTabs
+{
+    /// <summary>The tabs, each listing its choices' labels in the host's order.</summary>
+    public static PickerTab[] Of(IReadOnlyList<XifShaderChoice> choices)
+    {
+        List<string> names = [];
+        List<List<string>> entries = [];
+        foreach (XifShaderChoice choice in choices)
+        {
+            int tab = names.IndexOf(choice.Category);
+            if (tab < 0)
+            {
+                tab = names.Count;
+                names.Add(choice.Category);
+                entries.Add([]);
+            }
+            entries[tab].Add(choice.Label);
+        }
+        return [.. names.Select((name, i) => new PickerTab(name, entries[i]))];
+    }
+
+    /// <summary>Which choice entry <paramref name="entry"/> of tab <paramref name="tab"/> is; -1 when there is none.</summary>
+    public static int IndexOf(IReadOnlyList<XifShaderChoice> choices, int tab, int entry)
+    {
+        List<string> tabs = [];
+        int count = 0;
+        for (int i = 0; i < choices.Count; i++)
+        {
+            if (!tabs.Contains(choices[i].Category))
+                tabs.Add(choices[i].Category);
+            if (tabs.IndexOf(choices[i].Category) == tab && count++ == entry)
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>Where choice <paramref name="index"/> sits as (tab, entry); (-1, -1) for none.</summary>
+    public static (int Tab, int Entry) PlaceOf(IReadOnlyList<XifShaderChoice> choices, int index)
+    {
+        if (index < 0 || index >= choices.Count)
+            return (-1, -1);
+        List<string> seen = [];
+        int entry = 0;
+        for (int i = 0; i <= index; i++)
+        {
+            if (!seen.Contains(choices[i].Category))
+                seen.Add(choices[i].Category);
+            if (i < index && choices[i].Category == choices[index].Category)
+                entry++;
+        }
+        return (seen.IndexOf(choices[index].Category), entry);
+    }
+}
 
 public enum XifEditorActionKind
 {
@@ -122,7 +177,6 @@ public enum XifEditorActionKind
     RemovePoint,
 
     /// <summary>Moves the item's shader on to the host's next choice.</summary>
-    NextShader,
 
     /// <summary>Adds a quad, or a circle: primitives edited by their four handles.</summary>
     AddQuad,

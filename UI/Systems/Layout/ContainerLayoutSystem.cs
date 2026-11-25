@@ -191,6 +191,9 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
             return;
         }
 
+        // Cleared before the children are sized: a wrapped label that grows asks for this stack again (WrapTexts),
+        // and that request has to come after this one in the buffer, or the clear would undo it.
+        buffer.RemoveTag<LayoutDirty>(entity.Id);
         bool horizontal = container.Direction == StackDirection.Horizontal;
         SizeChildren(entity, container, rectangle, buffer);
 
@@ -242,8 +245,6 @@ public sealed partial class ContainerLayoutSystem : QuerySystem<Rectangle, UiCon
             position.Value = target;
             buffer.AddTag<Moved>(child.Id);
         }
-
-        buffer.RemoveTag<LayoutDirty>(entity.Id);
     }
 
     /// <summary>Gives a child its laid-out size; a resized container is placed again after this one.</summary>

@@ -47,13 +47,19 @@ public enum MaterialOverlay
 /// </remarks>
 public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mix, string? instance = null)
 {
+    /// <summary>
+    /// The run value the host hands every shader as <c>unit</c> (screen pixels per item unit), not a uniform: its name
+    /// can't be one, so no shader's value meets it.
+    /// </summary>
+    public const string Unit = "xanadu.unit";
+
     private readonly Dictionary<string, Vector4> _values = [];
     private readonly Dictionary<string, Handle> _textures = [];
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
     private readonly Dictionary<string, byte[]> _buffers = [];
 
     /// <summary>
-    /// The effect's path, such as <c>Assets/Shaders/note_background</c>;
+    /// The effect's path, such as <c>Assets/Shaders/Game/note_background</c>;
     /// empty for the plain canvas shader. For an effect made from <see cref="Source"/>,
     /// the name it is cached and reported by.
     /// </summary>

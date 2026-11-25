@@ -1,3 +1,4 @@
+using System.Linq;
 using Xanadu.Tests.Support.Fakes;
 using System.Collections.Generic;
 using Friflo.Engine.ECS;
@@ -101,7 +102,7 @@ public sealed class XifEditorTests : EcsSystemTest
     {
         Assert.That(Text(Editor.Parts.Title), Is.EqualTo("EDIT XIF · STREAK ITEM"));
         Assert.That(Text(Editor.Parts.PointLabel), Is.EqualTo("1/4  -16, -16"));
-        Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("NONE"));
+        Assert.That(Text(UiTabbedPickers.ButtonOf(Editor.Parts.Shader)), Is.EqualTo("NONE ▼"));
         Assert.That(Editor.Handles, Has.Count.EqualTo(4));
     }
 
@@ -154,18 +155,24 @@ public sealed class XifEditorTests : EcsSystemTest
     }
 
     [Test]
-    public void TheShaderCyclesThroughWhatTheHostAllows()
+    public void TheShaderIsPickedFromItsTab()
     {
-        Click(XifEditorActionKind.NextShader);
-        Assert.That(_host.Current!.ShaderRef.Path, Is.EqualTo("glow.gdshader"));
-        Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("GLOW"));
+        Entity button = UiTabbedPickers.ButtonOf(Editor.Parts.Shader);
+        Assert.That(Editor.Parts.Shader.GetComponent<UiTabbedPicker>().Tabs.Select(tab => tab.Name),
+            Is.EqualTo(new[] { "GAME", "LAB" }));
 
-        Click(XifEditorActionKind.NextShader);
+        XifEditorShaders.PickShader(_panel, 1, 0);
+        Frame();
+        Assert.That(_host.Current!.ShaderRef.Path, Is.EqualTo("glow.gdshader"));
+        Assert.That(Text(button), Is.EqualTo("GLOW ▼"));
+
+        XifEditorShaders.PickShader(_panel, 0, 0);
+        Frame();
         Assert.That(_host.Current!.ShaderRef.IsNone, Is.True);
 
         XifEditing.SetShader(_host.Current!, XifShaderRef.OfMap(4));
         Frame();
-        Assert.That(Text(Editor.Parts.Shader), Is.EqualTo("NOT ALLOWED HERE"));
+        Assert.That(Text(button), Is.EqualTo("NOT ALLOWED HERE ▼"));
     }
 
     [Test]
@@ -243,8 +250,8 @@ public sealed class XifEditorTests : EcsSystemTest
 
         public IReadOnlyList<XifShaderChoice> Shaders { get; } =
         [
-            new("NONE", new XifShaderRef()),
-            new("GLOW", XifShaderRef.OfCommon("glow.gdshader")),
+            new("NONE", new XifShaderRef(), "GAME"),
+            new("GLOW", XifShaderRef.OfCommon("glow.gdshader"), "LAB"),
         ];
 
         public void Edit(Action change)

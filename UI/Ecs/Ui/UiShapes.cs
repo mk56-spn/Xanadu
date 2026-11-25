@@ -31,7 +31,7 @@ public enum UiSdfShape
 /// </summary>
 public static class UiShapes
 {
-    public const string Shader = "Assets/Shaders/Items/sdf";
+    public const string Shader = "Assets/Shaders/Game/sdf";
 
     /// <summary>
     /// A shape <paramref name="size"/> pixels across, filled with <paramref name="fill"/>,
@@ -40,7 +40,6 @@ public static class UiShapes
     public static CanvasMaterial Material(UiSdfShape shape, Vector2 size, Color fill, bool filled = true, float outline = 1.5f)
     {
         var material = new CanvasMaterial(Shader);
-        material.Set("xif_unit", 1f);
         material.Set("sdf_shape", (int)shape);
         material.Set("sdf_size", size);
         material.Set("sdf_shape_params", new Vector4(size.Y * 0.2f, 0.6f, 0, 0));
