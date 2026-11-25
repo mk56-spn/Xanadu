@@ -42,6 +42,12 @@ public static class UiLayers
     // The shader editor's values column, over its code and chrome (the shader tool and the lab's editor tabs).
     public const int ShaderEditorValues = 72;
 
+    /// <summary>The shader editor's preview while it is expanded over the whole stage, over the editor and its values.</summary>
+    public const int ShaderPreviewFull = 73;
+
+    /// <summary>The preview's expand button, over the preview, expanded or not.</summary>
+    public const int ShaderPreviewControls = 74;
+
     /// <summary>The shader tool's grid of every shader, over its editor and the values column.</summary>
     public const int ShaderPicker = 75;
 

@@ -202,7 +202,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
 
         // Made first, so everything after draws over the code.
         _editor = TextEditors.Create(_code, parent, first.Text);
-        _view = preview(OnTop(Child(parent)));
+        _view = preview(Expandable(Child(parent), entities));
         _view.Place(_preview);
         Handle chromeItem = Child(parent);
         IRectCanvas canvas = HostPlatform.NewCanvas();
@@ -481,7 +481,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     /// </summary>
     private void Follow()
     {
-        Rect2 code = UiLayout.Box(_code.Entity), preview = FillPreview ?? UiLayout.Box(_slots.Preview.Entity);
+        Rect2 code = UiLayout.Box(_code.Entity), preview = PreviewArea();
         _hover.Bounds = code;
         _popup.Bounds = code;
         _strip.Code = code;
@@ -661,7 +661,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);
-        _graph.Delete();
+        _graph.Delete(); _expand?.Delete();
         UiLayout.DeleteSubtree(_clipsNode.Entity);
         UiLayout.DeleteSubtree(_rest.Entity);
     }

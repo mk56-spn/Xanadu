@@ -15,12 +15,27 @@ internal sealed partial class ShaderCodeEditor
     /// <summary>Where the preview draws instead of its slot (the whole stage, for a full-size shot); null for its slot.</summary>
     public static Rect2? FillPreview { get; set; }
 
-    /// <summary>The preview's item, drawn over the whole UI while it fills the stage, so a shot shows the shader alone.</summary>
-    private static Handle OnTop(Handle item)
+    /// <summary>The preview's expand button (<see cref="PreviewExpand"/>); none for a full-size shot (<see cref="FillPreview"/>).</summary>
+    private PreviewExpand? _expand;
+
+    /// <summary>
+    /// The preview's item, given its expand button; for a full-size shot, drawn over the whole UI with no button, so
+    /// the shot shows the shader alone.
+    /// </summary>
+    private Handle Expandable(Handle item, Friflo.Engine.ECS.EntityStore entities)
     {
         if (FillPreview is not null)
-            Xanadu.Ui.Systems.Canvas.CanvasServer.Current.SetZIndex(item, 1_000_000);
+            Xanadu.Ui.Systems.Canvas.CanvasServer.Current.SetZIndex(item, 4096);
+        else
+            _expand = new PreviewExpand(entities, item);
         return item;
+    }
+
+    /// <summary>Where the preview draws this frame: its slot, or the whole stage while expanded (or for a full-size shot).</summary>
+    private Rect2 PreviewArea()
+    {
+        Rect2 slot = UiLayout.Box(_slots.Preview.Entity);
+        return FillPreview ?? _expand?.Follow(slot) ?? slot;
     }
 
     /// <summary>The stack's name, as its files' labels carry it; null while editing one text.</summary>
