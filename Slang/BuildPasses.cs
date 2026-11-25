@@ -170,7 +170,7 @@ internal static partial class BuildPasses
         var declared = DrawDeclaration().Matches(code);
         foreach (Match marker in Regex.Matches(code, @"\[\s*Draw\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 or Surface name(ItemInput i) for its shade.");
+                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type.");
 
         foreach (Match match in declared)
         {
@@ -184,8 +184,7 @@ internal static partial class BuildPasses
                 throw new BuildProblem(match.Index, $"a draw's grid has 1 to {MostCells} cells a side, not {across} × {down}.");
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
-                Draw = (across, down, match.Groups["shade"].Value,
-                    Regex.IsMatch(code, $@"\bSurface\s+{Regex.Escape(match.Groups["shade"].Value)}\s*\(")),
+                Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index)),
             });
         }
     }

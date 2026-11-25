@@ -72,7 +72,7 @@ ItemVertex ringDrawn(ItemVertex v)
     return v;
 }
 
-Surface ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), Material(colours.orange, 40)); }
+SurfaceTexels ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), Material(colours.orange, 40)).texels(i.depth); }
 
 /// The scene, marched only where it is nearer than the torus.
 [Pixels(8, 8)]

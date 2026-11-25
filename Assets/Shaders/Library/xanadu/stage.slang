@@ -267,6 +267,9 @@ public struct ItemInput
     public float2 screenUv;
     /// The pixel's position on the target, in pixels.
     public float2 pixel;
+    /// How far into the screen this pixel is, in pixels (as ItemVertex.depth): a graph's draw
+    /// gives it, so its shade can write it to an image. 0 everywhere else.
+    public float depth;
     /// Seconds since the game started; the global `time` is the same, and reaches everywhere.
     public float time;
     /// The quad being drawn on the target: size, position, rotation, shear, in pixels.
@@ -477,6 +480,7 @@ public ItemInput input(ItemVaryings v)
     i.colour = sampleItem(v.uv) * v.colour;
     i.local = v.local;
     i.pixel = v.position.xy;
+    i.depth = 0.0;
     i.screenUv = v.position.xy / frame.screen;
     float2 uvDx = ddx(v.uv), uvDy = ddy(v.uv);
     uvWinding = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
@@ -507,6 +511,7 @@ public ItemInput tracedInput(float2 pixel, float2 corner, float2 xAxis, float2 y
     i.colour = float4(1.0);
     i.local = uv * at.size;
     i.pixel = pixel;
+    i.depth = 0.0;
     i.screenUv = pixel / frame.screen;
     uvWinding = 1.0;
     i.time = time;

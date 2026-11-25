@@ -183,6 +183,11 @@ The check each time: the visual tests, and shots of a few plain, deform, pool an
   test. Done (2026-11-25).
 - **C. Generic draws.** Outputs from the shade's return struct; depth on `ItemInput`; argument lists instead of
   `A/B/C/D`; draws that read images, so `present` becomes a library draw and traced.slang goes. The `Surface` special case comes out of `SlangShaders.Draws.cs` and `BuildPasses.ReadDraws`.
+- **C, dogfood: the graph board's underlay.** The editor's GRAPH view keeps its boxes, text and input on the UI
+  `Board`; under them a stack draws the wires (a `[Pass]` lays out the curves, an instanced draw draws them), pulses
+  along them from writer to reader, a half-scale glow under costly nodes and pass breaks, and frame images fading in
+  at their first writer and out at their last reader. It needs a generic way for the host to hand a stack a buffer
+  (the edges); a fixed count of edges as values does for a first cut.
 - **D. Cost.** Flatten static graphs; batch prelude compute into levelled passes; problems per material.
 - **E. Then the 3D work resumes** on top: `room.box`, shadow depth per light from the same geometry, screen-space
   AO, `[Surfaces]` sugar if it's still wanted once clears live on declarations.
@@ -275,7 +280,22 @@ Stage B, sizes (2026-11-25):
   with `over:`, sharp rings at full size over them; `coarse` presents the quarter image alone. scene_room and trails
   look as before.
 
-Next: stage C.
+Stage C, first half (2026-11-25):
+
+- **Outputs from the shade's return type** (`Slang/DrawOutput.cs`): a `float4` or `colour` shade is one target,
+  discarded where its alpha is 0; a struct is one target per field (float, float2, float4, colour or uint), up to 4,
+  found in the stack or the library. The call names an image per output, checked against the field.
+- **Depth on `ItemInput`:** `i.depth` is the pixel's depth (pixels into the screen) in a draw, 0 elsewhere. The
+  hard-wired "target 1 is depth" is gone: a shade that wants depth written returns it as a field.
+- **No `Surface` in C#:** `Surface.texels(i.depth)` returns `SurfaceTexels` (depth, normal, base), discarding when
+  nothing was found. scene_room's torus shade returns that.
+- **Draws read images by name**, as pixel passes do: the fragment binds the images it reads as read-only storage
+  textures after its samplers (`CompiledDraw.Reads`), and `group.pixel` is the texel under the pixel. A draw can't
+  read an image it draws into, nor write any.
+- **Checked:** scene_room as before; `Lab/sizes` has a waving band drawn into `sheet`, its shade reading the quarter
+  `glow` under it.
+
+Next: draws onto `frame` (exits), then argument lists.
 
 Also still open:
 

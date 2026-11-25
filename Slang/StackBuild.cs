@@ -47,10 +47,10 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     public int OverImage { get; init; } = -1;
 
     /// <summary>
-    /// A draw (<c>[Draw]</c>): its grid's cells, the function that shades it, and whether that gives a <c>Surface</c>
-    /// (written into Surfaces' three images) rather than a colour; null for a compute pass.
+    /// A draw (<c>[Draw]</c>): its grid's cells, the function that shades it, and the targets that writes, from its
+    /// return type; null for a compute pass.
     /// </summary>
-    public (int Across, int Down, string Shade, bool Surfaced)? Draw { get; init; }
+    public (int Across, int Down, string Shade, DrawOutput[] Outputs)? Draw { get; init; }
 
     /// <summary>A pixel pass's parameters as written, for its call.</summary>
     public string Signature { get; init; } = "";
@@ -335,8 +335,11 @@ public sealed partial class StackBuild
     /// <c>globallycoherent</c> is left off, so a buffer can be lent to a library's function (Slang
     /// takes no coherent parameter); the compile marks the binding coherent after (<see cref="SpirvCoherence"/>).
     /// </summary>
-    /// <remarks>Images go at <paramref name="image"/>'s binding in the same set, or past anything bound when it is null.</remarks>
-    public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null)
+    /// <remarks>
+    /// Images go at <paramref name="image"/>'s binding in the same set (or <paramref name="imageSet"/>), or past anything
+    /// bound when it is null.
+    /// </remarks>
+    public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null, int? imageSet = null)
     {
         var spans = new List<(int Start, int End, string Text)>();
         for (int k = 0; k < Buffers.Count; k++)
@@ -350,7 +353,7 @@ public sealed partial class StackBuild
             BuildImage declared = Images[k];
             int at = image?.Invoke(k) ?? UnplacedImage + k;
             spans.Add((declared.Start, declared.End,
-                $"[[vk::binding({at}, {set})]] [[vk::image_format(\"{declared.Format}\")]] RWTexture2D<{declared.Type}> {declared.Name};"));
+                $"[[vk::binding({at}, {imageSet ?? set})]] [[vk::image_format(\"{declared.Format}\")]] RWTexture2D<{declared.Type}> {declared.Name};"));
         }
 
         foreach (BuildPass pass in _passes.Where(pass => pass.Library is null))

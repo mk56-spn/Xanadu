@@ -158,7 +158,7 @@ public sealed class StackGraph
                     }
 
                     // A draw writes the images its calls name.
-                    for (int k = 0; node.Kind == NodeKind.Draw && k < 3 && node.Call.Target(k) != StackBuild.Run.None; k++)
+                    for (int k = 0; node.Kind == NodeKind.Draw && k < DrawOutput.Most && node.Call.Target(k) != StackBuild.Run.None; k++)
                         graph.Edge(seen, images[(int)node.Call.Target(k)], GraphAccess.Write);
                     break;
                 }

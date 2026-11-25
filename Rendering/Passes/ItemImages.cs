@@ -165,7 +165,8 @@ internal sealed class ItemImages(GraphicsDevice device, FrameTargets targets) : 
 
     private Texture Make(GraphImage image, uint width, uint height)
     {
-        TextureUsageFlags usage = TextureUsageFlags.ComputeStorageRead | TextureUsageFlags.ComputeStorageWrite | TextureUsageFlags.ColorTarget;
+        TextureUsageFlags usage = TextureUsageFlags.ComputeStorageRead | TextureUsageFlags.ComputeStorageWrite | TextureUsageFlags.ColorTarget
+                                   | TextureUsageFlags.GraphicsStorageRead;
         if (image.Format != TextureFormat.R32Uint)
             usage |= TextureUsageFlags.Sampler;
         return Texture.Create2D(device, $"graph {image.Name}", width, height, image.Format, usage);

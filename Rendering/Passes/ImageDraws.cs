@@ -9,8 +9,8 @@ using Texture = MoonWorks.Graphics.Texture;
 namespace Xanadu.Rendering.Passes;
 
 /// <summary>
-/// A graph's <c>[Draw]</c> node, before the job's pass: a grid over the item's quad into the item's images (colour and
-/// depth, or Surfaces' three) against the item's own draw depth. The images are the item's box, so the viewport is the
+/// A graph's <c>[Draw]</c> node, before the job's pass: a grid over the item's quad into the item's images (one for each
+/// output of its shade) against the item's own draw depth. The images are the item's box, so the viewport is the
 /// target moved by the box's corner, and the fragment gets the corner back to place its pixel on the target.
 /// </summary>
 internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, GlobalBindings globals)
@@ -18,14 +18,17 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct DrawBox { public float X, Y, Pad0, Pad1; }
 
+    /// <summary>The images a draw's shade reads, gathered for binding; grown as needed, never shrunk.</summary>
+    private Texture[] _read = new Texture[4];
+
     /// <summary>A draw's grid over the item's quad into the images the call names; the item's first draw starts its depth afresh.</summary>
     public void Draw(CommandBuffer commands, CanvasEffect effect, ItemSet set, RestFrame rest, StackBuild.Run call, Step step, float time)
     {
         CompiledDraw draw = effect.Compiled.Build!.Passes[call.Pass].Drawn!;
         int count = 0;
-        Span<ColorTargetInfo> colours = stackalloc ColorTargetInfo[3];
-        Span<TextureFormat> formats = stackalloc TextureFormat[3];
-        for (; count < 3 && call.Target(count) != StackBuild.Run.None; count++)
+        Span<ColorTargetInfo> colours = stackalloc ColorTargetInfo[DrawOutput.Most];
+        Span<TextureFormat> formats = stackalloc TextureFormat[DrawOutput.Most];
+        for (; count < DrawOutput.Most && call.Target(count) != StackBuild.Run.None; count++)
         {
             Texture image = set.Images[(int)call.Target(count)];
             colours[count] = new ColorTargetInfo(image, LoadOp.Load);
@@ -68,6 +71,16 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
             pass.BindVertexSamplers(samplers[..draw.Vertex.Samplers.Length]);
         if (draw.Fragment.Samplers.Length > 0)
             pass.BindFragmentSamplers(samplers[..draw.Fragment.Samplers.Length]);
+        if (draw.Reads.Length > 0)
+        {
+            // The images its shade reads, read-only, after its samplers.
+            if (_read.Length < draw.Reads.Length)
+                _read = new Texture[draw.Reads.Length];
+            for (int k = 0; k < draw.Reads.Length; k++)
+                _read[k] = set.Images[draw.Reads[k]];
+            pass.BindFragmentStorageTextures(_read.AsSpan(0, draw.Reads.Length));
+        }
+
         if (draw.Fragment.StorageBuffers > 0)
             pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment.StorageBuffers));
         pass.DrawPrimitives(draw.Vertices, 1, 0, 0);

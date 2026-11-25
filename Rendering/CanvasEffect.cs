@@ -68,7 +68,7 @@ internal sealed class CanvasEffect(
         _ => TextureFormat.R32Uint,
     };
 
-    private readonly Dictionary<(int Pass, TextureFormat A, TextureFormat B, TextureFormat C, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];
+    private readonly Dictionary<(int Pass, TextureFormat A, TextureFormat B, TextureFormat C, TextureFormat D, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];
 
     /// <summary>
     /// Draw <paramref name="pass"/>'s pipeline into colour targets of <paramref name="targets"/> (one to three), tested
@@ -77,7 +77,7 @@ internal sealed class CanvasEffect(
     public GraphicsPipeline DrawPipeline(GraphicsDevice device, int pass, ReadOnlySpan<TextureFormat> targets, TextureFormat z)
     {
         TextureFormat Format(ReadOnlySpan<TextureFormat> all, int k) => k < all.Length ? all[k] : TextureFormat.Invalid;
-        var key = (pass, Format(targets, 0), Format(targets, 1), Format(targets, 2), z);
+        var key = (pass, Format(targets, 0), Format(targets, 1), Format(targets, 2), Format(targets, 3), z);
         if (_drawPipelines.TryGetValue(key, out GraphicsPipeline? made))
             return made;
         var descriptions = new ColorTargetDescription[targets.Length];

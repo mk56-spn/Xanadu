@@ -2,12 +2,14 @@
 // a [Pass] paints it once a frame, however many items show the stack, and every item reads it.
 // `glow` is a quarter of the box: soft blobs worked out a texel at a time over it
 // ([Pixels(…, over: glow)]), each texel standing for 4 × 4 pixels. `shown` is the box: sharp
-// rings drawn at full size over the glow, read back at a quarter. `coarse` presents the glow alone,
-// stretched over the box.
+// rings drawn at full size over the glow, read back at a quarter. A waving sheet of triangles is
+// drawn into `sheet`, its shade reading the glow by name at the pixel's texel. `coarse` presents
+// the glow alone, stretched over the box.
 import xanadu;
 
 [Image(rgba16f, 64, 64)] RWTexture2D<float4> palette;
 [Image(rgba16f, scale: 0.25)] RWTexture2D<float4> glow;
+[Image(rgba16f)] RWTexture2D<float4> sheet;
 [Image(rgba16f)] RWTexture2D<float4> shown;
 
 /// Show the quarter-size glow alone, stretched over the box.
@@ -41,10 +43,28 @@ void soft(ItemInput i, Canvas canvas)
     glow[group.pixel] = tone * saturate(field) + float4(colours.midnightBlue.rgb, 1) * (1 - saturate(field));
 }
 
+/// A band across the middle, waving.
+[Draw(48, 8, shade: sheetLook)]
+ItemVertex sheetDrawn(ItemVertex v)
+{
+    float2 size = v.rest.size;
+    v.position = v.rest.corner + float2(v.uv.x * size.x, size.y * (0.4 + 0.2 * v.uv.y) + sin(v.uv.x * 9 + time * 2.5) * size.y * 0.12);
+    return v;
+}
+
+/// The glow under it, turned inside out, in stripes.
+float4 sheetLook(ItemInput i)
+{
+    float4 under = glow[group.pixel / 4];
+    float stripe = step(0.5, frac(i.uv.x * 16));
+    return float4(1 - under.rgb, 0.8) * stripe;
+}
+
 [Pixels(8, 8)]
 void rings(ItemInput i, Canvas canvas)
 {
-    float4 under = glow[group.pixel / 4];
+    float4 band = sheet[group.pixel];
+    float4 under = band + glow[group.pixel / 4] * (1 - band.a);
     float ring = 0;
     for (int k = 0; k < blobs; k++)
         ring = max(ring, sdf.filled(abs(length(canvas.centred - blob(k, canvas.size)) - 40 - 12 * beats.pulse()) - 2, 1));
@@ -59,6 +79,7 @@ void graph()
         present(glow);
     else
     {
+        sheetDrawn(sheet);
         rings();
         present(shown);
     }

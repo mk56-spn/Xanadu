@@ -11,9 +11,9 @@
 //
 //     Surfaces surfaces() { return Surfaces(depth, normals, bases); }
 //
-//     [Draw(96, 32, shade: ringLook)]                  // a draw whose shade gives a Surface
+//     [Draw(96, 32, shade: ringLook)]                  // a draw whose shade gives a Surface's texels
 //     ItemVertex ringDrawn(ItemVertex v) { v.place(ring().at(v.uv), eye(v.rest.size)); return v; }
-//     Surface ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), colours.orange); }
+//     SurfaceTexels ringLook(ItemInput i) { return Surface(ring().normalAt(i.uv), colours.orange).texels(i.depth); }
 //
 //     [Pixels(8, 8)]
 //     void illuminate(ItemInput i, Canvas canvas)
@@ -23,7 +23,7 @@
 //
 //     void graph()
 //     {
-//         ringDrawn(depth, normals, bases);              // a Surface draw names the three images
+//         ringDrawn(depth, normals, bases);              // an image for each field of SurfaceTexels
 //         illuminate();
 //         present(shown, depth);
 //     }
@@ -159,6 +159,28 @@ public struct Surface
 
     /// A copy facing the eye, whichever side it was seen from: for open sheets lit on both sides.
     public Surface facing(float3 toEye) { Surface s = this; if (dot(s.normal, toEye) < 0.0) s.normal = -s.normal; return s; }
+
+    /// What a draw's shade returns to write it into Surfaces' three images, `depth` (the draw's
+    /// `i.depth`) in front. Nothing found leaves the pixel alone: a draw's shade only, since it
+    /// discards.
+    public SurfaceTexels texels(float depth)
+    {
+        if (!found)
+            discard;
+        SurfaceTexels t;
+        t.depth = depth;
+        t.normal = Surfaces.normalTexel(this);
+        t.base = Surfaces.baseTexel(this);
+        return t;
+    }
+};
+
+/// A Surface as Surfaces holds it, one field an image: what a draw writes (`Surface.texels`).
+public struct SurfaceTexels
+{
+    public float depth;
+    public float4 normal;
+    public float4 base;
 };
 
 /// The images Surfaces live in, the graph's own: `depth` (r32f), `normals` (rgba16f: xyz the

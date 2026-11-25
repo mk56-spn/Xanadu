@@ -8,8 +8,8 @@ public sealed partial class StackBuild
     /// <summary>One pass to dispatch: which, its groups, the elements a thread each (0 for whole groups), and its arguments.</summary>
     public readonly record struct Run(int Pass, uint Groups, uint Over, uint A, uint B, uint C, uint D)
     {
-        /// <summary>A draw's colour targets, in order (<see cref="A"/>, <see cref="B"/>, <see cref="C"/>; <see cref="None"/> past its last).</summary>
-        public uint Target(int k) => k switch { 0 => A, 1 => B, 2 => C, _ => None };
+        /// <summary>A draw's targets, in order (<see cref="A"/> to <see cref="D"/>; <see cref="None"/> past its last).</summary>
+        public uint Target(int k) => k switch { 0 => A, 1 => B, 2 => C, 3 => D, _ => None };
 
         /// <summary>The pass a <c>present</c> runs as: the images shown are <see cref="A"/> (colour) and <see cref="B"/> (depth, or <see cref="None"/>).</summary>
         public const int Present = -1;
@@ -57,7 +57,7 @@ public sealed partial class StackBuild
                 case BuildDraw draw:
                     if (runs.Count >= MaxCalls)
                         throw new BuildProblem(draw.Index, $"graph() runs more than {MaxCalls} passes a frame.");
-                    runs.Add(new Run(draw.Pass, 0, 0, Target(draw, 0), Target(draw, 1), Target(draw, 2), 0));
+                    runs.Add(new Run(draw.Pass, 0, 0, Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)));
                     break;
                 case BuildPresent present:
                     runs.Add(new Run(Run.Present, 0, 0, (uint)present.Colour, present.Depth < 0 ? Run.None : (uint)present.Depth, 0, 0));

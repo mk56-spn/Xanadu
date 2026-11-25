@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Xanadu.Slang;
@@ -5,6 +7,9 @@ namespace Xanadu.Slang;
 /// <summary>A graph's draw, compiled: its vertex stage (the grid, moved by its deform) and its fragment stage (its shade).</summary>
 public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment, int Across, int Down)
 {
+    /// <summary>The graph's images its shade reads (by their place), in the order they bind: read-only, after its samplers.</summary>
+    public int[] Reads { get; init; } = [];
+
     /// <summary>The vertices it draws: two triangles a cell.</summary>
     public uint Vertices => (uint)(Across * Down * 6);
 }
@@ -12,8 +17,8 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
 /// <summary>
 /// A graph's draws (<c>[Draw(across, down, shade: fn)] ItemVertex name(ItemVertex v)</c>): a grid of triangles over the
 /// item's quad, made from the vertex index (no vertex buffer), moved by <c>name</c> as a deform moves corners, coloured
-/// by <c>fn</c> as shade colours pixels, into the images its call names: the colour, and the depth as pixels into the
-/// screen; or, when <c>fn</c> gives a <c>Surface</c> (xanadu.light), into Surfaces' depth, normals and bases. They test
+/// by <c>fn</c> as shade colours pixels, into the images its call names, one for each output <c>fn</c> returns
+/// (<see cref="DrawOutput"/>): its colour, or each field of a struct, such as xanadu.light's <c>SurfaceTexels</c>. They test
 /// and write the item's own draw depth, cleared before its first draw, so the nearest surface wins whatever the order.
 /// The images are the item's box, so the box's corner reaches the fragment to put its position back on the target.
 /// Bindings as a stack's deform and shade have them: vertex set 0 the depth sampler then the globals, set 1 the view at
@@ -28,11 +33,11 @@ public static partial class SlangShaders
     private static CompiledPass CompileDraw(string name, string source, StackBuild build, int p, bool keepsState, PoolShape? pool)
     {
         BuildPass pass = build.Passes[p];
-        (int across, int down, string shade, bool surfaced) = pass.Draw!.Value;
+        (int across, int down, string shade, DrawOutput[] outputs) = pass.Draw!.Value;
         string code = StripComments(source);
-        Match shadeAt = Regex.Match(code, $@"\b(?:float4|colour|Surface)\s+{Regex.Escape(shade)}\s*\(([^)]*)\)");
+        Match shadeAt = Regex.Match(code, $@"\b\w+\s+{Regex.Escape(shade)}\s*\(([^)]*)\)");
         if (!shadeAt.Success)
-            throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: {pass.Name} is shaded by {shade}, so declare float4 {shade}(ItemInput i), or Surface {shade}(ItemInput i) to draw into Surfaces.");
+            throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: {pass.Name} is shaded by {shade}, so declare float4 {shade}(ItemInput i).");
         string arguments = ShadeSignature.Arguments("float4 shade(" + shadeAt.Groups[1].Value + ")", out string problem)
                            ?? throw new InvalidOperationException($"{Where(name, source, shadeAt.Index)}: error: {problem.Replace("shade", shade)}");
         string body = Unbound(build, source);
@@ -44,10 +49,26 @@ public static partial class SlangShaders
         if (SpirvScan.BindsSet(vertex.Spirv, 2) || SpirvScan.BindsSet(vertex.Spirv, 3) || SpirvScan.Binds(vertex.Spirv, 0, 0))
             throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a draw's {pass.Name} can't read textures or the depth.");
 
+        // The images the shade reads, by name: found with every image out of sight, then placed after the samplers,
+        // read-only storage textures as SDL_GPU binds them in a fragment stage, and the globals after them.
         int globalsAt = StorageBinding(source);
-        CompiledShader fragment = CompileWrapped(WrapDrawFragment(name, body, shade, arguments, surfaced, keepsState, pool), "xanaduDrawFragment", "fragment", 2, 3,
-            GlobalDefines(globalsAt, 2));
-        CheckDeclared(name, fragment, 2, globalsAt);
+        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, keepsState, pool),
+            "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
+        CompiledShader fragment = Fragment(body, globalsAt);
+        int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
+        if (reads.Length > 0)
+        {
+            fragment = Fragment(build.Rewrite(source, 1, k => Unplaced + k,
+                k => Array.IndexOf(reads, k) is var at and >= 0 ? globalsAt + at : StackBuild.UnplacedImage + k, imageSet: 2), globalsAt + reads.Length);
+            if (SpirvImages.Writes(fragment.Spirv))
+                throw new InvalidOperationException($"{Where(name, source, shadeAt.Index)}: error: a draw's {shade} reads images but can't write them; return what it makes as an output.");
+            foreach (int target in DrawTargets(build.Schedule, p))
+                if (reads.Contains(target))
+                    throw new InvalidOperationException(
+                        $"{Where(name, source, shadeAt.Index)}: error: {pass.Name} draws into {build.Images[target].Name}, so its {shade} can't read it too.");
+        }
+
+        CheckDeclared(name, fragment, 2, globalsAt + reads.Length);
         CheckUnbound(name, shade, build, fragment);
         if (SpirvScan.Binds(fragment.Spirv, 2, 1) || SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth))
             throw new InvalidOperationException($"{Where(name, source, shadeAt.Index)}: error: a draw's {shade} can't read the screen or the depth yet.");
@@ -55,8 +76,25 @@ public static partial class SlangShaders
         var drawn = new CompiledDraw(
             new CompiledShader(vertex.Spirv, vertex.Samplers, vertex.UniformBuffers, vertex.Params, vertex.ParamsSize, storageBuffers: Globals.Count),
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, storageBuffers: Globals.Count),
-            across, down);
+            across, down) { Reads = reads };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
+    }
+
+    /// <summary>Every image a call of draw <paramref name="pass"/> draws into, wherever the schedule calls it.</summary>
+    private static IEnumerable<int> DrawTargets(IEnumerable<BuildStep> steps, int pass)
+    {
+        foreach (BuildStep step in steps)
+        {
+            IEnumerable<int> found = step switch
+            {
+                BuildDraw draw when draw.Pass == pass => draw.Targets,
+                BuildBranch branch => DrawTargets(branch.Yes, pass).Concat(DrawTargets(branch.No, pass)),
+                BuildLoop loop => DrawTargets(loop.Body, pass),
+                _ => [],
+            };
+            foreach (int target in found)
+                yield return target;
+        }
     }
 
     /// <summary>The grid's corners, from the vertex index, each moved by the draw's deform and put in the graph's depth.</summary>
@@ -102,52 +140,25 @@ public static partial class SlangShaders
     }
 
     /// <summary>
-    /// The draw's shade, its colour to target 0 and its depth (pixels into the screen, from the squashed z) to target 1;
-    /// a Surface shade's surface into Surfaces' three images instead, the depth first.
+    /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where the alpha is 0, or
+    /// each field of the struct it returns, in order. The input's depth is the pixel's, pixels into the screen.
     /// </summary>
-    private static string WrapDrawFragment(string name, string source, string shade, string arguments, bool surfaced, bool keepsState, PoolShape? pool)
+    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, bool keepsState, PoolShape? pool)
     {
         (string imports, string code, string label) = Split(name, source);
         string state = keepsState ? "static State state;" : "";
-        string written = surfaced
-            ? $$"""
-              struct XanaduDrawn { float depth : SV_Target0; float4 normal : SV_Target1; float4 base : SV_Target2; };
-              [shader("fragment")]
-              XanaduDrawn xanaduDrawFragment(ItemVaryings v)
-              {
-                  v.position.xy += xanaduDrawBox.origin;
-                  ItemInput i = input(v);
-                  {{TimelineClock(source, shading: true)}}
-                  Surface s = effect0::{{shade}}({{arguments}});
-                  if (!s.found)
+        string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"));
+        string written = outputs[0].Field is null
+            ? """
+              float4 shown = effect0::SHADE(ARGUMENTS);
+                  if (shown.a <= 0.0)
                       discard;
-                  XanaduDrawn o;
-                  o.depth = xanaduDrawnDepth(v);
-                  o.normal = Surfaces.normalTexel(s);
-                  o.base = Surfaces.baseTexel(s);
-                  return o;
-              }
+                  o.o0 = shown;
               """
-            : $$"""
-              struct XanaduDrawn { float4 colour : SV_Target0; float depth : SV_Target1; };
-              [shader("fragment")]
-              XanaduDrawn xanaduDrawFragment(ItemVaryings v)
-              {
-                  v.position.xy += xanaduDrawBox.origin;
-                  ItemInput i = input(v);
-                  {{TimelineClock(source, shading: true)}}
-                  i.colour = effect0::{{shade}}({{arguments}});
-                  if (i.colour.a <= 0.0)
-                      discard;
-                  XanaduDrawn o;
-                  o.colour = i.colour;
-                  o.depth = xanaduDrawnDepth(v);
-                  return o;
-              }
-              """;
+            : "let made = effect0::SHADE(ARGUMENTS);\n" + string.Join("\n", outputs.Select((output, k) => $"    o.o{k} = made.{output.Field};"));
+        written = written.Replace("SHADE", shade).Replace("ARGUMENTS", arguments);
         return $$"""
             import xanadu.stage;
-            {{(surfaced ? "import xanadu.light;" : "")}}
             {{imports}}
             namespace effect0 {
             #line 1 "{{label}}"
@@ -161,13 +172,23 @@ public static partial class SlangShaders
             // the box's, and the box's corner puts it back on the target before its input is built.
             struct XanaduDrawBox { float2 origin; float2 pad; };
             [[vk::binding({{DrawBoxSlot}}, 3)]] ConstantBuffer<XanaduDrawBox> xanaduDrawBox;
-            // Pixels into the screen, from the squashed z: z = 0.5 + 0.5 d / (|d| + 1024), undone.
-            float xanaduDrawnDepth(ItemVaryings v)
+            struct XanaduDrawn { {{fields}} };
+            [shader("fragment")]
+            XanaduDrawn xanaduDrawFragment(ItemVaryings v)
             {
+                // The texel under the pixel in the item's images, as a pixel pass has it.
+                group.pixel = uint2(v.position.xy);
+                v.position.xy += xanaduDrawBox.origin;
+                ItemInput i = input(v);
+                // Pixels into the screen, from the squashed z: z = 0.5 + 0.5 d / (|d| + 1024), undone.
                 float r = v.position.z * 2.0 - 1.0;
-                return r * 1024.0 / max(1.0 - abs(r), 1e-6);
+                i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);
+                shading = i;
+                {{TimelineClock(source, shading: true)}}
+                XanaduDrawn o;
+                {{written}}
+                return o;
             }
-            {{written}}
             """;
     }
 }

@@ -45,14 +45,15 @@ internal static class EffectCompute
 
     /// <summary>A graph's draws' vertex and fragment stages, by their places among its passes; null for a compute pass.</summary>
     public static (Shader Vertex, Shader Fragment)?[] Draws(GraphicsDevice device, CompiledShader compiled) => compiled.Build is { } build
-        ? [.. build.Passes.Select(pass => pass.Drawn is { } drawn ? ((Shader, Shader)?)(Stage(device, drawn.Vertex, ShaderStage.Vertex), Stage(device, drawn.Fragment, ShaderStage.Fragment)) : null)]
+        ? [.. build.Passes.Select(pass => pass.Drawn is { } drawn ? ((Shader, Shader)?)(Stage(device, drawn.Vertex, ShaderStage.Vertex), Stage(device, drawn.Fragment, ShaderStage.Fragment, drawn.Reads.Length)) : null)]
         : [];
 
-    private static Shader Stage(GraphicsDevice device, CompiledShader stage, ShaderStage kind) => Shader.Create(device, stage.Spirv, "main", new ShaderCreateInfo
+    private static Shader Stage(GraphicsDevice device, CompiledShader stage, ShaderStage kind, int images = 0) => Shader.Create(device, stage.Spirv, "main", new ShaderCreateInfo
     {
         Format = ShaderFormat.SPIRV,
         Stage = kind,
         NumSamplers = (uint)stage.Samplers.Length,
+        NumStorageTextures = (uint)images,
         NumStorageBuffers = (uint)stage.StorageBuffers,
         NumUniformBuffers = stage.UniformBuffers,
     });
