@@ -1,4 +1,4 @@
-// Raymarcher, tiled: once a frame, update bounds-checks every sphere against a
+// Raymarcher, tiled: once a frame, `bin` bounds-checks every sphere against a
 // GRID × GRID set of tiles and gives each tile the set of spheres that can show
 // in it. Each pixel then tests its ray against
 // just that set and marches only the spheres the ray passes near, only between
@@ -45,7 +45,7 @@ float field(float3 p, int near[NEAR_RAY], int count, inout int nearest)
     float d = 1e5, best = 1e5;
     for (int k = 0; k < count; k++)
     {
-        float4 b = state.spheres[near[k]];
+        float4 b = tiles[0].spheres[near[k]];
         float di = length(p - b.xyz) - b.w;
         if (di < best)
         {
@@ -77,11 +77,11 @@ float4 shade(Canvas canvas)
     float from = 1e5, to = 0.0;
     for (int w = 0; w < WORDS; w++)
     {
-        for (uint left = state.sets[tile * WORDS + w]; left != 0; left &= left - 1)
+        for (uint left = tiles[0].sets[tile * WORDS + w]; left != 0; left &= left - 1)
         {
             inTile++;
             int i = w * 32 + int(firstbitlow(left));
-            float4 b = state.spheres[i];
+            float4 b = tiles[0].spheres[i];
             float reach = b.w + BLEND;
             float along = dot(dir, b.xyz);
             float h = along * along - dot(b.xyz, b.xyz) + reach * reach;

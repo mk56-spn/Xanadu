@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Xanadu.Rendering;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
@@ -22,11 +23,12 @@ namespace Xanadu.Tools.Shaders;
 /// </summary>
 internal sealed class EffectPreview : IEditorPreview
 {
+    private readonly CanvasRenderer _renderer;
     private readonly CanvasPipelines _pipelines;
     private readonly Handle _backdrop;
     private readonly Handle _item;
     private readonly string _label;
-    private readonly bool _keepsState;
+    private readonly bool _runsGraphs;
     private CanvasMaterial? _material;
 
     /// <summary>The overlays, drawn over the effect: the triangles' edges, and the uv lines.</summary>
@@ -38,13 +40,12 @@ internal sealed class EffectPreview : IEditorPreview
     private (int Columns, int Rows)? _grid;
 
     /// <summary>
-    /// Whether the code shown draws copies of its quad (a pool's items, a BUILD's <c>[Draws]</c>):
-    /// one plain rect, no overlays. The fine preview mesh would be drawn whole for every copy.
+    /// Whether the code shown has a graph: one plain rect (its nodes need the quad uncut), no overlays.
     /// </summary>
-    private bool _copies;
+    private bool _graph;
 
-    /// <summary>Whether the code shown draws copies of its quad, which the overlays don't draw yet.</summary>
-    public bool DrawsCopies => _copies;
+    /// <summary>Whether the code shown has a graph, which the overlays don't draw yet.</summary>
+    public bool HasGraph => _graph;
 
     /// <summary>One overlay: its item and, while on, its material (the code with the overlay for shade).</summary>
     private sealed class Overlay(MaterialOverlay kind, Handle item)
@@ -56,11 +57,12 @@ internal sealed class EffectPreview : IEditorPreview
     }
 
     /// <param name="item">Draws the backdrop; the effect goes in a child of it, so it draws over.</param>
-    /// <param name="keepsState">A lab-only effect (<see cref="SlangShaders.IsLabOnly"/>): its update runs and shade reads state.</param>
-    public EffectPreview(CanvasPipelines pipelines, Handle item, string label, bool keepsState)
+    /// <param name="runsGraphs">A lab-only effect (<see cref="SlangShaders.IsLabOnly"/>): its graph runs.</param>
+    public EffectPreview(CanvasRenderer renderer, Handle item, string label, bool runsGraphs)
     {
-        _pipelines = pipelines;
-        _keepsState = keepsState;
+        _renderer = renderer;
+        _pipelines = renderer.Pipelines;
+        _runsGraphs = runsGraphs;
         _backdrop = item;
         _label = label;
         _item = CanvasServer.Current.CreateItem();
@@ -82,21 +84,21 @@ internal sealed class EffectPreview : IEditorPreview
     public string[] Help =>
     [
         "A stack is every .slang file in its folder, read as one: void graph() runs its passes and draws; shade alone draws the item.",
-        "Entries: graph(), shade(ItemInput i, Canvas canvas), deform(v); older update, step and trace (lab only). GRAPH shows what runs.",
+        "Entries: graph(), shade(ItemInput i, Canvas canvas), deform(v). GRAPH shows what runs.",
         "Ctrl+S saves every file to the folder. Picking another stack keeps these edits until the tool closes.",
     ];
 
     public PreviewBuild Compile(string source)
     {
-        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source, _keepsState);
+        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source, _runsGraphs);
         PreviewBuild build = new(source, compiled.Params, compiled);
-        // Off the frame, so the overlays' first draw finds them in Slang's cache. Copies have none (yet).
-        if (Copies(source))
+        // Off the frame, so the overlays' first draw finds them in Slang's cache. Graphs have none (yet).
+        if (Graphs(source))
             return build;
         if (_triangles.On)
-            SlangShaders.CompileEffectBody(Label, source, _keepsState, SlangShaders.TrianglesOverlay);
+            SlangShaders.CompileEffectBody(Label, source, _runsGraphs, SlangShaders.TrianglesOverlay);
         if (_uv.On)
-            SlangShaders.CompileEffectBody(Label, source, _keepsState, SlangShaders.UvOverlay);
+            SlangShaders.CompileEffectBody(Label, source, _runsGraphs, SlangShaders.UvOverlay);
         return build;
     }
 
@@ -119,8 +121,8 @@ internal sealed class EffectPreview : IEditorPreview
     private void Refresh(Overlay overlay)
     {
         CanvasMaterial? previous = overlay.Material;
-        overlay.Material = overlay.On && !_copies && _source is { } source
-            ? CanvasMaterial.FromSource(Label, source, keepsState: _keepsState, overlay: overlay.Kind)
+        overlay.Material = overlay.On && !_graph && _source is { } source
+            ? CanvasMaterial.FromSource(Label, source, runsGraphs: _runsGraphs, overlay: overlay.Kind)
             : null;
         CanvasServer.Current.SetVisible(overlay.Item, overlay.Material is not null);
         if (overlay.Material is not null)
@@ -129,19 +131,21 @@ internal sealed class EffectPreview : IEditorPreview
             _pipelines.Forget(previous);
     }
 
+    public string? Problem => _material is { } material && _renderer.GraphProblem(material) is { } problem ? $"graph() can't run: {problem}" : null;
+
     public string Show(PreviewBuild build)
     {
         CanvasMaterial? previous = _material;
-        _material = CanvasMaterial.FromSource(Label, (string)build.Result, keepsState: _keepsState);
+        _material = CanvasMaterial.FromSource(Label, (string)build.Result, runsGraphs: _runsGraphs);
         CanvasServer.Current.SetMaterial(_item, _material);
         if (previous is not null)
             _pipelines.Forget(previous);
         _source = (string)build.Result;
-        (int, int)? grid = SlangShaders.GridOf(_source);
-        bool copies = Copies(_source);
-        if (grid != _grid || copies != _copies)
+        (int, int)? grid = DeformGrid.Of(_source);
+        bool graph = Graphs(_source);
+        if (grid != _grid || graph != _graph)
         {
-            (_grid, _copies) = (grid, copies);
+            (_grid, _graph) = (grid, graph);
             Place(_area);
         }
 
@@ -150,27 +154,17 @@ internal sealed class EffectPreview : IEditorPreview
         return "";
     }
 
-    /// <summary>Whether compiled code keeps a pool or a BUILD that draws copies; it compiled, so both are written right.</summary>
-    private bool Copies(string source)
-    {
-        try
-        {
-            return SlangShaders.PoolOf(Label, source) is not null || StackBuild.Of(source) is { Draws: >= 0 };
-        }
-        catch (Exception problem) when (problem is InvalidOperationException or BuildProblem)
-        {
-            return false;
-        }
-    }
+    /// <summary>Whether code has a graph.</summary>
+    private static bool Graphs(string source) => ShaderStack.RolesOf(source).Contains(StackRole.Graph);
 
     /// <remarks>
-    /// An effect with a <c>[Grid]</c>, a pool or a BUILD that draws copies gets one plain rect, cut by the renderer as a level item's
+    /// An effect with a <c>[Grid]</c> or a graph gets one plain rect, cut by the renderer as a level item's
     /// would be; without one, the preview's own fine grid, so any deform has corners to bend.
     /// </remarks>
     public void Place(Rect2 area)
     {
         _area = area;
-        // Everything over the backdrop stays on the preview: a deform or a pool's items may land past it.
+        // Everything over the backdrop stays on the preview: a deform or a graph's draws may land past it.
         CanvasServer.Current.SetCustomRect(_backdrop, true, area);
         CanvasServer.Current.SetClip(_backdrop, true);
         CanvasServer.Current.Clear(_backdrop);
@@ -178,7 +172,7 @@ internal sealed class EffectPreview : IEditorPreview
         foreach (Handle item in (ReadOnlySpan<Handle>)[_item, _triangles.Item, _uv.Item])
         {
             CanvasServer.Current.Clear(item);
-            if (_grid is not null || _copies)
+            if (_grid is not null || _graph)
                 CanvasServer.Current.AddRect(item, area, Colors.White);
             else
                 PreviewMesh.Add(item, area, Colors.White);

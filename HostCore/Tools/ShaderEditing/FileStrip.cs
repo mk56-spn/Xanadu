@@ -30,9 +30,6 @@ internal sealed class FileStrip : IDisposable
     /// <summary>The theme category each role is told apart by (<see cref="UiThemeRoles.Categories"/>); a file with none is the graph's.</summary>
     internal static int Category(StackRole? role) => role switch
     {
-        StackRole.Update => 4,
-        StackRole.Step => 5,
-        StackRole.Trace => 2,
         StackRole.Deform => 3,
         _ => 6,
     };

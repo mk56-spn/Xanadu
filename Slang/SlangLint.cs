@@ -29,10 +29,10 @@ namespace Xanadu.Slang;
 /// <c>twist</c>, <c>bulge</c>, <c>sway</c>, <c>curl</c>, <c>jitter</c>, <c>mesh.split</c>)
 /// with no <c>[Grid(columns, rows)]</c> on it. The shader tool's preview draws its
 /// own grid, so it looks right there, but on a level item it has four corners and
-/// the bend comes out flat. Not on a stack with a <c>[Draws]</c> buffer: its deform
-/// places copies of the quad, it doesn't bend it.</item>
-/// <item>XS009: a <c>[Grid]</c> on a stack with a <c>[Draws]</c> buffer. Every copy is
-/// drawn with every cell, so the vertices are copies × cells × 6.</item>
+/// the bend comes out flat. Not on a stack with a <c>graph()</c>: its nodes need the quad uncut.</item>
+/// <item>XS009: a <c>[Grid]</c> on a stack with a <c>graph()</c>. Its nodes work on the item's
+/// quad as it is placed; a grid is cut on the GPU, so they get no box to work in. Bend in a
+/// <c>[Draw]</c>'s grid instead.</item>
 /// </list>
 /// Read as text, a statement at a time: no flow analysis, so a value set in
 /// only one branch of an <c>if</c> before it is read isn't caught.
@@ -86,7 +86,7 @@ public static partial class SlangLint
         problems.AddRange(WholeDivisions(code));
         problems.AddRange(HiddenFunctions(code, typeNames));
         problems.AddRange(GridlessBends(code));
-        problems.AddRange(GriddedCopies(code));
+        problems.AddRange(GriddedGraph(code));
         if (shapeCosts is { Count: > 0 })
             problems.AddRange(ShapeCosts(code, shapeCosts));
         problems.Sort((a, b) => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Column.CompareTo(b.Column));
@@ -316,7 +316,7 @@ public static partial class SlangLint
     private static IEnumerable<SlangProblem> GridlessBends(string code)
     {
         Match header = DeformHeader().Match(code);
-        if (!header.Success || GridAttribute().IsMatch(code) || DrawsAttribute().IsMatch(code) || !Bend().IsMatch(code))
+        if (!header.Success || GridAttribute().IsMatch(code) || GraphEntry().IsMatch(code) || !Bend().IsMatch(code))
             yield break;
 
         (int line, int column) = Place(code, header.Groups[1].Index);
@@ -326,20 +326,20 @@ public static partial class SlangLint
             Warning: true);
     }
 
-    [GeneratedRegex(@"\[\s*Draws\s*\]")]
-    private static partial Regex DrawsAttribute();
+    [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
+    private static partial Regex GraphEntry();
 
-    /// <summary>XS009: a [Grid] on a stack that draws copies of its quad, which multiplies every copy by its cells.</summary>
-    private static IEnumerable<SlangProblem> GriddedCopies(string code)
+    /// <summary>XS009: a [Grid] on a stack with a graph, whose nodes need the item's quad uncut.</summary>
+    private static IEnumerable<SlangProblem> GriddedGraph(string code)
     {
         Match grid = GridAttribute().Match(code);
-        if (!grid.Success || !DrawsAttribute().IsMatch(code))
+        if (!grid.Success || !GraphEntry().IsMatch(code))
             yield break;
 
         (int line, int column) = Place(code, grid.Index);
         yield return new SlangProblem(
             line, column,
-            "XS009 · this stack draws copies ([Draws]), and each copy is drawn with every cell of this grid; take the [Grid] off and place each copy as one quad",
+            "XS009 · this stack has a graph, whose nodes need the item's quad uncut; take the [Grid] off and bend in a [Draw]'s own grid",
             Warning: true);
     }
 

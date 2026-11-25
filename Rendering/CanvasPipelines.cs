@@ -76,7 +76,7 @@ internal sealed class CanvasPipelines : IDisposable
         {
             try
             {
-                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.KeepsState, ShadeWith(material.Overlay)));
+                effect = Make(SlangShaders.CompileEffectBody(material.Shader, source, material.RunsGraphs, ShadeWith(material.Overlay)));
             }
             catch (Exception exception)
             {
@@ -90,7 +90,7 @@ internal sealed class CanvasPipelines : IDisposable
     }
 
     private static string SourceKey(CanvasMaterial material, string source) =>
-        (material.KeepsState ? "state:" : "source:") + OverlayKey(material.Overlay) + source;
+        (material.RunsGraphs ? "graph:" : "source:") + OverlayKey(material.Overlay) + source;
 
     private static string OverlayKey(MaterialOverlay overlay) =>
         overlay == MaterialOverlay.None ? "" : overlay + ":";
@@ -133,7 +133,7 @@ internal sealed class CanvasPipelines : IDisposable
 
         try
         {
-            // Its bricks as one body, written as level shaders are: the same wrapper calls its shade. Lab-only ones may keep state.
+            // Its files as one body, written as level shaders are: the same wrapper calls its shade. Lab-only ones may run graphs.
             string body = ShaderStack.Compose(path, ShaderStack.Read(folder));
             return Make(SlangShaders.CompileEffectBody(path, body, SlangShaders.IsLabOnly(path), shadeWith));
         }
@@ -158,7 +158,7 @@ internal sealed class CanvasPipelines : IDisposable
                 sources.Add((layer, ShaderStack.Compose(layer, ShaderStack.Read(folder))));
             }
 
-            return Make(SlangShaders.CompileEffectBody(key, ShaderLayers.Stitch(sources), keepsState: false, shadeWith));
+            return Make(SlangShaders.CompileEffectBody(key, ShaderLayers.Stitch(sources), runsGraphs: false, shadeWith));
         }
         catch (Exception exception)
         {
@@ -187,8 +187,7 @@ internal sealed class CanvasPipelines : IDisposable
                 NumUniformBuffers = stage.UniformBuffers,
             })
             : null;
-        return new CanvasEffect(shader, compiled, EffectCompute.Update(_device, compiled), vertex, EffectCompute.Pool(_device, compiled),
-            EffectCompute.Passes(_device, compiled), EffectCompute.Trace(_device, compiled), EffectCompute.Draws(_device, compiled));
+        return new CanvasEffect(shader, compiled, vertex, EffectCompute.Passes(_device, compiled), EffectCompute.Draws(_device, compiled));
     }
 
     /// <summary>

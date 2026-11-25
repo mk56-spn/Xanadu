@@ -119,52 +119,6 @@ public sealed class SlangCompletionsTests
     }
 
     [Test]
-    public void ShadeReadsTheKeptStateWithItsFields()
-    {
-        const string update = "void update(inout State s, float dt)\n{\n}\n";
-        Assert.That(Names(OwnState + update + "float4 shade(Canvas canvas)\n{\n    state."), Is.SupersetOf(new[] { "at", "speed", "tint" }));
-        Assert.That(Names(OwnState + update + "float4 shade(Canvas canvas)\n{\n    let a = sta"), Does.Contain("state"));
-        // No update, no state.
-        Assert.That(Names(OwnState + "float4 shade(Canvas canvas)\n{\n    state."), Is.Empty);
-    }
-
-    /// <summary>A State with arrays sized after the type, the way the trail shader wrote it.</summary>
-    private const string TrailState = """
-        static const int trail = 30;
-
-        struct State
-        {
-            float2[trail] prevPoints;
-            float[trail] prevTime;
-
-            int pointer = 0;
-        };
-
-        void update(inout State s, float dt)
-        {
-        }
-
-        """;
-
-    [Test]
-    public void ArrayFieldsSizedAfterTheTypeAreFields()
-    {
-        List<Completion>? offered = At(TrailState + "float4 shade(ItemInput i)\n{\n    state.");
-        Assert.That(offered?.Select(c => c.Name), Is.SupersetOf(new[] { "prevPoints", "prevTime", "pointer" }));
-        Assert.That(offered!.Find(c => c.Name == "prevPoints").Detail, Is.EqualTo("float2[trail]"));
-    }
-
-    [Test]
-    public void AnIndexedArrayFieldWalksOnToItsElement()
-    {
-        // A float2's components and the library's float2 members; an unindexed array has none.
-        List<string> element = Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints[state.pointer + 1].");
-        Assert.That(element, Is.EquivalentTo(new[] { "x", "y", "angleTo" }));
-        Assert.That(element, Does.Not.Contain("prevTime"));
-        Assert.That(Names(TrailState + "float4 shade(ItemInput i)\n{\n    let p = state.prevPoints."), Is.Empty);
-    }
-
-    [Test]
     public void VectorsOfferTheirComponents()
     {
         Assert.That(Names("float4 shade()\n{\n    float3 v;\n    v."), Is.SupersetOf(new[] { "x", "y", "z", "r", "g", "b", "xy", "rgb" }));
@@ -302,8 +256,6 @@ public sealed class SlangCompletionsTests
         Assert.That(texts, Does.Contain("[Default(1)] uniform float $;"));
         Assert.That(texts, Does.Contain("[Default(colours.white)] uniform colour $;"));
 
-        // u also starts update, which is offered beside them.
-        Assert.That(At("import xanadu;\nu")!.Exists(c => c.Name == "update"), Is.True);
         Assert.That(At("import xanadu;\nu")!.Exists(c => c.Name == "uniform" && c.Kind == CompletionKind.Snippet), Is.True);
         Assert.That(At("float4 shade(Canvas canvas)\n{\n    uniform")?.Exists(c => c.Kind == CompletionKind.Snippet) ?? false, Is.False);
     }

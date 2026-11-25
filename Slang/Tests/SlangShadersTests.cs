@@ -25,7 +25,6 @@ public sealed class SlangShadersTests
         Assert.That(compiled.Spirv.Length, Is.GreaterThan(20));
         // SPIR-V's magic number, little-endian.
         Assert.That(BitConverter.ToUInt32(compiled.Spirv, 0), Is.EqualTo(0x07230203u));
-        Assert.That(compiled.Update, Is.Null);
     }
 
     [Test]
@@ -56,15 +55,6 @@ public sealed class SlangShadersTests
                 return colours.white.painted(bent.outlined(2), colours.red).painted(straight.outlined(2) * i.rest.aspect, colours.gold);
             }
             """).Vertex, Is.Not.Null);
-
-    [Test]
-    public void AKeptStateEffectCanDeform() =>
-        Assert.That(SlangShaders.CompileEffectBody("test", """
-            struct State { float x; };
-            void update(inout State s, float dt) { s.x += dt; }
-            ItemVertex deform(ItemVertex v) { v.position.x += time; return v; }
-            float4 shade(ItemInput i) { return i.colour * state.x; }
-            """, keepsState: true).Vertex, Is.Not.Null);
 
     [TestCase("colour c = colours.black; c.paint(Linear(400).rotated(PI / 2), colours.navy, colours.black); return c;")]
     [TestCase("colour c = colours.black; c.paint(Radial(200).anchored(anchor.top), colours.gold, colours.transparent, blend.screen); return c;")]
@@ -240,28 +230,6 @@ public sealed class SlangShadersTests
 
         // Slang may throw its own exception type; what matters is the message names our line.
         Assert.That(SlangProblems.Parse(error.Message, "mine").Select(p => p.Line), Does.Contain(5));
-    }
-
-    [Test]
-    public void TimeReachesEveryFunctionWithoutBeingPassed()
-    {
-        const string body = """
-            import xanadu;
-            struct State { float last; };
-            float pulse() { return 0.5 + 0.5 * sin(time * 2); }
-            void update(inout State s, float dt) { s.last = time; }
-            float4 shade() { return colours.gold * pulse() + state.last * 0; }
-            """;
-
-        CompiledShader compiled = SlangShaders.CompileEffectBody("test", body, keepsState: true);
-
-        Assert.That(compiled.Update, Is.Not.Null);
-    }
-
-    [Test]
-    public void AnUpdateInACommentDoesNotKeepState()
-    {
-        Assert.That(SlangShaders.KeepsState("// void update(inout State s, float dt)\nfloat4 shade() { return 1; }"), Is.False);
     }
 
     [Test]

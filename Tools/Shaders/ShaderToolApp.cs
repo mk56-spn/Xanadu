@@ -235,10 +235,10 @@ internal sealed class ShaderToolApp : HostApp
         if (Clicked(_revert))
             Revert();
 
-        // The overlays don't draw copies yet (a pool, a BUILD's [Draws]): their buttons rest while one is shown.
-        bool copies = _effect?.DrawsCopies == true;
-        UiLayout.SetDisabled(_trianglesButton, copies);
-        UiLayout.SetDisabled(_uvButton, copies);
+        // The overlays don't draw graphs yet: their buttons rest while one is shown.
+        bool graph = _effect?.HasGraph == true;
+        UiLayout.SetDisabled(_trianglesButton, graph);
+        UiLayout.SetDisabled(_uvButton, graph);
 
         // Under the grid the code gets no press and no wheel: those are the grid's.
         bool free = !_grid.Open;
@@ -271,7 +271,7 @@ internal sealed class ShaderToolApp : HostApp
         _code = new ShaderCodeEditor(Entities, _codeItem, slots, file.Path, files,
             item =>
             {
-                _effect = new EffectPreview(Renderer.Pipelines, item, file.Path, SlangShaders.IsLabOnly(file.Path));
+                _effect = new EffectPreview(Renderer, item, file.Path, SlangShaders.IsLabOnly(file.Path));
                 _effect.ShowOverlays(_showTriangles, _showUv);
                 return _effect;
             });

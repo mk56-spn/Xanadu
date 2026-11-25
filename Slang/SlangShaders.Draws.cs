@@ -10,6 +10,9 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
     /// <summary>The graph's images its shade reads (by their place), in the order they bind: read-only, after its samplers.</summary>
     public int[] Reads { get; init; } = [];
 
+    /// <summary>Marked <c>[Translucent]</c> before its <c>[Draw]</c>: its triangles test the depth and never write it (glows).</summary>
+    public bool Translucent { get; init; }
+
     /// <summary>The uint buffer counting its copies on the GPU (its place in the graph's buffers), or -1: its call says how many.</summary>
     public int CopiesBuffer { get; init; } = -1;
 
@@ -34,7 +37,7 @@ public static partial class SlangShaders
     /// <summary>A draw fragment's uniform slot for the item's box corner on the target (set 3): its images are the box's size.</summary>
     public const int DrawBoxSlot = 2;
 
-    private static CompiledPass CompileDraw(string name, string source, StackBuild build, int p, bool keepsState, PoolShape? pool)
+    private static CompiledPass CompileDraw(string name, string source, StackBuild build, int p)
     {
         BuildPass pass = build.Passes[p];
         (int across, int down, string shade, DrawOutput[] outputs) = pass.Draw!.Value;
@@ -47,7 +50,7 @@ public static partial class SlangShaders
         string body = Unbound(build, source);
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
-        CompiledShader Vertex(string placed) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down, keepsState, pool),
+        CompiledShader Vertex(string placed) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down),
             "xanaduDrawVertex", "vertex", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]);
         CompiledShader vertex = Vertex(body);
@@ -64,7 +67,7 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, keepsState, pool),
+        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs),
             "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
@@ -92,7 +95,7 @@ public static partial class SlangShaders
                 storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
-            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer };
+            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, Translucent = pass.Translucent };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
@@ -118,10 +121,9 @@ public static partial class SlangShaders
     }
 
     /// <summary>The grid's corners, from the vertex index, each moved by the draw's deform and put in the graph's depth.</summary>
-    private static string WrapDrawVertex(string name, string source, string deform, int across, int down, bool keepsState, PoolShape? pool)
+    private static string WrapDrawVertex(string name, string source, string deform, int across, int down)
     {
         (string imports, string code, string label) = Split(name, source);
-        string state = keepsState ? "static State state;" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -129,8 +131,6 @@ public static partial class SlangShaders
             #line 1 "{{label}}"
             {{code}}
             #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
             // The item's quad on the target: its corner and sides; and the slice of depth it lands in, 0..1 for
@@ -166,10 +166,9 @@ public static partial class SlangShaders
     /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where the alpha is 0, or
     /// each field of the struct it returns, in order. The input's depth is the pixel's, pixels into the screen.
     /// </summary>
-    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, bool keepsState, PoolShape? pool)
+    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs)
     {
         (string imports, string code, string label) = Split(name, source);
-        string state = keepsState ? "static State state;" : "";
         string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"));
         string written = outputs[0].Field is null
             ? """
@@ -187,8 +186,6 @@ public static partial class SlangShaders
             #line 1 "{{label}}"
             {{code}}
             #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
             // Where the fragment is: a draw into images renders them the box's size, so its position is the box's

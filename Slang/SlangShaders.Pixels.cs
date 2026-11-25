@@ -9,7 +9,7 @@ namespace Xanadu.Slang;
 /// (<c>colour[group.pixel] = …</c>): images are the item's box, from its top left. With
 /// <c>over: name</c> a thread is a texel of that image instead (a scaled or fixed one), and
 /// <c>i.pixel</c> is where the texel's centre falls on the box. Bindings, as every
-/// pass has them: the globals and kept state read-only in set 0; the images it touches, then the
+/// pass has them: the globals read-only in set 0; the images it touches, then the
 /// buffers, read-write in set 1; the frame at uniform 0, the values at 1 and the quad at 2 of set 2.
 /// </summary>
 public static partial class SlangShaders
@@ -56,7 +56,7 @@ public static partial class SlangShaders
     /// A pixel pass compiled: its compute stage, with the images and buffers it binds. It may read the canvas drawn so
     /// far (<c>sampleScreen</c>, <c>sampleDepth</c>); one that does runs mid-frame, in a break of the item's pass.
     /// </summary>
-    private static CompiledPass CompilePixels(string name, string source, StackBuild build, int p, bool keepsState, PoolShape? pool)
+    private static CompiledPass CompilePixels(string name, string source, StackBuild build, int p)
     {
         BuildPass pass = build.Passes[p];
         (int width, int height) = pass.Pixels!.Value;
@@ -64,12 +64,12 @@ public static partial class SlangShaders
                            ?? throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: {problem.Replace("shade", pass.Name)}");
         // The canvas so far is compute samplers 0 (its depth) and 1 (the screen copy), always declared; the globals after.
         (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
-            CompileWrapped(WrapPixels(name, placed, pass.Name, arguments, width, height, keepsState, pool), "xanaduPixels", "compute", 0, 2,
+            CompileWrapped(WrapPixels(name, placed, pass.Name, arguments, width, height), "xanaduPixels", "compute", 0, 2,
                 [.. GlobalDefines(PixelSamplers, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_SCREEN_BINDING=1", "XANADU_SCREEN_SET=0",
                     "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
         CheckDeclared(name, compute, 0, PixelSamplers);
         var shader = new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
-            storageBuffers: Globals.Count + (keepsState ? 1 : 0));
+            storageBuffers: Globals.Count);
         return new CompiledPass(Named(build, p), shader, used, pass.Threads, access)
         {
             Images = images, Tile = (width, height), OverImage = pass.OverImage,
@@ -82,13 +82,9 @@ public static partial class SlangShaders
     /// runs it, even past the box's edge, so barriers in it are met by all; the pass checks <c>group.pixel</c> itself
     /// only when it must (writes past the box land outside the item, on texels nothing shows).
     /// </summary>
-    private static string WrapPixels(string name, string source, string pass, string arguments, int width, int height, bool keepsState, PoolShape? pool)
+    private static string WrapPixels(string name, string source, string pass, string arguments, int width, int height)
     {
         (string imports, string code, string label) = Split(name, source);
-        string state = keepsState
-            ? $"[[vk::binding({PixelSamplers + Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
-            : "";
-        string load = keepsState ? "effect0::state = effect0::xanaduStateIn[0];" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
@@ -96,8 +92,6 @@ public static partial class SlangShaders
             #line 1 "{{label}}"
             {{code}}
             #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
             struct XanaduTraceQuad { float2 corner; float2 xAxis; float2 yAxis; int2 origin; uint2 size; float dt; float pad; float2 stretch; float2 pad2; };
@@ -107,7 +101,6 @@ public static partial class SlangShaders
             void xanaduPixels(uint3 id : SV_DispatchThreadID, uint3 tile : SV_GroupID, uint3 local : SV_GroupThreadID)
             {
                 {{Clocks("frame.time", "frame.beat", "xanaduTraceQuad.dt")}}
-                {{load}}
                 group.thread = local.xy;
                 group.place = tile.xy;
                 group.index = local.y * {{width}} + local.x;

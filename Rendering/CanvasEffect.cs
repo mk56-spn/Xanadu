@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using MoonWorks.Graphics;
-using Xanadu.Rendering.Compute;
 using Xanadu.Core.Rendering;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
@@ -16,8 +15,7 @@ internal readonly record struct GraphImage(string Name, TextureFormat Format, fl
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
 internal sealed class CanvasEffect(
-    Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<Passes.PoolJob>? pool = null,
-    ComputePipeline?[]? passes = null, ComputePipeline? trace = null, (Shader Vertex, Shader Fragment)?[]? draws = null)
+    Shader shader, CompiledShader compiled, Shader? vertex = null, ComputePipeline?[]? passes = null, (Shader Vertex, Shader Fragment)?[]? draws = null)
     : IDisposable
 {
     public Shader Shader { get; } = shader;
@@ -26,20 +24,11 @@ internal sealed class CanvasEffect(
     /// <summary>Its own vertex stage, from its <c>deform</c>; null draws with the standard one.</summary>
     public Shader? Vertex { get; } = vertex;
 
-    /// <summary>A kept-state effect's once-a-frame <c>update</c>; null when it keeps none.</summary>
-    public ComputePipeline? Update { get; } = update;
-
-    /// <summary>A pooled stack's step (its STEP brick): one job a material, run before the draws; null without a pool.</summary>
-    public ComputeOperation<Passes.PoolJob>? Pool { get; } = pool;
-
     /// <summary>A graph's compute passes, in the order it declares them (a schedule's call names one by its place); null for a draw.</summary>
     public ComputePipeline?[] Passes { get; } = passes ?? [];
 
     /// <summary>A graph's draws' stages, by the same places as <see cref="Passes"/>; null for a compute pass.</summary>
     public (Shader Vertex, Shader Fragment)?[] Draws { get; } = draws ?? [];
-
-    /// <summary>A TRACE brick's compute stage, a thread a pixel of the quad; null without one.</summary>
-    public ComputePipeline? Trace { get; } = trace;
 
     /// <summary>Its graph lowered at the default values: what a stack with no schedule runs every frame.</summary>
     public GraphPlan Plan { get; } = GraphPlan.Of(compiled);
@@ -94,7 +83,7 @@ internal sealed class CanvasEffect(
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = RasterizerState.CCW_CullNone,
             MultisampleState = MultisampleState.None,
-            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = !Compiled.Build!.Passes[pass].Drawn!.Translucent, CompareOp = CompareOp.LessOrEqual },
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions = descriptions,
@@ -128,7 +117,7 @@ internal sealed class CanvasEffect(
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = RasterizerState.CCW_CullNone,
             MultisampleState = new MultisampleState { SampleCount = samples },
-            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = !Compiled.Build!.Passes[pass].Drawn!.Translucent, CompareOp = CompareOp.LessOrEqual },
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions =
@@ -162,9 +151,6 @@ internal sealed class CanvasEffect(
         }
 
         Shader.Dispose();
-        Trace?.Dispose();
-        Update?.Dispose();
         Vertex?.Dispose();
-        Pool?.Dispose();
     }
 }

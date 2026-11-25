@@ -8,22 +8,13 @@ namespace Xanadu.Slang;
 
 /// <summary>
 /// What an entry function makes the code around it do, in the order it runs: what a stack's files hold is read from
-/// these, never from their names. A stack with <c>graph()</c> is described by it; <c>shade</c> and <c>deform</c> alone are
-/// shorthand for one draw onto the frame. UPDATE, STEP and TRACE are the older kinds, until they become graphs.
+/// these, never from their names. A stack with <c>graph()</c> is described by it; <c>shade</c> and <c>deform</c> are
+/// the item's own quad, and alone they are shorthand for one draw onto the frame.
 /// </summary>
 public enum StackRole
 {
-    /// <summary><c>void update(inout State s, float dt)</c>: one struct the GPU keeps, read below as <c>state</c>.</summary>
-    Update,
-
-    /// <summary><c>[Pool(count)] void step(inout Item t, uint i, float dt)</c>: items the GPU keeps, each drawn once as <c>item</c>.</summary>
-    Step,
-
     /// <summary><c>void graph()</c>: the stack's resources and nodes, run in its order each frame.</summary>
     Graph,
-
-    /// <summary><c>float4 trace(…)</c>: compute over every pixel of the quad, landing under its triangles.</summary>
-    Trace,
 
     /// <summary><c>ItemVertex deform(ItemVertex v)</c>: run on every corner before it lands.</summary>
     Deform,
@@ -61,10 +52,7 @@ public static partial class ShaderStack
     /// <summary>The functions a role's entry declares that the stack runs: its entry (and a pool's <c>start</c>).</summary>
     public static string[] Entries(StackRole role) => role switch
     {
-        StackRole.Update => ["update"],
-        StackRole.Step => ["start", "step"],
         StackRole.Graph => ["graph"],
-        StackRole.Trace => ["trace"],
         StackRole.Deform => ["deform"],
         StackRole.Shade => ["shade"],
         _ => [],
@@ -83,26 +71,14 @@ public static partial class ShaderStack
     /// <summary>The entry a role is found by, as written, and the pattern that finds it.</summary>
     private static (string Entry, Regex Pattern) EntryOf(StackRole role) => role switch
     {
-        StackRole.Update => ("void update(inout State s, float dt)", UpdateEntry()),
-        StackRole.Step => ("[Pool(count)] void step(inout Item t, uint i, float dt)", StepEntry()),
         StackRole.Graph => ("void graph()", GraphEntry()),
-        StackRole.Trace => ("float4 trace(Canvas canvas)", TraceEntry()),
         StackRole.Deform => ("ItemVertex deform(ItemVertex v)", DeformEntry()),
         StackRole.Shade => ("float4 shade(Canvas canvas)", ShadeEntry()),
         _ => throw new ArgumentOutOfRangeException(nameof(role)),
     };
 
-    [GeneratedRegex(@"\bvoid\s+update\s*\(")]
-    private static partial Regex UpdateEntry();
-
-    [GeneratedRegex(@"\b(?:void|bool)\s+step\s*\(")]
-    private static partial Regex StepEntry();
-
     [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex GraphEntry();
-
-    [GeneratedRegex(@"\b(?:float4|colour)\s+trace\s*\(")]
-    private static partial Regex TraceEntry();
 
     [GeneratedRegex(@"\bItemVertex\s+deform\s*\(")]
     private static partial Regex DeformEntry();
@@ -113,7 +89,7 @@ public static partial class ShaderStack
     /// <summary>
     /// The files as one effect body, each under its own <c>#line</c> mark. Throws, worded as Slang's errors are (so the
     /// editor puts the problem on the file), when the stack can't work: no files, a name used twice or not a
-    /// <c>.slang</c> one, an entry declared twice, or a pool with nothing to place its items.
+    /// <c>.slang</c> one, or an entry declared twice.
     /// </summary>
     public static string Compose(string name, IReadOnlyList<StackFile> files)
     {
@@ -137,11 +113,11 @@ public static partial class ShaderStack
                 composed.Append('\n');
         }
 
-        // Without a shade the item keeps its own colour, or, with a graph or a trace, draws only what that draws.
+        // Without a shade the item keeps its own colour, or, with a graph, draws only what the graph draws.
         HashSet<StackRole> roles = [.. files.SelectMany(file => RolesOf(file.Text))];
         if (!roles.Contains(StackRole.Shade))
-            composed.Append(roles.Contains(StackRole.Graph) || roles.Contains(StackRole.Trace)
-                ? $"#line 1 \"{name} (no shade)\"\n{TracedAlone}\n"
+            composed.Append(roles.Contains(StackRole.Graph)
+                ? $"#line 1 \"{name} (no shade)\"\n{GraphAlone}\n"
                 : $"#line 1 \"{name} (no shade)\"\nfloat4 shade(ItemInput i) {{ return i.colour; }}\n");
         return composed.ToString();
     }
@@ -150,8 +126,8 @@ public static partial class ShaderStack
     public static IEnumerable<StackFile> Ordered(IEnumerable<StackFile> files) =>
         files.OrderBy(file => RolesOf(file.Text).DefaultIfEmpty(StackRole.Graph).First()).ThenBy(file => file.Name, StringComparer.Ordinal);
 
-    /// <summary>The shade a stack with a graph or a trace and no shade gets: its quad is never drawn, only what the graph draws.</summary>
-    public const string TracedAlone = "float4 shade(ItemInput i) { return float4(0); } // traced alone";
+    /// <summary>The shade a stack with a graph and no shade gets: its quad is never drawn, only what the graph draws.</summary>
+    public const string GraphAlone = "float4 shade(ItemInput i) { return float4(0); } // the graph alone";
 
     private static void Check(string name, IReadOnlyList<StackFile> files)
     {
@@ -180,10 +156,6 @@ public static partial class ShaderStack
                 held[role] = file.Name;
             }
         }
-
-        if (held.TryGetValue(StackRole.Step, out string? pool) && !held.ContainsKey(StackRole.Deform))
-            throw new InvalidOperationException(
-                $"{Label(name, pool)}(1): error: a pool's items are placed by a deform: declare ItemVertex deform(ItemVertex v) and place each item there.");
     }
 
     /// <summary>Whether a name can be a stack's file: a plain name (letters, digits, _ and -) ending in <see cref="Extension"/>.</summary>

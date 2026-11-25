@@ -1,13 +1,19 @@
+// Once a frame, one thread bounds-checks every sphere against the tiles: `tiles[0]` is what
+// shade reads, kept on the GPU.
 import xanadu;
 
-struct State
+struct Tiles
 {
     float4 spheres[SPHERES];
     uint sets[TILES * WORDS];   // each tile's spheres, a bit apiece: tile t's in sets[t * WORDS ..]
 };
 
-void update(inout State s, float dt)
+[Buffer(1)] RWStructuredBuffer<Tiles> tiles;
+
+[Pass(1, over: 1)]
+void bin(uint unused)
 {
+    Tiles s;
     for (int t = 0; t < TILES; t++)
     {
         for (int w = 0; w < WORDS; w++)
@@ -42,4 +48,10 @@ void update(inout State s, float dt)
             }
         }
     }
+    tiles[0] = s;
+}
+
+void graph()
+{
+    bin();
 }

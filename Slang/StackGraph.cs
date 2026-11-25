@@ -3,22 +3,16 @@ using System.Linq;
 
 namespace Xanadu.Slang;
 
-/// <summary>What a stack's data is: kept state, a pool's items, a BUILD buffer, or the frame it lands on.</summary>
+/// <summary>What a stack's data is: a graph's buffer or image, or the frame it lands on.</summary>
 public enum GraphResourceKind
 {
-    /// <summary>The UPDATE brick's one struct, read everywhere below it as <c>state</c>.</summary>
-    State,
-
-    /// <summary>The STEP brick's items, each drawn once as <c>item</c>.</summary>
-    Pool,
-
-    /// <summary>A BUILD brick's <c>[Buffer]</c> (or <c>[Draws]</c>), kept from frame to frame.</summary>
+    /// <summary>A graph's <c>[Buffer]</c> (or <c>[Host]</c>), kept from frame to frame.</summary>
     Buffer,
 
-    /// <summary>A graph's <c>[Image]</c>, or a trace's colour or depth: each item's own, its box's size, for the frame unless kept or a history.</summary>
+    /// <summary>A graph's <c>[Image]</c>: each item's own (or the material's), for the frame unless kept or a history.</summary>
     Image,
 
-    /// <summary>The target's depth: a present writes it, triangles test and write it, a mid-frame trace reads it.</summary>
+    /// <summary>The target's depth: a present writes it, triangles test and write it, a mid-frame pass reads it.</summary>
     Depth,
 
     /// <summary>The target's colour: what the stack draws lands here, through its blend.</summary>
@@ -49,6 +43,9 @@ public sealed record GraphPass(string Name, StackRole Role, bool Compute, int Ca
 {
     /// <summary>Where it runs around the job's render pass; mid-frame costs the item a pass break.</summary>
     public NodePlace Place { get; init; } = NodePlace.Prelude;
+
+    /// <summary>It fills <c>[Cached]</c> images: it runs only when they go stale, not every frame (<see cref="GraphNode.Fills"/>).</summary>
+    public bool Fills { get; init; }
 }
 
 /// <summary>A pass touching a resource, by their places in <see cref="StackGraph.Passes"/> and <see cref="StackGraph.Resources"/>.</summary>
@@ -91,8 +88,6 @@ public sealed class StackGraph
         var graph = new StackGraph { ScheduleProblem = plan.Problem };
         int frame = graph.Resource(GraphResourceKind.Frame, "frame", 0);
         int depth = graph.Resource(GraphResourceKind.Depth, "depth", 0);
-        int state = fragment.Update is { } update ? graph.Resource(GraphResourceKind.State, "state", update.StateBytes) : -1;
-        int pool = fragment.Pool is { } stepped ? graph.Resource(GraphResourceKind.Pool, "items", (long)stepped.ItemBytes * stepped.ItemCount) : -1;
         int[] buffers = fragment.Build is { } built
             ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i]))]
             : [];
@@ -100,13 +95,6 @@ public sealed class StackGraph
         int screen = fragment.ReadsScreen || fragment.Build?.Passes.Any(pass => pass.ReadsScreen) == true
             ? graph.Resource(GraphResourceKind.Screen, "screen", 0)
             : -1;
-
-        // Kept state is bound by every stage below the update.
-        void ReadsState(int pass)
-        {
-            if (state >= 0)
-                graph.Edge(pass, state, GraphAccess.Read);
-        }
 
         void Binds(int pass, IEnumerable<int> places, GraphAccess access)
         {
@@ -128,18 +116,6 @@ public sealed class StackGraph
         {
             switch (node.Kind)
             {
-                case NodeKind.Update:
-                    graph.Edge(graph.Pass("update", StackRole.Update, true), state, GraphAccess.ReadWrite);
-                    break;
-
-                case NodeKind.Step:
-                {
-                    int step = graph.Pass("step", StackRole.Step, true);
-                    ReadsState(step);
-                    graph.Edge(step, pool, GraphAccess.ReadWrite);
-                    break;
-                }
-
                 case NodeKind.Compute or NodeKind.Pixels or NodeKind.Draw:
                 {
                     CompiledPass compiled = fragment.Build!.Passes[node.Call.Pass];
@@ -151,9 +127,8 @@ public sealed class StackGraph
                     }
                     else
                     {
-                        int pass = graph.Pass(compiled.Name, StackRole.Graph, true, 1, threads, place: node.Place);
+                        int pass = graph.Pass(compiled.Name, StackRole.Graph, true, 1, threads, place: node.Place, fills: node.Fills);
                         called[node.Call.Pass] = seen = pass;
-                        ReadsState(pass);
                         Uses(pass, compiled.Buffers, compiled.Access);
                         foreach (int image in compiled.Images)
                             graph.Edge(pass, images[image], GraphAccess.ReadWrite);
@@ -183,25 +158,10 @@ public sealed class StackGraph
                     break;
                 }
 
-                case NodeKind.Trace:
-                {
-                    CompiledTrace trace = fragment.Trace!;
-                    int pass = graph.Pass("trace", StackRole.Trace, true, place: node.Place);
-                    ReadsState(pass);
-                    Uses(pass, trace.Buffers, trace.Access);
-                    int traced = GraphPlan.TracedImage(fragment);
-                    graph.Edge(pass, images[traced], GraphAccess.Write);
-                    graph.Edge(pass, images[traced + 1], GraphAccess.Write);
-                    if (trace.Shader.ReadsDepth)
-                        graph.Edge(pass, depth, GraphAccess.Read);
-                    break;
-                }
-
                 // What it presents lands on the frame, its depth with it.
                 case NodeKind.Present:
                 {
-                    int present = graph.Pass("present", fragment.Trace is not null && node.Call.Shown == GraphPlan.TracedImage(fragment) ? StackRole.Trace : StackRole.Graph,
-                        false, place: NodePlace.Exit);
+                    int present = graph.Pass("present", StackRole.Graph, false, place: NodePlace.Exit);
                     graph.Edge(present, images[(int)node.Call.Shown], GraphAccess.Read);
                     if (node.Call.ShownDepth != StackBuild.Run.None)
                     {
@@ -214,7 +174,7 @@ public sealed class StackGraph
                 }
 
                 case NodeKind.Shade:
-                    graph.Shade(fragment, frame, depth, pool, screen, ReadsState, Binds);
+                    graph.Shade(fragment, frame, depth, screen, Binds);
                     break;
             }
         }
@@ -222,25 +182,18 @@ public sealed class StackGraph
         return graph;
     }
 
-    /// <summary>The stack's triangles: a DEFORM brick places the corners (without one the host's standard quad does), SHADE colours them.</summary>
-    private void Shade(CompiledShader fragment, int frame, int depth, int pool, int screen, Action<int> readsState,
-        Action<int, IEnumerable<int>, GraphAccess> binds)
+    /// <summary>The item's quad: its deform places the corners (without one the host's standard quad does), its shade colours them.</summary>
+    private void Shade(CompiledShader fragment, int frame, int depth, int screen, Action<int, IEnumerable<int>, GraphAccess> binds)
     {
         if (fragment.Vertex is { } vertex)
         {
             int deform = Pass("deform", StackRole.Deform, false, place: NodePlace.Exit);
-            readsState(deform);
-            if (pool >= 0)
-                Edge(deform, pool, GraphAccess.Read);
             binds(deform, vertex.StackBuffers, GraphAccess.Read);
             // The triangles test the depth and, unless translucent, write it.
             Edge(deform, depth, vertex.Translucent ? GraphAccess.Read : GraphAccess.ReadWrite);
         }
 
         int shade = Pass("shade", StackRole.Shade, false, place: NodePlace.Exit);
-        readsState(shade);
-        if (pool >= 0)
-            Edge(shade, pool, GraphAccess.Read);
         binds(shade, fragment.StackBuffers, GraphAccess.Read);
         if (fragment.ReadsDepth)
             Edge(shade, depth, GraphAccess.Read);
@@ -254,9 +207,10 @@ public sealed class StackGraph
         (_edges.Where(e => e.Resource == resource && e.Access.HasFlag(GraphAccess.Write)).Select(e => e.Pass).Distinct(),
          _edges.Where(e => e.Resource == resource && e.Access.HasFlag(GraphAccess.Read)).Select(e => e.Pass).Distinct());
 
-    private int Pass(string name, StackRole role, bool compute, int calls = 1, long threads = 0, NodePlace place = NodePlace.Prelude)
+    private int Pass(string name, StackRole role, bool compute, int calls = 1, long threads = 0, NodePlace place = NodePlace.Prelude,
+        bool fills = false)
     {
-        _passes.Add(new GraphPass(name, role, compute, calls, threads) { Place = place });
+        _passes.Add(new GraphPass(name, role, compute, calls, threads) { Place = place, Fills = fills });
         return _passes.Count - 1;
     }
 

@@ -40,21 +40,24 @@ public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[
     /// </summary>
     public bool[] MaterialImages { get; init; } = [];
 
-    /// <summary>Whether what the graph draws is all the stack draws: no SHADE brick, so no quad of its own after it.</summary>
+    /// <summary>Whether what the graph draws is all the stack draws: no shade, so no quad of its own after it.</summary>
     public bool Alone { get; init; }
 }
 
 /// <summary>
-/// The BUILD brick (<see cref="StackRole.Graph"/>): buffers kept on the GPU and compute passes
-/// over them, run in the order <c>build()</c> lists. Every stage compiles the whole body, so
+/// The graph (<see cref="StackRole.Graph"/>): buffers kept on the GPU and compute passes
+/// over them, run in the order <c>graph()</c> lists. Every stage compiles the whole body, so
 /// every stage declares every buffer; each binds only the ones it really reads (a first compile
 /// says which, a second places those after its own buffers and the rest where nothing looks).
-/// A pass's bindings: the globals, then kept state, read-only in set 0; its buffers read-write
+/// A pass's bindings: the globals read-only in set 0; its buffers read-write
 /// in set 1; the pass's frame (time, the elements for <c>over:</c>, the call's arguments) at
 /// uniform 0 and the values at uniform 1 of set 2.
 /// </summary>
 public static partial class SlangShaders
 {
+    /// <summary>Where a [Pass] would find the canvas depth: nowhere bound, so reading it is an error.</summary>
+    private const int PassDepth = 31;
+
     /// <summary>The most bytes one stack buffer may take.</summary>
     public const long MaxBufferBytes = 1L << 28;
 
@@ -107,22 +110,10 @@ public static partial class SlangShaders
     }
 
     /// <summary>
-    /// The body as a stage that binds none of the stack's buffers compiles it (a pool's step, an
-    /// update): every buffer placed where nothing looks. Throws, after compiling, when it reads one anyway.
+    /// The body with every buffer placed where nothing looks: compiled once to see which a stage reads
+    /// before placing them (a draw's stages).
     /// </summary>
     private static string Unbound(StackBuild? build, string source) => build?.Rewrite(source, 1, k => Unplaced + k) ?? source;
-
-    /// <summary>Throws when a stage compiled from <see cref="Unbound"/> reads a stack buffer: only passes, deform and shade can.</summary>
-    private static void CheckUnbound(string name, string stage, StackBuild? build, CompiledShader compiled)
-    {
-        if (build is null)
-            return;
-        for (int k = 0; k < build.Buffers.Count; k++)
-            if (SpirvScan.Binds(compiled.Spirv, 1, Unplaced + k))
-                throw new InvalidOperationException(
-                    $"{name}: {stage} runs before the graph's passes and can't read {build.Buffers[k].Name}; only the passes, deform and shade can.");
-        CheckNoImages(name, stage, build, compiled, 1);
-    }
 
     /// <summary>Throws when a graphics stage reads more storage buffers than SDL_GPU binds.</summary>
     private static void CheckStageBuffers(string name, string stage, int bound, StackBuild? build, int[] used)
@@ -135,7 +126,7 @@ public static partial class SlangShaders
     }
 
     /// <summary>The BUILD brick compiled: each pass's compute stage, each buffer's size from the fragment's reflection.</summary>
-    private static CompiledBuild CompileBuild(string name, string source, StackBuild build, CompiledShader fragment, bool keepsState, PoolShape? pool)
+    private static CompiledBuild CompileBuild(string name, string source, StackBuild build, CompiledShader fragment)
     {
         var bytes = new long[build.Buffers.Count];
         for (int k = 0; k < bytes.Length; k++)
@@ -155,22 +146,22 @@ public static partial class SlangShaders
             BuildPass pass = build.Passes[p];
             if (pass.Pixels is not null)
             {
-                passes[p] = CompilePixels(name, source, build, p, keepsState, pool);
+                passes[p] = CompilePixels(name, source, build, p);
                 continue;
             }
 
             if (pass.Draw is not null)
             {
-                passes[p] = CompileDraw(name, source, build, p, keepsState, pool);
+                passes[p] = CompileDraw(name, source, build, p);
                 continue;
             }
 
             (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
-                CompileWrapped(WrapPass(name, placed, build, pass, keepsState, pool), "xanaduPass", "compute", 0, 2,
-                    [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]));
+                CompileWrapped(WrapPass(name, placed, build, pass), "xanaduPass", "compute", 0, 2,
+                    [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={PassDepth}", "XANADU_DEPTH_SET=0"]));
             CheckDeclared(name, compute, 0, 0);
-            if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
-                throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a pass can't read the depth (sampleDepth); only shade and deform can.");
+            if (SpirvScan.Binds(compute.Spirv, 0, PassDepth))
+                throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a [Pass] can't read the canvas (sampleDepth): it runs once for the material; a [Pixels] pass can.");
             // A [Pass] runs once for the material, so the images it touches are the material's: they need a size of their own.
             foreach (int image in images)
                 if (!build.Images[image].Size.Fixed)
@@ -181,11 +172,11 @@ public static partial class SlangShaders
                     $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");
             passes[p] = new CompiledPass(Named(build, p),
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
-                    storageBuffers: Globals.Count + (keepsState ? 1 : 0)),
+                    storageBuffers: Globals.Count),
                 used, pass.Threads, access) { Images = images };
         }
 
-        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = source.Contains(ShaderStack.TracedAlone, StringComparison.Ordinal) };
+        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = source.Contains(ShaderStack.GraphAlone, StringComparison.Ordinal) };
         // Walked once with the defaults: a schedule that can't run says so now, not every frame.
         try
         {
@@ -227,13 +218,9 @@ public static partial class SlangShaders
     /// One pass as a compute entry: thread <c>i</c> of the dispatch, turned away past <c>over:</c>,
     /// with <c>dispatch</c> saying its place in its group and the call's arguments after <c>i</c>.
     /// </summary>
-    private static string WrapPass(string name, string source, StackBuild build, BuildPass pass, bool keepsState, PoolShape? pool)
+    private static string WrapPass(string name, string source, StackBuild build, BuildPass pass)
     {
         (string imports, string code, string label) = Split(name, source);
-        string state = keepsState
-            ? $"[[vk::binding({Globals.Count}, 0)]] StructuredBuffer<State> xanaduStateIn;\nstatic State state;"
-            : "";
-        string load = keepsState ? "effect0::state = effect0::xanaduStateIn[0];" : "";
         string guard = pass.Over is null ? "" : "if (id.x >= xanaduPassFrame.over) return;";
         // A brick's pass takes its uints; a library's takes them and the brick buffers the call lent, in the order declared.
         int number = 0, lent = 0;
@@ -250,8 +237,6 @@ public static partial class SlangShaders
             #line 1 "{{label}}"
             {{code}}
             #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
             }
             #line 1 "{{label}} (wrapper)"
             struct XanaduPassFrame { float dt; float time; uint over; float beat; uint4 args; };
@@ -262,7 +247,6 @@ public static partial class SlangShaders
             {
                 {{Clocks("xanaduPassFrame.time", "xanaduPassFrame.beat", "xanaduPassFrame.dt")}}
                 {{TimelineClock(source, shading: false)}}
-                {{load}}
                 dispatch.thread = local.x;
                 dispatch.group = group.x;
                 {{guard}}

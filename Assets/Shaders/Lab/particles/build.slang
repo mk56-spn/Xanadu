@@ -5,9 +5,9 @@
 // from, fading and spreading each frame. The moves come from xanadu.particles; which ones run
 // on which emitter is `move` below, and the emitters are `emitterOf`: edit those to make it yours.
 //
-// A frame: plan → burst → emit → simulate → finish → spread. DEFORM draws the field under it
-// all, then every trail segment, then every live particle, as copies of the item's quad, as
-// many as `drawn` says.
+// A frame: plan → burst → emit → simulate → finish → spread. `particle` (look.slang) draws the
+// field under it all, then every trail segment, then every live particle, as copies of a quad,
+// as many as `drawn` says (counted on the GPU).
 import xanadu;
 
 static const uint CAP = 262144;             // particles the pool holds
@@ -74,7 +74,7 @@ struct Death
 [Buffer(2 * EVENTS)] RWStructuredBuffer<Death> deaths;       // last frame's half, this frame's half
 [Buffer(2 * CELLS)] RWStructuredBuffer<float> field;         // the half read, the half written
 [Buffer(CELLS)] RWStructuredBuffer<uint> deposits;
-[Draws] RWStructuredBuffer<uint> drawn;
+[Buffer(1)] RWStructuredBuffer<uint> drawn;              // the copies `particle` draws
 
 // ---- the emitters ------------------------------------------------------------------
 
@@ -415,7 +415,7 @@ void spreadField(uint i)
     deposits[i] = 0;
 }
 
-void build()
+void graph()
 {
     reset();
     plan();
@@ -424,4 +424,5 @@ void build()
     simulate();
     finish();
     spreadField();
+    particle(frame);
 }

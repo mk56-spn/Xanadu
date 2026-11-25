@@ -30,16 +30,13 @@ public sealed partial class SlangCompletions
         ("float4", "shade", "float4 shade(Canvas canvas)",
             "float4 shade(Canvas canvas)\n{\n    $\n}",
             "The effect's pixel colour: runs once per pixel of the quad. canvas is the quad (canvas.centred, canvas.size, …); add ItemInput i for uv, the item's colour and the rest."),
-        ("void", "update", "void update(inout State s, float dt)",
-            "void update(inout State s, float dt)\n{\n    $\n}",
-            "Runs once a frame before the item draws, changing the State every pixel then reads as state. dt is the frame's length in seconds."),
+        ("void", "graph", "void graph()",
+            "void graph()\n{\n    $\n}",
+            "The stack's render graph: calls its [Pass], [Pixels] and [Draw] functions in order each frame; present(image) and name(frame) put things on the frame. It runs on the CPU, and may loop and branch on constants and values."),
         ("ItemVertex", "deform", "ItemVertex deform(ItemVertex v)",
             "ItemVertex deform(ItemVertex v)\n{\n    $\n    return v;\n}",
             "The effect's own vertex stage: runs once per corner before it lands. Move v.position (target pixels) to move the shape; uv, colour and local go on to shade as left. Sees time, beat, the play state and the values; can't read textures."),
     ];
-
-    /// <summary>update with the State it changes, for code that has no State yet.</summary>
-    private const string UpdateWithState = "struct State\n{\n    $\n};\n\nvoid update(inout State s, float dt)\n{\n    \n}";
 
     /// <summary>A line inside a body so far: its indent, then the one word being typed.</summary>
     [GeneratedRegex(@"^(\s*)([A-Za-z_]\w*)$")]
@@ -278,8 +275,7 @@ public sealed partial class SlangCompletions
             if ((type is not null && type != returns) || !name.StartsWith(typed, StringComparison.Ordinal) || name == typed
                 || Declares(code, caretLine, name + @"\s*\("))
                 continue;
-            string written = name == "update" && !Declares(code, caretLine, @"struct\s+State\b") ? UpdateWithState : text;
-            found.Add(new Completion(name, CompletionKind.Snippet, header, Doc: doc, Text: written));
+            found.Add(new Completion(name, CompletionKind.Snippet, header, Doc: doc, Text: text));
         }
 
         if (found.Count == 0)

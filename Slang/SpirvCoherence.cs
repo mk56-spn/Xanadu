@@ -24,8 +24,6 @@ public static class SpirvCoherence
             ? shader
             : new CompiledShader(patched, shader.Samplers, shader.UniformBuffers, shader.Params, shader.ParamsSize)
             {
-                StateBytes = shader.StateBytes,
-                ItemBytes = shader.ItemBytes,
                 BufferBytes = shader.BufferBytes,
             };
     }

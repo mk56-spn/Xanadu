@@ -20,11 +20,10 @@ namespace Xanadu.Rendering.Passes;
 /// A graph's exits: its draws into <c>frame</c>, inside the job's render pass at the item's place, depth tested against
 /// the canvas and blended as the item is placed. A present draws two of the graph's images over the item's box
 /// (traced.slang: colour blended, depth within the step's slice; none reads as the item's plane); a shade draws the
-/// stack's own triangles, placed by its deform, once or per pool item or as many as a <c>[Draws]</c> buffer says.
+/// item's own triangles, placed by its deform.
 /// </summary>
 internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, CanvasPipelines pipelines, Dictionary<ulong, Texture> textures,
-    CanvasParticles particles, MaterialStore materials, GlobalBindings globals, GridCutter grids, GpuArray<CanvasVertex> vertices,
-    IndirectDraws indirect) : IDisposable
+    CanvasParticles particles, MaterialStore materials, GlobalBindings globals, GridCutter grids, GpuArray<CanvasVertex> vertices) : IDisposable
 {
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Span; }
@@ -97,7 +96,7 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
     /// The stack's triangles at step <paramref name="s"/>. <paramref name="clocked"/> says the frame's clocks are already
     /// pushed for an effect in this pass, and is set once they are. False when nothing was drawn.
     /// </summary>
-    public bool Shade(CommandBuffer commands, RenderPass pass, int s, Step step, CanvasEffect effect, SampleCount samples,
+    public bool Shade(CommandBuffer commands, RenderPass pass, Step step, CanvasEffect effect, SampleCount samples,
         in FrameUniforms frame, ref bool clocked)
     {
         commands.PushVertexUniformData(new ViewUniforms { Width = targets.Width, Height = targets.Height, Depth = step.Depth, Span = step.Span });
@@ -120,14 +119,10 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         pass.SetScissor(step.Clip);
         BindSamplers(pass, step, effect.Compiled.Samplers);
 
-        // After the globals: kept state when the stack keeps some, then its pool's items.
-        Buffer? items = effect.Compiled.Pool is null ? null : materials.PoolItems(step.Material);
-        Buffer? state = materials.State(step.Material);
+        // After the globals: the graph's buffers it reads.
         Buffer[]? built = effect.Compiled.Build is null ? null : materials.Built(step.Material);
         if (effect.Compiled.StorageBuffers > 0)
-            pass.BindFragmentStorageBuffers(effect.Compiled.Update is null
-                ? globals.Bound(effect.Compiled, items, null, built)
-                : globals.Bound(effect.Compiled, state, items, built));
+            pass.BindFragmentStorageBuffers(globals.Bound(effect.Compiled, built));
         if (effect.Compiled.ParamsSize > 0)
             ShaderParams.Push(commands, effect.Compiled, step.Material, step.Values);
         if (instanced)
@@ -150,21 +145,15 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
             if (vertex.Samplers.Length > 0)
                 pass.BindVertexSamplers(new TextureSamplerBinding(targets.DepthRead, device.PointSampler));
             if (vertex.StorageBuffers > 0)
-                pass.BindVertexStorageBuffers(globals.Bound(vertex, items, null, built));
+                pass.BindVertexStorageBuffers(globals.Bound(vertex, built));
             if (vertex.ParamsSize > 0)
                 ShaderParams.Push(commands, vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
         }
 
-        // A pooled stack draws once per item; until its pool (or its graph's buffers) exists, not at all.
-        uint copies = effect.Compiled.Pool is { } pooled ? items is null ? 0u : (uint)pooled.ItemCount : 1u;
+        // Until its graph's buffers exist, not at all.
         if (effect.Compiled.Build is not null && built is null)
-            copies = 0;
-        if (indirect.Slot(s, out uint slot))
-            pass.DrawPrimitivesIndirect(indirect.Args, slot * IndirectDraws.ArgsBytes, 1);
-        else if (copies > 0)
-            pass.DrawPrimitives(step.Count, copies, step.Start, 0);
-        else
             return false;
+        pass.DrawPrimitives(step.Count, 1, step.Start, 0);
         return true;
     }
 

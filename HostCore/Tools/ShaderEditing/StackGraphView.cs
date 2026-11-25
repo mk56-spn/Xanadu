@@ -69,6 +69,9 @@ internal sealed class StackGraphView
             // A mid-frame node waits for the canvas drawn so far: the item's pass is broken for it.
             if (pass.Place == NodePlace.MidFrame)
                 what += " · breaks pass";
+            // A cache fill runs when its images go stale, so its threads aren't a frame's cost: it says so instead.
+            if (pass.Fills)
+                what = $"{(pass.Calls > 1 ? $"×{pass.Calls} · " : "")}cached";
             passes[i] = _board.Add(new Rect2(0, i * (Height + Gap), Width, Height), $"{pass.Name}\n{what}", FileStrip.Category(pass.Role)).Id;
             if (Heat(pass, roles) is { } tone)
                 _underlay.Mark(passes[i], tone);
@@ -132,7 +135,7 @@ internal sealed class StackGraphView
     {
         if (pass.Place == NodePlace.MidFrame)
             return roles.Bad with { A = 0.7f };
-        if (pass.Threads < 1000)
+        if (pass.Threads < 1000 || pass.Fills)
             return null;
         return roles.Warn with { A = 0.15f + 0.5f * Math.Clamp((MathF.Log10(pass.Threads) - 3) / 4, 0, 1) };
     }

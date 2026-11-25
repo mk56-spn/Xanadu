@@ -1,7 +1,8 @@
-// xanadu.scene: 3D scenes of solids, composed in code and marched fast. A BUILD pass records
-// the scene once a frame into two buffers; a TRACE brick shoots it, a tile of pixels at a time.
+// xanadu.scene: 3D scenes of solids, composed in code and marched fast. A graph's [Pass] records
+// the scene once a frame into two buffers; a [Pixels] pass shoots it, a tile of pixels at a time.
 //
-//     // build.slang
+//     [Image(rgba16f)] RWTexture2D<float4> shown;
+//     [Image(r32f)] RWTexture2D<float> shownDepth;
 //     [Buffer(512)] RWStructuredBuffer<scene.Part> parts;       // every solid, as data
 //     [Buffer(129)] RWStructuredBuffer<scene.Object> objects;   // 0 is the header, then one per object
 //
@@ -15,14 +16,16 @@
 //         s.cut(Orb(50).moved(float3(80, 0, -80)));                      // a bite out of both
 //         s.finish();
 //     }
-//     void build() { record(); }
 //
-//     // trace.slang
-//     [Tile(8, 8)]
-//     float4 trace(ItemInput i, Canvas canvas)
+//     [Pixels(8, 8)]
+//     void look(ItemInput i, Canvas canvas)
 //     {
-//         return scene.shot(parts, objects, Camera(1100, 1000).orbited(time * 0.2, 0.3), canvas, Lighting());
+//         float depth;
+//         shown[group.pixel] = scene.shot(parts, objects, Camera(1100, 1000).orbited(time * 0.2, 0.3), canvas, Lighting(), depth);
+//         shownDepth[group.pixel] = depth;
 //     }
+//
+//     void graph() { record(); look(); present(shown, shownDepth); }
 //
 // add starts a new object; melt, cut and keep work on the object being built (melt: a smooth
 // union whose materials blend; cut: carved out, softened by a blend; keep: only what is inside
@@ -904,12 +907,15 @@ public namespace scene
     /// What `shot` shows: the picture, or what it cost.
     public static const uint LIT = 0, STEPS = 1, TILE_LISTS = 2, NORMALS = 3;
 
-    /// The scene through `camera` at this TRACE pixel, in `light`: the tile lists what it sees
-    /// and what can shadow it, the ray marches what it crosses, the hit is lit. Sets the
-    /// pixel's depth. Every thread of the tile must call it. `view` shows the cost instead:
+    /// The scene through `camera` at this [Pixels] pass's pixel, in `light`: the tile lists what
+    /// it sees and what can shadow it, the ray marches what it crosses, the hit is lit. `depth`
+    /// is how far into the screen it is, for present (1e6 for the background; 0 where nothing
+    /// shows). Every thread of the tile must call it. `view` shows the cost instead:
     /// scene.STEPS, scene.TILE_LISTS (red where a list overflowed), scene.NORMALS.
-    public colour shot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, uint view = LIT)
+    public colour shot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light,
+        out float depth, uint view = LIT)
     {
+        depth = 0.0;
         listTile(objects, tileView(camera, canvas, light.far), light);
         bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
 
@@ -922,10 +928,10 @@ public namespace scene
         if (!hit.found)
         {
             if (light.background.a > 0.0)
-                traced.depth = 1e6;
+                depth = 1e6;
             return light.background;
         }
-        traced.depth = camera.screenDepth(hit.position);
+        depth = camera.screenDepth(hit.position);
         if (view == NORMALS)
             return colour(hit.normal * 0.5 + 0.5, 1.0);
         return lit(parts, objects, hit, ray, camera, light, listed);

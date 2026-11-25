@@ -172,6 +172,19 @@ internal sealed partial class ShaderCodeEditor
         _sinceEdit = Settle;
     }
 
+    /// <summary>What stops the preview running what it shows (<see cref="IEditorPreview.Problem"/>), as last listed.</summary>
+    private string? _running;
+
+    /// <summary>The preview's frame, then its running problem into the list when it changed.</summary>
+    private void UpdateView(in ToolFrame frame)
+    {
+        _view.Update(frame, _pointer, _tuning);
+        if (_view.Problem == _running)
+            return;
+        _running = _view.Problem;
+        ListProblems();
+    }
+
     /// <summary>
     /// The list under the preview: the global problems, then the open text's, then the other files', each of those
     /// named by its file.
@@ -179,7 +192,9 @@ internal sealed partial class ShaderCodeEditor
     private void ListProblems()
     {
         var shown = new List<SlangProblem>(_global);
-        var listed = new List<Tab?>(_global.Select(_ => (Tab?)null));
+        if (_running is { } running)
+            shown.Add(new SlangProblem(0, 0, running, Warning: false));
+        var listed = new List<Tab?>(shown.Select(_ => (Tab?)null));
         foreach (Tab tab in _files.OrderBy(file => file != Main))
         {
             foreach (SlangProblem problem in tab.Problems)

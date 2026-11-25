@@ -3,9 +3,9 @@
 // on the GPU, from the library: animate places each one and gives it a Morton code
 // (bvh.morton), sort.radix puts the codes in order, leaves boxes each blob and bvh.tree links
 // Karras' LBVH over them and boxes it up from the leaves. For soft shadows, a sun-space grid
-// lists the blobs each cell of it sees. TRACE lists what each tile of the screen sees, then
-// marches every pixel through it. DEFORM and SHADE draw sparks on rings through it all,
-// hidden behind what the trace drew.
+// lists the blobs each cell of it sees. `march` (march.slang) lists what each tile of the screen
+// sees, then marches every pixel through it; present shows it with its depth. `spark`
+// (sparks.slang) draws sparks on rings through it all, hidden behind what the march drew.
 //
 // Space is in pixels, as xanadu.march's: x right, y down, z away; the item's centre is 0.
 import xanadu;
@@ -52,7 +52,8 @@ float3 sun() { return normalize(float3(-0.45, -0.8, 0.35)); }
 [Buffer(2 * MAX)] RWStructuredBuffer<uint> parents;             // each node's parent
 [Buffer(MAX)] globallycoherent RWStructuredBuffer<uint> arrivals;   // children arrived at each inner node
 [Buffer(2 * CELLS + ENTRIES)] RWStructuredBuffer<uint> light;   // cell starts, cell ends, then blob ids
-[Draws] RWStructuredBuffer<uint> drawn;                         // the sparks: a copy of the quad each
+[Image(rgba16f)] RWTexture2D<float4> marched;                   // what the march sees, a pixel each
+[Image(r32f)] RWTexture2D<float> marchedDepth;                   // and how far into the screen
 
 // ---- animate -----------------------------------------------------------------
 
@@ -155,13 +156,9 @@ void lightFill(uint i)
     }
 }
 
-[Pass(1, over: 1)]
-void countSparks(uint i) { drawn[0] = sparks ? SPARKS : 0; }
-
-void build()
+void graph()
 {
     uint n = 1024 << 2 * spheres;
-    countSparks();
     animate();
     sort.radix(n, keys, ids, keysB, idsB, counts);
     leaves();
@@ -174,4 +171,8 @@ void build()
         lightCursors();
         lightFill();
     }
+    march();
+    present(marched, marchedDepth);
+    if (sparks)
+        spark(frame);
 }

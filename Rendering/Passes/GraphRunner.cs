@@ -25,9 +25,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
 {
     private readonly GraphResources _resources = new(device, materials);
     private readonly ItemImages _images = new(device, targets);
-    private readonly ComputeNodes _compute = new(device, targets, materials, globals);
-    private readonly HashSet<CanvasEffect> _brokenSchedules = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<CanvasEffect> _uncut = new(ReferenceEqualityComparer.Instance);
+    private readonly ComputeNodes _compute = new(device, targets, globals);
     private readonly ImageDraws _draws = new(device, targets, globals, materials);
 
     /// <summary>The draw nodes: into the item's images here, onto the frame from the pass (<see cref="ImageDraws.Exit"/>).</summary>
@@ -36,13 +34,15 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     /// <summary>Each step's images this frame, by its place in the frame's steps; null until its first item node.</summary>
     private readonly List<ItemSet?> _sets = [];
 
-    /// <summary>Each material's own images this frame, for the materials whose graph has some; taken at their first use.</summary>
-    private readonly Dictionary<CanvasMaterial, Texture?[]> _shared = new(ReferenceEqualityComparer.Instance);
+    /// <summary>
+    /// Each material's own images this frame, for the materials whose graph has some, and whether their caches need
+    /// filling; taken at their first use.
+    /// </summary>
+    private readonly Dictionary<CanvasMaterial, (Texture?[] Images, bool Stale)> _shared = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Steps whose item has no box to work in (off screen, or its quad cut on the GPU).</summary>
     private readonly HashSet<int> _boxless = [];
 
-    public IndirectDraws Indirect { get; } = new(device, frame, pipelines, materials);
 
     /// <summary>The plan a material's stack runs this frame: its effect's fixed one, or its schedule lowered with its values.</summary>
     public GraphPlan Plan(CanvasMaterial? material, CanvasEffect effect)
@@ -58,7 +58,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
 
     /// <summary>
     /// Every graph's prelude, before any pass draws: a material's nodes the first time a step shows it, an item's nodes
-    /// for every step; then the indirect args are filled.
+    /// for every step.
     /// </summary>
     public void Prelude(CommandBuffer commands)
     {
@@ -88,9 +88,6 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
                     Run(commands, node, effect, step, s, ref kept);
             }
         }
-
-        using (commands.Scope("shader draws"))
-            Indirect.Fill(commands);
     }
 
     /// <summary>Step <paramref name="s"/>'s mid-frame nodes, run between two halves of its job's pass.</summary>
@@ -107,33 +104,23 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     private void Run(CommandBuffer commands, GraphNode node, CanvasEffect effect, Step step, int s, ref BuildBuffers? kept)
     {
         CanvasMaterial material = step.Material!;
-        switch (node.Kind)
-        {
-            case NodeKind.Update:
-                _compute.Update(commands, material, effect, frame.Dt, frame.Time);
-                return;
-            case NodeKind.Step:
-                _compute.Step(commands, material, effect, frame.Dt, frame.Time);
-                return;
-        }
-
         kept ??= _resources.For(commands, material, effect);
         if (node.Kind == NodeKind.Compute)
         {
+            // A cache a [Pass] fills is the material's: filled when its values move.
+            if (node.Fills && !(effect.SharesImages && SharedStale(commands, material, effect)))
+                return;
             _compute.Pass(commands, effect, kept.Value, Shared(commands, material, effect), node.Call, material, frame.Dt, frame.Time);
             return;
         }
 
-        if (Set(commands, effect, step, s) is not { } set)
+        if (Set(commands, effect, step, s) is not { } set || (node.Fills && !set.Stale))
             return;
         RestFrame rest = step.Mesh!.Vertices[(int)step.Start].Rest;
         switch (node.Kind)
         {
             case NodeKind.Pixels:
                 _compute.Pixels(commands, effect, kept.Value, set, rest, node.Call, step, frame.Dt, frame.Time);
-                break;
-            case NodeKind.Trace:
-                _compute.Trace(commands, effect, kept.Value, set, rest, step, frame.Dt, frame.Time);
                 break;
             case NodeKind.Draw:
                 _draws.Draw(commands, effect, kept.Value, set, rest, node.Call, step, frame.Time);
@@ -148,33 +135,37 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
             return set;
         if (_boxless.Contains(s))
             return null;
-        if (step.Mesh is not { } mesh || step.Start >= mesh.Vertices.Count)
-        {
-            // A [Grid]'s cells are cut on the GPU: the CPU has no corner to hand the node.
-            if (_uncut.Add(effect))
-                Console.Error.WriteLine($"Shader stack {step.Material?.Shader}: its graph needs the item's quad uncut; drop the deform's [Grid].");
-            _boxless.Add(s);
-            return null;
-        }
-
-        if (ExitDraws.BoxOf(mesh.Vertices[(int)step.Start].Rest, step.Clip, targets.Width, targets.Height) is not { } box)
+        // No corner on the CPU (a [Grid] cut on the GPU, which the compile refuses in a graph) or no box on screen: nothing to work in.
+        if (step.Mesh is not { } mesh || step.Start >= mesh.Vertices.Count
+            || ExitDraws.BoxOf(mesh.Vertices[(int)step.Start].Rest, step.Clip, targets.Width, targets.Height) is not { } box)
         {
             _boxless.Add(s);
             return null;
         }
 
-        return _sets[s] = _images.Take(commands, effect, step.Kept, step.Start, box, Shared(commands, step.Material!, effect));
+        return _sets[s] = _images.Take(commands, effect, step.Kept, step.Start, box, Shared(commands, step.Material!, effect), Stamp(step.Material!));
     }
 
     /// <summary>The material's own images this frame (<see cref="ItemImages.Shared"/>); null when its graph has none.</summary>
-    private Texture?[]? Shared(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect)
+    private Texture?[]? Shared(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect) =>
+        effect.SharesImages ? Taken(commands, material, effect).Images : null;
+
+    /// <summary>Whether the material's own cached images need filling this frame.</summary>
+    private bool SharedStale(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect) => Taken(commands, material, effect).Stale;
+
+    private (Texture?[] Images, bool Stale) Taken(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect)
     {
-        if (!effect.SharesImages)
-            return null;
-        if (!_shared.TryGetValue(material, out Texture?[]? shared))
-            _shared[material] = shared = _images.Shared(commands, effect, materials.For(material));
+        if (!_shared.TryGetValue(material, out (Texture?[] Images, bool Stale) shared))
+        {
+            Texture?[] images = _images.Shared(commands, effect, materials.For(material), Stamp(material), out bool stale);
+            _shared[material] = shared = (images, stale);
+        }
+
         return shared;
     }
+
+    /// <summary>What a cache is filled against: the material's values and host buffers, as their versions.</summary>
+    private static long Stamp(CanvasMaterial material) => ((long)material.Version << 32) | (uint)material.BufferVersion;
 
     /// <summary>The material's plan for this frame: a schedule lowered with its values, kept on its entity.</summary>
     private GraphPlan Lower(CanvasMaterial material, CanvasEffect effect)
@@ -188,10 +179,9 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         if (!had)
             entity.AddComponent(lowered = new LoweredGraph(effect, new GraphPlan()));
         CompiledShader compiled = effect.Compiled;
+        // Values that make the schedule impossible (a loop that won't end) leave it empty, its Problem saying why
+        // (CanvasRenderer.GraphProblem): nothing of it runs.
         lowered.Plan.Lower(compiled, name => compiled.ScheduleValue(name, material.Values.TryGetValue(name, out Vector4 set) ? set : null));
-        // Its values made the schedule impossible (a loop that won't end): said once, nothing of it run.
-        if (lowered.Plan.Problem is { } problem && _brokenSchedules.Add(effect))
-            Console.Error.WriteLine($"Shader stack {material.Shader}: graph() can't run: {problem}");
         return lowered.Plan;
     }
 
@@ -199,6 +189,5 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     {
         _resources.Dispose();
         _images.Dispose();
-        Indirect.Dispose();
     }
 }

@@ -1,6 +1,7 @@
-// DEFORM: each copy of the quad is a spark on a tilted ring that threads through the galaxy and
-// the pillars, turned to face the eye. Its depth is the march's, so the blobs hide it; it is
+// Each copy of a quad is a spark on a tilted ring that threads through the galaxy and the
+// pillars, turned to face the eye. Its depth is the march's, so the blobs hide it; it is
 // [Translucent], so the glows blend over each other rather than cutting holes in those behind.
+// Its glow is hottest at its heart; its hue by which one it is.
 import xanadu;
 
 /// Spark c where it is now, in the galaxy's pixels, and its half size.
@@ -14,7 +15,8 @@ float4 sparkAt(uint c)
 }
 
 [Translucent]
-ItemVertex deform(ItemVertex v)
+[Draw(1, 1, shade: sparkLook, copies: SPARKS)]
+ItemVertex spark(ItemVertex v)
 {
     Camera camera = eyeOn(v.rest);
     float4 spark = sparkAt(copy);
@@ -23,4 +25,13 @@ ItemVertex deform(ItemVertex v)
     v.position = centre + (v.uv * 2 - 1) * spark.w * camera.focal / ahead;
     v.depth = ahead - camera.distance;
     return v;
+}
+
+float4 sparkLook(ItemInput i)
+{
+    float r = length(i.uv * 2 - 1);
+    float glow = saturate(1.0 - r);
+    glow = glow * glow * (0.4 + 2.0 * pow(glow, 6.0));
+    colour tint = colours.hue(frac(copy * 0.0011 + 0.1));
+    return colour(lerp(colours.white, tint, 0.45).rgb, saturate(glow));
 }

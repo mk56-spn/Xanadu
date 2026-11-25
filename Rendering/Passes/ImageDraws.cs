@@ -84,7 +84,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
                 pass.DrawPrimitives(draw.Vertices, call.Copies, 0, 0);
         }
         else if (kept.DrawArgs is { } args)
-            pass.DrawPrimitivesIndirect(args, (uint)call.Pass * IndirectDraws.ArgsBytes, 1);
+            pass.DrawPrimitivesIndirect(args, (uint)call.Pass * GraphResources.ArgsBytes, 1);
     }
 
     /// <summary>Both stages' uniforms, samplers, read images and globals: the grid moved by <paramref name="shift"/>, its z in <paramref name="slice"/>.</summary>
@@ -102,7 +102,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         var origin = set is null ? Vector2.Zero : new Vector2(set.Box.X, set.Box.Y);
         commands.PushFragmentUniformData(new DrawBox { Shift = shift, Origin = origin, Slice = slice }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
-            pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, null, null, kept.Buffers));
+            pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, kept.Buffers));
         // Neither stage gets a texture of its own yet: any sampler it declares sees white.
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Math.Max(draw.Vertex.Samplers.Length, draw.Fragment.Samplers.Length)];
         for (int k = 0; k < samplers.Length; k++)
@@ -122,6 +122,6 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         }
 
         if (draw.Fragment.StorageBuffers > 0)
-            pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment, null, null, kept.Buffers));
+            pass.BindFragmentStorageBuffers(globals.Bound(draw.Fragment, kept.Buffers));
     }
 }

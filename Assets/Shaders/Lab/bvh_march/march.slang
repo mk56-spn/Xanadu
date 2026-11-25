@@ -1,4 +1,4 @@
-// TRACE: a ray a pixel, a tile of 8 × 8 pixels a group. First each tile lists the blobs it can
+// The march: a ray a pixel, a tile of 8 × 8 pixels a group. First each tile lists the blobs it can
 // see: thread 0 opens the BVH breadth first into up to 64 subtrees, then every thread walks one,
 // keeping the leaves inside the tile's four side planes and nearer than the floor behind them.
 // The list is sorted in groupshared memory by how near any ray from the eye can enter each
@@ -18,7 +18,7 @@ import xanadu;
 
 static const uint K = 8;                    // blobs a ray marches at once: the nearest-entering
 static const uint PILLARS = 10;
-static const uint TILE = 8;                 // pixels a tile's side: [Tile(TILE, TILE)]
+static const uint TILE = 8;                 // pixels a tile's side: [Pixels(8, 8)] on march
 static const uint THREADS = TILE * TILE;
 static const uint LISTED = 256;             // blobs a tile can list; past that its pixels walk the BVH
 
@@ -466,9 +466,10 @@ struct ShadowVisit : bvh.IVisit
     }
 };
 
-[Tile(TILE, TILE)]
-float4 trace(ItemInput i, Canvas canvas)
+[Pixels(8, 8)]       // TILE × TILE
+void march(ItemInput i, Canvas canvas)
 {
+    float depth = 0;
     Camera camera = eyeOn(canvas);
     bool fromList = false;
     if (tiles)
@@ -511,20 +512,20 @@ float4 trace(ItemInput i, Canvas canvas)
         shown = hit.tint.rgb * (float3(1.0, 0.92, 0.82) * 2.2 * diffuse + float3(0.35, 0.38, 0.62) * ambient)
               + float3(1.0, 0.95, 0.9) * spec * 1.5 + float3(0.6, 0.5, 1.0) * rim * 0.35;
         t = hit.t;
-        traced.depth = camera.depth(hit.position) - camera.distance;
+        depth = camera.depth(hit.position) - camera.distance;
     }
     else if (ground.t < 1e29)
     {
         float lit = sunlit(ray.at(ground.t) - ray.direction * 0.5, cells);
         shown = ground.tint * (0.3 + 0.9 * lit * saturate(dot(ground.normal, toSun)));
         t = ground.t;
-        traced.depth = camera.depth(ray.at(t)) - camera.distance;
+        depth = camera.depth(ray.at(t)) - camera.distance;
     }
     else
     {
         shown = sky(ray.direction);
         t = 200 * U;
-        traced.depth = 1e6;
+        depth = 1e6;
     }
 
     shown = lerp(shown, sky(ray.direction) * 0.8, saturate((t - 18 * U) / (60 * U)));
@@ -543,5 +544,6 @@ float4 trace(ItemInput i, Canvas canvas)
         if (min(cell.x, cell.y) < 1.0 / TILE)
             result.rgb *= 0.6;
     }
-    return result;
+    marched[group.pixel] = result;
+    marchedDepth[group.pixel] = depth;
 }

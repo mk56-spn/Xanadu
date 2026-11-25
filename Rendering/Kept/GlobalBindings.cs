@@ -28,9 +28,8 @@ internal struct GlobalName(string name) : IIndexedComponent<string>
 
 /// <summary>
 /// What every effect stage binds as storage buffers: the declared shader globals in
-/// <see cref="SlangShaders.Globals"/>' order, each sent when its version moves, then what
-/// the stage binds after them (kept state, a pool's items, a stack's BUILD buffers), zeros
-/// standing in for any not there.
+/// <see cref="SlangShaders.Globals"/>' order, each sent when its version moves, then the
+/// stack's graph buffers the stage reads, zeros standing in for any not there.
 /// </summary>
 internal sealed class GlobalBindings : IDisposable
 {
@@ -41,20 +40,22 @@ internal sealed class GlobalBindings : IDisposable
     /// <summary>This frame's globals in binding order, then room for what a stage binds after them.</summary>
     private Buffer[] _bound = [];
 
-    /// <summary>Zeros, bound for a global with no data (or nothing declaring it) and for a state not made yet.</summary>
+    /// <summary>Zeros, bound for a global with no data (or nothing declaring it) and a buffer not made yet.</summary>
     private Buffer? _blank;
 
-    /// <summary>Zeros the size of the largest state, to clear a new buffer from.</summary>
-    public TransferBuffer Zeros { get; }
+    /// <summary>The blank's bytes: as many as any stage reads of a global standing in for one.</summary>
+    private const uint BlankBytes = 16 * 1024;
+
+    private readonly TransferBuffer _zeros;
 
     public GlobalBindings(GraphicsDevice device, EntityStore store)
     {
         _device = device;
         _store = store;
         _globals = store.Query<GlobalBuffer>();
-        Zeros = TransferBuffer.Create<byte>(device, "state zeros", TransferBufferUsage.Upload, SlangShaders.MaxStateBytes);
-        Zeros.Map<byte>(cycle: false).Clear();
-        Zeros.Unmap();
+        _zeros = TransferBuffer.Create<byte>(device, "blank zeros", TransferBufferUsage.Upload, BlankBytes);
+        _zeros.Map<byte>(cycle: false).Clear();
+        _zeros.Unmap();
     }
 
     /// <summary>Runs the globals' per-frame writers, sends each that changed, and lines them up in binding order.</summary>
@@ -64,16 +65,16 @@ internal sealed class GlobalBindings : IDisposable
         if (_blank is null)
         {
             _blank = Buffer.Create<byte>(_device, "blank global",
-                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, SlangShaders.MaxStateBytes);
+                BufferUsageFlags.GraphicsStorageRead | BufferUsageFlags.ComputeStorageRead, BlankBytes);
             CopyPass zero = commands.BeginCopyPass();
-            zero.UploadToBuffer(Zeros, _blank, cycle: false);
+            zero.UploadToBuffer(_zeros, _blank, cycle: false);
             commands.EndCopyPass(zero);
         }
 
         IReadOnlyList<string> names = SlangShaders.Globals;
-        // The globals, two places for what a stage binds after them, then room for a stack's BUILD buffers.
-        if (_bound.Length != names.Count + 2 + SlangShaders.MaxStageBuffers)
-            _bound = new Buffer[names.Count + 2 + SlangShaders.MaxStageBuffers];
+        // The globals, then room for a stack's graph buffers.
+        if (_bound.Length != names.Count + SlangShaders.MaxStageBuffers)
+            _bound = new Buffer[names.Count + SlangShaders.MaxStageBuffers];
         for (int i = 0; i < names.Count; i++)
             _bound[i] = ShaderGlobals.Find(names[i]) is { Count: > 0 } global ? Sent(commands, global) : _blank;
         for (int i = names.Count; i < _bound.Length; i++)
@@ -99,20 +100,13 @@ internal sealed class GlobalBindings : IDisposable
         return held.Gpu.Buffer!;
     }
 
-    /// <summary>The frame's globals, then <paramref name="first"/> and <paramref name="second"/> (zeros for one not there): <paramref name="count"/> in all.</summary>
-    public Span<Buffer> Bound(int count, Buffer? first = null, Buffer? second = null)
-    {
-        int globals = SlangShaders.Globals.Count;
-        _bound[globals] = first ?? _blank!;
-        _bound[globals + 1] = second ?? _blank!;
-        return _bound.AsSpan(0, Math.Min(count, _bound.Length));
-    }
+    /// <summary>The frame's globals: <paramref name="count"/> of them.</summary>
+    public Span<Buffer> Bound(int count) => _bound.AsSpan(0, Math.Min(count, _bound.Length));
 
-    /// <summary>A stage's storage buffers: its own (<see cref="Bound(int, Buffer?, Buffer?)"/>), then the stack's BUILD buffers it reads.</summary>
-    public Span<Buffer> Bound(CompiledShader stage, Buffer? first, Buffer? second, Buffer[]? built)
+    /// <summary>A stage's storage buffers: the globals, then the stack's graph buffers it reads.</summary>
+    public Span<Buffer> Bound(CompiledShader stage, Buffer[]? built)
     {
         int own = stage.StorageBuffers - stage.StackBuffers.Length;
-        Bound(own, first, second);
         for (int k = 0; k < stage.StackBuffers.Length; k++)
             _bound[own + k] = built?[stage.StackBuffers[k]] ?? _blank!;
         return _bound.AsSpan(0, stage.StorageBuffers);
@@ -121,7 +115,7 @@ internal sealed class GlobalBindings : IDisposable
     public void Dispose()
     {
         _globals.Each(new DisposeGlobals());
-        Zeros.Dispose();
+        _zeros.Dispose();
         _blank?.Dispose();
     }
 

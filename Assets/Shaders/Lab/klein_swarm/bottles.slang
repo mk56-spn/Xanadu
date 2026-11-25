@@ -1,6 +1,6 @@
-// STEP: 1000 Klein bottles drifting through a box and tumbling as they go.
-// start(i) scatters them after every compile; step moves and turns each one once a frame.
-// DEFORM bends each one's grid into the bottle, SHADE lights it.
+// 1000 Klein bottles drifting through a box and tumbling as they go. `move` scatters them after
+// every compile (`made` says whether they exist yet), then moves and turns each one once a frame;
+// `bottle` bends a grid into each one and lights it (look.slang).
 import xanadu;
 
 // How fast they tumble, in turns a second at most.
@@ -18,6 +18,8 @@ struct Bottle
     float size;         // the ring's radius, in pixels
     float hue;
 };
+
+static const uint BOTTLES = 1000;
 
 // The box they drift in, in pixels: they wrap round from one side to the other.
 static const float3 Box = float3(1500, 860, 900);
@@ -45,12 +47,29 @@ Bottle start(uint i)
     return b;
 }
 
-[Pool(1000)]
-void step(inout Bottle b, uint i, float dt)
+[Buffer(BOTTLES)] RWStructuredBuffer<Bottle> bottles;
+[Buffer(1)] RWStructuredBuffer<uint> made;
+
+[Pass(64, over: BOTTLES)]
+void move(uint i)
 {
+    Bottle b = bottles[i];
+    if (made[0] == 0)
+        b = start(i);
     b.angles += b.turning * spin * TAU * dt;
     b.turn = turnOf(b.angles);
     b.position += b.velocity * drift * dt;
     // Out of one side, in at the other.
     b.position = (frac(b.position / Box + 0.5) - 0.5) * Box;
+    bottles[i] = b;
+}
+
+[Pass(1, over: 1)]
+void ready(uint i) { made[0] = 1; }
+
+void graph()
+{
+    move();
+    ready();
+    bottle(frame);
 }

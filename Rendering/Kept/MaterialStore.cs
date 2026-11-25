@@ -6,21 +6,17 @@ namespace Xanadu.Rendering.Kept;
 
 /// <summary>
 /// The GPU state each material's stack keeps between frames, as one entity per material
-/// (MaterialComponents.cs): its state, its pool, its graph's buffers. Forgetting a
+/// (MaterialComponents.cs): its graph's buffers and images. Forgetting a
 /// material deletes its entity and lets go of all of it at once.
 /// </summary>
 internal sealed class MaterialStore : IDisposable
 {
     private readonly EntityStore _store;
-    private readonly ArchetypeQuery<StateBuffer> _states;
-    private readonly ArchetypeQuery<ItemPool> _pools;
     private readonly ArchetypeQuery<BuildBuffers> _builds;
 
     public MaterialStore(EntityStore store)
     {
         _store = store;
-        _states = _store.Query<StateBuffer>();
-        _pools = _store.Query<ItemPool>();
         _builds = _store.Query<BuildBuffers>();
     }
 
@@ -39,12 +35,6 @@ internal sealed class MaterialStore : IDisposable
         Entity entity = Find(material);
         return entity.IsNull ? _store.CreateEntity(new MaterialOf(material)) : entity;
     }
-
-    public Buffer? State(CanvasMaterial? material) =>
-        Find(material) is { IsNull: false } entity && entity.TryGetComponent(out StateBuffer state) ? state.Buffer : null;
-
-    public Buffer? PoolItems(CanvasMaterial? material) =>
-        Find(material) is { IsNull: false } entity && entity.TryGetComponent(out ItemPool pool) ? pool.Items : null;
 
     public Buffer[]? Built(CanvasMaterial? material) =>
         Find(material) is { IsNull: false } entity && entity.TryGetComponent(out BuildBuffers built) ? built.Buffers : null;
@@ -65,10 +55,6 @@ internal sealed class MaterialStore : IDisposable
         Entity entity = Find(material);
         if (entity.IsNull)
             return;
-        if (entity.TryGetComponent(out StateBuffer state))
-            state.Buffer.Dispose();
-        if (entity.TryGetComponent(out ItemPool pool))
-            pool.Items.Dispose();
         if (entity.TryGetComponent(out BuildBuffers built))
             Release(built);
         HeldImages.Release(entity);
@@ -84,8 +70,6 @@ internal sealed class MaterialStore : IDisposable
 
     public void Dispose()
     {
-        _states.Each(new DisposeStates());
-        _pools.Each(new DisposePools());
         _builds.Each(new DisposeBuilds());
         _store.Query<MaterialOf>().EachEntity(new DisposeHeld(_store));
     }
@@ -93,16 +77,6 @@ internal sealed class MaterialStore : IDisposable
     private struct DisposeHeld(EntityStore store) : IEachEntity<MaterialOf>
     {
         public void Execute(ref MaterialOf material, int id) => HeldImages.Release(store.GetEntityById(id));
-    }
-
-    private struct DisposeStates : IEach<StateBuffer>
-    {
-        public void Execute(ref StateBuffer state) => state.Buffer.Dispose();
-    }
-
-    private struct DisposePools : IEach<ItemPool>
-    {
-        public void Execute(ref ItemPool pool) => pool.Items.Dispose();
     }
 
     private struct DisposeBuilds : IEach<BuildBuffers>

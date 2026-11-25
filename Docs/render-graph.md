@@ -195,7 +195,7 @@ The check each time: the visual tests, and shots of a few plain, deform, pool an
      and shade, drawn indirectly when the count is on the GPU. Several counted draws in one graph.
   2. **A stack is a graph** (done): a stack that declares `graph()` is described by it alone, in whichever file it sits.
      No BUILD kind; resources and nodes may be declared in any of the stack's files.
-  3. **Bricks only as sugar** for a stack with no `graph()` that is `shade` (and maybe `deform`): one draw onto the
+  3. **Bricks only as sugar** (done) for a stack with no `graph()` that is `shade` (and maybe `deform`): one draw onto the
      frame. STEP, UPDATE and TRACE stop being kinds: a pool is a `[Pass]` over a kept buffer plus a counted draw, an
      update a `[Pass]` over one kept struct, a trace a `[Pixels]` pass and `present`. Their stacks are rewritten as
      graphs. **Full-screen passes stay first-class:** before TRACE goes, any `[Pixels]` pass reads the canvas so far
@@ -203,8 +203,26 @@ The check each time: the visual tests, and shots of a few plain, deform, pool an
   4. **The tool shows the graph** (done, with 2), not a strip of brick kinds.
   5. **The board's wires** (done) as the first thing written that way: a host buffer, a counted `[Draw]`, `wire(frame);`.
      No image, no backing taken from the board.
-- **D. Cost.** Flatten static graphs; batch prelude compute into levelled passes; problems per material.
-- **E. Then the 3D work resumes** on top: `room.box`, shadow depth per light from the same geometry, screen-space
+- **D. Cost.** Done (2026-11-25), batching dropped (see below). Flatten static graphs; batch prelude compute into levelled passes; problems per material; skip a
+  node whose inputs haven't moved since it last ran, so a `[Kept]` image filled by it is a cache (2026-11-25: "cache a
+  result as a texture" for absurd static backgrounds; cache the surfaces and keep the lighting live).
+- **E. Then the 3D work resumes** on top, built to the drawing model the user confirmed (2026-11-25):
+  - **Makers:** SDFs, meshes and anything else (pixel passes, particles, counted draws). Meshes have a 2D and a 3D
+    front door over one core (generators into a meshlet pool, rebuilt only on change, one vertex-pulled draw); 2D is
+    the plane with z as layer, a flat camera, unlit by default.
+  - **Alone or together:** a maker can be the whole graph (its own quad, camera and light), or join a scene: every
+    maker writes one shared depth + ids, a resolve rebuilds normal/uv/material, lighting runs once a pixel whoever made
+    it, and shadows are every maker drawn again from each light. SDFs and meshes are equals in it.
+  - **Targets:** every pipeline names where it ends: the screen, or a named image. An image is an input to any maker
+    (a mesh's texture, an SDF's material, a post pass, next frame), so a scene can render into an image a 2D card wears.
+  - **Libraries against it** (agreed 2026-11-25): `xanadu.shape` (2D SDFs in a shade) and `xanadu.march` (one field
+    marched in a shade) stay as they are: the alone case, and the SDF maker's step for finding its surface. `sort`,
+    `bvh` and `particles` are passes and stay. `xanadu.mesh` is rebuilt: it bends the item's grid and works the shape
+    out at every vertex every frame, 3D only, no pool. `xanadu.scene` keeps its authoring (solids, `melt`/`cut`,
+    `moved`/`turned`, a box per object) and loses its plumbing (its own record buffers and `shoot` into `Surfaces`)
+    for the shared depth + ids. `xanadu.light` keeps "producers write surfaces, light reads them once" but is reshaped
+    round ids + resolve instead of three fat images, and its `IShadows` round every maker drawn from each light.
+  First pieces: `room.box`, shadow depth per light from the same geometry, screen-space
   AO, `[Surfaces]` sugar if it's still wanted once clears live on declarations.
 
 ## Decisions (2026-11-25)
@@ -382,8 +400,43 @@ Stage C dogfood and C2 so far (2026-11-25):
   coloured by role, with `+ FILE` (named as you type), rename and remove; GRAPH is the overview. `Lab/graph_board` is
   three files (`board`, `wires`, `hot`).
 
-Next: stage C2 step 3 (STEP, UPDATE, TRACE ported onto graphs and dropped as roles); then the rest of stage D: prelude compute batched into levelled
-passes, and problems per material instead of `Console.Error`.
+C2.3, STEP, UPDATE and TRACE gone (2026-11-25):
+
+- **Roles:** `StackRole` is `Graph`, `Deform` and `Shade`; `NodeKind` is `Compute`, `Pixels`, `Draw`, `Present` and
+  `Shade`. `deform` and `shade` are the two stages of a draw, kept as entries because a stack with only them is the
+  common case: one draw of the item's quad onto the frame. Everything that was compute of a fixed shape is a node:
+  - a pool (`[Pool] step` + `start`) is a kept buffer, a `[Pass]` over it that makes each slot on first use (a `made`
+    buffer) and steps it, and a counted `[Draw]` (`swarm`, `klein_swarm`, `fountain`, `raymarch_pool`, `particles`);
+  - an update is a `[Pass(1, over: 1)]` over a one-element kept buffer (`raymarch_tiled`'s `tiles`);
+  - a trace is a `[Pixels]` pass into images and `present` (`trace_wave`, `bvh_march`'s `march`).
+- **Gone:** the trace node and its two hidden images, `IndirectDraws`, `SlangShaders.Traces`, the pool half of
+  `SlangShaders.Pools` (now `Places`), the stage's kept-state preamble and the implicit `state`, and their
+  completions and lint.
+- **Checked:** shots of all eight ported stacks in the shader tool; Slang tests pass but the known one.
+
+Stage D, the rest (2026-11-25):
+
+- **Caches:** `[Cached] [Image(format)] RWTexture2D<T> name;` is held like a `[Kept]` image (`ImageLife.Cached`). A node
+  that touches only cached images (a draw's targets and reads too) and writes no buffer fills the cache
+  (`GraphNode.Fills`, worked out when lowered): it runs only when the cache is stale, so the frame pays a read for it.
+  Stale means just made (new compile, new rounded size, new item) or the material's stamp moved: its `Version` (values,
+  textures) and `BufferVersion` (host buffers). The stamp lives on `HeldImages.Filled`; `ItemSet.Stale` says it for the
+  item, `GraphRunner.Taken` for the material's own. A node reading a cache but writing anything else (a frame image)
+  runs every frame, which is "cache the surface, keep the light live". The board says `cached` instead of threads and
+  doesn't glow it. A fill that reads `time` freezes at the frame it filled: that's the contract, not checked.
+- **Checked:** `Lab/cached`, a 600-step, 10-octave fbm range carved into cached `far` + `facing` and lit every frame by
+  a circling sun; a throwaway probe showed its cached half lagging the live half by seconds, so the fill doesn't rerun.
+- **Problems per material:** a `[Grid]` deform in a graph that works in the box (pixels, draws, present) is now a
+  compile error on the `[Grid]` line (`DeformGrid.Check`), not a runtime message. A schedule its values make impossible
+  keeps its reason on the lowered plan (`LoweredGraph.Plan.Problem`); `CanvasRenderer.GraphProblem(material)` reads
+  it, and the shader tool lists it under PROBLEMS (`IEditorPreview.Problem`). No graph problem goes to `Console.Error`.
+- **Levelled prelude passes: dropped.** SDL_GPU binds a compute pass's read-write images and buffers when the pass
+  begins, by slot. Two nodes share a pass only if they write the same resources in the same slots, which nodes of
+  different items or graphs never do. Caches and once-per-material passes are what cut prelude cost instead.
+- **Not yet:** the stamp is the whole material's, so changing a value no fill reads (the range's `spin`) still refills
+  it. Narrowing it to the values a fill's shader reads needs per-pass uniform use from reflection.
+
+Next: `present` as a library draw (its blockers are below), then stage E on the confirmed drawing model.
 
 Also still open:
 
@@ -392,5 +445,4 @@ Also still open:
 
 ## Known failures (not from this work)
 
-- `new_shader_8` has a STEP brick outside `Lab/` (two Slang test failures).
 - `APlainFloat4StaysAnError` fails with or without the scene module.

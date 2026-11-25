@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
@@ -72,7 +73,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
             if (step.Kind is StepKind.Primitives or StepKind.Particles)
                 continue;
             CanvasEffect effect = _pipelines.Effect(step.Material);
-            if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true || effect.Compiled.Trace?.Shader.ReadsDepth == true)
+            if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true || effect.Compiled.Build?.Passes.Any(pass => pass.ReadsDepth) == true)
                 return true;
         }
 
@@ -151,7 +152,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
             // A particle mesh borrows the effect's shade only; its graph ran with the material's own items.
             if (step.Kind == StepKind.MeshParticles)
             {
-                if (_exits.Shade(commands, pass, s, step, effect, samples, frame, ref clocked))
+                if (_exits.Shade(commands, pass, step, effect, samples, frame, ref clocked))
                     BatchCount++;
                 continue;
             }
@@ -181,7 +182,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
                         BatchCount++;
                     clocked = false;
                 }
-                else if (node.Kind == NodeKind.Shade && _exits.Shade(commands, pass, s, step, effect, samples, frame, ref clocked))
+                else if (node.Kind == NodeKind.Shade && _exits.Shade(commands, pass, step, effect, samples, frame, ref clocked))
                     BatchCount++;
                 else if (node is { Kind: NodeKind.Draw, Place: NodePlace.Exit } && step.Mesh is { } mesh && step.Start < mesh.Vertices.Count)
                 {

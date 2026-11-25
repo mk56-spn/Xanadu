@@ -1,7 +1,8 @@
-// STEP: the particle lab's FOUNTAIN, cut down to one pool (Tools/Labs/Shaders/particle_lab.slang).
-// The engine bears 2500 particles a second into free slots, each made by start, and
-// frees the slot when step returns false. Modules, in the lab's order: gravity, drag,
-// a pusher (the lab's pointer; drag its dot), then the walls.
+// The particle lab's FOUNTAIN, cut down to one pool. `bear` works out the births this frame,
+// RATE a second; they take the slots after the last ones, round a ring (the longest life fits
+// in it, so a slot is free again by the time the ring comes back to it). `move` makes each
+// newborn with start and steps the rest, a slot dying when moved returns false. Modules, in the
+// lab's order: gravity, drag, a pusher (the lab's pointer; drag its dot), then the walls.
 import xanadu;
 
 // Where the particles come from, in pixels from the middle: drag its dot on the preview.
@@ -31,7 +32,16 @@ struct Particle
     float age;          // seconds
     float life;         // seconds it lives
     float hue;          // turns its colour is nudged by
+    uint alive;
 };
+
+// 8000 slots, 2500 births a second: the longest life (3 s) fits.
+static const uint SLOTS = 8000;
+static const float RATE = 2500;
+
+[Buffer(SLOTS)] RWStructuredBuffer<Particle> slots;
+// Births so far, the first born this frame, how many, and the birth owed (a float's bits).
+[Buffer(4)] RWStructuredBuffer<uint> births;
 
 /// Birth number n: at the emitter, with its own direction, speed and length of life.
 Particle start(uint n)
@@ -42,12 +52,12 @@ Particle start(uint n)
     p.age = 0;
     p.life = lerp(Life.x, Life.y, random(uint3(n, 15, 0)));
     p.hue = (random(uint3(n, 17, 0)) - 0.5) * 0.04;
+    p.alive = 1;
     return p;
 }
 
-// 8000 slots, 2500 births a second: the longest life (3 s) fits.
-[Pool(8000, 2500)]
-bool step(inout Particle p, uint i, float dt)
+/// One frame of a live particle; false once it dies.
+bool moved(inout Particle p)
 {
     p.age += dt;
     if (p.age >= p.life || any(isnan(p.position)))
@@ -76,4 +86,35 @@ bool step(inout Particle p, uint i, float dt)
         p.velocity[1 - k] *= 1 - friction;
     }
     return true;
+}
+
+[Pass(1, over: 1)]
+void bear(uint i)
+{
+    float owed = asfloat(births[3]) + RATE * dt;
+    uint n = min(uint(owed), SLOTS);
+    births[3] = asuint(owed - n);
+    births[1] = births[0];
+    births[2] = n;
+    births[0] += n;
+}
+
+[Pass(64, over: SLOTS)]
+void move(uint i)
+{
+    // How far round the ring from this frame's first birth: within the births, it is one of them.
+    uint first = births[1], k = (i + SLOTS - first % SLOTS) % SLOTS;
+    Particle p = slots[i];
+    if (k < births[2])
+        p = start(first + k);
+    else if (p.alive != 0 && !moved(p))
+        p.alive = 0;
+    slots[i] = p;
+}
+
+void graph()
+{
+    bear();
+    move();
+    particle(frame);
 }

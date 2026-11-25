@@ -9,12 +9,14 @@ namespace Xanadu.Rendering.Kept;
 /// starts. Made for one compile of an effect at one size; made again when either changes, and let go with the range.
 /// </summary>
 /// <param name="Held">By the images' places: a held texture, or null for an image the frame's pool gives.</param>
-internal struct HeldImages(uint start, CanvasEffect effect, uint width, uint height, Texture?[] held) : IRelation<uint>
+/// <param name="Filled">The material's stamp when its <c>[Cached]</c> images were last filled (<see cref="ItemImages"/>).</param>
+internal struct HeldImages(uint start, CanvasEffect effect, uint width, uint height, Texture?[] held, long filled) : IRelation<uint>
 {
     public uint Start = start;
     public CanvasEffect Effect = effect;
     public uint Width = width, Height = height;
     public Texture?[] Held = held;
+    public long Filled = filled;
 
     public readonly uint GetRelationKey() => Start;
 

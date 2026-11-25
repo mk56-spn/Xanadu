@@ -1,7 +1,8 @@
 // Raymarcher, pooled, on xanadu.march: the scene of raymarch_single and raymarch_tiled,
-// with no tiles. Each sphere is an item. STEP puts it where it is this frame and keeps the
-// spheres it melts into, nearest first; DEFORM draws the box it takes on screen; SHADE
-// marches only through it, against it and those. A pixel no sphere covers does no work.
+// with no tiles. `place` puts each sphere where it is this frame and keeps the spheres it
+// melts into, nearest first; `sphere` draws the box each takes on screen, one copy of a quad
+// apiece, and its shade marches only through it, against it and those (look.slang). A pixel
+// no sphere covers does no work.
 import xanadu;
 
 static const int SPHERES = 128;
@@ -36,20 +37,16 @@ float4 sphereAt(int i, float t)
 /// A sphere's own colour.
 colour hueOf(uint index) { return colours.hue(index / float(SPHERES)); }
 
-Sphere start(uint i)
-{
-    Sphere s = {};
-    s.index = i;
-    s.ball = sphereAt(int(i), time);
-    return s;
-}
-
 /// Where it is now, and the spheres close enough to melt into it (surfaces within twice
 /// BLEND), the nearest NEAR of them. The motion is a function of time, so each sphere works
 /// out the others itself, once a frame, and no pixel has to.
-[Pool(128)]     // SPHERES, written as a number: the engine reads it
-void step(inout Sphere s, uint i, float dt)
+[Buffer(SPHERES)] RWStructuredBuffer<Sphere> spheres;
+
+[Pass(64, over: SPHERES)]
+void place(uint i)
 {
+    Sphere s = {};
+    s.index = i;
     s.ball = sphereAt(int(i), time);
     float gaps[NEAR];
     uint kept = 0;
@@ -80,4 +77,11 @@ void step(inout Sphere s, uint i, float dt)
         s.ids[at] = uint(j);
     }
     s.melts = kept;
+    spheres[i] = s;
+}
+
+void graph()
+{
+    place();
+    sphere(frame);
 }

@@ -12,10 +12,8 @@ namespace Xanadu.Slang;
 /// <param name="Count">Elements, from the size expression.</param>
 /// <param name="Start">Where its declaration starts in the body (the attribute), for the rewrite.</param>
 /// <param name="End">Just past its <c>;</c>.</param>
-/// <param name="Draws">Marked <c>[Draws]</c> in place of <c>[Buffer(size)]</c>: one uint the passes write, the copies of the
-/// stack's quad drawn this frame.</param>
 /// <param name="Host">Marked <c>[Host(size)]</c>: the host writes it.</param>
-public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Draws = false, bool Host = false);
+public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -38,6 +36,9 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
 
     /// <summary>A draw's <c>copies:</c> when it is a bare name, which may be a buffer's.</summary>
     public string? CopiesName { get; init; }
+
+    /// <summary>A draw marked <c>[Translucent]</c> just before its <c>[Draw]</c>: it tests the depth and never writes it.</summary>
+    public bool Translucent { get; init; }
 
     /// <summary>The uint buffer whose first element counts a draw's copies on the GPU (its place in the buffers), or -1.</summary>
     public int CopiesBuffer { get; init; } = -1;
@@ -150,8 +151,6 @@ public sealed partial class StackBuild
     /// <summary>The images it declares, in order.</summary>
     public IReadOnlyList<BuildImage> Images { get; }
 
-    /// <summary>The <c>[Draws]</c> buffer's place in <see cref="Buffers"/>, or -1: without one the stack's quad is drawn once.</summary>
-    public int Draws { get; }
 
     /// <summary>The brick's passes, then each library pass as build() lends it buffers, in the order first called.</summary>
     public IReadOnlyList<BuildPass> Passes => _passes;
@@ -166,7 +165,6 @@ public sealed partial class StackBuild
         List<BuildBuffer> buffers = ReadBuffers();
         Buffers = buffers;
         Images = ReadImages();
-        Draws = buffers.FindIndex(buffer => buffer.Draws);
         _passes = BuildPasses.Read(code, Constant, library: false);
         for (int p = 0; p < _passes.Count; p++)
         {
@@ -193,9 +191,9 @@ public sealed partial class StackBuild
         Match entry = BuildEntry().Match(code);
         if (!entry.Success)
         {
-            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Host|Pass|Image|History|Pixels|Draw)\s*\(|(?:Draws|Kept)\s*\])");
+            Match stray = Regex.Match(code, @"\[\s*(?:(?:Buffer|Host|Pass|Image|History|Pixels|Draw)\s*\(|(?:Kept|Cached)\s*\])");
             if (stray.Success)
-                throw new BuildProblem(stray.Index, "[Buffer], [Host], [Image], [Kept], [History], [Draws], [Pass], [Pixels] and [Draw] belong to a graph: declare a void graph() that runs them, in any of the stack's files.");
+                throw new BuildProblem(stray.Index, "[Buffer], [Host], [Image], [Kept], [Cached], [History], [Pass], [Pixels] and [Draw] belong to a graph: declare a void graph() that runs them, in any of the stack's files.");
             return null;
         }
 
@@ -210,7 +208,7 @@ public sealed partial class StackBuild
     [GeneratedRegex(@"\bvoid\s+(?:graph|build)\s*\(\s*\)")]
     private static partial Regex BuildEntry();
 
-    [GeneratedRegex(@"(?<kept>\[\s*Kept\s*\]\s*)?(?<image>\[\s*Image\s*\(\s*(?<format>\w+)\s*(?:,\s*scale\s*:\s*(?<scale>[^,\)\]]+?)\s*)?(?:,\s*(?<w>[^,:\)\]]+?)\s*,\s*(?<h>[^,:\)\]]+?)\s*)?(?:,\s*clear\s*:\s*(?<clear>[^\)\]]+?)\s*)?\)\s*\])\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"(?<kept>\[\s*(?<life>Kept|Cached)\s*\]\s*)?(?<image>\[\s*Image\s*\(\s*(?<format>\w+)\s*(?:,\s*scale\s*:\s*(?<scale>[^,\)\]]+?)\s*)?(?:,\s*(?<w>[^,:\)\]]+?)\s*,\s*(?<h>[^,:\)\]]+?)\s*)?(?:,\s*clear\s*:\s*(?<clear>[^\)\]]+?)\s*)?\)\s*\])\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex ImageDeclaration();
 
     [GeneratedRegex(@"\[\s*History\s*\(\s*(?<source>\w+)\s*\)\s*\]\s*RWTexture2D\s*<\s*(?<type>\w+)\s*>\s*(?<name>\w+)\s*;")]
@@ -223,7 +221,7 @@ public sealed partial class StackBuild
         ["r16f"] = "float", ["r32f"] = "float", ["r32ui"] = "uint",
     };
 
-    [GeneratedRegex(@"\[\s*(?:(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)|(?<draws>Draws))\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"\[\s*(?:Buffer|(?<host>Host))\s*\((?<size>[^\]]*)\)\s*\]\s*(?<coherent>globallycoherent\s+)?RWStructuredBuffer\s*<\s*(?<type>[\w:.]+)\s*>\s*(?<name>\w+)\s*;")]
     private static partial Regex BufferDeclaration();
 
     /// <summary>A <c>static const</c> of the body, worked out; null when there is none by that name or it can't be.</summary>
@@ -233,25 +231,15 @@ public sealed partial class StackBuild
     {
         var buffers = new List<BuildBuffer>();
         var declared = BufferDeclaration().Matches(_code);
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer\s*\(|Host\s*\(|Draws\s*\])"))
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*(?:Buffer|Host)\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), [Host(size)] for one the host fills, or [Draws] RWStructuredBuffer<uint> name;.");
+                throw new BuildProblem(marker.Index, "write a buffer as [Buffer(size)] RWStructuredBuffer<T> name; (globallycoherent may go before RWStructuredBuffer), or [Host(size)] for one the host fills.");
 
         foreach (Match match in declared)
         {
             string name = match.Groups["name"].Value;
             if (buffers.Any(buffer => buffer.Name == name))
                 throw new BuildProblem(match.Index, $"the buffer {name} is declared twice.");
-            if (match.Groups["draws"].Success)
-            {
-                if (match.Groups["type"].Value != "uint")
-                    throw new BuildProblem(match.Index, $"a [Draws] buffer is one uint, the copies drawn: [Draws] RWStructuredBuffer<uint> {name};");
-                if (buffers.Any(buffer => buffer.Draws))
-                    throw new BuildProblem(match.Index, "a stack has one [Draws] buffer.");
-                buffers.Add(new BuildBuffer(name, "uint", 1, match.Groups["coherent"].Success, match.Index, match.Index + match.Length, Draws: true));
-                continue;
-            }
-
             Group size = match.Groups["size"];
             BuildValue count = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, Constant);
             if (!count.Whole || count.Long < 1)
@@ -263,16 +251,23 @@ public sealed partial class StackBuild
         return buffers;
     }
 
+    private static ImageLife LifeOf(Match image) => image.Groups["life"].Value switch
+    {
+        "Kept" => ImageLife.Kept,
+        "Cached" => ImageLife.Cached,
+        _ => ImageLife.Frame,
+    };
+
     private List<BuildImage> ReadImages()
     {
         var images = new List<BuildImage>();
         var declared = ImageDeclaration().Matches(_code);
         foreach (Match marker in Regex.Matches(_code, @"\[\s*Image\s*\("))
             if (!declared.Any(match => match.Groups["image"].Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (the item's box), [Image(format, scale: 0.5)] (a part of it) or [Image(format, 256, 256)] (fixed), with clear: value last if wanted (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui), [Kept] before it to keep it from frame to frame.");
-        foreach (Match marker in Regex.Matches(_code, @"\[\s*Kept\s*\]"))
+                throw new BuildProblem(marker.Index, "write an image as [Image(format)] RWTexture2D<T> name; (the item's box), [Image(format, scale: 0.5)] (a part of it) or [Image(format, 256, 256)] (fixed), with clear: value last if wanted (format rgba16f, rgba8, rgba32f, rg16f, r16f, r32f or r32ui), [Kept] before it to keep it from frame to frame, or [Cached] to fill it only when the values change.");
+        foreach (Match marker in Regex.Matches(_code, @"\[\s*(Kept|Cached)\s*\]"))
             if (!declared.Any(match => match.Groups["kept"].Success && match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "[Kept] goes on an image: [Kept] [Image(format)] RWTexture2D<T> name;.");
+                throw new BuildProblem(marker.Index, $"[{marker.Groups[1].Value}] goes on an image: [{marker.Groups[1].Value}] [Image(format)] RWTexture2D<T> name;.");
 
         foreach (Match match in declared)
         {
@@ -286,7 +281,7 @@ public sealed partial class StackBuild
             if (match.Groups["clear"] is { Success: true } value)
                 clear = (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, Constant).Number;
             images.Add(new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length,
-                match.Groups["kept"].Success ? ImageLife.Kept : ImageLife.Frame, Size: SizeOf(match, name)));
+                LifeOf(match), Size: SizeOf(match, name)));
         }
 
         var histories = HistoryDeclaration().Matches(_code);
@@ -303,8 +298,8 @@ public sealed partial class StackBuild
             if (source < 0)
                 throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an [Image] this graph declares.");
             BuildImage of = images[source];
-            if (of.Life == ImageLife.Kept)
-                throw new BuildProblem(match.Index, $"{from} is [Kept]: it already holds last frame's texels, so it needs no history.");
+            if (of.Life is ImageLife.Kept or ImageLife.Cached)
+                throw new BuildProblem(match.Index, $"{from} is [{of.Life}]: it already holds last frame's texels, so it needs no history.");
             if (images.Any(image => image.Source == source))
                 throw new BuildProblem(match.Index, $"{from} has a history already.");
             if (type != of.Type)

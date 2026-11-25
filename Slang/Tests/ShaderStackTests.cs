@@ -37,7 +37,7 @@ public sealed class ShaderStackTests
     {
         string body = ShaderStack.Compose("Lab/s", [new StackFile("heights.slang", Graph)]);
 
-        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, keepsState: true);
+        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, runsGraphs: true);
 
         Assert.That(compiled.Build!.Alone, Is.True);
     }
@@ -49,7 +49,7 @@ public sealed class ShaderStackTests
         const string run = "import xanadu;\nvoid graph() { grow(); }\n";
         string body = ShaderStack.Compose("Lab/s", [new StackFile("heights.slang", declared), new StackFile("run.slang", run), new StackFile("look.slang", Fragment)]);
 
-        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, keepsState: true);
+        CompiledShader compiled = SlangShaders.CompileEffectBody("Lab/s", body, runsGraphs: true);
 
         Assert.That(compiled.Build!.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "grow" }));
     }
@@ -71,16 +71,6 @@ public sealed class ShaderStackTests
         var error = Assert.Throws<InvalidOperationException>(() => ShaderStack.Compose("s", [new StackFile(name, Fragment)]))!;
 
         Assert.That(error.Message, Does.Contain("error: a stack's file is a plain name"));
-    }
-
-    [Test]
-    public void APoolNeedsADeformToPlaceItsItems()
-    {
-        const string pool = "import xanadu;\nstruct Item { float2 p; };\nItem start(uint i) { Item t; t.p = 0; return t; }\n[Pool(10)] void step(inout Item t, uint i, float dt) { }\n";
-        var error = Assert.Throws<InvalidOperationException>(() =>
-            ShaderStack.Compose("s", [new StackFile("pool.slang", pool), new StackFile("look.slang", Fragment)]))!;
-
-        Assert.That(error.Message, Does.StartWith("s/pool.slang(1): error:"));
     }
 
     [Test]

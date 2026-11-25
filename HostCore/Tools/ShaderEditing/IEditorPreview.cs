@@ -54,6 +54,12 @@ internal interface IEditorPreview : IDisposable
     /// <summary>Every frame before <see cref="Update"/>: the time the shader should see, in seconds and song beats.</summary>
     void UseClock(float seconds, float beats) { }
 
+    /// <summary>
+    /// What stops the shown code running, found while it runs rather than when it compiled (a graph whose values make
+    /// it impossible); null when nothing does. Read every frame, listed with the problems.
+    /// </summary>
+    string? Problem => null;
+
     /// <summary>The preview's own GPU passes, before the canvas draws.</summary>
     void Render(MoonWorks.Graphics.CommandBuffer commands) { }
 }

@@ -1,6 +1,7 @@
-// DEFORM: one copy of the item's quad for each thing drawn, in the order they stack: copy 0
-// is the field under it all (the item's own quad), then every trail segment, then every live
-// particle, a quad round it stretched along its velocity. All in world pixels, `zoom` onto the item.
+// One copy of a quad for each thing drawn, in the order they stack: copy 0 is the field under
+// it all (the item's own quad), then every trail segment, then every live particle, a quad
+// round it stretched along its velocity. All in world pixels, `zoom` onto the item. The shade:
+// the field over the background, a trail segment's soft line, or a particle in its look.
 import xanadu;
 
 static const uint FIELD = 0, SEGMENT = 1, PARTICLE = 2;
@@ -60,7 +61,8 @@ bool segmentOf(uint slot, Particle p, Emitter e, uint k, out float2 from, out fl
     return k + 1 < samples && dot(span, span) <= WORLD.x * WORLD.x * 0.0625;
 }
 
-ItemVertex deform(ItemVertex v)
+[Draw(1, 1, shade: particleLook, copies: drawn)]
+ItemVertex particle(ItemVertex v)
 {
     Drawn d = drawnOf(copy);
     if (d.kind == FIELD)
@@ -110,4 +112,20 @@ ItemVertex deform(ItemVertex v)
     v.uv = float2(stretch, radius);
     v.colour = colourOf(e, p);
     return v;
+}
+
+float4 particleLook(ItemInput i)
+{
+    Drawn d = drawnOf(copy);
+    if (d.kind == FIELD)
+    {
+        float shown = 1 - exp(-fieldIn(lists[PARITY] * CELLS, i.local) * gain);
+        return float4(background.rgb + tint.rgb * shown * tint.a, 1);
+    }
+
+    float a = d.kind == SEGMENT
+        ? sdf.filled(abs(i.local.y) - i.uv.y, 1.2)
+        : particles.cover(emitterOf(pool[d.slot].emitter).look, i.local, i.uv.x, i.uv.y);
+    // The vertex colour alone: uv carries the sizes here, not a place on the item's texture.
+    return float4(i.vertexColour.rgb, i.vertexColour.a * a);
 }

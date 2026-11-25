@@ -584,7 +584,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         if (_preview.HasPoint(frame.Mouse))
             _pointer = frame.Mouse;
         _standIns.Update(frame.Delta, _pointer, _preview, _timeline.Progress, seconds, beats, _tuning);
-        _view.Update(frame, _pointer, _tuning);
+        UpdateView(frame);
 
         _chrome.Draw(new EditorState(
             buffer.Line, buffer.Column, _status, _statusColour,

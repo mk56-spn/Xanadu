@@ -5,12 +5,6 @@ namespace Xanadu.Slang;
 /// <summary>What a node of a lowered graph does.</summary>
 public enum NodeKind
 {
-    /// <summary>The UPDATE brick: kept state, once.</summary>
-    Update,
-
-    /// <summary>The STEP brick: the pool's items, stepped once.</summary>
-    Step,
-
     /// <summary>A <c>[Pass]</c> call: compute over elements or groups.</summary>
     Compute,
 
@@ -20,13 +14,10 @@ public enum NodeKind
     /// <summary>A <c>[Draw]</c> call into the graph's own images, or onto the frame (an exit).</summary>
     Draw,
 
-    /// <summary>The TRACE brick: compute over the item's box into the trace's two images.</summary>
-    Trace,
-
-    /// <summary>Images drawn onto the frame over the item's box: a <c>present</c>, or what a trace made.</summary>
+    /// <summary>Images drawn onto the frame over the item's box: a <c>present</c>.</summary>
     Present,
 
-    /// <summary>The stack's own triangles (DEFORM places them, SHADE colours them) drawn onto the frame.</summary>
+    /// <summary>The item's own quad (its deform places the corners, its shade colours them) drawn onto the frame.</summary>
     Shade,
 }
 
@@ -55,10 +46,10 @@ public enum NodePlace
 /// </summary>
 public enum NodeScope
 {
-    /// <summary>Once a frame for the material, on its buffers: UPDATE, STEP, a <c>[Pass]</c>.</summary>
+    /// <summary>Once a frame for the material, on its buffers: a <c>[Pass]</c>.</summary>
     Material,
 
-    /// <summary>Once for each item showing the material, on that item's images: pixels, draws, a trace, the exits.</summary>
+    /// <summary>Once for each item showing the material, on that item's images: pixels, draws, the exits.</summary>
     Item,
 }
 
@@ -68,14 +59,18 @@ public enum NodeScope
 public readonly record struct PlannedImage(string Name, string Format, float Clear, ImageLife Life, int Source, ImageSize Size, bool Material);
 
 /// <summary>One node of a lowered graph: what it does, where it runs, and for a schedule's node the call it came from.</summary>
-public readonly record struct GraphNode(NodeKind Kind, NodePlace Place, StackBuild.Run Call = default)
+/// <param name="Fills">
+/// It fills a cache: every image it touches is <c>[Cached]</c> and it writes no buffer, so it runs only when those go
+/// stale (<see cref="ImageLife.Cached"/>).
+/// </param>
+public readonly record struct GraphNode(NodeKind Kind, NodePlace Place, StackBuild.Run Call = default, bool Fills = false)
 {
     /// <summary>How often it runs, from what its kind binds.</summary>
-    public NodeScope Scope => Kind is NodeKind.Update or NodeKind.Step or NodeKind.Compute ? NodeScope.Material : NodeScope.Item;
+    public NodeScope Scope => Kind == NodeKind.Compute ? NodeScope.Material : NodeScope.Item;
 }
 
 /// <summary>
-/// A compiled stack lowered to one graph (Docs/render-graph.md): every brick becomes a node, in the order they run, each
+/// A compiled stack lowered to one graph (Docs/render-graph.md): every call of its schedule becomes a node, in order, each
 /// placed by what it reads. A shade-only stack is one <see cref="NodeKind.Shade"/> exit; a schedule's calls are walked
 /// with the material's values, so a pass a value switches off isn't there. The renderer runs this list and the editor's
 /// board (<see cref="StackGraph"/>) draws it: what is shown is what runs.
@@ -103,8 +98,8 @@ public sealed class GraphPlan
     public string? Problem { get; private set; }
 
     /// <summary>
-    /// The graph's images, by the places its nodes name: the schedule's <c>[Image]</c>s, then a trace's colour and depth
-    /// (cleared to nothing there, the box's size). Each item showing the graph gets its own, but for the material's.
+    /// The graph's images, by the places its nodes name: the schedule's <c>[Image]</c>s. Each item showing the graph gets
+    /// its own, but for the material's.
     /// </summary>
     public static IEnumerable<PlannedImage> Images(CompiledShader fragment)
     {
@@ -114,16 +109,7 @@ public sealed class GraphPlan
                 BuildImage image = build.Shape.Images[k];
                 yield return new PlannedImage(image.Name, image.Format, image.Clear, image.Life, image.Source, image.Size, build.MaterialImages[k]);
             }
-
-        if (fragment.Trace is not null)
-        {
-            yield return new PlannedImage("traced", "rgba16f", 0f, ImageLife.Frame, -1, default, false);
-            yield return new PlannedImage("traced depth", "r32f", 0f, ImageLife.Frame, -1, default, false);
-        }
     }
-
-    /// <summary>The place of a trace's colour among <see cref="Images"/>; its depth is the next.</summary>
-    public static int TracedImage(CompiledShader fragment) => fragment.Build?.Shape.Images.Count ?? 0;
 
     /// <summary>The stack lowered with its values as <paramref name="uniform"/> reads them; every value at its default without one.</summary>
     public static GraphPlan Of(CompiledShader fragment, Func<string, BuildValue?>? uniform = null)
@@ -141,10 +127,6 @@ public sealed class GraphPlan
         ReadsScreen = false;
         ReadsValues = false;
         Problem = null;
-        if (fragment.Update is not null)
-            Add(NodeKind.Update, NodePlace.Prelude);
-        if (fragment.Pool is not null)
-            Add(NodeKind.Step, NodePlace.Prelude);
 
         bool alone = false;
         if (fragment.Build is { } build)
@@ -178,33 +160,57 @@ public sealed class GraphPlan
                 CompiledPass pass = build.Passes[run.Pass];
                 ReadsScreen |= pass.ReadsScreen;
                 NodePlace item = BreaksPass || pass.ReadsDepth || pass.ReadsScreen ? NodePlace.MidFrame : NodePlace.Prelude;
+                bool fills = item == NodePlace.Prelude && Fills(build, pass, run);
                 if (pass.Drawn is not null)
-                    Add(NodeKind.Draw, run.OntoFrame ? NodePlace.Exit : item, run);
+                    Add(NodeKind.Draw, run.OntoFrame ? NodePlace.Exit : item, run, fills && !run.OntoFrame);
                 else if (pass.Tile is not null)
-                    Add(NodeKind.Pixels, item, run);
+                    Add(NodeKind.Pixels, item, run, fills);
                 else if (run.Groups > 0)
-                    Add(NodeKind.Compute, NodePlace.Prelude, run);
+                    Add(NodeKind.Compute, NodePlace.Prelude, run, fills);
             }
 
             alone = build.Alone;
-        }
-
-        if (fragment.Trace is { } trace)
-        {
-            // A trace that reads the canvas depth must wait for the canvas drawn so far; one that doesn't runs before.
-            Add(NodeKind.Trace, trace.Shader.ReadsDepth ? NodePlace.MidFrame : NodePlace.Prelude);
-            uint colour = (uint)TracedImage(fragment);
-            Add(NodeKind.Present, NodePlace.Exit, new StackBuild.Run(StackBuild.Run.Present, 0, 0, StackBuild.RunValues.Of([colour, colour + 1], StackBuild.Run.None)));
-            alone |= trace.Alone;
         }
 
         if (!alone)
             Add(NodeKind.Shade, NodePlace.Exit);
     }
 
-    private void Add(NodeKind kind, NodePlace place, StackBuild.Run call = default)
+    /// <summary>
+    /// Whether a call only fills caches: it touches at least one image and all of them are <c>[Cached]</c> (a draw's
+    /// targets too), and writes no buffer (a draw's stages can only read theirs).
+    /// </summary>
+    private static bool Fills(CompiledBuild build, CompiledPass pass, StackBuild.Run run)
     {
-        _nodes.Add(new GraphNode(kind, place, call));
+        IReadOnlyList<BuildImage> images = build.Shape.Images;
+        bool touches = false;
+        foreach (int image in pass.Images)
+        {
+            if (images[image].Life != ImageLife.Cached)
+                return false;
+            touches = true;
+        }
+
+        if (pass.Drawn is { } drawn)
+        {
+            if (Array.Exists(drawn.Reads, image => images[image].Life != ImageLife.Cached))
+                return false;
+            for (int k = 0; run.Target(k) != StackBuild.Run.None; k++)
+            {
+                if (run.Target(k) == StackBuild.Run.Frame || images[(int)run.Target(k)].Life != ImageLife.Cached)
+                    return false;
+                touches = true;
+            }
+
+            return touches;
+        }
+
+        return touches && !Array.Exists(pass.Access, access => access.HasFlag(GraphAccess.Write));
+    }
+
+    private void Add(NodeKind kind, NodePlace place, StackBuild.Run call = default, bool fills = false)
+    {
+        _nodes.Add(new GraphNode(kind, place, call, fills));
         BreaksPass |= place == NodePlace.MidFrame;
     }
 }

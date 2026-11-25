@@ -1,6 +1,8 @@
-// DEFORM: once per bottle. Its grid's uv runs round the ring and round the figure 8; each
-// corner goes where that point of the bottle is, seen through one camera, and hands the
-// bottle's normal there down to SHADE in its colour (the bottle's colour comes from `item`).
+// Each bottle a copy of a grid: its uv runs round the ring and round the figure 8; each corner
+// goes where that point of the bottle is, seen through one camera, and hands the bottle's normal
+// there down to the shade in its colour. The shade lights each bottle in its own colour, with
+// faint stripes round the 8 so the twist reads; the bottle is worked out again for where the
+// pixel is (the light's angle to the eye), not for its normal.
 import xanadu;
 
 /// The camera every bottle is seen through, scaled with the preview (laid out 810 px tall).
@@ -27,12 +29,24 @@ float3 bottleAt(Bottle b, float2 uv, float s, out float3 normal)
     return mul(b.turn, local) * s + b.position;
 }
 
-[Grid(24, 12)]
-ItemVertex deform(ItemVertex v)
+[Draw(24, 12, shade: bottleLook, copies: BOTTLES)]
+ItemVertex bottle(ItemVertex v)
 {
     float s = v.rest.size.y / 810;
     float3 normal;
-    v.place(bottleAt(item, v.uv, s, normal), camera(s));
+    v.place(bottleAt(bottles[copy], v.uv, s, normal), camera(s));
     v.colour = float4(normal * 0.5 + 0.5, 1);
     return v;
+}
+
+float4 bottleLook(ItemInput i)
+{
+    float s = i.rest.size.y / 810;
+    colour base = colours.oklch(0.74, 0.13, bottles[copy].hue);
+    base.paint(Checker(1.0 / 8).filled(float2(i.uv.y, 0.01), 0.01) * 0.25, colours.white);
+    float3 unused;
+    SurfacePoint p;
+    p.position = bottleAt(bottles[copy], i.uv, s, unused);
+    p.normal = normalize(i.vertexColour.xyz * 2 - 1);
+    return lights.studio(p, camera(s).eye, base);
 }

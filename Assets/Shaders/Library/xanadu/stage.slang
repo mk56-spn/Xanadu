@@ -413,18 +413,6 @@ public struct Dispatch
 /// The BUILD pass thread running now (all zeros elsewhere).
 public static Dispatch dispatch = {};
 
-/// What `trace` says about its pixel besides its colour.
-public struct Traced
-{
-    /// How far into the screen the surface it drew sits, in pixels: deform's `v.depth`, so
-    /// the stack's own triangles drawn after it hide behind it or show in front. 0 is the
-    /// item's plane. A pixel it leaves clear (alpha 0) sets no depth.
-    public float depth;
-};
-
-/// Set by `trace` for its pixel; reset to zeros before each call.
-public static Traced traced = {};
-
 /// Music beats since the music started, for `clock.beats`: from the song's
 /// timing in a level, from its timeline in the shader editor.
 public static float beat = 0.0;

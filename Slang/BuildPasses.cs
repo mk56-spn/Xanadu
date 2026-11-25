@@ -190,6 +190,7 @@ internal static partial class BuildPasses
                 Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index)),
                 Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,
                 CopiesName = copies.Success && Regex.IsMatch(copies.Value, @"^\w+$") ? copies.Value : null,
+                Translucent = Regex.IsMatch(code[..match.Index], @"\[\s*Translucent\s*\]\s*$"),
             });
         }
     }

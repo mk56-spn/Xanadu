@@ -53,9 +53,6 @@ public sealed partial class SlangCompletions
     {
         foreach (Completion type in _code.Types)
             yield return type;
-        if (KeepsState(code))
-            yield return new Completion(KeptState, CompletionKind.Variable, "State · kept",
-                Doc: "What update left this frame, read-only here: update changes it, shade reads it.");
         foreach (string line in code)
         {
             int comment = line.IndexOf("//", StringComparison.Ordinal);
@@ -141,18 +138,9 @@ public sealed partial class SlangCompletions
         return type;
     }
 
-    /// <summary>What shade reads update's State as: the compiler declares it, the code never does.</summary>
-    private const string KeptState = "state";
-
-    /// <summary>Whether the code keeps state: it declares update and its State struct, so shade has <c>state</c>.</summary>
-    private bool KeepsState(IReadOnlyList<string> code) =>
-        _code.Scopes.ContainsKey("State") && code.Any(line => Regex.IsMatch(line, @"\bvoid\s+update\s*\("));
-
     /// <summary>A name's type, from how the code declares it; only types the library or the code's own structs know.</summary>
     private string? VariableType(string name, IReadOnlyList<string> code, int depth = 0)
     {
-        if (name == KeptState && KeepsState(code))
-            return "State";
         // What the host provides (mouse is a float2), unless the code declares the name itself.
         string? provided = _provided.Find(p => p.Name == name).Detail?.Split(' ')[0];
         foreach (string line in code)

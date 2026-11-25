@@ -44,6 +44,13 @@ public enum ImageLife
     Kept,
 
     /// <summary>
+    /// <c>[Cached]</c>: held like a kept image, but filled only when it goes stale: when it is made (a new compile, a new
+    /// size, a new item) or the material's values or host buffers change. A node that touches only cached images and
+    /// writes no buffer is skipped in between (<see cref="GraphNode.Fills"/>), so drawing a cached image costs a read.
+    /// </summary>
+    Cached,
+
+    /// <summary>
     /// <c>[History(source)] RWTexture2D&lt;T&gt; name;</c>: what the source held at the end of last frame, cleared like the source
     /// on the first. The runner swaps the two each frame, so nothing is copied.
     /// </summary>

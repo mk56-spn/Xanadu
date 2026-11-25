@@ -6,6 +6,7 @@ using Xanadu.Rendering.Gpu;
 using Xanadu.Rendering.Kept;
 using Xanadu.Rendering.Passes;
 using Xanadu.Rendering.Text;
+using Xanadu.Ui.Systems.Canvas;
 using EntityStore = Friflo.Engine.ECS.EntityStore;
 using MwColor = MoonWorks.Graphics.Color;
 
@@ -87,7 +88,7 @@ internal sealed class CanvasRenderer : IDisposable
         _collect = new CanvasCollect(tree, _residents, _targets.FullClip);
         _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids);
         _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals);
-        _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices, _graphs.Indirect);
+        _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices);
         _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits);
     }
 
@@ -95,6 +96,10 @@ internal sealed class CanvasRenderer : IDisposable
     public Dictionary<ulong, Texture> Textures { get; } = [];
 
     public CanvasPipelines Pipelines { get; }
+
+    /// <summary>Why the material's graph can't run with its values this frame (a loop that won't end); null when it can.</summary>
+    public string? GraphProblem(CanvasMaterial material) =>
+        _materials.Find(material) is { IsNull: false } entity && entity.TryGetComponent(out LoweredGraph lowered) ? lowered.Plan.Problem : null;
 
     public CanvasParticles Particles { get; }
 

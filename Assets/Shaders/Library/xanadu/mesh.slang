@@ -122,7 +122,7 @@ public struct Camera
     public float depth(float3 p) { return viewed(p).z; }
 
     /// How far into the screen a world point is, in pixels: 0 on the orbit's centre (the item's
-    /// plane), as ItemVertex.depth, traced.depth and Surfaces measure it.
+    /// plane), as ItemVertex.depth, present's depth and Surfaces measure it.
     public float screenDepth(float3 p) { return depth(p) - distance; }
 
     /// How much fog lies between the camera and `p`, 0 nearer than `near` to 1 at `far` and

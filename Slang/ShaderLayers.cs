@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -54,8 +55,8 @@ public static partial class ShaderLayers
         {
             (string path, string source) = layers[index];
             string space = $"xanaduLayer{index}";
-            if (SlangShaders.KeepsState(source))
-                throw new InvalidOperationException($"{path}: keeps state (update), so it can't be stacked.");
+            if (ShaderStack.RolesOf(source).Contains(StackRole.Graph))
+                throw new InvalidOperationException($"{path}: has a graph, so it can't be stacked.");
 
             string shadeArguments = ShadeSignature.Arguments(source, out string problem)
                 ?? throw new InvalidOperationException($"{path}: {problem}");
@@ -63,7 +64,7 @@ public static partial class ShaderLayers
             if (SlangShaders.Deforms(source))
             {
                 deforms.AppendLine($"    v = {space}::deform(v);");
-                if (SlangShaders.GridOf(source) is { } asked)
+                if (DeformGrid.Of(source) is { } asked)
                     grid = grid is { } had ? (Math.Max(had.Columns, asked.Columns), Math.Max(had.Rows, asked.Rows)) : asked;
             }
 

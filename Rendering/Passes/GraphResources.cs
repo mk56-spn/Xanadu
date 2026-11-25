@@ -16,6 +16,9 @@ namespace Xanadu.Rendering.Passes;
 /// </summary>
 internal sealed class GraphResources(GraphicsDevice device, MaterialStore materials) : IDisposable
 {
+    /// <summary>Bytes of one indirect draw's args: vertices, instances, first vertex, first instance.</summary>
+    public const uint ArgsBytes = 16;
+
     /// <summary>Bytes of zeros a new buffer is cleared from, a piece at a time.</summary>
     private const uint ZeroPiece = 1 << 20;
 
@@ -53,7 +56,7 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
     {
         CopyPass copy = commands.BeginCopyPass();
         copy.CopyBufferToBuffer(new BufferLocation { Buffer = kept.Buffers[build.Passes[pass].Drawn!.CopiesBuffer].Handle },
-            new BufferLocation { Buffer = kept.DrawArgs!.Handle, Offset = (uint)pass * IndirectDraws.ArgsBytes + 4 }, 4, cycle: false);
+            new BufferLocation { Buffer = kept.DrawArgs!.Handle, Offset = (uint)pass * ArgsBytes + 4 }, 4, cycle: false);
         commands.EndCopyPass(copy);
     }
 

@@ -15,18 +15,7 @@ internal struct PassUniforms
     public uint A, B, C, D;
 }
 
-/// <summary>
-/// One material's pool step: where its items start in the buffer, whether they are made afresh
-/// this run, and for a pool born at a rate, how many are born this frame, the number of the
-/// first, and which of the two birth counters this frame uses.
-/// </summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct PoolJob
-{
-    public uint First, Reset, Births, Born, Parity, Pad0, Pad1, Pad2;
-}
-
-/// <summary>A pixel node's quad (uniform 2, <c>XanaduTraceQuad</c> in SlangShaders.Traces): the quad on the target and the box it covers.</summary>
+/// <summary>A pixel node's quad (uniform 2, <c>XanaduTraceQuad</c> in SlangShaders.Pixels): the quad on the target and the box it covers.</summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct TraceQuad
 {

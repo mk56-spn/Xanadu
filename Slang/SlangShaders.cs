@@ -41,21 +41,8 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
 
     public ShaderParam[] Params { get; } = parameters;
 
-    /// <summary>Read-only storage buffers: every library global (after the samplers in a fragment stage), then kept state when it keeps any.</summary>
+    /// <summary>Read-only storage buffers: every library global (after the samplers in a fragment stage), then the stack's buffers it reads.</summary>
     public int StorageBuffers { get; } = storageBuffers;
-
-    /// <summary>Bytes in one element of the structured buffer it binds (a kept <c>State</c>); 0 for none.</summary>
-    public int StateBytes { get; init; }
-
-    /// <summary>A kept-state effect's once-a-frame <c>update</c>, compiled for compute; null when it keeps none.</summary>
-    public CompiledShader? Update { get; init; }
-
-    /// <summary>
-    /// A pooled stack's step (its STEP brick), compiled for compute on the <c>ComputeOperation</c>
-    /// contract; null without a pool. Set on the fragment; its <see cref="ItemBytes"/> and
-    /// <see cref="ItemCount"/> size the pool, and the draw runs once per item.
-    /// </summary>
-    public CompiledShader? Pool { get; init; }
 
     /// <summary>Bytes in one element of every structured buffer it declares, by name: a BUILD brick's buffers are sized from it.</summary>
     public IReadOnlyDictionary<string, int> BufferBytes { get; init; } = new Dictionary<string, int>();
@@ -66,24 +53,8 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     /// </summary>
     public int[] StackBuffers { get; init; } = [];
 
-    /// <summary>A stack's BUILD brick, compiled: its buffers, its passes and their schedule; null without one. Set on the fragment.</summary>
+    /// <summary>A stack's graph, compiled: its resources, its passes and draws, and their schedule; null without one. Set on the fragment.</summary>
     public CompiledBuild? Build { get; init; }
-
-    /// <summary>A stack's TRACE brick, compiled: run before its triangles draw; null without one. Set on the fragment.</summary>
-    public CompiledTrace? Trace { get; init; }
-
-    /// <summary>Bytes in one pool slot (the read-write buffer's element: the item and whether it is alive); 0 for none.</summary>
-    public int ItemBytes { get; init; }
-
-    /// <summary>How many items a pool keeps; 0 for none.</summary>
-    public int ItemCount { get; init; }
-
-    /// <summary>
-    /// Births a second for a pool whose items are born and die (its <c>rate</c>); 0 when they live
-    /// for good. Such a pool's buffer has two slots more than <see cref="ItemCount"/>: the births'
-    /// counters, one for each other frame.
-    /// </summary>
-    public float PoolRate { get; init; }
 
     /// <summary>
     /// An effect's own vertex stage, from its <c>deform</c>; null for the host's standard one.
@@ -468,19 +439,15 @@ public static partial class SlangShaders
     /// <c>shade</c>. <c>#line</c> keeps Slang's errors on the author's lines,
     /// under <paramref name="name"/>.
     /// </summary>
-    /// <remarks>
-    /// An effect that declares <c>void update(inout State s, float dt)</c> keeps
-    /// state (Docs/shaders.md): <c>update</c> runs once a frame on one GPU
-    /// thread and <c>shade</c> reads the result as <c>state</c>. Only where
-    /// <paramref name="keepsState"/> allows it (the lab, for now); elsewhere such
-    /// an effect is an error.
-    /// </remarks>
+    /// <param name="runsGraphs">
+    /// Whether a <c>graph()</c> may run: only where it allows it (the lab and the shader tool, for now);
+    /// elsewhere a stack with one is an error.
+    /// </param>
     /// <param name="shadeWith">
     /// A library function of <c>ItemInput</c> drawn instead of the body's <c>shade</c>, through the
     /// same vertex stage (<see cref="TrianglesOverlay"/>, <see cref="UvOverlay"/>); null for <c>shade</c>.
-    /// The body's own <c>update</c> doesn't run for it.
     /// </param>
-    public static CompiledShader CompileEffectBody(string name, string source, bool keepsState = false, string? shadeWith = null)
+    public static CompiledShader CompileEffectBody(string name, string source, bool runsGraphs = false, string? shadeWith = null)
     {
         List<ColourConversion> conversions = [.. ColourConversionsOf(source)];
         string label = Split(name, "").Label;
@@ -489,13 +456,13 @@ public static partial class SlangShaders
             string compiled = SlangColourConversions.Apply(source, conversions, out int[] origin);
             try
             {
-                CompiledShader shader = CompileAsWritten(name, compiled, keepsState, shadeWith);
+                CompiledShader shader = CompileAsWritten(name, compiled, runsGraphs, shadeWith);
                 RememberConversions(source, conversions);
                 return shader;
             }
             catch (Exception exception) when (pass < MaxConversionPasses)
             {
-                // A stack's bricks each report under their own label: every mark says where its line 1 is.
+                // A stack's files each report under their own label: every mark says where its line 1 is.
                 List<(string, int)> marks = [(label, 1), .. LineMarks(source)];
                 List<ColourConversion> found = [.. SlangColourConversions.Find(exception.Message, marks, source, compiled, origin, LibraryText()).Where(conversion => !conversions.Contains(conversion))];
                 if (found.Count == 0)
@@ -543,43 +510,31 @@ public static partial class SlangShaders
             return _libraryText ??= string.Join("\n", LibraryModules().Select(module => module.Text));
     }
 
-    private static CompiledShader CompileAsWritten(string name, string source, bool keepsState, string? shadeWith)
+    private static CompiledShader CompileAsWritten(string name, string source, bool runsGraphs, string? shadeWith)
     {
-        bool updates = KeepsState(source);
-        if (updates && !keepsState)
-            throw new InvalidOperationException($"{name}: update() and kept state work only in the lab for now (and in {LabFolder}, which the game never loads).");
-        PoolShape? pool = PoolOf(name, source);
-        if (pool is not null && !keepsState)
-            throw new InvalidOperationException($"{name}: a pool (step) runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
         StackBuild? build = BuildOf(name, source);
-        if (build is not null && !keepsState)
+        if (build is not null && !runsGraphs)
             throw new InvalidOperationException($"{name}: a graph runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
-        bool traces = Traces(source);
-        if (traces && !keepsState)
-            throw new InvalidOperationException($"{name}: a trace runs only in the lab and the shader tool for now (and in {LabFolder}, which the game never loads).");
 
         if (shadeWith is not null)
         {
-            if (pool is not null || build is not null || traces)
-                throw new InvalidOperationException($"{name}: the editor's overlays don't draw pools, graphs or traces yet.");
-            // Only the body's deform and values matter: the fragment is the library's, reading no state.
+            if (build is not null)
+                throw new InvalidOperationException($"{name}: the editor's overlays don't draw graphs yet.");
+            // Only the body's deform and values matter: the fragment is the library's.
             int first = StorageBinding(source);
-            CompiledShader overlay = CompileWrapped(
-                Wrap(name, source, updates ? StateDeclaredOnly : -1, shadeWith), "xanaduFragment", "fragment", 2, 3, GlobalDefines(first, 2));
+            CompiledShader overlay = CompileWrapped(Wrap(name, source, shadeWith), "xanaduFragment", "fragment", 2, 3, GlobalDefines(first, 2));
             CheckDeclared(name, overlay, 2, first);
             return new CompiledShader(overlay.Spirv, overlay.Samplers, overlay.UniformBuffers, overlay.Params, overlay.ParamsSize, storageBuffers: Globals.Count)
             {
-                Vertex = Deforms(source) ? CompileVertex(name, source, updates, null, null) : null,
+                Vertex = Deforms(source) ? CompileVertex(name, source, null) : null,
             };
         }
 
-        // Storage buffers follow the samplers: every global, then any kept state, then any pool, then the stack's buffers it reads.
+        // Storage buffers follow the samplers: every global, then the stack's buffers it reads.
         int globalsAt = StorageBinding(source);
-        int stateBinding = updates ? globalsAt + Globals.Count : -1;
-        int poolBinding = pool is null ? -1 : globalsAt + Globals.Count + (updates ? 1 : 0);
-        int own = Globals.Count + (updates ? 1 : 0) + (pool is null ? 0 : 1);
+        int own = Globals.Count;
         (CompiledShader fragment, int[] buffers) = Placed(build, source, 2, globalsAt + own, placed => CompileWrapped(
-            Wrap(name, placed, stateBinding, pool: pool, poolBinding: poolBinding), "xanaduFragment", "fragment", 2, 3, GlobalDefines(globalsAt, 2)));
+            Wrap(name, placed), "xanaduFragment", "fragment", 2, 3, GlobalDefines(globalsAt, 2)));
         if (fragment.Samplers.Length != globalsAt)
             throw new InvalidOperationException(
                 $"{name}: expected {globalsAt} samplers before the globals but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 3 up, with no gaps.");
@@ -587,42 +542,13 @@ public static partial class SlangShaders
         CheckStageBuffers(name, "shade", own + buffers.Length, build, buffers);
         CheckNoImages(name, "shade", build, fragment, 2);
 
-        CompiledShader? vertex = Deforms(source) ? CompileVertex(name, source, updates, pool, build) : null;
-        CompiledShader? update = null;
-        if (updates)
-        {
-            // Compute: the globals are the read-only buffers of set 0, the state the read-write one of set 1.
-            CompiledShader compute = CompileWrapped(WrapUpdate(name, Unbound(build, source), pool), "xanaduUpdate", "compute", 0, 2,
-                [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={ComputeDepth}", "XANADU_DEPTH_SET=0"]);
-            CheckDeclared(name, compute, 0, 0);
-            CheckUnbound(name, "update", build, compute);
-            if (SpirvScan.Binds(compute.Spirv, 0, ComputeDepth))
-                throw new InvalidOperationException($"{name}: update can't read the depth (sampleDepth); only shade and deform can.");
-            update = new(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize, storageBuffers: Globals.Count)
-            {
-                StateBytes = compute.StateBytes,
-            };
-            if (update.StateBytes > MaxStateBytes)
-                throw new InvalidOperationException($"{name}: State takes {update.StateBytes} bytes; it may take at most {MaxStateBytes}.");
-        }
-
-        CompiledShader? stepped = null;
-        if (pool is { } shape)
-        {
-            stepped = CompilePool(name, Unbound(build, source), shape, updates);
-            CheckUnbound(name, "step", build, stepped);
-        }
-
         return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
             storageBuffers: own + buffers.Length)
         {
             ReadsDepth = SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth),
-            Update = update,
-            Vertex = vertex,
-            Pool = stepped,
+            Vertex = Deforms(source) ? CompileVertex(name, source, build) : null,
             StackBuffers = buffers,
-            Build = build is null ? null : CompileBuild(name, source, build, fragment, updates, pool),
-            Trace = traces ? CompileTrace(name, source, build, updates, pool) : null,
+            Build = build is null ? null : CompileBuild(name, source, build, fragment),
         };
     }
 
@@ -635,12 +561,6 @@ public static partial class SlangShaders
     /// <summary>The fragment sampler the depth is (xanadu.stage's <c>depthTexture</c>).</summary>
     public const int FragmentDepth = 2;
 
-    /// <summary>Where an <c>update</c> would find the depth: nowhere bound, so reading it is an error.</summary>
-    private const int ComputeDepth = 31;
-
-    /// <summary>A <see cref="Wrap"/> state binding that declares <c>state</c> (zeros) without reading it.</summary>
-    private const int StateDeclaredOnly = -2;
-
     /// <summary>The vertex uniform buffer a deforming effect reads the frame from (0 is the view, 1 its values).</summary>
     public const int VertexFrameSlot = 2;
 
@@ -649,12 +569,12 @@ public static partial class SlangShaders
     /// values buffer 1 and the frame buffer <see cref="VertexFrameSlot"/> of set 1. Anything
     /// it binds in the fragment's sets (a texture) is an error: SDL_GPU wouldn't bind it.
     /// </summary>
-    private static CompiledShader CompileVertex(string name, string source, bool keepsState, PoolShape? pool, StackBuild? build)
+    private static CompiledShader CompileVertex(string name, string source, StackBuild? build)
     {
-        // Vertex set 0: the depth is sampler 0, so the globals' storage buffers start at 1; a pool's items after them, then the stack's buffers it reads.
-        int own = Globals.Count + (pool is null ? 0 : 1);
+        // Vertex set 0: the depth is sampler 0, so the globals' storage buffers start at 1, then the stack's buffers it reads.
+        int own = Globals.Count;
         (CompiledShader compiled, int[] buffers) = Placed(build, source, 0, 1 + own, placed => CompileWrapped(
-            WrapVertex(name, placed, keepsState, pool), "xanaduVertex", "vertex", 0, 1,
+            WrapVertex(name, placed), "xanaduVertex", "vertex", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]));
         CheckStageBuffers(name, "deform", own + buffers.Length, build, buffers);
         CheckNoImages(name, "deform", build, compiled, 0);
@@ -662,42 +582,24 @@ public static partial class SlangShaders
             throw new InvalidOperationException(
                 $"{name}: deform can't read textures (sampleItem, sampleScreen or the effect's own); only shade can, and both can read sampleDepth.");
         CheckDeclared(name, compiled, 0, 1);
+        DeformGrid.Check(name, source, build);
         return new CompiledShader(compiled.Spirv, compiled.Samplers, compiled.UniformBuffers, compiled.Params, compiled.ParamsSize,
             storageBuffers: own + buffers.Length)
         {
             ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
-            Grid = GridOf(source),
+            Grid = DeformGrid.Of(source),
             Translucent = Regex.IsMatch(StripComments(source), @"\[\s*Translucent\s*\]"),
             StackBuffers = buffers,
         };
-    }
-
-    /// <summary>The most cells a <c>[Grid]</c> may ask for on a side.</summary>
-    private const int MaxGrid = 256;
-
-    /// <summary>The <c>[Grid(columns, rows)]</c> a body puts on its deform, each side clamped to 1..<see cref="MaxGrid"/>; null without one.</summary>
-    public static (int Columns, int Rows)? GridOf(string source)
-    {
-        var match = Regex.Match(StripComments(source),
-            @"\[\s*Grid\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*\]");
-        if (!match.Success)
-            return null;
-        int columns = Math.Clamp(int.Parse(match.Groups[1].Value), 1, MaxGrid);
-        int rows = Math.Clamp(int.Parse(match.Groups[2].Value), 1, MaxGrid);
-        return (columns, rows);
     }
 
     /// <summary>Whether an effect body declares <c>ItemVertex deform(…)</c>, and so its own vertex stage.</summary>
     public static bool Deforms(string source) =>
         Regex.IsMatch(StripComments(source), @"\bItemVertex\s+deform\s*\(");
 
-    /// <summary>The most bytes an effect's <c>State</c> may take.</summary>
-    public const int MaxStateBytes = 16 * 1024;
-
-    /// <summary>Whether an effect body declares an <c>update</c>, and so keeps state.</summary>
     /// <summary>
-    /// Effects for the lab and the shader tool only: kept state works in them, and the game never
-    /// loads them (its start-up compile skips the folder). Where effects live until levels run state.
+    /// Effects for the lab and the shader tool only: graphs run in them, and the game never
+    /// loads them (its start-up compile skips the folder). Where effects live until levels run graphs.
     /// </summary>
     public const string LabFolder = "Assets/Shaders/Lab/";
 
@@ -709,9 +611,6 @@ public static partial class SlangShaders
         string slashed = path.Replace('\\', '/');
         return slashed.Contains("/" + folder, StringComparison.Ordinal) || slashed.StartsWith(folder, StringComparison.Ordinal);
     }
-
-    public static bool KeepsState(string source) =>
-        Regex.IsMatch(StripComments(source), @"\bvoid\s+update\s*\(");
 
     private static string StripComments(string source) =>
         Regex.Replace(
@@ -769,25 +668,11 @@ public static partial class SlangShaders
         MyRegex().IsMatch(StripComments(source));
 
     /// <summary>The generated module around one effect body; a chain would add one namespace per effect.</summary>
-    /// <param name="stateBinding">The fragment binding for kept state, or -1 when the effect keeps none.</param>
     /// <param name="shadeWith">A library function of the input drawn instead of the body's shade; see <see cref="CompileEffectBody"/>.</param>
-    /// <param name="pool">A pooled body's pool: <c>item</c> is read from <paramref name="poolBinding"/> by the instance.</param>
-    public static string Wrap(string name, string source, int stateBinding = -1, string? shadeWith = null, PoolShape? pool = null, int poolBinding = -1)
+    public static string Wrap(string name, string source, string? shadeWith = null)
     {
         (string imports, string code, string label) = Split(name, source);
         string clock = TimelineClock(source, shading: true);
-        // Read once per pixel, before shade, into a static the body sees as `state`.
-        string state = stateBinding == StateDeclaredOnly ? "static State state;"
-            : stateBinding < 0 ? "" : $$"""
-            [[vk::binding({{stateBinding}}, 2)]] StructuredBuffer<State> xanaduStateIn;
-            static State state;
-            """;
-        string load = stateBinding < 0 ? "" : "effect0::state = effect0::xanaduStateIn[0];";
-        string items = pool is not null && poolBinding >= 0
-            ? $"[[vk::binding({poolBinding}, 2)]] StructuredBuffer<XanaduSlot> xanaduPoolIn;"
-            : "";
-        if (items.Length > 0)
-            load += " effect0::item = effect0::xanaduPoolIn[v.instance].item;";
         // shade gets what its parameters ask for (ShadeSignature): the canvas, the whole input, or both.
         string shade = shadeWith is not null
             ? $"{shadeWith}(i)"
@@ -802,17 +687,12 @@ public static partial class SlangShaders
             namespace effect0 {
             #line 1 "{{label}}"
             {{code}}
-            #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
-            {{items}}
             }
             #line 1 "{{label}} (wrapper)"
             [shader("fragment")]
             float4 xanaduFragment(ItemVaryings v) : SV_Target
             {
                 copy = v.instance;
-                {{load}}
                 ItemInput i = input(v);
                 {{clock}}
                 i.colour = {{shade}};
@@ -825,28 +705,17 @@ public static partial class SlangShaders
     /// <summary>
     /// The same body with a vertex entry that runs its <c>deform</c> on each corner
     /// (as the host's standard stage lays them out), with the globals set from the frame.
-    /// Kept state isn't there: <c>state</c> reads as zeros, so <c>shade</c> still compiles.
     /// </summary>
-    public static string WrapVertex(string name, string source, bool keepsState = false, PoolShape? pool = null)
+    public static string WrapVertex(string name, string source)
     {
         (string imports, string code, string label) = Split(name, source);
         string clock = TimelineClock(source, shading: false);
-        string state = keepsState ? "static State state;" : "";
-        // A pool's items follow the globals in vertex set 0; the instance picks the one being drawn.
-        string items = pool is null ? "" : $"[[vk::binding({1 + Globals.Count}, 0)]] StructuredBuffer<XanaduSlot> xanaduPoolIn;";
-        string load = pool is null ? "" : "effect0::item = effect0::xanaduPoolIn[instance].item;";
-        // A dead item's corners all land on one point: nothing of it is drawn.
-        string fold = pool is { Births: true } ? "if (effect0::xanaduPoolIn[instance].alive == 0) o.position = float4(0, 0, 0, 1);" : "";
         return $$"""
             import xanadu.stage;
             {{imports}}
             namespace effect0 {
             #line 1 "{{label}}"
             {{code}}
-            #line 1 "{{label}} (wrapper)"
-            {{state}}
-            {{ItemDeclaration(pool)}}
-            {{items}}
             }
             #line 1 "{{label}} (wrapper)"
             struct XanaduCorner
@@ -870,7 +739,6 @@ public static partial class SlangShaders
                 vertexClock();
                 copy = instance;
                 {{clock}}
-                {{load}}
                 ItemVertex v = { c.position, c.uv, c.colour, c.local, canvasFrom(c.restX, c.restY, c.restCorner, c.uv), c.index, 0.0 };
                 ItemVertex d = effect0::deform(v);
                 ItemVaryings o = varyings(d);
@@ -881,43 +749,7 @@ public static partial class SlangShaders
                 // Where the corner was before deform: shade's rest canvas.
                 o.rest = c.position;
                 o.instance = instance;
-                {{fold}}
                 return o;
-            }
-            """;
-    }
-
-    /// <summary>
-    /// The same body with a compute entry that runs its <c>update</c> on the kept
-    /// state: buffer 0 of compute set 1, the frame's dt in uniform buffer 0 and
-    /// the effect's values (laid out as the fragment's) in uniform buffer 1.
-    /// </summary>
-    public static string WrapUpdate(string name, string source, PoolShape? pool = null)
-    {
-        (string imports, string code, string label) = Split(name, source);
-        return $$"""
-            import xanadu.stage;
-            {{imports}}
-            namespace effect0 {
-            #line 1 "{{label}}"
-            {{code}}
-            #line 1 "{{label}} (wrapper)"
-            static State state;
-            {{ItemDeclaration(pool)}}
-            }
-            #line 1 "{{label}} (wrapper)"
-            struct XanaduUpdateFrame { float dt; float time; float beat; float pad; };
-            [[vk::binding(0, 2)]] ConstantBuffer<XanaduUpdateFrame> xanaduUpdateFrame;
-            [[vk::binding(0, 1)]] RWStructuredBuffer<effect0::State> xanaduStateOut;
-            [shader("compute")]
-            [numthreads(1, 1, 1)]
-            void xanaduUpdate()
-            {
-                {{Clocks("xanaduUpdateFrame.time", "xanaduUpdateFrame.beat", "xanaduUpdateFrame.dt")}}
-                {{TimelineClock(source, shading: false)}}
-                effect0::State s = xanaduStateOut[0];
-                effect0::update(s, xanaduUpdateFrame.dt);
-                xanaduStateOut[0] = s;
             }
             """;
     }
@@ -1108,7 +940,7 @@ public static partial class SlangShaders
     private static CompiledShader Reflect(byte[] spirv, JsonElement root, int samplerSpace, int uniformSpace)
     {
         var samplers = new SortedDictionary<int, string>();
-        int uniformBuffers = 0, stateBytes = 0, itemBytes = 0;
+        int uniformBuffers = 0;
         var bufferBytes = new Dictionary<string, int>();
         ShaderParam[] parameters = [];
         int paramsSize = 0;
@@ -1136,14 +968,6 @@ public static partial class SlangShaders
                 foreach (JsonElement size in heldSizes.EnumerateArray())
                     bufferBytes[bare] = Math.Max(bufferBytes.GetValueOrDefault(bare), size.GetProperty("value").GetInt32());
             }
-            if (buffer && name.Contains("xanaduState", StringComparison.Ordinal) &&
-                type.TryGetProperty("resultType", out JsonElement element) && element.TryGetProperty("sizes", out JsonElement sizes))
-                foreach (JsonElement size in sizes.EnumerateArray())
-                    stateBytes = Math.Max(stateBytes, size.GetProperty("value").GetInt32());
-            if (buffer && name == "xanaduPool" &&
-                type.TryGetProperty("resultType", out JsonElement item) && item.TryGetProperty("sizes", out JsonElement itemSizes))
-                foreach (JsonElement size in itemSizes.EnumerateArray())
-                    itemBytes = Math.Max(itemBytes, size.GetProperty("value").GetInt32());
             bool image = type.TryGetProperty("access", out JsonElement access) && access.GetString() == "readWrite"; // a graph's image
             if (space == samplerSpace && kind == "resource" && !buffer && !image)
                 samplers[index] = name;
@@ -1180,7 +1004,7 @@ public static partial class SlangShaders
         foreach ((int index, string name) in samplers)
             names[index] = name;
 
-        return new CompiledShader(spirv, names, (uint)uniformBuffers, parameters, paramsSize) { StateBytes = stateBytes, ItemBytes = itemBytes, BufferBytes = bufferBytes };
+        return new CompiledShader(spirv, names, (uint)uniformBuffers, parameters, paramsSize) { BufferBytes = bufferBytes };
     }
 
     private static (ShaderParam[] Params, int Size) Fields(JsonElement constantBuffer)
