@@ -27,6 +27,9 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct ViewUniforms { public float Width, Height, Depth, Span; }
 
+    /// <summary>The unit last pushed with the frame in this pass: a run with another one pushes the frame again.</summary>
+    private float _pushedUnit = 1;
+
     /// <summary>particle_mesh.slang's <c>Place</c>: vertex uniform buffer 1 of a particle-mesh draw.</summary>
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct PlaceUniforms
@@ -57,11 +60,13 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         in FrameUniforms frame, ref bool clocked)
     {
         commands.PushVertexUniformData(new ViewUniforms { Width = targets.Width, Height = targets.Height, Depth = step.Depth, Span = step.Span });
-        if (!clocked)
+        FrameUniforms drawn = frame.For(step.Values);
+        if (!clocked || drawn.Unit != _pushedUnit)
         {
-            // A deforming effect's vertex stage reads the frame too; only its clocks matter there.
-            commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
-            commands.PushFragmentUniformData(frame);
+            // A deforming effect's vertex stage reads the frame too: its clocks and the item's unit.
+            commands.PushVertexUniformData(drawn, SlangShaders.VertexFrameSlot);
+            commands.PushFragmentUniformData(drawn);
+            _pushedUnit = drawn.Unit;
             clocked = true;
         }
 

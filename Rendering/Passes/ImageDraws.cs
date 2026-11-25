@@ -96,7 +96,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
     private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, BuildBuffers kept, ItemSet? set, RestFrame rest, Step step, float time,
         Vector2 shift, Vector2 slice)
     {
-        FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time);
+        FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time).For(step.Values);
         // A draw that covers the box is handed the box as its quad.
         DrawQuad quad = draw.CoversBox && set is { Box: var box }
             ? new DrawQuad { Corner = new Vector2(box.X, box.Y), XAxis = new Vector2(box.Width, 0), YAxis = new Vector2(0, box.Height), Slice = slice }

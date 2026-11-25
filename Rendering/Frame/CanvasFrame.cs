@@ -55,12 +55,16 @@ internal sealed class Job(CanvasItem root, Texture target, MwColor clear)
 internal struct FrameUniforms
 {
     public float Width, Height, Time, ItemPremultiplied;
-    public float Beat, Pad0, Pad1, Pad2;
+    public float Beat, Unit, Pad1, Pad2;
 
     public static FrameUniforms Now(float width, float height, float time) => new()
     {
-        Width = width, Height = height, Time = time, Beat = ShaderClock.Beat,
+        Width = width, Height = height, Time = time, Beat = ShaderClock.Beat, Unit = 1,
     };
+
+    /// <summary>The frame for one run's draws: its unit, from the run's values (<see cref="CanvasMaterial.Unit"/>), 1 without one.</summary>
+    public readonly FrameUniforms For(IReadOnlyDictionary<string, Vector4>? values) =>
+        this with { Unit = values is not null && values.TryGetValue(CanvasMaterial.Unit, out Vector4 unit) ? unit.X : 1 };
 }
 
 /// <summary>

@@ -68,7 +68,8 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
     public static void Count(CommandBuffer commands, BuildBuffers kept, CompiledBuild build, int pass)
     {
         CopyPass copy = commands.BeginCopyPass();
-        copy.CopyBufferToBuffer(new BufferLocation { Buffer = kept.Buffers[build.Passes[pass].Drawn!.CopiesBuffer].Handle },
+        CompiledDraw drawn = build.Passes[pass].Drawn!;
+        copy.CopyBufferToBuffer(new BufferLocation { Buffer = kept.Buffers[drawn.CopiesBuffer].Handle, Offset = (uint)drawn.CopiesAt * 4 },
             new BufferLocation { Buffer = kept.DrawArgs!.Handle, Offset = (uint)pass * ArgsBytes + 4 }, 4, cycle: false);
         commands.EndCopyPass(copy);
     }
