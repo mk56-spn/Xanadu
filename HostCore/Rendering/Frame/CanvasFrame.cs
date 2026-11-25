@@ -3,12 +3,13 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Frame;
 
 /// <summary>One item's draws in a job: its place, and what it inherits.</summary>
 /// <remarks>A resident segment (<see cref="Piece"/>) has no item: its items are placed on the GPU.</remarks>

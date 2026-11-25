@@ -1,7 +1,7 @@
 using MoonWorks.Graphics;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>
 /// A GPU buffer of <typeparamref name="T"/> that grows to fit, and its own upload staging.

@@ -1,6 +1,6 @@
 using MoonWorks.Graphics;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>
 /// An upload buffer that grows to fit: <see cref="Fill"/> copies items into it, ready for a copy

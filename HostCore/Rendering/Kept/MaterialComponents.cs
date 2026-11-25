@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Kept;
 
 // The renderer's material store (MaterialStore): one entity per material drawn, holding the GPU
 // state its stack keeps between frames. Each part is there only once the stack has needed it.

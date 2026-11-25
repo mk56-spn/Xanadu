@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Frame;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 using MwColor = MoonWorks.Graphics.Color;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Passes;
 
 /// <summary>
 /// Drawing a job into its target: the opaque pre-pass first, then every step in order with the

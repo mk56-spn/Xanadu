@@ -4,7 +4,7 @@ using MoonWorks.Graphics;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>Which stage a values block goes to.</summary>
 internal enum ParamsStage { Fragment, Vertex, Compute }

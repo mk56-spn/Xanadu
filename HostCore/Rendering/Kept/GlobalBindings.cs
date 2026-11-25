@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
+using Xanadu.Host.Rendering.Gpu;
 using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Kept;
 
 /// <summary>A declared shader global's buffer (<see cref="ShaderGlobals"/>), on an entity named by <see cref="GlobalName"/>.</summary>
 internal struct GlobalBuffer(GpuArray<byte> gpu) : IComponent

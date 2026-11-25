@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Host.Rendering.Compute;
+using Xanadu.Host.Rendering.Frame;
+using Xanadu.Host.Rendering.Gpu;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Color = Xanadu.Core.Maths.Color;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Passes;
 
 /// <summary>
 /// An effect's [Grid], cut on the GPU (grid_cut.slang): every box a gridded

@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Gpu;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Kept;
 
 /// <summary>A kept effect range's vertices: on the CPU (a trace reads its corners) and on the GPU, in a piece per texture.</summary>
 internal sealed class KeptVertices(GraphicsDevice device)

@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Kept;
 
 /// <summary>
 /// The GPU state each material's stack keeps between frames, as one entity per material

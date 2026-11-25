@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
 using MoonWorks.Graphics;
 using Xanadu.Host.Rendering.Compute;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Passes;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -11,7 +13,7 @@ using Color = Xanadu.Core.Maths.Color;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using Rect = MoonWorks.Graphics.Rect;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Kept;
 
 /// <summary>The mount whose resident tree an entity holds.</summary>
 /// <remarks>Indexed as <c>object</c>: Friflo indexes a class or a struct value, and an interface is neither.</remarks>

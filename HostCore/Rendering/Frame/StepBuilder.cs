@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System.Numerics;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
+using Xanadu.Host.Rendering.Passes;
 using Xanadu.Ui.Systems.Canvas;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Frame;
 
 /// <summary>
 /// Building: turns the frame's jobs into steps in draw order. Plain primitives become instances

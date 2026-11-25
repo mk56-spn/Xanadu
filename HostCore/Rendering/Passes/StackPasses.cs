@@ -2,12 +2,15 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Frame;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Entity = Friflo.Engine.ECS.Entity;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Passes;
 
 /// <summary>What a BUILD pass reads at uniform 0: the frame's clock, the elements for <c>over:</c>, and the call's arguments.</summary>
 [StructLayout(LayoutKind.Sequential)]

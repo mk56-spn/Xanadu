@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Frame;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
+using Xanadu.Host.Rendering.Passes;
 using Xanadu.Host.Text;
-using Xanadu.Ui.Systems.Canvas;
 using EntityStore = Friflo.Engine.ECS.EntityStore;
 using MwColor = MoonWorks.Graphics.Color;
 

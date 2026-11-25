@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Ui.Systems.Canvas;
 using Color = Xanadu.Core.Maths.Color;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Frame;
 
 /// <summary>
 /// Collecting: walks a root's items in order into a job's flat draw list, placing each (its

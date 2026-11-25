@@ -2,7 +2,7 @@ using MoonWorks.Graphics;
 using MwColor = MoonWorks.Graphics.Color;
 using Rect = MoonWorks.Graphics.Rect;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>
 /// What the canvas draws into and reads back, all the size of the frame: the depth buffers, the

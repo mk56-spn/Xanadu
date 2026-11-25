@@ -5,7 +5,7 @@ using Xanadu.Core.Rendering;
 using Xanadu.Slang;
 using Shader = MoonWorks.Graphics.Shader;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>
 /// The pipelines plain primitives draw with (primitives.slang): shaded, opaque for the

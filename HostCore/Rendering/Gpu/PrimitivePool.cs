@@ -6,7 +6,7 @@ using Xanadu.Host.Text;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Gpu;
 
 /// <summary>
 /// Every recording's primitives in its own space, in ranges that stay while it does: an item's

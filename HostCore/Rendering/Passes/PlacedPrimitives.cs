@@ -3,10 +3,12 @@ using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Host.Rendering.Compute;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Passes;
 
 /// <summary>primitive_expand.slang's uniforms: the instances to place, the depth a primitive steps, the first instance.</summary>
 [StructLayout(LayoutKind.Sequential)]

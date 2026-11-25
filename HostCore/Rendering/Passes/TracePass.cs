@@ -4,6 +4,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
+using Xanadu.Host.Rendering.Frame;
+using Xanadu.Host.Rendering.Gpu;
+using Xanadu.Host.Rendering.Kept;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Buffer = MoonWorks.Graphics.Buffer;
@@ -11,7 +14,7 @@ using Rect = MoonWorks.Graphics.Rect;
 using Shader = MoonWorks.Graphics.Shader;
 using Texture = MoonWorks.Graphics.Texture;
 
-namespace Xanadu.Host.Rendering;
+namespace Xanadu.Host.Rendering.Passes;
 
 /// <summary>A TRACE brick's quad (uniform 2, <c>XanaduTraceQuad</c> in SlangShaders.Traces): the quad on the target and the box traced.</summary>
 [StructLayout(LayoutKind.Sequential)]

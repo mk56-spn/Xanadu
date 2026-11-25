@@ -15,7 +15,7 @@ namespace Xanadu.Host.Rendering;
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
 internal sealed class CanvasEffect(
-    Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<PoolJob>? pool = null,
+    Shader shader, CompiledShader compiled, ComputePipeline? update = null, Shader? vertex = null, ComputeOperation<Passes.PoolJob>? pool = null,
     ComputePipeline[]? passes = null, ComputePipeline? trace = null)
     : IDisposable
 {
@@ -29,7 +29,7 @@ internal sealed class CanvasEffect(
     public ComputePipeline? Update { get; } = update;
 
     /// <summary>A pooled stack's step (its STEP brick): one job a material, run before the draws; null without a pool.</summary>
-    public ComputeOperation<PoolJob>? Pool { get; } = pool;
+    public ComputeOperation<Passes.PoolJob>? Pool { get; } = pool;
 
     /// <summary>A BUILD brick's passes, in the order it declares them (a schedule's call names one by its place); empty without one.</summary>
     public ComputePipeline[] Passes { get; } = passes ?? [];
@@ -238,8 +238,8 @@ internal sealed class CanvasPipelines : IDisposable
             })
             : null;
         // A pool's step: the values are uniform 1, the globals (and kept state) its read-only inputs after the jobs.
-        ComputeOperation<PoolJob>? pool = compiled.Pool is { } step2
-            ? new ComputeOperation<PoolJob>(_device, step2.Spirv, inputs: (uint)(step2.StorageBuffers - 1),
+        ComputeOperation<Passes.PoolJob>? pool = compiled.Pool is { } step2
+            ? new ComputeOperation<Passes.PoolJob>(_device, step2.Spirv, inputs: (uint)(step2.StorageBuffers - 1),
                 groupsPerJob: (uint)((step2.ItemCount + SlangShaders.PoolThreads - 1) / SlangShaders.PoolThreads), uniforms: step2.UniformBuffers)
             : null;
         // A BUILD brick's passes: the globals (and kept state) read-only, the buffers each touches read-write.
