@@ -375,6 +375,174 @@ public struct ShadowMap : IShadows
     public float open(float3 p, float3 normal, float reach) { return 1.0; }
 };
 
+/// A lamp's shadows all round: the six faces of a cube round it (+x, -x, +y, -y, +z, -z), tiled
+/// 3 x 2 over one box-sized image, each a 90° view from the lamp. A mesh draw fills it with
+/// LampShadow.pulled over six times its pages (a sixth a face), its shade LampShadow.depthOf; the
+/// lighting asks it for light `light` only.
+///
+///     [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
+///     [Draw(64, 1, shade: fromLamp, copies: PAGES * 6)]
+///     ItemVertex seenByLamp(ItemVertex v) { return LampShadow.pulled(v, placed(), LAMP, PAGES, corners, triangles, meshlets); }
+///     float fromLamp(ItemInput i) { return LampShadow.depthOf(i, PAGES); }
+///     // lighting: LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)
+public struct LampShadow : IShadows
+{
+    public uint light;
+    public RWTexture2D<float> depth;
+    public float3 lamp;
+    public float2 size;
+
+    public __init(uint light, RWTexture2D<float> depth, float3 lamp, float2 size)
+    {
+        this.light = light;
+        this.depth = depth;
+        this.lamp = lamp;
+        this.size = size;
+    }
+
+    /// Face `face`'s way ahead, right and down, as a matrix whose rows they are.
+    public static float3x3 basis(uint face)
+    {
+        float3 ahead = face < 2 ? float3(face == 0 ? 1.0 : -1.0, 0.0, 0.0)
+                     : face < 4 ? float3(0.0, face == 2 ? 1.0 : -1.0, 0.0)
+                     : float3(0.0, 0.0, face == 4 ? 1.0 : -1.0);
+        float3 reference = face == 2 || face == 3 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0);
+        float3 right = normalize(cross(reference, ahead));
+        return float3x3(right, cross(ahead, right), ahead);
+    }
+
+    /// The face a direction from the lamp looks through: its longest axis.
+    public static uint faceOf(float3 d)
+    {
+        float3 a = abs(d);
+        if (a.x >= a.y && a.x >= a.z)
+            return d.x >= 0.0 ? 0u : 1u;
+        if (a.y >= a.z)
+            return d.y >= 0.0 ? 2u : 3u;
+        return d.z >= 0.0 ? 4u : 5u;
+    }
+
+    /// Face `face`'s tile of a box `box` big: its top-left corner (x, y) and size (z, w), in the box's pixels.
+    public static float4 tile(uint face, float2 box)
+    {
+        float2 t = box / float2(3.0, 2.0);
+        return float4(float2(face % 3, face / 3) * t, t);
+    }
+
+    /// Where world point `p` lands in face `face`'s tile, and how far ahead of the lamp it is (z).
+    public static float3 onFace(uint face, float3 lamp, float3 p, float2 box)
+    {
+        float3 v = mul(basis(face), p - lamp);
+        float4 t = tile(face, box);
+        float half = min(t.z, t.w) * 0.5;
+        return float3(t.xy + t.zw * 0.5 + v.xy / max(v.z, 1e-3) * half, v.z);
+    }
+
+    /// A pool draw's corner as face `copy / pages` sees it from `lamp`, for the lamp's map: the
+    /// page is `copy % pages`. A triangle with a corner behind the face is folded away (the face it
+    /// faces draws it).
+    public static ItemVertex pulled(ItemVertex v, Placement3 placed, float3 lamp, uint pages,
+        RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> meshlets)
+    {
+        uint face = copy / pages;
+        uint page = copy % pages;
+        uint t = v.index / 3;
+        Meshlet m = meshlets[page];
+        float3x3 b = basis(face);
+        uint packed = t < m.triangles ? triangles[page * mesh.PAGE + t] : 0u;
+        bool behind = t >= m.triangles;
+        for (uint k = 0; k < 3 && !behind; k++)
+            behind = mul(b, placed.toWorld(corners[page * mesh.PAGE + ((packed >> (8 * k)) & 0xFFu)].position) - lamp).z < 1.0;
+        if (behind)
+        {
+            v.fold();
+            return v;
+        }
+        float3 p = placed.toWorld(corners[page * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFFu)].position);
+        float3 at = onFace(face, lamp, p, v.rest.size);
+        v.position = v.rest.position - v.rest.size * 0.5 + at.xy;
+        v.depth = at.z;
+        return v;
+    }
+
+    /// What LampShadow.pulled's shade writes: how far ahead of the lamp the pixel is, only inside
+    /// its face's tile (outside it, nothing).
+    public static float depthOf(ItemInput i, uint pages)
+    {
+        float4 t = tile(copy / pages, i.rest.size);
+        float2 at = float2(group.pixel) + 0.5;
+        if (any(at < t.xy) || any(at >= t.xy + t.zw))
+            discard;
+        return i.depth;
+    }
+
+    public float shadow(uint asked, float3 p, float3 toLight, float far, float hardness)
+    {
+        if (asked != light)
+            return 1.0;
+        uint face = faceOf(p - lamp);
+        float3 at = onFace(face, lamp, p, size);
+        float4 t = tile(face, size);
+        float half = min(t.z, t.w) * 0.5;
+        // Two of the map's texels at this distance, so a surface never shadows itself.
+        float bias = 2.0 + 2.0 * at.z / max(half, 1.0);
+        float lit = 0.0;
+        for (int y = -1; y <= 1; y++)
+            for (int x = -1; x <= 1; x++)
+            {
+                float2 q = clamp(at.xy + float2(x, y), t.xy, t.xy + t.zw - 1.0);
+                lit += depth[uint2(q)] < at.z - bias ? 0.0 : 1.0;
+            }
+        return lit / 9.0;
+    }
+
+    public float open(float3 p, float3 normal, float reach) { return 1.0; }
+};
+
+/// Ambient occlusion from what is drawn: around a point, how much of its half of the space is
+/// already filled, read back from the shared depth (Visibility). Catches every maker, meshes
+/// included; no shadows of its own. Seen through `camera`, at this pixel pass's pixel.
+public struct ScreenOcclusion : IShadows
+{
+    public RWTexture2D<float> depth;
+    public Camera camera;
+    public Canvas canvas;
+
+    public __init(RWTexture2D<float> depth, Camera camera, Canvas canvas)
+    {
+        this.depth = depth;
+        this.camera = camera;
+        this.canvas = canvas;
+    }
+
+    public float shadow(uint light, float3 p, float3 toLight, float far, float hardness) { return 1.0; }
+
+    /// Twelve points in the half ball over p, `reach` px across, each closed when the depth drawn
+    /// where it lands is nearer than it (but not so much nearer that it is something far in front).
+    public float open(float3 p, float3 normal, float reach)
+    {
+        float2 here = canvas.centred;
+        float closed = 0.0;
+        float spin = random(float2(group.pixel)) * TAU;
+        for (uint k = 0; k < 12; k++)
+        {
+            float a = spin + k * 2.39996;
+            float r = (k + 0.5) / 12.0;
+            float3 d = float3(cos(a) * sqrt(r), sin(a) * sqrt(r), sqrt(1.0 - r));
+            float3 side = normalize(cross(normal, abs(normal.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0)));
+            float3 q = p + (side * d.x + cross(normal, side) * d.y + normal * d.z) * reach * (0.3 + 0.7 * r);
+            float2 texel = float2(group.pixel) + camera.projected(q) - here;
+            if (any(texel < 0.0) || any(texel >= canvas.size))
+                continue;
+            float drawn = depth[uint2(texel)];
+            float wanted = camera.screenDepth(q);
+            if (drawn < wanted - 2.0 && wanted - drawn < reach * 2.0)
+                closed += 1.0;
+        }
+        return saturate(1.0 - closed / 12.0 * 1.2);
+    }
+};
+
 // ---- Lighting a surface -------------------------------------------------------------------
 
 public extension Lighting

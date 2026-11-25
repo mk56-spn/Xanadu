@@ -526,7 +526,22 @@ The GRAPH view, prettified (2026-11-25):
 - **Checked:** GRAPH shots of scene_room, meshes, post and sizes; StackGraphTests pass (the march now only writes
   `marched`).
 
-Next: the "Not yet" list of the shared scene above (shadow maps all round, AO, `room.box`).
+The shared scene's "Not yet", done (2026-11-25):
+
+- **Lamp shadows all round** (`LampShadow` in xanadu.light): the six faces of a cube round the lamp, tiled 3 × 2 over
+  one box-sized image, 90° each. A pool draw over six times its pages fills it (`LampShadow.pulled`: face
+  `copy / pages`, page `copy % pages`; a triangle with a corner behind its face is folded, its shade
+  `LampShadow.depthOf` writes only inside its face's tile). The lighting picks the face by the longest axis, nine taps,
+  two texels of bias. `ShadowMap` (one view) stays for a spot or the sun. `ItemVertex.fold` is public for it.
+- **Screen-space AO** (`ScreenOcclusion`): twelve points in the half ball over the pixel's point, closed where the
+  shared depth drawn there is nearer (and not far in front); it is an `IShadows` with no shadows, so `both(...)` takes
+  the less open of it and the scene's own SDF occlusion. Every maker gets it, meshes included.
+- **`room.box`** is `Room(size)` in xanadu.scene: the inside of a block, floor at y = 0, added first.
+- **Checked:** Lab/scene_room (`Room`, the six-face map of the torus shadowing the floor, AO in every corner and round
+  every pin's foot), with a debug view of AO and the map; the Slang tests pass but the known one.
+
+Still open from the shared scene: SDFs drawing into the lamp map is not needed (they cast through the march, exactly).
+Next on the render graph: nothing planned in this doc beyond stage E; new work starts from the user.
 
 Was: stage E on the confirmed drawing model, starting (user's call, 2026-11-25) with the mesh core: a paged meshlet
 pool in kept buffers, generators as passes that rerun only when their inputs change (today's grid surfaces first, built

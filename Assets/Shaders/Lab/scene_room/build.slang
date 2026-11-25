@@ -11,7 +11,7 @@ import xanadu;
 [Image(r32f, clear: 1e30)] RWTexture2D<float> depth;
 [Image(r32ui)] RWTexture2D<uint> ids;
 [Image(rgba16f)] RWTexture2D<float4> shown;
-/// The lamp's shadow map: how deep the meshes are as the lamp sees them.
+/// The lamp's shadow map all round: six faces, how far the meshes are from the lamp each way.
 [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
 
 static const uint RING = 16;                     // pages the torus's 32 x 32 grid takes (mesh.pagesFor)
@@ -32,7 +32,7 @@ void record(uint i)
     float hit = beats.pulse();
 
     // Walls, floor and ceiling: the inside of a block.
-    s.add(Block(float3(2600, 1000, 2600)).moved(float3(0, -200, 0)).inverted(), Material(colours.slateGray, 0));
+    s.add(Room(float3(2600, 1000, 2600)).moved(float3(0, 300, 0)), Material(colours.slateGray, 0));
     // A pillar in each corner: one moved to a corner, mirrored in x and z.
     s.add(Pillar(50, 1000).moved(float3(1000, -200, 1000)).mirrored(float3(1, 0, 1)), colours.lightGray);
     // The plinth, with a bowl cut into its top.
@@ -88,21 +88,18 @@ ItemVertex ringDrawn(ItemVertex v) { return mesh.pulled(v, ring(), eye(v.rest.si
 
 IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 
-/// The lamp as a camera, looking at the room's middle, wide enough to see most of the floor.
-Camera lampEye(float2 size) { return Camera(LAMP, size.x * 0.22); }
+/// The torus again, from the lamp, into each face of its shadow map: so it shadows the room as the room shadows it.
+[Draw(64, 1, shade: fromLamp, copies: RING * 6)]
+ItemVertex ringFromLamp(ItemVertex v) { return LampShadow.pulled(v, ring(), LAMP, RING, corners, triangles, meshlets); }
 
-/// The torus again, from the lamp, into its shadow map: so it shadows the room as the room shadows it.
-[Draw(64, 1, shade: fromLamp, copies: RING)]
-ItemVertex ringFromLamp(ItemVertex v) { return mesh.pulled(v, ring(), lampEye(v.rest.size), corners, triangles, meshlets); }
-
-float fromLamp(ItemInput i) { return i.depth; }
+float fromLamp(ItemInput i) { return LampShadow.depthOf(i, RING); }
 
 /// The scene, marched only where it is nearer than the torus.
 [Pixels(8, 8)]
 void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), seen()); }
 
-/// Every pixel's surface rebuilt from whoever made it, then lit once, in every maker's shadows:
-/// the room's marched, the torus's from the lamp's map.
+/// Every pixel's surface rebuilt from whoever made it, then lit once, in every maker's shadows
+/// (the room's marched, the torus's from the lamp's map) and in occlusion read from the depth.
 [Pixels(8, 8)]
 void illuminate(ItemInput i, Canvas canvas)
 {
@@ -112,7 +109,8 @@ void illuminate(ItemInput i, Canvas canvas)
     Surface here = s.maker == makers.MESH
         ? Surface(s.onMesh(ring(), corners, triangles).normal, Material(colours.orange, 40))
         : scene.surface(parts, objects, s);
-    let shadows = both(scene.shadows(parts, objects, camera, canvas, light), ShadowMap(Lighting.LAMP, lampDepth, lampEye(canvas.size), canvas.size));
+    let shadows = both(both(scene.shadows(parts, objects, camera, canvas, light), LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)),
+        ScreenOcclusion(depth, camera, canvas));
     shown[group.pixel] = light.deferred(s, here, camera, shadows);
 }
 

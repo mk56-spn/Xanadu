@@ -127,6 +127,10 @@ public Solid Block(float3 size, float round = 0.0) { return Solid(scene.BLOCK, f
 public Solid Block(float size, float round = 0.0) { return Solid(scene.BLOCK, float4(size, size, size, round)); }
 /// A ball `radius` round.
 public Solid Orb(float radius) { return Solid(scene.ORB, float4(radius, 0.0, 0.0, 0.0)); }
+
+/// A room to stand in (room.box): the inside of a block `size` big, its floor at y = 0 and the
+/// rest above it (up is -y), walls, floor and ceiling one object. Add it first.
+public Solid Room(float3 size) { return Block(size).moved(float3(0.0, -size.y * 0.5, 0.0)).inverted(); }
 /// Everything on one side of a flat plane through the origin: `normal` points out of it, up
 /// (-y) by default, so it is a floor; move it down to where the floor is.
 public Solid Plane(float3 normal = float3(0.0, -1.0, 0.0)) { return Solid(scene.PLANE, float4(normalize(normal), 0.0)); }

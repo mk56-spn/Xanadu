@@ -1101,7 +1101,7 @@ public extension ItemVertex
 {
     /// Folded away: every corner of a triangle a page doesn't use lands on one point, so it
     /// draws nothing.
-    [mutating] void fold()
+    [mutating] public void fold()
     {
         position = rest.position;
         depth = 0.0;
