@@ -556,6 +556,14 @@ resolve.
 Also still open:
 
 - `scene_room` lost its `view` option (steps, tile lists, normals) when it moved to Surfaces.
+- Sped up 11-25 (Lab/scene_room filling a 1600 x 900 window, GPU ms a frame): 20 → 5.1 with AO, 12.5 → 3.9 without.
+  The ray's object list was 16 entries in three arrays that spilled out of registers (`scene.RAY` 4 now, with
+  `ROUNDS` 12 gathers; shadows keep their own `SHADOW_RAY` 16): shoot 7.3 → 2.8. A ray starting inside a plain
+  inverted block (the room) meets it where the ray leaves it, worked out instead of marched, so walls and floor cost no
+  steps (depth-only march): 2.8 → 1.1. A hollow (one plain inverted convex part) with both the point and the light
+  inside is skipped by the shadow march: 1.8 ms off illuminate. Shoot stops within half a pixel and no longer works
+  out a normal the resolve rebuilds anyway; shadow marches take 40 steps at most, stop once fully dark, and step no
+  finer than 1% of the way travelled. scene_room has an `ao` switch.
 - Fixed 11-25: the lighter squares round the pins were the tile lists. Occlusion asked only what a tile sees, so a
   floor beside a pin it didn't see lost the pin's darkening at the pin's screen box; and a shadow's soft edge spread
   past the swept box a tile lists casters by. A tile now lists objects within `Lighting.OCCLUSION_REACH` of its view,

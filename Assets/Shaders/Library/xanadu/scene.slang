@@ -256,8 +256,14 @@ public namespace scene
     public static const float ENDLESS = 1e19;
     /// Objects a tile lists; past that its pixels go through every object.
     public static const uint LISTED = 256;
-    /// Objects one ray marches at once: the nearest-entering, gathered again past them.
-    public static const uint RAY = 16;
+    /// Objects one ray marches at once: the nearest-entering, gathered again past them (up to ROUNDS
+    /// times). Small on purpose: its three arrays live in registers, and sixteen spilled them to
+    /// memory, which cost more than the march (7.3 ms against 2.9 at 1600 x 900).
+    public static const uint RAY = 4;
+    /// How many times a ray gathers its next RAY objects.
+    public static const uint ROUNDS = 12;
+    /// Objects a shadow ray asks at once: one array, of ids, and no rounds.
+    public static const uint SHADOW_RAY = 16;
 
     /// A solid as recorded: both places as world-to-local matrices, its shape and its material.
     public struct Part
@@ -648,7 +654,7 @@ public namespace scene
         float cut;
 
         [mutating]
-        void gather(RWStructuredBuffer<Object> objects, Ray ray, float from, float limit, bool listed)
+        void gather(RWStructuredBuffer<Object> objects, Ray ray, float from, float limit, bool listed, uint skip)
         {
             kept = 0;
             cut = limit;
@@ -657,6 +663,8 @@ public namespace scene
             for (uint k = 0; k < n; k++)
             {
                 uint who = listed ? seen[k] : k;
+                if (who == skip)
+                    continue;
                 Object o = objects[1 + who];
                 Span s = endless(o) ? Span(0.0, limit) : o.box.entered(ray, inverse);
                 if (s.missed || s.far < from || s.near >= limit)
@@ -730,15 +738,25 @@ public namespace scene
         }
     };
 
-    /// The ray marched through the scene out to `limit`, gathering what it crosses as it goes.
-    public Shot marched(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, float limit, bool listed)
+    /// The ray marched through the scene out to `limit`, gathering what it crosses as it goes. It stops
+    /// within `pixel` of the surface per pixel of distance (half a pixel's width: 0.5 / the camera's
+    /// focal), finer gains nothing on screen; the hit's normal only when `normal` asks for it.
+    public Shot marched(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, float limit, bool listed,
+        float pixel = 2e-4, bool normal = true)
     {
         Shot s = {};
         RayList list = {};
         float from = 0.0;
-        for (uint round = 0; round < 4; round++)
+        // A room the ray starts in is met where the ray leaves it, worked out, not marched: walls and floor are
+        // most of a room's pixels, and they then cost no steps at all (depth only: the resolve finds its normal).
+        uint room = NONE;
+        float wall = limit;
+        if (!normal)
+            room = roomAround(parts, objects, ray, listed, wall);
+        limit = min(limit, wall);
+        for (uint round = 0; round < ROUNDS; round++)
         {
-            list.gather(objects, ray, from, limit, listed);
+            list.gather(objects, ray, from, limit, listed, room);
             if (list.kept == 0)
                 break;
             float end = min(list.cut, limit);
@@ -748,13 +766,15 @@ public namespace scene
                 float3 p = ray.at(t);
                 uint nearest = 0;
                 float d = list.distance(parts, objects, p, t, nearest);
-                float close = max(0.05, t * 2e-4);
+                float close = max(0.05, t * pixel);
                 if (d < close)
                 {
                     s.found = true;
                     s.t = t;
                     s.position = p;
                     s.object = nearest;
+                    if (!normal)
+                        return s;
                     float e = max(0.5, t * 5e-4);
                     const float2 k = float2(1.0, -1.0);
                     s.normal = normalize(k.xyy * list.near(parts, objects, p + k.xyy * e, 4.0 * e) + k.yyx * list.near(parts, objects, p + k.yyx * e, 4.0 * e)
@@ -767,8 +787,58 @@ public namespace scene
                 break;
             from = list.cut;
         }
+        if (room != NONE && wall <= limit)
+        {
+            s.found = true;
+            s.t = wall;
+            s.position = ray.at(wall);
+            s.object = room;
+        }
         return s;
     }
+
+    /// No object.
+    static const uint NONE = 0xFFFFFFFFu;
+
+    /// Whether an object is a hollow: one plain inverted convex solid (a room, a dome), so from anywhere inside
+    /// it, nothing of it stands between two points. Its one part in `a`.
+    bool hollow(RWStructuredBuffer<Part> parts, Object o, out Part a)
+    {
+        a = parts[o.first];
+        return o.count == 1 && (a.flags & 3u) == ADD && (a.flags & ~3u) == INVERTED && a.spacing.w == 0.0
+            && (a.kind == BLOCK || a.kind == ORB || a.kind == PILLAR || a.kind == PILL);
+    }
+
+    /// The square-cornered hollow block the ray starts inside, if any, and in `exit` how far along it leaves it.
+    uint roomAround(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, bool listed, inout float exit)
+    {
+        uint found = NONE;
+        uint n = listed ? seenCount : objectCount(objects);
+        for (uint k = 0; k < n; k++)
+        {
+            uint who = listed ? seen[k] : k;
+            Object o = objects[1 + who];
+            Part a;
+            if (!endless(o) || !hollow(parts, o, a) || a.kind != BLOCK || a.size.w != 0.0 || (a.flags & SHELLED) != 0)
+                continue;
+            // The ray in the block's own space: both places are affine, so t carries over.
+            float3 origin = applied(a.inner0, a.inner1, a.inner2, applied(a.outer0, a.outer1, a.outer2, ray.origin));
+            float3 way = turnedBy(a.inner0, a.inner1, a.inner2, turnedBy(a.outer0, a.outer1, a.outer2, ray.direction));
+            float3 half = a.size.xyz * 0.5;
+            if (any(abs(origin) >= half))
+                continue;
+            float3 leave = (sign(way) * half - origin) / select(abs(way) < 1e-9, float3(1e-9), way);
+            float t = min(leave.x, min(leave.y, leave.z));
+            if (t < exit)
+            {
+                exit = t;
+                found = who;
+            }
+        }
+        return found;
+    }
+
+    float3 turnedBy(float4 r0, float4 r1, float4 r2, float3 v) { return float3(dot(r0.xyz, v), dot(r1.xyz, v), dot(r2.xyz, v)); }
 
     /// How much of the light towards `toLight` reaches p, 0..1, looking `far`: soft at
     /// `hardness` (Quilez's penumbra from the closest miss). Only the tile's shadowing objects
@@ -776,16 +846,20 @@ public namespace scene
     public float shadow(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, float3 p, float3 toLight, float far,
         float hardness, bool listed)
     {
-        uint ids[RAY];
+        uint ids[SHADOW_RAY];
         uint kept = 0;
         Ray ray = Ray(p, toLight);
         float3 inverse = 1.0 / toLight;
         float margin = far / max(hardness, 1e-3);
         uint n = listed ? shadowingCount : objectCount(objects);
-        for (uint k = 0; k < n && kept < RAY; k++)
+        for (uint k = 0; k < n && kept < SHADOW_RAY; k++)
         {
             uint who = listed ? shadowing[k] : k;
             Object o = objects[1 + who];
+            // A hollow round both the point and the light (a room with its lamp inside) can't come between them.
+            Part a;
+            if (hollow(parts, o, a) && partDistance(a, p) > -1.0 && partDistance(a, ray.at(far)) > 0.0)
+                continue;
             if (!endless(o))
             {
                 Span s = o.box.grown(margin).entered(ray, inverse);
@@ -799,7 +873,7 @@ public namespace scene
 
         float lit = 1.0;
         float t = 1.0;
-        for (uint step = 0; step < 64 && t < far; step++)
+        for (uint step = 0; step < 40 && t < far; step++)
         {
             float3 q = ray.at(t);
             float matters = t / max(hardness, 1e-3) + 1.0;   // nearer than this darkens
@@ -817,10 +891,12 @@ public namespace scene
                 h = min(h, e);
                 move = min(move, e);
             }
-            if (h < 0.05)
-                return 0.0;
             lit = min(lit, hardness * h / t);
-            t += clamp(move, 1.0, 400.0);
+            // In full shadow already: nothing further can lighten it.
+            if (h < 0.05 || lit < 0.01)
+                return 0.0;
+            // Steps no finer than the penumbra can show at this distance.
+            t += clamp(move, max(1.0, t * 0.01), 400.0);
         }
         return saturate(lit);
     }
@@ -898,7 +974,8 @@ public namespace scene
         bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
         float drawn = into.depthAt(group.pixel);
         float limit = drawn < Visibility.EMPTY * 0.5 ? min(light.far, camera.along(canvas.centred, drawn)) : light.far;
-        Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed);
+        // Depth and whose only: the resolve works the normal out, and half a pixel is close enough.
+        Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed, 0.5 / camera.focal, false);
         if (hit.found)
             into.put(group.pixel, camera.screenDepth(hit.position), makers.sdf(hit.object));
     }

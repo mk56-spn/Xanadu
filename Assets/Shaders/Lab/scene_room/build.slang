@@ -24,6 +24,8 @@ static const uint RING = 16;                     // pages the torus's 32 x 32 gr
 [Default(0.25)] uniform float thump;
 /// Pins round the plinth.
 [Default(12)] uniform int pins;
+/// Ambient occlusion: creases and contact darkened.
+[Default(1)] uniform bool ao;
 
 [Pass(1, over: 1)]
 void record(uint i)
@@ -66,6 +68,7 @@ Lighting lighting()
     Lighting light = Lighting().sunless().lamp(LAMP, colour(1.5, 1.35, 1.2), 1200);
     light.sky = colour(0.18, 0.2, 0.28);
     light.ground = colour(0.1, 0.08, 0.07);
+    light.occlusion = ao ? 1 : 0;
     return light;
 }
 
