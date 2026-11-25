@@ -274,16 +274,25 @@ public struct Visibility
     }
 
     /// The pixel read back, seen through `camera` (a pixel pass's own pixel and canvas).
-    public Seen at(uint2 pixel, Camera camera, Canvas canvas)
+    public Seen at(uint2 pixel, Camera camera, Canvas canvas) { return at(pixel, camera, canvas.centred); }
+
+    /// The pixel read back, its place on the box (`centred`, from the box's middle) given: for a pass
+    /// over a smaller image reading the full-size one (ShadowMask.of).
+    public Seen at(uint2 pixel, Camera camera, float2 centred)
     {
         Seen s;
         s.depth = depth[pixel];
         s.id = ids[pixel];
         s.found = s.depth < EMPTY * 0.5 && s.id != makers.NONE;
-        s.ray = camera.ray(canvas.centred);
-        s.position = s.ray.at(camera.along(canvas.centred, s.found ? s.depth : 0.0));
+        s.ray = camera.ray(centred);
+        s.position = s.ray.at(camera.along(centred, s.found ? s.depth : 0.0));
         return s;
     }
+
+    /// For a pass over an image `every` times smaller: the full-size pixel its texel reads (the
+    /// texel's top-left one), and that pixel's place on the box from the texel's.
+    public static uint2 under(uint2 texel, uint every) { return texel * every; }
+    public static float2 underCentred(float2 centred, uint every) { return centred + 0.5 - float(every) * 0.5; }
 };
 
 // ---- Shadows ------------------------------------------------------------------------------
@@ -510,13 +519,22 @@ public struct ScreenOcclusion : IShadows
 {
     public RWTexture2D<float> depth;
     public Camera camera;
-    public Canvas canvas;
+    /// The pixel asked about in the full-size depth, its place on the box, and the box's size.
+    public float2 pixel;
+    public float2 centred;
+    public float2 size;
 
-    public __init(RWTexture2D<float> depth, Camera camera, Canvas canvas)
+    /// At this pixel pass's own pixel.
+    public __init(RWTexture2D<float> depth, Camera camera, Canvas canvas) { this = ScreenOcclusion(depth, camera, float2(group.pixel), canvas.centred, canvas.size); }
+
+    /// At full-size `pixel` (`centred` on the box), from a pass over a smaller image (ShadowMask.of).
+    public __init(RWTexture2D<float> depth, Camera camera, float2 pixel, float2 centred, float2 size)
     {
         this.depth = depth;
         this.camera = camera;
-        this.canvas = canvas;
+        this.pixel = pixel;
+        this.centred = centred;
+        this.size = size;
     }
 
     public float shadow(uint light, float3 p, float3 toLight, float far, float hardness) { return 1.0; }
@@ -525,9 +543,9 @@ public struct ScreenOcclusion : IShadows
     /// where it lands is nearer than it (but not so much nearer that it is something far in front).
     public float open(float3 p, float3 normal, float reach)
     {
-        float2 here = canvas.centred;
+        float2 here = centred;
         float closed = 0.0;
-        float spin = random(float2(group.pixel)) * TAU;
+        float spin = random(pixel) * TAU;
         for (uint k = 0; k < 12; k++)
         {
             float a = spin + k * 2.39996;
@@ -535,8 +553,8 @@ public struct ScreenOcclusion : IShadows
             float3 d = float3(cos(a) * sqrt(r), sin(a) * sqrt(r), sqrt(1.0 - r));
             float3 side = normalize(cross(normal, abs(normal.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0)));
             float3 q = p + (side * d.x + cross(normal, side) * d.y + normal * d.z) * reach * (0.3 + 0.7 * r);
-            float2 texel = float2(group.pixel) + camera.projected(q) - here;
-            if (any(texel < 0.0) || any(texel >= canvas.size))
+            float2 texel = pixel + camera.projected(q) - here;
+            if (any(texel < 0.0) || any(texel >= size))
                 continue;
             float drawn = depth[uint2(texel)];
             float wanted = camera.screenDepth(q);
@@ -545,6 +563,84 @@ public struct ScreenOcclusion : IShadows
         }
         return saturate(1.0 - closed / 12.0 * 1.2);
     }
+};
+
+/// Shadows and occlusion worked out at a part of the resolution (they are soft: a quarter of the
+/// pixels shows the same), into one rgba16f image: x the sun, y lamp 0, z lamp 1 (Lighting.LAMP,
+/// LAMP + 1; further lamps go unshadowed), w how open. A pass over the small image fills each
+/// texel (ShadowMask.of, at the full-size pixel Visibility.under gives it); the full-size light
+/// pass reads it back (the constructor), each of the four nearest texels weighted by how near it
+/// is and by how like this pixel's its depth is, so an edge doesn't bleed across.
+///
+///     [Image(rgba16f, scale: 0.5)] RWTexture2D<float4> shadowed;
+///     [Pixels(8, 8, over: shadowed)]
+///     void shadowing(ItemInput i, Canvas canvas)
+///     {
+///         Seen s = seen().at(Visibility.under(group.pixel, 2), camera, Visibility.underCentred(canvas.centred, 2));
+///         shadowed[group.pixel] = ShadowMask.of(light, s, surfaceOf(s), caster);
+///     }
+///     // light pass: light.deferred(s, here, camera, ShadowMask(shadowed, depth, group.pixel, 2, s.depth))
+public struct ShadowMask : IShadows
+{
+    /// The four values at this pixel, read back.
+    public float4 here;
+
+    /// What a texel holds for the surface `seen` shows: each shadowed light and the openness, as lit() asks them.
+    public static float4 of<S : IShadows>(Lighting light, Seen seen, Surface surface, S caster)
+    {
+        if (!seen.found)
+            return float4(1.0);
+        float3 p = seen.position, n = surface.normal;
+        float3 from = p + n * max(1.5, length(p - seen.ray.origin) * 1e-3);
+        float4 v = float4(1.0);
+        if (light.shadows > 0.0 && any(light.sunlight.rgb > 0.0))
+            v.x = caster.shadow(Lighting.SUN, from, light.sun, light.far, light.shadows);
+        for (uint l = 0; l < min(light.lamps, 2u); l++)
+        {
+            float3 to = light.lampAt[l].xyz - p;
+            float gap = length(to);
+            float lit = light.shadows > 0.0 ? caster.shadow(Lighting.LAMP + l, from, to / max(gap, 1e-3), gap, light.shadows) : 1.0;
+            if (l == 0)
+                v.y = lit;
+            else
+                v.z = lit;
+        }
+        if (light.occlusion > 0.0)
+            v.w = caster.open(p, n, Lighting.OCCLUSION_REACH);
+        return v;
+    }
+
+    /// The values at full-size `pixel`, `deep` into the screen, from `mask`, `every` pixels a texel.
+    public __init(RWTexture2D<float4> mask, RWTexture2D<float> depth, uint2 pixel, uint every, float deep)
+    {
+        uint2 dims;
+        mask.GetDimensions(dims.x, dims.y);
+        uint2 full;
+        depth.GetDimensions(full.x, full.y);
+        float2 f = (float2(pixel) + 0.5) / float(every) - 0.5;
+        int2 base = int2(floor(f));
+        float2 w = f - float2(base);
+        float tolerance = 6.0 + abs(deep) * 0.02;
+        float4 sum = float4(0.0);
+        float total = 0.0;
+        for (int k = 0; k < 4; k++)
+        {
+            int2 at = clamp(base + int2(k & 1, k >> 1), int2(0), int2(dims) - 1);
+            float near = ((k & 1) != 0 ? w.x : 1.0 - w.x) * ((k >> 1) != 0 ? w.y : 1.0 - w.y);
+            float there = depth[min(uint2(at) * every, full - 1)];
+            float like = max(1.0 - saturate(abs(there - deep) / tolerance), 1e-3);
+            sum += mask[uint2(at)] * near * like;
+            total += near * like;
+        }
+        here = sum / max(total, 1e-6);
+    }
+
+    public float shadow(uint light, float3 p, float3 toLight, float far, float hardness)
+    {
+        return light == Lighting.SUN ? here.x : light == Lighting.LAMP ? here.y : light == Lighting.LAMP + 1 ? here.z : 1.0;
+    }
+
+    public float open(float3 p, float3 normal, float reach) { return here.w; }
 };
 
 // ---- Lighting a surface -------------------------------------------------------------------

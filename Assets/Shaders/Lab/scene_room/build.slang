@@ -11,6 +11,10 @@ import xanadu;
 [Image(r32f, clear: 1e30)] RWTexture2D<float> depth;
 [Image(r32ui)] RWTexture2D<uint> ids;
 [Image(rgba16f)] RWTexture2D<float4> shown;
+/// How far each 8 x 8 block's cone got: where its pixels' marches start.
+[Image(r32f, scale: 0.125)] RWTexture2D<float> coarse;
+/// Shadows (x sun, y the lamp) and occlusion (w) at half size: ShadowMask.
+[Image(rgba16f, scale: 0.5)] RWTexture2D<float4> shadowed;
 /// The lamp's shadow map all round: six faces, how far the meshes are from the lamp each way.
 [Image(r32f, clear: 1e30)] RWTexture2D<float> lampDepth;
 
@@ -97,24 +101,46 @@ ItemVertex ringFromLamp(ItemVertex v) { return LampShadow.pulled(v, ring(), LAMP
 
 float fromLamp(ItemInput i) { return LampShadow.depthOf(i, RING); }
 
-/// The scene, marched only where it is nearer than the torus.
-[Pixels(8, 8)]
-void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), seen()); }
+/// How far each 8 x 8 block of pixels can march before anything comes near: a cone each, so
+/// every pixel's own march starts there (coarse to fine).
+[Pixels(8, 8, over: coarse)]
+void cone(ItemInput i, Canvas canvas) { coarse[group.pixel] = scene.coneDepth(parts, objects, eye(canvas.size), canvas, lighting(), 8); }
 
-/// Every pixel's surface rebuilt from whoever made it, then lit once, in every maker's shadows
-/// (the room's marched, the torus's from the lamp's map) and in occlusion read from the depth.
+/// The scene, marched from where its cone got to, and only where it is nearer than the torus.
+[Pixels(8, 8)]
+void shoot(ItemInput i, Canvas canvas) { scene.shoot(parts, objects, eye(canvas.size), canvas, lighting(), seen(), coarse[group.pixel / 8]); }
+
+/// Whoever made what a pixel shows, its surface rebuilt.
+Surface surfaceOf(Seen s)
+{
+    return s.maker == makers.MESH
+        ? Surface(s.onMesh(ring(), corners, triangles).normal, Material(colours.orange, 40))
+        : scene.surface(parts, objects, s);
+}
+
+/// Shadows and occlusion at half size (they are soft): the room's marched shadows, the torus's
+/// from the lamp's map, and occlusion from both the room's field and the depth.
+[Pixels(8, 8, over: shadowed)]
+void shadowing(ItemInput i, Canvas canvas)
+{
+    Camera camera = eye(canvas.size);
+    Lighting light = lighting();
+    uint2 under = Visibility.under(group.pixel, 2);
+    float2 centred = Visibility.underCentred(canvas.centred, 2);
+    Seen s = seen().at(under, camera, centred);
+    let casters = both(both(scene.shadows(parts, objects, camera, canvas, light), LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)),
+        ScreenOcclusion(depth, camera, float2(under), centred, canvas.size));
+    shadowed[group.pixel] = ShadowMask.of(light, s, surfaceOf(s), casters);
+}
+
+/// Every pixel's surface rebuilt from whoever made it, then lit once, its shadows and occlusion
+/// read back from the half-size mask.
 [Pixels(8, 8)]
 void illuminate(ItemInput i, Canvas canvas)
 {
     Camera camera = eye(canvas.size);
-    Lighting light = lighting();
     Seen s = seen().at(group.pixel, camera, canvas);
-    Surface here = s.maker == makers.MESH
-        ? Surface(s.onMesh(ring(), corners, triangles).normal, Material(colours.orange, 40))
-        : scene.surface(parts, objects, s);
-    let shadows = both(both(scene.shadows(parts, objects, camera, canvas, light), LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)),
-        ScreenOcclusion(depth, camera, canvas));
-    shown[group.pixel] = light.deferred(s, here, camera, shadows);
+    shown[group.pixel] = lighting().deferred(s, surfaceOf(s), camera, ShadowMask(shadowed, depth, group.pixel, 2, s.depth));
 }
 
 void graph()
@@ -123,7 +149,9 @@ void graph()
     make();
     ringDrawn(depth, ids);
     ringFromLamp(lampDepth);
+    cone();
     shoot();
+    shadowing();
     illuminate();
     present(shown, depth);
 }

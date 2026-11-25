@@ -556,6 +556,16 @@ resolve.
 Also still open:
 
 - `scene_room` lost its `view` option (steps, tile lists, normals) when it moved to Surfaces.
+- Faster again 11-25 (same measure): 5.1 → 2.5–3.3 ms with AO, 3.9 → 2.4 without, from two well-known moves:
+  - **Coarse to fine** (demoscene cone / beam marching; Aaltonen's Claybook talk, GDC 2018): a `[Pixels]` pass over a
+    1/8 image marches one cone per 8 × 8 block (`scene.coneDepth`: hits count once anything but the room comes within
+    half the block's diagonal) and writes how far it got, backed off by the cone's radius; `scene.shoot` starts every
+    pixel's march there (`start`). The room is met where each ray leaves it, so a cone reaching only the wall says
+    nothing (`Shot.wall`). Shoot 1.1 → 0.6 ms for 0.05 of cones.
+  - **Soft things at half size** (Wright, "Dynamic Occlusion with Signed Distance Fields", SIGGRAPH 2015):
+    `ShadowMask` holds the sun, lamps 0 and 1, and the openness in one half-size rgba16f image, filled at each
+    texel's top-left full-size pixel (`Visibility.under`), read back by the light pass from the four nearest texels,
+    each weighted by nearness and by how like this pixel's its depth is, so edges don't bleed.
 - Sped up 11-25 (Lab/scene_room filling a 1600 x 900 window, GPU ms a frame): 20 → 5.1 with AO, 12.5 → 3.9 without.
   The ray's object list was 16 entries in three arrays that spilled out of registers (`scene.RAY` 4 now, with
   `ROUNDS` 12 gathers; shadows keep their own `SHADOW_RAY` 16): shoot 7.3 → 2.8. A ray starting inside a plain

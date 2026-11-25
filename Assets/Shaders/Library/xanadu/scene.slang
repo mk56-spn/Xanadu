@@ -306,6 +306,8 @@ public namespace scene
         public float3 normal;
         public uint object;
         public uint steps;
+        /// Met where the ray leaves the room it started in, worked out rather than marched.
+        public bool wall;
     };
 
     // ---- recording ------------------------------------------------------------------
@@ -742,11 +744,11 @@ public namespace scene
     /// within `pixel` of the surface per pixel of distance (half a pixel's width: 0.5 / the camera's
     /// focal), finer gains nothing on screen; the hit's normal only when `normal` asks for it.
     public Shot marched(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Ray ray, float limit, bool listed,
-        float pixel = 2e-4, bool normal = true)
+        float pixel = 2e-4, bool normal = true, float start = 0.0)
     {
         Shot s = {};
         RayList list = {};
-        float from = 0.0;
+        float from = start;
         // A room the ray starts in is met where the ray leaves it, worked out, not marched: walls and floor are
         // most of a room's pixels, and they then cost no steps at all (depth only: the resolve finds its normal).
         uint room = NONE;
@@ -793,6 +795,7 @@ public namespace scene
             s.t = wall;
             s.position = ray.at(wall);
             s.object = room;
+            s.wall = true;
         }
         return s;
     }
@@ -968,16 +971,34 @@ public namespace scene
     /// where it is nearer than what is there already: draw cheap things first and the march
     /// stops at them, so pixels they cover cost little. Lists the tile, so every thread of the
     /// tile must call it. Rebuild what it found with scene.surface and light it once after.
-    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Visibility into)
+    public void shoot(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, Visibility into,
+        float start = 0.0)
     {
         listTile(objects, tileView(camera, canvas, light.far), light);
         bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
         float drawn = into.depthAt(group.pixel);
         float limit = drawn < Visibility.EMPTY * 0.5 ? min(light.far, camera.along(canvas.centred, drawn)) : light.far;
         // Depth and whose only: the resolve works the normal out, and half a pixel is close enough.
-        Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed, 0.5 / camera.focal, false);
+        Shot hit = marched(parts, objects, camera.ray(canvas.centred), limit, listed, 0.5 / camera.focal, false, min(start, limit));
         if (hit.found)
             into.put(group.pixel, camera.screenDepth(hit.position), makers.sdf(hit.object));
+    }
+
+    /// How far a cone through this pixel pass's texel (`every` pixels across, of a smaller image)
+    /// gets before anything but a room it starts in comes within it: no ray through those pixels
+    /// meets anything nearer, so shoot can start them there (Docs/render-graph.md: coarse to fine).
+    /// Lists the tile, so every thread of it must call it.
+    public float coneDepth(RWStructuredBuffer<Part> parts, RWStructuredBuffer<Object> objects, Camera camera, Canvas canvas, Lighting light, uint every)
+    {
+        listTile(objects, tileView(camera, canvas, light.far), light);
+        bool listed = seenCount <= LISTED && shadowingCount <= LISTED;
+        // The cone takes in the texel's corners: half its diagonal, per pixel of distance.
+        float spread = float(every) * 0.7072 / camera.focal;
+        Shot hit = marched(parts, objects, camera.ray(canvas.centred), light.far, listed, spread, false);
+        // Rooms are met where each ray leaves them, not here: a hit on one says nothing for the others.
+        if (!hit.found || hit.wall)
+            return light.far;
+        return max(hit.t * (1.0 - spread) - 1.0, 0.0);
     }
 
     /// The surface of the object a pixel shows (a makers.sdf id, as shoot writes it): its normal
