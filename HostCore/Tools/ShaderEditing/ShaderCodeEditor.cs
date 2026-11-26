@@ -67,8 +67,6 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     private int _guideLines = -1;
     private readonly PlayStandIns _standIns = new();
     private readonly PreviewHandles _handles;
-    private readonly IRectCanvas _canvas;
-    private readonly Handle _chromeItem;
     private int _clipsVersion = -1;
     private Rect2 _preview;
 
@@ -159,11 +157,8 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _editor = TextEditors.Create(_code, parent, first.Text);
         _view = preview(Expandable(Child(parent), entities));
         _view.Place(_preview);
-        Handle chromeItem = Child(parent);
         IRectCanvas canvas = HostPlatform.NewCanvas();
-        _canvas = canvas;
-        _chromeItem = chromeItem;
-        _timeline = new ClipTimeline(entities) { Scrubs = _view.TakesClock };
+        _timeline = new ClipTimeline(entities, canvas, Child(parent)) { Scrubs = _view.TakesClock };
         _timeline.Jump += (line, column) =>
         {
             if (Unjoin(_clipPlaces, line + 1) is not ({ } tab, int own))
@@ -530,7 +525,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
         laps.Lap("editor: draw chrome (bar, problems, guide)");
-        _timeline.Draw(_canvas, _chromeItem);
+        _timeline.Draw();
         laps.Lap("editor: draw clips");
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);

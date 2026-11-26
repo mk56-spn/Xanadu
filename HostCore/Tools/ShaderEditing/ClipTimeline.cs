@@ -90,8 +90,13 @@ internal sealed class ClipTimeline : IDisposable
             ? $"plays on each {SlangClips.EventName(pressed - SlangClips.FirstEvent)} ({PlayStandIns.HowToFake(pressed - SlangClips.FirstEvent)})"
             : $"plays when {KeyLabels[pressed]} is pressed (click the preview first)";
 
-    public ClipTimeline(EntityStore entities)
+    /// <summary>The canvas item it draws into, its own: cleared and drawn whole each frame.</summary>
+    private readonly IRectCanvas _canvas;
+    private readonly Handle _item;
+
+    public ClipTimeline(EntityStore entities, IRectCanvas canvas, Handle item)
     {
+        (_canvas, _item) = (canvas, item);
         _entity = entities.CreateEntity(new TimelineView(1f), new TimelineFrame());
         _entity.AddSignalHandler<TimelineFrameDue>(_ => Write(ref _entity.GetComponent<TimelineFrame>()));
         _entity.AddSignalHandler<TimelineSeek>(signal => _seconds = Wrap(signal.Event.Ms / 1000));
@@ -339,8 +344,11 @@ internal sealed class ClipTimeline : IDisposable
 
     // Drawing
 
-    public void Draw(IRectCanvas canvas, Handle item)
+    public void Draw()
     {
+        IRectCanvas canvas = _canvas;
+        Handle item = _item;
+        canvas.Clear(item);
         if (_area.Size.X <= 0)
             return;
 
@@ -449,7 +457,7 @@ internal sealed class ClipTimeline : IDisposable
                 canvas.DrawRect(item, new Rect2(Math.Clamp(axis.X(from), axis.Left, axis.Right), band.Position.Y, 2, band.Size.Y), colour);
                 foreach (double key in clip.Keys)
                 {
-                    double at = from + KeyFraction(clip, key) * clip.Length * unit;
+                    double at = from + clip.KeyFraction(key) * clip.Length * unit;
                     if (axis.Shows(at))
                         painter.Key(new Vector2(axis.X(at), band.GetCenter().Y), 4, Palette.TextBright, EasePreset.Linear);
                 }
@@ -458,23 +466,6 @@ internal sealed class ClipTimeline : IDisposable
     }
 
     private static int StaggerCopiesOf(SlangClip clip) => clip.StaggerStep > 0 ? StaggerCopies : 0;
-
-    /// <summary>The fraction of one pass at which the clip's eased progress first reaches <paramref name="key"/>.</summary>
-    private static double KeyFraction(SlangClip clip, double key)
-    {
-        const int Steps = 200;
-        float previous = SlangClips.Ease(clip.Easing, clip.Reversed ? 1 : 0);
-        for (int i = 1; i <= Steps; i++)
-        {
-            float t = (float)i / Steps;
-            float now = SlangClips.Ease(clip.Easing, clip.Reversed ? 1 - t : t);
-            if ((previous - key) * (now - key) <= 0)
-                return t;
-            previous = now;
-        }
-
-        return 1;
-    }
 
     public void Dispose()
     {
