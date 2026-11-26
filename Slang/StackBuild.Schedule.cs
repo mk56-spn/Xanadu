@@ -140,27 +140,21 @@ public sealed partial class StackBuild
         if (image < 0)
             throw new BuildProblem(given.Index, $"{what}: {name} isn't an Image this graph declares.");
         if (!formats.Contains(Images[image].Format))
-            throw new BuildProblem(given.Index, $"{what} is an Image<{Texel(formats[0])}>; {name} is {Describe(Images[image])}.");
+            throw new BuildProblem(given.Index, $"{what} is an Image<{Texel.Named(formats[0])?.Type}>; {name} is {Describe(Images[image])}.");
+        if (box && Images[image].View)
+            throw new BuildProblem(given.Index, $"{what}: {name} is a [View], drawn by the host from the canvas; nothing in the graph writes it.");
+        if (box && Images[image].Shared)
+            throw new BuildProblem(given.Index, $"{what}: a draw renders over the item's box, and {name} is [Shared], the screen's; write it from a [Pixels] pass at i.pixel.");
         if (box && !Images[image].Size.Box)
             throw new BuildProblem(given.Index, $"{what}: a draw renders over the item's box, so {name} must be the box's size, not scaled or fixed.");
         return image;
     }
 
-    private static string Texel(string format) => format switch
-    {
-        "r32f" or "r16f" => "float",
-        "rg16f" => "float2",
-        "r32ui" => "uint",
-        _ => "float4",
-    };
-
     /// <summary>How an image's declaration reads: <c>an Image&lt;float&gt;</c>, <c>a [Compact] Image&lt;float&gt;</c>.</summary>
-    private static string Describe(BuildImage image) => image.Format switch
-    {
-        "rgba32f" => "a [Precise] Image<float4>",
-        "rgba8" or "r16f" => $"a [Compact] Image<{image.Type}>",
-        _ => $"an Image<{image.Type}>",
-    };
+    private static string Describe(BuildImage image) =>
+        Texel.All.FirstOrDefault(texel => texel.Format == image.Format && texel.Type == image.Type) is { Precision: { } precision }
+            ? $"a [{precision}] Image<{image.Type}>"
+            : $"an Image<{image.Type}>";
 
     private BuildLoop Loop(BuildTokens tokens, Scope scope, BuildToken first)
     {

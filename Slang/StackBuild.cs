@@ -16,8 +16,9 @@ namespace Xanadu.Slang;
 /// <param name="Cached">Marked <c>[Cached]</c> before it: the passes writing it run only when it goes stale (just made, or
 /// the material's values moved), so a mesh built from values is built once, not every frame.</param>
 /// <param name="Bundle">The <see cref="BuildBundle"/> it is a part of, by name; null for a list of its own.</param>
+/// <param name="Shared">Marked <c>[Shared]</c>: the frame's one list of this name and type, whatever material declares it.</param>
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false,
-    string? Bundle = null);
+    string? Bundle = null, bool Shared = false);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -149,8 +150,36 @@ public sealed partial class StackBuild
     /// <summary>Where a stage that doesn't touch the images puts them: past anything bound.</summary>
     public const int UnplacedImage = 96;
 
-    /// <summary>The most arguments a pass takes after <c>i</c>.</summary>
-    public const int MaxArguments = 4;
+    /// <summary>Where a sampled image's sampler goes in set 0 before a pixel pass places it: past anything bound.</summary>
+    public const int UnplacedSampler = 160;
+
+    /// <summary>
+    /// Where the sampler stands that <c>sampled(image)</c> hands out when it can't name one: outside a <c>[Pixels]</c> pass,
+    /// or on an image that isn't one of the graph's own. A stage that reaches it is refused (<see cref="Unsampled"/>).
+    /// Reflection lists no sampler from here up (this, and the unplaced ones past it): declared in every stage, they
+    /// would otherwise count towards the samplers a pipeline is made with.
+    /// </summary>
+    public const int NoSampler = UnplacedSampler - 1;
+
+    /// <summary>Why a stage can't run: it reads a <c>sampled(image)</c> handle where no sampler stands behind it.</summary>
+    public const string Unsampled =
+        "sampled(image) hands out the image's sampler only in a [Pixels] pass, naming one of the graph's float4 images (sampled(glow)); "
+        + "pass what it returns to helpers. Elsewhere read with sampled(image, at, size).";
+
+    /// <summary>Whether image <paramref name="k"/> can be read through a sampler: a float4 of its own, not packed with others.</summary>
+    public bool Sampleable(int k) => Images[k].Type == "float4" && !Packs.Any(pack => pack.Texture == k);
+
+    /// <summary>The name of image <paramref name="k"/>'s sampler in a pixel pass's code.</summary>
+    private string SamplerOf(int k) => $"xanaduSampled_{Images[k].Name}";
+
+    [GeneratedRegex(@"\bsampled\s*\(\s*(?<name>\w+)\s*(?<end>[,)])")]
+    private static partial Regex SampledCall();
+
+    /// <summary>
+    /// The most values a call carries: a pass's uints after <c>i</c>, a draw's targets (its outputs, packed past
+    /// <see cref="DrawOutput.Most"/> into shared targets' channels).
+    /// </summary>
+    public const int MaxArguments = 16;
 
     private const int MaxIterations = 1 << 16;
 
@@ -167,8 +196,14 @@ public sealed partial class StackBuild
     /// <summary>Some buffer is <c>[Cached]</c>: the runner asks once a frame whether they need filling.</summary>
     public bool CachesBuffers { get; }
 
-    /// <summary>The images it declares, in order.</summary>
+    /// <summary>
+    /// Its images as the runner makes them, in order: each declared image, but images a draw packs into one texture's
+    /// channels (<see cref="ImagePacking"/>) are that texture, once, at the first one's place.
+    /// </summary>
     public IReadOnlyList<BuildImage> Images { get; }
+
+    /// <summary>The textures packing several images, by their place in <see cref="Images"/>; none for most graphs.</summary>
+    public IReadOnlyList<ImagePack> Packs { get; }
 
 
     /// <summary>The brick's passes, then each library pass as build() lends it buffers, in the order first called.</summary>
@@ -191,7 +226,7 @@ public sealed partial class StackBuild
         {
             if (_passes[p].CopiesName is { } counted && bundles.Find(bundle => bundle.Name == counted) is { } bundle)
                 _passes[p] = bundle.CountAt >= 0
-                    ? _passes[p] with { Copies = null, CopiesBuffer = buffers.FindIndex(buffer => buffer.Name == BundleKinds.Bookkeeping), CopiesAt = bundle.CountAt }
+                    ? _passes[p] with { Copies = null, CopiesBuffer = buffers.FindIndex(buffer => buffer.Name == bundle.CountIn), CopiesAt = bundle.CountAt }
                     : throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name}'s copies come from {counted}, a {bundle.Type}, which has no count to draw by.");
             else if (_passes[p].CopiesName is { } named && buffers.FindIndex(buffer => buffer.Name == named) is var count and >= 0)
                 _passes[p] = buffers[count].Type == "uint"
@@ -202,11 +237,19 @@ public sealed partial class StackBuild
                 int image = Images.ToList().FindIndex(declared => declared.Name == over);
                 if (image < 0)
                     throw new BuildProblem(_passes[p].Start, $"{_passes[p].Name} runs over {over}, which isn't an Image this graph declares.");
+                if (Images[image] is { Screen: true, Size.Fixed: false })
+                    throw new BuildProblem(_passes[p].Start,
+                        $"{_passes[p].Name} runs over {over}, which is [{(Images[image].View ? "View" : "Shared")}] and the screen's size; run it over the box and write {over}[uint2(i.pixel)], or give {over} a fixed size.");
                 _passes[p] = _passes[p] with { OverImage = image };
             }
         }
 
-        Schedule = ReadSchedule();
+        List<BuildStep> steps = ReadSchedule();
+        (List<BuildImage> physical, List<BuildStep> renamed, _passes, List<ImagePack> packs) =
+            ImagePacking.Apply(code, [.. Images], _passes, steps, schedule);
+        Images = physical;
+        Schedule = renamed;
+        Packs = packs;
     }
 
     /// <summary>The body's BUILD brick read, or null when it has no <c>build()</c>; throws <see cref="BuildProblem"/> when it is written wrong.</summary>
@@ -249,7 +292,12 @@ public sealed partial class StackBuild
     /// Images go at <paramref name="image"/>'s binding in the same set (or <paramref name="imageSet"/>), or past anything
     /// bound when it is null.
     /// </remarks>
-    public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null, int? imageSet = null)
+    /// <param name="sampled">
+    /// For a <c>[Pixels]</c> pass: where each float4 image's sampler goes in set 0, and every <c>sampled(name, …)</c>
+    /// call reads it there. Without it the calls are the library's <c>sampled</c>, which filters by hand.
+    /// </param>
+    public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null, int? imageSet = null,
+        Func<int, int>? sampled = null)
     {
         var spans = new List<(int Start, int End, string Text)>();
         string Declared(int k) => $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{Buffers[k].Type}> {Buffers[k].Name};";
@@ -263,13 +311,37 @@ public sealed partial class StackBuild
         {
             BuildImage declared = Images[k];
             int at = image?.Invoke(k) ?? UnplacedImage + k;
+            string bound = $"[[vk::binding({at}, {imageSet ?? set})]]";
+            if (Packs.FirstOrDefault(pack => pack.Texture == k) is { } pack)
+            {
+                // The texture at its first member's place, and each member as a struct picking its channels out.
+                int first = pack.Members.Min(member => member.Image.Start);
+                foreach (PackedImage member in pack.Members)
+                    spans.Add((member.Image.Start, member.Image.End,
+                        ImagePacking.Declared(pack, declared, member, member.Image.Start == first, bound)));
+                continue;
+            }
+
+            string companion = sampled is not null && Sampleable(k)
+                ? $" [[vk::binding({sampled(k)}, 0)]] Sampler2D<float4> {SamplerOf(k)};"
+                : "";
+            // The first image brings sampled(image)'s stand-in: a handle on no sampler, refused wherever it is reached.
+            string standIn = k > 0 ? ""
+                : $" [[vk::binding({NoSampler}, 0)]] Sampler2D<float4> xanaduNoSampler; Sampled sampled(Image<float4> image) {{ return xanaduHandle(xanaduNoSampler); }}";
             spans.Add((declared.Start, declared.End,
-                $"[[vk::binding({at}, {imageSet ?? set})]] [[vk::image_format(\"{declared.Format}\")]] RWTexture2D<{declared.Type}> {declared.Name};"));
+                $"{bound} [[vk::image_format(\"{declared.Format}\")]] RWTexture2D<{declared.Type}> {declared.Name};{companion}{standIn}"));
         }
 
         foreach (BuildPass pass in _passes.Where(pass => pass.Library is null))
             spans.Add((pass.Start, pass.End, ""));
         spans.Add((_schedule.Start, _schedule.End, ""));
+        if (sampled is not null)
+            foreach (Match call in SampledCall().Matches(source))
+                if (Images.ToList().FindIndex(declared => declared.Name == call.Groups["name"].Value) is var k and >= 0 && Sampleable(k)
+                    && !spans.Exists(span => call.Index < span.End && span.Start < call.Index + call.Length))
+                    spans.Add((call.Index, call.Index + call.Length, call.Groups["end"].Value == ","
+                        ? $"xanaduSampled({SamplerOf(k)},"
+                        : $"xanaduHandle({SamplerOf(k)})"));
         return BuildText.Replaced(source, spans);
     }
 }

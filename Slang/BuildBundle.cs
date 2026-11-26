@@ -9,7 +9,7 @@ namespace Xanadu.Slang;
 /// <code>
 /// [Size(CAP)] Gathered&lt;uint&gt; alive;   // a list threads add to, and its count
 /// [Size(CAP)] Slots free;               // free places in a pool of CAP, taken and given back
-/// [Cached] [Pages(PAGES)] Meshes pool;  // a mesh pool: its corners, triangles and pages
+/// [Cached] [Pages(PAGES)] Meshes pool;  // a mesh pool: its corners, triangles, pages and the pages taken
 /// </code>
 /// SDL_GPU binds 8 storage buffers a pass, so the small parts don't each take one: every count, every Slots and every
 /// Gathered&lt;uint&gt;'s items share one uint list the build lays out (<see cref="Bookkeeping"/>), and a bundle is a place
@@ -18,8 +18,9 @@ namespace Xanadu.Slang;
 /// </summary>
 /// <param name="Type">The library type, as the property returns it: <c>Gathered&lt;uint&gt;</c>, <c>Slots</c>, <c>Meshes</c>.</param>
 /// <param name="Made">The type's constructor arguments: its lists by name, its places in the bookkeeping, its capacity.</param>
-/// <param name="CountAt">Where its count sits in the bookkeeping, for a draw's <c>copies:</c>; -1 when it has none to draw by.</param>
-public sealed record BuildBundle(string Name, string Type, int Start, int End, string Made, long CountAt);
+/// <param name="CountAt">Where its count sits in <paramref name="CountIn"/>, for a draw's <c>copies:</c>; -1 when it has none to draw by.</param>
+/// <param name="CountIn">The list holding its count: the bookkeeping, or a list of its own (a mesh pool's pages taken).</param>
+public sealed record BuildBundle(string Name, string Type, int Start, int End, string Made, long CountAt, string CountIn = BundleKinds.Bookkeeping);
 
 /// <summary>The kinds of <see cref="BuildBundle"/>: the attribute that sizes each, and how it is laid out.</summary>
 internal static class BundleKinds
@@ -59,7 +60,9 @@ internal static class BundleKinds
                 buffers.Add(Own("corners", "MeshVertex", size * 128));
                 buffers.Add(Own("triangles", "uint", size * 128));
                 buffers.Add(Own("pages", "Meshlet", size));
-                return new BuildBundle(name, "Meshes", start, end, $"{name}_corners, {name}_triangles, {name}_pages", -1);
+                // Its own bookkeeping, cached with it: the pages taken so far, then each object's first page.
+                buffers.Add(Own("book", "uint", 1 + size));
+                return new BuildBundle(name, "Meshes", start, end, $"{name}_corners, {name}_triangles, {name}_pages, {name}_book, {size}", 0, $"{name}_book");
         }
     }
 

@@ -34,7 +34,7 @@ public enum GraphAccess
 /// <summary>One piece of data the stack's passes share: its kind, its name, and its bytes (0 when the host sizes it).</summary>
 public sealed record GraphResource(GraphResourceKind Kind, string Name, long Bytes)
 {
-    /// <summary>For an image: its format, size and how long it lasts (<c>rgba16f · box · kept</c>); empty otherwise.</summary>
+    /// <summary>For an image: its format, size and how long it lasts (<c>rgba16f · box · kept</c>); for a buffer, <c>shared</c> when it is the frame's; empty otherwise.</summary>
     public string Detail { get; init; } = "";
 }
 
@@ -96,7 +96,7 @@ public sealed class StackGraph
         int frame = graph.Resource(GraphResourceKind.Frame, "frame", 0);
         int depth = graph.Resource(GraphResourceKind.Depth, "depth", 0);
         int[] buffers = fragment.Build is { } built
-            ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i]))]
+            ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i], buffer.Shared ? "shared" : ""))]
             : [];
         int[] images = [.. GraphPlan.Images(fragment).Select(image => graph.Resource(GraphResourceKind.Image, image.Name, 0, Detail(image)))];
         int screen = fragment.ReadsScreen || fragment.Build?.Passes.Any(pass => pass.ReadsScreen) == true
@@ -139,11 +139,10 @@ public sealed class StackGraph
                         Uses(pass, compiled.Buffers, compiled.Access);
                         // A pass's images sit at bindings 0.. of set 1, in order: its code says which it reads and which it writes.
                         for (int at = 0; at < compiled.Images.Length; at++)
-                        {
-                            GraphAccess used = SpirvScan.Access(compiled.Shader.Spirv, 1, at, image: true);
-                            graph.Edge(pass, images[compiled.Images[at]], used == 0 ? GraphAccess.ReadWrite : used);
-                        }
+                            graph.Edge(pass, images[compiled.Images[at]], compiled.ImageAccess[at]);
                         foreach (int image in compiled.Drawn?.Reads ?? [])
+                            graph.Edge(pass, images[image], GraphAccess.Read);
+                        foreach (int image in compiled.Sampled)
                             graph.Edge(pass, images[image], GraphAccess.Read);
                         if (compiled.ReadsScreen)
                             graph.Edge(pass, screen, GraphAccess.Read);
@@ -220,13 +219,14 @@ public sealed class StackGraph
     private static string Detail(PlannedImage image)
     {
         string size = image.Size.Fixed ? $"{image.Size.Width}×{image.Size.Height}"
+            : image.Shared || image.View ? image.Size.Box ? "screen" : $"{image.Size.Scale:0.##}× screen"
             : image.Size.Box ? "box" : $"{image.Size.Scale:0.##}× box";
         string life = image.Life switch
         {
             ImageLife.Kept => " · kept",
             ImageLife.Cached => " · cached",
             ImageLife.History => " · last frame",
-            _ => "",
+            _ => image.View ? " · view" : image.Shared ? " · shared" : "",
         };
         return $"{image.Format} · {size}{life}";
     }

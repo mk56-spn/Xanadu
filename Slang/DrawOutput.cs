@@ -11,20 +11,17 @@ namespace Xanadu.Slang;
 /// writes that one value (a shadow map's depth); a shade returning a struct writes one per field, in order. Its call names an image for each, checked against the field's type.
 /// </summary>
 /// <param name="Field">The struct field it comes from; null for a shade that returns its colour.</param>
-/// <param name="Type">What the field holds: float, float2, float4 (a colour too) or uint.</param>
+/// <param name="Type">What the field holds: any type an image holds (<see cref="Texel.All"/>), a colour as float4.</param>
 public sealed record DrawOutput(string? Field, string Type)
 {
-    /// <summary>SDL_GPU's colour targets a render pass.</summary>
+    /// <summary>SDL_GPU's colour targets a render pass. A draw with more outputs packs narrow ones into shared targets (<see cref="DrawPacking"/>).</summary>
     public const int Most = 4;
 
+    /// <summary>What its channels hold and how many.</summary>
+    public Texel Texel => Texel.Of(Type, null)!;
+
     /// <summary>The image formats that hold it.</summary>
-    public string[] Formats => Type switch
-    {
-        "float" => ["r32f", "r16f"],
-        "float2" => ["rg16f"],
-        "uint" => ["r32ui"],
-        _ => ["rgba16f", "rgba8", "rgba32f"],
-    };
+    public string[] Formats => Texel.FormatsFor(Type);
 
     /// <summary>What a draw's call names its image for, in messages: the shade's colour, or one of its fields.</summary>
     public string For(string shade) => Field is null ? $"{shade}'s colour" : $"{shade}'s {Field}";
@@ -44,7 +41,7 @@ public sealed record DrawOutput(string? Field, string Type)
         string type = declared.Groups[1].Value;
         if (type is "float4" or "colour")
             return [new DrawOutput(null, "float4")];
-        if (type is "float" or "float2" or "uint")
+        if (Texel.Of(type, null) is not null)
             return [new DrawOutput(null, type)];
 
         string body = StructBody(code, type)
@@ -65,14 +62,14 @@ public sealed record DrawOutput(string? Field, string Type)
             }
 
             string held = field.Groups[1].Value == "colour" ? "float4" : field.Groups[1].Value;
-            if (held is not ("float" or "float2" or "float4" or "uint"))
+            if (Texel.Of(held, null) is null)
                 throw new BuildProblem(declared.Index,
-                    $"a draw writes each field of {type} to an image of its own, so each is a float, float2, float4, colour or uint; {field.Groups[2].Value} is {field.Groups[1].Value}.");
+                    $"a draw writes each field of {type} to an image, so each holds what an image can ({string.Join(", ", Texel.Types)} or colour); {field.Groups[2].Value} is {field.Groups[1].Value}.");
             outputs.Add(new DrawOutput(field.Groups[2].Value, held));
         }
 
-        if (outputs.Count is 0 or > Most)
-            throw new BuildProblem(declared.Index, $"a draw writes 1 to {Most} images; {type} has {outputs.Count} fields.");
+        if (outputs.Count is 0 or > StackBuild.MaxArguments)
+            throw new BuildProblem(declared.Index, $"a draw writes 1 to {StackBuild.MaxArguments} images; {type} has {outputs.Count} fields.");
         return [.. outputs];
     }
 

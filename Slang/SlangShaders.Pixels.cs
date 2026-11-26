@@ -21,21 +21,40 @@ public static partial class SlangShaders
     private static (CompiledShader Shader, int[] Images, int[] Buffers, GraphAccess[] Access) PlacedPass(
         string name, string source, StackBuild build, Func<string, CompiledShader> compile)
     {
+        (CompiledShader shader, int[] images, int[] buffers, GraphAccess[] access, _) = PlacedPass(name, source, build, (placed, _) => compile(placed), -1);
+        return (shader, images, buffers, access);
+    }
+
+    /// <summary>
+    /// <see cref="PlacedPass(string, string, StackBuild, Func{string, CompiledShader})"/>, and with
+    /// <paramref name="samplers"/> at 0 or more, the float4 images its code reads through <c>sampled</c> given samplers in
+    /// set 0 from that binding, in order; <paramref name="compile"/> is told how many, so the globals go after them.
+    /// </summary>
+    private static (CompiledShader Shader, int[] Images, int[] Buffers, GraphAccess[] Access, int[] Sampled) PlacedPass(
+        string name, string source, StackBuild build, Func<string, int, CompiledShader> compile, int samplers)
+    {
         int images = build.Images.Count, buffers = build.Buffers.Count;
-        CompiledShader shader = compile(build.Rewrite(source, 1, k => images + k, k => k));
+        Func<int, int>? unplacedSamplers = samplers < 0 ? null : k => StackBuild.UnplacedSampler + k;
+        CompiledShader shader = compile(build.Rewrite(source, 1, k => images + k, k => k, sampled: unplacedSamplers), 0);
         int[] usedImages = [.. Enumerable.Range(0, images).Where(k => SpirvScan.Binds(shader.Spirv, 1, k))];
         int[] used = [.. Enumerable.Range(0, buffers).Where(k => SpirvScan.Binds(shader.Spirv, 1, images + k))];
+        int[] sampled = samplers < 0 ? [] : [.. Enumerable.Range(0, images).Where(k => SpirvScan.Binds(shader.Spirv, 0, StackBuild.UnplacedSampler + k))];
+        foreach (int k in sampled.Intersect(usedImages))
+            throw new InvalidOperationException(
+                $"{name}: a pass reads {build.Images[k].Name} through sampled() and touches it as an image too; a texture is one or the other within a pass.");
         int first = usedImages.Length;
-        if (usedImages.Length != images || used.Length != buffers)
+        if (usedImages.Length != images || used.Length != buffers || sampled.Length > 0)
             shader = compile(build.Rewrite(source, 1,
                 k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k,
-                k => Array.IndexOf(usedImages, k) is var at and >= 0 ? at : StackBuild.UnplacedImage + k));
+                k => Array.IndexOf(usedImages, k) is var at and >= 0 ? at : StackBuild.UnplacedImage + k,
+                sampled: unplacedSamplers is null ? null
+                    : k => Array.IndexOf(sampled, k) is var at and >= 0 ? samplers + at : StackBuild.UnplacedSampler + k), sampled.Length);
         int[] coherent = [.. used.Select((k, at) => (k, at)).Where(pair => build.Buffers[pair.k].Coherent).Select(pair => first + pair.at)];
         shader = SpirvCoherence.Applied(shader, 1, coherent);
         if (used.Length > MaxStageBuffers || usedImages.Length > MaxStageBuffers)
             throw new InvalidOperationException(
                 $"{name}: a pass touches {usedImages.Length} images and {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} of each a pass.");
-        return (shader, usedImages, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, 1, first + at))]);
+        return (shader, usedImages, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, 1, first + at))], sampled);
     }
 
     /// <summary>Throws when a stage that isn't a pass touches one of the graph's images: only passes read and write them.</summary>
@@ -63,16 +82,17 @@ public static partial class SlangShaders
         string arguments = ShadeSignature.Arguments("float4 shade(" + pass.Signature + ")", out string problem)
                            ?? throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: {problem.Replace("shade", pass.Name)}");
         // The canvas so far is compute samplers 0 (its depth) and 1 (the screen copy), always declared; the globals after.
-        (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
+        // The images it reads through sampled() follow them, then the globals.
+        (CompiledShader compute, int[] images, int[] used, GraphAccess[] access, int[] sampled) = PlacedPass(name, source, build, (placed, samplers) =>
             CompileWrapped(WrapPixels(name, placed, pass.Name, arguments, width, height), "xanaduPixels", "compute", 0, 2,
-                [.. GlobalDefines(PixelSamplers, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_SCREEN_BINDING=1", "XANADU_SCREEN_SET=0",
-                    "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]));
-        CheckDeclared(name, compute, 0, PixelSamplers);
+                [.. GlobalDefines(PixelSamplers + samplers, 0), "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", "XANADU_SCREEN_BINDING=1", "XANADU_SCREEN_SET=0",
+                    "XANADU_FRAME_BINDING=0", "XANADU_FRAME_SET=2"]), PixelSamplers);
+        CheckDeclared(name, compute, 0, PixelSamplers + sampled.Length);
         var shader = new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
             storageBuffers: Globals.Count);
         return new CompiledPass(Named(build, p), shader, used, pass.Threads, access)
         {
-            Images = images, Tile = (width, height), OverImage = pass.OverImage,
+            Images = images, ImageAccess = ImageAccess(compute, images), Sampled = sampled, Tile = (width, height), OverImage = pass.OverImage,
             ReadsDepth = SpirvScan.Binds(compute.Spirv, 0, 0), ReadsScreen = SpirvScan.Binds(compute.Spirv, 0, 1),
         };
     }

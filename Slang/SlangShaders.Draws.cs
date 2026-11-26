@@ -126,6 +126,10 @@ public static partial class SlangShaders
         }
     }
 
+    /// <summary>Output <paramref name="k"/>'s channels in its target: none when it has the target alone, else <c>.yz</c> and so on.</summary>
+    private static string Channels(DrawLayout layout, int k, DrawOutput output) =>
+        layout.In(layout.Slots[k].Target).Count() == 1 ? "" : "." + DrawLayout.Swizzle(layout.Slots[k].Channel, output.Texel.Channels);
+
     /// <summary>The grid's corners, from the vertex index, each moved by the draw's deform and put in the graph's depth.</summary>
     private static string WrapDrawVertex(string name, string source, string deform, int across, int down)
     {
@@ -179,9 +183,17 @@ public static partial class SlangShaders
     private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth)
     {
         (string imports, string code, string label) = Split(name, source);
-        string fields = string.Join(" ", outputs.Select((output, k) => $"{output.Type} o{k} : SV_Target{k};"))
+        DrawLayout layout = DrawLayout.Of(outputs);
+        string fields = string.Join(" ", layout.Targets.Select((type, t) => $"{type} o{t} : SV_Target{t};"))
                         + (depth is null ? "" : " float xanaduDepth : SV_Depth;");
-        string written = outputs[0] is { Field: null, Type: not "float4" }
+        string written = layout.Packs
+            // Packed: each target starts at zero and each output fills its channels.
+            ? "let made = effect0::SHADE(ARGUMENTS);\n"
+              + string.Join("\n", layout.Targets.Select((type, t) => $"    o.o{t} = ({type})0;"))
+              + "\n" + string.Join("\n", outputs.Select((output, k) =>
+                  $"    o.o{layout.Slots[k].Target}{Channels(layout, k, output)} = made.{output.Field};"))
+              + (depth is null ? "" : $"\n    o.xanaduDepth = xanaduDrawBox.slice.x + xanaduDrawBox.slice.y * (0.5 + 0.5 * made.{depth} / (abs(made.{depth}) + 1024.0));")
+            : outputs[0] is { Field: null, Type: not "float4" }
             ? "o.o0 = effect0::SHADE(ARGUMENTS);"
             : outputs[0].Field is null
             ? """

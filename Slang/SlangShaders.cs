@@ -154,7 +154,7 @@ public static partial class SlangShaders
         {
             File.WriteAllText(full, text);
             // The cache key holds the library's hash: it has to be taken again.
-            _libraryHash = null;
+            SlangCache.Forget();
             lock (ConversionsLock)
             {
                 _libraryText = null;
@@ -178,7 +178,6 @@ public static partial class SlangShaders
     /// </summary>
     public static string? CacheFolder { get; set; }
 
-    private static string? _libraryHash;
 
     private static readonly Lock ModuleLock = new();
 
@@ -201,10 +200,9 @@ public static partial class SlangShaders
         string cache = CacheFolder ?? Path.Combine(ReflectionFolder, "cache");
         lock (ModuleLock)
         {
-            _libraryHash ??= LibraryHash();
             string version = typeof(Slangc.NET.SlangCompiler).Assembly.GetName().Version?.ToString() ?? "";
             string key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
-                $"{version}\n{_libraryHash}\n{string.Join(';', defines.Order(StringComparer.Ordinal))}")))[..24];
+                $"{version}\n{SlangCache.LibraryHash}\n{string.Join(';', defines.Order(StringComparer.Ordinal))}")))[..24];
             string folder = Path.Combine(cache, "modules", key);
             if (ModuleFolders.TryGetValue(folder, out string? known))
                 return known;
@@ -486,8 +484,8 @@ public static partial class SlangShaders
     {
         defines ??= [];
         // Looked up by the code itself: what the cache holds never becomes a file for Slang.
-        string? cached = CachePath(code, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines);
-        if (FromCache(cached, samplerSpace, uniformSpace) is { } known)
+        string? cached = SlangCache.Path(code, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines);
+        if (SlangCache.Load(cached, samplerSpace, uniformSpace) is { } known)
             return known;
 
         Directory.CreateDirectory(ReflectionFolder);
@@ -496,7 +494,9 @@ public static partial class SlangShaders
         try
         {
             CompiledShader compiled = CompileFresh(file, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines, out string reflection);
-            ToCache(cached, compiled, reflection);
+            if (SpirvScan.Binds(compiled.Spirv, 0, StackBuild.NoSampler))
+                throw new InvalidOperationException($"error: {StackBuild.Unsampled}");
+            SlangCache.Store(cached, compiled, reflection);
             return compiled;
         }
         finally
@@ -637,7 +637,7 @@ public static partial class SlangShaders
         if (CacheFolder is not { } folder || source.Contains("#include", StringComparison.Ordinal))
             return RunSlang([.. Arguments(path, entry, stage, [])]);
 
-        string cached = Path.Combine(folder, CacheKey(source, $"plain|{entry}|{stage}") + ".spv");
+        string cached = Path.Combine(folder, SlangCache.Key(source, $"plain|{entry}|{stage}") + ".spv");
         if (File.Exists(cached))
             return File.ReadAllBytes(cached);
         byte[] spirv = RunSlang([.. Arguments(path, entry, stage, [])]);
@@ -684,57 +684,13 @@ public static partial class SlangShaders
         string path, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals = false, string[]? defines = null)
     {
         defines ??= [];
-        string? cached = CachePath(File.ReadAllText(path), entry, stage, samplerSpace, uniformSpace, bindGlobals, defines);
-        if (FromCache(cached, samplerSpace, uniformSpace) is { } known)
+        string? cached = SlangCache.Path(File.ReadAllText(path), entry, stage, samplerSpace, uniformSpace, bindGlobals, defines);
+        if (SlangCache.Load(cached, samplerSpace, uniformSpace) is { } known)
             return known;
 
         CompiledShader compiled = CompileFresh(path, entry, stage, samplerSpace, uniformSpace, bindGlobals, defines, out string reflection);
-        ToCache(cached, compiled, reflection);
+        SlangCache.Store(cached, compiled, reflection);
         return compiled;
-    }
-
-    /// <summary>Where one compile is kept (no extension: <c>.spv</c> and <c>.json</c> sit there); null without a cache folder.</summary>
-    private static string? CachePath(string source, string entry, string stage, int samplerSpace, int uniformSpace, bool bindGlobals, string[] defines) =>
-        CacheFolder is { } folder
-            ? Path.Combine(folder, CacheKey(source, $"{entry}|{stage}|{samplerSpace}|{uniformSpace}|{bindGlobals}|{string.Join(';', defines)}"))
-            : null;
-
-    private static CompiledShader? FromCache(string? cached, int samplerSpace, int uniformSpace)
-    {
-        if (cached is null || !File.Exists(cached + ".spv") || !File.Exists(cached + ".json"))
-            return null;
-        using var stored = JsonDocument.Parse(File.ReadAllText(cached + ".json"));
-        return Reflect(File.ReadAllBytes(cached + ".spv"), stored.RootElement, samplerSpace, uniformSpace);
-    }
-
-    private static void ToCache(string? cached, CompiledShader compiled, string reflection)
-    {
-        if (cached is null)
-            return;
-        Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
-        File.WriteAllBytes(cached + ".spv", compiled.Spirv);
-        File.WriteAllText(cached + ".json", reflection);
-    }
-
-    private static string CacheKey(string source, string flags)
-    {
-        _libraryHash ??= LibraryHash();
-        string version = typeof(Slangc.NET.SlangCompiler).Assembly.GetName().Version?.ToString() ?? "";
-        byte[] hash = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes($"{version}\n{_libraryHash}\n{flags}\n{source}"));
-        return Convert.ToHexString(hash)[..32];
-    }
-
-    /// <summary>One hash over every module in the library, so editing one invalidates everything that may import it.</summary>
-    private static string LibraryHash()
-    {
-        if (LibraryPath is not { } library || !Directory.Exists(library))
-            return "";
-
-        var text = new System.Text.StringBuilder();
-        foreach (string file in Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-            text.Append(Path.GetRelativePath(library, file)).Append('\n').Append(File.ReadAllText(file)).Append('\n');
-        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text.ToString())));
     }
 
     private static CompiledShader CompileFresh(
@@ -787,7 +743,7 @@ public static partial class SlangShaders
         return args;
     }
 
-    private static CompiledShader Reflect(byte[] spirv, JsonElement root, int samplerSpace, int uniformSpace)
+    internal static CompiledShader Reflect(byte[] spirv, JsonElement root, int samplerSpace, int uniformSpace)
     {
         var samplers = new SortedDictionary<int, string>();
         int uniformBuffers = 0;
@@ -819,7 +775,7 @@ public static partial class SlangShaders
                     bufferBytes[bare] = Math.Max(bufferBytes.GetValueOrDefault(bare), size.GetProperty("value").GetInt32());
             }
             bool image = type.TryGetProperty("access", out JsonElement access) && access.GetString() == "readWrite"; // a graph's image
-            if (space == samplerSpace && kind == "resource" && !buffer && !image)
+            if (space == samplerSpace && kind == "resource" && !buffer && !image && index < StackBuild.NoSampler)
                 samplers[index] = name;
             else if (space == uniformSpace && kind == "constantBuffer")
             {

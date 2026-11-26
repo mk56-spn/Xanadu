@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 
 namespace Xanadu.Slang;
@@ -53,7 +54,10 @@ public enum NodeScope
 /// <summary>An image of a lowered graph (<see cref="GraphPlan.Images"/>).</summary>
 /// <param name="Source">For a history, the place of the image it is last frame's copy of; -1 otherwise.</param>
 /// <param name="Material">Whether the material holds it for all its items, since a <c>[Pass]</c> touches it.</param>
-public readonly record struct PlannedImage(string Name, string Format, float Clear, ImageLife Life, int Source, ImageSize Size, bool Material);
+/// <param name="Shared">Whether it is the frame's (<c>[Shared]</c>), one for every graph declaring it, the screen's size.</param>
+/// <param name="View">Whether the host draws it (<c>[View]</c>) from the canvas subtree the material names, before the graph runs.</param>
+public readonly record struct PlannedImage(string Name, string Format, System.Numerics.Vector4 Clear, ImageLife Life, int Source, ImageSize Size, bool Material,
+    bool Shared, bool View = false);
 
 /// <summary>One node of a lowered graph: what it does, where it runs, and for a schedule's node the call it came from.</summary>
 /// <param name="Fills">
@@ -104,7 +108,7 @@ public sealed class GraphPlan
             for (int k = 0; k < build.Shape.Images.Count; k++)
             {
                 BuildImage image = build.Shape.Images[k];
-                yield return new PlannedImage(image.Name, image.Format, image.Clear, image.Life, image.Source, image.Size, build.MaterialImages[k]);
+                yield return new PlannedImage(image.Name, image.Format, image.ClearTexel, image.Life, image.Source, image.Size, build.MaterialImages[k], image.Shared, image.View);
             }
     }
 
@@ -177,7 +181,7 @@ public sealed class GraphPlan
         IReadOnlyList<BuildImage> images = build.Shape.Images;
         IReadOnlyList<BuildBuffer> buffers = build.Shape.Buffers;
         bool touches = false;
-        foreach (int image in pass.Images)
+        foreach (int image in pass.Images.Concat(pass.Sampled))
         {
             if (images[image].Life != ImageLife.Cached)
                 return false;

@@ -12,6 +12,15 @@ public sealed record CompiledPass(string Name, CompiledShader Shader, int[] Buff
     /// <summary>The graph's images it binds (by their place in <see cref="StackBuild.Images"/>), read-write before its buffers.</summary>
     public int[] Images { get; init; } = [];
 
+    /// <summary>What its code does with each of <see cref="Images"/>, in the same order: read, write or both.</summary>
+    public GraphAccess[] ImageAccess { get; init; } = [];
+
+    /// <summary>
+    /// The images a pixel pass reads through a sampler (<c>sampled</c>), in the order of their samplers after the canvas's
+    /// own two: read only, and never among <see cref="Images"/>.
+    /// </summary>
+    public int[] Sampled { get; init; } = [];
+
     /// <summary>A pixel pass's tile; null for a pass over elements or groups.</summary>
     public (int Width, int Height)? Tile { get; init; }
 
@@ -42,6 +51,9 @@ public sealed record CompiledBuild(StackBuild Shape, long[] Bytes, CompiledPass[
 
     /// <summary>Whether what the graph draws is all the stack draws: no shade, so no quad of its own after it.</summary>
     public bool Alone { get; init; }
+
+    /// <summary>The <c>[Shared]</c> lists and images it writes and reads: what orders it against other materials.</summary>
+    public SharedUse Shared { get; init; } = SharedUse.None;
 }
 
 /// <summary>
@@ -164,7 +176,7 @@ public static partial class SlangShaders
                 throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a [Pass] can't read the canvas (sampleDepth): it runs once for the material; a [Pixels] pass can.");
             // A [Pass] runs once for the material, so the images it touches are the material's: they need a size of their own.
             foreach (int image in images)
-                if (!build.Images[image].Size.Fixed)
+                if (!build.Images[image].Size.Fixed && !build.Images[image].Screen)
                     throw new InvalidOperationException(
                         $"{Where(name, source, pass.Start)}: error: {pass.Name} runs once for the material, and {build.Images[image].Name} is sized by each item's box; give it a fixed size ([Size(w, h)]) to make it the material's, or touch it from a [Pixels] pass or a [Draw].");
             if (used.Length > MaxStageBuffers)
@@ -173,10 +185,21 @@ public static partial class SlangShaders
             passes[p] = new CompiledPass(Named(build, p),
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
                     storageBuffers: Globals.Count),
-                used, pass.Threads, access) { Images = images };
+                used, pass.Threads, access) { Images = images, ImageAccess = ImageAccess(compute, images) };
         }
 
-        var compiled = new CompiledBuild(build, bytes, passes) { MaterialImages = MaterialImages(build, passes), Alone = source.Contains(ShaderStack.GraphAlone, StringComparison.Ordinal) };
+        // A view is the canvas the host drew; a write would be lost to the next frame's draw, or race the reads.
+        for (int p = 0; p < passes.Length; p++)
+            for (int at = 0; at < passes[p].ImageAccess.Length; at++)
+                if (passes[p] is var pass && build.Images[pass.Images[at]].View && pass.ImageAccess[at].HasFlag(GraphAccess.Write))
+                    throw new InvalidOperationException($"{Where(name, source, build.Passes[p].Start)}: error: "
+                        + $"{pass.Name} writes {build.Images[pass.Images[at]].Name}, a [View]: the host draws it from the canvas, so the graph only reads it.");
+
+        var compiled = new CompiledBuild(build, bytes, passes)
+        {
+            MaterialImages = MaterialImages(build, passes), Alone = source.Contains(ShaderStack.GraphAlone, StringComparison.Ordinal),
+            Shared = SharedUse.Of(build, passes),
+        };
         // Walked once with the defaults: a schedule that can't run says so now, not every frame.
         try
         {
@@ -192,21 +215,28 @@ public static partial class SlangShaders
         return compiled;
     }
 
-    /// <summary>What the board and the timings call pass <paramref name="p"/>: a library pass lent other buffers a second time is <c>sort.hist 2</c>.</summary>
-    /// <summary>The images a <c>[Pass]</c> touches, with each one's history or source: the material's (<see cref="CompiledBuild.MaterialImages"/>).</summary>
+    /// <summary>
+    /// The images a <c>[Pass]</c> touches, with each one's history or source: the material's
+    /// (<see cref="CompiledBuild.MaterialImages"/>). A <c>[Shared]</c> or <c>[View]</c> one is the frame's instead.
+    /// </summary>
     private static bool[] MaterialImages(StackBuild build, CompiledPass[] passes)
     {
         var material = new bool[build.Images.Count];
         foreach (CompiledPass pass in passes)
             if (pass.Tile is null && pass.Drawn is null)
                 foreach (int image in pass.Images)
-                    material[image] = true;
+                    material[image] = !build.Images[image].Screen;
         for (int k = 0; k < material.Length; k++)
             if (build.Images[k].Source is >= 0 and var source && (material[k] || material[source]))
                 material[k] = material[source] = true;
         return material;
     }
 
+    /// <summary>What a pass's code does with the images it binds, at bindings 0.. of set 1; unknown counts as both.</summary>
+    private static GraphAccess[] ImageAccess(CompiledShader pass, int[] images) =>
+        [.. images.Select((_, at) => SpirvScan.Access(pass.Spirv, 1, at, image: true) is var used and not 0 ? used : GraphAccess.ReadWrite)];
+
+    /// <summary>What the board and the timings call pass <paramref name="p"/>: a library pass lent other buffers a second time is <c>sort.hist 2</c>.</summary>
     private static string Named(StackBuild build, int p)
     {
         BuildPass pass = build.Passes[p];
@@ -226,7 +256,7 @@ public static partial class SlangShaders
         int number = 0, lent = 0;
         string arguments = string.Concat(pass.Parameters.Select(parameter => parameter.IsBuffer
             ? $", effect0::{build.Buffers[pass.Bound[lent++]].Name}"
-            : $", xanaduPassFrame.args[{number++}]"));
+            : $", xanaduPassFrame.args[{number / 4}][{number++ % 4}]"));
         string called = pass.Library is { } library ? $"{library.Name}.{pass.Name}" : $"effect0::{pass.Name}";
         string module = pass.Library is { } from ? $"import {from.Module};" : "";
         return $$"""
@@ -239,7 +269,7 @@ public static partial class SlangShaders
             #line 1 "{{label}} (wrapper)"
             }
             #line 1 "{{label}} (wrapper)"
-            struct XanaduPassFrame { float dt; float time; uint over; float beat; uint4 args; };
+            struct XanaduPassFrame { float dt; float time; uint over; float beat; uint4 args[4]; };
             [[vk::binding(0, 2)]] ConstantBuffer<XanaduPassFrame> xanaduPassFrame;
             [shader("compute")]
             [numthreads({{pass.Threads}}, 1, 1)]

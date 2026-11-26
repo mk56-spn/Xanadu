@@ -84,7 +84,7 @@ public sealed partial class StackBuild
                     // Over is the copies drawn; a draw counted on the GPU reads them there.
                     BuildPass drawn = Passes[draw.Pass];
                     uint copies = drawn.Copies is { } n ? (uint)Math.Max(0, BuildPasses.Evaluate(n, drawn.Start, lookup).Long) : 1;
-                    runs.Add(new Run(draw.Pass, 0, copies, RunValues.Of([Target(draw, 0), Target(draw, 1), Target(draw, 2), Target(draw, 3)])));
+                    runs.Add(new Run(draw.Pass, 0, copies, Targets(draw)));
                     break;
                 case BuildPresent present:
                     // Lowered to a draw before anything compiles (PresentDraws): one still here was never compiled.
@@ -93,9 +93,14 @@ public sealed partial class StackBuild
         }
     }
 
-    /// <summary>A draw's <paramref name="k"/>th colour target, <see cref="Run.None"/> past its last.</summary>
-    private static uint Target(BuildDraw draw, int k) =>
-        k >= draw.Targets.Length ? Run.None : draw.Targets[k] == BuildDraw.Frame ? Run.Frame : (uint)draw.Targets[k];
+    /// <summary>A draw's colour targets in order, <see cref="Run.None"/> past its last.</summary>
+    private static RunValues Targets(BuildDraw draw)
+    {
+        Span<uint> targets = stackalloc uint[draw.Targets.Length];
+        for (int k = 0; k < targets.Length; k++)
+            targets[k] = draw.Targets[k] == BuildDraw.Frame ? Run.Frame : (uint)draw.Targets[k];
+        return RunValues.Of(targets, Run.None);
+    }
 
     private Run Dispatch(BuildCall call, Func<string, BuildValue?> lookup, int count)
     {

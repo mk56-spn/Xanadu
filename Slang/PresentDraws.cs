@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -89,22 +90,33 @@ public static class PresentDraws
     /// <summary>The generated draw and its shade.</summary>
     private static string Draw(StackBuild build, string name, BuildImage colour, BuildImage? depth)
     {
-        string read = colour.Size.Box
-            ? $"{colour.Name}[group.pixel]"
-            : $"filtered({colour.Name}, (float2(group.pixel) + 0.5) * {Extent(colour)} / canvas.size, {Extent(colour)})";
+        string read = colour switch
+        {
+            { Screen: true, Size.Box: true } => $"{colour.Name}[uint2(i.pixel)]",
+            { Screen: true } => $"filtered({colour.Name}, i.screenUv * {Extent(colour)}, {Extent(colour)})",
+            { Size.Box: true } => $"{colour.Name}[group.pixel]",
+            _ => $"filtered({colour.Name}, (float2(group.pixel) + 0.5) * {Extent(colour)} / canvas.size, {Extent(colour)})",
+        };
+        BuildImage?[] shown = [colour, depth];
+        string sizes = string.Concat(shown.Where(image => image is { Screen: true, Size: { Box: false, Fixed: false } })
+            .Select(image => $"float2 {image!.Name}_extent() {{ uint w, h; {image.Name}.GetDimensions(w, h); return float2(w, h); }}\n"));
         if (depth is null)
             return $$"""
-                [CoversBox] [Draw(1, 1, shade: {{name}}_look)]
+                {{sizes}}[CoversBox] [Draw(1, 1, shade: {{name}}_look)]
                 ItemVertex {{name}}(ItemVertex v) { return v; }
                 float4 {{name}}_look(ItemInput i, Canvas canvas) { return {{read}}; }
 
                 """;
 
-        string far = depth.Size.Box
-            ? $"{depth.Name}[group.pixel]"
-            : $"{depth.Name}[uint2((float2(group.pixel) + 0.5) * {Extent(depth)} / canvas.size)]";
+        string far = depth switch
+        {
+            { Screen: true, Size.Box: true } => $"{depth.Name}[uint2(i.pixel)]",
+            { Screen: true } => $"{depth.Name}[uint2(i.screenUv * {Extent(depth)})]",
+            { Size.Box: true } => $"{depth.Name}[group.pixel]",
+            _ => $"{depth.Name}[uint2((float2(group.pixel) + 0.5) * {Extent(depth)} / canvas.size)]",
+        };
         return $$"""
-            struct {{name}}_texel { float4 shown; float far : SV_Depth; };
+            {{sizes}}struct {{name}}_texel { float4 shown; float far : SV_Depth; };
             [CoversBox] [Draw(1, 1, shade: {{name}}_look)]
             ItemVertex {{name}}(ItemVertex v) { return v; }
             {{name}}_texel {{name}}_look(ItemInput i, Canvas canvas)
@@ -120,8 +132,13 @@ public static class PresentDraws
             """;
     }
 
-    /// <summary>The texels an image covers, in the draw's shade: fixed, or the box (its <c>canvas.size</c>) scaled and rounded up.</summary>
+    /// <summary>
+    /// The texels an image covers, in the draw's shade: fixed, or the box (its <c>canvas.size</c>) scaled and rounded up;
+    /// a scaled <c>[Shared]</c> one, the screen's scaled, asks its texture.
+    /// </summary>
     private static string Extent(BuildImage image) => image.Size.Fixed
         ? $"float2({image.Size.Width}, {image.Size.Height})"
-        : $"max(ceil(canvas.size * {image.Size.Scale.ToString("R", CultureInfo.InvariantCulture)}), 1.0)";
+        : image.Screen
+            ? $"{image.Name}_extent()"
+            : $"max(ceil(canvas.size * {image.Size.Scale.ToString("R", CultureInfo.InvariantCulture)}), 1.0)";
 }

@@ -18,20 +18,27 @@ namespace Xanadu.Slang;
 /// [Size(256, 256)] Image&lt;float&gt; heights;       // fixed
 /// [Kept] Image&lt;float4&gt; paint;                   // kept from frame to frame
 /// [History(shown)] Image&lt;float4&gt; before;        // last frame's shown
+/// [Shared] Image&lt;float&gt; mask;                   // one for the frame, the screen's size, whatever material declares it
+/// [Shared] [Size(64)] List&lt;Hit&gt; hits;            // one list, whatever material declares it
+/// [View] Image&lt;float4&gt; mirrored;               // the screen's size, drawn by the host from the subtree the material names
 /// </code>
 /// Gathered, Slots and Meshes keep several lists under one name (<see cref="BuildBundle"/>).
-/// An image's texel format comes from what it holds: <c>float</c> is r32f, <c>float2</c> rg16f, <c>float4</c> rgba16f,
-/// <c>uint</c> r32ui; <c>[Precise]</c> makes a float4 rgba32f and <c>[Compact]</c> makes a float4 rgba8, a float r16f.
+/// An image's texel format comes from what it holds and its <c>[Precise]</c> or <c>[Compact]</c> (<see cref="Texel.All"/>):
+/// <c>float</c> is r32f, <c>float2</c> rg16f, <c>float4</c> rgba16f, uints and ints 32 bits a channel.
+/// <c>[Shared]</c> makes a list or image the frame's, not the material's or the item's: every graph that declares one of
+/// that name and type gets the same, and materials that write it run before materials that read it. <c>[View]</c> makes
+/// an image the host's: before the graph runs it draws the canvas subtree the material names under that name
+/// (<c>CanvasMaterial.SetView</c>) into it, so it is rgba8, the screen's size and only read.
 /// </summary>
 internal static partial class BuildDeclarations
 {
     private const string Forms =
-        "[Size(n)] List<T> name; (with [Cached] or [Host] before it if wanted), Counter name;, or Image<T> name; "
-        + "(T float, float2, float4 or uint; with [Kept], [Cached] or [History(image)], [Scale(s)] or [Size(w, h)], "
-        + "[Clear(value)], and [Precise] or [Compact] before it if wanted), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
+        "[Size(n)] List<T> name; (with [Cached], [Host] or [Shared] before it if wanted), Counter name;, or Image<T> name; "
+        + "(T float, float2, float4, uint, uint2, uint4, int, int2 or int4; with [Kept], [Cached], [History(image)] or [Shared], [Scale(s)] or [Size(w, h)], "
+        + "[Clear(value)], and [Precise] or [Compact] before it if wanted; or [View] Image<float4> name; alone), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
         + "or [Pages(n)] Meshes name; (with [Cached] before them if wanted)";
 
-    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Pages"];
+    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Pages", "Shared", "View"];
 
     [GeneratedRegex(@"(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?<coherent>globallycoherent\s+)?\b(?<kind>List|Image|Counter|Gathered|Slots|Meshes)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<name>\w+)\s*;")]
     private static partial Regex Declaration();
@@ -142,10 +149,10 @@ internal static partial class BuildDeclarations
     {
         string[] allowed = kind switch
         {
-            "List" => ["Size", "Cached", "Host"],
+            "List" => ["Size", "Cached", "Host", "Shared"],
             "Counter" => [],
             "Gathered" or "Slots" or "Meshes" => BundleKinds.Allowed(kind),
-            _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact"],
+            _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact", "Shared", "View"],
         };
         Dictionary<string, Argument?> said = [];
         Group attributes = match.Groups["attributes"];
@@ -171,6 +178,15 @@ internal static partial class BuildDeclarations
             throw new BuildProblem(match.Index, $"say what a{(kind == "Image" ? "n" : "")} {kind} holds: {kind}<T> {match.Groups["name"].Value};.");
         if (said.ContainsKey("Kept") && said.ContainsKey("Cached") || said.ContainsKey("History") && (said.ContainsKey("Kept") || said.ContainsKey("Cached")))
             throw new BuildProblem(match.Index, "an image is [Kept], [Cached] or a [History], one of them.");
+        // The frame's: no material's values to cache by, no material's data to fill it from, no item to keep it for.
+        if (said.ContainsKey("Shared") && (said.ContainsKey("Kept") || said.ContainsKey("Cached") || said.ContainsKey("History") || said.ContainsKey("Host")))
+            throw new BuildProblem(match.Index, kind == "List"
+                ? "a [Shared] list is the frame's, kept from frame to frame like any list; it can't be [Cached] or [Host] too."
+                : "a [Shared] image is the frame's, cleared each frame; it can't be [Kept], [Cached] or a [History] too.");
+        // The host's: what the canvas draws, as big as the screen, so nothing about it is the graph's to say.
+        if (said.ContainsKey("View") && (said.Count > 1 || match.Groups["type"].Value != "float4"))
+            throw new BuildProblem(match.Index,
+                $"a [View] image is the canvas drawn again, rgba8 and the screen's size, so it takes nothing else: [View] Image<float4> {match.Groups["name"].Value};.");
         if (said.ContainsKey("Precise") && said.ContainsKey("Compact"))
             throw new BuildProblem(match.Index, "an image is [Precise] or [Compact], not both.");
         return said;
@@ -204,31 +220,22 @@ internal static partial class BuildDeclarations
         }
 
         return new BuildBuffer(name, kind == "Counter" ? "uint" : match.Groups["type"].Value, count, match.Groups["coherent"].Success,
-            match.Index, match.Index + match.Length, Host: said.ContainsKey("Host"), Cached: said.ContainsKey("Cached"));
+            match.Index, match.Index + match.Length, Host: said.ContainsKey("Host"), Cached: said.ContainsKey("Cached"), Shared: said.ContainsKey("Shared"));
     }
 
     private static BuildImage ReadImage(Match match, Dictionary<string, Argument?> said, System.Func<string, BuildValue?> constant)
     {
         string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
-        string format = (type, said.ContainsKey("Precise"), said.ContainsKey("Compact")) switch
-        {
-            ("float4", false, false) => "rgba16f",
-            ("float4", true, _) => "rgba32f",
-            ("float4", _, true) => "rgba8",
-            ("float", false, false) => "r32f",
-            ("float", false, true) => "r16f",
-            ("float2", false, false) => "rg16f",
-            ("uint", false, false) => "r32ui",
-            ("float" or "float2" or "uint", _, _) => throw new BuildProblem(match.Index,
-                $"an Image<{type}> has one precision; [Precise] and [Compact] are for float4 (and [Compact] for float)."),
-            _ => throw new BuildProblem(match.Index, $"an image holds float, float2, float4 or uint, not {type}."),
-        };
+        string? precision = said.ContainsKey("Precise") ? "Precise" : said.ContainsKey("Compact") || said.ContainsKey("View") ? "Compact" : null;
+        string format = Texel.Of(type, precision)?.Format ?? throw new BuildProblem(match.Index, Texel.Of(type, null) is null
+            ? $"an image holds {string.Join(", ", Texel.Types)}; not {type}."
+            : $"an Image<{type}> can't be [{precision}]: that's for {string.Join(", ", Texel.All.Where(texel => texel.Precision == precision).Select(texel => texel.Type))}.");
         float clear = said.TryGetValue("Clear", out Argument? value) && value is not null
             ? (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, constant).Number
             : 0f;
         ImageLife life = said.ContainsKey("Kept") ? ImageLife.Kept : said.ContainsKey("Cached") ? ImageLife.Cached : ImageLife.Frame;
         return new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length, life,
-            Size: SizeOf(match, said, name, constant));
+            Size: SizeOf(match, said, name, constant), Shared: said.ContainsKey("Shared"), View: said.ContainsKey("View"));
     }
 
     private static BuildImage ReadHistory(Match match, Dictionary<string, Argument?> said, List<BuildImage> images, int sources)
@@ -241,6 +248,8 @@ internal static partial class BuildDeclarations
         if (source < 0)
             throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an Image this graph declares.");
         BuildImage of = images[source];
+        if (of.Screen)
+            throw new BuildProblem(match.Index, $"{from} is [{(of.View ? "View" : "Shared")}], the frame's, so it keeps no history.");
         if (of.Life is ImageLife.Kept or ImageLife.Cached)
             throw new BuildProblem(match.Index, $"{from} is [{of.Life}]: it already holds last frame's texels, so it needs no history.");
         if (images.Any(image => image.Source == source))

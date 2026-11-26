@@ -11,8 +11,26 @@ namespace Xanadu.Slang;
 /// <param name="Life">How long what it holds lasts: the frame, or longer.</param>
 /// <param name="Source">For a <see cref="ImageLife.History"/>, the image (its place) it is last frame's copy of; -1 otherwise.</param>
 /// <param name="Size">How big it is: the item's box (the default), a part of it, or fixed.</param>
+/// <param name="Channels">For a packed texture (<see cref="ImagePacking"/>), each channel's clear; null: every channel is <paramref name="Clear"/>.</param>
+/// <param name="Shared">
+/// Marked <c>[Shared]</c>: the frame's one image of this name and format, whatever material declares it, cleared at its
+/// first use in the frame. Its size is the screen's (<paramref name="Size"/> scales the screen, or is fixed), so it is
+/// read and written at <c>i.pixel</c>, not <c>group.pixel</c>.
+/// </param>
+/// <param name="View">
+/// Marked <c>[View]</c>: the host's, drawn before the graph runs from the canvas subtree its material names under this
+/// name. rgba8 and the screen's size like a shared one, read at <c>i.pixel</c>; nothing in the graph writes it.
+/// </param>
 public sealed record BuildImage(string Name, string Format, string Type, float Clear, int Start, int End,
-    ImageLife Life = ImageLife.Frame, int Source = -1, ImageSize Size = default);
+    ImageLife Life = ImageLife.Frame, int Source = -1, ImageSize Size = default, float[]? Channels = null, bool Shared = false,
+    bool View = false)
+{
+    /// <summary>The frame's, not an item's: <c>[Shared]</c> or <c>[View]</c>, sized against the screen, read at <c>i.pixel</c>.</summary>
+    public bool Screen => Shared || View;
+
+    /// <summary>What a texel holds before the first node touches it, channel by channel.</summary>
+    public System.Numerics.Vector4 ClearTexel => Channels is { } c ? new(c[0], c[1], c[2], c[3]) : new(Clear);
+}
 
 /// <summary>
 /// An image's size: an image is the item's box, <c>[Scale(s)]</c> the box times s (rounded up),
