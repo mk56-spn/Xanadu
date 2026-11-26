@@ -67,10 +67,10 @@ up without telling it.
      the editor draws no fills, as the owner draws the item there through its
      shader) and `DrawsItem` (the owner draws the item in the shape box too, at
      `XifEditor.Shown`).
-   - `XifEditAsked(change)`: run `change` as one undo step, then redraw.
+   - `EditAsked(change)`: run `change` as one undo step, then redraw.
      It is an `Action` while items are C# objects outside the ECS.
-   - `XifGestureStarted` / `XifGestureEnded` / `XifChanged`: a point drag is one
-     gesture; `XifChanged` fires on each move inside it and should only redraw.
+   - `EditGestureStarted` / `EditGestureEnded` / `EditChanged` (shared with the particle editor, `EditSignals.cs`): a point drag is one
+     gesture; `EditChanged` fires on each move inside it and should only redraw.
    The settings under SHADER are the common shader's (`XifShaderParams.Common`);
    values the drawer sets (`xif_*`) are left out.
 3. Add `new XifEditorSystem(pointer, visuals)` to the tool's system group.

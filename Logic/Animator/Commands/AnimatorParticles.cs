@@ -8,14 +8,34 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Logic.Animator.Commands;
 
 /// <summary>
-/// Hosts the shared particle editor in the animator: it shows while the
+/// Owns the shared particle editor in the animator: it shows while the
 /// selected part streams particles and edits that part's own settings (its
 /// node's <see cref="XifParticles"/>), each change a step on the animator's
 /// undo history. The preview's streams play the settings in place, so edits
 /// show at once.
 /// </summary>
-public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHost
+public sealed class AnimatorParticles(EntityStore store)
 {
+    /// <summary>Builds the editor (see <see cref="ParticleEditorPanel.Build"/>) and has a new owner answer it for the animator in <paramref name="store"/>.</summary>
+    public static Entity Build(UiNode layer, Vector2 home, EntityStore store)
+    {
+        Entity panel = ParticleEditorPanel.Build(layer, home);
+        var owner = new AnimatorParticles(store);
+        panel.AddSignalHandler<ParticleEditorFrameDue>(signal =>
+        {
+            ref ParticleEditorFrame frame = ref signal.Entity.GetComponent<ParticleEditorFrame>();
+            RigAttachment? effect = owner.Effect;
+            frame.Particle = effect?.Particles;
+            frame.Title = effect is null ? "" : $"{effect.Id}  particles";
+        });
+        panel.AddSignalHandler<ParticleUseAsked>(signal => owner.Use(signal.Event.Settings));
+        panel.AddSignalHandler<EditAsked>(signal => owner.Edit(signal.Event.Change));
+        panel.AddSignalHandler<EditGestureStarted>(_ => AnimatorHistoryCommands.BeginGesture(owner.Session));
+        // The streams play the settings in place, so a change inside a gesture has nothing to rebuild.
+        panel.AddSignalHandler<EditGestureEnded>(_ => AnimatorHistoryCommands.EndGesture(owner.Session));
+        return panel;
+    }
+
     private Entity Session => AnimatorSession.Find(store);
 
     private RigAttachment? Effect
@@ -31,11 +51,7 @@ public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHos
         }
     }
 
-    public XpfParticle? Particle => Effect?.Particles;
-
-    public string Title => Effect is { } effect ? $"{effect.Id}  particles" : "";
-
-    public void Use(XpfParticle settings)
+    private void Use(XpfParticle settings)
     {
         Entity session = Session;
         int index = session.IsNull ? -1 : AnimatorSelected.Part(session);
@@ -50,17 +66,10 @@ public sealed class AnimatorParticleHost(EntityStore store) : IParticleEditorHos
         });
     }
 
-    public void Edit(Action change)
+    private void Edit(Action change)
     {
         Entity session = Session;
         if (!session.IsNull)
             AnimatorHistoryCommands.Edit(session, change);
     }
-
-    public void BeginGesture() => AnimatorHistoryCommands.BeginGesture(Session);
-
-    public void EndGesture() => AnimatorHistoryCommands.EndGesture(Session);
-
-    /// <summary>The streams play the settings in place; nothing to rebuild.</summary>
-    public void Changed() { }
 }

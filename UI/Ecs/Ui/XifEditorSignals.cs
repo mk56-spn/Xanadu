@@ -9,8 +9,8 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// shaders it may use there. The owner writes it whenever
 /// <see cref="XifEditorFrameDue"/> is emitted on the panel, so an undo that
 /// replaces the item is picked up; the editor never owns the item. Edits go
-/// back as signals (<see cref="XifEditAsked"/> and the gesture ones), which the
-/// owner records on its own undo.
+/// back as the shared edit signals (<see cref="EditAsked"/> and the gesture
+/// ones), which the owner records on its own undo.
 /// </summary>
 public struct XifEditorFrame() : IComponent
 {
@@ -61,25 +61,10 @@ public struct XifEditorFrame() : IComponent
     }
 }
 
-// Signals the XIF editor emits on its panel. The owner hears them with AddSignalHandler.
+// The XIF editor emits this and the shared edit signals (EditSignals.cs) on its panel; the owner hears them.
 
 /// <summary>Write <see cref="XifEditorFrame"/> now.</summary>
 public readonly record struct XifEditorFrameDue;
-
-/// <summary>
-/// Run <paramref name="Change"/> on the item as one undo step and redraw whatever shows it. The change is
-/// code, not data, while items are C# objects outside the ECS; it becomes entity edits once they move in.
-/// </summary>
-public readonly record struct XifEditAsked(Action Change);
-
-/// <summary>A run of edits begins, such as a point drag, to undo as one step.</summary>
-public readonly record struct XifGestureStarted;
-
-/// <summary>The run <see cref="XifGestureStarted"/> began is over.</summary>
-public readonly record struct XifGestureEnded;
-
-/// <summary>The item changed inside a gesture: redraw it without recording a step yet.</summary>
-public readonly record struct XifChanged;
 
 /// <summary>Emitting an editor's signals from the code that holds its component.</summary>
 public static class XifEditorAsk
@@ -90,11 +75,11 @@ public static class XifEditorAsk
     /// <summary>Asks the owner to describe the editor now.</summary>
     public static XifEditorFrame Refresh(in XifEditor editor) => XifEditorFrame.Refresh(editor.Parts.Panel);
 
-    public static void Edit(in XifEditor editor, Action change) => editor.Parts.Panel.EmitSignal(new XifEditAsked(change));
+    public static void Edit(in XifEditor editor, Action change) => editor.Parts.Panel.EmitSignal(new EditAsked(change));
 
-    public static void BeginGesture(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new XifGestureStarted());
+    public static void BeginGesture(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new EditGestureStarted());
 
-    public static void EndGesture(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new XifGestureEnded());
+    public static void EndGesture(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new EditGestureEnded());
 
-    public static void Changed(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new XifChanged());
+    public static void Changed(in XifEditor editor) => editor.Parts.Panel.EmitSignal(new EditChanged());
 }

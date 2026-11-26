@@ -127,10 +127,7 @@ public static partial class AnimatorLayout
         UiBuilder xifLines = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXifLines);
         refs.Ui.XifEditor = AnimatorXif.Build(
             UiNode.Wrap(xif.Current, visuals), XifEditorArea(screen), screen, UiNode.Wrap(xifLines.Current, visuals), store);
-        refs.Ui.ParticleEditor = ParticleEditorPanel.Build(
-            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
-            ParticleEditorCenter(screen),
-            new AnimatorParticleHost(store));
+        refs.Ui.ParticleEditor = AnimatorParticles.Build(UiNode.Wrap(refs.Ui.MenuLayer, visuals), ParticleEditorCenter(screen), store);
         BuildTooltip(store, visuals, ref refs);
         return refs.Ui;
     }

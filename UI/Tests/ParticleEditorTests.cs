@@ -26,34 +26,35 @@ public sealed class ParticleEditorTests : EcsSystemTest
     private XpfLibrary _library = null!;
 
     /// <summary>Holds the selected thing's settings, as a part or emitter would, and counts what the editor asked of it.</summary>
-    private sealed class FakeHost : IParticleEditorHost
+    private sealed class FakeHost
     {
         public XpfParticle? Particle { get; set; }
-        public string Title => "Emitter";
         public int Uses { get; private set; }
         public int Edits { get; private set; }
         public int Gestures { get; private set; }
         public int Changes { get; private set; }
 
-        public void Use(XpfParticle settings)
+        public void Listen(Entity panel)
         {
-            Particle = settings;
-            Uses++;
+            panel.AddSignalHandler<ParticleEditorFrameDue>(signal =>
+            {
+                ref ParticleEditorFrame frame = ref signal.Entity.GetComponent<ParticleEditorFrame>();
+                frame.Particle = Particle;
+                frame.Title = "Emitter";
+            });
+            panel.AddSignalHandler<ParticleUseAsked>(signal =>
+            {
+                Particle = signal.Event.Settings;
+                Uses++;
+            });
+            panel.AddSignalHandler<EditAsked>(signal =>
+            {
+                signal.Event.Change();
+                Edits++;
+            });
+            panel.AddSignalHandler<EditGestureStarted>(_ => Gestures++);
+            panel.AddSignalHandler<EditChanged>(_ => Changes++);
         }
-
-        public void Edit(Action change)
-        {
-            change();
-            Edits++;
-        }
-
-        public void BeginGesture() => Gestures++;
-
-        public void EndGesture()
-        {
-        }
-
-        public void Changed() => Changes++;
     }
 
     protected override void OnEcsSetUp()
@@ -67,7 +68,8 @@ public sealed class ParticleEditorTests : EcsSystemTest
         Root.Add(new ContainerLayoutSystem());
         Root.Add(new ParticleEditorSystem());
         UiNode layer = UiNode.Layer(Store, default, 5, new FakeVisualRidFactory());
-        _panel = ParticleEditorPanel.Build(layer, Home, _host);
+        _panel = ParticleEditorPanel.Build(layer, Home);
+        _host.Listen(_panel);
         Frame(2);
     }
 

@@ -262,18 +262,18 @@ public sealed class XifEditorTests : EcsSystemTest
                 frame.Item = Current;
                 frame.Title = $"{Current?.Name} item";
             });
-            panel.AddSignalHandler<XifEditAsked>(signal =>
+            panel.AddSignalHandler<EditAsked>(signal =>
             {
                 Edits++;
                 signal.Event.Change();
             });
-            panel.AddSignalHandler<XifGestureStarted>(_ =>
+            panel.AddSignalHandler<EditGestureStarted>(_ =>
             {
                 Gestures++;
                 Open = true;
             });
-            panel.AddSignalHandler<XifGestureEnded>(_ => Open = false);
-            panel.AddSignalHandler<XifChanged>(_ => Changes++);
+            panel.AddSignalHandler<EditGestureEnded>(_ => Open = false);
+            panel.AddSignalHandler<EditChanged>(_ => Changes++);
         }
     }
 }

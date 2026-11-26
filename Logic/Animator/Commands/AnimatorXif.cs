@@ -42,10 +42,10 @@ public sealed class AnimatorXif(EntityStore store)
             frame.Opacity = onBone is null ? 1f : OnBoneOpacity;
             frame.DrawsItem = true; // the preview draws every item itself, on its bone or in the shape box
         });
-        panel.AddSignalHandler<XifEditAsked>(signal => owner.Edit(signal.Event.Change));
-        panel.AddSignalHandler<XifGestureStarted>(_ => AnimatorHistoryCommands.BeginGesture(owner.Session));
-        panel.AddSignalHandler<XifGestureEnded>(_ => owner.EndGesture());
-        panel.AddSignalHandler<XifChanged>(_ => owner.Changed());
+        panel.AddSignalHandler<EditAsked>(signal => owner.Edit(signal.Event.Change));
+        panel.AddSignalHandler<EditGestureStarted>(_ => AnimatorHistoryCommands.BeginGesture(owner.Session));
+        panel.AddSignalHandler<EditGestureEnded>(_ => owner.EndGesture());
+        panel.AddSignalHandler<EditChanged>(_ => owner.Changed());
         return panel;
     }
 

@@ -222,6 +222,8 @@ internal sealed class AnimatorTool : HostApp
     /// <summary>The command-line set-up, once the layout exists; rig names are looked up here.</summary>
     private void ApplyLaunch()
     {
+        if (_launch.EditRig) // first, so --streak, --sparks and --dress may change the rig
+            _session.EmitSignal(new ToggleMode(AnimatorMode.Rest));
         if (_launch.Flow is { } flow)
             StartFlow(flow);
         if (_launch.Clip is { } clip)
@@ -259,8 +261,6 @@ internal sealed class AnimatorTool : HostApp
             AddCurveTo(curvePart);
         if (_launch.Shortcuts)
             _session.EmitSignal(new ToggleShortcuts());
-        if (_launch.EditRig)
-            _session.EmitSignal(new ToggleMode(AnimatorMode.Rest));
         if (_launch.Layers)
             Entities.Query<UiTabs>().ToEntityList()[0].GetComponent<UiTabs>().Selected = AnimatorLayout.LayersTab;
         if (_launch.FullKeys)

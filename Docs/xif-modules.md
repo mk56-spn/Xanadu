@@ -236,7 +236,7 @@ module chunks. A reference node stores the target `Id` instead of modules.
 11. **Particles, step 1.** ✅ 2026-11-22. `XifParticles` carries the node's
    own settings, written in XIF with the XPF per-effect codec
    (`XpfBinary.WriteParticle`). The particle editor edits a host's settings
-   through its undo (`IParticleEditorHost`: Use, Edit, gestures); the
+   through its undo (`ParticleEditorFrame`, `ParticleUseAsked` and the shared edit signals); the
    library is presets only (< and > load one, STORE puts a copy back, SAVE
    writes the library). `XpfParticle.Version` makes the GPU server resample
    an edited effect's row. A held part's stream draws over the held canvas,

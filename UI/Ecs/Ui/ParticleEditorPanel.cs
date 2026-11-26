@@ -8,9 +8,9 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// Builds a particle editor panel: the selected thing's own particle settings
 /// (presets to load from and store into the library, their name, their look
 /// and a slider for each of their numbers). Any tool
-/// can host one, the way it hosts the XIF editor;
-/// <see cref="Xanadu.Systems.Ui.ParticleEditorSystem"/> runs it and the host says
-/// what is selected through <see cref="IParticleEditorHost"/>.
+/// can own one, the way it owns the XIF editor;
+/// <see cref="Xanadu.Systems.Ui.ParticleEditorSystem"/> runs it and the owner says
+/// what is selected through <see cref="ParticleEditorFrame"/>.
 /// </summary>
 public static class ParticleEditorPanel
 {
@@ -23,7 +23,7 @@ public static class ParticleEditorPanel
     /// <summary>Rows above the sliders: title, effect, name, file, look twice, colour; and the status under them.</summary>
     private const int FixedRows = 7;
 
-    /// <summary>Total height, so a host can place the panel before it is laid out.</summary>
+    /// <summary>Total height, so an owner can place the panel before it is laid out.</summary>
     public static float Height
     {
         get
@@ -37,14 +37,14 @@ public static class ParticleEditorPanel
 
     /// <summary>
     /// Builds the panel hidden on <paramref name="layer"/>; it shows at
-    /// <paramref name="home"/> (its centre) whenever the host has a selection.
+    /// <paramref name="home"/> (its centre) whenever the owner has a selection.
     /// </summary>
-    public static Entity Build(UiNode layer, Vector2 home, IParticleEditorHost host)
+    public static Entity Build(UiNode layer, Vector2 home)
     {
         UiNode panel = layer.Panel().Size(Width, Height).Gap(Gap).Hidden()
             .Main(StackMainAlignment.Start);
         Entity editor = panel;
-        var parts = new ParticleEditorParts { Sliders = [] };
+        var parts = new ParticleEditorParts { Panel = editor, Sliders = [] };
 
         parts.Title = panel.Text("", UiType.Label, UiTheme.Accent).Size(Inner, Row);
 
@@ -91,9 +91,9 @@ public static class ParticleEditorPanel
 
         parts.Status = panel.Text("", UiType.Caption, UiTheme.TextDim).Size(Inner, Row);
 
+        panel.With(new ParticleEditorFrame());
         panel.With(new ParticleEditor
         {
-            Host = host,
             Home = home,
             Parts = parts,
             Status = "",

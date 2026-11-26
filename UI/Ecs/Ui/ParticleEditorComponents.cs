@@ -5,36 +5,36 @@ using Xanadu.Core.Particles;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
-/// What a tool gives the particle editor: the selected thing's own particle
-/// settings (a Xif node's <c>XifParticles</c>), edited in place through the
-/// host so its undo records them. The shared <see cref="ParticleLibrary"/>
-/// only holds presets: loading one copies it into the settings, storing puts
-/// a copy of the settings into it. The editor asks every frame, so an undo
-/// that changes the selection or swaps the settings is picked up.
+/// The particle editor as its owner describes it: the selected thing's own
+/// particle settings (a Xif node's <c>XifParticles</c>), edited in place and
+/// recorded on the owner's undo through the shared edit signals
+/// (<see cref="EditAsked"/>), and <see cref="ParticleUseAsked"/> to swap them.
+/// The shared <see cref="ParticleLibrary"/> only holds presets: loading one
+/// copies it into the settings, storing puts a copy of the settings into it.
+/// The owner writes this whenever <see cref="ParticleEditorFrameDue"/> is
+/// emitted, so an undo that changes the selection or swaps the settings is picked up.
 /// </summary>
-public interface IParticleEditorHost
+public struct ParticleEditorFrame() : IComponent
 {
     /// <summary>The selected thing's particle settings, or null to hide the editor.</summary>
-    XpfParticle? Particle { get; }
+    public XpfParticle? Particle;
 
     /// <summary>What the editor's title calls the thing, such as the part or emitter it belongs to.</summary>
-    string Title { get; }
+    public string Title = "";
 
-    /// <summary>Gives the selected thing <paramref name="settings"/> in place of its own, as one undo step.</summary>
-    void Use(XpfParticle settings);
-
-    /// <summary>Runs one edit of the settings as one undo step and redraws whatever plays them.</summary>
-    void Edit(Action change);
-
-    /// <summary>Opens a run of edits, such as a slider drag, that undo as one step.</summary>
-    void BeginGesture();
-
-    /// <summary>Closes the run <see cref="BeginGesture"/> opened.</summary>
-    void EndGesture();
-
-    /// <summary>The settings changed inside a gesture; redraw without recording a step yet.</summary>
-    void Changed();
+    /// <summary>Asks the owner of the editor on <paramref name="panel"/> to describe it now, and reads what it wrote.</summary>
+    public static ParticleEditorFrame Refresh(Entity panel)
+    {
+        panel.EmitSignal(new ParticleEditorFrameDue());
+        return panel.GetComponent<ParticleEditorFrame>();
+    }
 }
+
+/// <summary>Write <see cref="ParticleEditorFrame"/> now.</summary>
+public readonly record struct ParticleEditorFrameDue;
+
+/// <summary>Give the selected thing <paramref name="Settings"/> in place of its own, as one undo step.</summary>
+public readonly record struct ParticleUseAsked(XpfParticle Settings);
 
 public enum ParticleEditorActionKind
 {
@@ -88,12 +88,11 @@ public struct ParticleEditorSlider(XpfField field, Entity editor) : IComponent
     public float Shown = float.NaN;
 }
 
-/// <summary>A particle editor, carried by its panel: the host it edits for and the panel's parts.</summary>
+/// <summary>A particle editor, carried by its panel: the panel's parts and what it is doing.</summary>
 public struct ParticleEditor : IComponent
 {
-    public IParticleEditorHost Host;
 
-    /// <summary>Where the panel is centred while the host has a selection.</summary>
+    /// <summary>Where the panel is centred while the owner has a selection.</summary>
     public Vector2 Home;
 
     public ParticleEditorParts Parts;
@@ -101,13 +100,16 @@ public struct ParticleEditor : IComponent
     /// <summary>The last message, such as why an edit was refused.</summary>
     public string Status;
 
-    /// <summary>A slider is being dragged, inside one gesture of the host's.</summary>
+    /// <summary>A slider is being dragged, inside one gesture of the owner's.</summary>
     public bool Sliding;
 }
 
 /// <summary>The entities of a particle editor panel that its system writes to or reads.</summary>
 public struct ParticleEditorParts
 {
+    /// <summary>The panel itself, which the owner's signals are emitted on.</summary>
+    public Entity Panel;
+
     public Entity Title;
     public Entity Name;
     public Entity Save;

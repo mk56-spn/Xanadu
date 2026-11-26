@@ -32,12 +32,13 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
 
     private void Update(Entity panel)
     {
+        ParticleEditorFrame frame = ParticleEditorFrame.Refresh(panel);
         ref ParticleEditor editor = ref panel.GetComponent<ParticleEditor>();
-        if (editor.Host.Particle is null)
+        if (frame.Particle is null)
         {
             if (editor.Sliding)
             {
-                editor.Host.EndGesture();
+                panel.EmitSignal(new EditGestureEnded());
                 editor.Sliding = false;
             }
             UiLayout.SetHidden(panel, true);
@@ -49,7 +50,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         UiLayout.SetHidden(panel, false);
 
         RunActions(panel, ref editor);
-        XpfParticle? particle = editor.Host.Particle;
+        XpfParticle? particle = ParticleEditorFrame.Refresh(panel).Particle;
         SyncFields(panel, ref editor, particle);
         if (particle is not null)
             SyncSliders(panel, ref editor, particle);
@@ -75,7 +76,8 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     public static void Run(ref ParticleEditor editor, ParticleEditorActionKind kind)
     {
         XpfLibrary library = ParticleLibrary.Shared;
-        XpfParticle? particle = editor.Host.Particle;
+        Entity panel = editor.Parts.Panel;
+        XpfParticle? particle = ParticleEditorFrame.Refresh(panel).Particle;
         switch (kind)
         {
             case ParticleEditorActionKind.Previous:
@@ -83,7 +85,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
                 if (XpfEditing.Step(library, particle?.Name, kind == ParticleEditorActionKind.Next ? 1 : -1) is { } other &&
                     library.Find(other) is { } preset)
                 {
-                    editor.Host.Use(preset.Clone());
+                    panel.EmitSignal(new ParticleUseAsked(preset.Clone()));
                     editor.Status = $"LOADED PRESET {other}";
                 }
                 else
@@ -94,7 +96,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
             case ParticleEditorActionKind.New:
                 var plain = new XpfParticle();
                 XpfEditing.SetFadePreset(plain, XpfFadePreset.Out);
-                editor.Host.Use(plain);
+                panel.EmitSignal(new ParticleUseAsked(plain));
                 editor.Status = "STARTED OVER";
                 break;
             case ParticleEditorActionKind.Store when particle is not null:
@@ -140,13 +142,13 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         }
     }
 
-    /// <summary>One edit of the settings in place, as one undo step of the host's.</summary>
+    /// <summary>One edit of the settings in place, as one undo step of the owner's.</summary>
     private static void Edit(ref ParticleEditor editor, XpfParticle particle, Action change) =>
-        editor.Host.Edit(() =>
+        editor.Parts.Panel.EmitSignal(new EditAsked(() =>
         {
             change();
             particle.Touch();
-        });
+        }));
 
     // -------------------------------------------------------------- fields
 
@@ -237,7 +239,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
                 // A drag is one undo step: opened on the first change, closed on the first frame without one.
                 if (!editor.Sliding)
                 {
-                    editor.Host.BeginGesture();
+                    editor.Parts.Panel.EmitSignal(new EditGestureStarted());
                     editor.Sliding = true;
                 }
                 XpfEditing.Set(particle, binding.Field, slider.Value);
@@ -248,11 +250,11 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
         if (edited)
         {
             particle.Touch();
-            editor.Host.Changed();
+            editor.Parts.Panel.EmitSignal(new EditChanged());
         }
         else if (editor.Sliding)
         {
-            editor.Host.EndGesture();
+            editor.Parts.Panel.EmitSignal(new EditGestureEnded());
             editor.Sliding = false;
         }
 
@@ -273,7 +275,7 @@ public sealed class ParticleEditorSystem : QuerySystem<ParticleEditor>
     private static void SyncLabels(ref ParticleEditor editor, XpfParticle? particle)
     {
         ParticleEditorParts parts = editor.Parts;
-        UiText.Set(parts.Title, editor.Host.Title);
+        UiText.Set(parts.Title, parts.Panel.GetComponent<ParticleEditorFrame>().Title);
         UiText.Set(parts.Save, ParticleLibrary.Unsaved ? "SAVE *" : "SAVE");
         UiText.Set(parts.Status, editor.Status);
         if (particle is null)
