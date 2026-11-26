@@ -20,6 +20,7 @@ import xanadu.colour;
 import xanadu.curve;
 import xanadu.noise;
 import xanadu.shape;
+import xanadu.store;
 
 /// p turned by `angles` radians: round x (pitch, nodding), then y (yaw, turning), then z (roll).
 public float3 rotate3(float3 p, float3 angles)
@@ -1082,13 +1083,56 @@ public struct MeshVertex
     public property float2 uv { get { return float2(u, v); } }
 };
 
-/// One page of the pool: whose it is, and how many of its triangles and corners are used.
+/// One page of the pool: whose it is, how many of its triangles and corners are used, and its bounds
+/// in the object's own space (pool.bound works them out): a ball round its corners, and the cone its
+/// triangles face within (axis, and cutoff 1 when they face every way).
 public struct Meshlet
 {
     public uint object;
     public uint triangles;
     public uint corners;
     public uint pad;
+    public float3 centre;
+    public float radius;
+    public float3 axis;
+    public float cutoff;
+};
+
+/// Any list of triangles, for pool.list: how many, and each corner of each.
+public interface ITriangles
+{
+    /// How many triangles it has.
+    public uint count();
+    /// Corner k (0, 1 or 2) of triangle t.
+    public MeshVertex corner(uint t, uint k);
+};
+
+/// Triangles as three corners each, one after another: [Host] or built lists of MeshVertex.
+public struct CornerList : ITriangles
+{
+    public RWStructuredBuffer<MeshVertex> corners;
+    public uint triangles;
+
+    public __init(RWStructuredBuffer<MeshVertex> corners, uint triangles) { this.corners = corners; this.triangles = triangles; }
+    public uint count() { return triangles; }
+    public MeshVertex corner(uint t, uint k) { return corners[t * 3 + k]; }
+};
+
+/// Triangles as three corner numbers each into a list of corners, as model files keep them.
+public struct IndexedList : ITriangles
+{
+    public RWStructuredBuffer<MeshVertex> vertices;
+    public RWStructuredBuffer<uint> indices;
+    public uint triangles;
+
+    public __init(RWStructuredBuffer<MeshVertex> vertices, RWStructuredBuffer<uint> indices, uint triangles)
+    {
+        this.vertices = vertices;
+        this.indices = indices;
+        this.triangles = triangles;
+    }
+    public uint count() { return triangles; }
+    public MeshVertex corner(uint t, uint k) { return vertices[indices[t * 3 + k]]; }
 };
 
 public extension ItemVertex
@@ -1162,6 +1206,12 @@ public namespace mesh
         return n.x * n.y;
     }
 
+    /// Triangles a page of a triangle list holds: each its own three corners (pool.list).
+    public static const uint LISTED = 42;
+
+    /// How many pages a list of `triangles` takes.
+    public uint pagesForTriangles(uint triangles) { return (triangles + LISTED - 1) / LISTED; }
+
     /// `base` lit at a pool draw's pixel as `lit` lights a surface (the studio's key, fill, sheen
     /// and rim), from the world point and normal its vertex stage handed on. Two-sided.
     public colour lit(ItemInput i, Camera camera, colour base, float shininess = 40.0)
@@ -1183,18 +1233,140 @@ public struct MeshPage
 };
 
 /// A graph's mesh pool, built into and drawn from: [Pages(n)] Meshes pool; (with [Cached] to
-/// build it only when the values move). Its corners, triangles and pages are the build's own.
+/// build it only when the values move). Its corners, triangles and pages are the build's own, and so
+/// is its book: the pages taken so far (what `copies: pool` draws), then each object's first page.
 public struct Meshes
 {
     public RWStructuredBuffer<MeshVertex> corners;
     public RWStructuredBuffer<uint> triangles;
     public RWStructuredBuffer<Meshlet> pages;
+    public RWStructuredBuffer<uint> book;
+    public uint most;
 
-    public __init(RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> pages)
+    public __init(RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> pages,
+        RWStructuredBuffer<uint> book, uint most)
     {
         this.corners = corners;
         this.triangles = triangles;
         this.pages = pages;
+        this.book = book;
+        this.most = most;
+    }
+
+    // ---- pages taken as needed: objects of any size, packed one after another ----
+    //
+    //     [Pass(1, over: 1)] void restart(uint i) { pool.clear(); }
+    //     [Pass(64, over: OBJECTS)] void claim(uint o) { pool.place(o, pool.take(mesh.pagesFor(cellsOf(o)))); }
+    //     [Pass(128, over: OBJECTS * MOST * 128)] void build(uint i) { MeshPage p = pool.taken(i, MOST); … }
+    //     [Draw(64, 1, shade: look, copies: pool)] …      // only the pages taken
+
+    /// Gives every page back: run it alone in a pass before the claims.
+    public void clear() { book[0] = 0; }
+
+    /// The pages taken so far.
+    public property uint used { get { return min(book[0], most); } }
+
+    /// Takes `count` pages one after another and returns the first; past the pool's end
+    /// (most), nothing is built there.
+    public uint take(uint count)
+    {
+        uint first;
+        InterlockedAdd(book[0], count, first);
+        return first;
+    }
+
+    /// Notes that `object`'s pages start at `first`, for the builders (firstOf).
+    public void place(uint object, uint first) { book[1 + object] = first; }
+
+    /// Where `object`'s pages start, as place noted it.
+    public uint firstOf(uint object) { return book[1 + object]; }
+
+    /// Thread `i` of a build where each object takes up to `each` pages, from the first it took.
+    public MeshPage taken(uint i, uint each)
+    {
+        MeshPage p = page(i, each);
+        p.first = firstOf(p.object);
+        return p;
+    }
+
+    // ---- bounds and culling: draw only the pages a camera sees ----
+    //
+    //     [Size(PAGES)] Gathered<uint> seen;
+    //     [Pass(64, over: PAGES)] void bounds(uint i) { pool.bound(i); }      // after building (cached with it)
+    //     [Pass(1, over: 1)] void forget(uint i) { seen.clear(); }
+    //     [Pass(64, over: PAGES)] void look(uint i) { pool.cull(i, placed(pool.objectOf(i)), camera(), VIEW, seen); }
+    //     [Draw(64, 1, shade: lit, copies: seen)]
+    //     ItemVertex shown(ItemVertex v) { uint p = seen[copy]; return pool.pulled(v, placed(pool.objectOf(p)), camera(), p); }
+
+    /// Works out page `n`'s bounds from its corners: a ball round them, and the cone its triangles
+    /// face within. Run it a thread a page, after the pages are built.
+    public void bound(uint n)
+    {
+        if (n >= most)
+            return;
+        Meshlet m = pages[n];
+        uint base = n * mesh.PAGE;
+        float3 low = float3(1e30), high = float3(-1e30);
+        for (uint k = 0; k < m.corners; k++)
+        {
+            low = min(low, corners[base + k].position);
+            high = max(high, corners[base + k].position);
+        }
+        float3 centre = (low + high) * 0.5;
+        float radius = 0.0;
+        float3 sum = float3(0.0);
+        for (uint k = 0; k < m.corners; k++)
+        {
+            radius = max(radius, length(corners[base + k].position - centre));
+            sum += corners[base + k].normal;
+        }
+        float3 axis = length(sum) > 1e-6 ? normalize(sum) : float3(0.0, 0.0, -1.0);
+        float least = 1.0;
+        for (uint k = 0; k < m.corners; k++)
+            least = min(least, dot(axis, normalize(corners[base + k].normal + float3(1e-9))));
+        m.centre = centre;
+        m.radius = radius;
+        m.axis = axis;
+        // Facing within the cone's half angle: cut off by its sine; a cone of 90° or more faces every way.
+        m.cutoff = least > 0.0 ? sqrt(1.0 - least * least) : 1.0;
+        pages[n] = m;
+    }
+
+    /// Whether page `n`, its object placed by `placed`, shows through `camera` in a view `halfView`
+    /// pixels each way from the centre: in front of the camera and on screen, and with `oneSided` its
+    /// triangles not all facing away.
+    public bool sees(uint n, Placement3 placed, Camera camera, float2 halfView, bool oneSided = false)
+    {
+        if (n >= used && used > 0 || n >= most)
+            return false;
+        Meshlet m = pages[n];
+        if (m.triangles == 0)
+            return false;
+        float3 centre = placed.toWorld(m.centre);
+        float radius = m.radius * placed.scale;
+        float ahead = camera.depth(centre);
+        if (ahead + radius <= 1.0)
+            return false;
+        float near = max(ahead - radius, 1.0);
+        float2 at = camera.projected(centre);
+        float reach = radius * camera.focal / near;
+        if (any(abs(at) - reach > halfView))
+            return false;
+        if (oneSided && m.cutoff < 1.0)
+        {
+            float3 axis = rotate3(m.axis, placed.angles);
+            float3 to = centre - camera.eye;
+            if (dot(to, axis) >= m.cutoff * length(to) + radius)
+                return false;
+        }
+        return true;
+    }
+
+    /// Adds page `n` to `seen` when the camera sees it (sees); a thread a page, after seen.clear().
+    public void cull(uint n, Placement3 placed, Camera camera, float2 halfView, Gathered<uint> seen, bool oneSided = false)
+    {
+        if (sees(n, placed, camera, halfView, oneSided))
+            seen.add(n);
     }
 
     /// Thread `i` of a build where every object takes `each` pages, one after another from page 0.
@@ -1209,6 +1381,34 @@ public struct Meshes
 
     /// The object drawn page `n` (a draw's `copy`) belongs to.
     public uint objectOf(uint n) { return pages[n].object; }
+
+    /// Thread `t` of building triangle list `list` into the pages from `first` on, each marked
+    /// `object`: run it over mesh.pagesForTriangles(n) × mesh.PAGE threads (t from 0). Each page holds
+    /// mesh.LISTED triangles with their own corners, so any mesh goes in: a model's, a host's, one a
+    /// pass worked out.
+    public void list<L : ITriangles>(L list, uint t, uint first, uint object)
+    {
+        uint page = t / mesh.PAGE, k = t % mesh.PAGE;
+        uint count = list.count();
+        uint start = page * mesh.LISTED;
+        if (start >= count || first + page >= most)
+            return;
+        uint here = min(count - start, mesh.LISTED);
+        uint slot = (first + page) * mesh.PAGE + k;
+        if (k < here * 3)
+            corners[slot] = list.corner(start + k / 3, k % 3);
+        if (k < here)
+            triangles[slot] = (k * 3) | ((k * 3 + 1) << 8) | ((k * 3 + 2) << 16);
+        if (k == 0)
+        {
+            Meshlet m = {};
+            m.object = object;
+            m.triangles = here;
+            m.corners = here * 3;
+            m.cutoff = 1.0;
+            pages[first + page] = m;
+        }
+    }
 
     /// Builds surface `s` as a grid of `cells` for page p's object, at its pages.
     public void grid<S : ISurface>(S s, MeshPage p, uint2 cells) { grid(s, p.thread, cells, p.first, p.object); }
@@ -1251,37 +1451,39 @@ public struct Meshes
 
         if (k == 0)
         {
-            Meshlet m;
+            Meshlet m = {};
             m.object = object;
             m.triangles = count;
             m.corners = across * (size.y + 1);
-            m.pad = 0;
+            m.cutoff = 1.0;
             pages[first + page] = m;
         }
     }
 
-    /// The corner the draw's vertex `v` stands for (page `copy`, triangle v.index / 3); false for
-    /// a triangle its page doesn't use.
-    public bool corner(ItemVertex v, out MeshVertex c)
+    /// The corner the draw's vertex `v` stands for (page `page`, or the draw's `copy` when it is
+    /// -1; triangle v.index / 3); false for a triangle its page doesn't use.
+    public bool corner(ItemVertex v, out MeshVertex c, int page = -1)
     {
+        uint n = page < 0 ? copy : uint(page);
         uint t = v.index / 3;
-        Meshlet m = pages[copy];
+        Meshlet m = pages[n];
         if (t >= m.triangles)
         {
             c = {};
             return false;
         }
-        uint packed = triangles[copy * mesh.PAGE + t];
-        c = corners[copy * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
+        uint packed = triangles[n * mesh.PAGE + t];
+        c = corners[n * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
         return true;
     }
 
     /// A 3D draw of the pool: the corner `v` stands for, placed by `placed` and seen through
     /// `camera`, with its world point, normal and uv set for the shade (i.world, i.normal, i.uv).
-    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera)
+    /// It draws page `page`, or the draw's `copy` when that is -1 (a culled draw passes seen[copy]).
+    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera, int page = -1)
     {
         MeshVertex c;
-        if (!corner(v, c))
+        if (!corner(v, c, page))
         {
             v.fold();
             return v;
@@ -1297,10 +1499,10 @@ public struct Meshes
     /// A 2D draw of the pool: the corner's x and y are pixels on the item from its middle, z its
     /// layer (nearer layers win, as depth does), turned by `angle` radians, scaled by `scale` and
     /// moved by `offset`. No camera and no light: shade colours it as any item.
-    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale)
+    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale, int page = -1)
     {
         MeshVertex c;
-        if (!corner(v, c))
+        if (!corner(v, c, page))
         {
             v.fold();
             return v;

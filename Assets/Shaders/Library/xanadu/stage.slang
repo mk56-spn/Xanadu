@@ -154,8 +154,10 @@ public struct ItemVertex
     public float2 local;
     /// The quad at rest it belongs to, on the target, before any deform: `rest.position`
     /// is the quad's middle (`v.rest.position + rotate(v.position - v.rest.position, a)`
-    /// turns round it), `rest.centred` this corner's place on it from there. Lines and
-    /// untextured shapes, whose uv doesn't span them, give it no size.
+    /// turns round it), `rest.centred` this corner's place on it from there. A box is its own
+    /// rest whatever part of its texture it shows, so each glyph of a line of text is its own
+    /// box (moving `rest.position` moves the glyph). Lines and untextured shapes, whose uv
+    /// doesn't span them, give it no size.
     public Canvas rest;
     /// Its point in the item's mesh: triangles that share a corner share it, so it can
     /// seed per-point randomness that keeps the mesh joined.
@@ -438,6 +440,43 @@ public float4 filtered(Image<float4> image, float2 at, float2 size)
     float2 f = p - float2(a);
     return lerp(lerp(image[a], image[int2(b.x, a.y)], f.x), lerp(image[int2(a.x, b.y)], image[b], f.x), f.y);
 }
+
+/// An image read between its texels, as `filtered` reads it (`at` in texels, clamped to the `size` texels
+/// it covers), but through the GPU's own bilinear filter in a [Pixels] pass: one fetch instead of four.
+/// Anywhere else it is `filtered`. The image is named directly: sampled(glow, at, size).
+public float4 sampled(Image<float4> image, float2 at, float2 size) { return filtered(image, at, size); }
+
+/// A float4 image read through the GPU's filter: what sampled(image) hands out in a [Pixels] pass,
+/// to pass to helpers. Read it with at(texel, size), as sampled(image, at, size) reads.
+///     float4 blurred(Sampled image, float2 at, float2 size) { return image.at(at + 1, size) + image.at(at - 1, size); }
+///     glow[group.pixel] = blurred(sampled(soft), at, size);
+public struct Sampled
+{
+    /// @hidden
+    public Sampler2D<float4> texture;
+
+    /// The image between its texels at `texel` (texels, the first's centre 0.5), clamped inside the `size` it covers.
+    public float4 at(float2 texel, float2 size)
+    {
+        uint w = 0, h = 0;
+        texture.GetDimensions(w, h);
+        float2 p = clamp(texel, 0.5, max(size - 0.5, 0.5));
+        return texture.SampleLevel(p / float2(w, h), 0);
+    }
+}
+
+/// What sampled(image) is in a [Pixels] pass: the image's sampler as a handle.
+/// @hidden
+public Sampled xanaduHandle(Sampler2D<float4> texture)
+{
+    Sampled handle;
+    handle.texture = texture;
+    return handle;
+}
+
+/// What sampled(image, at, size) is in a [Pixels] pass: the image's sampler, read at `at` clamped inside `size`.
+/// @hidden
+public float4 xanaduSampled(Sampler2D<float4> image, float2 at, float2 size) { return xanaduHandle(image).at(at, size); }
 
 /// Sets the globals (time, beat) from the frame for a vertex stage, as input()
 /// does for a pixel.

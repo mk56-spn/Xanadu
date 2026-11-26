@@ -28,7 +28,7 @@
 //
 // An image is read and written at a pixel (shown[group.pixel]); its format comes from what it
 // holds, so a float is precise and a float4 is a half-float colour. [Precise] and [Compact]
-// before an image change that (Slang/BuildDeclarations.cs has the table).
+// before an image change that (Slang/Texels.cs has the table).
 module store;
 
 /// A list of T the graph keeps on the GPU: [Size(n)] List<T> name;.
