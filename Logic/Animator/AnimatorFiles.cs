@@ -1,13 +1,15 @@
 using Xanadu.Model.Animation;
-using Xanadu.Model.Animator;
 using Xanadu.Storage.Animation;
 
 namespace Xanadu.Logic.Animator;
 
-/// <summary>Reads and writes rigs (XIF files) at game-folder, <c>user://</c> or absolute paths.</summary>
-public sealed class AnimatorFiles : IAnimatorFiles
+/// <summary>
+/// Reads and writes the animator's rigs (XIF files) at game-folder, <c>user://</c> or absolute paths,
+/// through Storage's <see cref="RigFiles"/>; a file that can't be read loads as null.
+/// </summary>
+public static class AnimatorFiles
 {
-    public RigPackage? Load(string path)
+    public static RigPackage? Load(string path)
     {
         try
         {
@@ -21,11 +23,12 @@ public sealed class AnimatorFiles : IAnimatorFiles
         }
     }
 
-    public void Save(string path, RigPackage package) => RigFiles.Save(path, package);
+    public static void Save(string path, RigPackage package) => RigFiles.Save(path, package);
 
+    /// <summary>Keeps unsaved work on <paramref name="path"/> where a crash cannot lose it.</summary>
     // Recovery is best effort: a failed autosave or a bad recovery file must
     // never stop the animator, so these swallow the same errors Load does.
-    public void SaveRecovery(string path, RigPackage package)
+    public static void SaveRecovery(string path, RigPackage package)
     {
         try
         {
@@ -38,7 +41,8 @@ public sealed class AnimatorFiles : IAnimatorFiles
         }
     }
 
-    public (RigPackage Package, DateTime Written)? LoadRecovery(string path)
+    /// <summary>The unsaved work kept for <paramref name="path"/>, or null.</summary>
+    public static (RigPackage Package, DateTime Written)? LoadRecovery(string path)
     {
         try
         {
@@ -52,7 +56,8 @@ public sealed class AnimatorFiles : IAnimatorFiles
         }
     }
 
-    public void DropRecovery(string path)
+    /// <summary>Forgets the unsaved work kept for <paramref name="path"/>.</summary>
+    public static void DropRecovery(string path)
     {
         try
         {

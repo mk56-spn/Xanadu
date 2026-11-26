@@ -38,7 +38,7 @@
 895 Slang/SlangShaders.cs
 993 Slang/Tests/SlangEditorLanguageTests.cs
 604 Tests/VisualTests/Harness/VisualTestMain.cs
-469 Tools/Animator/AnimatorTool.cs
+464 Tools/Animator/AnimatorTool.cs
 496 Tools/DevTools/Atlas/CodeMap.cs
 803 Tools/DevTools/Autopsy/AutopsyStage.cs
 415 Tools/Labs/Experiments/BlendLab.cs

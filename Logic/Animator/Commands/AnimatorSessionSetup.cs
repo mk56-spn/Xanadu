@@ -13,7 +13,6 @@ public static class AnimatorSessionSetup
     public static Entity Create(
         EntityStore store,
         RigPackage package,
-        IAnimatorFiles files,
         string path)
     {
         var runtime = new AnimatorRuntime(package);
@@ -24,7 +23,6 @@ public static class AnimatorSessionSetup
                 Package = package,
                 Runtime = runtime,
                 Playback = new AnimatorPlayback(runtime),
-                Files = files,
             },
             AnimatorSelection.None,
             new AnimatorDrag(),

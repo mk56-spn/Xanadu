@@ -845,4 +845,57 @@ Tests: `UI/Tests/TimelineShortcutsTests` and `TimelineZoomAboutPointerTests`
 still build fake `ITimelineHost`s; left per the prototyping rule.
 
 **Next:** the other host interfaces: `XifEditor.Host`, `ParticleEditor.Host`,
-`EasePicker.Host`, `TextEditor.Host`, `AnimatorDocument.Files`.
+`EasePicker.Host`, `TextEditor.Host`, `AnimatorDocument.Files` (done, §13.6).
+
+### 13.6 Step 5c: the other host interfaces (2026-11-26)
+
+Done: no `I*Host` is left in a component. Game, Host, Animator, Labs, DevTools
+and Shaders build; the three test projects pass. Checked by eye: the animator
+with the XIF editor open on a part (`--edit-xif=`), the easing picker
+(`--easing --key`), the particle editor (`--rig --sparks=hand_l`), and the
+shader editor (colours, problem notes, folds). Not exercised by hand: picking
+a curve, dragging XIF points, slider drags in the particle editor, the level
+editor's group EASE picker, and the Slang editor's keys (rename, completion,
+indent on Enter, Ctrl+/): check them by hand.
+
+The pattern is §13.5's: a **frame component** the owner writes when a `*FrameDue`
+signal is emitted on the panel (read side), and **signals** for what the panel
+asks of its owner (action side). Owners are listener objects or static
+`Build` helpers that add the handlers; no component holds them.
+
+- **Ease picker:** `IEasePickerHost` gone. `EasePickerFrame` (open, anchor,
+  bounds, current curve, empty hint) on `EasePickerFrameDue`; `EasePicked(preset)`,
+  `EasePickerCloseAsked`. The tooltip note is a build argument. Owners:
+  `AnimatorEasePicker`, `EditorEasePicker` (split out of the group panel system).
+- **Text editor:** `ITextEditorHost` gone. Its calls were synchronous queries,
+  so the editor emits on its own entity and the owner answers on `TextEditor`:
+  `TextVersionDue` → `OwnerVersion`; `TextPrepare`, `TextDecorate` fill what
+  they carry; `TextKey`, `TextTyped`, `TextPressed`, `TextCtrlClicked` are
+  answered by `Take()` (sets `Taken`); `TextIndentAsked` by `AnswerIndent`.
+  `LineComment` is a field. `TextEditorLayout.Editor` is the editor's own
+  entity, so layout calls emit without a host argument. Owner: the Slang
+  editor (`SlangEditorSignals` wires `SlangEditorHost`, which keeps its name
+  for now: it is the code editor's state, held only by its handlers).
+- **XIF editor:** `IXifEditorHost` gone. `XifEditorFrame` (item, title,
+  opacity, placement, draws-item) on `XifEditorFrameDue`; the shader and layer
+  choices are fixed at build and set on the frame there. `ShaderParams` went:
+  no owner overrode it, so the editor asks `XifShaderParams.Common` itself.
+  Owner: `AnimatorXif`. Hit testing split out as `XifEditorHits` (line cap).
+- **Particle editor:** `IParticleEditorHost` gone. `ParticleEditorFrame`
+  (settings, title) on `ParticleEditorFrameDue`; `ParticleUseAsked(settings)`.
+  Owner: `AnimatorParticles`.
+- **Shared edit signals** (`UI/Ecs/Ui/EditSignals.cs`): `EditAsked(Action)`,
+  `EditGestureStarted`, `EditGestureEnded`, `EditChanged`, used by both the XIF
+  and the particle editor (same meaning, one set).
+- **`AnimatorDocument.Files`:** `IAnimatorFiles` gone. It had one
+  implementation and Logic sits above Storage, so `AnimatorFiles` is a static
+  class over Storage's `RigFiles`; the session no longer carries it.
+- Fixed on the way: the animator's `--rig` launch flag now applies first, so
+  `--streak`, `--sparks` and `--dress` aren't refused by the rig lock.
+
+Kept, on purpose: `EditAsked` carries the change as an `Action`. Xif items and
+particle settings are C# objects outside the ECS and the owners' undo
+snapshots them; it becomes entity edits with phase 4.
+
+**Next:** the rest of phase 2: editor buttons carrying their intent directly
+(§13.3's other next), then `UiCommand`'s removal.

@@ -44,7 +44,7 @@ public sealed class AnimatorAutosaveSystem : QuerySystem<AnimatorDocument, Anima
                 continue;
 
             _written = RigPackageCopy.Clone(document.Package);
-            document.Files.SaveRecovery(file.Path, document.Package);
+            AnimatorFiles.SaveRecovery(file.Path, document.Package);
         }
     }
 
@@ -52,12 +52,12 @@ public sealed class AnimatorAutosaveSystem : QuerySystem<AnimatorDocument, Anima
     {
         AnimatorFile file = session.GetComponent<AnimatorFile>();
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
-        if (file.Path.Length == 0 || document.Files.LoadRecovery(file.Path) is not { } kept)
+        if (file.Path.Length == 0 || AnimatorFiles.LoadRecovery(file.Path) is not { } kept)
             return;
 
         if (RigPackageCopy.AreEqual(kept.Package, document.Package))
         {
-            document.Files.DropRecovery(file.Path);
+            AnimatorFiles.DropRecovery(file.Path);
             return;
         }
 

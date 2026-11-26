@@ -11,7 +11,6 @@ public struct AnimatorDocument : IComponent
     public RigPackage Package;
     public AnimatorRuntime Runtime;
     public AnimatorPlayback Playback;
-    public IAnimatorFiles Files;
 
     /// <summary>Bumped when the package is replaced or its rig structure changes.</summary>
     public int Version;

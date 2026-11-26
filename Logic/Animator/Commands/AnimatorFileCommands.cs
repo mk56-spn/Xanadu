@@ -57,7 +57,7 @@ public static class AnimatorFileCommands
         RigTargets.BakeAll(document.Package);
         try
         {
-            document.Files.Save(path, document.Package);
+            AnimatorFiles.Save(path, document.Package);
         }
         catch (Exception exception) when (exception is RigFormatException or
                                               System.IO.IOException or
@@ -68,7 +68,7 @@ public static class AnimatorFileCommands
         }
 
         SetBaseline(session);
-        document.Files.DropRecovery(path);
+        AnimatorFiles.DropRecovery(path);
         // A pose left unkeyed is not in the file; say so now, while it can still be keyed.
         int unkeyed = AnimatorUnkeyed.Count(session);
         AnimatorSession.SetStatus(session, unkeyed == 0
@@ -83,7 +83,7 @@ public static class AnimatorFileCommands
 
         AnimatorDocument document = session.GetComponent<AnimatorDocument>();
         string path = session.GetComponent<AnimatorFile>().Path;
-        RigPackage? package = document.Files.Load(path);
+        RigPackage? package = AnimatorFiles.Load(path);
         if (package is null)
         {
             AnimatorSession.SetStatus(session, $"LOAD FAILED: {path}");
@@ -138,7 +138,7 @@ public static class AnimatorFileCommands
         if (!file.Dirty || file.DiscardArmed)
         {
             if (file.DiscardArmed)
-                session.GetComponent<AnimatorDocument>().Files.DropRecovery(file.Path);
+                AnimatorFiles.DropRecovery(file.Path);
             file.DiscardArmed = false;
             return true;
         }
@@ -158,6 +158,6 @@ public static class AnimatorFileCommands
     }
 
     /// <summary>The saved file's package, or the placeholder rig when there is none.</summary>
-    public static RigPackage LoadOrDefault(IAnimatorFiles files, string path) =>
-        files.Load(path) ?? AnimatorDefaultPackage.Create();
+    public static RigPackage LoadOrDefault(string path) =>
+        AnimatorFiles.Load(path) ?? AnimatorDefaultPackage.Create();
 }

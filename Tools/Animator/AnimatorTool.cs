@@ -111,12 +111,7 @@ internal sealed class AnimatorTool : HostApp
         _systems.Add(toasts);
         UseSystems(_systems);
 
-        var files = new AnimatorFiles();
-        _session = AnimatorSessionSetup.Create(
-            Entities,
-            AnimatorFileCommands.LoadOrDefault(files, DefaultPath),
-            files,
-            DefaultPath);
+        _session = AnimatorSessionSetup.Create(Entities, AnimatorFileCommands.LoadOrDefault(DefaultPath), DefaultPath);
         _session.AddComponent(AnimatorLayout.Build(Entities, screen));
         _session.AddSignalHandler<CloseAsked>(_ => _closing = true);
     }
