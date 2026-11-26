@@ -125,12 +125,8 @@ public static partial class AnimatorLayout
         refs.Ui.EasePicker = AnimatorEasePicker.Build(UiNode.Wrap(refs.Ui.MenuLayer, visuals), store);
         UiBuilder xif = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXif);
         UiBuilder xifLines = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXifLines);
-        refs.Ui.XifEditor = XifEditorPanel.Build(
-            UiNode.Wrap(xif.Current, visuals),
-            XifEditorArea(screen),
-            new AnimatorXifHost(store),
-            screen,
-            UiNode.Wrap(xifLines.Current, visuals));
+        refs.Ui.XifEditor = AnimatorXif.Build(
+            UiNode.Wrap(xif.Current, visuals), XifEditorArea(screen), screen, UiNode.Wrap(xifLines.Current, visuals), store);
         refs.Ui.ParticleEditor = ParticleEditorPanel.Build(
             UiNode.Wrap(refs.Ui.MenuLayer, visuals),
             ParticleEditorCenter(screen),

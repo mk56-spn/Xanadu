@@ -38,7 +38,9 @@ public sealed class XifEditorTests : EcsSystemTest
         Root.Add(new ContainerLayoutSystem());
         Root.Add(new XifEditorSystem(_pointer, new FakeVisualRidFactory()));
         UiNode layer = UiNode.Layer(Store, default, 5, new FakeVisualRidFactory());
-        _panel = XifEditorPanel.Build(layer, new Rect2(Home - new Vector2(300, 250), new Vector2(600, 500)), _host, new Vector2(1920, 1080));
+        _panel = XifEditorPanel.Build(layer, new Rect2(Home - new Vector2(300, 250), new Vector2(600, 500)), new Vector2(1920, 1080),
+            FakeHost.Shaders, []);
+        _host.Listen(_panel);
         XifEditorSystem.Open(_panel);
         Frame(2);
     }
@@ -232,7 +234,8 @@ public sealed class XifEditorTests : EcsSystemTest
         public PointerInput Read() => Current;
     }
 
-    private sealed class FakeHost : IXifEditorHost
+    /// <summary>An owner answering the editor's signals the way a tool would.</summary>
+    private sealed class FakeHost
     {
         public Xif? Current = new()
         {
@@ -245,29 +248,32 @@ public sealed class XifEditorTests : EcsSystemTest
         public int Changes;
         public bool Open;
 
-        public Xif? Item => Current;
-        public string Title => $"{Current?.Name} item";
-
-        public IReadOnlyList<XifShaderChoice> Shaders { get; } =
+        public static readonly IReadOnlyList<XifShaderChoice> Shaders =
         [
             new("NONE", new XifShaderRef(), "GAME"),
             new("GLOW", XifShaderRef.OfCommon("glow.gdshader"), "LAB"),
         ];
 
-        public void Edit(Action change)
+        public void Listen(Entity panel)
         {
-            Edits++;
-            change();
+            panel.AddSignalHandler<XifEditorFrameDue>(signal =>
+            {
+                ref XifEditorFrame frame = ref signal.Entity.GetComponent<XifEditorFrame>();
+                frame.Item = Current;
+                frame.Title = $"{Current?.Name} item";
+            });
+            panel.AddSignalHandler<XifEditAsked>(signal =>
+            {
+                Edits++;
+                signal.Event.Change();
+            });
+            panel.AddSignalHandler<XifGestureStarted>(_ =>
+            {
+                Gestures++;
+                Open = true;
+            });
+            panel.AddSignalHandler<XifGestureEnded>(_ => Open = false);
+            panel.AddSignalHandler<XifChanged>(_ => Changes++);
         }
-
-        public void BeginGesture()
-        {
-            Gestures++;
-            Open = true;
-        }
-
-        public void EndGesture() => Open = false;
-
-        public void Changed() => Changes++;
     }
 }

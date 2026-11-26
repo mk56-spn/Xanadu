@@ -11,7 +11,7 @@ using Xanadu.Ui.Ecs.Ui;
 namespace Xanadu.Logic.Animator.Commands;
 
 /// <summary>
-/// Hosts the shared XIF editor in the animator: it edits the node of the
+/// Owns the shared XIF editor in the animator: it edits the node of the
 /// selected part, chain or cloth (its polygons and shader), records edits on the animator's
 /// undo history, and offers the common shaders, since a rig belongs to no map
 /// with shader slots. This is how parts are drawn. A part is edited where it
@@ -21,10 +21,33 @@ namespace Xanadu.Logic.Animator.Commands;
 /// Either way the preview draws the item through the real drawer and its
 /// shader; the editor only draws the lines and points over it.
 /// </summary>
-public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
+public sealed class AnimatorXif(EntityStore store)
 {
     private static readonly IReadOnlyList<XifShaderChoice> Choices = BuildChoices();
     private static readonly IReadOnlyList<XifShaderChoice> LayerChoices = BuildLayerChoices();
+
+    /// <summary>Builds the editor (see <see cref="XifEditorPanel.Build"/>) and has a new owner answer it for the animator in <paramref name="store"/>.</summary>
+    public static Entity Build(UiNode layer, Rect2 area, Vector2 screen, UiNode lines, EntityStore store)
+    {
+        Entity panel = XifEditorPanel.Build(layer, area, screen, Choices, LayerChoices, lines);
+        var owner = new AnimatorXif(store);
+        panel.AddSignalHandler<XifEditorFrameDue>(signal =>
+        {
+            ref XifEditorFrame frame = ref signal.Entity.GetComponent<XifEditorFrame>();
+            (Xif Item, string Title)? target = owner.Target;
+            frame.Item = target?.Item;
+            frame.Title = target?.Title ?? "";
+            Transform2D? onBone = target is null ? null : owner.OnBone;
+            frame.Placement = onBone;
+            frame.Opacity = onBone is null ? 1f : OnBoneOpacity;
+            frame.DrawsItem = true; // the preview draws every item itself, on its bone or in the shape box
+        });
+        panel.AddSignalHandler<XifEditAsked>(signal => owner.Edit(signal.Event.Change));
+        panel.AddSignalHandler<XifGestureStarted>(_ => AnimatorHistoryCommands.BeginGesture(owner.Session));
+        panel.AddSignalHandler<XifGestureEnded>(_ => owner.EndGesture());
+        panel.AddSignalHandler<XifChanged>(_ => owner.Changed());
+        return panel;
+    }
 
     private Entity Session => AnimatorSession.Find(store);
 
@@ -80,27 +103,12 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
 
     private Xif? _alternate;
 
-    public Xif? Item => Target?.Item;
-
-    public string Title => Target?.Title ?? "";
-
-    public IReadOnlyList<XifShaderChoice> Shaders => Choices;
-
-    public IReadOnlyList<XifShaderChoice> Layers => LayerChoices;
-
-    /// <summary>The preview draws every item itself, on its bone or in the shape box.</summary>
-    public bool DrawsItem => true;
-
     /// <summary>
     /// How solid the editor's extra dimming and shape box draw while a part is
     /// edited on its bone: not at all. The editor's own see-through backing
     /// already sits between the character and the part.
     /// </summary>
     public const float OnBoneOpacity = 0f;
-
-    public float Opacity => OnBone is null ? 1f : OnBoneOpacity;
-
-    public Transform2D? Placement => OnBone;
 
     /// <summary>
     /// The selected part's place on screen, as the preview draws it: its bone's
@@ -111,8 +119,6 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
     {
         get
         {
-            if (Target is null)
-                return null;
             Entity session = Session;
             if (session.GetComponent<AnimatorSelection>().Chain >= 0 || AnimatorSelected.Cloth(session) >= 0)
                 return null;
@@ -130,23 +136,21 @@ public sealed class AnimatorXifHost(EntityStore store) : IXifEditorHost
         }
     }
 
-    public void Edit(Action change)
+    private void Edit(Action change)
     {
         Entity session = Session;
         AnimatorHistoryCommands.Edit(session, change);
         Changed();
     }
 
-    public void BeginGesture() => AnimatorHistoryCommands.BeginGesture(Session);
-
-    public void EndGesture()
+    private void EndGesture()
     {
         AnimatorHistoryCommands.EndGesture(Session);
         Changed();
     }
 
     /// <summary>Redraws the rig's art in the preview.</summary>
-    public void Changed()
+    private void Changed()
     {
         Entity session = Session;
         if (!session.IsNull)

@@ -12,7 +12,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// click a shape to pick it, drag it to move it), and its settings on the
 /// right: name, polygons, fill colour and shader. Any tool can host one;
 /// <see cref="Xanadu.Ui.Systems.Ui.XifEditorSystem"/> runs it and the host
-/// supplies the item through <see cref="IXifEditorHost"/>.
+/// supplies the item through <see cref="XifEditorFrame"/> and hears its signals.
 /// </summary>
 public static class XifEditorPanel
 {
@@ -46,9 +46,11 @@ public static class XifEditorPanel
     /// <paramref name="screen"/> and takes its clicks. The field lines and fills
     /// draw on <paramref name="lines"/>, a layer of the host's above
     /// <paramref name="layer"/>, so the panel can fade while they stay solid;
-    /// without one they share the panel's layer and fade with it.
+    /// without one they share the panel's layer and fade with it. The item may
+    /// be drawn with one of <paramref name="shaders"/>, under any of <paramref name="layers"/>.
     /// </summary>
-    public static Entity Build(UiNode layer, Rect2 area, IXifEditorHost host, Vector2 screen, UiNode lines = default)
+    public static Entity Build(UiNode layer, Rect2 area, Vector2 screen,
+        IReadOnlyList<XifShaderChoice> shaders, IReadOnlyList<XifShaderChoice> layers, UiNode lines = default)
     {
         Entity backdrop = layer.Rect(BackdropColor, size: screen).Input()
             .IgnoreLayout().Hidden();
@@ -67,7 +69,7 @@ public static class XifEditorPanel
         UiNode floating = lines.IsNull ? panel.LayerNode : lines;
         var parts = new XifEditorParts
         {
-            Fills = [], Backdrop = backdrop, Screen = screen, Lines = floating,
+            Panel = editor, Fills = [], Backdrop = backdrop, Screen = screen, Lines = floating,
         };
 
         UiNode header = panel.Row().Size(inner, Header).Gap(gap);
@@ -109,14 +111,13 @@ public static class XifEditorPanel
         parts.PointLabel = points.Text("", UiType.Caption, UiTheme.TextDim).Size(SideWidth - 112, Row);
 
         Caption(side, "SHADER");
-        parts.Shader = side.TabbedPicker(XifShaderTabs.Of(host.Shaders), SideWidth, rows: ShaderRows).Entity;
+        parts.Shader = side.TabbedPicker(XifShaderTabs.Of(shaders), SideWidth, rows: ShaderRows).Entity;
         UiTabbedPickers.ButtonOf(parts.Shader).AddComponent(new UiTooltip("Pick the shader the item draws with, by folder"));
         parts.Shader.OnPicked((tab, entry) => Systems.Ui.XifEditorShaders.PickShader(editor, tab, entry));
 
         // Shaders stacked over it, bottom first: each moves or colours what the one under it gave.
         parts.LayersCaption = side.Text("LAYERS", UiType.Caption, UiTheme.TextDim).Size(SideWidth, 16).Entity;
         parts.LayerList = side.Column().Width(SideWidth).Gap(2).Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start).Entity;
-        IReadOnlyList<XifShaderChoice> layers = host.Layers;
         parts.LayerAdd = side.Dropdown(AddLayerText, layers.Select(layer => layer.Label).ToList(), 0, new Vector2(SideWidth, Row))
             .Button.Tooltip("Stack a shader over the item's: it moves or colours what the ones under it gave");
         parts.LayerAdd.OnPicked(pick => Systems.Ui.XifEditorShaders.AddLayer(editor, pick));
@@ -144,9 +145,9 @@ public static class XifEditorPanel
         parts.EdgeGhost = floating.Shape(Diamond(), Colors.White, Palette.Accent, 1.5f)
             .IgnoreLayout().Overlay().Hidden();
 
+        panel.With(new XifEditorFrame { Shaders = shaders, Layers = layers });
         panel.With(new XifEditor
         {
-            Host = host,
             Home = area.GetCenter(),
             Polygon = 0,
             Point = 0,

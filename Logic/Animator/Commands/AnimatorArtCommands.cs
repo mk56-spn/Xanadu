@@ -43,7 +43,7 @@ public static class AnimatorArtCommands
     public static void EditXif(Entity session)
     {
         Entity editor = session.GetComponent<AnimatorUi>().XifEditor;
-        if (editor.IsNull || !editor.HasComponent<XifEditor>() || editor.GetComponent<XifEditor>().Host.Item is null)
+        if (editor.IsNull || !editor.HasComponent<XifEditor>() || XifEditorFrame.Refresh(editor).Item is null)
         {
             AnimatorSession.SetStatus(session, "SELECT A PART, A CHAIN OR A CLOTH FIRST");
             return;

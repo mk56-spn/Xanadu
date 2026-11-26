@@ -21,14 +21,15 @@ public static class XifEditorShaders
             return;
 
         ref XifEditor editor = ref panel.GetComponent<XifEditor>();
-        Xif? item = editor.Open ? editor.Host.Item : null;
-        IReadOnlyList<XifShaderChoice> choices = editor.Host.Layers;
+        XifEditorFrame frame = XifEditorAsk.Refresh(editor);
+        Xif? item = editor.Open ? frame.Item : null;
+        IReadOnlyList<XifShaderChoice> choices = frame.Layers;
         if (item is null || pick < 0 || pick >= choices.Count)
             return;
         string path = choices[pick].Shader.Path;
         string chosen = choices[pick].Label;
         bool added = false;
-        editor.Host.Edit(() => added = XifEditing.AddLayer(item, path));
+        XifEditorAsk.Edit(editor, () => added = XifEditing.AddLayer(item, path));
         editor = ref panel.GetComponent<XifEditor>();
         editor.Status = added ? $"LAYER {chosen} ADDED" : $"{chosen} IS ALREADY IN THE STACK";
         Entity add = editor.Parts.LayerAdd;
@@ -43,20 +44,21 @@ public static class XifEditorShaders
             return;
 
         ref XifEditor editor = ref panel.GetComponent<XifEditor>();
-        Xif? item = editor.Open ? editor.Host.Item : null;
-        int index = XifShaderTabs.IndexOf(editor.Host.Shaders, tab, entry);
+        XifEditorFrame frame = XifEditorAsk.Refresh(editor);
+        Xif? item = editor.Open ? frame.Item : null;
+        int index = XifShaderTabs.IndexOf(frame.Shaders, tab, entry);
         if (item is null || index < 0)
             return;
-        XifShaderChoice choice = editor.Host.Shaders[index];
-        editor.Host.Edit(() => XifEditing.SetShader(item, choice.Shader));
+        XifShaderChoice choice = frame.Shaders[index];
+        XifEditorAsk.Edit(editor, () => XifEditing.SetShader(item, choice.Shader));
         editor = ref panel.GetComponent<XifEditor>();
         editor.Status = $"SHADER {choice.Label}";
     }
 
-    /// <summary>What a layer's row calls it: the host's label for it, else its file's name.</summary>
-    internal static string LayerLabel(IXifEditorHost host, string path)
+    /// <summary>What a layer's row calls it: the owner's label for it, else its file's name.</summary>
+    internal static string LayerLabel(in XifEditor editor, string path)
     {
-        foreach (XifShaderChoice choice in host.Layers)
+        foreach (XifShaderChoice choice in XifEditorAsk.Shown(editor).Layers)
         {
             if (choice.Shader.Path == path)
                 return choice.Label;
@@ -74,12 +76,13 @@ public static class XifEditorShaders
         return -1;
     }
 
-    /// <summary>Shows the item's shader on the picker; one the host doesn't offer reads as not allowed.</summary>
+    /// <summary>Shows the item's shader on the picker; one the owner doesn't offer reads as not allowed.</summary>
     internal static void Show(in XifEditor editor, Xif item)
     {
         XifShaderRef current = item.ShaderRef;
-        int index = ShaderIndex(editor.Host.Shaders, current);
-        (int tab, int entry) = XifShaderTabs.PlaceOf(editor.Host.Shaders, index);
+        IReadOnlyList<XifShaderChoice> shaders = XifEditorAsk.Shown(editor).Shaders;
+        int index = ShaderIndex(shaders, current);
+        (int tab, int entry) = XifShaderTabs.PlaceOf(shaders, index);
         UiTabbedPickers.Show(editor.Parts.Shader, tab, entry);
         if (index < 0 && !current.IsNone)
             UiText.Set(UiTabbedPickers.ButtonOf(editor.Parts.Shader), "NOT ALLOWED HERE ▼");

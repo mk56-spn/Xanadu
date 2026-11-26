@@ -42,45 +42,45 @@ set shows the shader's default; a scrub is one undo step; right-click resets.
 | Piece | Where | What it does |
 | --- | --- | --- |
 | `XifEditing` | `Core/Items/XifEditing.cs` | The edits themselves: rename, add/remove polygons, insert/remove/move points, fill, the node's shader. Pure, no UI. |
-| `IXifEditorHost` | `UI/Ecs/Ui/XifEditorComponents.cs` | What a tool supplies: the item, undo, allowed shaders. |
+| `XifEditorFrame` + signals | `UI/Ecs/Ui/XifEditorSignals.cs` | What a tool supplies (the item, allowed shaders) and the edit signals it records on its undo. |
 | `XifEditorPanel.Build` | `UI/Ecs/Ui/XifEditorPanel.cs` | Builds the panel (UiNode) and its backdrop on a layer, closed. |
-| `XifEditorSystem` | `UI/Systems/Ui/XifEditorSystem.cs` | `Open` / `Close` / `IsOpen`; while open and the host has an item, shows it and runs its buttons, fields, colour picker and the shape box. |
+| `XifEditorSystem` | `UI/Systems/Ui/XifEditorSystem.cs` | `Open` / `Close` / `IsOpen`; while open and the owner has an item, shows it and runs its buttons, fields, colour picker and the shape box (`XifEditorHits`). |
 
-The editor never owns the item. It asks the host for it every frame, so an
-undo that swaps the item for a snapshot is picked up without telling it.
+The editor never owns the item. It asks the owner for it every frame
+(`XifEditorFrameDue`), so an undo that swaps the item for a snapshot is picked
+up without telling it.
 
-## Hosting it
+## Owning it
 
-1. Implement `IXifEditorHost`:
-   - `Item`: the item to edit now, or `null` to hide the panel.
-   - `Edit(change)`: run `change` as one undo step, then redraw.
-   - `BeginGesture` / `EndGesture` / `Changed`: a point drag is one gesture;
-     `Changed` fires on each move inside it and should only redraw.
-   - `Shaders`: the choices the shader button cycles. A map-owned item may
-     offer its map's slots; a rig only has common shaders.
-   - `Opacity` (optional, default 1): how solid the editor draws, asked every
-     frame. The panel, backdrop and fills fade with it; the field lines
-     (outline, points, origin) stay solid.
-   - `ShaderParams(item)` (optional): the settings the item's shader takes.
-     By default a common shader is compiled and asked
-     (`HostPlatform.DescribeMaterial`); values the drawer sets (`xif_*`) are
-     left out. A host whose items use map shader slots answers for those.
-   - `Placement` (optional, default null): item space to screen, asked every
-     frame. Set, the field lines sit there and points drag there, e.g. on the
-     bone a part rides, and the editor draws no fills: the host draws the item
-     there through its shader. Null fits the item in the shape box with plain fills.
-2. Build the panel on a layer of its own, well above the tool's menus:
-   `XifEditorPanel.Build(layerNode, area, host, screen, linesNode)`; it covers
-   `area` and dims `screen`. `linesNode` is a second layer above it, clear of
-   its overlays, for the field lines, so the panel can fade without them.
+1. Build the panel on a layer of its own, well above the tool's menus:
+   `XifEditorPanel.Build(layerNode, area, screen, shaders, layers, linesNode)`;
+   it covers `area` and dims `screen`. `shaders` are the choices the shader
+   picker offers (a map-owned item may offer its map's slots; a rig only has
+   common shaders), `layers` the common shaders that may stack over it (none
+   hides LAYERS). `linesNode` is a second layer above it, clear of its
+   overlays, for the field lines, so the panel can fade without them.
+2. Hear its signals on the panel (`AddSignalHandler`):
+   - `XifEditorFrameDue`: write `XifEditorFrame` now: `Item` (null hides the
+     panel), `Title`, and optionally `Opacity` (default 1: the panel, backdrop
+     and fills fade with it; the field lines stay solid), `Placement` (item
+     space to screen; set, the field lines sit there, points drag there and
+     the editor draws no fills, as the owner draws the item there through its
+     shader) and `DrawsItem` (the owner draws the item in the shape box too, at
+     `XifEditor.Shown`).
+   - `XifEditAsked(change)`: run `change` as one undo step, then redraw.
+     It is an `Action` while items are C# objects outside the ECS.
+   - `XifGestureStarted` / `XifGestureEnded` / `XifChanged`: a point drag is one
+     gesture; `XifChanged` fires on each move inside it and should only redraw.
+   The settings under SHADER are the common shader's (`XifShaderParams.Common`);
+   values the drawer sets (`xif_*`) are left out.
 3. Add `new XifEditorSystem(pointer, visuals)` to the tool's system group.
 4. Open it with `XifEditorSystem.Open(panel)`; while `IsOpen`, keep the
    tool's own pointer and key handling off (the animator lets Esc, Z and Y
    through and closes the editor on Esc).
 
-`Logic/Animator/Commands/AnimatorXifHost.cs` is the reference host. It edits
+`Logic/Animator/Commands/AnimatorXif.cs` is the reference owner. It edits
 a part on its bone: opacity 0 (nothing dims the preview), placement = preview
-placement × the part's world transform, and since a placed item is the host's
+placement × the part's world transform, and since a placed item is the owner's
 own drawing (shader and all) the editor draws only its field lines over it, and the preview still zooms (wheel) and pans (middle drag)
 under the editor. Chain art and skinned parts have no one place, so they stay
 solid in the shape box.
@@ -90,7 +90,7 @@ solid in the shape box.
 - An item keeps at least one polygon; a polygon keeps three points.
 - Points snap to whole units while dragged; Shift drags freely.
 - Fill is picked, or typed as `#rrggbb` or `#rrggbbaa` in the picker's field.
-- A shader the host does not offer shows as `NOT ALLOWED HERE`.
+- A shader the owner does not offer shows as `NOT ALLOWED HERE`.
 
 ## Not yet
 

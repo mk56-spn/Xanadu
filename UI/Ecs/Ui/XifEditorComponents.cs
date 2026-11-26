@@ -7,74 +7,6 @@ using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Ui.Ecs.Ui;
 
-/// <summary>
-/// What a tool gives the XIF editor: the item to edit, how edits are recorded,
-/// and which shaders the item may use there. The editor never owns the item;
-/// it asks for it every frame, so an undo that replaces the item is picked up.
-/// </summary>
-public interface IXifEditorHost
-{
-    /// <summary>The item being edited, or null to hide the editor.</summary>
-    Xif? Item { get; }
-
-    /// <summary>What the editor's title calls the item, such as the effect or note it belongs to.</summary>
-    string Title { get; }
-
-    /// <summary>The shaders the item may be drawn with here; the first is normally "none".</summary>
-    IReadOnlyList<XifShaderChoice> Shaders { get; }
-
-    /// <summary>The common shaders that may be stacked over the item's shader here (<see cref="XifShader.Layers"/>); none hides LAYERS.</summary>
-    IReadOnlyList<XifShaderChoice> Layers => [];
-
-    /// <summary>
-    /// How solid the editor's extra backgrounds draw, 0 to 1, asked every
-    /// frame: the dimming over the rest of the screen and the shape box fade
-    /// with it. The editor's own see-through backing, its outline, the shapes,
-    /// the field lines and the controls always draw as they are.
-    /// </summary>
-    float Opacity => 1f;
-
-    /// <summary>
-    /// Where the item is on screen, item space to screen, asked every frame:
-    /// the field lines sit there and points are dragged there, such as on the
-    /// bone a part rides. The host is drawing the item there itself, through
-    /// its shader, so the editor draws no fills of its own over it. Null fits
-    /// the item in the editor's shape box, drawn with plain fills.
-    /// </summary>
-    Transform2D? Placement => null;
-
-    /// <summary>
-    /// The host draws the item itself, through its shader, wherever the editor
-    /// shows it: on its <see cref="Placement"/>, or fitted in the shape box at
-    /// <see cref="XifEditor.Shown"/>. The editor then draws no fills of its
-    /// own, only the field lines, the outline and the points over the host's
-    /// drawing. False: the editor fills the shapes in the box itself, plainly.
-    /// A placed item is always the host's to draw.
-    /// </summary>
-    bool DrawsItem => false;
-
-    /// <summary>
-    /// The settings the item's shader takes (its uniforms), shown under SHADER
-    /// to tune, such as a flare's size, light and tint. By default a common
-    /// shader is compiled and asked; a host whose items use other shaders (a
-    /// map's slots) answers for those. Values the drawer sets itself
-    /// (<c>xif_*</c>) are left out. Null or empty shows none.
-    /// </summary>
-    IReadOnlyList<MaterialParam>? ShaderParams(Xif item) => XifShaderParams.Common(item);
-
-    /// <summary>Runs one edit as one undo step and redraws whatever shows the item.</summary>
-    void Edit(Action change);
-
-    /// <summary>Opens a run of edits, such as a point drag, that undo as one step.</summary>
-    void BeginGesture();
-
-    /// <summary>Closes the run <see cref="BeginGesture"/> opened.</summary>
-    void EndGesture();
-
-    /// <summary>The item changed inside a gesture; redraw it without recording a step yet.</summary>
-    void Changed();
-}
-
 /// <summary>The settings of an item's common shader, as the host's compiler reports them.</summary>
 public static partial class XifShaderParams
 {
@@ -225,7 +157,7 @@ public enum XifEditorDrag
 }
 
 /// <summary>
-/// A XIF editor, carried by its panel: the host it edits for, whether it is
+/// A XIF editor, carried by its panel: whether it is
 /// open, the panel's parts, the polygon and point selected, and the view of
 /// the shape box. It opens over the host's work when asked
 /// (<see cref="Xanadu.Ui.Systems.Ui.XifEditorSystem.Open"/>) and closes on
@@ -233,8 +165,6 @@ public enum XifEditorDrag
 /// </summary>
 public struct XifEditor : IComponent
 {
-    public IXifEditorHost Host;
-
     /// <summary>Where the panel is centred while it is open.</summary>
     public Vector2 Home;
 
@@ -306,6 +236,9 @@ public sealed class XifSettingField(string name, Entity field, float[] shown)
 /// <summary>The entities of an editor panel that its system writes to or reads.</summary>
 public struct XifEditorParts
 {
+    /// <summary>The panel itself, which the owner's signals are emitted on.</summary>
+    public Entity Panel;
+
     /// <summary>Dims everything behind the open editor and takes its clicks.</summary>
     public Entity Backdrop;
 

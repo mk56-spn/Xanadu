@@ -16,7 +16,7 @@ public static class AnimatorXifEditing
     {
         Entity editor = session.GetComponent<AnimatorUi>().XifEditor;
         if (!Xanadu.Ui.Systems.Ui.XifEditorSystem.IsOpen(editor) ||
-            editor.GetComponent<XifEditor>().Host.Placement is null)
+            editor.GetComponent<XifEditorFrame>().Placement is null)
             return -1;
         return AnimatorSelected.Part(session);
     }
@@ -31,9 +31,9 @@ public static class AnimatorXifEditing
         Entity editor = session.GetComponent<AnimatorUi>().XifEditor;
         if (!Xanadu.Ui.Systems.Ui.XifEditorSystem.IsOpen(editor))
             return null;
-        XifEditor state = editor.GetComponent<XifEditor>();
-        if (state.Host.Placement is not null || state.Host.Item is not { } item)
+        XifEditorFrame frame = editor.GetComponent<XifEditorFrame>();
+        if (frame.Placement is not null || frame.Item is not { } item)
             return null;
-        return (item, state.Shown);
+        return (item, editor.GetComponent<XifEditor>().Shown);
     }
 }

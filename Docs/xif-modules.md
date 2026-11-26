@@ -228,7 +228,7 @@ module chunks. A reference node stores the target `Id` instead of modules.
    are gone; a new dress gets a purple sheet plus a darker hem band as
    two shapes. The cloth inspector's ART row opens the XIF editor on it.
 10. **XIF editor box.** ✅ 2026-11-22. A host that draws items itself says
-   `IXifEditorHost.DrawsItem`; the editor then draws no fills, only lines
+   `XifEditorFrame.DrawsItem`; the editor then draws no fills, only lines
    and points, and publishes where it shows the item (`XifEditor.Shown`).
    The animator draws chain art, cloth art and skinned parts in the box
    through `XifDrawer.DrawNode` with their shaders, on the held canvas
