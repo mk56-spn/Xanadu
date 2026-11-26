@@ -122,7 +122,7 @@ public static class StackPresets
 
             static const uint PAGES = 16;      // one 32 x 32 grid (mesh.pagesFor)
 
-            [Cached] [Pages(PAGES)] Meshes pool;
+            [Cached] [Size(PAGES)] Meshes pool;
 
             Camera eye(float2 size) { return Camera(1500 * size.y / 810).orbited(time * 0.3, 0.3); }
 

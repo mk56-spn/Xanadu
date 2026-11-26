@@ -161,8 +161,81 @@ public sealed class BlockTests
         List<BuildBuffer> buffers = [.. build.Buffers];
 
         Assert.That(buffers.Select(buffer => buffer.Name), Is.EquivalentTo(new[] { "sparks_items", "bookkeeping" }));
-        // The pool's free places (2 + 256) and live list (1 + 256), then the stack's own Slots (2 + 32).
+        // The stack's own Slots (2 + 32), then the pool's free places (2 + 256) and live list (1 + 256).
         Assert.That(buffers.Single(buffer => buffer.Name == "bookkeeping").Count, Is.EqualTo(258 + 257 + 34));
         Assert.That(buffers.Single(buffer => buffer.Name == "sparks_items").Type, Is.EqualTo("Spark"));
+    }
+
+    private const string Meshed = """
+        import xanadu;
+
+        [Cached] [Size(4)] Meshes pool;
+
+        [Pass(128, over: 4 * 128)]
+        void make(uint i) { pool.grid(Sphere(100), pool.page(i, 1), uint2(8)); }
+
+        [Draw(64, 1, shade: look, copies: pool)]
+        ItemVertex shown(ItemVertex v) { return v; }
+
+        float4 look(ItemInput i) { return float4(1); }
+
+        void graph() { make(); shown(frame); }
+        """;
+
+    [Test]
+    public void ACachedBlocksListsAreCached()
+    {
+        List<BuildBuffer> buffers = [.. Compile(Meshed).Build!.Shape.Buffers];
+
+        Assert.That(buffers.Select(buffer => buffer.Name), Is.EqualTo(new[] { "pool_corners", "pool_triangles", "pool_pages", "pool_book" }));
+        Assert.That(buffers.All(buffer => buffer.Cached), Is.True);
+        Assert.That(buffers.Single(buffer => buffer.Name == "pool_corners").Count, Is.EqualTo(4 * 128));
+        Assert.That(buffers.Single(buffer => buffer.Name == "pool_book").Count, Is.EqualTo(5));
+    }
+
+    [Test]
+    public void ADrawCopiesByTheBlocksCountedPart()
+    {
+        StackBuild build = Compile(Meshed).Build!.Shape;
+        BuildPass shown = build.Passes.Single(pass => pass.Name == "shown");
+
+        Assert.That(build.Buffers[shown.CopiesBuffer].Name, Is.EqualTo("pool_book"));
+        Assert.That(shown.CopiesAt, Is.Zero);
+    }
+
+    [Test]
+    public void ABlockCountedByAGatheredDrawsByItsPlaceInTheBookkeeping()
+    {
+        string drawn = Pooled.Replace("void graph() { plan(); step(); }", """
+            [Draw(1, 1, shade: look, copies: sparks)]
+            ItemVertex shown(ItemVertex v) { return v; }
+            float4 look(ItemInput i) { return float4(1); }
+            void graph() { plan(); step(); shown(frame); }
+            """);
+        StackBuild build = Compile(drawn).Build!.Shape;
+        BuildPass shown = build.Passes.Single(pass => pass.Name == "shown");
+
+        // After the stack's own Slots (2 + 32) and the pool's free places (2 + 256), the live list's count.
+        Assert.That(build.Buffers[shown.CopiesBuffer].Name, Is.EqualTo("bookkeeping"));
+        Assert.That(shown.CopiesAt, Is.EqualTo(34 + 258));
+    }
+
+    [Test]
+    public void ABlockThatChangesEveryFrameIsNeverCached()
+    {
+        Assert.That(() => Compile(Graph.Replace("[Size(8, 8)] Field small;", "[Cached] [Size(8, 8)] Field small;")),
+            Throws.Exception.With.Message.Contains("never [Cached]"));
+    }
+
+    [Test]
+    public void ADrawByABlockWithNoCountIsRefused()
+    {
+        string wrong = Graph.Replace("void graph()", """
+            [Draw(1, 1, shade: look, copies: small)]
+            ItemVertex shown(ItemVertex v) { return v; }
+            float4 look(ItemInput i) { return float4(1); }
+            void graph()
+            """).Replace("small.spread(1, 0.5);", "small.spread(1, 0.5); shown(frame);");
+        Assert.That(() => Compile(wrong), Throws.Exception.With.Message.Contains("no count to draw by"));
     }
 }

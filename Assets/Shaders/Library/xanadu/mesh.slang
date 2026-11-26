@@ -1050,7 +1050,7 @@ public namespace lights
 // draw shows every page, a page a copy, its corners pulled from the pool by their numbers:
 //
 //     static const uint PAGES = 2 * 16;                  // two objects, a 32 x 32 grid each (mesh.pagesFor)
-//     [Cached] [Pages(PAGES)] Meshes pool;
+//     [Cached] [Size(PAGES)] Meshes pool;
 //
 //     [Pass(128, over: PAGES * 128)]
 //     void build(uint i)
@@ -1232,26 +1232,17 @@ public struct MeshPage
     public uint first;
 };
 
-/// A graph's mesh pool, built into and drawn from: [Pages(n)] Meshes pool; (with [Cached] to
-/// build it only when the values move). Its corners, triangles and pages are the build's own, and so
-/// is its book: the pages taken so far (what `copies: pool` draws), then each object's first page.
+/// A graph's mesh pool, built into and drawn from: [Size(n)] Meshes pool; (n pages) (with [Cached] to
+/// build it only when the values move). Its corners, triangles and pages are its own, and so is its
+/// book: the pages taken so far (what `copies: pool` draws), then each object's first page.
+[Block(most)]
 public struct Meshes
 {
-    public RWStructuredBuffer<MeshVertex> corners;
-    public RWStructuredBuffer<uint> triangles;
-    public RWStructuredBuffer<Meshlet> pages;
-    public RWStructuredBuffer<uint> book;
     public uint most;
-
-    public __init(RWStructuredBuffer<MeshVertex> corners, RWStructuredBuffer<uint> triangles, RWStructuredBuffer<Meshlet> pages,
-        RWStructuredBuffer<uint> book, uint most)
-    {
-        this.corners = corners;
-        this.triangles = triangles;
-        this.pages = pages;
-        this.book = book;
-        this.most = most;
-    }
+    [Size(most * 128)] public List<MeshVertex> corners;
+    [Size(most * 128)] public List<uint> triangles;
+    [Size(most)] public List<Meshlet> pages;
+    [Copies] [Size(1 + most)] public List<uint> book;
 
     // ---- pages taken as needed: objects of any size, packed one after another ----
     //

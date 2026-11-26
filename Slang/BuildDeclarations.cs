@@ -39,11 +39,11 @@ internal static partial class BuildDeclarations
         + "(with [Cached], [Host] or [Shared] before it if wanted), Counter name;, or Image<T> name; "
         + "(T float, float2, float4, uint, uint2, uint4, int, int2 or int4; with [Kept], [Cached], [History(image)] or [Shared], [Scale(s)] or [Size(w, h)], "
         + "[Clear(value)], and [Precise] or [Compact] before it if wanted; or [View] Image<float4> name; alone), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
-        + "or [Pages(n)] Meshes name; (with [Cached] before them if wanted)";
+        + "or a library block (with [Cached] before it if it may be)";
 
-    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Pages", "Shared", "View"];
+    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Shared", "View"];
 
-    [GeneratedRegex(@"(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?<coherent>globallycoherent\s+)?\b(?<kind>List|Image|Counter|Stored|Gathered|Slots|Meshes)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<name>\w+)\s*;")]
+    [GeneratedRegex(@"(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?<coherent>globallycoherent\s+)?\b(?<kind>List|Image|Counter|Stored|Gathered|Slots)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<name>\w+)\s*;")]
     private static partial Regex Declaration();
 
     [GeneratedRegex(@"\[\s*(?<word>\w+)\s*(?:\((?<arguments>[^\]]*)\))?\s*\]")]
@@ -133,7 +133,8 @@ internal static partial class BuildDeclarations
                 throw new BuildProblem(match.Index, block.Generic is null
                     ? $"{name} holds what a {block.Name} always does: {block.Name} {name};."
                     : $"say what {name} holds: {block.Name}<T> {name};.");
-            bundles.Add(BuildBlocks.Lay(block, name, holds, BlockSizes(match, block, constant), match.Index, match.Index + match.Length, buffers, ref book));
+            (long[] sizes, bool cached) = BlockSizes(match, block, constant);
+            bundles.Add(BuildBlocks.Lay(block, name, holds, sizes, cached, match.Index, match.Index + match.Length, buffers, ref book));
             if (book > 0)
                 keeper ??= name;
         }
@@ -199,7 +200,7 @@ internal static partial class BuildDeclarations
             "List" => ["Size", "Cached", "Host", "Shared", "History"],
             "Stored" => ["Cached", "Host", "Shared"],
             "Counter" => [],
-            "Gathered" or "Slots" or "Meshes" => BundleKinds.Allowed(kind),
+            "Gathered" or "Slots" => [BundleKinds.Kinds[kind].SizeWord],
             _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact", "Shared", "View"],
         };
         Dictionary<string, Argument?> said = [];
@@ -240,18 +241,26 @@ internal static partial class BuildDeclarations
         return said;
     }
 
-    /// <summary>A block declaration's sizes: <c>[Size(640, 360)]</c>, one whole number for each the block is sized by.</summary>
-    private static long[] BlockSizes(Match match, BlockType block, System.Func<string, BuildValue?> constant)
+    /// <summary>
+    /// A block declaration's sizes, <c>[Size(640, 360)]</c>, one whole number for each the block is sized by, and whether it is
+    /// <c>[Cached]</c>.
+    /// </summary>
+    private static (long[] Sizes, bool Cached) BlockSizes(Match match, BlockType block, System.Func<string, BuildValue?> constant)
     {
-        string name = match.Groups["name"].Value, form = block.Sizes.Length == 0
+        string name = match.Groups["name"].Value, form = (block.Cacheable ? "([Cached]) " : "") + (block.Sizes.Length == 0
             ? $"{block.Name} {name};"
-            : $"[Size({string.Join(", ", block.Sizes)})] {block.Name} {name};";
+            : $"[Size({string.Join(", ", block.Sizes)})] {block.Name} {name};");
         Group attributes = match.Groups["attributes"];
-        Match[] said = [.. Attribute().Matches(attributes.Value).Cast<Match>()];
-        if (said.Any(attribute => attribute.Groups["word"].Value != "Size") || said.Length > 1 || said.Length != (block.Sizes.Length > 0 ? 1 : 0))
+        Match[] all = [.. Attribute().Matches(attributes.Value).Cast<Match>()];
+        bool cached = all.Any(attribute => attribute.Groups["word"].Value == "Cached");
+        if (cached && !block.Cacheable)
+            throw new BuildProblem(match.Index, $"a {block.Name} changes every frame (it keeps a history, Slots or Gathered), so it is never [Cached].");
+        Match[] said = [.. all.Where(attribute => attribute.Groups["word"].Value != "Cached")];
+        if (said.Any(attribute => attribute.Groups["word"].Value != "Size") || said.Length > 1 || said.Length != (block.Sizes.Length > 0 ? 1 : 0)
+            || all.Length - said.Length > 1)
             throw new BuildProblem(match.Index, $"a {block.Name} is declared as {form}");
         if (block.Sizes.Length == 0)
-            return [];
+            return ([], cached);
         Group arguments = said[0].Groups["arguments"];
         int at = attributes.Index + arguments.Index;
         string[] given = BuildText.SplitTop(arguments.Value);
@@ -266,7 +275,7 @@ internal static partial class BuildDeclarations
             sizes[k] = value.Long;
         }
 
-        return sizes;
+        return (sizes, cached);
     }
 
     private static BuildBundle ReadBundle(Match match, Dictionary<string, Argument?> said, string kind, List<BuildBuffer> buffers,
@@ -279,7 +288,7 @@ internal static partial class BuildDeclarations
         BuildValue value = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, constant);
         if (!value.Whole || value.Long < 1)
             throw new BuildProblem(size.Index, $"a {kind}'s {word.ToLowerInvariant()} is a whole number, at least 1 ({name} has {value}).");
-        return BundleKinds.Lay(kind, name, type, value.Long, said.ContainsKey("Cached"), match.Index, match.Index + match.Length, buffers, ref book);
+        return BundleKinds.Lay(kind, name, type, value.Long, match.Index, match.Index + match.Length, buffers, ref book);
     }
 
     private static BuildBuffer ReadBuffer(Match match, Dictionary<string, Argument?> said, string kind, System.Func<string, BuildValue?> constant)

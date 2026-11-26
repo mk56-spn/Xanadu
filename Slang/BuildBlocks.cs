@@ -11,7 +11,9 @@ namespace Xanadu.Slang;
 /// <param name="Kind">List, Stored, Counter, or a bundle the stack's bookkeeping holds: Slots or Gathered.</param>
 /// <param name="Size">A list's size, over the block's sizes and the module's constants; null for one of one or a history.</param>
 /// <param name="History">For a history, the part it is last frame's of; null otherwise.</param>
-public sealed record BlockPart(string Name, string Kind, string Type, BuildExpression? Size, string? History);
+/// <param name="Copies">Marked <c>[Copies]</c>: its count (a List or Counter's first uint, a Gathered's count) is what a draw's
+/// <c>copies: name</c> draws by.</param>
+public sealed record BlockPart(string Name, string Kind, string Type, BuildExpression? Size, string? History, bool Copies = false);
 
 /// <summary>
 /// A block a library module declares: a struct that owns its lists, its passes and its functions, used by declaring it in
@@ -32,7 +34,11 @@ public sealed record BlockPart(string Name, string Kind, string Type, BuildExpre
 /// <param name="Sizes">Its size names, in order: the <c>uint</c> fields the declaration's <c>[Size(…)]</c> fills.</param>
 /// <param name="Fields">Every field in order, sizes and parts: what its made-up constructor takes.</param>
 /// <param name="Generic">The type it holds, as its struct names it (<c>T</c> in <c>Events&lt;T&gt;</c>); null for a block of fixed types.</param>
-public sealed record BlockType(string Name, StackLibrary Library, string[] Sizes, BlockPart[] Parts, string[] Fields, string? Generic = null);
+public sealed record BlockType(string Name, StackLibrary Library, string[] Sizes, BlockPart[] Parts, string[] Fields, string? Generic = null)
+{
+    /// <summary>It may be declared <c>[Cached]</c>: none of its parts changes every frame on its own (no history, Slots or Gathered).</summary>
+    public bool Cacheable => System.Array.TrueForAll(Parts, part => part.History is null && part.Kind is not ("Slots" or "Gathered"));
+}
 
 /// <summary>Reads blocks out of a library module, prepares them for Slang, and lays one out where a stack declares it.</summary>
 internal static partial class BuildBlocks
@@ -43,7 +49,7 @@ internal static partial class BuildBlocks
     [GeneratedRegex(@"^(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?:public\s+)?(?<kind>List|Stored|Counter|Slots|Gathered|uint)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<names>\w+(?:\s*,\s*\w+)*)\s*$", RegexOptions.Singleline)]
     private static partial Regex Field();
 
-    [GeneratedRegex(@"\[\s*(?<word>Size|History)\s*\((?<argument>[^\]]*)\)\s*\]")]
+    [GeneratedRegex(@"\[\s*(?<word>Size|History|Copies)\s*(?:\((?<argument>[^\]]*)\))?\s*\]")]
     private static partial Regex PartAttribute();
 
     /// <summary>A field statement of a block's body: its text and where it sits.</summary>
@@ -106,6 +112,9 @@ internal static partial class BuildBlocks
                     continue;
                 }
 
+                bool copies = said.Remove("Copies");
+                if (copies && names.Length > 1)
+                    throw new BuildProblem(statement.Start, "[Copies] marks one part: declare it on its own.");
                 foreach (string part in names)
                 {
                     BuildExpression? size = said.TryGetValue("Size", out string? text) ? BuildPasses.ParseAt(text, statement.Start) : null;
@@ -114,12 +123,16 @@ internal static partial class BuildBlocks
                         throw new BuildProblem(statement.Start, $"a block's list says its size or what it is the history of: [Size(n)] or [History(list)] List<T> {part};.");
                     if (kind is "Slots" or "Gathered" && (size is null || history is not null))
                         throw new BuildProblem(statement.Start, $"a block's {kind} says its size: [Size(n)] {kind} {part};.");
+                    if (copies && !(kind is "Counter" or "Gathered" || kind == "List" && field.Groups["type"].Value == "uint" && history is null))
+                        throw new BuildProblem(statement.Start, $"[Copies] goes on a block's Counter, Gathered or [Size(n)] List<uint>: what it counts is what copies: draws by.");
+                    if (copies && parts.Exists(other => other.Copies))
+                        throw new BuildProblem(statement.Start, $"the block {name} draws by one count: only one part is [Copies].");
                     if (kind is not ("List" or "Slots" or "Gathered") && said.Count > 0)
-                        throw new BuildProblem(statement.Start, $"a {kind} in a block takes no attributes.");
+                        throw new BuildProblem(statement.Start, $"a {kind} in a block takes no attributes but [Copies].");
                     if (history is not null && parts.Find(of => of.Name == history) is not { Kind: "List" } source)
                         throw new BuildProblem(statement.Start, $"{part} is the history of {history}, which isn't a List the block holds before it.");
                     string type = kind == "Counter" ? "uint" : field.Groups["type"].Value;
-                    parts.Add(new BlockPart(part, kind, type, size, history));
+                    parts.Add(new BlockPart(part, kind, type, size, history, copies));
                     fields.Add(part);
                 }
             }
@@ -190,10 +203,12 @@ internal static partial class BuildBlocks
     /// <paramref name="holds"/>, for a generic one): its parts added to <paramref name="buffers"/> as <c>name_part</c>, its
     /// history parts last frame's of theirs, and the bundle that hands them to its struct.
     /// </summary>
+    /// <param name="cached">Declared <c>[Cached]</c>: its lists are filled once and kept until the values they're built from move.</param>
     /// <param name="book">The uints the stack's bookkeeping holds so far: a Slots or Gathered part takes its place there.</param>
-    public static BuildBundle Lay(BlockType block, string name, string? holds, long[] sizes, int start, int end, List<BuildBuffer> buffers,
-        ref long book)
+    public static BuildBundle Lay(BlockType block, string name, string? holds, long[] sizes, bool cached, int start, int end,
+        List<BuildBuffer> buffers, ref long book)
     {
+        (long At, string In) counted = (-1, "");
         var bundled = new Dictionary<string, string>();
         string TypeOf(BlockPart part) => part.Type == block.Generic ? holds! : part.Type;
         var given = new Dictionary<string, BuildValue>();
@@ -223,19 +238,23 @@ internal static partial class BuildBlocks
             {
                 // Laid out as the stack's own would be, its lists the block's: one binding for every count.
                 int before = buffers.Count;
-                BuildBundle inner = BundleKinds.Lay(part.Kind, own, part.Kind == "Slots" ? "" : TypeOf(part), count, false, start, end, buffers, ref book);
+                BuildBundle inner = BundleKinds.Lay(part.Kind, own, part.Kind == "Slots" ? "" : TypeOf(part), count, start, end, buffers, ref book);
                 for (int k = before; k < buffers.Count; k++)
                     buffers[k] = buffers[k] with { Bundle = name };
                 bundled[part.Name] = $"{inner.Type}({inner.Made})";
+                if (part.Copies)
+                    counted = (inner.CountAt, inner.CountIn);
                 continue;
             }
 
-            buffers.Add(new BuildBuffer(own, TypeOf(part), count, false, start, end, Bundle: name, Stored: part.Kind == "Stored"));
+            if (part.Copies)
+                counted = (0, own);
+            buffers.Add(new BuildBuffer(own, TypeOf(part), count, false, start, end, Cached: cached, Bundle: name, Stored: part.Kind == "Stored"));
         }
 
         string made = string.Join(", ", block.Fields.Select(field =>
             System.Array.IndexOf(block.Sizes, field) is var k and >= 0 ? $"{sizes[k]}u"
             : bundled.TryGetValue(field, out string? inner) ? inner : $"{name}_{field}"));
-        return new BuildBundle(name, holds is null ? block.Name : $"{block.Name}<{holds}>", start, end, made, -1, "") { Block = block, Sizes = given };
+        return new BuildBundle(name, holds is null ? block.Name : $"{block.Name}<{holds}>", start, end, made, counted.At, counted.In) { Block = block, Sizes = given };
     }
 }

@@ -762,7 +762,7 @@ void graph() { …; field.spread(fade, spread); }
   its lists bound, its size names (`w`, `h`) in scope for `over:`.
 - **Pass arguments take floats**, not only uints: `fade` is a uniform passed straight through.
 - **Where:** library modules first; a stack's own folder later (a file marked as a block, not composed into the body).
-- **Bundles move onto it:** `Slots`, `Gathered` and `Meshes` become blocks written in Slang; `BundleKinds` goes.
+- **Bundles move onto it:** `Meshes` became a block; `Slots` and `Gathered` stay built in (blocks hold bundles, below).
 - **First user:** `Lab/particles`, as `Field`, then `Pool`, `Events` (deaths) and `Trails`.
 
 ### Where blocks are (2026-11-26)
@@ -790,6 +790,13 @@ void graph() { …; field.spread(fade, spread); }
 - **`Pool<T>`** (`xanadu.store`): items, free places (Slots) and the frame's live ones (Gathered<uint>); take, give,
   live, living, count, turn, `[i]` and `put(i, value)`. A block reaches the stack through a read-only property, so a
   subscript setter can't be called on it: blocks write with methods. `Lab/particles` runs on it (shot at 600 as before).
-- **Not yet:** `Meshes` as a block (it needs `[Cached]` and a count for `copies:`, which blocks don't have); a block's
-  pass is called on one block only, by its first parameter; a library schedule can't call block passes; block passes
-  can't be generic.
+- **`Meshes` is a block** (2026-11-26, `xanadu.mesh`): `[Cached] [Size(PAGES)] Meshes pool;` replaces the built-in
+  `[Pages(n)]` kind, which is gone (`BundleKinds` keeps Slots and Gathered only). Two things blocks gained for it:
+  - **`[Cached]` on a declaration** caches every list of the block; a block holding a history, Slots or Gathered changes
+    every frame and refuses it (`BlockType.Cacheable`).
+  - **`[Copies]` on one part** (a Counter, a Gathered, or a `[Size(n)] List<uint>`, its first uint) is what `copies: name`
+    draws by: `Meshes.book` (pages taken), `Pool.alive` (`copies: pool` draws once per live one). A draw by a block with
+    no `[Copies]` part is refused.
+  Every mesh stack moved over; `Lab/meshes` and `Lab/culled_meshes` shot as before. Tests: `BlockTests` (cached, copies).
+- **Not yet:** a block's pass is called on one block only, by its first parameter; a library schedule can't call block
+  passes; block passes can't be generic.

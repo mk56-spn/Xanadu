@@ -7,7 +7,7 @@ static const uint2 CELLS = uint2(32, 16);
 static const uint EACH = 8;                      // pages a 32 x 16 grid takes (mesh.pagesFor)
 static const uint STEPS = 9;
 
-[Cached] [Pages(STEPS * EACH)] Meshes pool;
+[Cached] [Size(STEPS * EACH)] Meshes pool;
 
 // Laid out for a quad 810 px tall; `scale` fits it to the real one.
 Camera camera(float scale) { return Camera(1500 * scale).orbited(0, 0.2); }

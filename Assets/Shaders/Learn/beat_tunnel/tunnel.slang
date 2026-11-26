@@ -10,7 +10,7 @@ static const float LENGTH = 4000;
 static const uint2 CELLS = uint2(96, 56);
 static const uint PAGES = 84;                    // pages a 96 x 56 grid takes (mesh.pagesFor)
 
-[Pages(PAGES)] Meshes pool;
+[Size(PAGES)] Meshes pool;
 
 Camera camera(float scale) { return Camera(10 * scale, 700 * scale); }
 

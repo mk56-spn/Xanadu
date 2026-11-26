@@ -10,7 +10,7 @@ import xanadu;
 static const uint2 CELLS = uint2(64, 40);
 static const uint PAGES = 40;                    // pages a 64 x 40 grid takes (mesh.pagesFor)
 
-[Pages(PAGES)] Meshes pool;
+[Size(PAGES)] Meshes pool;
 
 Camera camera(float s) { return Camera(1100 * s).orbited(sin(time * 0.3) * 0.3, 0.2); }
 

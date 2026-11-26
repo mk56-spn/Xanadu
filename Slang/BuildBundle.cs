@@ -4,22 +4,22 @@ using System.Linq;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// A declaration that keeps lists under one name, as a library type made of them (<c>xanadu.store</c>,
-/// <c>xanadu.mesh</c>):
+/// A declaration that keeps lists under one name, as a library type made of them (<c>xanadu.store</c>) or a library block
+/// (<see cref="BuildBlocks"/>):
 /// <code>
 /// [Size(CAP)] Gathered&lt;uint&gt; alive;   // a list threads add to, and its count
 /// [Size(CAP)] Slots free;               // free places in a pool of CAP, taken and given back
-/// [Cached] [Pages(PAGES)] Meshes pool;  // a mesh pool: its corners, triangles, pages and the pages taken
+/// [Cached] [Size(PAGES)] Meshes pool;   // a block: a mesh pool, its corners, triangles, pages and the pages taken
 /// </code>
 /// SDL_GPU binds 8 storage buffers a pass, so the small parts don't each take one: every count, every Slots and every
 /// Gathered&lt;uint&gt;'s items share one uint list the build lays out (<see cref="Bookkeeping"/>), and a bundle is a place
 /// in it. Other parts are lists of their own, named <c>name_part</c>. The rewrite declares them and a property by the
 /// declared name that hands them to the type, so code only ever names the whole.
 /// </summary>
-/// <param name="Type">The library type, as the property returns it: <c>Gathered&lt;uint&gt;</c>, <c>Slots</c>, <c>Meshes</c>.</param>
+/// <param name="Type">The library type, as the property returns it: <c>Gathered&lt;uint&gt;</c>, <c>Slots</c>, a block's name.</param>
 /// <param name="Made">The type's constructor arguments: its lists by name, its places in the bookkeeping, its capacity.</param>
 /// <param name="CountAt">Where its count sits in <paramref name="CountIn"/>, for a draw's <c>copies:</c>; -1 when it has none to draw by.</param>
-/// <param name="CountIn">The list holding its count: the bookkeeping, or a list of its own (a mesh pool's pages taken).</param>
+/// <param name="CountIn">The list holding its count: the bookkeeping, or a list of its own (a block's <c>[Copies]</c> part).</param>
 public sealed record BuildBundle(string Name, string Type, int Start, int End, string Made, long CountAt, string CountIn = BundleKinds.Bookkeeping)
 {
     /// <summary>The library block it declares (<see cref="BlockType"/>); null for the built-in kinds.</summary>
@@ -37,20 +37,17 @@ internal static class BundleKinds
 
     /// <summary>The kinds, with the attribute that sizes each and whether it holds a type of the author's.</summary>
     public static readonly IReadOnlyDictionary<string, (string SizeWord, bool Generic)> Kinds =
-        new Dictionary<string, (string, bool)> { ["Gathered"] = ("Size", true), ["Slots"] = ("Size", false), ["Meshes"] = ("Pages", false) };
-
-    /// <summary>The words that may go before a kind's declaration: kept state that changes every frame is never cached.</summary>
-    public static string[] Allowed(string kind) => kind == "Meshes" ? ["Pages", "Cached"] : [Kinds[kind].SizeWord];
+        new Dictionary<string, (string, bool)> { ["Gathered"] = ("Size", true), ["Slots"] = ("Size", false) };
 
     /// <summary>
     /// The bundle <paramref name="name"/> laid out: its own lists added to <paramref name="buffers"/>, its places taken from
     /// the bookkeeping (<paramref name="book"/>, the uints used so far).
     /// </summary>
-    public static BuildBundle Lay(string kind, string name, string type, long size, bool cached, int start, int end,
+    public static BuildBundle Lay(string kind, string name, string type, long size, int start, int end,
         List<BuildBuffer> buffers, ref long book)
     {
         BuildBuffer Own(string part, string holds, long count) =>
-            new($"{name}_{part}", holds, count, false, start, end, Cached: cached, Bundle: name);
+            new($"{name}_{part}", holds, count, false, start, end, Bundle: name);
         switch (kind)
         {
             case "Gathered" when type == "uint":
@@ -60,16 +57,9 @@ internal static class BundleKinds
                 buffers.Add(Own("items", type, size));
                 book += 1;
                 return new BuildBundle(name, $"Gathered<{type}>", start, end, $"{Bookkeeping}, {book - 1}, {name}_items, 0, {size}", book - 1);
-            case "Slots":
+            default:
                 book += 2 + size;
                 return new BuildBundle(name, "Slots", start, end, $"{Bookkeeping}, {book - size - 2}, {size}", -1);
-            default:
-                buffers.Add(Own("corners", "MeshVertex", size * 128));
-                buffers.Add(Own("triangles", "uint", size * 128));
-                buffers.Add(Own("pages", "Meshlet", size));
-                // Its own bookkeeping, cached with it: the pages taken so far, then each object's first page.
-                buffers.Add(Own("book", "uint", 1 + size));
-                return new BuildBundle(name, "Meshes", start, end, $"{name}_corners, {name}_triangles, {name}_pages, {name}_book, {size}", 0, $"{name}_book");
         }
     }
 

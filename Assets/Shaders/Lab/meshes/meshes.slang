@@ -14,9 +14,9 @@ static const uint SEA = 36;                      // pages the ocean's 48 x 48 gr
 /// How lumpy the rock is: change it and the cached shapes are built again.
 [Default(16)] uniform float lumps;
 
-[Cached] [Pages(PAGES)] Meshes pool;
+[Cached] [Size(PAGES)] Meshes pool;
 
-[Pages(SEA)] Meshes seaPool;
+[Size(SEA)] Meshes seaPool;
 
 Camera camera() { return Camera(1400).orbited(0, 0.25); }
 

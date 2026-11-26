@@ -262,7 +262,7 @@ public struct Pool<T>
     public uint n;
     [Size(n)] List<T> items;
     [Size(n)] Slots places;                   // the free places
-    [Size(n)] Gathered<uint> alive;           // this frame's live ones
+    [Copies] [Size(n)] Gathered<uint> alive;  // this frame's live ones: what copies: pool draws
 
     /// The places in the pool.
     public property uint capacity { get { return n; } }

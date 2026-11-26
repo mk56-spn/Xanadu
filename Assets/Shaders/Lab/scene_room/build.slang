@@ -19,7 +19,7 @@ Image<float4> shown;
 [Clear(1e30)] Image<float> lampDepth;
 
 static const uint RING = 16;                     // pages the torus's 32 x 32 grid takes (mesh.pagesFor)
-[Cached] [Pages(RING)] Meshes pool;
+[Cached] [Size(RING)] Meshes pool;
 
 [Default(colours.hotPink)] uniform colour tint;
 /// How hard the box thumps on the beat.

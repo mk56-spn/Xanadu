@@ -11,9 +11,9 @@ static const uint LIVE = 3;
 static const uint KEPT_SHAPES[KEPT] = { 1, 3, 4, 5, 6, 7 };
 static const uint LIVE_SHAPES[LIVE] = { 0, 2, 8 };
 
-[Cached] [Pages(KEPT * EACH)] Meshes pool;
+[Cached] [Size(KEPT * EACH)] Meshes pool;
 
-[Pages(LIVE * EACH)] Meshes livePool;
+[Size(LIVE * EACH)] Meshes livePool;
 
 // Laid out for a quad 810 px tall; `scale` fits it to the real one.
 Camera camera(float scale) { return Camera(1400 * scale).orbited(0, 0.35); }

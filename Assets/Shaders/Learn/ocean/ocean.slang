@@ -11,7 +11,7 @@ static const uint STEPS = 4;
 [Default(16)] uniform float waveHeight;
 [Default(0.5)] uniform float choppiness;
 
-[Pages(STEPS * EACH)] Meshes pool;
+[Size(STEPS * EACH)] Meshes pool;
 
 // Laid out for a quad 810 px tall; `s` fits it to the real one.
 Camera camera(float s) { return Camera(900 * s).orbited(0, 0.3); }

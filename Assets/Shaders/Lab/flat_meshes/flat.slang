@@ -7,7 +7,7 @@ static const uint EACH = 4;                      // pages a 16 x 16 grid takes (
 static const uint THINGS = 6;
 static const uint PAGES = THINGS * EACH;
 
-[Cached] [Pages(PAGES)] Meshes pool;
+[Cached] [Size(PAGES)] Meshes pool;
 
 Bezier swirl() { return Bezier(float2(-260, 80), float2(-120, -220), float2(120, 220), float2(260, -80)); }
 Bezier hook() { return Bezier(float2(-60, 200), float2(-60, -120), float2(160, -160), float2(160, 0)); }

@@ -18,7 +18,7 @@ static const float2 VIEW = float2(960, 540);     // half the view the camera see
 /// Colour each page apart.
 [Default(0)] uniform int tint;
 
-[Cached] [Pages(PAGES)] Meshes pool;
+[Cached] [Size(PAGES)] Meshes pool;
 [Cached] [Size(60)] List<MeshVertex> ico;
 [Size(PAGES)] Gathered<uint> seen;
 
