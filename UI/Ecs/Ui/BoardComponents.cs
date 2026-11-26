@@ -60,6 +60,12 @@ public sealed class BoardState
 
     public bool HasItem;
 
+    /// <summary>The backing's material (the dot grid), made by the draw system.</summary>
+    public CanvasMaterial? Backing;
+
+    /// <summary>What the board looked like when last drawn (<c>BoardLook</c>): unchanged, it isn't drawn again.</summary>
+    public int Drawn;
+
     public readonly HashSet<int> Selected = [];
     public BoardLink? SelectedLink;
 

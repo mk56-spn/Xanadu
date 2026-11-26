@@ -21,8 +21,8 @@ namespace Xanadu.Ui.Systems.Ui;
 /// Delete removes what is selected, 1 to 9 colour the selection, Ctrl+Z and Ctrl+Y
 /// (or Ctrl+Shift+Z) undo and redo. Dragging empty board, or with the middle or
 /// right button anywhere, pans; the wheel zooms about the pointer. Keys go to the
-/// board the last press landed on. A <see cref="ReadOnly"/> board only pans, zooms
-/// and selects.
+/// board the last press landed on. A <see cref="ReadOnly"/> board only pans and
+/// zooms: a press anywhere on it pans, nothing is selected.
 /// </summary>
 public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeyboardState keyboard, IWheelSource? wheel = null)
     : QuerySystem<UiBoard>
@@ -170,18 +170,10 @@ public sealed partial class BoardInputSystem(IPointerInputSource pointer, IKeybo
         state.LastClickAt = input.Position;
 
         BoardBox? under = board.At(point);
-        // Read-only: a press selects what it lands on, or pans the empty board.
+        // Read-only: nothing on it can be moved, so nothing is selected; a press anywhere pans.
         if (entity.Tags.Has<ReadOnly>())
         {
-            state.SelectedLink = null;
-            if (under is not null)
-                Select(state, under.Id);
-            else
-            {
-                state.Selected.Clear();
-                Begin(state, BoardGestureKind.Pan, input.Position);
-            }
-
+            Begin(state, BoardGestureKind.Pan, input.Position);
             return;
         }
 

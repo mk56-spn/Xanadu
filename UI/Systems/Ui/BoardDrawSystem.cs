@@ -10,17 +10,19 @@ namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
 /// Draws every <see cref="UiBoard"/> into a canvas item of its own under its node,
-/// clipped to the node's box: a dot grid, frames behind the boxes they hold
+/// clipped to the node's box: a dot grid (a shader, <see cref="GridShader"/>, worked out per pixel), frames behind the boxes they hold
 /// (titled top-left), the lines between boxes (with an arrowhead on an <see cref="Arrowheads"/> board; over frames, under
 /// boxes, bent round the boxes in their way), boxes with their text wrapped and
 /// centred (or, with a kind or value, a header of text and kind over a value box),
 /// the selection, the link dot and resize corner under the pointer, a line being dragged, and the caret while a box is typed into. Colours
-/// are the theme's roles and categories. Redrawn whole every frame. A board with an
+/// are the theme's roles and categories. Drawn again whole only when something it shows changed
+/// (<see cref="BoardLook"/>), or every frame while a gesture or typing is under way. A board with an
 /// <see cref="BoardState.Underlay"/> draws it over its box between its backing and its
 /// boxes, and leaves its lines to it, drawing only their arrowheads (if any).
 /// </summary>
 public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
+    private const string GridShader = "Assets/Shaders/Ui/board_grid";
     private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7, FadeStep = 16;
 
     /// <summary>A line's bridge over another, in pixels: its radius, the half circle's steps, and how far (in radii) from a segment's ends a crossing must be to get one.</summary>
@@ -50,6 +52,12 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             state.HasItem = true;
         }
 
+        UiThemeRoles roles = UiThemes.Of(entity);
+        int look = BoardLook.Of(entity, board, state, roles);
+        if (look == state.Drawn && state.Gesture == BoardGestureKind.None && state.Editing == 0)
+            return;
+        state.Drawn = look;
+
         Handle item = state.Item;
         Rect2 area = new(state.Local(state.Area.Position), state.Area.Size);
         foreach (Handle each in (ReadOnlySpan<Handle>)[state.Back, state.Under, item])
@@ -58,9 +66,8 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             canvas.Clear(each);
         }
 
-        UiThemeRoles roles = UiThemes.Of(entity);
-        canvas.DrawRect(state.Back, area, roles.Inset);
-        Grid(state.Back, state, area, roles);
+        CanvasServer.Current.SetMaterial(state.Back, Backing(state, roles));
+        canvas.DrawRect(state.Back, area, Colors.White);
         CanvasServer.Current.SetMaterial(state.Under, state.Underlay);
         if (state.Underlay is not null)
             canvas.DrawRect(state.Under, area, Colors.White);
@@ -100,23 +107,21 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         return item;
     }
 
-    private void Grid(Handle item, BoardState state, Rect2 area, UiThemeRoles roles)
+    /// <summary>The backing's material: its colour and the grid's dots, where the view puts them.</summary>
+    private static CanvasMaterial Backing(BoardState state, UiThemeRoles roles)
     {
         float step = GridStep;
         while (step * state.Zoom < MinGridGap)
             step *= 2;
 
-        Color dot = roles.TextDim with { A = 0.18f };
-        Vector2 first = new(MathF.Ceiling(state.Pan.X / step) * step, MathF.Ceiling(state.Pan.Y / step) * step);
-        Vector2 last = state.ToBoard(state.Area.End);
-        for (float y = first.Y; y <= last.Y; y += step)
-        {
-            for (float x = first.X; x <= last.X; x += step)
-            {
-                Vector2 at = state.Local(state.ToScreen(new Vector2(x, y)));
-                canvas.DrawRect(item, new Rect2(at - Vector2.One, new Vector2(2, 2)), dot);
-            }
-        }
+        CanvasMaterial backing = state.Backing ??= new CanvasMaterial(GridShader);
+        backing.Set("backing", roles.Inset);
+        backing.Set("dot", roles.TextDim with { A = 0.18f });
+        backing.Set("area", state.Area.Size);
+        backing.Set("pan", state.Pan);
+        backing.Set("zoom", state.Zoom);
+        backing.Set("step", step);
+        return backing;
     }
 
     private void Box(Handle item, BoardState state, BoardBox box, bool frame, UiThemeRoles roles)

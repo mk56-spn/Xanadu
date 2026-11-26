@@ -100,7 +100,7 @@ public sealed class BoardInputSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void AReadOnlyBoardSelectsAndPansButTakesNoEdits()
+    public void AReadOnlyBoardPansButSelectsAndEditsNothing()
     {
         _entity.AddTag<ReadOnly>();
         BoardBox box = _board.Add(new Rect2(100, 100, 100, 60), "trace");
@@ -114,7 +114,7 @@ public sealed class BoardInputSystemTests : EcsSystemTest
 
         Assert.That(box.Rect.Position, Is.EqualTo(new Vector2(100, 100)));
         Assert.That(_board.Boxes, Has.Count.EqualTo(1));
-        Assert.That(_entity.GetComponent<UiBoard>().State.Selected, Does.Contain(box.Id));
+        Assert.That(_entity.GetComponent<UiBoard>().State.Selected, Is.Empty);
         Assert.That(_changes, Is.Zero);
     }
 

@@ -9,8 +9,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// <summary>
 /// The render-graph board's wires, drawn by a stack (<see cref="Shader"/>) as the board's underlay, between its backing
 /// and its boxes: each wire, as the board routes it, a line fading from its writer's colour to its reader's that glows
-/// and carries dots from writer to reader. Each frame it hands the stack the wires where the board's pan and zoom put
-/// them, as its <c>[Host]</c> buffer.
+/// and carries dots from writer to reader. It hands the stack the wires where the board's pan and zoom put them, as its
+/// <c>[Host]</c> buffer, again only when the view or the wires changed (the dots move in the shader, by time).
 /// </summary>
 internal sealed class GraphUnderlay
 {
@@ -31,12 +31,18 @@ internal sealed class GraphUnderlay
     /// <summary>The board was made again: the wires are routed afresh.</summary>
     public void Rebuilt() => _paths = null;
 
+    /// <summary>The view the wires were last handed over for.</summary>
+    private (Rect2 Area, Vector2 Pan, float Zoom, UiThemeRoles? Roles) _placed;
+
     /// <summary>Hands the stack the wires where the view puts them this frame.</summary>
     public void Update(BoardState state, UiThemeRoles roles)
     {
         state.Underlay = _material;
         if (state.Area.Size.X <= 0)
             return;
+        if (_paths is not null && _placed == (state.Area, state.Pan, state.Zoom, roles))
+            return;
+        _placed = (state.Area, state.Pan, state.Zoom, roles);
         _paths ??= _board.Paths();
 
         int wires = 0;
