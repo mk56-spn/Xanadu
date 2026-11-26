@@ -71,9 +71,6 @@ internal static unsafe class GpuTimes
     /// <summary>The last report printed, for an overlay to show.</summary>
     public static string Report { get; private set; } = "";
 
-    [DllImport("libc", EntryPoint = "setenv")]
-    private static extern int SetEnv(string name, string value, int overwrite);
-
     /// <summary>Puts the layer in Vulkan's chain. Must run before the graphics device is made.</summary>
     public static void Install()
     {
@@ -91,9 +88,7 @@ internal static unsafe class GpuTimes
             return;
         }
 
-        string? layers = Environment.GetEnvironmentVariable("VK_INSTANCE_LAYERS");
-        SetEnv("VK_ADD_LAYER_PATH", folder, 1);
-        SetEnv("VK_INSTANCE_LAYERS", string.IsNullOrEmpty(layers) ? LayerName : layers + ":" + LayerName, 1);
+        VulkanLayerChain.Add(LayerName, folder);
 
         // The loader opens the same file, so this handle reaches the layer's own ring.
         nint handle = NativeLibrary.Load(library);

@@ -678,29 +678,45 @@ host fills; tests leave the headless defaults.
 
 ## 6. Later
 
-### Next: our own SDL3 fork, Vulkan only (decided 2026-11-26, not started)
+### The device layer: the Vulkan SDL_GPU leaves out (built 2026-11-26)
 
 **Why.** SDL_GPU exposes only what every backend (Metal, D3D12, consoles) can do: upstream adds a missing GPU feature
-only if all backends can (libsdl-org/SDL#11148, bindless closed as not planned; no fork or branch with
-device-generated commands exists, searched 2026-11-26). We are Vulkan only (no D3D12 planned), so that policy costs us
-long-standard Vulkan for nothing. A Vulkan layer under SDL (like `gpu_times_layer.c`) was considered and rejected:
-it would hide work from SDL's resource tracking; a fork keeps SDL tracking everything.
+only if all backends can (libsdl-org/SDL#11148, bindless closed as not planned). We are Vulkan only, so that policy
+costs us long-standard Vulkan for nothing. A fork of SDL was planned first; the user chose a layer under SDL instead
+(2026-11-26): no SDL build to keep, and SDL still tracks everything it binds.
 
-**The machine:** RTX 4060 Laptop, NVIDIA 615.78, Vulkan 1.4: has `VK_EXT_device_generated_commands` (and the NV
-ones); llvmpipe also lists `VK_AMDX_shader_enqueue` (not to build on).
+**What it does** (`HostCore/Native/device_layer.c`, read by `Rendering/DeviceLayer.cs`, built like the GPU timing layer;
+both go in the chain through `VulkanLayerChain`, since .NET doesn't see what libc's `setenv` wrote):
 
-**Steps, in order:**
-1. Build SDL3 from source (our fork) in place of `External/fetch-moonlibs.sh`'s prebuilt `libSDL3.so.0`; the Vulkan
-   backend only matters.
-2. Feature switches at device creation: 64-bit ints and atomics, float atomics, shader clock, subgroup extras. Slang
-   already compiles them.
-3. Buffer device address (core 1.2): buffers flagged for it, a call returning a buffer's GPU address, MoonWorks
-   binding; the graph then reaches any number of lists through pointers in one uniform block, ending the 8 storage
-   buffers a pass cap (the chess search hit it; it also blocks one dispatch switching on a GPU-written opcode).
-4. Device-generated commands with indirect execution sets: the GPU writes which pass runs and how much; the graph's
-   branches and loops on GPU values lower to it. Test case: the chess search (`Assets/Shaders/Lab/chess`), each
-   workgroup picking its next operation.
-5. Later candidates: async compute queue, mesh/task shaders (xanadu.mesh), ray queries (SDF/mesh scenes, radiance).
+- `vkCreateInstance`: API version raised to the loader's, up to 1.4 (SDL asks for 1.0).
+- `vkCreateDevice`: SDL's `pEnabledFeatures` becomes a `Features2` chain with Vulkan 1.1–1.4 structs holding every
+  feature the device reports, bar robustness, sparse memory and capture/replay; plus these extensions with all their
+  features: atomic float (1 and 2), shader clock, image atomic int64, compute shader derivatives, mesh shader,
+  device-generated commands. `XANADU_DEVICE_LAYER=1` prints what came on (RTX 4060: all but atomic float 2).
+- Buffer addresses: storage buffers get `SHADER_DEVICE_ADDRESS`, every allocation `DEVICE_ADDRESS`.
+  `DeviceLayer.Address(buffer)` reads SDL 3.2's `VulkanBufferContainer` → active `VulkanBuffer` → `VkBuffer`, checks it
+  against the buffers the layer saw made (0, so a throw, for anything else), and returns `vkGetBufferDeviceAddress`. Ask
+  each frame: SDL swaps the `VkBuffer` when it cycles or defragments.
+- Sync: SDL can't see what a shader reaches through a pointer, so once any address is handed out the layer puts a
+  memory barrier (shader and transfer writes → shader, indirect and transfer reads) before every dispatch, render pass
+  and buffer copy. `xdv:sync off` / `xdv:sync on` labels switch it from that point in recording.
+- Commands as debug labels: `vkCmdInsertDebugUtilsLabelEXT` with a name starting `xdv:` goes to the layer, never the
+  driver (`DeviceLayer.Barrier`, `DeviceLayer.AutoSync`). SDL forwards labels without debug mode.
+
+**Checked:** song select draws as before with both layers in; Slang (2026.17) compiles `Ptr<T>` lists with 64-bit and
+float atomics through them.
+
+**Next, in order:**
+1. Graph lists as pointers: `List<T>` becomes `Ptr<T>` under a define, its addresses pushed in one uniform block, so a
+   pass binds no lists at all (ends the 8 storage buffers a pass cap the chess search hit). Open: a struct's layout
+   through a pointer is natural (`float3` 12 bytes) but std430 in a bound buffer, so lists move to one layout first
+   (scalar for both); coherence through pointers (`Volatile` on loads and stores in `SpirvCoherence`); which lists a
+   pass uses is found by the bound compile, as now.
+2. Device-generated commands with indirect execution sets, recorded by the layer from an `xdv:` label (it reads the
+   `VkPipeline` out of SDL's compute pipeline as it reads buffers): the GPU writes which pass runs and how much. Test
+   case: the chess search, each workgroup picking its next operation.
+3. Later candidates: async compute queue, mesh/task shaders (xanadu.mesh), ray queries (SDF/mesh scenes, radiance).
+4. Windows: build the layer there too (the graph will depend on it).
 
 **Measuring the chess bot** (Labs CHESS, tab 16): `ChessMatch` plays it against a UCI engine when
 `XANADU_CHESS_MATCH="engine path|elo|games|results file"` is set; run with `XANADU_SHOW_SHOTS=1 --shot=<p>

@@ -102,12 +102,8 @@ internal abstract class HostApp : Game
     /// <summary>Seconds since the window opened: the TIME effects see.</summary>
     protected float Seconds => (float)(DateTime.UtcNow - _started).TotalSeconds;
 
-    /// <summary>Runs before any instance's base constructor makes the graphics device, which is when the layer must be in place.</summary>
-    static HostApp()
-    {
-        GpuTimes.Install();
-        HostLateTickLog.Install();
-    }
+    /// <summary>Runs before any instance's base constructor makes the graphics device, which is when the layers must be in place.</summary>
+    static HostApp() => HostBeforeDevice.Install();
 
     protected HostApp(string title, HostWindowOptions window, HostUi ui = HostUi.Standard) : base(
         new AppInfo("Xanadu", title),
@@ -117,6 +113,7 @@ internal abstract class HostApp : Game
         debugMode: Environment.GetEnvironmentVariable("XANADU_GPU_DEBUG") == "1")
     {
         _window = window;
+        DeviceLayer.Announce();
         Target = Texture.Create2D(GraphicsDevice, "frame", Width, Height, TargetFormat,
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
         UseGameRoots();

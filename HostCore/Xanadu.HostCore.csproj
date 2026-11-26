@@ -52,22 +52,30 @@
     <Error Text="MoonWorks native libraries for $(MoonlibsPlatform) are missing: run External/fetch-moonlibs.sh (Linux) or External/fetch-moonlibs.ps1 (Windows)" />
   </Target>
   <!--
-    The GPU timing layer (Native/gpu_times_layer.c, read by Rendering/GpuTimes.cs): built with gcc against
-    External/fetch-vulkan-headers.sh's headers and copied next to every exe with its manifest.
-    Without the headers it is skipped and XANADU_GPU_TIMES=1 says so.
+    Our Vulkan layers, built with gcc against External/fetch-vulkan-headers.sh's headers and copied next
+    to every exe with their manifests. Without the headers they are skipped, and the apps say so.
+    - Native/gpu_times_layer.c (read by Rendering/GpuTimes.cs): GPU time per debug group.
+    - Native/device_layer.c (read by Rendering/DeviceLayer.cs): features, buffer addresses and sync SDL_GPU leaves out.
   -->
   <PropertyGroup>
-    <GpuTimesLayer>$(MSBuildThisFileDirectory)obj/native/libxanadu_gpu_times.so</GpuTimesLayer>
-    <BuildGpuTimes Condition="'$(MoonlibsPlatform)' == 'lib64' And Exists('../External/vulkan-headers/include/vulkan/vk_layer.h')">true</BuildGpuTimes>
+    <NativeOut>$(MSBuildThisFileDirectory)obj/native</NativeOut>
+    <BuildLayers Condition="'$(MoonlibsPlatform)' == 'lib64' And Exists('../External/vulkan-headers/include/vulkan/vk_layer.h')">true</BuildLayers>
+    <LayerCompile>gcc -shared -fPIC -O2 -Wall -fvisibility=hidden -I../External/vulkan-headers/include</LayerCompile>
   </PropertyGroup>
-  <Target Name="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildGpuTimes)' == 'true'" Inputs="Native/gpu_times_layer.c" Outputs="$(GpuTimesLayer)">
-    <MakeDir Directories="$(MSBuildThisFileDirectory)obj/native" />
-    <Exec Command="gcc -shared -fPIC -O2 -Wall -fvisibility=hidden -I../External/vulkan-headers/include Native/gpu_times_layer.c -o &quot;$(GpuTimesLayer)&quot; -lpthread" />
+  <Target Name="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildLayers)' == 'true'" Inputs="Native/gpu_times_layer.c" Outputs="$(NativeOut)/libxanadu_gpu_times.so">
+    <MakeDir Directories="$(NativeOut)" />
+    <Exec Command="$(LayerCompile) Native/gpu_times_layer.c -o &quot;$(NativeOut)/libxanadu_gpu_times.so&quot; -lpthread" />
   </Target>
-  <Target Name="AddGpuTimesLayer" AfterTargets="BuildGpuTimesLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildGpuTimes)' == 'true'">
+  <Target Name="BuildDeviceLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildLayers)' == 'true'" Inputs="Native/device_layer.c" Outputs="$(NativeOut)/libxanadu_device.so">
+    <MakeDir Directories="$(NativeOut)" />
+    <Exec Command="$(LayerCompile) Native/device_layer.c -o &quot;$(NativeOut)/libxanadu_device.so&quot; -lpthread" />
+  </Target>
+  <Target Name="AddLayers" AfterTargets="BuildGpuTimesLayer;BuildDeviceLayer" BeforeTargets="AssignTargetPaths" Condition="'$(BuildLayers)' == 'true'">
     <ItemGroup>
-      <None Include="$(GpuTimesLayer)" Link="libxanadu_gpu_times.so" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+      <None Include="$(NativeOut)/libxanadu_gpu_times.so" Link="libxanadu_gpu_times.so" CopyToOutputDirectory="PreserveNewest" Visible="false" />
       <None Include="Native/xanadu_gpu_times.json" Link="xanadu_gpu_times.json" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+      <None Include="$(NativeOut)/libxanadu_device.so" Link="libxanadu_device.so" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+      <None Include="Native/xanadu_device.json" Link="xanadu_device.json" CopyToOutputDirectory="PreserveNewest" Visible="false" />
     </ItemGroup>
   </Target>
   <Import Project="../Core/Maths/Maths.props" />

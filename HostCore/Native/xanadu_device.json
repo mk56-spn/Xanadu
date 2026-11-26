@@ -1,0 +1,15 @@
+{
+    "file_format_version": "1.2.0",
+    "layer": {
+        "name": "VK_LAYER_XANADU_device",
+        "type": "GLOBAL",
+        "library_path": "./libxanadu_device.so",
+        "api_version": "1.4.0",
+        "implementation_version": "1",
+        "description": "Xanadu: the Vulkan features, buffer addresses and sync SDL_GPU leaves out (HostCore/Native/device_layer.c)",
+        "functions": {
+            "vkGetInstanceProcAddr": "xdv_GetInstanceProcAddr",
+            "vkGetDeviceProcAddr": "xdv_GetDeviceProcAddr"
+        }
+    }
+}
