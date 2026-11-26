@@ -29,21 +29,32 @@ internal sealed class CanvasCollect(CanvasTree tree, ResidentTrees residents, Re
     private long _walkStamp;
 
     /// <summary>One root's flat, sorted draw list; the walk and the sort are timed apart, under "collect items".</summary>
-    public Job Collect(CanvasItem root, Texture target, MwColor clear, HostFramePhases? phases)
+    /// <param name="place">What the root is placed by before its own transform: the identity for a root of the tree.</param>
+    /// <param name="viewer">For a material's view, that material, whose own items the view leaves out.</param>
+    /// <param name="view">For a material's view, its number (<see cref="Job.View"/>).</param>
+    public Job Collect(CanvasItem root, Texture target, MwColor clear, HostFramePhases? phases, Transform2D? place = null,
+        CanvasMaterial? viewer = null, int view = 0)
     {
         long lap = HostFramePhases.Now;
-        var job = new Job(root, target, clear);
+        var job = new Job(root, target, clear) { Viewer = viewer, View = view };
         _sequence = 0;
         _walkPhases = phases;
         _walkStamp = lap;
         _walkPart = HostFramePhases.Phase.CollectCanvas;
-        Visit(job, root, Transform2D.Identity, Colors.White, 0, _fullClip);
+        Visit(job, root, place ?? Transform2D.Identity, Colors.White, 0, _fullClip);
         Switch(HostFramePhases.Phase.CollectCanvas);
         _walkPhases = null;
         phases?.Lap(HostFramePhases.Phase.CollectWalk, ref lap);
         SortByZ(job.Entries);
         phases?.Lap(HostFramePhases.Phase.CollectSort, ref lap);
         return job;
+    }
+
+    /// <summary>Puts an item with no parent after everything <paramref name="job"/> holds, over the whole target: a post item.</summary>
+    public void Last(Job job, CanvasItem item)
+    {
+        int z = job.Entries.Count > 0 ? job.Entries[^1].Z : 0;
+        job.Entries.Add(new Entry(z, _sequence++, item, item.Transform, item.Modulate * item.SelfModulate, _fullClip));
     }
 
     private int[] _zStarts = [];
@@ -115,7 +126,7 @@ internal sealed class CanvasCollect(CanvasTree tree, ResidentTrees residents, Re
         if (modulate.A <= 0f || clip.W <= 0 || clip.H <= 0)
             return;
 
-        if (item.Primitives.Count > 0 || item.Particles is { Live: true })
+        if ((item.Primitives.Count > 0 || item.Particles is { Live: true }) && (job.Viewer is null || item.Material != job.Viewer))
             job.Entries.Add(new Entry(z, _sequence++, item, transform, modulate * item.SelfModulate, clip));
 
         item.SortChildren();

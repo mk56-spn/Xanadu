@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Xanadu.Slang;
 
 namespace Xanadu.Rendering.Passes;
 
@@ -12,7 +13,9 @@ internal struct PassUniforms
     public float Dt, Time;
     public uint Over;
     public float Beat;
-    public uint A, B, C, D;
+
+    /// <summary>The call's arguments, as the wrapper's <c>uint4 args[4]</c>.</summary>
+    public StackBuild.RunValues Arguments;
 }
 
 /// <summary>A pixel node's quad (uniform 2, <c>XanaduTraceQuad</c> in SlangShaders.Pixels): the quad on the target and the box it covers.</summary>

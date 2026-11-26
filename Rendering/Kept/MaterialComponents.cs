@@ -28,6 +28,9 @@ internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
     /// <summary>The material's stamp when its <c>[Cached]</c> buffers were last filled; -1 until they are.</summary>
     public long Filled = -1;
 
+    /// <summary>The generation of the frame's <c>[Shared]</c> lists its slots point at (<c>GraphResources</c>).</summary>
+    public int SharedGeneration;
+
     /// <summary>
     /// Indirect args for the graph's draws counted on the GPU, 16 bytes a pass by its place: its vertices, then the copies
     /// copied in from its count each frame (<c>GraphResources.Count</c>); null when no draw is counted.

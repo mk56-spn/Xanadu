@@ -11,13 +11,13 @@ internal static class EffectCompute
 {
     /// <summary>
     /// A graph's passes: the globals (and kept state) read-only, the images then the buffers each touches read-write; a
-    /// pixel pass's threads are its tile.
+    /// pixel pass reads the canvas (two samplers) and the images it samples, and its threads are its tile.
     /// </summary>
     public static ComputePipeline?[] Passes(GraphicsDevice device, CompiledShader compiled) => compiled.Build is { } build
         ? [.. build.Passes.Select(pass => pass.Drawn is not null ? null : ComputePipelines.Create(device, pass.Shader.Spirv, $"build pass {pass.Name}", new ComputePipelineCreateInfo
         {
             Format = ShaderFormat.SPIRV,
-            NumSamplers = pass.Tile is null ? 0u : SlangShaders.PixelSamplers,
+            NumSamplers = pass.Tile is null ? 0u : (uint)(SlangShaders.PixelSamplers + pass.Sampled.Length),
             NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
             NumReadWriteStorageTextures = (uint)pass.Images.Length,
             NumReadWriteStorageBuffers = (uint)pass.Buffers.Length,

@@ -17,12 +17,15 @@ internal sealed class KeptVertices(GraphicsDevice device)
     public readonly GpuArray<CanvasVertex> Gpu = new(device, "kept effect vertices", BufferUsageFlags.Vertex, 1 << 10);
 }
 
-/// <summary>The item and first primitive of the effect range an entity keeps the vertices of.</summary>
-internal struct MeshOf(CanvasItem item, int from) : IIndexedComponent<(CanvasItem Item, int From)>
+/// <summary>
+/// The item and first primitive of the effect range an entity keeps the vertices of, and the job drawing it: 0 for the
+/// tree, a material's view's own number for a view, which places the same item elsewhere.
+/// </summary>
+internal struct MeshOf(CanvasItem item, int from, int view) : IIndexedComponent<(CanvasItem Item, int From, int View)>
 {
-    public (CanvasItem Item, int From) Range = (item, from);
+    public (CanvasItem Item, int From, int View) Range = (item, from, view);
 
-    public readonly (CanvasItem Item, int From) GetIndexedValue() => Range;
+    public readonly (CanvasItem Item, int From, int View) GetIndexedValue() => Range;
 }
 
 /// <summary>A kept range's vertices and what they were cut from, so they are cut again only when that changes.</summary>
@@ -57,7 +60,8 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
     /// The entity keeping the range's vertices (<see cref="KeptMesh"/>) for this frame, cut again only when what they come
     /// from changed. It stands for the range from frame to frame, so what else the item keeps (its graph's held images) sits on it.
     /// </summary>
-    public Entity Cut(CanvasItem item, Transform2D transform, Color color, int from, int to, int columns, int rows, long frame)
+    /// <param name="view">The job's view number (<see cref="Frame.Job.View"/>): a view keeps its own copy of the range.</param>
+    public Entity Cut(CanvasItem item, Transform2D transform, Color color, int from, int to, int columns, int rows, long frame, int view)
     {
         var hash = new HashCode();
         hash.AddBytes(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(item.Primitives).Slice(from, to - from)));
@@ -65,10 +69,10 @@ internal sealed class KeptMeshes(GraphicsDevice device, EntityStore store) : IDi
         hash.Add(rows);
         int content = hash.ToHashCode();
 
-        Entities found = store.ComponentIndex<MeshOf, (CanvasItem, int)>()[(item, from)];
+        Entities found = store.ComponentIndex<MeshOf, (CanvasItem, int, int)>()[(item, from, view)];
         Entity entity = found.Count > 0
             ? found[0]
-            : store.CreateEntity(new MeshOf(item, from), new KeptMesh(new KeptVertices(device)));
+            : store.CreateEntity(new MeshOf(item, from, view), new KeptMesh(new KeptVertices(device)));
         ref KeptMesh kept = ref entity.GetComponent<KeptMesh>();
         kept.LastFrame = frame;
         KeptVertices mesh = kept.Mesh;

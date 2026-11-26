@@ -185,7 +185,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
             if (item.Material is not null)
             {
                 CloseRun();
-                sequence += AddEffect(item, entry, 0, total, item.Material, null, sequence);
+                sequence += AddEffect(item, entry, 0, total, item.Material, null, sequence, view: job.View);
             }
             else if (total > 0)
             {
@@ -202,7 +202,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
                     {
                         CloseRun();
                         (CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values) = item.Runs[run - 1];
-                        sequence += AddEffect(item, entry, from, to, material, values, sequence);
+                        sequence += AddEffect(item, entry, from, to, material, values, sequence, view: job.View);
                     }
                     else
                     {
@@ -242,7 +242,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
     /// <summary>The effect's steps at the draw-order depth after <paramref name="sequence"/>; returns the depth steps it takes.</summary>
     /// <param name="particles">Draws the triangles once per particle of this field instead (a particle mesh); its deform is left out.</param>
     private uint AddEffect(CanvasItem item, in Entry entry, int from, int to, CanvasMaterial? material,
-        IReadOnlyDictionary<string, Vector4>? values, uint sequence, ParticleField? particles = null)
+        IReadOnlyDictionary<string, Vector4>? values, uint sequence, ParticleField? particles = null, int view = 0)
     {
         float depth = 1f - (sequence + 1) * DepthStep;
         uint taken = (uint)(to - from);
@@ -265,7 +265,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
         // frame after frame, and cutting them again each frame was the bulk of a frame's CPU in the shader tool.
         if (particles is null)
         {
-            Entity kept = _keptMeshes.Cut(item, entry.Transform, entry.Color, from, to, columns, rows, _frame.Number);
+            Entity kept = _keptMeshes.Cut(item, entry.Transform, entry.Color, from, to, columns, rows, _frame.Number, view);
             KeptVertices mesh = kept.GetComponent<KeptMesh>().Mesh;
             foreach ((uint pieceStart, uint pieceCount, ulong pieceTexture) in mesh.Pieces)
             {

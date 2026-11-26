@@ -28,7 +28,7 @@ internal sealed class ComputeNodes(GraphicsDevice device, FrameTargets targets, 
         using GpuScope scope = commands.Scope(pass.Name);
         commands.PushComputeUniformData(new PassUniforms
         {
-            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, A = call.Values[0], B = call.Values[1], C = call.Values[2], D = call.Values[3],
+            Dt = dt, Time = time, Over = call.Over, Beat = ShaderClock.Beat, Arguments = call.Values,
         });
         if (pass.Shader.ParamsSize > 0 && pass.Shader.UniformBuffers > 1)
             ShaderParams.Push(commands, pass.Shader, material, null, stage: ParamsStage.Compute);
@@ -49,9 +49,14 @@ internal sealed class ComputeNodes(GraphicsDevice device, FrameTargets targets, 
         (uint width, uint height) = pass.OverImage < 0 ? ((uint)set.Box.Width, (uint)set.Box.Height) : set.Extents[pass.OverImage];
         PushBox(commands, pass.Shader, step, rest, set.Box, dt, time, pass.OverImage < 0 ? Vector2.One : set.Stretch(pass.OverImage));
         ComputePass compute = Begin(commands, set.Images, pass.Images, kept.Buffers, pass.Buffers, effect.Passes[call.Pass]!, pass.Shader);
-        // The canvas so far: its depth and the screen copy, fresh when the pass reads them (it then runs mid-frame).
-        compute.BindSamplers(new TextureSamplerBinding(targets.DepthRead, device.PointSampler),
-            new TextureSamplerBinding(targets.Screen, targets.Sampler));
+        // The canvas so far: its depth and the screen copy, fresh when the pass reads them (it then runs mid-frame); then
+        // the images it reads through sampled(), filtered by the GPU.
+        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[SlangShaders.PixelSamplers + pass.Sampled.Length];
+        samplers[0] = new TextureSamplerBinding(targets.DepthRead, device.PointSampler);
+        samplers[1] = new TextureSamplerBinding(targets.Screen, targets.Sampler);
+        for (int k = 0; k < pass.Sampled.Length; k++)
+            samplers[SlangShaders.PixelSamplers + k] = new TextureSamplerBinding(set.Images[pass.Sampled[k]], targets.Sampler);
+        compute.BindSamplers(samplers);
         (int tileWidth, int tileHeight) = pass.Tile!.Value;
         compute.Dispatch((width + (uint)tileWidth - 1) / (uint)tileWidth, (height + (uint)tileHeight - 1) / (uint)tileHeight, 1);
         commands.EndComputePass(compute);

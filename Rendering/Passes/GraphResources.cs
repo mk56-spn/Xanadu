@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using MoonWorks.Graphics;
 using Xanadu.Rendering.Gpu;
@@ -12,7 +13,9 @@ namespace Xanadu.Rendering.Passes;
 /// <summary>
 /// The buffers a material's graph keeps (<see cref="BuildBuffers"/> on its entity): made, zeroed, the first time the
 /// graph runs after its effect compiled, and its <c>[Host]</c> buffers filled from the material's data whenever that moves.
-/// Images are each item's, from <see cref="ItemImages"/>.
+/// A <c>[Shared]</c> list is the frame's, not the material's: one buffer for every graph declaring that name and type,
+/// zeroed when made, as big as the biggest declaration (made again, zeroed, when a bigger one comes). Images are each
+/// item's, from <see cref="ItemImages"/>.
 /// </summary>
 internal sealed class GraphResources(GraphicsDevice device, MaterialStore materials) : IDisposable
 {
@@ -23,6 +26,12 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
     private const uint ZeroPiece = 1 << 20;
 
     private TransferBuffer? _zeroPiece, _hostPiece;
+
+    /// <summary>The <c>[Shared]</c> lists, by name and type (<see cref="SharedUse.Key(BuildBuffer)"/>).</summary>
+    private readonly Dictionary<string, Buffer> _shared = [];
+
+    /// <summary>Moves whenever a shared list is made again, so materials holding the old one take the new.</summary>
+    private int _sharedGeneration;
 
     /// <summary>What the material's graph keeps, made for this compile of its effect if it wasn't.</summary>
     public BuildBuffers For(CommandBuffer commands, CanvasMaterial material, CanvasEffect effect)
@@ -35,8 +44,17 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
             kept = new BuildBuffers(effect, effect.Compiled.Build is { } build ? MakeBuffers(commands, build) : [])
             {
                 DrawArgs = effect.Compiled.Build is { } counted ? MakeDrawArgs(commands, counted) : null,
+                SharedGeneration = _sharedGeneration,
             };
             entity.AddComponent(kept);
+        }
+        else if (kept.SharedGeneration != _sharedGeneration && effect.Compiled.Build is { } sharing)
+        {
+            // Another graph made a shared list again (bigger): point this one's slots at the new buffers.
+            for (int k = 0; k < kept.Buffers.Length; k++)
+                if (sharing.Shape.Buffers[k].Shared)
+                    kept.Buffers[k] = _shared[SharedUse.Key(sharing.Shape.Buffers[k])];
+            entity.GetComponent<BuildBuffers>().SharedGeneration = kept.SharedGeneration = _sharedGeneration;
         }
 
         if (kept.HostVersion != material.BufferVersion && effect.Compiled.Build is { } built)
@@ -120,7 +138,7 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
             commands.EndCopyPass(copy);
     }
 
-    /// <summary>The graph's buffers, each cleared to zeros.</summary>
+    /// <summary>The graph's buffers, each cleared to zeros; a shared one is the frame's, zeroed only when made.</summary>
     private Buffer[] MakeBuffers(CommandBuffer commands, CompiledBuild build)
     {
         if (_zeroPiece is null)
@@ -135,10 +153,27 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
         for (int k = 0; k < buffers.Length; k++)
         {
             uint bytes = (uint)((build.Bytes[k] + 3) / 4 * 4);
-            buffers[k] = Buffer.Create<byte>(device, $"stack {build.Shape.Buffers[k].Name}",
+            BuildBuffer declared = build.Shape.Buffers[k];
+            if (declared.Shared && _shared.TryGetValue(SharedUse.Key(declared), out Buffer? had) && had.Size >= bytes)
+            {
+                buffers[k] = had;
+                continue;
+            }
+
+            buffers[k] = Buffer.Create<byte>(device, $"{(declared.Shared ? "shared" : "stack")} {declared.Name}",
                 BufferUsageFlags.ComputeStorageRead | BufferUsageFlags.ComputeStorageWrite | BufferUsageFlags.GraphicsStorageRead, bytes);
             for (uint at = 0; at < bytes; at += ZeroPiece)
                 copy.UploadToBuffer<byte>(_zeroPiece, buffers[k], 0, at, Math.Min(ZeroPiece, bytes - at), cycle: false);
+            if (!declared.Shared)
+                continue;
+            // Made again bigger: the old one goes once every material holding it has moved on (SDL_GPU waits for its uses).
+            if (_shared.Remove(SharedUse.Key(declared), out Buffer? smaller))
+            {
+                smaller.Dispose();
+                _sharedGeneration++;
+            }
+
+            _shared[SharedUse.Key(declared)] = buffers[k];
         }
 
         commands.EndCopyPass(copy);
@@ -147,6 +182,9 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
 
     public void Dispose()
     {
+        foreach (Buffer buffer in _shared.Values)
+            buffer.Dispose();
+        _shared.Clear();
         _zeroPiece?.Dispose();
         _hostPiece?.Dispose();
     }

@@ -30,9 +30,9 @@ namespace Xanadu.Rendering;
 /// (a deform) can't, so once one has drawn, no later rect may join the pre-pass.
 /// <para>
 /// The frame runs as passes over one <see cref="CanvasFrame"/>: collect
-/// (<see cref="CanvasCollect"/>), build (<see cref="StepBuilder"/>), upload, expand
+/// (<see cref="CanvasCollect"/>, then the materials' views, <see cref="MaterialViews"/>), build (<see cref="StepBuilder"/>), upload, expand
 /// (<see cref="PlacedPrimitives"/>), grids, globals, graph preludes (<see cref="GraphRunner"/>),
-/// particles, then each job's draw (<see cref="DrawPass"/>). What is kept between frames
+/// particles, then each job's draw (<see cref="DrawPass"/>); the views' preludes run and their jobs draw before the rest. What is kept between frames
 /// lives in one entity store: materials, kept meshes, resident trees and globals.
 /// </para>
 /// </remarks>
@@ -44,6 +44,9 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly CanvasTree _tree;
     private readonly CanvasFrame _frame = new();
     private readonly List<(CanvasItem Root, Texture Target)> _offscreen = [];
+
+    /// <summary>The post list's items, one full-screen rect each, by the material it shows, in order.</summary>
+    private readonly List<(CanvasMaterial Material, CanvasItem Item)> _post = [];
 
     /// <summary>The GPU state the renderer keeps between frames, one entity per thing kept (materials, meshes, trees, globals).</summary>
     private readonly EntityStore _cache = new();
@@ -60,6 +63,7 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly GridCutter _grids;
     private readonly CanvasCollect _collect;
     private readonly StepBuilder _builder;
+    private readonly MaterialViews _views;
     private readonly GraphRunner _graphs;
     private readonly ExitDraws _exits;
     private readonly DrawPass _draw;
@@ -87,7 +91,8 @@ internal sealed class CanvasRenderer : IDisposable
         _grids = new GridCutter(device, _frame.Steps);
         _collect = new CanvasCollect(tree, _residents, _targets.FullClip);
         _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids);
-        _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals);
+        _views = new MaterialViews(device, _targets, tree);
+        _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals, _views);
         _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices);
         _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits);
     }
@@ -97,9 +102,14 @@ internal sealed class CanvasRenderer : IDisposable
 
     public CanvasPipelines Pipelines { get; }
 
-    /// <summary>Why the material's graph can't run with its values this frame (a loop that won't end); null when it can.</summary>
+    /// <summary>
+    /// Why the material's graph can't run with its values this frame (a loop that won't end), or can't share one of its
+    /// <c>[Shared]</c> images; null when it runs as written.
+    /// </summary>
     public string? GraphProblem(CanvasMaterial material) =>
-        _materials.Find(material) is { IsNull: false } entity && entity.TryGetComponent(out LoweredGraph lowered) ? lowered.Plan.Problem : null;
+        _materials.Find(material) is { IsNull: false } entity && entity.TryGetComponent(out LoweredGraph lowered)
+            ? lowered.Plan.Problem ?? _graphs.SharedProblem(lowered.Effect)
+            : null;
 
     public CanvasParticles Particles { get; }
 
@@ -128,6 +138,30 @@ internal sealed class CanvasRenderer : IDisposable
 
     public void RemoveOffscreen(CanvasItem root) => _offscreen.RemoveAll(entry => entry.Root == root);
 
+    /// <summary>
+    /// Adds <paramref name="material"/> to the end of the post list (Docs/render-graph.md, stage F): drawn over the whole
+    /// frame after the tree, after every material listed before it, as a full-screen item (its <c>screen</c> is the frame
+    /// so far). Listing one twice does nothing.
+    /// </summary>
+    public void AddPost(CanvasMaterial material)
+    {
+        if (_post.Exists(post => post.Material == material))
+            return;
+        Handle handle = _tree.CreateItem();
+        _tree.AddRect(handle, new Rect2(0, 0, _targets.Width, _targets.Height), Colors.White);
+        _tree.SetMaterial(handle, material);
+        _post.Add((material, _tree.Item(handle)!));
+    }
+
+    public void RemovePost(CanvasMaterial material)
+    {
+        int at = _post.FindIndex(post => post.Material == material);
+        if (at < 0)
+            return;
+        _tree.Free(CanvasTree.ToHandle(_post[at].Item.Id));
+        _post.RemoveAt(at);
+    }
+
     /// <summary>Draws the whole frame into <paramref name="target"/>, cleared to <paramref name="clear"/>; <paramref name="time"/> is an effect's TIME.</summary>
     public void Render(CommandBuffer commands, Texture target, MwColor clear, float time, HostFramePhases? phases = null)
     {
@@ -137,6 +171,9 @@ internal sealed class CanvasRenderer : IDisposable
         foreach ((CanvasItem root, Texture offscreen) in _offscreen)
             _frame.Jobs.Add(_collect.Collect(root, offscreen, new MwColor(0, 0, 0, 0), phases));
         _frame.Jobs.Add(_collect.Collect(_tree.Root, target, clear, phases));
+        foreach ((CanvasMaterial _, CanvasItem item) in _post)
+            _collect.Last(_frame.Jobs[^1], item);
+        int views = _views.Collect(_frame, _collect, phases);
         phases?.Lap(HostFramePhases.Phase.Collect, ref lap);
 
         _frame.Number++;
@@ -160,16 +197,25 @@ internal sealed class CanvasRenderer : IDisposable
         _frame.Dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
         _frame.Time = time;
         _lastTime = time;
-        using (commands.Scope("shader graphs"))
-            _graphs.Prelude(commands);
-        using (commands.Scope("particles step"))
-            Particles.Step(commands, _frame.Dt);
-        phases?.Lap(HostFramePhases.Phase.ShaderStates, ref lap);
-
         _draw.BatchCount = 0;
         _draw.CopyCount = 0;
-        foreach (Job job in _frame.Jobs)
+        // The views draw first, their own preludes before them, so every other graph's nodes may read them.
+        int viewSteps = views == 0 ? 0 : _frame.Jobs[views - 1].FirstStep + _frame.Jobs[views - 1].StepCount;
+        _graphs.Begin();
+        using (commands.Scope("shader graphs"))
+            _graphs.Prelude(commands, 0, viewSteps);
+        using (commands.Scope("particles step"))
+            Particles.Step(commands, _frame.Dt);
+        for (int j = 0; j < views; j++)
+            using (commands.Scope("view target"))
+                _draw.Draw(commands, _frame.Jobs[j], time, msaa: false);
+        using (commands.Scope("shader graphs"))
+            _graphs.Prelude(commands, viewSteps, _frame.Steps.Count);
+        phases?.Lap(HostFramePhases.Phase.ShaderStates, ref lap);
+
+        for (int j = views; j < _frame.Jobs.Count; j++)
         {
+            Job job = _frame.Jobs[j];
             using (commands.Scope(job.Target == target ? "main target" : "offscreen target"))
                 _draw.Draw(commands, job, time, job.Target == target && _targets.Msaa is not null);
         }
@@ -196,6 +242,7 @@ internal sealed class CanvasRenderer : IDisposable
         _targets.Dispose();
         _materials.Dispose();
         _graphs.Dispose();
+        _views.Dispose();
         _vertices.Dispose();
         _pool.Dispose();
         _placed.Dispose();

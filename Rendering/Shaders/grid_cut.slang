@@ -95,7 +95,18 @@ void triangle(GridJob job, uint at, float2 pa, float2 pb, float2 pc, float2 ua, 
     float4 ca, float4 cb, float4 cc, uint ia, uint ib, uint ic)
 {
     float2 corner, xAxis, yAxis;
-    restFrame(job, pa, pb, pc, ua, ub, uc, corner, xAxis, yAxis);
+    // A textured box at rest is the box itself, whatever part of its texture it shows (Primitive.Tessellate); a box
+    // whose uv spans nothing (a line) works it out from the triangle, which gives it no size.
+    float2 tl = job.corners01.xy, tr = job.corners01.zw, bl = job.corners23.zw;
+    float2 span = job.uvs23.xy - job.uvs01.xy;
+    if (span.x != 0 && span.y != 0)
+    {
+        corner = place(job, tl);
+        xAxis = turn(job, tr - tl);
+        yAxis = turn(job, bl - tl);
+    }
+    else
+        restFrame(job, pa, pb, pc, ua, ub, uc, corner, xAxis, yAxis);
     write(at, place(job, pa), ua, ca, pa, corner, xAxis, yAxis, ia);
     write(at + 1, place(job, pb), ub, cb, pb, corner, xAxis, yAxis, ib);
     write(at + 2, place(job, pc), uc, cc, pc, corner, xAxis, yAxis, ic);

@@ -11,7 +11,14 @@ namespace Xanadu.Rendering;
 /// <summary>An image a graph's items get, as the GPU makes it (<see cref="GraphPlan.Images"/>).</summary>
 /// <param name="Source">For a history, the place of the image it is last frame's copy of; -1 otherwise.</param>
 /// <param name="Material">The material's, one for all its items, rather than each item's.</param>
-internal readonly record struct GraphImage(string Name, TextureFormat Format, float Clear, ImageLife Life, int Source, ImageSize Size, bool Material);
+/// <param name="Shared">The frame's (<c>[Shared]</c>): one for every graph declaring it, the screen's size.</param>
+/// <param name="View">The host's (<c>[View]</c>): the canvas subtree its material names, drawn before the graph runs.</param>
+internal readonly record struct GraphImage(string Name, TextureFormat Format, Vector4 Clear, ImageLife Life, int Source, ImageSize Size, bool Material,
+    bool Shared, bool View)
+{
+    /// <summary>Not an item's: shared or a view, the screen's size, taken with the material's set.</summary>
+    public bool Screen => Shared || View;
+}
 
 /// <summary>A fragment effect ready to draw: its shader object and what it binds.</summary>
 internal sealed class CanvasEffect(
@@ -36,13 +43,19 @@ internal sealed class CanvasEffect(
     /// <summary>The graph's images (<see cref="GraphPlan.Images"/>), as the GPU makes them.</summary>
     public GraphImage[] Images { get; } =
         [.. GraphPlan.Images(compiled).Select(image =>
-            new GraphImage(image.Name, FormatOf(image.Format), image.Clear, image.Life, image.Source, image.Size, image.Material))];
+            new GraphImage(image.Name, FormatOf(image.Format), image.Clear, image.Life, image.Source, image.Size, image.Material, image.Shared, image.View))];
 
     /// <summary>Whether an item's image outlives the frame (<c>[Kept]</c>, <c>[History]</c>), so each item holds some of its own.</summary>
     public bool HoldsImages { get; } = GraphPlan.Images(compiled).Any(image => image.Life != ImageLife.Frame && !image.Material);
 
-    /// <summary>Whether any image is the material's, so the material holds a set for its items to share.</summary>
-    public bool SharesImages { get; } = GraphPlan.Images(compiled).Any(image => image.Material);
+    /// <summary>
+    /// Whether any image is the material's or the frame's (<c>[Shared]</c>, <c>[View]</c>), so the material takes a set of
+    /// them a frame for its <c>[Pass]</c>es and items.
+    /// </summary>
+    public bool HasMaterialSet { get; } = GraphPlan.Images(compiled).Any(image => image.Material || image.Shared || image.View);
+
+    /// <summary>The <c>[Shared]</c> lists and images its graph writes and reads, which order it against other materials.</summary>
+    public SharedUse Shared => Compiled.Build?.Shared ?? SharedUse.None;
 
     /// <summary>Whether its graph draws into its images, so each item needs a draw depth too.</summary>
     public bool DrawsImages { get; } = compiled.Build?.Passes.Any(pass => pass.Drawn is not null) == true;
@@ -54,9 +67,17 @@ internal sealed class CanvasEffect(
         "rgba8" => TextureFormat.R8G8B8A8Unorm,
         "rgba32f" => TextureFormat.R32G32B32A32Float,
         "rg16f" => TextureFormat.R16G16Float,
+        "rg32f" => TextureFormat.R32G32Float,
+        "rg8" => TextureFormat.R8G8Unorm,
         "r16f" => TextureFormat.R16Float,
         "r32f" => TextureFormat.R32Float,
-        _ => TextureFormat.R32Uint,
+        "r32ui" => TextureFormat.R32Uint,
+        "rg32ui" => TextureFormat.R32G32Uint,
+        "rgba32ui" => TextureFormat.R32G32B32A32Uint,
+        "r32i" => TextureFormat.R32Int,
+        "rg32i" => TextureFormat.R32G32Int,
+        "rgba32i" => TextureFormat.R32G32B32A32Int,
+        _ => throw new ArgumentException($"no texture format for {format}"),
     };
 
     private readonly Dictionary<(int Pass, TextureFormat A, TextureFormat B, TextureFormat C, TextureFormat D, TextureFormat Z), GraphicsPipeline> _drawPipelines = [];

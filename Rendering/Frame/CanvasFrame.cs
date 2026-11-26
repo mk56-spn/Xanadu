@@ -42,6 +42,12 @@ internal readonly record struct Step(
 /// <summary>One root drawn into one target.</summary>
 internal sealed class Job(CanvasItem root, Texture target, MwColor clear)
 {
+    /// <summary>For a material's view (<see cref="MaterialViews"/>), that material: its own items aren't drawn into it.</summary>
+    public CanvasMaterial? Viewer { get; init; }
+
+    /// <summary>For a view, its own number, so what an item keeps for being drawn here is apart from the tree's; 0 otherwise.</summary>
+    public int View { get; init; }
+
     public readonly CanvasItem Root = root;
     public readonly Texture Target = target;
     public readonly MwColor Clear = clear;

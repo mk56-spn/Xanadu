@@ -61,10 +61,12 @@ internal sealed class MaterialStore : IDisposable
         entity.DeleteEntity();
     }
 
+    /// <summary>Lets go of the material's own buffers; its <c>[Shared]</c> lists are the frame's, and stay.</summary>
     public static void Release(BuildBuffers built)
     {
-        foreach (Buffer buffer in built.Buffers)
-            buffer.Dispose();
+        for (int k = 0; k < built.Buffers.Length; k++)
+            if (built.Effect.Compiled.Build?.Shape.Buffers[k].Shared != true)
+                built.Buffers[k].Dispose();
         built.DrawArgs?.Dispose();
     }
 

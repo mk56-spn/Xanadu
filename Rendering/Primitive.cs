@@ -271,15 +271,18 @@ internal struct Primitive
 
         (Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, Vector2 u0, Vector2 u1, Vector2 u2, Vector2 u3,
             Color c0, Color c1, Color c2, Color c3) = Corners();
+        // A textured box at rest is the box itself, whatever part of its texture it shows: a glyph's uv is a corner of
+        // an atlas page, which would make the page its rest. A box whose uv spans nothing (a line) keeps no size.
+        RestFrame? box = u2.X != u0.X && u2.Y != u0.Y ? new RestFrame(p0, p1 - p0, p3 - p0).Transformed(t) : null;
         if (columns > 1 || rows > 1)
         {
-            TessellateGrid(into, t, tint, ref points, columns, rows, [p0, p1, p2, p3], [u0, u1, u2, u3], [c0, c1, c2, c3]);
+            TessellateGrid(into, t, tint, ref points, columns, rows, [p0, p1, p2, p3], [u0, u1, u2, u3], [c0, c1, c2, c3], box);
             return;
         }
 
         uint first = (uint)points;
-        Add(into, t, tint, p0, p1, p2, c0, c1, c2, u0, u1, u2, first, first + 1, first + 2);
-        Add(into, t, tint, p0, p2, p3, c0, c2, c3, u0, u2, u3, first, first + 2, first + 3);
+        Add(into, t, tint, p0, p1, p2, c0, c1, c2, u0, u1, u2, first, first + 1, first + 2, box);
+        Add(into, t, tint, p0, p2, p3, c0, c2, c3, u0, u2, u3, first, first + 2, first + 3, box);
         points += 4;
     }
 
@@ -304,7 +307,7 @@ internal struct Primitive
     /// bottom right, bottom left); neighbouring cells share their corners' indices.
     /// </summary>
     private static void TessellateGrid(List<CanvasVertex> into, in Transform2D t, Color tint, ref int points, int columns, int rows,
-        Vector2[] p, Vector2[] u, Color[] c)
+        Vector2[] p, Vector2[] u, Color[] c, RestFrame? box)
     {
         uint first = (uint)points;
         int stride = columns + 1;
@@ -323,9 +326,9 @@ internal struct Primitive
             {
                 uint a = first + (uint)(y * stride + x), b = a + 1, d = a + (uint)stride, e = d + 1;
                 Add(into, t, tint, P(x, y), P(x + 1, y), P(x + 1, y + 1), C(x, y), C(x + 1, y), C(x + 1, y + 1),
-                    U(x, y), U(x + 1, y), U(x + 1, y + 1), a, b, e);
+                    U(x, y), U(x + 1, y), U(x + 1, y + 1), a, b, e, box);
                 Add(into, t, tint, P(x, y), P(x + 1, y + 1), P(x, y + 1), C(x, y), C(x + 1, y + 1), C(x, y + 1),
-                    U(x, y), U(x + 1, y + 1), U(x, y + 1), a, e, d);
+                    U(x, y), U(x + 1, y + 1), U(x, y + 1), a, e, d, box);
             }
         }
 
@@ -338,9 +341,10 @@ internal struct Primitive
     private static void Add(
         List<CanvasVertex> into, in Transform2D t, Color tint,
         Vector2 a, Vector2 b, Vector2 c, Color ca, Color cb, Color cc,
-        Vector2 ua, Vector2 ub, Vector2 uc, uint ia, uint ib, uint ic)
+        Vector2 ua, Vector2 ub, Vector2 uc, uint ia, uint ib, uint ic, RestFrame? box = null)
     {
-        RestFrame rest = RestFrame.Of(a, b, c, ua, ub, uc).Transformed(t);
+        // Without a box, the quad at rest is worked out from how the uv spans the triangle.
+        RestFrame rest = box ?? RestFrame.Of(a, b, c, ua, ub, uc).Transformed(t);
         into.Add(new CanvasVertex(t * a, ua, ca * tint, a, rest, ia));
         into.Add(new CanvasVertex(t * b, ub, cb * tint, b, rest, ib));
         into.Add(new CanvasVertex(t * c, uc, cc * tint, c, rest, ic));
