@@ -678,6 +678,38 @@ host fills; tests leave the headless defaults.
 
 ## 6. Later
 
+### Next: our own SDL3 fork, Vulkan only (decided 2026-11-26, not started)
+
+**Why.** SDL_GPU exposes only what every backend (Metal, D3D12, consoles) can do: upstream adds a missing GPU feature
+only if all backends can (libsdl-org/SDL#11148, bindless closed as not planned; no fork or branch with
+device-generated commands exists, searched 2026-11-26). We are Vulkan only (no D3D12 planned), so that policy costs us
+long-standard Vulkan for nothing. A Vulkan layer under SDL (like `gpu_times_layer.c`) was considered and rejected:
+it would hide work from SDL's resource tracking; a fork keeps SDL tracking everything.
+
+**The machine:** RTX 4060 Laptop, NVIDIA 615.78, Vulkan 1.4: has `VK_EXT_device_generated_commands` (and the NV
+ones); llvmpipe also lists `VK_AMDX_shader_enqueue` (not to build on).
+
+**Steps, in order:**
+1. Build SDL3 from source (our fork) in place of `External/fetch-moonlibs.sh`'s prebuilt `libSDL3.so.0`; the Vulkan
+   backend only matters.
+2. Feature switches at device creation: 64-bit ints and atomics, float atomics, shader clock, subgroup extras. Slang
+   already compiles them.
+3. Buffer device address (core 1.2): buffers flagged for it, a call returning a buffer's GPU address, MoonWorks
+   binding; the graph then reaches any number of lists through pointers in one uniform block, ending the 8 storage
+   buffers a pass cap (the chess search hit it; it also blocks one dispatch switching on a GPU-written opcode).
+4. Device-generated commands with indirect execution sets: the GPU writes which pass runs and how much; the graph's
+   branches and loops on GPU values lower to it. Test case: the chess search (`Assets/Shaders/Lab/chess`), each
+   workgroup picking its next operation.
+5. Later candidates: async compute queue, mesh/task shaders (xanadu.mesh), ray queries (SDF/mesh scenes, radiance).
+
+**Measuring the chess bot** (Labs CHESS, tab 16): `ChessMatch` plays it against a UCI engine when
+`XANADU_CHESS_MATCH="engine path|elo|games|results file"` is set; run with `XANADU_SHOW_SHOTS=1 --shot=<p>
+--shot-frame=100000000` so the window shows. Stockfish 19 is not in the repo: `stockfish-linux-x86-64-universal.tar.gz`
+from github.com/official-stockfish/Stockfish/releases (sf_19). Results so far: 13-6-1 at UCI_Elo 1500 (fixed 4 plies),
+9-9-2 at 2000 after PeSTO + iterative deepening (0.5 s) + shared transposition table. Bot ideas not done: root moves
+sharing their best score, repetition / 50-move detection, recording the search pass many times a frame.
+
+
 No hurry; none of this is parity.
 
 - [ ] Shader slot model (§3): vertex modifiers, fragment chains (the level
