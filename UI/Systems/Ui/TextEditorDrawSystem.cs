@@ -16,7 +16,8 @@ namespace Xanadu.Ui.Systems.Ui;
 /// pills, boxed cells, and marked lines (tinted, a word underlined, a note on a
 /// row of its own under the line, so it is never cut off by a long line), and
 /// a faint guide down each indent step (blank lines carry the guides of the
-/// code around them).
+/// code around them). A block that folds (<see cref="TextFolds"/>) has a chevron in the gutter; folded, its lines
+/// are skipped and its header ends in a pill showing the closing line, pressed to open it again.
 /// Redrawn whole when anything it shows moved; only the visible rows are drawn.
 /// An editor on a laid-out node takes this frame's box first (<see cref="TextEditors.Follow"/>):
 /// drawing runs after layout, so the text never trails its node.
@@ -39,6 +40,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
     private static readonly Color SwatchRing = new(1, 1, 1, 0.35f);
     private static readonly Color IndentGuide = new(1, 1, 1, 0.07f);
     private static readonly Color StrayIndent = new(0.98f, 0.57f, 0.24f, 0.22f);
+    private static readonly Color OpenChevron = new(1, 1, 1, 0.18f);
 
     private readonly List<TextCell> _boxed = [];
 
@@ -53,9 +55,15 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         // Solid while typing or moving, blinking once still; hidden without focus.
         bool caretOn = focused && (editor.SinceCaretMove < 0.5f || (int)(editor.SinceCaretMove * 2) % 2 == 0);
 
+        // Nothing the caret is on stays hidden, and the first line shown is one that shows.
+        TextFolds folds = layout.Folds(buffer, editor.Host);
+        folds.Show(buffer.Line);
+        if (folds.Hiding(layout.Scroll) is var hiding and >= 0)
+            layout.Scroll = hiding;
+
         // The picture stays on the canvas until cleared: redraw only when something it shows moved.
         var drawn = new TextEditorDrawn(buffer, editor.Host, buffer.Version, buffer.Line, buffer.Column, buffer.Anchor, layout.Scroll, layout.Area,
-            focused, caretOn, editor.Host?.Version ?? 0, item);
+            focused, caretOn, editor.Host?.Version ?? 0, item, folds.Version);
         if (layout.Drawn == drawn)
             return;
 
@@ -63,6 +71,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         canvas.Clear(item);
         canvas.DrawRect(item, layout.Area, Background);
         layout.Rows.Clear();
+        layout.Pills.Clear();
         layout.CaretRect = null;
         _boxed.Clear();
         editor.Host?.Prepare(buffer, _boxed);
@@ -70,7 +79,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         float charWidth = layout.CharWidth;
         float bottom = layout.Area.End.Y - Inset;
         float y = layout.Area.Position.Y + Inset;
-        for (int index = layout.Scroll; index < buffer.Lines.Count && y + LineHeight <= bottom; index++)
+        for (int index = layout.Scroll; index < buffer.Lines.Count && y + LineHeight <= bottom; index = folds.Next(index))
         {
             string line = buffer.Lines[index];
             TextLineDecor decor = layout.Decorate(buffer, editor.Host, index);
@@ -106,6 +115,8 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
             }
 
             DrawLine(item, layout, line, decor, y);
+            if (folds.CanFold(index))
+                DrawFold(item, layout, buffer, folds, index, VisualColumn(decor.Inlays, line.Length), y);
             if (index == buffer.Line)
             {
                 float x = layout.TextLeft + VisualColumn(decor.Inlays, buffer.Column) * charWidth;
@@ -131,6 +142,29 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
                 }
             }
         }
+    }
+
+    /// <summary>A chevron in the gutter, down while open; folded, right, and the closing line in a pill after the text.</summary>
+    private void DrawFold(Handle item, TextEditorLayout layout, TextBuffer buffer, TextFolds folds, int index, int end, float y)
+    {
+        const float Half = 3.5f;
+        var centre = new Vector2(layout.Area.Position.X + Gutter + 1, y + LineHeight / 2);
+        bool folded = folds.IsFolded(index);
+        ReadOnlySpan<Vector2> chevron = folded
+            ? [centre + new Vector2(-Half / 2, -Half), centre + new Vector2(Half, 0), centre + new Vector2(-Half / 2, Half)]
+            : [centre + new Vector2(-Half, -Half / 2), centre + new Vector2(Half, -Half / 2), centre + new Vector2(0, Half)];
+        canvas.DrawPolygon(item, chevron, folded ? Plain : OpenChevron);
+        if (!folded)
+            return;
+
+        // The brace the header opens is hidden with the block when it stands on the next line: the pill shows it.
+        string closing = buffer.Lines[folds.EndOf(index)].Trim();
+        string label = (buffer.Lines[index].TrimEnd().EndsWith('{') ? "… " : "{ … ") + closing;
+        float charWidth = layout.CharWidth, x = layout.TextLeft + (end + 1) * charWidth;
+        var pill = new Rect2(x - charWidth / 2, y + 2, (label.Length + 1) * charWidth, LineHeight - 4);
+        canvas.DrawRect(item, pill, InlayPill);
+        DrawAt(item, layout, label, end + 1, y, InlayText);
+        layout.Pills.Add((pill, index));
     }
 
     /// <summary>

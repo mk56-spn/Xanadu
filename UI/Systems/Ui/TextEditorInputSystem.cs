@@ -15,12 +15,11 @@ namespace Xanadu.Ui.Systems.Ui;
 /// on every editor: a press focuses the one it lands in (and unfocuses the rest),
 /// a click places the caret (with Ctrl, the owner may then go somewhere), a double click selects a word, a drag selects, and
 /// the wheel scrolls. The owner's <see cref="ITextEditorHost"/> sees keys, typing
-/// and presses first.
+/// and presses first. A press in the gutter of a block, or on a folded one's pill, folds or opens it, as do
+/// Ctrl+Shift+[ and ] for the block round the caret; Up, Down, the page keys and the wheel step over folded blocks.
 /// </summary>
 public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboardState keyboard, IWheelSource? wheel = null) : QuerySystem<TextEditor>
 {
-    private const float RepeatDelay = 0.4f, RepeatEvery = 0.033f;
-
     /// <summary>A second click on the same place within this long selects the word.</summary>
     private const float DoubleClick = 0.4f;
 
@@ -36,6 +35,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     private static readonly Key[] Watched =
     [
         .. Repeating, Key.Home, Key.End, Key.Escape, Key.F2, Key.F12, Key.A, Key.C, Key.S, Key.V, Key.X, Key.Y, Key.Z, Key.Slash, Key.KpDivide,
+        Key.Bracketleft, Key.Bracketright,
     ];
 
     /// <summary>Keys the editor itself does nothing with, passed to its owner once per press.</summary>
@@ -44,11 +44,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     private readonly IPointerInputSource _pointer = pointer;
     private readonly IKeyboardState _keyboard = keyboard;
     private readonly IWheelSource? _wheel = wheel;
-
-    /// <summary>Keys down last frame, for presses; how long each repeating key has been held.</summary>
-    private readonly HashSet<Key> _down = [];
-    private readonly HashSet<Key> _pressed = [];
-    private readonly Dictionary<Key, float> _held = [];
+    private readonly HeldKeys _keys = new(keyboard, Watched);
 
     private bool _wasHeld;
     private bool _claimed;
@@ -58,7 +54,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     {
         float delta = Tick.deltaTime;
         _clock += delta;
-        ReadKeys();
+        _keys.Read();
 
         PointerInput input = _pointer.Read();
         bool pressed = input.Pressed && !_wasHeld;
@@ -112,21 +108,6 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             HostPlatform.TextEntry.Claimed = _claimed = false;
     }
 
-    private void ReadKeys()
-    {
-        _pressed.Clear();
-        foreach (Key key in Watched)
-        {
-            if (_keyboard.IsPressed(key))
-            {
-                if (_down.Add(key))
-                    _pressed.Add(key);
-            }
-            else
-                _down.Remove(key);
-        }
-    }
-
     /// <summary>The pointer's part; returns whether a press focused (true) or unfocused (false) the editor.</summary>
     private bool? Point(ref TextEditor editor, PointerInput input, bool pressed, ref bool breaksRun)
     {
@@ -142,6 +123,13 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
             if (editor.Host?.TakePress(buffer, input.Position) == true)
             {
+                breaksRun = true;
+                return true;
+            }
+
+            if (layout.FoldUnder(buffer, editor.Host, input.Position) is { } fold)
+            {
+                layout.ToggleFold(buffer, editor.Host, fold);
                 breaksRun = true;
                 return true;
             }
@@ -219,7 +207,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         if (_wheel is { Notches: not 0 } && layout.Area.HasPoint(input.Position))
         {
             int notches = _wheel.TakeWheel();
-            layout.Scroll = Math.Clamp(layout.Scroll - notches * WheelLines, 0, Math.Max(0, editor.Buffer.Lines.Count - 1));
+            layout.Scroll = layout.Folds(editor.Buffer, editor.Host).Step(layout.Scroll, -notches * WheelLines, editor.Buffer.Lines.Count);
         }
     }
 
@@ -232,6 +220,12 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         ITextEntry entry = HostPlatform.TextEntry;
         string typed = entry.Claimed ? entry.TakeTyped() : "";
 
+        // Ctrl+Shift+[ folds the block round the caret, ] opens it; a read-only text folds too.
+        if (ctrl && shift && (_keys.Pressed.Contains(Key.Bracketleft) || _keys.Pressed.Contains(Key.Bracketright))
+            && editor.Layout.Folds(buffer, host) is var folds && folds.BlockAt(buffer.Line) is var block and >= 0
+            && folds.IsFolded(block) != _keys.Pressed.Contains(Key.Bracketleft))
+            editor.Layout.ToggleFold(buffer, host, block);
+
         if (editor.ReadOnly)
         {
             ReadOnlyKeys(ref editor, delta, typed, ctrl, shift, ref refused);
@@ -239,9 +233,9 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         }
 
         // Undo and redo take the whole frame, so nothing else edits around them.
-        if (ctrl && (_pressed.Contains(Key.Z) || _pressed.Contains(Key.Y)))
+        if (ctrl && (_keys.Pressed.Contains(Key.Z) || _keys.Pressed.Contains(Key.Y)))
         {
-            if (_pressed.Contains(Key.Z) && !shift)
+            if (_keys.Pressed.Contains(Key.Z) && !shift)
                 editor.History.Undo();
             else
                 editor.History.Redo();
@@ -254,12 +248,12 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
         if (typed.Length > 0 && !ctrl && host?.TakeTyped(buffer, typed) != true)
             buffer.Insert(typed);
-        if (ctrl && _pressed.Contains(Key.A))
+        if (ctrl && _keys.Pressed.Contains(Key.A))
             buffer.SelectAll();
-        if (ctrl && (_pressed.Contains(Key.C) || _pressed.Contains(Key.X)) && buffer.HasSelection)
+        if (ctrl && (_keys.Pressed.Contains(Key.C) || _keys.Pressed.Contains(Key.X)) && buffer.HasSelection)
         {
             entry.Clipboard = buffer.SelectedText;
-            if (_pressed.Contains(Key.X))
+            if (_keys.Pressed.Contains(Key.X))
             {
                 buffer.DeleteSelection();
                 breaksRun = true;
@@ -267,32 +261,32 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         }
 
         // Ctrl+/: comment the lines out, or back in, when the text has line comments.
-        if (ctrl && (_pressed.Contains(Key.Slash) || _pressed.Contains(Key.KpDivide)) && host?.LineComment is { Length: > 0 } marker)
+        if (ctrl && (_keys.Pressed.Contains(Key.Slash) || _keys.Pressed.Contains(Key.KpDivide)) && host?.LineComment is { Length: > 0 } marker)
         {
             buffer.ToggleComment(marker);
             breaksRun = true;
         }
 
-        if (ctrl && _pressed.Contains(Key.V) && entry.Clipboard is { Length: > 0 } clip)
+        if (ctrl && _keys.Pressed.Contains(Key.V) && entry.Clipboard is { Length: > 0 } clip)
         {
             buffer.Insert(clip);
             breaksRun = true;
         }
 
         // Saving is the owner's: the editor only holds text.
-        if (ctrl && _pressed.Contains(Key.S))
+        if (ctrl && _keys.Pressed.Contains(Key.S))
             breaksRun |= host?.TakeKey(buffer, Key.S, shift, ctrl) == true;
 
         // Keys only an owner has a use for (F2: rename, F12: go to a declaration in a code editor).
         foreach (Key key in OwnersOnly)
         {
-            if (_pressed.Contains(key))
+            if (_keys.Pressed.Contains(key))
                 breaksRun |= host?.TakeKey(buffer, key, shift, ctrl) == true;
         }
 
         foreach (Key key in Repeating)
         {
-            if (!Fires(key, delta))
+            if (!_keys.Fires(key, delta))
                 continue;
             int version = buffer.Version;
             if (host?.TakeKey(buffer, key, shift, ctrl) == true)
@@ -304,9 +298,9 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             breaksRun |= Press(editor, key, shift, ctrl);
         }
 
-        if (_pressed.Contains(Key.Home))
+        if (_keys.Pressed.Contains(Key.Home))
             buffer.Home(shift);
-        if (_pressed.Contains(Key.End))
+        if (_keys.Pressed.Contains(Key.End))
             buffer.End(shift);
     }
 
@@ -316,23 +310,23 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         TextBuffer buffer = editor.Buffer;
         ITextEditorHost? host = editor.Host;
         refused |= typed.Length > 0 && !ctrl;
-        refused |= ctrl && (_pressed.Contains(Key.Z) || _pressed.Contains(Key.Y) || _pressed.Contains(Key.X) || _pressed.Contains(Key.V)
-                            || _pressed.Contains(Key.Slash) || _pressed.Contains(Key.KpDivide));
-        if (ctrl && _pressed.Contains(Key.A))
+        refused |= ctrl && (_keys.Pressed.Contains(Key.Z) || _keys.Pressed.Contains(Key.Y) || _keys.Pressed.Contains(Key.X) || _keys.Pressed.Contains(Key.V)
+                            || _keys.Pressed.Contains(Key.Slash) || _keys.Pressed.Contains(Key.KpDivide));
+        if (ctrl && _keys.Pressed.Contains(Key.A))
             buffer.SelectAll();
-        if (ctrl && _pressed.Contains(Key.C) && buffer.HasSelection)
+        if (ctrl && _keys.Pressed.Contains(Key.C) && buffer.HasSelection)
             HostPlatform.TextEntry.Clipboard = buffer.SelectedText;
-        if (ctrl && _pressed.Contains(Key.S))
+        if (ctrl && _keys.Pressed.Contains(Key.S))
             host?.TakeKey(buffer, Key.S, shift, ctrl);
         foreach (Key key in OwnersOnly)
         {
-            if (_pressed.Contains(key))
+            if (_keys.Pressed.Contains(key))
                 host?.TakeKey(buffer, key, shift, ctrl);
         }
 
         foreach (Key key in Repeating)
         {
-            if (!Fires(key, delta))
+            if (!_keys.Fires(key, delta))
                 continue;
             if (key is Key.Backspace or Key.Delete or Key.Enter or Key.KpEnter or Key.Tab)
                 refused = true;
@@ -340,9 +334,9 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
                 Press(editor, key, shift, ctrl);
         }
 
-        if (_pressed.Contains(Key.Home))
+        if (_keys.Pressed.Contains(Key.Home))
             buffer.Home(shift);
-        if (_pressed.Contains(Key.End))
+        if (_keys.Pressed.Contains(Key.End))
             buffer.End(shift);
     }
 
@@ -361,10 +355,11 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             case Key.Delete when ctrl: buffer.DeleteWord(1); return true;
             case Key.Left: buffer.MoveColumn(-1, shift); break;
             case Key.Right: buffer.MoveColumn(1, shift); break;
-            case Key.Up: buffer.MoveLine(-1, shift); break;
-            case Key.Down: buffer.MoveLine(1, shift); break;
-            case Key.Pageup: buffer.MoveLine(-editor.Layout.VisibleRows, shift); break;
-            case Key.Pagedown: buffer.MoveLine(editor.Layout.VisibleRows, shift); break;
+            case Key.Up or Key.Down or Key.Pageup or Key.Pagedown:
+                int rows = key is Key.Up or Key.Down ? 1 : editor.Layout.VisibleRows;
+                int to = editor.Layout.Folds(buffer, editor.Host).Step(buffer.Line, key is Key.Up or Key.Pageup ? -rows : rows, buffer.Lines.Count);
+                buffer.MoveLine(to - buffer.Line, shift);
+                break;
             case Key.Backspace: buffer.Backspace(); break;
             case Key.Delete: buffer.Delete(); break;
             case Key.Enter or Key.KpEnter:
@@ -381,27 +376,5 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         }
 
         return false;
-    }
-
-    /// <summary>A key fires when pressed, then repeatedly once held past a delay.</summary>
-    private bool Fires(Key key, float delta)
-    {
-        if (_pressed.Contains(key))
-        {
-            _held[key] = 0;
-            return true;
-        }
-
-        if (!_down.Contains(key) || !_held.TryGetValue(key, out float before))
-        {
-            _held.Remove(key);
-            return false;
-        }
-
-        float now = before + delta;
-        _held[key] = now;
-        if (now < RepeatDelay)
-            return false;
-        return before < RepeatDelay || (int)((before - RepeatDelay) / RepeatEvery) != (int)((now - RepeatDelay) / RepeatEvery);
     }
 }

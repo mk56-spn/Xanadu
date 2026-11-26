@@ -47,9 +47,7 @@
 466 Tools/Labs/Experiments/OrbLab.cs
 406 Tools/Labs/Experiments/PointerHistoryLab.cs
 453 Tools/Labs/Experiments/TransparencyLab.cs
-424 UI/Ecs/Ui/TextEditorComponents.cs
 423 UI/Ecs/Ui/UiBuilder.cs
 559 UI/Editing/TextBuffer.cs
 437 UI/Systems/Rendering/UiResidentSync.cs
-407 UI/Systems/Ui/TextEditorInputSystem.cs
 1020 UI/Systems/Ui/XifEditorSystem.cs
