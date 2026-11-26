@@ -28,10 +28,13 @@ internal sealed class FileStrip : IDisposable
 {
     private const float Height = 30, NameWidth = 180;
 
-    /// <summary>The theme category each role is told apart by (<see cref="UiThemeRoles.Categories"/>); a file with none is the graph's.</summary>
+    /// <summary>
+    /// The theme category each role is told apart by (<see cref="UiThemeRoles.Categories"/>): deform orange, shade (and a
+    /// file with no role, the graph's) pink. The render graph's deform and shade passes take the same.
+    /// </summary>
     internal static int Category(StackRole? role) => role switch
     {
-        StackRole.Deform => 3,
+        StackRole.Deform => 9,
         _ => 6,
     };
 

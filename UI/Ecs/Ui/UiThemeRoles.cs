@@ -107,7 +107,7 @@ public static class UiThemes
         Categories =
         [
             Palette.Gold, Palette.GoldLight, Palette.InfoSoft, Palette.Cyan,
-            Palette.Violet, Palette.Lime, Palette.Pink, Palette.TextDim, Palette.BorderSubtle,
+            Palette.Violet, Palette.Lime, Palette.Pink, Palette.TextDim, Palette.BorderSubtle, Palette.Warning,
         ],
     };
 

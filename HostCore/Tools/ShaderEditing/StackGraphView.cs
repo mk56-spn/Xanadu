@@ -32,7 +32,7 @@ internal sealed class StackGraphView
 
     /// <summary>Theme categories (<see cref="UiThemeRoles.Categories"/>) by what a box is.</summary>
     private const int TargetCategory = 0, ComputeCategory = 2, DrawCategory = 3, PixelsCategory = 4, ImageCategory = 5,
-        ShadeCategory = 6, BufferCategory = 7;
+        BufferCategory = 7;
 
     /// <summary>Threads a frame from which a BUILD pass is flagged heavy.</summary>
     private const long HeavyThreads = 1_000_000;
@@ -312,7 +312,8 @@ internal sealed class StackGraphView
     {
         NodeKind.Pixels => PixelsCategory,
         NodeKind.Draw => DrawCategory,
-        NodeKind.Shade => ShadeCategory,
+        // The item's quad is two passes, its deform and its shade, coloured as their files are.
+        NodeKind.Shade => FileStrip.Category(pass.Role),
         _ => ComputeCategory,
     };
 
