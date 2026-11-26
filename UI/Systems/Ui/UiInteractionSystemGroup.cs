@@ -5,7 +5,7 @@ using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Ui.Systems.Ui;
 
-/// <summary>Generic pointer, focus, toggle, dropdown, wheel, button and tooltip interaction.</summary>
+/// <summary>Generic pointer, right-click menu, focus, toggle, dropdown, wheel, button and tooltip interaction.</summary>
 public sealed class UiInteractionSystemGroup : SystemGroup
 {
     public UiInteractionSystemGroup(
@@ -22,6 +22,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         keyboard ??= HostPlatform.Keyboard;
 
         Add(new InputSystem(pointer));
+        Add(new UiContextMenuSystem(entities, pointer, keyboard, visuals, screen));
         if (focus)
             Add(new UiFocusSystem(entities, pointer, keyboard, visuals, screen));
         Add(new UiWheelSystem(entities, pointer));

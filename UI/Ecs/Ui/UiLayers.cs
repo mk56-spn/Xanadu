@@ -112,6 +112,9 @@ public static class UiLayers
     /// <summary>The built-in docs, dropped down over any screen and its toasts.</summary>
     public const int Docs = 992;
 
+    /// <summary>The right-click menu (<see cref="MenuItems"/>), over everything but the focus ring and tooltips.</summary>
+    public const int ContextMenu = 994;
+
     public const int Focus = 995;
     public const int Tooltip = 996;
 

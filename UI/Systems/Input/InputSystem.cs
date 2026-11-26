@@ -10,7 +10,8 @@ namespace Xanadu.Ui.Systems.Input;
 
 /// <summary>
 /// Hit-tests <see cref="TakesInput"/> drawables in paint order and tags the
-/// topmost hit with <see cref="Pressed"/> while the pointer is down.
+/// topmost hit with <see cref="Pressed"/> while the pointer is down, and with
+/// <see cref="SecondaryPressed"/> while the right button is.
 /// </summary>
 public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
 {
@@ -18,8 +19,10 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
     private readonly List<Candidate> _candidates = [];
 
     private Entity? _pressed;
+    private Entity? _secondary;
     private Entity? _hovered;
     private bool _wasPressed;
+    private bool _wasSecondary;
 
     public InputSystem(IPointerInputSource source)
     {
@@ -86,6 +89,28 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         }
 
         _wasPressed = input.Pressed;
+
+        // The right button marks what it went down on the same way, for menus.
+        if (input.SecondaryPressed && !_wasSecondary)
+        {
+            Release(ref _secondary);
+            if (target is { } secondary)
+            {
+                secondary.AddTag<SecondaryPressed>();
+                _secondary = secondary;
+            }
+        }
+        else if (!input.SecondaryPressed && _wasSecondary)
+            Release(ref _secondary);
+
+        _wasSecondary = input.SecondaryPressed;
+    }
+
+    private static void Release(ref Entity? held)
+    {
+        if (held is { IsNull: false } entity)
+            entity.RemoveTag<SecondaryPressed>();
+        held = null;
     }
 
     /// <summary>True when a clipping ancestor hides the point, e.g. scrolled-out rows.</summary>

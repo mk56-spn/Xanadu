@@ -18,6 +18,12 @@ public readonly record struct MaterialParam(
     public bool IsMatrix => Rows > 1;
 }
 
+/// <summary>
+/// A canvas subtree a material's graph sees as a <c>[View] Image&lt;float4&gt;</c>: <paramref name="Root"/> drawn again before the
+/// frame, placed as the tree places it, then by <paramref name="Transform"/> on the screen (a zoom, an offset, a flip).
+/// </summary>
+public readonly record struct MaterialView(Handle Root, Transform2D Transform);
+
 /// <summary>What a material draws in place of its effect's shade (<see cref="CanvasMaterial.Overlay"/>).</summary>
 public enum MaterialOverlay
 {
@@ -57,6 +63,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Handle> _textures = [];
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
     private readonly Dictionary<string, byte[]> _buffers = [];
+    private readonly Dictionary<string, MaterialView> _views = [];
 
     /// <summary>
     /// The effect's path, such as <c>Assets/Shaders/Game/note_background</c>;
@@ -164,6 +171,17 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
         _buffers[name] = bytes.ToArray();
         BufferVersion++;
     }
+
+    /// <summary>
+    /// The subtrees the graph's <c>[View]</c> images show, by the image's name. A view nothing names here is clear; an
+    /// item showing this material isn't drawn into its own views.
+    /// </summary>
+    public IReadOnlyDictionary<string, MaterialView> Views => _views;
+
+    /// <summary>Names the subtree under <paramref name="root"/> as the graph's <c>[View]</c> image <paramref name="name"/>, placed on screen by <paramref name="transform"/>.</summary>
+    public void SetView(string name, Handle root, Transform2D transform) => _views[name] = new MaterialView(root, transform);
+
+    public void ClearView(string name) => _views.Remove(name);
 
     /// <summary>The value set under <paramref name="name"/>, or <paramref name="fallback"/>.</summary>
     public Vector4 Get(string name, Vector4 fallback = default) =>

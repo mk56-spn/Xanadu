@@ -17,6 +17,9 @@ public struct Hovered : ITag { }
 /// <summary>Marks the drawable currently holding the pointer button.</summary>
 public struct Pressed : ITag { }
 
+/// <summary>Marks the drawable the secondary (right) pointer button went down on, while it is held.</summary>
+public struct SecondaryPressed : ITag { }
+
 /// <summary>Marks a container whose child layout needs recomputing.</summary>
 public struct LayoutDirty : ITag { }
 
