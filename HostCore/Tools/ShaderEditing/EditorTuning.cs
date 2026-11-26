@@ -92,6 +92,9 @@ internal sealed class EditorTuning : IDisposable
     public Vector4 StandIn(string name, float fallback) =>
         _tuned.TryGetValue(name, out float[]? value) ? UiValueFields.AsVector(value) : new Vector4(fallback);
 
+    /// <summary>Moves each time a tuned value changes, from its field or from outside.</summary>
+    public int Version { get; private set; }
+
     /// <summary>A value as tuned, every channel; null for a name that has no field.</summary>
     public float[]? Values(string name) => _tuned.GetValueOrDefault(name);
 
@@ -101,6 +104,7 @@ internal sealed class EditorTuning : IDisposable
         if (!_tuned.TryGetValue(name, out float[]? values) || values.Length != value.Length)
             return;
         value.CopyTo(values, 0);
+        Version++;
         if (!_fields.TryGetValue(name, out Entity field) || field.IsNull || !field.HasComponent<UiValueField>())
             return;
 
@@ -140,7 +144,10 @@ internal sealed class EditorTuning : IDisposable
     {
         float[] defaults = UiValueFields.Defaults(param, UiValueShape.Of(param));
         if (!_tuned.TryGetValue(param.Name, out float[]? kept) || kept.Length != defaults.Length)
+        {
             _tuned[param.Name] = defaults;
+            Version++;
+        }
     }
 
     private static MaterialParam StandInParam(PlayStandIns.Slider slider) =>
@@ -178,11 +185,17 @@ internal sealed class EditorTuning : IDisposable
         _fields[name] = field;
         if (field.HasComponent<Dropdown>())
         {
-            field.OnPicked(value => _tuned[name] = [value]);
+            field.OnPicked(value => Tune(name, [value]));
             return;
         }
 
-        field.OnValueChanged((values, _) => _tuned[name] = (float[])values.Clone());
+        field.OnValueChanged((values, _) => Tune(name, (float[])values.Clone()));
+    }
+
+    private void Tune(string name, float[] values)
+    {
+        _tuned[name] = values;
+        Version++;
     }
 
     private static string Signature(MaterialParam param) =>

@@ -181,7 +181,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
         _shapeCosts = hints.Costs;
-        _handles = new PreviewHandles(entities, (name, index) => _completions.ParameterNames(name, index), _tuning.Values, _tuning.Set);
+        _handles = new PreviewHandles(entities, (name, index) => _completions.ParameterNames(name, index), _tuning);
         (_completions, _declarations) = ReadLibrary();
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
         Rect2 code = UiLayout.Box(_code.Entity);

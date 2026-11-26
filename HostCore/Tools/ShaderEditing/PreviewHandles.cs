@@ -15,6 +15,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// the caret on it and drags it. A drag writes into the code (a literal, or a step or argument
 /// it adds) or into a tuned value, whole pixels, the drag one undo step. The handles are UI grips
 /// on a layer of their own over the preview, on a frame that follows the preview's box.
+/// The code is read again only when the text, the preview's size, a tuned value or the library
+/// changes, and the grips placed again only then or when the selected shape changes.
 /// </summary>
 internal sealed class PreviewHandles
 {
@@ -34,15 +36,19 @@ internal sealed class PreviewHandles
     private Action _done = () => { };
 
     private readonly Func<string, int, IReadOnlyList<string>> _parameterNames;
-    private readonly Func<string, float[]?> _values;
-    private readonly Action<string, float[]> _setValue;
+    private readonly EditorTuning _tuning;
+
+    /// <summary>The shapes as last read, and what they were read from.</summary>
+    private List<ChainHandles> _shapes = [];
+    private (TextBuffer? Buffer, int Text, Vector2 Canvas, int Tuning, SlangHandleTags Tags)? _read;
+    private ChainHandles? _selected;
+    private bool _placed;
 
     /// <param name="parameterNames">The library's parameter names by call and argument.</param>
-    /// <param name="values">A tuned value by name; <paramref name="setValue"/> sets one a drag writes.</param>
-    public PreviewHandles(EntityStore entities, Func<string, int, IReadOnlyList<string>> parameterNames,
-        Func<string, float[]?> values, Action<string, float[]> setValue)
+    /// <param name="tuning">The tuned values a shape may read, and that a drag may set.</param>
+    public PreviewHandles(EntityStore entities, Func<string, int, IReadOnlyList<string>> parameterNames, EditorTuning tuning)
     {
-        (_parameterNames, _values, _setValue) = (parameterNames, values, setValue);
+        (_parameterNames, _tuning) = (parameterNames, tuning);
         _layer = UiNode.Layer(entities, default, UiLayers.ShaderPreviewHandles, null, UiStage.Full).Theme(UiThemes.Tools);
         _frame = _layer.Column().IgnoreLayout();
         _outline = _frame.Shape([Vector2.Zero, Vector2.One], default, Guide, 1.5f).IgnoreLayout();
@@ -84,26 +90,30 @@ internal sealed class PreviewHandles
         }
 
         (_buffer, _history, _done) = (buffer, history, done);
-        _slots.Clear();
-        ChainHandles? selected = null;
         if (buffer is not null && StartCaret is var (startLine, startColumn))
         {
             StartCaret = null;
             buffer.Place(Math.Min(startLine, buffer.Lines.Count - 1), startColumn);
         }
 
-        if (buffer is not null)
+        var read = (buffer, buffer?.Version ?? -1, Canvas, _tuning.Version, Tags);
+        if (_read != read)
         {
-            int caret = TextPlaces.Offset(buffer.Lines, buffer.Line, buffer.Column);
-            foreach (ShapeChain chain in SlangShapeChains.Find(buffer.Text, Tags, _values))
-            {
-                if (SlangHandles.Of(chain, Tags, _parameterNames, Canvas) is not { } shape)
-                    continue;
-                if (chain.Holds(caret) || (_drag is { } drag && drag.ChainStart == chain.Start))
-                    selected = shape;
-                if (shape.HasExtent && shape.Handles.Exists(handle => handle.Kind == HandleKind.Move))
-                    _slots.Add((shape, null));
-            }
+            _read = read;
+            _shapes = Read(buffer);
+            _placed = false;
+        }
+
+        ChainHandles? selected = Selected(buffer);
+        if (_placed && ReferenceEquals(selected, _selected))
+            return;
+        _placed = true;
+        _selected = selected;
+        _slots.Clear();
+        foreach (ChainHandles shape in _shapes)
+        {
+            if (shape.HasExtent && shape.Handles.Exists(handle => handle.Kind == HandleKind.Move))
+                _slots.Add((shape, null));
         }
 
         // The caret's shape's own handles last: they are drawn over the bodies and, being smaller, taken first.
@@ -111,6 +121,37 @@ internal sealed class PreviewHandles
             _slots.Add((selected!, handle));
         Show(selected);
         _switches.Show(selected?.Chain, buffer, history, done);
+    }
+
+    /// <summary>Every shape in the text the CPU can place, with its handles.</summary>
+    private List<ChainHandles> Read(TextBuffer? buffer)
+    {
+        if (buffer is null)
+            return [];
+        var shapes = new List<ChainHandles>();
+        foreach (ShapeChain chain in SlangShapeChains.Find(buffer.Text, Tags, _tuning.Values))
+        {
+            if (SlangHandles.Of(chain, Tags, _parameterNames, Canvas) is { } shape)
+                shapes.Add(shape);
+        }
+
+        return shapes;
+    }
+
+    /// <summary>The shape being dragged, else the innermost one the caret is in.</summary>
+    private ChainHandles? Selected(TextBuffer? buffer)
+    {
+        if (buffer is null)
+            return null;
+        int caret = TextPlaces.Offset(buffer.Lines, buffer.Line, buffer.Column);
+        ChainHandles? selected = null;
+        foreach (ChainHandles shape in _shapes)
+        {
+            if (_drag is { } drag ? drag.ChainStart == shape.Chain.Start : shape.Chain.Holds(caret))
+                selected = shape;
+        }
+
+        return selected;
     }
 
     public void Delete()
@@ -212,12 +253,12 @@ internal sealed class PreviewHandles
     {
         if (_drag is not { } drag || _buffer is not { } buffer)
             return;
-        ShapeChain? chain = SlangShapeChains.Find(buffer.Text, Tags, _values).Find(found => found.Start == drag.ChainStart);
+        ShapeChain? chain = SlangShapeChains.Find(buffer.Text, Tags, _tuning.Values).Find(found => found.Start == drag.ChainStart);
         if (chain is null || drag.Edit(chain, drag.Pull(pointer - _framed.GetCenter(), Canvas), _parameterNames) is not { } edit)
             return;
         if (edit.Uniform is { } uniform)
         {
-            _setValue(uniform, edit.Value);
+            _tuning.Set(uniform, edit.Value);
             return;
         }
 
