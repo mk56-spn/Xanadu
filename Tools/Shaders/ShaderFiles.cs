@@ -47,6 +47,59 @@ internal static class ShaderFiles
         return false;
     }
 
+    /// <summary>
+    /// Gives the stack another name in its folder (<c>Lab/old</c> to <c>Lab/new</c>), moving its folder; false (and the
+    /// message) when the name is taken, not a plain name, or the disk refuses.
+    /// </summary>
+    public static bool Rename(ShaderFile file, string name, out ShaderFile renamed, out string? error)
+    {
+        renamed = file;
+        if (name.Length == 0 || name.IndexOfAny(['/', '\\', '.', ' ']) >= 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            error = $"\"{name}\" isn't a plain folder name (letters, digits, _ and -)";
+            return false;
+        }
+
+        int slash = file.Name.LastIndexOf('/');
+        string folder = slash < 0 ? "" : file.Name[..(slash + 1)];
+        var moved = new ShaderFile($"{Root}/{folder}{name}", folder + name);
+        if (Directory.Exists(GamePaths.Full(moved.Path)))
+        {
+            error = $"{moved.Name} already exists";
+            return false;
+        }
+
+        try
+        {
+            Directory.Move(GamePaths.Full(file.Path), GamePaths.Full(moved.Path));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            error = exception.Message;
+            return false;
+        }
+
+        renamed = moved;
+        error = null;
+        return true;
+    }
+
+    /// <summary>Deletes the stack's folder and every file in it; false (and the message) when the disk refuses.</summary>
+    public static bool Delete(ShaderFile file, out string? error)
+    {
+        try
+        {
+            Directory.Delete(GamePaths.Full(file.Path), recursive: true);
+            error = null;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
     public static List<StackFile> Read(ShaderFile file) => ShaderStack.Read(GamePaths.Full(file.Path));
 
     /// <summary>Writes the files into the stack's folder, deleting the ones it no longer has; false (and the message) when the disk refuses.</summary>

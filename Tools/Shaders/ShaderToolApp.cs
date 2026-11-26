@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
-using MoonWorks.Graphics;
 using Xanadu.Core;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
@@ -14,7 +13,6 @@ using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
 using Xanadu.Ui.Systems.Ui;
-using Handle = Xanadu.Core.Maths.Handle;
 
 namespace Xanadu.Tools.Shaders;
 
@@ -41,28 +39,16 @@ internal sealed class ShaderToolApp : HostApp
     private const float Margin = UiMetrics.Space.Lg;
     private const float Gap = UiMetrics.Space.Md;
 
-    /// <summary>Frames a lab effect's still is drawn for (its update fills its state first), then it stops.</summary>
-    private const int StillFrames = 4;
-
-    /// <summary>
-    /// Lab effects (raymarchers and the like) are too heavy to draw live in the list on
-    /// every frame, so each gets a still: drawn into a texture for <see cref="StillFrames"/>
-    /// frames when the tool opens or the file is saved, then left as it is. By file index:
-    /// the texture the thumbnail shows, and the offscreen item drawing it while it's live.
-    /// </summary>
-    private readonly Dictionary<int, (Texture Target, Handle Root, int Left)> _stills = [];
     private const float StatusHeight = 32;
-
-    /// <summary>The preview column's width at first, and the least the code and the column can be dragged to.</summary>
-    private const float SideWidth = 680, MinSide = 280, MinCode = 360;
-
-    /// <summary>Room the column keeps under the preview for problems, sliders and help.</summary>
-    private const float MinUnderPreview = 260;
 
     /// <summary>Stages draw above the ECS layer they sit on.</summary>
     private const int StageZ = UiLayers.Base + 1;
 
     private readonly List<ShaderFile> _files;
+    private readonly ShaderStills _stills;
+
+    /// <summary>Stacks deleted this run, by file index: their places stay so every other index holds.</summary>
+    private readonly HashSet<int> _gone = [];
     private ShaderGrid _grid = null!;
 
     /// <summary>Edited files not yet saved, by stack; a stack without an entry is as on disk.</summary>
@@ -86,10 +72,7 @@ internal sealed class ShaderToolApp : HostApp
     private List<StackFile> _disk = [];
     private int _seenVersion = -1;
 
-    private float _sideWidth = SideWidth;
-    private bool _dragging;
-    private float _grabbedAt;
-    private bool _wasHeld;
+    private ShaderDivider _divider = null!;
 
     private readonly SystemRoot _systems;
     private readonly ToastSystem _toasts;
@@ -101,6 +84,7 @@ internal sealed class ShaderToolApp : HostApp
         _systems = new SystemRoot(Entities, "Shaders") { _toasts };
         UseSystems(_systems);
         _files = [.. ShaderFiles.All()];
+        _stills = new ShaderStills(Renderer, Canvas, Width, Height);
         _wanted = Math.Max(0, _files.FindIndex(file => file.Name == open || file.Path == open));
         Build();
     }
@@ -114,7 +98,7 @@ internal sealed class ShaderToolApp : HostApp
 
         // The editor: code over its status bar, the divider, then the preview over its column.
         UiNode editor = body.Row().Cross(StackCrossAlignment.Stretch).Grow();
-        UiNode code = editor.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch).Grow().MinWidth(MinCode);
+        UiNode code = editor.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Stretch).Grow().MinWidth(ShaderDivider.MinCode);
         UiNode bar = code.Row().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Center);
         _shaders = bar.Button("SHADERS", UiType.Small).Secondary().Tooltip("Every shader as a grid of thumbnails: pick one to open it");
         _title = bar.Text("", UiType.Label).AccentText().Grow();
@@ -134,9 +118,10 @@ internal sealed class ShaderToolApp : HostApp
         _barSlot = code.Column().Height(StatusHeight);
 
         _dividerSlot = editor.Column().Width(Gap);
-        UiNode side = editor.Column().Gap(Gap).Cross(StackCrossAlignment.Stretch).Width(_sideWidth);
+        UiNode side = editor.Column().Gap(Gap).Cross(StackCrossAlignment.Stretch).Width(ShaderDivider.SideWidth);
         _side = side;
-        _preview = side.Column().Height(PreviewHeight(_sideWidth));
+        _preview = side.Column().Height(ShaderDivider.PreviewHeight(ShaderDivider.SideWidth));
+        _divider = new ShaderDivider(_body, _side, _preview, _dividerSlot, Gap);
         _sideSlot = side.Column().Grow();
 
         _grid = new ShaderGrid(UiNode.Layer(Entities, default, UiLayers.ShaderPicker, null, UiStage.Full).Theme(UiThemes.Tools));
@@ -145,7 +130,7 @@ internal sealed class ShaderToolApp : HostApp
     }
 
     /// <summary>A file's card in the grid; saving makes its thumbnail compile again.</summary>
-    private void AddCard(int i) => _grid.Add(_files[i], SlangShaders.IsLabOnly(_files[i].Path) ? Still(i) : null);
+    private void AddCard(int i) => _grid.Add(_files[i], SlangShaders.IsLabOnly(_files[i].Path) ? _stills.Make(i, _files[i].Path) : null);
 
     /// <summary>NEW: writes a fresh effect from the template, lists it and opens it.</summary>
     private void New()
@@ -161,56 +146,9 @@ internal sealed class ShaderToolApp : HostApp
         _wanted = _files.Count - 1;
     }
 
-    /// <summary>A lab-only effect's still: a frame-sized texture it's drawn into, offscreen, for a few frames.</summary>
-    private Handle Still(int index)
-    {
-        Texture target = Renderer.CreateTarget("still " + _files[index].Name);
-        Handle texture = Canvas.MintHandle();
-        Renderer.Textures[texture.Id] = target;
-        _stills[index] = (target, default, 0);
-        Redraw(index);
-        return texture;
-    }
-
-    /// <summary>Draws a still again from the file: the whole frame, so the effect keeps its own coordinates.</summary>
-    private void Redraw(int index)
-    {
-        if (!_stills.TryGetValue(index, out var still))
-            return;
-        Handle root = still.Left > 0 ? still.Root : Canvas.CreateItem();
-        CanvasServer.Current.Clear(root);
-        CanvasServer.Current.AddRect(root, new Rect2(0, 0, Width, Height), Colors.White);
-        CanvasServer.Current.SetMaterial(root, new CanvasMaterial(_files[index].Path));
-        if (still.Left == 0)
-            Renderer.AddOffscreen(Canvas.Item(root)!, still.Target);
-        _stills[index] = (still.Target, root, StillFrames);
-    }
-
-    /// <summary>Counts the live stills down; each stops drawing when it reaches 0.</summary>
-    private void SettleStills()
-    {
-        foreach ((int index, var still) in _stills.ToArray())
-        {
-            if (still.Left == 0)
-                continue;
-            if (still.Left > 1)
-            {
-                _stills[index] = still with { Left = still.Left - 1 };
-                continue;
-            }
-
-            if (Canvas.Item(still.Root) is { } root)
-                Renderer.RemoveOffscreen(root);
-            Canvas.Free(still.Root);
-            _stills[index] = (still.Target, default, 0);
-        }
-    }
-
-    private static float PreviewHeight(float width) => MathF.Round(width * 9f / 16f);
-
     protected override void Tick(float delta, float time)
     {
-        SettleStills();
+        _stills.Settle();
         if (!UiLayout.Settled(_codeSlot) || !UiLayout.Settled(_sideSlot))
             return;
 
@@ -243,8 +181,8 @@ internal sealed class ShaderToolApp : HostApp
         // Under the grid the code gets no press and no wheel: those are the grid's.
         bool free = !_grid.Open;
         var frame = new ToolFrame(delta, time, Pointer.Position, free && Pointer.LeftDown, Inputs, free ? Pointer.TakeWheel() : 0);
-        Drag(frame);
-        _code.Update(frame, pointerFree: free && !_dragging);
+        _divider.Update(frame, _code);
+        _code.Update(frame, pointerFree: free && !_divider.Dragging);
         ShowChanges();
     }
 
@@ -287,13 +225,17 @@ internal sealed class ShaderToolApp : HostApp
     /// <summary>SHADERS opens the grid; a card picks and closes it, as do CLOSE, Escape and a press around the panel.</summary>
     private void PickFromGrid()
     {
-        if (Clicked(_shaders))
+        if (Clicked(_shaders) || (_wanted == _picked && ShaderGrid.TakeStartOpen()))
             _grid.Show(true);
         if (!_grid.Open)
             return;
 
         if (Clicked(_grid.NewButton))
             New();
+        if (_grid.TakeMenuPick() is { } pick)
+            OnCardMenu(pick.File, pick.Item);
+        if (_grid.Renamed() is { } renamed)
+            Rename(renamed.File, renamed.Typed);
         for (int i = 0; i < _files.Count; i++)
         {
             if (Clicked(_grid.Cards[i]) || Clicked(_grid.Thumbs[i]))
@@ -349,7 +291,7 @@ internal sealed class ShaderToolApp : HostApp
         _seenVersion = -1;
         // The thumbnail draws the file, so it compiles again from what was just written.
         Renderer.Pipelines.Reload(file.Path);
-        Redraw(_picked);
+        _stills.Redraw(_picked, file.Path);
     }
 
     /// <summary>Puts the folder's files back: a fresh editor on them.</summary>
@@ -384,46 +326,44 @@ internal sealed class ShaderToolApp : HostApp
             _grid.Name(i, _unsaved.ContainsKey(_files[i]) ? _files[i].Name + " •" : _files[i].Name);
     }
 
-    /// <summary>The divider: a press on it drags the preview column's edge; only the column's container width changes.</summary>
-    private void Drag(in ToolFrame frame)
+    /// <summary>A card's right-click menu: RENAME puts a field on it; DELETE (asked first) deletes the stack's folder.</summary>
+    private void OnCardMenu(int index, int item)
     {
-        bool pressed = frame.Held && !_wasHeld;
-        _wasHeld = frame.Held;
-        Rect2 divider = UiLayout.Box(_dividerSlot);
-        if (pressed && divider.HasPoint(frame.Mouse))
+        if (item == ShaderGrid.Rename)
+            _grid.BeginRename(index, _files[index]);
+        else if (!ShaderFiles.Delete(_files[index], out string? error))
+            UiText.Set(_note, "not deleted: " + error);
+        else
         {
-            _dragging = true;
-            _grabbedAt = frame.Mouse.X - divider.GetCenter().X;
+            _unsaved.Remove(_files[index]);
+            _gone.Add(index);
+            _grid.Remove(index);
+            // The open stack went: the first one left opens in its place.
+            if (index == _picked)
+                (_picked, _wanted) = (-1, Enumerable.Range(0, _files.Count).First(i => !_gone.Contains(i)));
         }
-
-        if (_dragging)
-        {
-            Rect2 side = UiLayout.Box(_side);
-            float width = ClampSide(side.End.X - (frame.Mouse.X - _grabbedAt) - Gap / 2);
-            if (width != _sideWidth)
-            {
-                _sideWidth = width;
-                UiNode.Wrap(_side).Width(width);
-                UiNode.Wrap(_preview).Height(PreviewHeight(width));
-            }
-
-            if (!frame.Held)
-            {
-                _dragging = false;
-                // Pressing outside the code took its focus; dragging shouldn't cost the typing.
-                _code!.Focus();
-            }
-        }
-
-        _code!.DividerLit = _dragging || divider.HasPoint(frame.Mouse);
     }
 
-    /// <summary>A column width that leaves the code its least, and room under the preview.</summary>
-    private float ClampSide(float width)
+    /// <summary>Renames a stack in its folder, keeping its unsaved edits; the open one opens again under its new path.</summary>
+    private void Rename(int index, string typed)
     {
-        Rect2 body = UiLayout.Box(_body);
-        float most = MathF.Min(body.Size.X - Gap - MinCode, (body.Size.Y - Gap - MinUnderPreview) * 16f / 9f);
-        return MathF.Round(Math.Clamp(width, MinSide, MathF.Max(MinSide, most)));
+        ShaderFile old = _files[index];
+        if (typed.Length == 0 || old.Name == typed || old.Name.EndsWith("/" + typed, StringComparison.Ordinal))
+            return;
+        if (index == _picked)
+            Keep();
+        if (!ShaderFiles.Rename(old, typed, out ShaderFile renamed, out string? error))
+        {
+            UiText.Set(_note, "not renamed: " + error);
+            return;
+        }
+
+        _files[index] = renamed;
+        if (_unsaved.Remove(old, out List<StackFile>? kept))
+            _unsaved[renamed] = kept;
+        _grid.Retarget(index, renamed, SlangShaders.IsLabOnly(renamed.Path));
+        if (index == _picked)
+            (_picked, _wanted) = (-1, index);
     }
 
     /// <summary>True on the frame a button goes down.</summary>

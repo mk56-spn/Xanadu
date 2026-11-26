@@ -12,8 +12,7 @@ internal sealed record PreviewBuild(object Result, ShaderParam[] Params, Compile
 /// <summary>
 /// What the shader editor turns its code into and draws on the right. The editor
 /// owns the text, the problems, completion and the layout; a preview owns the
-/// compile and the picture. Labs has a level shader slot and the spawner;
-/// the shader tool has whole shipped effects.
+/// compile and the picture: the shader tool's is a whole stack.
 /// </summary>
 internal interface IEditorPreview : IDisposable
 {

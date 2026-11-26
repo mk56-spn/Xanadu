@@ -271,7 +271,7 @@ internal sealed class StackGraphView
     /// <summary>What a resource is, in a few words: a buffer's size, an image's format and size, or which target.</summary>
     private static string Says(GraphResource resource) => resource.Kind switch
     {
-        GraphResourceKind.Buffer => Bytes(resource.Bytes),
+        GraphResourceKind.Buffer => resource.Detail == "" ? Bytes(resource.Bytes) : $"{Bytes(resource.Bytes)} · {resource.Detail}",
         GraphResourceKind.Image => resource.Detail,
         GraphResourceKind.Frame => "the frame",
         GraphResourceKind.Depth => "the frame's depth",

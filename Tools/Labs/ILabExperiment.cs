@@ -40,8 +40,6 @@ internal static class LabExperiments
         new Experiments.TransparencyLab(),
         new Experiments.GlassLab(),
         new Experiments.PointerHistoryLab(),
-        new Experiments.IndirectDrawLab(),
-        Experiments.ShaderEditor.Spawner(),
         new Experiments.Particles.ParticleLab(),
         new Experiments.RtsLab(),
         new Experiments.EcsRender.EcsRenderLab(),

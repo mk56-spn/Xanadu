@@ -19,7 +19,9 @@ namespace Xanadu.Tools.Shaders;
 /// backdrop effect (<see cref="ShaderFiles.Backdrop"/>) fills the same quad, so
 /// an effect that reads the screen shows what it does to something. Over it,
 /// on request, the triangles and where uv is 0 and 1 (<see cref="ShowOverlays"/>),
-/// both drawn through the effect's own vertex stage.
+/// both drawn through the effect's own vertex stage. With <see cref="Beside"/>, a second stack is drawn after it
+/// over the same quad, as it is on disk: two materials in one frame, for graphs that share resources. A stack's
+/// <see cref="Text"/> draws a line of glyphs in place of the quad. <see cref="Post"/> adds a stack to the renderer's post list. A stack's <c>[View]</c> images show the backdrop's subtree mirrored top to bottom (<see cref="Mirror"/>).
 /// </summary>
 internal sealed class EffectPreview : IEditorPreview
 {
@@ -29,6 +31,26 @@ internal sealed class EffectPreview : IEditorPreview
     private readonly Handle _item;
     private readonly string _label;
     private CanvasMaterial? _material;
+
+    /// <summary>A stack (its name or path) drawn after the open one over the same quad, from its folder; null for none.</summary>
+    public static string? Beside { get; set; }
+
+    /// <summary>A line the open stack draws instead of its quad: shaped glyphs, one quad each; null draws the quad.</summary>
+    public static string? Text { get; set; }
+
+    /// <summary>A stack (its name or path) the renderer draws over the whole window after the tree, as a post material; null for none.</summary>
+    public static string? Post { get; set; }
+
+    private readonly CanvasMaterial? _post;
+
+    /// <summary>The <see cref="Beside"/> stack's item and material; null without one.</summary>
+    private readonly (Handle Item, CanvasMaterial Material)? _beside;
+
+    /// <summary>A stack (its name or path) drawn before the open one over the same quad, so the open one sees it under it; null for none.</summary>
+    public static string? Under { get; set; }
+
+    /// <summary>The <see cref="Under"/> stack's item and material; null without one.</summary>
+    private readonly (Handle Item, CanvasMaterial Material)? _under;
 
     /// <summary>The overlays, drawn over the effect: the triangles' edges, and the uv lines.</summary>
     private readonly Overlay _triangles, _uv;
@@ -62,6 +84,9 @@ internal sealed class EffectPreview : IEditorPreview
         _pipelines = renderer.Pipelines;
         _backdrop = item;
         _label = label;
+        // Made before the stack's item, so it draws under it.
+        if (Under is { } under)
+            _under = Companion(under, "--under", item);
         _item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(_item, item);
         // Made after the effect's item, so they draw over it: triangles, then the uv lines on top.
@@ -72,6 +97,28 @@ internal sealed class EffectPreview : IEditorPreview
         CanvasServer.Current.SetVisible(_triangles.Item, false);
         CanvasServer.Current.SetVisible(_uv.Item, false);
         CanvasServer.Current.SetMaterial(_backdrop, new CanvasMaterial(ShaderFiles.Backdrop));
+        if (Beside is { } beside)
+            _beside = Companion(beside, "--beside", item);
+
+        if (Post is { } post)
+        {
+            ShaderFile file = ShaderFiles.All().FirstOrDefault(file => file.Name == post || file.Path == post)
+                              ?? throw new ArgumentException($"--post: no stack {post} under Assets/Shaders");
+            _post = CanvasMaterial.FromSource(file.Path, ShaderStack.Compose(file.Path, ShaderFiles.Read(file)));
+            _renderer.AddPost(_post);
+        }
+    }
+
+    /// <summary>Another stack from its folder, drawn under <paramref name="parent"/> as it is on disk, after what is there.</summary>
+    private static (Handle Item, CanvasMaterial Material) Companion(string stack, string flag, Handle parent)
+    {
+        ShaderFile file = ShaderFiles.All().FirstOrDefault(file => file.Name == stack || file.Path == stack)
+                          ?? throw new ArgumentException($"{flag}: no stack {stack} under Assets/Shaders");
+        Handle made = CanvasServer.Current.CreateItem();
+        CanvasServer.Current.SetParent(made, parent);
+        var material = CanvasMaterial.FromSource(file.Path, ShaderStack.Compose(file.Path, ShaderFiles.Read(file)));
+        CanvasServer.Current.SetMaterial(made, material);
+        return (made, material);
     }
 
     public string Label => _label;
@@ -134,6 +181,8 @@ internal sealed class EffectPreview : IEditorPreview
     {
         CanvasMaterial? previous = _material;
         _material = CanvasMaterial.FromSource(Label, (string)build.Result);
+        _views = build.Stack?.Build?.Shape.Images.Where(image => image.View).Select(image => image.Name).ToArray() ?? [];
+        Mirror();
         CanvasServer.Current.SetMaterial(_item, _material);
         if (previous is not null)
             _pipelines.Forget(previous);
@@ -151,6 +200,23 @@ internal sealed class EffectPreview : IEditorPreview
         return "";
     }
 
+    /// <summary>The open stack's <c>[View]</c> images, which the tool fills with the backdrop's subtree, mirrored.</summary>
+    private string[] _views = [];
+
+    /// <summary>
+    /// Names every view of the open stack: the backdrop and what hangs under it (the beside stack, the overlays; the
+    /// stack's own item is left out of its own view), flipped top to bottom about the preview's middle, as a reflection.
+    /// </summary>
+    private void Mirror()
+    {
+        if (_material is null)
+            return;
+        float middle = _area.Position.Y + _area.Size.Y / 2;
+        var flipped = new Transform2D(1, 0, 0, -1, 0, 2 * middle);
+        foreach (string view in _views)
+            _material.SetView(view, _backdrop, flipped);
+    }
+
     /// <summary>Whether code has a graph.</summary>
     private static bool Graphs(string source) => ShaderStack.RolesOf(source).Contains(StackRole.Graph);
 
@@ -161,20 +227,37 @@ internal sealed class EffectPreview : IEditorPreview
     public void Place(Rect2 area)
     {
         _area = area;
+        Mirror();
         // Everything over the backdrop stays on the preview: a deform or a graph's draws may land past it.
         CanvasServer.Current.SetCustomRect(_backdrop, true, area);
         CanvasServer.Current.SetClip(_backdrop, true);
         CanvasServer.Current.Clear(_backdrop);
         CanvasServer.Current.AddRect(_backdrop, area, Colors.White);
+        foreach ((Handle Item, CanvasMaterial Material)? companion in (ReadOnlySpan<(Handle, CanvasMaterial)?>)[_beside, _under])
+            if (companion is { } shown)
+            {
+                CanvasServer.Current.Clear(shown.Item);
+                CanvasServer.Current.AddRect(shown.Item, area, Colors.White);
+            }
+
         foreach (Handle item in (ReadOnlySpan<Handle>)[_item, _triangles.Item, _uv.Item])
         {
             CanvasServer.Current.Clear(item);
-            if (_grid is not null || _graph)
+            if (Text is { } line)
+                _text.DrawTextStyled(item, area, line, Colors.White, TextSize(area));
+            else if (_grid is not null || _graph)
                 CanvasServer.Current.AddRect(item, area, Colors.White);
             else
                 PreviewMesh.Add(item, area, Colors.White);
         }
     }
+
+    /// <summary>Draws <see cref="Text"/>: the host's canvas, which shapes it and places a quad per glyph.</summary>
+    private readonly IRectCanvas _text = Xanadu.Ui.Systems.HostPlatform.NewCanvas();
+
+    /// <summary>The line's font size: a third of the preview's height, at most what fits its width.</summary>
+    private static int TextSize(Rect2 area) =>
+        (int)Math.Clamp(Math.Min(area.Size.Y / 3, area.Size.X * 1.6f / Math.Max(1, Text!.Length)), 12, 160);
 
     public void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning)
     {
@@ -199,5 +282,17 @@ internal sealed class EffectPreview : IEditorPreview
         }
 
         CanvasServer.Current.Free(_item);
+        if (_post is not null)
+        {
+            _renderer.RemovePost(_post);
+            _pipelines.Forget(_post);
+        }
+
+        foreach ((Handle Item, CanvasMaterial Material)? companion in (ReadOnlySpan<(Handle, CanvasMaterial)?>)[_beside, _under])
+            if (companion is { } made)
+            {
+                _pipelines.Forget(made.Material);
+                CanvasServer.Current.Free(made.Item);
+            }
     }
 }
