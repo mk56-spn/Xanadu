@@ -57,11 +57,13 @@ void make(uint i)
         pool.grid(Sphere(110).lumpy(7, 70), p, CELLS);
 }
 
-[Draw(64, 1, shade: look, copies: STEPS * EACH)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: STEPS * EACH)]
+MeshPart shown(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
-    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera(scale));
+    float scale = m.corner.rest.size.y / 810;
+    return pool.pulled(m, placed(pool.objectOf(copy), scale), camera(scale));
 }
 
 float4 look(ItemInput i)

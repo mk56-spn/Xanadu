@@ -79,18 +79,21 @@ void remake(uint i)
         livePool.grid(Cylinder(70, 180).morphed(Torus(80, 30).turned(float3(PI / 2, 0, 0)), sin01(time)), p, cells);
 }
 
-[Draw(64, 1, shade: kept, copies: KEPT * EACH)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+uint2 liveParts() { return livePool.counts(); }
+
+[MeshDraw(128, 128, shade: kept, counts: parts, copies: KEPT * EACH)]
+MeshPart shown(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
-    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera(scale));
+    float scale = m.corner.rest.size.y / 810;
+    return pool.pulled(m, placed(pool.objectOf(copy), scale), camera(scale));
 }
 
-[Draw(64, 1, shade: live, copies: LIVE * EACH)]
-ItemVertex moving(ItemVertex v)
+[MeshDraw(128, 128, shade: live, counts: liveParts, copies: LIVE * EACH)]
+MeshPart moving(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
-    return livePool.pulled(v, placed(livePool.objectOf(copy), scale), camera(scale));
+    float scale = m.corner.rest.size.y / 810;
+    return livePool.pulled(m, placed(livePool.objectOf(copy), scale), camera(scale));
 }
 
 float4 kept(ItemInput i) { return look(i, pool.objectOf(copy)); }

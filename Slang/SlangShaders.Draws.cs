@@ -97,7 +97,7 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals, string[]? more = null) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend, pass.Opaque, pass.OrderDepth),
+        CompiledShader Fragment(string placed, int globals, string[]? more = null) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend, pass.Opaque, pass.OrderDepth, pass.Mesh is not null),
             "xanaduDrawFragment", "fragment", 2, 3, [.. GlobalDefines(globals, 2), .. more ?? []]);
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
@@ -233,11 +233,13 @@ public static partial class SlangShaders
             struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; uint firstCopy; uint pad0; };
             [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
             struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
+            struct XanaduMeshTriangle { uint id : SV_PrimitiveID; };
             [shader("mesh")]
             [numthreads({{threads}}, 1, 1)]
             [outputtopology("triangle")]
             void xanaduMeshDraw(uint thread : SV_GroupThreadID, uint3 group : SV_GroupID,
-                OutputVertices<XanaduDrawVaryings, {{corners}}> corners, OutputIndices<uint3, {{triangles}}> triangles)
+                OutputVertices<XanaduDrawVaryings, {{corners}}> corners, OutputIndices<uint3, {{triangles}}> triangles,
+                OutputPrimitives<XanaduMeshTriangle, {{triangles}}> faces)
             {
                 vertexClock();
                 // A workgroup a copy: as instances, or one after another drawn flat.
@@ -266,7 +268,11 @@ public static partial class SlangShaders
                         corners[k] = drawn;
                     }
                     if (k < xanaduCounts.y)
+                    {
                         triangles[k] = min(made.triangle, uint3(xanaduCounts.x - 1));
+                        XanaduMeshTriangle face = { k };
+                        faces[k] = face;
+                    }
                 }
             }
             """;
@@ -279,7 +285,7 @@ public static partial class SlangShaders
     /// <paramref name="depth"/> field puts its own back into the slice as the vertex stage puts a corner's.
     /// </summary>
     private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth,
-        BlendMode? blend, bool opaque, bool orderDepth)
+        BlendMode? blend, bool opaque, bool orderDepth, bool mesh)
     {
         // Pixels into the screen from z (out of the slice, then z = 0.5 + 0.5 d / (|d| + 1024) undone), or z in the slice as it is.
         string unsquash = orderDepth ? "i.depth = r * 0.5 + 0.5;" : "i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);";
@@ -327,11 +333,12 @@ public static partial class SlangShaders
             struct XanaduDrawn { {{fields}} };
             struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
             [shader("fragment")]
-            XanaduDrawn xanaduDrawFragment(XanaduDrawVaryings drawn, bool front : SV_IsFrontFace)
+            XanaduDrawn xanaduDrawFragment(XanaduDrawVaryings drawn, bool front : SV_IsFrontFace{{(mesh ? ", uint primitive : SV_PrimitiveID" : "")}})
             {
                 ItemVaryings v = drawn.item;
                 copy = v.instance;
-                drawnTriangle = drawn.triangle;
+                // A mesh draw's corners are shared, so its triangle comes per triangle (the mesh stage writes it).
+                drawnTriangle = {{(mesh ? "primitive" : "drawn.triangle")}};
                 frontFacing = !front;   // the grid winds clockwise on a y-down target, which the default front face calls back
                 v.position.xy += xanaduDrawBox.shift;
                 // The texel under the pixel in the item's images, as a pixel pass has it.

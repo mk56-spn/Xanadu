@@ -1195,7 +1195,7 @@ public namespace mesh
         up = cross(side, along);
     }
 
-    /// Corners and triangles a page holds; a draw of the pool is [Draw(64, 1, …)], a page a copy.
+    /// Corners and triangles a page holds; a draw of the pool is [MeshDraw(128, 128, …)], a page a workgroup.
     public static const uint PAGE = 128;
     /// Cells across and down a page of a grid holds (9 × 9 corners, 128 triangles).
     public static const uint PATCH = 8;
@@ -1452,23 +1452,6 @@ public struct Meshes
         }
     }
 
-    /// The corner the draw's vertex `v` stands for (page `page`, or the draw's `copy` when it is
-    /// -1; triangle v.index / 3); false for a triangle its page doesn't use.
-    public bool corner(ItemVertex v, out MeshVertex c, int page = -1)
-    {
-        uint n = page < 0 ? copy : uint(page);
-        uint t = v.index / 3;
-        Meshlet m = pages[n];
-        if (t >= m.triangles)
-        {
-            c = {};
-            return false;
-        }
-        uint packed = triangles[n * mesh.PAGE + t];
-        c = corners[n * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
-        return true;
-    }
-
     /// How many corners and triangles page `page` holds (the draw's `copy` when -1): a mesh draw's
     /// counts, `[MeshDraw(128, 128, shade: fn, counts: fn, copies: …)]` with `uint2 fn() { return pool.counts(); }`.
     public uint2 counts(int page = -1)
@@ -1507,7 +1490,9 @@ public struct Meshes
         return m;
     }
 
-    /// A 2D mesh draw of the pool, as `flat` reads a corner (x and y pixels from the item's middle, z its layer).
+    /// A 2D mesh draw of the pool: the corner's x and y are pixels on the item from its middle, z its layer (nearer
+    /// layers win, as depth does), turned by `angle` radians, scaled by `scale` and moved by `offset`. No camera and no
+    /// light: shade colours it as any item.
     public MeshPart flat(MeshPart m, float2 offset, float angle, float scale, int page = -1)
     {
         MeshVertex c;
@@ -1520,45 +1505,5 @@ public struct Meshes
         m.corner.world = float3(xy, c.position.z);
         m.corner.normal = float3(0.0, 0.0, -1.0);
         return m;
-    }
-
-    /// A 3D draw of the pool: the corner `v` stands for, placed by `placed` and seen through
-    /// `camera`, with its world point, normal and uv set for the shade (i.world, i.normal, i.uv).
-    /// It draws page `page`, or the draw's `copy` when that is -1 (a culled draw passes seen[copy]).
-    public ItemVertex pulled(ItemVertex v, Placement3 placed, Camera camera, int page = -1)
-    {
-        MeshVertex c;
-        if (!corner(v, c, page))
-        {
-            v.fold();
-            return v;
-        }
-        float3 p = placed.toWorld(c.position);
-        v.place(p, camera);
-        v.uv = c.uv;
-        v.world = p;
-        v.normal = rotate3(c.normal, placed.angles);
-        return v;
-    }
-
-    /// A 2D draw of the pool: the corner's x and y are pixels on the item from its middle, z its
-    /// layer (nearer layers win, as depth does), turned by `angle` radians, scaled by `scale` and
-    /// moved by `offset`. No camera and no light: shade colours it as any item.
-    public ItemVertex flat(ItemVertex v, float2 offset, float angle, float scale, int page = -1)
-    {
-        MeshVertex c;
-        if (!corner(v, c, page))
-        {
-            v.fold();
-            return v;
-        }
-        float2 xy = rotate(c.position.xy * scale, angle) + offset;
-        v.position = v.rest.position + xy;
-        v.depth = c.position.z;
-        v.uv = c.uv;
-        v.local = xy;
-        v.world = float3(xy, c.position.z);
-        v.normal = float3(0.0, 0.0, -1.0);
-        return v;
     }
 };

@@ -39,11 +39,13 @@ void make(uint i)
         pool.grid(sea(), p, CELLS);
 }
 
-[Draw(64, 1, shade: look, copies: STEPS * EACH)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: STEPS * EACH)]
+MeshPart shown(MeshPart m)
 {
-    float s = v.rest.size.y / 810;
-    return pool.pulled(v, placed(pool.objectOf(copy), s), camera(s));
+    float s = m.corner.rest.size.y / 810;
+    return pool.pulled(m, placed(pool.objectOf(copy), s), camera(s));
 }
 
 float4 look(ItemInput i)

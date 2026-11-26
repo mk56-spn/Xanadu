@@ -31,14 +31,16 @@ void make(uint i)
     pool.grid(card.morphed(Sphere(150), folded()), i, CELLS, 0, 0);
 }
 
-[Draw(64, 1, shade: look, copies: PAGES)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+MeshPart shown(MeshPart m)
 {
-    float s = v.rest.size.y / 810;
+    float s = m.corner.rest.size.y / 810;
     Placement3 p = Placement3();
     p.angles = float3(0.2, sin(time * 0.5) * 0.5, 0);
     p.scale = s;
-    return pool.pulled(v, p, camera(s));
+    return pool.pulled(m, p, camera(s));
 }
 
 float4 look(ItemInput i)

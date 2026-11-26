@@ -115,7 +115,7 @@ public static class StackPresets
 
         new("Mesh", "meshes",
             "A 3D shape built once on the GPU and drawn every frame. A Meshes pool holds the triangles; a [Pass] builds them "
-            + "from a surface (Sphere, Torus, Cylinder, a lathed curve…); a [Draw] places them in front of a camera and "
+            + "from a surface (Sphere, Torus, Cylinder, a lathed curve…); a [MeshDraw] places them in front of a camera and "
             + "lights them. [Cached] builds it again only when the values change.",
             null, ["make()", "drawn(frame)"],
             """
@@ -129,8 +129,10 @@ public static class StackPresets
             [Pass(128, over: PAGES * 128)]
             void make(uint i) { pool.grid(Sphere(150), i, uint2(32), 0, 0); }
 
-            [Draw(64, 1, shade: look, copies: PAGES)]
-            ItemVertex drawn(ItemVertex v) { return pool.pulled(v, Placement3(), eye(v.rest.size)); }
+            uint2 parts() { return pool.counts(); }
+
+            [MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+            MeshPart drawn(MeshPart m) { return pool.pulled(m, Placement3(), eye(m.corner.rest.size)); }
 
             float4 look(ItemInput i) { return mesh.lit(i, eye(i.rest.size), colours.gold); }
 

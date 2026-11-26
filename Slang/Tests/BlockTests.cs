@@ -174,8 +174,8 @@ public sealed class BlockTests
         [Pass(128, over: 4 * 128)]
         void make(uint i) { pool.grid(Sphere(100), pool.page(i, 1), uint2(8)); }
 
-        [Draw(64, 1, shade: look, copies: pool)]
-        ItemVertex shown(ItemVertex v) { return v; }
+        [MeshDraw(128, 128, shade: look, copies: pool)]
+        MeshPart shown(MeshPart m) { return pool.pulled(m, Placement3(), Camera(900)); }
 
         float4 look(ItemInput i) { return float4(1); }
 

@@ -90,14 +90,18 @@ Placement3 ring()
 [Pass(128, over: RING * 128)]
 void make(uint i) { pool.grid(Torus(160, 40), i, uint2(32), 0, 0); }
 
-[Draw(64, 1, shade: ringSeen, copies: RING)]
-ItemVertex ringDrawn(ItemVertex v) { return pool.pulled(v, ring(), eye(v.rest.size)); }
+uint2 ringParts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: ringSeen, counts: ringParts, copies: RING)]
+MeshPart ringDrawn(MeshPart m) { return pool.pulled(m, ring(), eye(m.corner.rest.size)); }
 
 IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 
+uint2 lampParts() { return LampShadow.counts(RING, pool); }
+
 /// The torus again, from the lamp, into each face of its shadow map: so it shadows the room as the room shadows it.
-[Draw(64, 1, shade: fromLamp, copies: RING * 6)]
-ItemVertex ringFromLamp(ItemVertex v) { return LampShadow.pulled(v, ring(), LAMP, RING, pool); }
+[MeshDraw(128, 128, shade: fromLamp, counts: lampParts, copies: RING * 6)]
+MeshPart ringFromLamp(MeshPart m) { return LampShadow.pulled(m, ring(), LAMP, RING, pool); }
 
 float fromLamp(ItemInput i) { return LampShadow.depthOf(i, RING); }
 

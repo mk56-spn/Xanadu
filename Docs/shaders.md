@@ -1096,32 +1096,32 @@ ItemVertex deform(ItemVertex v)
 ### 3D and 2D meshes: `xanadu.mesh`
 
 A **surface** says where each uv (0..1 across and down) sits in 3D. A **generator**
-(a `[Pass]` calling `mesh.grid`) builds it into the **pool**: pages of 128 corners
-and 128 triangles in three buffers. One counted `[Draw]` pulls every page's
-corners and places them through a **camera** (`mesh.pulled`, 3D) or flat on the
-item (`mesh.flat`, 2D, x and y in pixels, z the layer). On `[Cached]` buffers the
-generator runs only when a value changes, so a mesh is built once and every
-frame only draws it; the draw still turns and moves it (`Placement3`). A shape
-that changes every frame (waves, a morph) goes in plain Lists and is built
-each frame.
+(a `[Pass]` calling `pool.grid`) builds it into the **pool** (`Meshes`): pages of
+128 corners and 128 triangles. One mesh draw (`[MeshDraw]`, below) shows every
+page, a page a workgroup, and places its corners through a **camera**
+(`pool.pulled`, 3D) or flat on the item (`pool.flat`, 2D, x and y in pixels, z
+the layer). On a `[Cached]` pool the generator runs only when a value changes, so
+a mesh is built once and every frame only draws it; the draw still turns and
+moves it (`Placement3`). A shape that changes every frame (waves, a morph) goes
+in a plain pool and is built each frame.
 
 ```slang
 static const uint PAGES = 16;                        // a 32 x 32 grid (mesh.pagesFor)
-[Cached] [Size(PAGES * 128)] List<MeshVertex> corners;
-[Cached] [Size(PAGES * 128)] List<uint> triangles;
-[Cached] [Size(PAGES)] List<Meshlet> meshlets;
+[Cached] [Size(PAGES)] Meshes pool;
 
 Camera camera() { return Camera(900).orbited(0, 0.3); }
 
 [Pass(128, over: PAGES * 128)]
-void make(uint i) { mesh.grid(Sphere(160), i, uint2(32), 0, 0, corners, triangles, meshlets); }
+void make(uint i) { pool.grid(Sphere(160), i, uint2(32), 0, 0); }
 
-[Draw(64, 1, shade: look, copies: PAGES)]                // a page a copy
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }              // what this page holds
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]   // a page a workgroup
+MeshPart shown(MeshPart m)
 {
     Placement3 p = Placement3();
     p.angles = float3(0.3, time, 0);
-    return mesh.pulled(v, p, camera(), corners, triangles, meshlets);
+    return pool.pulled(m, p, camera());
 }
 
 float4 look(ItemInput i)
@@ -1139,7 +1139,7 @@ looks along +z from `distance` in front of the origin; by default depth 0 shows
 1:1, so `Sphere(160)` is 320 px across. `camera.orbited(yaw, pitch)` swings it
 round; `projected(p)`, `depth(p)` and `eye` are there for your own maths. Several
 objects share a pool: give each its own range of pages (`first`) and its own
-number (`object`), and read `meshlets[copy].object` in the draw and its shade.
+number (`object`), and read `pool.objectOf(copy)` in the draw and its shade.
 
 | Surface | Is (u, v) |
 |---|---|

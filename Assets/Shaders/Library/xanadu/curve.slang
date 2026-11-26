@@ -215,7 +215,7 @@ public struct Helix : ICurve3
 /// A torus knot lying flat: a closed path that winds `p` times round the upright axis while it
 /// loops `q` times through the ring's hole, weaving `swing` px either side of a ring `radius`
 /// round. (2, 3) is the trefoil, (3, 2) its cousin, (2, 5) a five-lobed star; p and q with no
-/// common factor give one unbroken knot. It crosses over itself, which the pool's draw sorts
+/// common factor give one unbroken knot. It crosses over itself, which the pool's mesh draw sorts
 /// by depth (Meshes.pulled).
 ///
 ///     pool.grid(TorusKnot(120, 50, 2, 3).tube(18), t, uint2(64, 16), 0, 0)

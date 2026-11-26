@@ -32,13 +32,15 @@ struct Tunnel : ISurface
 [Pass(128, over: PAGES * 128)]
 void make(uint i) { pool.grid(Tunnel(), i, CELLS, 0, 0); }
 
-[Draw(64, 1, shade: look, copies: PAGES)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+MeshPart shown(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
+    float scale = m.corner.rest.size.y / 810;
     Placement3 p = Placement3();
     p.scale = scale;
-    return pool.pulled(v, p, camera(scale));
+    return pool.pulled(m, p, camera(scale));
 }
 
 float4 look(ItemInput i)

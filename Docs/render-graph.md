@@ -494,10 +494,11 @@ Stage E, first slice: the mesh core (2026-11-25):
 - **Generators are passes:** `mesh.grid(surface, t, cells, first, object, …)` is thread t of building any
   `ISurface` as a grid into pages from `first` (8 × 8 cells a page, `mesh.pagesFor`), called from the stack's own
   `[Pass]` (a library pass can't take the stack's surface).
-- **One vertex-pulled draw:** `[Draw(64, 1, shade: …, copies: pages)]`, a page a copy; `mesh.corner` pulls the
-  corner for `v.index` from page `copy`, folding away triangles the page doesn't use. Two front doors over it:
-  `mesh.pulled(v, placement, camera, …)` (3D: the object placed live by the draw, so a cached mesh still turns and
-  moves) and `mesh.flat(v, offset, angle, scale, …)` (2D: x and y in pixels on the item, z the layer, unlit).
+- **One mesh draw** (since 2026-11-26; a vertex-pulled `[Draw]` before): `[MeshDraw(128, 128, shade: …, counts: …,
+  copies: pages)]`, a page a workgroup emitting only the corners and triangles it holds (`pool.counts`), each corner
+  placed once. Two front doors over it: `pool.pulled(m, placement, camera, …)` (3D: the object placed live by the draw,
+  so a cached mesh still turns and moves) and `pool.flat(m, offset, angle, scale, …)` (2D: x and y in pixels on the
+  item, z the layer, unlit).
   `mesh.lit(i, camera, base)` lights a pixel from what the vertex stage handed on. `Stroke` (`curve.stroked(width)`)
   is the first 2D-native surface.
 - **What draws gained for it:** `ItemVertex.world` / `normal` carried to the shade as `i.world` / `i.normal` (a draw's

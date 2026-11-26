@@ -11,8 +11,9 @@
 //
 //     Visibility seen() { return Visibility(depth, ids); }
 //
-//     [Draw(64, 1, shade: ringSeen, copies: PAGES)]    // a pool draw writes depth and ids
-//     ItemVertex ringDrawn(ItemVertex v) { return pool.pulled(v, placed(), eye(v.rest.size)); }
+//     uint2 parts() { return pool.counts(); }
+//     [MeshDraw(128, 128, shade: ringSeen, counts: parts, copies: PAGES)]    // a pool draw writes depth and ids
+//     MeshPart ringDrawn(MeshPart m) { return pool.pulled(m, placed(), eye(m.corner.rest.size)); }
 //     IdTexels ringSeen(ItemInput i) { return Visibility.texels(i.depth, makers.mesh(copy, drawnTriangle)); }
 //
 //     [Pixels(8, 8)]
@@ -341,8 +342,8 @@ public BothShadows<A, B> both<A : IShadows, B : IShadows>(A a, B b) { return Bot
 /// through that camera. Darkens only light `light`; no occlusion of its own.
 ///
 ///     [Clear(1e30)] Image<float> lampDepth;
-///     [Draw(64, 1, shade: fromLamp, copies: PAGES)]
-///     ItemVertex seenByLamp(ItemVertex v) { return pool.pulled(v, placed(), lampEye(v.rest.size)); }
+///     [MeshDraw(128, 128, shade: fromLamp, counts: parts, copies: PAGES)]
+///     MeshPart seenByLamp(MeshPart m) { return pool.pulled(m, placed(), lampEye(m.corner.rest.size)); }
 ///     float fromLamp(ItemInput i) { return i.depth; }
 ///     // graph(): seenByLamp(lampDepth);   lighting: ShadowMap(Lighting.LAMP, lampDepth, lampEye(canvas.size), canvas.size)
 public struct ShadowMap : IShadows
@@ -394,8 +395,9 @@ public struct ShadowMap : IShadows
 /// lighting asks it for light `light` only.
 ///
 ///     [Clear(1e30)] Image<float> lampDepth;
-///     [Draw(64, 1, shade: fromLamp, copies: PAGES * 6)]
-///     ItemVertex seenByLamp(ItemVertex v) { return LampShadow.pulled(v, placed(), LAMP, PAGES, pool); }
+///     uint2 lampParts() { return LampShadow.counts(PAGES, pool); }
+///     [MeshDraw(128, 128, shade: fromLamp, counts: lampParts, copies: PAGES * 6)]
+///     MeshPart seenByLamp(MeshPart m) { return LampShadow.pulled(m, placed(), LAMP, PAGES, pool); }
 ///     float fromLamp(ItemInput i) { return LampShadow.depthOf(i, PAGES); }
 ///     // lighting: LampShadow(Lighting.LAMP, lampDepth, LAMP, canvas.size)
 public struct LampShadow : IShadows
@@ -451,30 +453,28 @@ public struct LampShadow : IShadows
         return float3(t.xy + t.zw * 0.5 + v.xy / max(v.z, 1e-3) * half, v.z);
     }
 
-    /// A pool draw's corner as face `copy / pages` sees it from `lamp`, for the lamp's map: the
-    /// page is `copy % pages`. A triangle with a corner behind the face is folded away (the face it
+    /// The page a lamp draw's workgroup draws: `copy % pages` (its counts for the draw's `counts:`).
+    public static uint2 counts(uint pages, Meshes pool) { return pool.counts(int(copy % pages)); }
+
+    /// A pool mesh draw's corner as face `copy / pages` sees it from `lamp`, for the lamp's map: the
+    /// page is `copy % pages`. A triangle with a corner behind the face is dropped (the face it
     /// faces draws it).
-    public static ItemVertex pulled(ItemVertex v, Placement3 placed, float3 lamp, uint pages, Meshes pool)
+    public static MeshPart pulled(MeshPart m, Placement3 placed, float3 lamp, uint pages, Meshes pool)
     {
         uint face = copy / pages;
         uint page = copy % pages;
-        uint t = v.index / 3;
-        Meshlet m = pool.pages[page];
         float3x3 b = basis(face);
-        uint packed = t < m.triangles ? pool.triangles[page * mesh.PAGE + t] : 0u;
-        bool behind = t >= m.triangles;
+        MeshVertex c;
+        m = pool.part(m, c, int(page));
+        bool behind = false;
         for (uint k = 0; k < 3 && !behind; k++)
-            behind = mul(b, placed.toWorld(pool.corners[page * mesh.PAGE + ((packed >> (8 * k)) & 0xFFu)].position) - lamp).z < 1.0;
+            behind = mul(b, placed.toWorld(pool.corners[page * mesh.PAGE + m.triangle[k]].position) - lamp).z < 1.0;
         if (behind)
-        {
-            v.fold();
-            return v;
-        }
-        float3 p = placed.toWorld(pool.corners[page * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFFu)].position);
-        float3 at = onFace(face, lamp, p, v.rest.size);
-        v.position = v.rest.position - v.rest.size * 0.5 + at.xy;
-        v.depth = at.z;
-        return v;
+            m.triangle = uint3(0);
+        float3 at = onFace(face, lamp, placed.toWorld(c.position), m.corner.rest.size);
+        m.corner.position = m.corner.rest.position - m.corner.rest.size * 0.5 + at.xy;
+        m.corner.depth = at.z;
+        return m;
     }
 
     /// What LampShadow.pulled's shade writes: how far ahead of the lamp the pixel is, only inside
