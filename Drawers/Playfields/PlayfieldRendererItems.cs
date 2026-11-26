@@ -44,8 +44,11 @@ public static partial class PlayfieldRenderer
         NoteOrder.Clear();
         entities.Query<Note>().EachEntity(new CollectNotes(NoteOrder));
         NoteOrder.Sort(static (a, b) => b.TimeMs.CompareTo(a.TimeMs));
+        NoteCopies notes = NoteCopies.For(rid, "notes");
         foreach ((_, int id) in NoteOrder)
-            DrawNoteItem(canvas, rid, entities.GetEntityById(id), frame);
+            DrawNoteItem(canvas, rid, notes, entities.GetEntityById(id), frame);
+        notes.Draw(canvas, rid, FieldRect(frame.View, frame.Playfield));
+        DrawNoteOutlines(canvas, rid);
 
         Rect2 field = FieldRect(frame.View, frame.Playfield);
         entities.Query<NotePop>().EachEntity(new DrawPops(canvas, rid, entities, field));
@@ -54,7 +57,7 @@ public static partial class PlayfieldRenderer
         drawWedge?.Invoke();
     }
 
-    private static void DrawNoteItem(IRectCanvas canvas, Handle rid, Entity entity, in PlayfieldItemFrame frame)
+    private static void DrawNoteItem(IRectCanvas canvas, Handle rid, NoteCopies notes, Entity entity, in PlayfieldItemFrame frame)
     {
         if (entity.GetComponent<Note>().IsOrb)
         {
@@ -70,7 +73,7 @@ public static partial class PlayfieldRenderer
             return;
         }
 
-        DrawNote(canvas, rid, entity, frame.View, frame.Playhead, frame.SelectedNote);
+        DrawNote(notes, entity, frame.View, frame.Playhead, frame.SelectedNote);
     }
 
     private readonly struct DrawPops(IRectCanvas canvas, Handle rid, EntityStore store, Rect2 field) : IEachEntity<NotePop>

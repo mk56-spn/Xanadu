@@ -304,3 +304,29 @@ Tests are left alone while this is mid-prototype; only game projects build.
 - UI icons (`Assets/Icons/*.svg`) and the window icon (`Assets/icon.svg`)
   keep loading through `SvgRaster` in `HostTextures`. That is a separate
   concern; only SVG as art goes.
+
+## Drawing on the render graph (agreed 2026-11-26)
+
+Xif stays the content model (modules, the node tree, what the editors author) and the CPU side that evaluates it:
+poses, bone matrices, bounds, hit tests, anything gameplay reads. It stops drawing. `XifDrawer` (triangles placed on
+the CPU every frame, one shaded run per node) is the second drawing path, and the render graph replaces it piece by
+piece; it is deleted at the end, not kept beside the graph.
+
+- **The shape of it:** a stack per kind of thing draws every copy of that kind in one counted draw, fed a `[Host]`
+  list each frame (the per-copy data: placement, colour, shape values). Geometry that isn't a quad goes into the mesh
+  pool once and is drawn by page. Batching stops at draw boundaries (layers, buffered groups, layer passes).
+- **Order:** (1) notes and chord marks, (2) decos, pads, orbs, pops, (3) the puppet with skinning on the GPU (the
+  pose stays on the CPU), (4) the animator, then `XifDrawer` goes.
+
+### Step 1, notes (2026-11-26)
+
+- `Assets/Shaders/Game/notes` draws key notes, dash bars, chord lines and landing dots: one `Shown` per look in a
+  `[Host]` list, a quad each in the item's units from the run's rect (`area`), one `[Draw(copies: lookCount)]`. Its
+  shade builds the look's own quad from `local`'s derivatives and sets `shading.canvas` to it, so the shape code is
+  the old shaders' unchanged. The four shaders it replaces (`note`, `dash_note`, `chord_line`, `dot`) are gone, and
+  `NoteLooks` keeps only the pops.
+- `NoteCopies` (Drawers) collects the looks and draws them as one run through its own `CanvasMaterial`
+  (`IRectCanvas.SelectMaterial`, new: a run whose material carries its own buffers). One per target and use: the
+  playfield's chords and notes, the editor's ghost.
+- What moved: notes draw together after the note loop, so an orb note or entrance marker in between now sits under
+  them; selection outlines draw after the notes.

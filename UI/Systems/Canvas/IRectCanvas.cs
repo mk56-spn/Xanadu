@@ -31,6 +31,13 @@ public interface IRectCanvas
     void SelectCommonShader(string path, BlendMode blend = BlendMode.Mix) { }
 
     /// <summary>
+    /// Routes the draws that follow through <paramref name="material"/> itself, or none for null, in a run of their
+    /// own: for a material that carries data of its own (host buffers, values) rather than one shared by path.
+    /// Canvases with no shaders ignore it.
+    /// </summary>
+    void SelectMaterial(CanvasMaterial? material) { }
+
+    /// <summary>
     /// Sends the draws that follow into a run of their own, even when the
     /// selection matches the current run's, so instance values set for them
     /// reach only them. Canvases with no shaders ignore it.

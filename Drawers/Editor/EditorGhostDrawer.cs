@@ -64,7 +64,7 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
 
         if (editor.GetComponent<EditorPlacement>().Mode == EditorPlacementMode.Chord)
         {
-            DrawChordGhost(new Chord(now, at), view, valid);
+            DrawChordGhost(new Chord(now, at), view, frame.Playfield, valid);
             return;
         }
 
@@ -84,16 +84,20 @@ public sealed class EditorGhostDrawer(EditorDrawSurface surface)
 
         Color color = valid ? PlayfieldColors.ColorFor(note) : Palette.Danger;
         Vector2 landing = Chords.Landing(surface.Entities, note);
-        PlayfieldRenderer.DrawNoteShape(surface.Canvas, surface.Target, note, view.PlayfieldToScreen(landing), view.Scale, Faint(color));
+        NoteCopies copies = NoteCopies.For(surface.Target, "ghost");
+        PlayfieldRenderer.DrawNoteShape(copies, note, view.PlayfieldToScreen(landing), view.Scale, Faint(color));
+        copies.Draw(surface.Canvas, surface.Target, PlayfieldMetrics.FieldRect(view, frame.Playfield));
     }
 
-    private void DrawChordGhost(Chord chord, PlayfieldView view, bool valid)
+    private void DrawChordGhost(Chord chord, PlayfieldView view, Playfield playfield, bool valid)
     {
+        NoteCopies copies = NoteCopies.For(surface.Target, "ghost");
         for (int line = 0; line < Chords.LineCount; line++)
         {
             Color color = valid ? PlayfieldColors.ColorFor(Xanadu.Model.Settings.KeybindActions.ActionKeys[line]) : Palette.Danger;
-            PlayfieldRenderer.DrawFadedLine(surface.Canvas, surface.Target, view.PlayfieldToScreen(Chords.Top(chord, line)), view.PlayfieldToScreen(Chords.Landing(chord, line)), Faint(color), 3f);
+            PlayfieldRenderer.DrawFadedLine(copies, view.PlayfieldToScreen(Chords.Top(chord, line)), view.PlayfieldToScreen(Chords.Landing(chord, line)), Faint(color), 3f);
         }
+        copies.Draw(surface.Canvas, surface.Target, PlayfieldMetrics.FieldRect(view, playfield));
     }
 
     private static Color Faint(Color color) => new(color.R, color.G, color.B, color.A * GhostAlpha);

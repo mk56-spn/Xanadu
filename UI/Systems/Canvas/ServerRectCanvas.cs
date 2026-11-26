@@ -33,6 +33,13 @@ public class ServerRectCanvas : IRectCanvas
         _values = null;
     }
 
+    /// <summary>Shades the draws that follow with <paramref name="material"/> itself (none for null), in a run of their own.</summary>
+    public void SelectMaterial(CanvasMaterial? material)
+    {
+        _material = material;
+        _values = null;
+    }
+
     /// <summary>Level shader slots went with the v2 rework: slot 0 (plain) is the only one left.</summary>
     public void SelectShader(int slot, BlendMode blend = BlendMode.Mix, int sourceGroup = -1)
     {

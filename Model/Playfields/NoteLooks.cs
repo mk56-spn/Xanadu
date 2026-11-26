@@ -4,35 +4,14 @@ using Xanadu.Core.Items;
 namespace Xanadu.Model.Playfields;
 
 /// <summary>
-/// What notes look like, as Xifs the drawer sets a colour on for each draw:
-/// <see cref="Key"/>, a key note's rectangle (<see cref="NoteShader"/>), and
-/// <see cref="Dash"/>, a dash's bar across the chord with its diamond
-/// (<see cref="DashShader"/>). Both are quads centred on the note.
+/// What a hit note's pops look like, as Xifs the drawer sets values on for each draw
+/// (<see cref="Pop"/>, <see cref="DashPop"/>). The notes themselves are drawn by the
+/// notes stack (Drawers' <c>NoteCopies</c>), not as Xifs.
 /// </summary>
 public static class NoteLooks
 {
-    public const string NoteShader = "Assets/Shaders/Game/note";
-    public const string DashShader = "Assets/Shaders/Game/dash_note";
-
     /// <summary>The dash's diamond's half diagonal, playfield units.</summary>
     public const float DiamondReach = 14f;
-
-    public static Xif Key => _key ??= Quad("note", NoteShader, Chords.NoteSize / 2f,
-        new() { ["note_tint"] = [1f, 1f, 1f, 1f] });
-
-    public static Xif Dash => _dash ??= Quad("dash", DashShader,
-        new Vector2(Chords.DashSize.X / 2f + 2f, System.MathF.Max(Chords.DashSize.Y / 2f, DiamondReach + 2f)),
-        new() { ["dash_tint"] = [1f, 1f, 1f, 1f], ["dash_shape"] = [Chords.DashSize.X, Chords.DashSize.Y, DiamondReach, 0f] });
-
-    public const string LineShader = "Assets/Shaders/Game/chord_line";
-    public const string DotShader = "Assets/Shaders/Game/dot";
-
-    /// <summary>A chord's line: a unit quad (0..1 along, -1..1 across) the drawer stretches over it; <c>line_shape.x</c> is how far along it fades in.</summary>
-    public static Xif Line => _line ??= Quad("chord line", LineShader, new Vector2(0.5f, 1f),
-        new() { ["line_tint"] = [1f, 1f, 1f, 1f], ["line_shape"] = [0.45f, 0f, 0f, 0f] }, new Vector2(0.5f, 0f));
-
-    /// <summary>A round dot, a unit quad either way of its middle, sized by the drawer.</summary>
-    public static Xif Dot => _dot ??= Quad("dot", DotShader, Vector2.One, new() { ["dot_tint"] = [1f, 1f, 1f, 1f] });
 
     public const string PopShader = "Assets/Shaders/Game/note_pop";
     public const string DashPopShader = "Assets/Shaders/Game/dash_pop";
@@ -45,7 +24,7 @@ public static class NoteLooks
     public static Xif DashPop => _dashPop ??= Quad("dash pop", DashPopShader, Vector2.One,
         new() { ["dashpop_shape"] = [150f, 10f, 80f, 10f], ["dashpop_state"] = [1f, 0f, 0f, 0f] });
 
-    private static Xif? _key, _dash, _line, _dot, _pop, _dashPop;
+    private static Xif? _pop, _dashPop;
 
     /// <summary>Sets one of a look's values for its next draw.</summary>
     public static void Set(Xif look, string name, float x, float y = 0f, float z = 0f, float w = 0f)
@@ -56,9 +35,6 @@ public static class NoteLooks
         if (value.Length > 2) value[2] = z;
         if (value.Length > 3) value[3] = w;
     }
-
-    /// <summary>Sets how far along a chord line fades in (0 for solid all along).</summary>
-    public static void SetFade(float share) => Line.Get<XifShader>()!.Params["line_shape"][0] = share;
 
     /// <summary>Sets a look's colour (its first value) for its next draw.</summary>
     public static void SetColour(Xif look, Color colour)
@@ -74,7 +50,7 @@ public static class NoteLooks
         }
     }
 
-    private static Xif Quad(string name, string shader, Vector2 half, Dictionary<string, float[]> values, Vector2 middle = default) => new()
+    private static Xif Quad(string name, string shader, Vector2 half, Dictionary<string, float[]> values) => new()
     {
         Name = name,
         Modules =
@@ -89,8 +65,8 @@ public static class NoteLooks
                         Kind = XifShapeKind.Quad,
                         Points =
                         [
-                            middle + new Vector2(-half.X, -half.Y), middle + new Vector2(half.X, -half.Y),
-                            middle + new Vector2(half.X, half.Y), middle + new Vector2(-half.X, half.Y),
+                            new Vector2(-half.X, -half.Y), new Vector2(half.X, -half.Y),
+                            new Vector2(half.X, half.Y), new Vector2(-half.X, half.Y),
                         ],
                     },
                 },
