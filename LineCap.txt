@@ -10,7 +10,7 @@
 607 HostCore/HostApp.cs
 484 HostCore/Tools/ShaderEditing/ClipTimeline.cs
 667 HostCore/Tools/ShaderEditing/ShaderCodeEditor.cs
-575 HostCore/Tools/ShaderEditing/SlangEditorHost.cs
+572 HostCore/Tools/ShaderEditing/SlangEditorHost.cs
 413 Logic/Animator/AnimatorTimeline.cs
 546 Logic/Animator/Commands/AnimatorEditing.cs
 435 Logic/Animator/Commands/AnimatorKeyCommands.cs

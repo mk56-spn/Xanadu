@@ -20,7 +20,10 @@ public readonly record struct Bracket(int Line, int Column, TokenKind? Owner, in
 /// </summary>
 public static class SlangBrackets
 {
-    public static List<Bracket> Find(IReadOnlyList<string> lines, Func<string, List<Token>> tokenize)
+    public static List<Bracket> Find(IReadOnlyList<string> lines, Func<string, List<Token>> tokenize) => Find(lines, line => tokenize(lines[line]));
+
+    /// <summary>The same, with each line's tokens by its number (so they can depend on where the line is).</summary>
+    public static List<Bracket> Find(IReadOnlyList<string> lines, Func<int, List<Token>> tokenize)
     {
         var brackets = new List<Bracket>();
         var open = new Stack<(int Index, char Close)>();
@@ -32,7 +35,7 @@ public static class SlangBrackets
         for (int line = 0; line < lines.Count; line++)
         {
             string text = lines[line];
-            List<Token> tokens = tokenize(text);
+            List<Token> tokens = tokenize(line);
             for (int column = 0; column < text.Length; column++)
             {
                 char c = text[column];

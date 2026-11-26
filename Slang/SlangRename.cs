@@ -94,8 +94,8 @@ public static partial class SlangRename
                 found = [.. plain.Where(u => BlockOf(blocks, u) == here)];
             else if (declarations.Exists(d => Owner(d) is null))
             {
-                // Declared at the top: everywhere but functions that declare their own.
-                var shadowing = blocks.Where(b => !b.Struct && declarations.Exists(d => Owner(d) == b)).ToList();
+                // Declared at the top: everywhere but functions that declare their own, and structs with a field of that name.
+                var shadowing = blocks.Where(b => declarations.Exists(d => Owner(d) == b)).ToList();
                 found = [.. plain.Where(u => BlockOf(blocks, u) is not { } b || !shadowing.Contains(b))];
             }
             else

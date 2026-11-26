@@ -79,11 +79,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     public bool ReadOnly { get; set; }
 
     /// <summary>Drops what was worked out for the text, after another text was put in the editor.</summary>
-    public void Forget()
-    {
-        _rename = null;
-        _fadedVersion = -1;
-    }
+    public void Forget() => (_rename, _fadedVersion) = (null, -1);
 
     /// <summary>A rename under way: the name as it was, as it is now, and its places (the caret's one first).</summary>
     private sealed class Renaming(string original, List<(int Line, int Column)> places)
@@ -161,6 +157,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     }
 
     private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases, hints.Attributes, _declared, hints);
+    private List<Token> Tokens(TextBuffer buffer, int line) => _declared.Mark(line, Tokens(buffer.Lines[line]));
 
     public void Prepare(TextBuffer buffer, List<TextCell> boxed)
     {
@@ -169,13 +166,13 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         if (_fadedVersion != buffer.Version)
         {
             _fadedVersion = buffer.Version;
-            _faded = SlangUnused.Find(buffer.Lines, Elsewhere?.Invoke());
+            List<string> elsewhere = [.. Elsewhere?.Invoke() ?? []];
+            (_faded, _declared) = (SlangUnused.Find(buffer.Lines, elsewhere), SlangDeclared.Find(buffer.Lines, elsewhere));
             _loopIndexes = SlangLoops.Find(buffer.Lines);
             _declaredColours = SlangColours.Declared(buffer.Lines);
-            _declared = SlangDeclared.Find(buffer.Lines);
         }
 
-        List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, Tokens);
+        List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, line => Tokens(buffer, line));
 
         // The bracket just after the caret, else the one just before it.
         int active = brackets.FindIndex(b => b.Line == buffer.Line && b.Column == buffer.Column);
@@ -203,7 +200,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         string text = buffer.Lines[line];
         // Each column's colour: its token's, then a bracket's over it; runs are where it stays the same.
         var colours = new Color?[text.Length];
-        foreach (Token token in Tokens(text))
+        foreach (Token token in Tokens(buffer, line))
         {
             for (int c = token.Start; c < token.End && c < text.Length; c++)
                 colours[c] = SlangTokenColours.Of(token.Kind);

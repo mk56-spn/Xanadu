@@ -27,7 +27,10 @@ public enum TokenKind
     /// <summary>A type the code declares itself (<c>struct Death</c>), apart from the library's.</summary>
     CodeType,
 
-    /// <summary>A name the code declares outside any body: a constant, a uniform, a stack's state (<see cref="SlangDeclared"/>).</summary>
+    /// <summary>
+    /// A name the code declares outside any body: a constant, a uniform, a stack's state. Never from <see cref="SlangSyntax.Tokens"/>:
+    /// which places mean the global is a question of scope, answered by <see cref="SlangDeclared.Mark"/>.
+    /// </summary>
     Global,
 
     /// <summary>A constant the library declares (<c>PI</c>, <c>particles.LINE</c>).</summary>
@@ -180,8 +183,7 @@ public static class SlangSyntax
         int next = end;
         while (next < line.Length && line[next] == ' ')
             next++;
-        // The code's own global wins over a library namespace of the same name (Field field; field.spread).
-        if (next < line.Length && line[next] == '.' && namespaces.Contains(word) && !code.Globals.Contains(word))
+        if (next < line.Length && line[next] == '.' && namespaces.Contains(word))
             return TokenKind.Namespace;
         if (next < line.Length && line[next] == '(')
             return TokenKind.Function;
@@ -194,6 +196,6 @@ public static class SlangSyntax
             return TokenKind.LibraryConstant;
         if (member)
             return TokenKind.Member;
-        return code.Globals.Contains(word) ? TokenKind.Global : TokenKind.Plain;
+        return TokenKind.Plain;
     }
 }
