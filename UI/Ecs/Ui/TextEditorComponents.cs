@@ -9,7 +9,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// A multi-line text editor: the text, its undo, where it draws, and what its
 /// systems keep between frames. It knows nothing about what the text is; an
 /// owner that does (a code editor) colours it, adds marks and takes keys first
-/// through <see cref="Host"/>. <see cref="TextEditors.Create"/> makes one.
+/// by hearing the signals in <c>TextEditorSignals.cs</c>. <see cref="TextEditors.Create"/> makes one.
 /// </summary>
 /// <remarks>
 /// <c>TextEditorInputSystem</c> turns keys, typing and the pointer into edits
@@ -22,12 +22,25 @@ public struct TextEditor : IComponent
     public TextBuffer Buffer;
     public TextHistory History;
 
-    /// <summary>Colours, marks and first look at keys and presses; null for plain text.</summary>
-    public ITextEditorHost? Host;
+    /// <summary>What starts a line comment in this text (<c>//</c>), for Ctrl+/ and folding; null where there are none.</summary>
+    public string? LineComment;
+
+    /// <summary>
+    /// The owner's own version, written on <see cref="TextVersionDue"/>: it moves whenever what the owner would
+    /// prepare or decorate changes for a reason other than the text and the caret (problems from a compile, a
+    /// rename), so the editor redraws only when something it draws from moved.
+    /// </summary>
+    public int OwnerVersion;
+
+    /// <summary>The owner's answer to the last asking signal: it took the key, typing or press itself.</summary>
+    public bool Taken;
+
+    /// <summary>The owner's answer to <see cref="TextIndentAsked"/>; null leaves it to the indent steps.</summary>
+    public int? Indent;
 
     /// <summary>
     /// The caret moves, selects and copies, but nothing edits: typing, cutting, pasting, undo and the
-    /// editing keys are refused (<see cref="TextEditorFrame.Refused"/>), and the host never sees them.
+    /// editing keys are refused (<see cref="TextEditorFrame.Refused"/>), and the owner never hears them.
     /// </summary>
     public bool ReadOnly;
 
@@ -100,66 +113,11 @@ public sealed class TextLineDecor
     }
 }
 
-/// <summary>
-/// What a text editor's owner adds on top of plain text. Every member has a
-/// default, so an owner implements only what it needs.
-/// </summary>
-public interface ITextEditorHost
-{
-    /// <summary>
-    /// Moves whenever what <see cref="Prepare"/> and <see cref="Decorate"/> would draw changes for a
-    /// reason other than the text and the caret (problems from a compile, a rename): the editor
-    /// redraws only when something it draws from moved.
-    /// </summary>
-    int Version => 0;
-
-    /// <summary>Before drawing, when anything drawn changed: work done for the whole text, and cells to box (a matching bracket pair).</summary>
-    void Prepare(TextBuffer buffer, List<TextCell> boxed)
-    {
-    }
-
-    /// <summary>One line's colours, inlays and mark. Called for lines as they are drawn or hit, so keep it cheap.</summary>
-    void Decorate(TextBuffer buffer, int line, TextLineDecor decor)
-    {
-    }
-
-    /// <summary>A key press (or a held key repeating) before the editor's own handling; true when taken.</summary>
-    bool TakeKey(TextBuffer buffer, Key key, bool shift, bool ctrl) => false;
-
-    /// <summary>Characters typed, before they are inserted; true when the owner put them in itself.</summary>
-    bool TakeTyped(TextBuffer buffer, string text) => false;
-
-    /// <summary>A press inside the editor's area before it places the caret (a popup over the text); true when taken.</summary>
-    bool TakePress(TextBuffer buffer, Vector2 point) => false;
-
-    /// <summary>A Ctrl+click, once the caret is placed at it (go to what is there); true when taken.</summary>
-    bool TakeCtrlClick(TextBuffer buffer) => false;
-
-    /// <summary>What starts a line comment in this text (<c>//</c>), for Ctrl+/; null where there are none.</summary>
-    string? LineComment => null;
-
-    /// <summary>
-    /// The spaces a line belongs at by the code's nesting, for a line off the indent
-    /// steps and for Enter from one; null leaves it to the step below.
-    /// </summary>
-    int? IndentFor(TextBuffer buffer, int line) => null;
-}
-
-public static class TextEditorIndent
-{
-    /// <summary>Where a line's text belongs (<see cref="TextIndent.Wanted"/>), asking the owner when it is off the steps.</summary>
-    public static int WantedIndent(this ITextEditorHost? host, TextBuffer buffer, int line)
-    {
-        string text = buffer.Lines[line];
-        return TextIndent.Wanted(text, TextIndent.Of(text) % TextBuffer.Indent != 0 ? host?.IndentFor(buffer, line) : null);
-    }
-}
-
 /// <summary>Making and focusing text editors.</summary>
 public static class TextEditors
 {
     /// <summary>A text editor over <paramref name="area"/>, drawing into a new canvas item under <paramref name="parent"/>, focused.</summary>
-    public static Entity Create(EntityStore store, Handle parent, Rect2 area, string text, ITextEditorHost? host = null)
+    public static Entity Create(EntityStore store, Handle parent, Rect2 area, string text)
     {
         Handle item = CanvasServer.Current.CreateItem();
         CanvasServer.Current.SetParent(item, parent);
@@ -172,12 +130,12 @@ public static class TextEditors
         {
             Buffer = buffer,
             History = new TextHistory(buffer),
-            Host = host,
             Item = item,
             Layout = new TextEditorLayout(area),
             LastClick = -1,
             LastClickAt = (-1, -1),
         });
+        entity.GetComponent<TextEditor>().Layout.Editor = entity;
         entity.AddTag<TextEditorFocused>();
         return entity;
     }
@@ -187,7 +145,7 @@ public static class TextEditors
     /// every frame (<see cref="Follow"/>), so it moves and resizes with the
     /// layout in the same frame. Draws into a new canvas item under <paramref name="parent"/>, focused.
     /// </summary>
-    public static Entity Create(UiNode node, Handle parent, string text, ITextEditorHost? host = null)
+    public static Entity Create(UiNode node, Handle parent, string text)
     {
         Rect2 area = UiLayout.Box(node.Entity);
         Handle item = CanvasServer.Current.CreateItem();
@@ -201,9 +159,8 @@ public static class TextEditors
         {
             Buffer = buffer,
             History = new TextHistory(buffer),
-            Host = host,
             Item = item,
-            Layout = new TextEditorLayout(area),
+            Layout = new TextEditorLayout(area) { Editor = node.Entity },
             LastClick = -1,
             LastClickAt = (-1, -1),
         });

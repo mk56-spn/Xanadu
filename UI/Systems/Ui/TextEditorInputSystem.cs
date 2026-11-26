@@ -14,7 +14,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// Ctrl+S go only to the owner. The pointer works
 /// on every editor: a press focuses the one it lands in (and unfocuses the rest),
 /// a click places the caret (with Ctrl, the owner may then go somewhere), a double click selects a word, a drag selects, and
-/// the wheel scrolls. The owner's <see cref="ITextEditorHost"/> sees keys, typing
+/// the wheel scrolls. The owner hears keys, typing
 /// and presses first. A press in the gutter of a block, or on a folded one's pill, folds or opens it, as do
 /// Ctrl+Shift+[ and ] for the block round the caret; Up, Down, the page keys and the wheel step over folded blocks.
 /// </summary>
@@ -100,7 +100,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             if (edited || moved)
             {
                 editor.SinceCaretMove = 0;
-                editor.Layout.Reveal(buffer, editor.Host, buffer.Line);
+                editor.Layout.Reveal(buffer, buffer.Line);
             }
             else
                 editor.SinceCaretMove += delta;
@@ -122,7 +122,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             editor.Dragging = false;
 
         // A right press puts the caret where it lands (a selection it lands in stays), so a menu on the editor acts there.
-        if (secondary && layout.Area.HasPoint(input.Position) && layout.Hit(buffer, editor.Host, input.Position) is { } spot)
+        if (secondary && layout.Area.HasPoint(input.Position) && layout.Hit(buffer, input.Position) is { } spot)
         {
             if (!buffer.HasSelection || spot.CompareTo(buffer.Selection.Start) < 0 || spot.CompareTo(buffer.Selection.End) > 0)
                 buffer.Place(spot.Line, spot.Column);
@@ -135,15 +135,15 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             if (!layout.Area.HasPoint(input.Position))
                 return false;
 
-            if (editor.Host?.TakePress(buffer, input.Position) == true)
+            if (layout.Editor.Asks(new TextPressed(buffer, input.Position)))
             {
                 breaksRun = true;
                 return true;
             }
 
-            if (layout.FoldUnder(buffer, editor.Host, input.Position) is { } fold)
+            if (layout.FoldUnder(buffer, input.Position) is { } fold)
             {
-                layout.ToggleFold(buffer, editor.Host, fold);
+                layout.ToggleFold(buffer, fold);
                 breaksRun = true;
                 return true;
             }
@@ -154,7 +154,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
                 return true;
             }
 
-            if (layout.Hit(buffer, editor.Host, input.Position) is { } hit)
+            if (layout.Hit(buffer, input.Position) is { } hit)
             {
                 bool quick = _clock - editor.LastClick < DoubleClick && editor.LastClickAt == hit;
                 // A fourth click starts over rather than reselecting the line.
@@ -176,7 +176,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
                 editor.LastClickAt = hit;
                 editor.Dragging = true;
                 bool ctrl = input.Ctrl || _keyboard.IsPressed(Key.Ctrl) || _keyboard.IsPressed(Key.Meta);
-                if (editor.Clicks == 1 && ctrl && editor.Host?.TakeCtrlClick(buffer) == true)
+                if (editor.Clicks == 1 && ctrl && layout.Editor.Asks(new TextCtrlClicked(buffer)))
                 {
                     editor.Dragging = false;
                     editor.LastClick = -1;
@@ -186,7 +186,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             Scroll(ref editor, input);
             return true;
         }
-        else if (editor.Dragging && layout.Hit(buffer, editor.Host, input.Position, dragging: true) is { } to)
+        else if (editor.Dragging && layout.Hit(buffer, input.Position, dragging: true) is { } to)
         {
             // After a double or triple click the drag grows by whole words or lines.
             if (editor.Clicks > 1)
@@ -204,12 +204,12 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     {
         TextBuffer buffer = editor.Buffer;
         TextEditorLayout layout = editor.Layout;
-        if (layout.Hit(buffer, editor.Host, point) is not { } hit)
+        if (layout.Hit(buffer, point) is not { } hit)
             return false;
         string line = buffer.Lines[hit.Line];
         if (!TextIndent.Misaligned(line) || point.X >= layout.TextLeft + TextIndent.Of(line) * layout.CharWidth)
             return false;
-        int wanted = editor.Host.WantedIndent(buffer, hit.Line);
+        int wanted = layout.Editor.WantedIndent(buffer, hit.Line);
         buffer.Reindent(hit.Line, wanted);
         buffer.Place(hit.Line, wanted);
         return true;
@@ -221,14 +221,14 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         if (_wheel is { Notches: not 0 } && layout.Area.HasPoint(input.Position))
         {
             int notches = _wheel.TakeWheel();
-            layout.Scroll = layout.Folds(editor.Buffer, editor.Host).Step(layout.Scroll, -notches * WheelLines, editor.Buffer.Lines.Count);
+            layout.Scroll = layout.Folds(editor.Buffer).Step(layout.Scroll, -notches * WheelLines, editor.Buffer.Lines.Count);
         }
     }
 
     private void Keys(ref TextEditor editor, float delta, ref bool breaksRun, ref bool stepped, ref bool refused)
     {
         TextBuffer buffer = editor.Buffer;
-        ITextEditorHost? host = editor.Host;
+        Entity owner = editor.Layout.Editor;
         bool ctrl = _keyboard.IsPressed(Key.Ctrl) || _keyboard.IsPressed(Key.Meta);
         bool shift = _keyboard.IsPressed(Key.Shift);
         ITextEntry entry = HostPlatform.TextEntry;
@@ -236,9 +236,9 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
         // Ctrl+Shift+[ folds the block round the caret, ] opens it; a read-only text folds too.
         if (ctrl && shift && (_keys.Pressed.Contains(Key.Bracketleft) || _keys.Pressed.Contains(Key.Bracketright))
-            && editor.Layout.Folds(buffer, host) is var folds && folds.BlockAt(buffer.Line) is var block and >= 0
+            && editor.Layout.Folds(buffer) is var folds && folds.BlockAt(buffer.Line) is var block and >= 0
             && folds.IsFolded(block) != _keys.Pressed.Contains(Key.Bracketleft))
-            editor.Layout.ToggleFold(buffer, host, block);
+            editor.Layout.ToggleFold(buffer, block);
 
         if (editor.ReadOnly)
         {
@@ -260,7 +260,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         // Anything typed over a selection replaces it: its own step, not part of a run.
         breaksRun = buffer.HasSelection;
 
-        if (typed.Length > 0 && !ctrl && host?.TakeTyped(buffer, typed) != true)
+        if (typed.Length > 0 && !ctrl && !owner.Asks(new TextTyped(buffer, typed)))
             buffer.Insert(typed);
         if (ctrl && _keys.Pressed.Contains(Key.A))
             buffer.SelectAll();
@@ -275,7 +275,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         }
 
         // Ctrl+/: comment the lines out, or back in, when the text has line comments.
-        if (ctrl && (_keys.Pressed.Contains(Key.Slash) || _keys.Pressed.Contains(Key.KpDivide)) && host?.LineComment is { Length: > 0 } marker)
+        if (ctrl && (_keys.Pressed.Contains(Key.Slash) || _keys.Pressed.Contains(Key.KpDivide)) && editor.LineComment is { Length: > 0 } marker)
         {
             buffer.ToggleComment(marker);
             breaksRun = true;
@@ -289,13 +289,13 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
         // Saving is the owner's: the editor only holds text.
         if (ctrl && _keys.Pressed.Contains(Key.S))
-            breaksRun |= host?.TakeKey(buffer, Key.S, shift, ctrl) == true;
+            breaksRun |= owner.Asks(new TextKey(buffer, Key.S, shift, ctrl));
 
         // Keys only an owner has a use for (F2: rename, F12: go to a declaration in a code editor).
         foreach (Key key in OwnersOnly)
         {
             if (_keys.Pressed.Contains(key))
-                breaksRun |= host?.TakeKey(buffer, key, shift, ctrl) == true;
+                breaksRun |= owner.Asks(new TextKey(buffer, key, shift, ctrl));
         }
 
         foreach (Key key in Repeating)
@@ -303,7 +303,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             if (!_keys.Fires(key, delta))
                 continue;
             int version = buffer.Version;
-            if (host?.TakeKey(buffer, key, shift, ctrl) == true)
+            if (owner.Asks(new TextKey(buffer, key, shift, ctrl)))
             {
                 breaksRun |= buffer.Version != version;
                 continue;
@@ -322,7 +322,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     private void ReadOnlyKeys(ref TextEditor editor, float delta, string typed, bool ctrl, bool shift, ref bool refused)
     {
         TextBuffer buffer = editor.Buffer;
-        ITextEditorHost? host = editor.Host;
+        Entity owner = editor.Layout.Editor;
         refused |= typed.Length > 0 && !ctrl;
         refused |= ctrl && (_keys.Pressed.Contains(Key.Z) || _keys.Pressed.Contains(Key.Y) || _keys.Pressed.Contains(Key.X) || _keys.Pressed.Contains(Key.V)
                             || _keys.Pressed.Contains(Key.Slash) || _keys.Pressed.Contains(Key.KpDivide));
@@ -331,11 +331,11 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         if (ctrl && _keys.Pressed.Contains(Key.C) && buffer.HasSelection)
             HostPlatform.TextEntry.Clipboard = buffer.SelectedText;
         if (ctrl && _keys.Pressed.Contains(Key.S))
-            host?.TakeKey(buffer, Key.S, shift, ctrl);
+            owner.Asks(new TextKey(buffer, Key.S, shift, ctrl));
         foreach (Key key in OwnersOnly)
         {
             if (_keys.Pressed.Contains(key))
-                host?.TakeKey(buffer, key, shift, ctrl);
+                owner.Asks(new TextKey(buffer, key, shift, ctrl));
         }
 
         foreach (Key key in Repeating)
@@ -371,14 +371,14 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
             case Key.Right: buffer.MoveColumn(1, shift); break;
             case Key.Up or Key.Down or Key.Pageup or Key.Pagedown:
                 int rows = key is Key.Up or Key.Down ? 1 : editor.Layout.VisibleRows;
-                int to = editor.Layout.Folds(buffer, editor.Host).Step(buffer.Line, key is Key.Up or Key.Pageup ? -rows : rows, buffer.Lines.Count);
+                int to = editor.Layout.Folds(buffer).Step(buffer.Line, key is Key.Up or Key.Pageup ? -rows : rows, buffer.Lines.Count);
                 buffer.MoveLine(to - buffer.Line, shift);
                 break;
             case Key.Backspace: buffer.Backspace(); break;
             case Key.Delete: buffer.Delete(); break;
             case Key.Enter or Key.KpEnter:
                 buffer.DeleteSelection();
-                buffer.NewLine(indent: editor.Host.WantedIndent(buffer, buffer.Line));
+                buffer.NewLine(indent: editor.Layout.Editor.WantedIndent(buffer, buffer.Line));
                 return true;
             case Key.Tab when shift:
                 buffer.OutdentLines();

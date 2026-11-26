@@ -554,7 +554,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _popup.Follow(buffer, _completions, edited: did.Edited && !did.SteppedHistory);
         _sinceEdit = did.Edited && onMain ? 0 : _sinceEdit + frame.Delta;
         bool quiet = !_popup.Open && !frame.Held && !did.Edited;
-        _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, _host, frame.Mouse) : null, frame.Mouse, frame.Delta);
+        _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, frame.Mouse) : null, frame.Mouse, frame.Delta);
 
         Finish();
         int version = Version;

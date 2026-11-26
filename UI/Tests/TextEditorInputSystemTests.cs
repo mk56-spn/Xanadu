@@ -103,19 +103,26 @@ public sealed class TextEditorInputSystemTests : EcsSystemTest
     }
 
     [Test]
-    public void TheHostTakesKeysFirst()
+    public void TheOwnerTakesKeysFirst()
     {
-        var host = new TakesEnter();
-        Entity editor = TextEditors.Create(Store, default, Area, "ab", host);
+        Entity editor = TextEditors.Create(Store, default, Area, "ab");
+        int taken = 0;
+        editor.AddSignalHandler<TextKey>(signal =>
+        {
+            if (signal.Event.Key != Key.Enter)
+                return;
+            taken++;
+            signal.Entity.Take();
+        });
         _keyboard.Down.Add(Key.Enter);
         Frame();
 
-        Assert.That(host.Taken, Is.EqualTo(1));
+        Assert.That(taken, Is.EqualTo(1));
         Assert.That(editor.GetComponent<TextEditor>().Buffer.Lines, Has.Count.EqualTo(1));
     }
 
     [Test]
-    public void CtrlSlashCommentsOnlyWhereTheHostHasLineComments()
+    public void CtrlSlashCommentsOnlyWhereTheTextHasLineComments()
     {
         Entity plain = TextEditors.Create(Store, default, Area, "ab");
         _keyboard.Down.Add(Key.Ctrl);
@@ -126,29 +133,12 @@ public sealed class TextEditorInputSystemTests : EcsSystemTest
         plain.DeleteEntity();
         _keyboard.Down.Clear();
         Frame();
-        Entity code = TextEditors.Create(Store, default, Area, "ab", new Comments());
+        Entity code = TextEditors.Create(Store, default, Area, "ab");
+        code.GetComponent<TextEditor>().LineComment = "//";
         _keyboard.Down.Add(Key.Ctrl);
         _keyboard.Down.Add(Key.Slash);
         Frame();
         Assert.That(code.GetComponent<TextEditor>().Buffer.Text, Is.EqualTo("// ab"));
-    }
-
-    private sealed class Comments : ITextEditorHost
-    {
-        public string LineComment => "//";
-    }
-
-    private sealed class TakesEnter : ITextEditorHost
-    {
-        public int Taken;
-
-        public bool TakeKey(TextBuffer buffer, Key key, bool shift, bool ctrl)
-        {
-            if (key != Key.Enter)
-                return false;
-            Taken++;
-            return true;
-        }
     }
 
     [Test]

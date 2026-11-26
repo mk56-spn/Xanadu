@@ -12,7 +12,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// <summary>
 /// Draws every <see cref="TextEditor"/> in the monospaced face: line numbers,
 /// the caret's line, the selection behind the text, the caret, and what the
-/// owner adds (<see cref="ITextEditorHost"/>): coloured runs, inlays as small
+/// owner adds (the signals in <c>TextEditorSignals.cs</c>): coloured runs, inlays as small
 /// pills, boxed cells, and marked lines (tinted, a word underlined, a note on a
 /// row of its own under the line, so it is never cut off by a long line), and
 /// a faint guide down each indent step (blank lines carry the guides of the
@@ -56,14 +56,15 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         bool caretOn = focused && (editor.SinceCaretMove < 0.5f || (int)(editor.SinceCaretMove * 2) % 2 == 0);
 
         // Nothing the caret is on stays hidden, and the first line shown is one that shows.
-        TextFolds folds = layout.Folds(buffer, editor.Host);
+        TextFolds folds = layout.Folds(buffer);
         folds.Show(buffer.Line);
         if (folds.Hiding(layout.Scroll) is var hiding and >= 0)
             layout.Scroll = hiding;
 
         // The picture stays on the canvas until cleared: redraw only when something it shows moved.
-        var drawn = new TextEditorDrawn(buffer, editor.Host, buffer.Version, buffer.Line, buffer.Column, buffer.Anchor, layout.Scroll, layout.Area,
-            focused, caretOn, editor.Host?.Version ?? 0, item, folds.Version);
+        layout.Editor.EmitSignal(new TextVersionDue());
+        var drawn = new TextEditorDrawn(buffer, buffer.Version, buffer.Line, buffer.Column, buffer.Anchor, layout.Scroll, layout.Area,
+            focused, caretOn, editor.OwnerVersion, item, folds.Version);
         if (layout.Drawn == drawn)
             return;
 
@@ -74,7 +75,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         layout.Pills.Clear();
         layout.CaretRect = null;
         _boxed.Clear();
-        editor.Host?.Prepare(buffer, _boxed);
+        layout.Editor.EmitSignal(new TextPrepare(buffer, _boxed));
 
         float charWidth = layout.CharWidth;
         float bottom = layout.Area.End.Y - Inset;
@@ -82,7 +83,7 @@ public sealed class TextEditorDrawSystem(IRectCanvas canvas) : QuerySystem<TextE
         for (int index = layout.Scroll; index < buffer.Lines.Count && y + LineHeight <= bottom; index = folds.Next(index))
         {
             string line = buffer.Lines[index];
-            TextLineDecor decor = layout.Decorate(buffer, editor.Host, index);
+            TextLineDecor decor = layout.Decorate(buffer, index);
             var row = new Rect2(layout.Area.Position.X, y, layout.Area.Size.X, LineHeight);
 
             if (decor.Mark is { } tinted)

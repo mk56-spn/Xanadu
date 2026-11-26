@@ -10,7 +10,7 @@ using Xanadu.Ui.Systems.Ui;
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// What turns the UI's plain <see cref="TextEditor"/> into the Slang editor:
+/// What turns the UI's plain <see cref="TextEditor"/> into the Slang editor, hearing its signals (<see cref="SlangEditorSignals"/>):
 /// each token in its kind's colour, brackets in their owner's colour (the pair
 /// at the caret lit and boxed, an unmatched one red), each loop's index in a
 /// colour by its nesting, colour swizzles by channel, names that do nothing
@@ -31,7 +31,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// a name declared elsewhere (the library's) goes to <see cref="GoElsewhere"/>.
 /// </para>
 /// </summary>
-internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup) : ITextEditorHost
+internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup)
 {
     /// <summary>Each letter of a colour swizzle (<c>.rgb</c>, <c>.a</c>, <c>.bgra</c>) in its own channel's colour.</summary>
     private static readonly Dictionary<char, Color> Channels = new()
@@ -342,7 +342,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         {
             bool closing = !buffer.HasSelection && line[buffer.Column..].TrimStart().StartsWith('}');
             buffer.DeleteSelection();
-            buffer.NewLine(TextBuffer.Indent, ((ITextEditorHost)this).WantedIndent(buffer, buffer.Line));
+            buffer.NewLine(TextBuffer.Indent, TextEditorAsking.WantedIndent(buffer, buffer.Line, IndentFor));
             if (closing)
             {
                 int caret = buffer.Column;
