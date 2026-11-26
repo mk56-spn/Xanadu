@@ -69,8 +69,28 @@ internal sealed class PlayStandIns
         return needed;
     }
 
+    /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
+    private static readonly MoonWorks.Input.KeyCode[] PlayKeys =
+    [
+        MoonWorks.Input.KeyCode.F, MoonWorks.Input.KeyCode.J, MoonWorks.Input.KeyCode.K, MoonWorks.Input.KeyCode.L,
+        MoonWorks.Input.KeyCode.S, MoonWorks.Input.KeyCode.Space, MoonWorks.Input.KeyCode.D,
+    ];
+
+    /// <summary>The play keys pressed this frame, while the preview has the keys: <c>keys.</c> sees them, and each fakes its part of the run.</summary>
+    public void PressKeys(MoonWorks.Input.Inputs inputs)
+    {
+        for (int key = 0; key < PlayKeys.Length; key++)
+        {
+            if (inputs.Keyboard.IsPressed(PlayKeys[key]))
+            {
+                ShaderKeys.Press(key);
+                Pressed(key);
+            }
+        }
+    }
+
     /// <summary>A play key went down while the preview has the keys (numbered as <see cref="ShaderKeys"/>).</summary>
-    public void Pressed(int key)
+    private void Pressed(int key)
     {
         if (key < ShaderKeys.FirstAction)
         {

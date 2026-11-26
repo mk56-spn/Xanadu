@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Diagnostics;
 using Xanadu.Ui.Systems.Debug;
 
@@ -9,6 +10,8 @@ namespace Xanadu.Rendering;
 /// timestamp read per part). Parts add up their milliseconds; the overlay
 /// averages them over its windows. What is left of the frame's wall time
 /// after our update and draw is MoonWorks: its pacing sleep and event pumping.
+/// The exe's own tick is split by whoever runs it (<see cref="TickLaps"/>): its
+/// parts are named as they are first timed and listed under "exe tick".
 /// </summary>
 internal sealed class HostFramePhases : IFramePhaseSource
 {
@@ -68,14 +71,42 @@ internal sealed class HostFramePhases : IFramePhaseSource
     ];
 
     private readonly double[] _totals = new double[(int)Phase.Count];
+    private readonly List<double> _tickTotals = [];
+    private readonly Dictionary<string, int> _tickParts = [];
+    private FramePhase[] _shown = List;
+
+    /// <summary>The host's phases, for the exe's tick to time its parts into; null before a host starts.</summary>
+    public static HostFramePhases? Current { get; set; }
     private long _lastFrameEnd = Stopwatch.GetTimestamp();
     private double _frameOurs;
 
-    public IReadOnlyList<FramePhase> Phases => List;
+    /// <summary>The fixed parts with the tick's own spliced in under "exe tick"; grows as a new part is first timed.</summary>
+    public IReadOnlyList<FramePhase> Phases => _shown;
 
     public long Frames { get; private set; }
 
-    public double TotalMs(int phase) => _totals[phase];
+    public double TotalMs(int phase)
+    {
+        int tick = (int)Phase.ExeTick;
+        if (phase <= tick)
+            return _totals[phase];
+        return phase <= tick + _tickTotals.Count ? _tickTotals[phase - tick - 1] : _totals[phase - _tickTotals.Count];
+    }
+
+    /// <summary>Adds to a part of the exe's tick, named the first time it is timed.</summary>
+    public void AddTick(string part, double ms)
+    {
+        if (!_tickParts.TryGetValue(part, out int index))
+        {
+            index = _tickTotals.Count;
+            _tickParts[part] = index;
+            _tickTotals.Add(0);
+            int tick = (int)Phase.ExeTick;
+            _shown = [.. List[..(tick + 1)], .. _tickParts.OrderBy(entry => entry.Value).Select(entry => new FramePhase(entry.Key, 2)), .. List[(tick + 1)..]];
+        }
+
+        _tickTotals[index] += ms;
+    }
 
     public static long Now => Stopwatch.GetTimestamp();
 

@@ -15,7 +15,6 @@ using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems;
 using Xanadu.Ui.Systems.Canvas;
-using Xanadu.Ui.Systems.Debug;
 using Xanadu.Ui.Systems.Ui;
 using Xanadu.Ui.Terminal;
 using Color = Xanadu.Core.Maths.Color;
@@ -23,22 +22,6 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MwColor = MoonWorks.Graphics.Color;
 
 namespace Xanadu.Host;
-
-/// <summary>Window size and the <c>--shot</c> settings every host exe takes.</summary>
-internal sealed record HostWindowOptions(uint Width, uint Height, string? ShotPath, int ShotFrame);
-
-/// <summary>How the host boots the ECS UI (<see cref="UiRoot"/>) on <see cref="HostApp.Entities"/>.</summary>
-internal enum HostUi
-{
-    /// <summary>The UI root, with the F1, F3 and F4 overlays, stepping the exe's root (<see cref="HostApp.UseSystems"/>).</summary>
-    Standard,
-
-    /// <summary>The same, without hover tooltips (the animator draws its own).</summary>
-    NoTooltips,
-
-    /// <summary>No UI on the host's store: only the visual-test harness, which makes a store and a UI root per scene.</summary>
-    None,
-}
 
 /// <summary>
 /// What every MoonWorks exe shares (Docs/host.md): the window, the
@@ -165,6 +148,7 @@ internal abstract class HostApp : Game
         HostPlatform.Particles = Renderer.Particles;
         HostPlatform.GpuMemory = _gpuMemory;
         HostPlatform.FramePhases = _phases;
+        HostFramePhases.Current = _phases;
         TextureServer.Use(new HostTextures(GraphicsDevice, Canvas, Renderer));
         UiIcons.Loader = UiIcons.FromResources;
         HostPlatform.GlyphStrip = atlas =>
@@ -583,25 +567,4 @@ internal abstract class HostApp : Game
         Renderer.Dispose();
         _gpuMemory.Dispose();
     }
-}
-
-/// <summary>Frames per second over the last second, for the debug overlay.</summary>
-internal sealed class HostFps : IFpsSource
-{
-    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
-    private int _count;
-    private double _fps;
-
-    public void Frame()
-    {
-        _count++;
-        double seconds = _clock.Elapsed.TotalSeconds;
-        if (seconds < 1)
-            return;
-        _fps = _count / seconds;
-        _count = 0;
-        _clock.Restart();
-    }
-
-    public double GetFps() => _fps;
 }

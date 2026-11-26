@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Theme;
 using Xanadu.Ui.Ecs.Ui;
@@ -8,7 +9,8 @@ namespace Xanadu.Ui.Systems.Debug;
 /// <summary>
 /// The F3 frame breakdown: every part of the frame the host times, a row each,
 /// with its milliseconds per frame over the live and average windows the system
-/// tree uses. Parts nest by indent; a part includes the ones under it.
+/// tree uses. Parts nest by indent; a part includes the ones under it. Parts can
+/// appear while running (an exe's tick names its own): the rows are made again then.
 /// </summary>
 public sealed partial class DebugPressedOverlaySystem
 {
@@ -31,6 +33,7 @@ public sealed partial class DebugPressedOverlaySystem
     private Entity[] _phaseLive = [];
     private Entity[] _phaseAverage = [];
     private Entity[] _phaseNames = [];
+    private UiNode _phaseRows;
     private float _phaseLiveClock;
     private float _phaseAverageClock;
 
@@ -39,7 +42,6 @@ public sealed partial class DebugPressedOverlaySystem
         if (_phases is null)
             return;
 
-        int count = _phases.Phases.Count;
         panel.Text("WHERE THE FRAME GOES", UiType.Caption, DebugPalette.Header)
             .Size(PhaseNameWidth + PhaseCellWidth * 2, CaptionHeight);
         UiNode header = panel.Row().Main(StackMainAlignment.Start);
@@ -47,13 +49,23 @@ public sealed partial class DebugPressedOverlaySystem
         header.Text("live ms", FontSize, DebugPalette.Header, TextAlign.Right).Size(PhaseCellWidth, DebugTable.RowHeight);
         header.Text("avg ms", FontSize, DebugPalette.Header, TextAlign.Right).Size(PhaseCellWidth, DebugTable.RowHeight);
 
+        _phaseRows = panel.Column().Cross(StackCrossAlignment.Start);
+        BuildPhaseRows();
+    }
+
+    /// <summary>A row per part as the source lists them now, the windows started again.</summary>
+    private void BuildPhaseRows()
+    {
+        foreach (Entity row in _phaseRows.Entity.ChildEntities.ToArray())
+            UiLayout.DeleteSubtree(row);
+        int count = _phases!.Phases.Count;
         _phaseNames = new Entity[count];
         _phaseLive = new Entity[count];
         _phaseAverage = new Entity[count];
         for (int i = 0; i < count; i++)
         {
             FramePhase phase = _phases.Phases[i];
-            UiNode row = panel.Row().Main(StackMainAlignment.Start);
+            UiNode row = _phaseRows.Row().Main(StackMainAlignment.Start);
             float indent = phase.Depth * PhaseIndent;
             if (indent > 0)
                 row.Text("", FontSize, DebugPalette.Text).Size(indent, DebugTable.RowHeight);
@@ -83,6 +95,8 @@ public sealed partial class DebugPressedOverlaySystem
     {
         if (_phases is null || _phaseLive.Length == 0)
             return;
+        if (_phases.Phases.Count != _phaseLive.Length)
+            BuildPhaseRows();
 
         _phaseLiveClock += delta;
         _phaseAverageClock += delta;

@@ -8,6 +8,7 @@ using Xanadu.Core.Theme;
 using Xanadu.Host;
 using Xanadu.Host.Tools;
 using Xanadu.Host.Tools.ShaderEditing;
+using Xanadu.Rendering;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Systems;
@@ -148,6 +149,7 @@ internal sealed class ShaderToolApp : HostApp
 
     protected override void Tick(float delta, float time)
     {
+        var laps = TickLaps.Start();
         _stills.Settle();
         if (!UiLayout.Settled(_codeSlot) || !UiLayout.Settled(_sideSlot))
             return;
@@ -182,6 +184,7 @@ internal sealed class ShaderToolApp : HostApp
         bool free = !_grid.Open;
         var frame = new ToolFrame(delta, time, Pointer.Position, free && Pointer.LeftDown, Inputs, free ? Pointer.TakeWheel() : 0);
         _divider.Update(frame, _code);
+        laps.Lap("shader tool: stills, grid, bar");
         _code.Update(frame, pointerFree: free && !_divider.Dragging);
         ShowChanges();
     }

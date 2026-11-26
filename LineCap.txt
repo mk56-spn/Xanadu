@@ -7,9 +7,9 @@
 1951 Core/Maths/VectorExtensions.cs
 424 Core/Tweens/TweenPool.cs
 570 Drawers/Animator/AnimatorPreviewDrawSystem.cs
-607 HostCore/HostApp.cs
+570 HostCore/HostApp.cs
 484 HostCore/Tools/ShaderEditing/ClipTimeline.cs
-667 HostCore/Tools/ShaderEditing/ShaderCodeEditor.cs
+607 HostCore/Tools/ShaderEditing/ShaderCodeEditor.cs
 572 HostCore/Tools/ShaderEditing/SlangEditorHost.cs
 413 Logic/Animator/AnimatorTimeline.cs
 546 Logic/Animator/Commands/AnimatorEditing.cs

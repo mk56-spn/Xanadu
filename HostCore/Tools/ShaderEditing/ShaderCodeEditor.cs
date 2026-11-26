@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Xanadu.Core.Rendering.Rhythm;
 using Xanadu.Core.Theme;
+using Xanadu.Rendering;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
 using Xanadu.Ui.Editing;
@@ -76,51 +77,6 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     private readonly SlangEditorHost _host;
     private SlangCompletions _completions;
     private SlangLibraryDeclarations _declarations;
-
-    /// <summary>One open text: the shader's own or one of its stack's files (no path), or a library module's.</summary>
-    private sealed class Tab(string label, string? path, TextBuffer buffer, TextHistory history, string disk)
-    {
-        public string Label = label;
-
-        /// <summary>The stack file it is, by name; null for a single text or a library module.</summary>
-        public string? File;
-
-        /// <summary>The last compile's problems and colour conversions on this text's own lines.</summary>
-        public List<SlangProblem> Problems = [];
-        public List<(ColourConversion Place, string Text)> Conversions = [];
-        public readonly string? Path = path;
-        public readonly TextBuffer Buffer = buffer;
-        public readonly TextHistory History = history;
-        public string Disk = disk;
-        public int Scroll;
-        public bool ReadOnly = path is not null;
-
-        /// <summary>Whether a module's text differs from its file, worked out again only when it changes.</summary>
-        public bool Dirty
-        {
-            get
-            {
-                if (Path is null)
-                    return false;
-                if (_dirtyVersion != Buffer.Version)
-                {
-                    _dirtyVersion = Buffer.Version;
-                    _dirty = Buffer.Text != Disk;
-                }
-
-                return _dirty;
-            }
-        }
-
-        private int _dirtyVersion = -1;
-        private bool _dirty;
-
-        public void Saved()
-        {
-            Disk = Buffer.Text;
-            _dirtyVersion = -1;
-        }
-    }
 
     /// <summary>The open texts: the shader's own (the open file) first, then library modules.</summary>
     private readonly List<Tab> _tabs = [];
@@ -519,6 +475,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     /// <param name="pointerFree">False while the owner has the pointer (dragging its divider): no slider or problem takes it.</param>
     public void Update(in ToolFrame frame, bool pointerFree = true)
     {
+        var laps = TickLaps.Start();
         Follow();
         if (_showsGraph && _compiledStack is { } stack)
             _graph.Show(StackGraph.Of(stack, name => stack.ScheduleValue(name, _tuning.Value(name))));
@@ -535,7 +492,9 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             Open(place);
         }
 
+        laps.Lap("editor: layout, graph");
         _handles.Follow(_preview, _open == 0 ? Main.Buffer : null, Main.History, Focus);
+        laps.Lap("editor: shape handles");
         if (pointerFree && !asking)
             Point(frame, pressed);
 
@@ -556,6 +515,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _sinceEdit = did.Edited && onMain ? 0 : _sinceEdit + frame.Delta;
         bool quiet = !_popup.Open && !frame.Held && !did.Edited;
         _hover.Follow(buffer, _completions, _host.FadedAt, quiet ? editor.Layout.Under(buffer, frame.Mouse) : null, frame.Mouse, frame.Delta);
+        laps.Lap("editor: pointer, popups, hover");
 
         Finish();
         int version = Version;
@@ -575,7 +535,10 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _tuning.UseStandIns(PlayStandIns.Needed(joined));
         }
 
-        PressPlayKeys(frame);
+        laps.Lap("editor: compile, clips");
+        // While the code doesn't have the keys (a press on the preview took them), the play keys are the shader's.
+        if (frame.Inputs is { } inputs && !_editor.Tags.Has<TextEditorFocused>())
+            _standIns.PressKeys(inputs);
         _timeline.Advance(frame.Delta, _view.TakesClock ? null : frame.Time);
         (float seconds, float beats) = _timeline.Clock;
         _view.UseClock(seconds, beats);
@@ -585,6 +548,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _pointer = frame.Mouse;
         _standIns.Update(frame.Delta, _pointer, _preview, _timeline.Progress, seconds, beats, _tuning);
         UpdateView(frame);
+        laps.Lap("editor: clock, stand-ins, view");
 
         _chrome.Draw(new EditorState(
             buffer.Line, buffer.Column, _status, _statusColour,
@@ -596,31 +560,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
         DrawFiles(frame);
-    }
-
-    /// <summary>The play keys at their default places, numbered as <see cref="ShaderKeys"/>.</summary>
-    private static readonly MoonWorks.Input.KeyCode[] PlayKeys =
-    [
-        MoonWorks.Input.KeyCode.F, MoonWorks.Input.KeyCode.J, MoonWorks.Input.KeyCode.K, MoonWorks.Input.KeyCode.L,
-        MoonWorks.Input.KeyCode.S, MoonWorks.Input.KeyCode.Space, MoonWorks.Input.KeyCode.D,
-    ];
-
-    /// <summary>
-    /// While the code doesn't have the keys (a press on the preview took them),
-    /// the play keys are the shader's: <c>keys.</c> sees their presses.
-    /// </summary>
-    private void PressPlayKeys(in ToolFrame frame)
-    {
-        if (frame.Inputs is not { } inputs || _editor.Tags.Has<TextEditorFocused>())
-            return;
-        for (int key = 0; key < PlayKeys.Length; key++)
-        {
-            if (inputs.Keyboard.IsPressed(PlayKeys[key]))
-            {
-                ShaderKeys.Press(key);
-                _standIns.Pressed(key);
-            }
-        }
+        laps.Lap("editor: draw chrome, clips, tabs");
     }
 
     /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it; nothing while a handle is held.</summary>
