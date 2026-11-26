@@ -930,3 +930,23 @@ kept beside it.
   (37 skipped), UI 473, game 209 (14 skipped).
 - **Not yet:** the stage-1 leftovers (lists bound without cycling, never shrinking, a live recompile starting on
   fresh lists); a run's binding cost on the CPU. Stage 3 (the CPU side) is next.
+
+## Parked: the GPU deciding the graph's amounts (2026-11-26, not planned)
+
+Could the graph's management move onto the GPU? Partly: the GPU can decide **how much** runs and **whether**, never
+**what kind** of work exists, because SDL_GPU records commands on the CPU only (no device-generated commands, no work
+graphs).
+
+- **Could move:** counts (copies, groups, cells: draws already take a GPU count, dispatches could as indirect args);
+  branches in `graph()` on a value a pass computed (both sides recorded, the one not taken zeroed, no frame of lag as
+  lowering on read-back values would have); loops (recorded up to a most, spare rounds zeroed); ranges (which slice of
+  a list a node or a canvas run covers, as "other stacks drawing UI" above would need).
+- **Stays on the CPU:** recording (passes, pipelines bound, barriers): the CPU records a fixed skeleton of everything
+  that could run and the GPU fills the numbers; resources (making and growing lists and images; the GPU can only ask,
+  taken the next frame); compiling (pipelines, the stack compiler's lowering and checks).
+- **Cost:** skipped work isn't free: a zeroed dispatch still pays its barrier and binding, so a schedule branching on
+  GPU values gets heavier on the CPU, not lighter. The trade every GPU-driven engine makes (indirect over a fixed
+  skeleton, as Nanite does).
+- **The likely shape:** a schedule marks a value as the GPU's, and lowering turns branches and loops on it into
+  indirect args instead of evaluating them. Moving all management to the GPU waits on SDL_GPU exposing GPU-generated
+  commands, which nothing says is coming.
