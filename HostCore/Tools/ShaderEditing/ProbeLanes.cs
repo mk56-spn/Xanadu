@@ -37,6 +37,9 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     /// <summary>What each probe lane stands for in the code as it is now (<see cref="ProbeNodes.Labels"/>); none when nothing is probed.</summary>
     public void Use(string[] lanes) => _lanes = lanes;
 
+    /// <summary>What the clip probe last reported (<see cref="ClipProbes.Read"/>), as bytes; empty before the first report.</summary>
+    public ReadOnlySpan<byte> ClipReport => _material.Reports.TryGetValue(ClipProbes.List, out byte[]? bytes) ? bytes : [];
+
     /// <summary>The rows reported: a lane number, then its moving channels times 256.</summary>
     private ReadOnlySpan<uint> Rows
     {
@@ -53,8 +56,9 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     public void Draw((double Start, double Length) window, double seconds)
     {
         canvas.Clear(labels);
-        bool probing = _lanes.Length > 0 && _area.Size.X > LabelWidth;
-        CanvasServer.Current.SetVisible(curves, probing);
+        // The lanes' graph runs whenever there is room, even with no lanes: it reports the clips too.
+        bool room = _area.Size.X > LabelWidth, probing = _lanes.Length > 0 && room;
+        CanvasServer.Current.SetVisible(curves, room);
         if (_area.Size.X <= 0)
             return;
         canvas.DrawRect(labels, _area, Palette.SurfaceDeep);
@@ -64,6 +68,8 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
         if (!probing)
         {
             canvas.DrawTextStyledLeft(labels, Under(header), "Motion shows for a graph's draws; this code draws none.", Palette.TextMuted, 13);
+            if (room)
+                Place(new Rect2(_area.Position.X + LabelWidth, _area.Position.Y + _area.Size.Y - 1, _area.Size.X - LabelWidth - 4, 1));
             return;
         }
 

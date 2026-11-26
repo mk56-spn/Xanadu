@@ -263,7 +263,7 @@ public static partial class SlangShaders
 
     private static CompiledShader CompileAsWritten(string name, string source, string? shadeWith)
     {
-        StackBuild? build = BuildOf(name, source = ProbeNodes.Lower(PresentDraws.Lower(source)));
+        StackBuild? build = BuildOf(name, source = shadeWith is null ? ProbeNodes.Lower(PresentDraws.Lower(source)) : PresentDraws.Lower(source));
         if (shadeWith is not null)
         {
             if (build is not null)

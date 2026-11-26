@@ -2,7 +2,7 @@
 // measured (Slang/ProbeNodes.cs), read straight from the frame's shared probe list. A lane is one copy of a draw over
 // the timeline's window: how far it moved (x, y), turned and grew since the window's start. The passes keep the lanes
 // that move, and of lanes moving alike only the first, in order; the draw shows each kept lane's moving channels as
-// curves on a row of their own, each scaled to its own range. Only the rows go back to the CPU, for the labels.
+// curves on a row of their own, each scaled to its own range. Only the rows go back to the CPU, for the labels, and the clips the clip probe saw, for the clip timeline.
 import xanadu;
 
 /// The probe list's shape: lanes, and samples a lane (ProbeNodes.Lanes, ProbeNodes.Samples).
@@ -11,6 +11,9 @@ static const uint SAMPLES = 256;
 
 [Shared] [Size(LANES * SAMPLES)] List<float4> xanaduProbes;
 [Shared] Stored<uint> xanaduProbeLanes;
+/// What the clip probe saw (ClipProbes.Threads × ClipProbes.Region): nothing here reads it, it goes back to the
+/// editor's clip timeline as it is.
+[Shared] [Reported] [Size(32 * 49)] List<float4> xanaduClips;
 
 /// Each lane's lowest x, y, turn and scale over the window, then its highest: two a lane.
 [Size(LANES * 2)] List<float4> range;

@@ -246,7 +246,8 @@ plain `dotnet run`; there is no engine to install. After a fresh clone, run
 
 ### Screenshots
 
-Every exe reads its own frame, so a shot needs no focus and no visible window.
+Every exe reads its own frame, so a shot needs no focus and no visible window: a `--shot` run keeps its window hidden,
+so it never takes focus or the keyboard (`XANADU_SHOW_SHOTS=1` shows it anyway).
 
 **The game.** `--shot=<path>` saves frame 60 and quits (`--shot-frame=<n>` to
 pick another); `--scene=<name>`, `--demo`, `--play[=<name>]` and `--editor`

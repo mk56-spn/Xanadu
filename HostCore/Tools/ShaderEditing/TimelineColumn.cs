@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems;
@@ -20,6 +21,10 @@ internal sealed class TimelineColumn(UiNode side) : IDisposable
     private readonly UiNode _clipsNode = side.Column().Height(ClipTimeline.MinHeight);
     private readonly UiNode _motionNode = side.Column().Height(ClipTimeline.MinHeight);
     private ProbeLanes? _motion;
+
+    /// <summary>The code's clip sites (names and lines for the reported clips), and the clip report last used.</summary>
+    private List<ClipSite> _sites = [];
+    private byte[] _usedReport = [];
 
     public ClipTimeline Clips { get; private set; } = null!;
 
@@ -45,19 +50,28 @@ internal sealed class TimelineColumn(UiNode side) : IDisposable
         _motion!.Area = UiLayout.Box(_motionNode.Entity);
     }
 
-    /// <summary>The clips and the probed lanes of the code as typed (joined into one text for a stack).</summary>
+    /// <summary>The names of the code as typed (joined into one text for a stack): the clips' sites and the probed lanes.</summary>
     public void Use(string joined)
     {
-        float height = Clips.Height;
-        Clips.Use(SlangClips.Find(joined.Split('\n')));
-        // More clips, more rows: the column under the preview makes room.
-        if (Clips.Height != height)
-            _clipsNode.Height(Clips.Height);
+        _sites = ClipProbes.Sites(joined);
+        _usedReport = [];
         _motion!.Use(ProbeNodes.Labels(joined));
     }
 
     public void Draw()
     {
+        // The clips are whatever the probe last saw the code read, once it reports something new.
+        ReadOnlySpan<byte> report = _motion!.ClipReport;
+        if (!report.SequenceEqual(_usedReport))
+        {
+            _usedReport = report.ToArray();
+            float height = Clips.Height;
+            Clips.Use(ClipProbes.Read(report, _sites));
+            // More clips, more rows: the column under the preview makes room.
+            if (Clips.Height != height)
+                _clipsNode.Height(Clips.Height);
+        }
+
         Clips.Draw();
         _motion!.Draw(Window, Clips.Clock.Seconds);
         if (Math.Abs(UiLayout.Box(_motionNode.Entity).Size.Y - _motion.Height) > 0.5f)

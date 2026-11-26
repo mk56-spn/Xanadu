@@ -3,18 +3,19 @@ using System.Collections.Generic;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// A clip found in shader code (<c>xanadu.anim</c>), worked out from its text
-/// alone: where it sits on its clock, how it eases, and the keys that follow it.
+/// A clip of shader code (<c>xanadu.anim</c>), as it reported itself when the probe ran the code
+/// (<see cref="ClipProbes"/>): where it sits on its clock, how it eases, and the keys read at it.
 /// Times are in the clock's own units (seconds, or beats when <see cref="Beats"/>).
 /// </summary>
-/// <param name="Name">The local it is declared as.</param>
-/// <param name="Line">0-based line of its declaration.</param>
+/// <param name="Name">The local it is declared as (its site), or "clip n" for one read without a name.</param>
+/// <param name="Line">0-based line of its declaration; -1 without one.</param>
 /// <param name="Column">0-based column of its name there.</param>
 /// <param name="Loop">How long its clock's loop is; 0 when the clock doesn't loop.</param>
-/// <param name="Start">Where it starts on its clock; NaN when the code doesn't fix it.</param>
-/// <param name="Length">How long one pass is; NaN when the code doesn't fix it.</param>
+/// <param name="Start">Where it starts on its clock (its first copy's, when staggered).</param>
+/// <param name="Length">How long one pass is.</param>
 /// <param name="Easing">Its easing, numbered as <c>ease.by</c>.</param>
-/// <param name="StaggerStep">Each copy's delay when it is staggered by a value only the pixel knows; 0 when it isn't.</param>
+/// <param name="StaggerStep">The step between its copies' starts when the probe saw it start at several times (staggered by
+/// copy or by a loop); 0 when it didn't.</param>
 /// <param name="Keys">The progress (0..1) of each key of every <c>Keys</c> read at it.</param>
 /// <param name="Pressed">What its clock counts from: a play key (<c>clock.since(keys.left)</c>), numbered as <see cref="SlangClips.PlayKeys"/>; a play event (<c>clock.since(events.hit)</c>), <see cref="SlangClips.FirstEvent"/> plus its id in <see cref="SlangClips.Events"/>; -1 for the song's time.</param>
 public sealed record SlangClip(
@@ -37,9 +38,6 @@ public sealed record SlangClip(
 
     /// <summary>Whether it plays from a play event (<c>events.</c>) rather than a key.</summary>
     public bool OnEvent => Pressed >= SlangClips.FirstEvent;
-
-    /// <summary>Whether the code fixes where it is, so it can be drawn.</summary>
-    public bool Fixed => double.IsFinite(Start) && double.IsFinite(Length);
 
     /// <summary>Start to end: twice its length when bounced.</summary>
     public double Span => Bounced ? Length * 2 : Length;

@@ -38,6 +38,7 @@ One per library area, a panel for each thing in it:
 | `tour_filter` | every filter in `xanadu.filter`, reading the shader tool's own code |
 | `tour_looks` | every ready-made piece in `xanadu.looks` |
 | `tour_extras` | grading, halftone and hatching, beats, springs, digits, arrow, squircle, egg, Oklab gradients |
+| `tour_clips` | clips on a clock: a looped pop, a bounced trip along keys, staggered rings; each one a row on the clip timeline, found by running the code |
 | `tour_mesh` | every surface in `xanadu.mesh`, built into the pool (once, or every frame for the ones whose shape moves): sphere, torus, cylinder, cone, waving sheet, lathe, ribbon, tube, terrain, lumpy, cel-shaded |
 | `tour_mesh_more` | tubes and ribbons along a spline and a helix, superquadrics, a Bézier patch, morphs, a 2D spline |
 | `tour_bends` | the 2D corner moves, one draw of nine copies: wave, twist, bulge, squash, sway, shake, jitter, tilt, page curl |

@@ -447,6 +447,12 @@ internal abstract class HostApp : Game
     private double _acquireMs;
     private long _frameNumber;
 
+    /// <summary>
+    /// A <c>--shot</c> run keeps its window hidden: it never takes focus or the keyboard, and draws to <see cref="Target"/>
+    /// alone (a hidden window's swapchain gives no texture). <c>XANADU_SHOW_SHOTS=1</c> shows it anyway.
+    /// </summary>
+    protected override bool ShowsWindow => _window.ShotPath is null || Environment.GetEnvironmentVariable("XANADU_SHOW_SHOTS") == "1";
+
     private void DrawFrame()
     {
         Fps.Frame();
@@ -457,7 +463,7 @@ internal abstract class HostApp : Game
         _acquireMs = System.Diagnostics.Stopwatch.GetElapsedTime(acquire).TotalMilliseconds;
         _phases.Lap(HostFramePhases.Phase.WaitSwapchain, ref _drawLap);
         _probe?.EndAcquire();
-        if (swapchain is null)
+        if (swapchain is null && ShowsWindow)
         {
             GraphicsDevice.Submit(commands);
             return;
@@ -476,8 +482,9 @@ internal abstract class HostApp : Game
         using (commands.Scope("canvas"))
             Renderer.Render(commands, Target, new MwColor(background.R, background.G, background.B, 1f), Seconds, _phases);
         _phases.Lap(HostFramePhases.Phase.Canvas, ref _drawLap);
-        using (commands.Scope("blit to window"))
-            commands.Blit(Target, swapchain, Filter.Linear);
+        if (swapchain is not null)
+            using (commands.Scope("blit to window"))
+                commands.Blit(Target, swapchain, Filter.Linear);
         frame.Dispose();
 
         _frames++;
@@ -494,7 +501,7 @@ internal abstract class HostApp : Game
         }
 
         bool last = true;
-        string? shot = _requestedShot ?? SeriesShot(out last);
+        string? shot = _requestedShot ?? _window.ShotDue(_frames, out last);
         if (shot is { } path)
         {
             GpuTimes.Poll(now: true);
@@ -508,35 +515,6 @@ internal abstract class HostApp : Game
         }
 
         GraphicsDevice.Submit(commands);
-    }
-
-    /// <summary>
-    /// The <c>--shot</c> path due this frame, if any. <c>XANADU_SHOT_SERIES=count,step</c>
-    /// takes <c>count</c> shots <c>step</c> frames apart from the shot frame, numbered
-    /// <c>name_0.png</c> on, and quits after the last; without it, one shot, then quit.
-    /// </summary>
-    private string? SeriesShot(out bool last)
-    {
-        last = true;
-        if (_window.ShotPath is not { } path)
-            return null;
-
-        int count = 1, step = 1;
-        if (Environment.GetEnvironmentVariable("XANADU_SHOT_SERIES") is { } series &&
-            series.Split(',') is [var c, var st] && int.TryParse(c, out int parsedCount) && int.TryParse(st, out int parsedStep) &&
-            parsedCount > 0 && parsedStep > 0)
-        {
-            count = parsedCount;
-            step = parsedStep;
-        }
-
-        int since = _frames - _window.ShotFrame;
-        if (since < 0 || since % step != 0 || since / step >= count)
-            return null;
-
-        int index = since / step;
-        last = index == count - 1;
-        return count == 1 ? path : Path.Combine(Path.GetDirectoryName(path) ?? "", $"{Path.GetFileNameWithoutExtension(path)}_{index}{Path.GetExtension(path)}");
     }
 
     /// <summary>F12, as in the Godot build: a PNG in <c>user://screenshots</c>.</summary>

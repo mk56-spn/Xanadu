@@ -149,11 +149,18 @@ namespace MoonWorks
 		}
 
 		/// <summary>
+		/// Whether Run shows the main window. A game that only renders for itself (a screenshot run) keeps it hidden,
+		/// so it never takes focus or input; its swapchain then gives no texture, and it draws to its own target.
+		/// </summary>
+		protected virtual bool ShowsWindow => true;
+
+		/// <summary>
 		/// Initiates the main game loop. Call this once from your Program.Main method.
 		/// </summary>
 		public void Run()
 		{
-			MainWindow.Show();
+			if (ShowsWindow)
+				MainWindow.Show();
 
 			Initialized = true;
 

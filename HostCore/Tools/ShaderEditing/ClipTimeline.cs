@@ -14,7 +14,7 @@ using Rect2 = Xanadu.Core.Maths.Rect2;
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// The clips in the code (<see cref="SlangClips"/>) on a shared timeline under
+/// The clips the code reported to the probe (<see cref="ClipProbes"/>) on a shared timeline under
 /// the preview: one row each, named after its local, its span drawn as a band
 /// shaped by its easing, repeated round its loop, with its keys as diamonds and
 /// a staggered clip's later copies fading out after it. It owns the clock the
@@ -235,7 +235,7 @@ internal sealed class ClipTimeline : IDisposable
                 long ms = Math.Max(1, (long)Math.Round(period * 1000));
                 common = common == 0 ? ms : Lcm(common, ms);
             }
-            else if (clip.Fixed)
+            else
                 once = Math.Max(once, (clip.End + clip.StaggerStep * StaggerCopies) * Unit(clip) + 0.5);
         }
 
@@ -292,7 +292,7 @@ internal sealed class ClipTimeline : IDisposable
         frame.Markers.Clear();
         foreach (SlangClip clip in _clips)
         {
-            if (clip.Fixed && !clip.OnKey)
+            if (!clip.OnKey)
                 frame.Markers.Add(clip.Start * Unit(clip) * 1000);
         }
 
@@ -389,14 +389,7 @@ internal sealed class ClipTimeline : IDisposable
             Rect2 row = lanes.Row(lane);
             row = new Rect2(row.Position.X, row.Position.Y - lanes.ScrollY, row.Size.X, row.Size.Y);
             var label = new Rect2(_area.Position.X + 8, row.Position.Y, LabelWidth - 12, RowHeight);
-            canvas.DrawTextMono(item, label, clip.Fixed ? clip.Name : clip.Name + " ?", clip.Fixed ? colour : Palette.TextDim, 12, TextAlign.Left);
-            if (!clip.Fixed)
-            {
-                canvas.DrawTextStyledLeft(item, new Rect2(row.Position.X + 6, row.Position.Y, row.Size.X, RowHeight),
-                    "not fixed in the code, so not drawn", Palette.TextDim, 12);
-                continue;
-            }
-
+            canvas.DrawTextMono(item, label, clip.Name, colour, 12, TextAlign.Left);
             if (!clip.OnKey)
             {
                 DrawClip(painter, canvas, item, axis, row, clip, colour, 0);

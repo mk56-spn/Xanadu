@@ -7,8 +7,8 @@
 1951 Core/Maths/VectorExtensions.cs
 424 Core/Tweens/TweenPool.cs
 570 Drawers/Animator/AnimatorPreviewDrawSystem.cs
-570 HostCore/HostApp.cs
-474 HostCore/Tools/ShaderEditing/ClipTimeline.cs
+548 HostCore/HostApp.cs
+467 HostCore/Tools/ShaderEditing/ClipTimeline.cs
 577 HostCore/Tools/ShaderEditing/ShaderCodeEditor.cs
 572 HostCore/Tools/ShaderEditing/SlangEditorHost.cs
 413 Logic/Animator/AnimatorTimeline.cs
@@ -28,7 +28,6 @@
 421 Screens/Play/PlayHudBuilder.cs
 437 Screens/SongSelect/SongSelectScene.List.cs
 591 Serialisation/Items/XifBinary.Rig.cs
-568 Slang/SlangClips.cs
 523 Slang/SlangColourConversions.cs
 447 Slang/SlangCompletions.Code.cs
 485 Slang/SlangCompletions.Library.cs

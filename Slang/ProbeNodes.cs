@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 namespace Xanadu.Slang;
 
 /// <summary>
-/// Probe nodes: a tool's way to see how a graph's draws move, whatever way the code moves them. A body declaring
+/// Probe nodes: a tool's way to see what a stack's code does over time, whatever way it is written; the clips half is
+/// <see cref="ClipProbes"/>. This half shows how a graph's draws move. A body declaring
 /// <c>uniform float4 xanaduProbe;</c> (from, span in seconds, beats a second) gets, for each of its draws, a generated
 /// <c>[Pass]</c> that runs the draw's own vertex function at <see cref="Samples"/> times through that window, on three
 /// corners of each copy, and writes how the copy moved since the window's start (<c>probeMotion</c>: offset, turn, scale)
@@ -33,31 +34,32 @@ public static partial class ProbeNodes
     private const string Label = "probes (generated)";
 
     /// <summary>
-    /// <paramref name="source"/> with a probe pass for each draw it can count the copies of, each called at the end of
-    /// <c>graph()</c>; unchanged without <see cref="Window"/>, a graph, or a draw (the compile then says what's wrong).
+    /// <paramref name="source"/> lowered for probing: its clips tagged with their sites, the clip pass
+    /// (<see cref="ClipProbes"/>), and a motion pass for each draw it can count the copies of, all called at the end of
+    /// <c>graph()</c> (a stack without one gets one that runs them). Unchanged without <see cref="Window"/>, or when its
+    /// graph can't be read (the compile then says why).
     /// </summary>
     public static string Lower(string source)
     {
-        string code = BuildText.Blank(source);
-        if (!Asked().IsMatch(code))
+        if (!Asked().IsMatch(BuildText.Blank(source)))
             return source;
+        string sited = ClipProbes.Sited(source);
+        string code = BuildText.Blank(sited);
         StackBuild? build;
         try
         {
-            build = StackBuild.Of(source);
+            build = StackBuild.Of(sited);
         }
         catch (BuildProblem)
         {
             return source;
         }
 
-        Match entry = Entry().Match(code);
-        if (build is null || !entry.Success)
-            return source;
-        var passes = new StringBuilder();
-        var calls = new StringBuilder();
+        List<(BuildPass Draw, long First, long Copies)> draws = build is null ? [] : [.. Probed(build)];
+        var passes = new StringBuilder(ClipProbes.Pass(ShadeSignature.Arguments(source, out _), SlangShaders.Deforms(source), draws));
+        var calls = new StringBuilder(" xanaduProbe_clips();");
         long lanes = 0;
-        foreach ((BuildPass draw, long first, long copies) in Probed(build))
+        foreach ((BuildPass draw, long first, long copies) in draws)
         {
             string name = $"xanaduProbe_{draw.Name}";
             passes.Append(Pass(name, draw, first, copies));
@@ -65,16 +67,17 @@ public static partial class ProbeNodes
             lanes = first + copies;
         }
 
-        if (lanes == 0)
-            return source;
+        string generated = $"\n#line 1 \"{Label}\"\nimport xanadu.probe;\n[Shared] [Size({Lanes * Samples})] List<float4> {List};\n"
+                           + $"[Shared] Stored<uint> {Count};\n"
+                           + passes.ToString().Replace("TOTAL", Math.Min(lanes, Lanes).ToString(CultureInfo.InvariantCulture));
+        Match entry = Entry().Match(code);
+        if (build is null || !entry.Success)
+            return sited + generated + $"void graph() {{{calls} }}\n";
         int close = BuildText.Matching(code, code.IndexOf('{', entry.Index + entry.Length));
         if (close < 0)
             return source;
         // On the closing brace's line, so every line after keeps its number.
-        return source[..close] + calls + source[close..]
-               + $"\n#line 1 \"{Label}\"\nimport xanadu.probe;\n[Shared] [Size({Lanes * Samples})] List<float4> {List};\n"
-               + $"[Shared] Stored<uint> {Count};\n"
-               + passes.ToString().Replace("TOTAL", Math.Min(lanes, Lanes).ToString(CultureInfo.InvariantCulture));
+        return sited[..close] + calls + sited[close..] + generated;
     }
 
     /// <summary>

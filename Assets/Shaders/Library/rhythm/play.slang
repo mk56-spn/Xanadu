@@ -97,6 +97,8 @@ public struct Key : ISince
         }
     }
 
+    public property int sinceId { get { return id; } }
+
     /// Whether it was pressed within the last `seconds`.
     public bool pressedWithin(float seconds) { return since < seconds; }
 };
@@ -144,6 +146,8 @@ public struct Event : ISince
             return id >= 0 && id < 20 ? playState.events[id / 4][id % 4] : 1e6;
         }
     }
+
+    public property int sinceId { get { return 1000 + id; } }
 
     /// Whether it happened within the last `seconds`.
     public bool within(float seconds) { return since < seconds; }
@@ -388,6 +392,9 @@ public struct Note : ISince
 
     /// The same as `sinceJudged`, so a clock can count from it: `clock.since(notes[i])`.
     public property float since { get { return sinceJudged; } }
+
+    /// A note's clock plays on any judgement, as `events.judged` (1000 + 8).
+    public property int sinceId { get { return 1008; } }
 
     /// Where it was when judged, groups' moves included, on the target in pixels.
     public property float2 judgedScreen { get { return onTarget(data.judged.xy); } }

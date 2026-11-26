@@ -134,10 +134,19 @@ internal sealed class EffectPreview : IEditorPreview
 
     public PreviewBuild Compile(string source)
     {
-        // A graph is probed: its draws' motion measured for the timeline's lanes (ProbeNodes), the window set each frame.
-        if (Graphs(source))
+        // Probed: its clips report themselves and its draws' motion is measured for the timeline (ProbeNodes), the
+        // window set each frame. Code the probe can't run (a [Grid] stack can't have a graph) shows unprobed.
+        CompiledShader compiled;
+        try
+        {
+            compiled = SlangShaders.CompileEffectBody(Label, source + $"\nuniform float4 {ProbeNodes.Window};\n");
             source += $"\nuniform float4 {ProbeNodes.Window};\n";
-        CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source);
+        }
+        catch (Exception)
+        {
+            compiled = SlangShaders.CompileEffectBody(Label, source);
+        }
+
         PreviewBuild build = new(source, compiled.Params, compiled);
         // Off the frame, so the overlays' first draw finds them in Slang's cache. Graphs have none (yet).
         if (Graphs(source))

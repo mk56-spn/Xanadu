@@ -28,6 +28,49 @@ public sealed class ProbeNodeTests
     }
 
     [Test]
+    public void AShadeOnlyStackGetsAGraphRunningTheClipProbe()
+    {
+        string folder = Path.Combine(Path.GetDirectoryName(ShippedLibrary.Path)!, "Game/hit_bar");
+        string source = ShaderStack.Compose(folder, ShaderStack.Read(folder)) + "\nuniform float4 xanaduProbe;\n";
+        StackBuild build = SlangShaders.CompileEffectBody("hit_bar", source).Build!.Shape;
+
+        Assert.That(build.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "xanaduProbe_clips" }));
+        Assert.That(build.Buffers.Single(buffer => buffer.Name == ClipProbes.List).Shared, Is.True);
+    }
+
+    [Test]
+    public void ClipsAreTaggedWithTheirSites()
+    {
+        const string code = "Clip a = clock.clip(0, 1);\n  Clip b = a.then(2).eased(eases.outQuad); // Clip c = no;\n";
+
+        Assert.That(ClipProbes.Sites(code), Is.EqualTo(new[] { new ClipSite("a", 0, 5), new ClipSite("b", 1, 7) }));
+        Assert.That(ClipProbes.Sited(code), Does.StartWith("Clip a =( clock.clip(0, 1)).xanaduSited(0);\n  Clip b =( a.then(2).eased(eases.outQuad)).xanaduSited(1);"));
+    }
+
+    [Test]
+    public void AReportReadsAsClipsWithStaggerAndKeys()
+    {
+        var report = new System.Numerics.Vector4[ClipProbes.Threads * ClipProbes.Region];
+        // Two threads (copies) saw clip site 0 starting 0.1 apart; the first saw a key at 0.5 on it.
+        for (int t = 0; t < 2; t++)
+        {
+            int at = t * ClipProbes.Region;
+            report[at] = new(1, t == 0 ? 1 : 0, 0, 0);
+            report[at + 1] = new(0.2f + 0.1f * t, 0.6f, 2, 26);
+            report[at + 2] = new(1 + 2, 1000, 0, 0);
+            report[at + 33] = new(0, 0.5f, 0, 0);
+        }
+
+        SlangClip clip = ClipProbes.Read(System.Runtime.InteropServices.MemoryMarshal.AsBytes(report.AsSpan()), [new ClipSite("pop", 3, 9)]).Single();
+
+        Assert.That((clip.Name, clip.Line, clip.Beats, clip.Bounced, clip.Loop, clip.Length, clip.Easing, clip.Pressed),
+            Is.EqualTo(("pop", 3, true, true, 2.0, 0.6f, 26, 1000)));
+        Assert.That(clip.Start, Is.EqualTo(0.2).Within(1e-6));
+        Assert.That(clip.StaggerStep, Is.EqualTo(0.1).Within(1e-6));
+        Assert.That(clip.Keys, Is.EqualTo(new[] { 0.5 }));
+    }
+
+    [Test]
     public void NoWindowNoProbes()
     {
         StackBuild build = Compile(FlatMeshes()).Build!.Shape;
@@ -42,7 +85,7 @@ public sealed class ProbeNodeTests
         StackBuild build = SlangShaders.CompileEffectBody("lanes", ShaderStack.Compose(folder, ShaderStack.Read(folder))).Build!.Shape;
 
         Assert.That(build.Buffers.Single(buffer => buffer.Name == ProbeNodes.List).Count, Is.EqualTo(ProbeNodes.Lanes * ProbeNodes.Samples));
-        Assert.That(build.Buffers.Where(buffer => buffer.Reported).Select(buffer => buffer.Name), Is.EquivalentTo(new[] { "rows" }));
+        Assert.That(build.Buffers.Where(buffer => buffer.Reported).Select(buffer => buffer.Name), Is.EquivalentTo(new[] { "rows", ClipProbes.List }));
     }
 
     [Test]

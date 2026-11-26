@@ -1,4 +1,4 @@
-# Clips on the GPU (proposed 2026-11-26; slice 1 built the same day)
+# Clips on the GPU (proposed 2026-11-26; slices 1 and 2 built the same day)
 
 Clips have fallen behind the render graph. Outside the library, one shader uses them (`Game/hit_bar/shade.slang`); no
 stack does. The timeline only knows what `Slang/SlangClips.cs` can read out of the text with regexes: explicit
@@ -43,6 +43,38 @@ and what it lacks is added to it):
   without `graph()`) aren't either; the probe quad is a fixed square, not the item's; curves of one row overlap when
   their shapes match (a swing's x and turn); the probes run every frame rather than only when the window or the code
   changes; clip spans still come from `SlangClips` (slice 2).
+
+**Slice 2 is built** (2026-11-26): clips report themselves and the regex scanner is gone.
+
+- **Library** (`xanadu/anim.slang`): `public static bool probing`; while it is on, a clip reports itself into
+  thread-private statics (`probedClips`, two float4 a clip: start, length, its clock's loop, easing; then beats /
+  bounced / reversed flags, what its clock counts from, its site), once per distinct record, and `Keys.at(clip)`
+  reports its places (`probedKeys`). A clip reports both when it is **read** (`linearAt`, so inline clips count) and
+  when its **declaration completes** (`xanaduSited`): reading alone missed hit_bar, whose shade returns before any
+  `progress` while the note isn't hit. `ISince` gained `sinceId` (a key's number, 1000 + an event's, a note 1008 =
+  judged) and `Clock` carries it as `counts`, which is the old `Pressed`.
+- **Sites** (`Slang/ClipProbes.cs`): the lowering wraps each `Clip name = …;` as `(…).xanaduSited(n)`, on the same
+  line. The CPU reads the same declarations (`ClipProbes.Sites`) only to name rows and jump to their line: the one
+  piece of text left.
+- **The clip pass** (`xanaduProbe_clips`, 32 threads, run before the motion passes): thread 0 runs the brick shade on
+  the probe quad's middle (`tracedInput`), thread 1 the deform, the rest a copy of a draw each (its vertex function on
+  one corner); each copies what it saw into its region of `[Shared] List<float4> xanaduClips`. A stack without
+  `graph()` gets one that runs the probe, so shade-only stacks are probed too.
+- **Back to the CPU:** the lanes stack declares `xanaduClips` `[Shared] [Reported]`; `ClipProbes.Read` folds the
+  regions into `SlangClip`s (copies starting at different times become one staggered clip). `ClipTimeline` draws them as
+  before; `SlangClips` keeps only its easing, key and event tables, `SlangClip.Fixed` and "not fixed in the code" are
+  gone (a probed clip always has numbers).
+  - **Deviation from the plan:** this reads clip records back for the CPU timeline to draw, rather than only a count.
+    They are small (32 × 49 float4) and change only with the code, and the timeline's window (loops' common length)
+    and its key-press markers are CPU-side. Drawing spans in a shader too would mean moving both onto the GPU.
+- **The preview** probes every stack it can: it compiles with the window uniform and falls back to an unprobed compile
+  when that fails (a `[Grid]` stack can't have a graph). The editor's overlays are never probed.
+- **Checked:** `Game/hit_bar` shows `life` and `narrowing`, "plays on each judged", as the scanner did; the new
+  `Learn/tour_clips` shows `pop` (looped, outBack), `trip` (beats, bounced, keys at 0.5 and 1) and `ring` (staggered in a
+  loop: one row, copies fading). Tests: `ProbeNodeTests` (sites, a shade-only stack's graph, reading a report);
+  `SlangClipsTests` deleted with the scanner.
+- **Not yet:** clips only inside a draw's shade (not its vertex function) or a pass aren't reported; per-pixel stagger
+  shows only what the middle of the quad sees; a run where the window had focus caught stray keystrokes in the editor.
 
 ## Idea: probe, don't parse
 

@@ -15,8 +15,9 @@
 //     Clip flash = clock.since(keys.action1).clip(0, 0.25).eased(eases.outQuad);
 //     Clip pulse = clock.since(events.hit).clip(0, 0.3).eased(eases.outBack);
 //
-// The shader editor reads the clips out of the code and lays them on a
-// timeline under the preview.
+// The shader editor lays the clips on a timeline under the preview. Nothing reads the code for them: its
+// probe pass (Slang/ProbeNodes.cs) runs the stack's functions with `probing` on, and every clip declared or
+// read then reports itself (`probeClip`), as do the keys read at one.
 module anim;
 import xanadu.stage;
 import xanadu.math;
@@ -80,6 +81,9 @@ public interface ISince
 {
     /// Seconds since it last happened; 1e6 when it never has.
     property float since { get; }
+
+    /// What it is, for the editor's timeline: a play key's number, 1000 plus an event's, or -1 for nothing it knows.
+    property int sinceId { get; }
 }
 
 /// Where time comes from: seconds (`clock`), music beats (`clock.beats`) or the
@@ -98,12 +102,16 @@ public struct Clock
     /// How long one loop is, in the clock's own units; 0 never wraps.
     internal float loop;
 
+    /// What it counts from when `counting` (an ISince's `sinceId`); -1 for the song's time.
+    internal int counts;
+
     public __init(bool inBeats, float loop)
     {
         this.inBeats = inBeats;
         this.loop = loop;
         this.counting = false;
         this.sinceThen = 0.0;
+        this.counts = -1;
     }
 
     /// The same clock counting music beats instead of seconds.
@@ -111,7 +119,7 @@ public struct Clock
 
     /// A clock counting seconds from when something last happened: 0 as it
     /// does, 1e6 while it never has (`clock.since(keys.left)`, `clock.since(notes[i])`).
-    public Clock since<T : ISince>(T happened) { Clock c = Clock(false, loop); c.counting = true; c.sinceThen = happened.since; return c; }
+    public Clock since<T : ISince>(T happened) { Clock c = Clock(false, loop); c.counting = true; c.sinceThen = happened.since; c.counts = happened.sinceId; return c; }
 
     /// A copy that wraps every `length` seconds (or beats).
     public Clock looped(float length) { Clock c = this; c.loop = length; return c; }
@@ -151,8 +159,12 @@ public struct Clip
     internal bool bounces;
     internal bool backwards;
 
+    /// Which `Clip name = …;` of the code made it, numbered in the code's order (the probe's lowering sets it); -1 for none.
+    internal int site;
+
     public __init(Clock clock, float start, float length)
     {
+        this.site = -1;
         this.clock = clock;
         this.start = start;
         this.length = length;
@@ -185,9 +197,23 @@ public struct Clip
     /// A new clip, `length` long, starting where this one ends.
     public Clip then(float length) { return Clip(clock, end, length); }
 
+    /// The same clip, as made by `Clip name = …;` number `site` of the code: it reports itself to a probe here, as
+    /// declared, whether or not the code goes on to read it.
+    /// @hidden
+    public Clip xanaduSited(int site)
+    {
+        Clip c = this;
+        c.site = site;
+        if (probing)
+            probeClip(c);
+        return c;
+    }
+
     /// Progress without the easing at a reading of its clock, 0..1.
     public float linearAt(float now)
     {
+        if (probing)
+            probeClip(this);
         float p = (now - start) / max(length, 1e-5);
         p = bounces ? 1.0 - abs(1.0 - clamp(p, 0.0, 2.0)) : saturate(p);
         return backwards ? 1.0 - p : p;
@@ -297,5 +323,64 @@ public struct Keys<T : IMixable>
     }
 
     /// The value at a clip's progress.
-    public T at(Clip clip) { return at(clip.progress); }
+    public T at(Clip clip)
+    {
+        if (probing)
+            for (int k = 1; k < MAX && k < count; k++)
+                probeKey(clip.site, places[k]);
+        return at(clip.progress);
+    }
 };
+
+// The probe's side (Slang/ProbeNodes.cs). A probe pass turns `probing` on and calls the stack's functions; each clip
+// read meanwhile adds itself once to `probedClips`, two float4 a clip: (start, length, its clock's loop, easing) and
+// (beats 1 + bounced 2 + reversed 4, what its clock counts from, its site, 0); each key read at one adds (site, place)
+// to `probedKeys`. All of it is the thread's own: the pass copies it out.
+
+/// Whether a probe pass is running the stack's functions now.
+/// @hidden
+public static bool probing = false;
+
+/// Clips the probe has room for, and keys.
+/// @hidden
+public static const uint PROBED_CLIPS = 16;
+/// @hidden
+public static const uint PROBED_KEYS = 16;
+
+/// @hidden
+public static float4 probedClips[PROBED_CLIPS * 2];
+/// @hidden
+public static uint probedClipCount = 0;
+/// @hidden
+public static float2 probedKeys[PROBED_KEYS];
+/// @hidden
+public static uint probedKeyCount = 0;
+
+/// Adds a clip to what the probe saw, once.
+/// @hidden
+public void probeClip(Clip clip)
+{
+    float4 shape = float4(clip.start, clip.length, clip.clock.loop, float(clip.easing.id));
+    float4 kind = float4(float((clip.clock.inBeats ? 1 : 0) + (clip.bounces ? 2 : 0) + (clip.backwards ? 4 : 0)),
+        float(clip.clock.counting ? clip.clock.counts : -1), float(clip.site), 0.0);
+    for (uint k = 0; k < probedClipCount; k++)
+        if (all(probedClips[k * 2] == shape) && all(probedClips[k * 2 + 1] == kind))
+            return;
+    if (probedClipCount >= PROBED_CLIPS)
+        return;
+    probedClips[probedClipCount * 2] = shape;
+    probedClips[probedClipCount * 2 + 1] = kind;
+    probedClipCount++;
+}
+
+/// Adds a key's place on the clip from `site` to what the probe saw, once.
+/// @hidden
+public void probeKey(int site, float place)
+{
+    float2 key = float2(float(site), place);
+    for (uint k = 0; k < probedKeyCount; k++)
+        if (all(probedKeys[k] == key))
+            return;
+    if (probedKeyCount < PROBED_KEYS)
+        probedKeys[probedKeyCount++] = key;
+}
