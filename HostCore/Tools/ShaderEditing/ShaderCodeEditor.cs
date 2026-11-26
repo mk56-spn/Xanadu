@@ -31,8 +31,7 @@ internal readonly record struct ShaderEditorSlots(UiNode Code, UiNode Bar, UiNod
 /// follows their boxes each <see cref="Update"/>.
 /// Shared by the shader tool and the lab's editor tabs.
 /// <para>
-/// A place written as <c>float2(x, y)</c> under the caret, and every <c>uniform float2</c>
-/// that reads as one, is a dot on the preview to drag (<see cref="PreviewPoints"/>).
+/// The code's shapes have handles to drag on the preview, from the library's tags (<see cref="PreviewHandles"/>).
 /// </para>
 /// <para>
 /// Going to a library name's declaration (F12, Ctrl+click) opens its module in
@@ -66,7 +65,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
     private readonly UiNode _code, _rest, _clipsNode, _problemsNode, _tuningNode, _guideNode;
     private int _guideLines = -1;
     private readonly PlayStandIns _standIns = new();
-    private readonly PreviewPoints _points = new();
+    private readonly PreviewHandles _handles;
     private readonly IRectCanvas _canvas;
     private readonly Handle _chromeItem;
     private int _clipsVersion = -1;
@@ -226,6 +225,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         SlangHints hints = SlangHints.FromLibrary(library);
         _typeNames = [.. SlangSyntax.BuiltInTypes, .. hints.Types, .. hints.Aliases, .. _view.Types];
         _shapeCosts = hints.Costs;
+        _handles = new PreviewHandles(entities, (name, index) => _completions.ParameterNames(name, index), _tuning.Values, _tuning.Set);
         (_completions, _declarations) = ReadLibrary();
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
         Rect2 code = UiLayout.Box(_code.Entity);
@@ -252,6 +252,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _view.Prelude.Length > 0 ? sources.Append(_view.Prelude) : sources,
             ShaderConstants.Library,
             _view.Provided);
+        _handles.Tags = SlangHandleTags.FromSources(sources);
         return (completions, SlangLibraryDeclarations.FromModules(modules));
     }
 
@@ -534,7 +535,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             Open(place);
         }
 
-        _points.Follow(_open == 0 ? Main.Buffer : null, _completions.ParameterNames);
+        _handles.Follow(_preview, _open == 0 ? Main.Buffer : null, Main.History, Focus);
         if (pointerFree && !asking)
             Point(frame, pressed);
 
@@ -591,7 +592,6 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
         _timeline.Draw(_canvas, _chromeItem);
-        _points.Draw(_canvas, _chromeItem, _preview, _tuning, frame.Mouse);
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
@@ -623,13 +623,13 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         }
     }
 
-    /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it.</summary>
+    /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it; nothing while a handle is held.</summary>
     private void Point(in ToolFrame frame, bool pressed)
     {
         // A held slider or point takes the pointer from everything else.
         if (_tuning.Point(frame.Mouse, frame.Held, pressed))
             return;
-        if (_points.Point(Main.Buffer, Main.History, _completions.ParameterNames, _preview, _tuning, frame.Mouse, frame.Held, pressed, Focus))
+        if (_handles.Dragging)
             return;
 
         if (PressFiles())
@@ -660,7 +660,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);
-        _graph.Delete(); _expand?.Delete();
+        _graph.Delete(); _expand?.Delete(); _handles.Delete();
         UiLayout.DeleteSubtree(_clipsNode.Entity);
         UiLayout.DeleteSubtree(_rest.Entity);
     }

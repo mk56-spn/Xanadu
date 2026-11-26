@@ -5,7 +5,7 @@ using Xanadu.Ui.Systems.Input;
 
 namespace Xanadu.Ui.Systems.Ui;
 
-/// <summary>Generic pointer, right-click menu, focus, toggle, dropdown, wheel, button and tooltip interaction.</summary>
+/// <summary>Generic pointer, right-click menu, focus, toggle, dropdown, wheel, button, grip and tooltip interaction.</summary>
 public sealed class UiInteractionSystemGroup : SystemGroup
 {
     public UiInteractionSystemGroup(
@@ -44,6 +44,7 @@ public sealed class UiInteractionSystemGroup : SystemGroup
         Add(new UiColorDragSystem(entities, pointer, visuals));
         Add(new UiColorFieldSystem());
         Add(new UiValueFieldSystem(pointer));
+        Add(new UiGripSystem(pointer));
         if (tooltips)
             Add(new UiTooltipSystem(entities, pointer, visuals, screen));
     }

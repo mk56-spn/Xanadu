@@ -199,6 +199,7 @@ public interface IShape : IPlaced, IMeasurable
 // ---- Shapes ----------------------------------------------------------------
 
 /// @cost 1
+/// @handle radius radius
 public struct Circle : IShape
 {
     public Placement placement = Placement();
@@ -211,6 +212,8 @@ public struct Circle : IShape
 
 /// A line from `a` to `b`, `width` thick with round ends (a capsule); 0 for a bare line to draw with stroked or haloed.
 /// @cost 2
+/// @handle a point
+/// @handle b point
 public struct Line : IShape
 {
     public Placement placement = Placement();
@@ -230,6 +233,8 @@ public struct Line : IShape
 
 /// A box `size` wide and high, its corners rounded by `radius`.
 /// @cost 2
+/// @handle size size
+/// @handle radius corner
 public struct Box : IShape
 {
     public Placement placement = Placement();
@@ -269,6 +274,7 @@ public extension Box
 
 /// A box `size` wide and high with its own radius per corner: (bottom right, top right, bottom left, top left), y down.
 /// @cost 3
+/// @handle size size
 public struct CornerBox : IShape
 {
     public Placement placement = Placement();
@@ -289,6 +295,7 @@ public struct CornerBox : IShape
 
 /// A box `size` wide and high with its corners cut off at 45° by `chamfer`.
 /// @cost 3
+/// @handle size size
 public struct ChamferBox : IShape
 {
     public Placement placement = Placement();
@@ -335,6 +342,7 @@ public struct Cross : IShape
 
 /// A ring `thickness` wide with a gap: `gap` is the gap's half angle in radians (0 for a full ring), facing down.
 /// @cost 4
+/// @handle radius radius
 public struct Arc : IShape
 {
     public Placement placement = Placement();
@@ -360,6 +368,7 @@ public struct Arc : IShape
 
 /// An equilateral triangle pointing up, `radius` from its centre to each side's middle × √3.
 /// @cost 3
+/// @handle radius radius
 public struct Triangle : IShape
 {
     public Placement placement = Placement();
@@ -412,6 +421,7 @@ public struct Parallelogram : IShape
 
 /// A six-pointed star.
 /// @cost 3
+/// @handle radius radius
 public struct Star6 : IShape
 {
     public Placement placement = Placement();
@@ -456,6 +466,7 @@ public struct Moon : IShape
 /// An ellipse `radius.x` across from its centre to the sides and `radius.y` to the top and bottom
 /// (Quilez's exact distance, solving the quartic).
 /// @cost 5
+/// @handle radius half
 public struct Ellipse : IShape
 {
     public Placement placement = Placement();
@@ -506,6 +517,7 @@ public struct Ellipse : IShape
 /// corners `radius` from the centre. One corner points up when `sides` is odd; an even count sits
 /// on a flat side.
 /// @cost 3
+/// @handle radius radius
 public struct Polygon : IShape
 {
     public Placement placement = Placement();
@@ -529,6 +541,7 @@ public struct Polygon : IShape
 /// A star with `points` tips `radius` from the centre, one pointing up when `points` is odd.
 /// `sharpness` 0 is the plain polygon, 1 the thinnest spikes (Quilez's star).
 /// @cost 3
+/// @handle radius radius
 public struct Star : IShape
 {
     public Placement placement = Placement();
@@ -554,6 +567,7 @@ public struct Star : IShape
 
 /// A diamond `size` wide and high, its corners on the middles of that box's sides.
 /// @cost 2
+/// @handle size size
 public struct Rhombus : IShape
 {
     public Placement placement = Placement();
@@ -742,6 +756,9 @@ public struct TaperedLine : IShape
 /// A curve from `a` to `b` pulled towards `control` (a quadratic Bézier), `width` thick with
 /// round ends; 0 for a bare curve to draw with stroked or haloed (Quilez's exact distance).
 /// @cost 5
+/// @handle a point
+/// @handle control point
+/// @handle b point
 public struct Arch : IShape
 {
     public Placement placement = Placement();
@@ -1279,12 +1296,15 @@ public extension<P : IPlaced> P
     [mutating] public void anchor(float2 place) { placement.offset += place * shading.canvas.size; }
 
     /// A copy turned by `angle` radians round its centre, clockwise (y down).
+    /// @handle angle turn
     public P rotated(float angle) { P r = this; r.rotate(angle); return r; }
 
     /// A copy moved by `offset`.
+    /// @handle offset move
     public P moved(float2 offset) { P r = this; r.move(offset); return r; }
 
     /// A copy `factor` times bigger round its centre.
+    /// @handle factor scale
     public P scaled(float factor) { P r = this; r.scale(factor); return r; }
 
     /// A copy moved by a point of the quad: anchor.topLeft, anchor.right, … or any fraction of its size from the centre.

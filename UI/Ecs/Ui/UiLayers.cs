@@ -45,11 +45,14 @@ public static class UiLayers
     /// <summary>The shader editor's preview while it is expanded over the whole stage, over the editor and its values.</summary>
     public const int ShaderPreviewFull = 73;
 
-    /// <summary>The preview's expand button, over the preview, expanded or not.</summary>
-    public const int ShaderPreviewControls = 74;
+    /// <summary>The handles on the code's shapes, over the preview, expanded or not.</summary>
+    public const int ShaderPreviewHandles = 74;
+
+    /// <summary>The preview's expand button, over the preview and its handles.</summary>
+    public const int ShaderPreviewControls = 75;
 
     /// <summary>The shader tool's grid of every shader, over its editor and the values column.</summary>
-    public const int ShaderPicker = 75;
+    public const int ShaderPicker = 76;
 
     // Menu scenes. The shared background and the settings backdrop never coexist.
     public const int MenuBackground = 99;

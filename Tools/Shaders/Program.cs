@@ -15,6 +15,7 @@ using Xanadu.Tools.Shaders;
 // dotnet run --project Tools/Shaders -- --under=<name>      -> another stack drawn before the open one, over the same quad (what it reads under it)
 // dotnet run --project Tools/Shaders -- --text=<line>       -> the open stack draws that line (a quad per glyph) instead of its quad
 // dotnet run --project Tools/Shaders -- --post=<name>       -> a stack on the renderer's post list, drawn over the whole window last
+// dotnet run --project Tools/Shaders -- --caret=<line>:<col> -> the caret starts there (from 0), showing that shape's handles
 string? shot = null, open = null;
 bool graph = false;
 int frame = 60;
@@ -35,6 +36,11 @@ foreach (string arg in args)
         EffectPreview.Text = arg["--text=".Length..];
     else if (arg.StartsWith("--post=", StringComparison.Ordinal))
         EffectPreview.Post = arg["--post=".Length..];
+    else if (arg.StartsWith("--caret=", StringComparison.Ordinal))
+    {
+        string[] place = arg["--caret=".Length..].Split(':');
+        Xanadu.Host.Tools.ShaderEditing.PreviewHandles.StartCaret = (int.Parse(place[0]), int.Parse(place[1]));
+    }
     else if (arg == "--graph")
         graph = true;
     else if (arg == "--expand")

@@ -92,29 +92,21 @@ internal sealed class EditorTuning : IDisposable
     public Vector4 StandIn(string name, float fallback) =>
         _tuned.TryGetValue(name, out float[]? value) ? UiValueFields.AsVector(value) : new Vector4(fallback);
 
-    /// <summary>The <c>uniform float2</c>s that read as places (<see cref="SlangPoints.IsPlaceName"/>), for dragging on the preview.</summary>
-    public IEnumerable<(string Name, Vector2 Value)> Points()
-    {
-        foreach (MaterialParam param in _declared)
-        {
-            if (param is { Channels: 2, IsMatrix: false } && SlangPoints.IsPlaceName(param.Name))
-                yield return (param.Name, new Vector2(_tuned[param.Name][0], _tuned[param.Name][1]));
-        }
-    }
+    /// <summary>A value as tuned, every channel; null for a name that has no field.</summary>
+    public float[]? Values(string name) => _tuned.GetValueOrDefault(name);
 
-    /// <summary>A float2 dragged on the preview: its value, and its field's span widened to hold it.</summary>
-    public void SetPoint(string name, Vector2 value)
+    /// <summary>A value set from outside its field (a handle dragged on the preview): its field's span widened to hold it.</summary>
+    public void Set(string name, float[] value)
     {
-        if (!_tuned.TryGetValue(name, out float[]? values) || values.Length < 2)
+        if (!_tuned.TryGetValue(name, out float[]? values) || values.Length != value.Length)
             return;
-        values[0] = value.X;
-        values[1] = value.Y;
+        value.CopyTo(values, 0);
         if (!_fields.TryGetValue(name, out Entity field) || field.IsNull || !field.HasComponent<UiValueField>())
             return;
 
         ref UiValueField state = ref field.GetComponent<UiValueField>();
-        state.Min = MathF.Min(state.Min, MathF.Min(value.X, value.Y));
-        state.Max = MathF.Max(state.Max, MathF.Max(value.X, value.Y));
+        state.Min = MathF.Min(state.Min, value.Min());
+        state.Max = MathF.Max(state.Max, value.Max());
         UiValueFields.Set(field, values);
     }
 

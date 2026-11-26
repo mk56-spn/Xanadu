@@ -5,7 +5,7 @@ using Xanadu.Ui.Systems.Rendering;
 
 namespace Xanadu.Ui.Systems.Groups;
 
-/// <summary>Applies transforms and redraws dirty rectangles, wheels, and text, and every connector.</summary>
+/// <summary>Applies transforms and redraws dirty rectangles, wheels, and text, and every connector and grip.</summary>
 public sealed class PresentationSystemGroup : SystemGroup
 {
     public PresentationSystemGroup(IRectCanvas canvas) : base("Presentation")
@@ -19,5 +19,6 @@ public sealed class PresentationSystemGroup : SystemGroup
         Add(new ImageDrawSystem(canvas));
         Add(new BarGraphDrawSystem(canvas));
         Add(new ConnectorDrawSystem(canvas));
+        Add(new GripDrawSystem(canvas));
     }
 }

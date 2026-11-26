@@ -1275,14 +1275,25 @@ particles.bounce(position, velocity, -world / 2, world / 2, bool4(true), 0.5, 0.
   line-filled pipeline, `overlayUvLines`). A code editor with
   - live problems under their lines
   - parameter hints
-  - **points to drag:** with the caret on a `float2(x, y)` of two plain numbers
-    that is a place (given to `moved`, `Line`, `angleTo`, a `Curve`'s points and
-    the like, or to a variable whose name isn't a size or a direction), a dot
-    shows where it lands on the preview, in pixels from its centre. Dragging
-    it writes whole pixels back into the text, the drag one undo step. Every
-    `uniform float2` that reads as a place has a dot too, dragged like its
-    sliders. A dot off the preview sits hollow on its edge
-    (`Slang/SlangPoints.cs`, `PreviewPoints.cs`)
+  - **shape handles:** every shape the code makes (`Circle(60).moved(…).rotated(…)`,
+    a shape given to a join included) is found and placed on the preview from
+    its steps; the one the caret is in shows its handles and outline: the
+    constructor's tagged parameters (a radius dot, a box's edge and corner grips,
+    its corner rounding, a line's ends), a move square at its centre, a turn dot
+    on an arm and a scale square on its diagonal. Pressing any placed shape's
+    body puts the caret on it and moves it. A drag writes into the code, whole
+    pixels (radians and scales to two places), the drag one undo step: a
+    literal is rewritten, a step or a trailing argument not written yet is
+    added (`.moved(…)`, `.rotated(…)`, a box's radius), a tuned uniform is set.
+    A worked-out value has no handle; a placement the CPU can't work out
+    leaves the shape without any. Handles assume the shape is measured from the
+    preview's centre. What a shape gets comes from the library's
+    `/// @handle parameter kind` tags (kinds: radius, size, half, corner, point
+    on a shape's constructor; move, turn, scale on `moved`, `rotated`,
+    `scaled`), so a new shape gets handles from a tag line
+    (`Slang/SlangHandleTags.cs`, `SlangShapeChains.cs`, `ShapePlacement.cs`,
+    `SlangHandles.cs`, `SlangHandleDrag.cs`, `PreviewHandles.cs`; the grips are
+    the UI's `UiGrip`)
   - completion follows a few rules, so a new wish is a new rule (or a tag in
     the library), never a special case (`Slang/SlangCompletions*.cs`; each rule
     is a row in `SlangCompletionsTests.Rules`):
