@@ -48,7 +48,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         [TokenKind.Function] = new("#82aaff"),
         [TokenKind.Number] = new("#f78c6c"),
         [TokenKind.Text] = new("#c3e88d"),
-        [TokenKind.Attribute] = new("#a0a8c4"),
+        [TokenKind.Attribute] = new("#4fa35e"),
         // Ours stand apart from Slang's: [Default], [Instance] and any the library adds.
         [TokenKind.LibraryAttribute] = new("#ff9cac"),
         [TokenKind.Comment] = new("#6b7a99"),
