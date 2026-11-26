@@ -4,7 +4,7 @@ How to write a Xanadu effect with the shipped library
 (`Assets/Shaders/Library`): what a shader is, the coordinates it gets, and
 every type and call the library offers. How the host compiles and runs effects
 is in `Docs/host.md` §5.5; the house style is `Docs/shader-style.md`; worked
-examples are in `Tools/Labs/Examples/`.
+examples are the walkthroughs in `Assets/Shaders/Learn/` and the stacks in `Assets/Shaders/Lab/`.
 
 **Naming.** Library calls on a value follow one rule. A verb in the
 imperative (`rotate`, `paint`, `erase`) changes the value it's called on and
@@ -1008,8 +1008,6 @@ float4 shade(Canvas canvas)
   preview (2026-11-24, GPU, Release, the tool's own 0.1 ms taken off): single
   about 15.5 ms a frame, tiled 7, pooled 0.15.
 
-See `Tools/Labs/Examples/flashlight.slang`.
-
 ## 15. Moving the corners: `deform`
 
 `shade` colours pixels where the shape already is. To move the shape itself
@@ -1331,8 +1329,6 @@ particles.bounce(position, velocity, -world / 2, world / 2, bool4(true), 0.5, 0.
   - a bar between the code and the preview that drags to resize them; the
     preview stays 16:9, so effects can be watched at different sizes
   - selection, copy and paste, undo and redo.
-- **Examples** (`Tools/Labs/Examples/`): plasma, starfield, Voronoi, tunnel,
-  metaballs, a shape badge, a screen ripple, a flashlight and clips, each a slot shader.
 - **Walkthroughs and tours** (`Assets/Shaders/Learn/`, open in the shader tool
   as `Learn/…`): effects built in numbered steps, each panel showing the picture
   as it was after that step (glow badge, clouds, stained glass, fire, a beat hit,

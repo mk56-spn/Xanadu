@@ -591,3 +591,116 @@ Also still open:
   floor beside a pin it didn't see lost the pin's darkening at the pin's screen box; and a shadow's soft edge spread
   past the swept box a tile lists casters by. A tile now lists objects within `Lighting.OCCLUSION_REACH` of its view,
   and the sweep grows by the penumbra (far / hardness).
+
+## Stage F: across materials, views, meshes, limits (decided 2026-11-26)
+
+The user's picks, in the order they're built:
+
+1. **More values per call.** `RunValues` and a pass's uint arguments go past four (the pass uniforms grow with it).
+2. **Packing draw outputs.** Up to four outputs stay a target each. Past four, narrow outputs share a target's
+   channels where they can (same size and lifetime, a format that holds them), written with per-channel masks and
+   read back by channel. Nothing is refused for its type: an output that can't share keeps a target of its own.
+3. **The mesh pool:** culling per page (bounds per page, a pass compacting the pages a camera sees into a counted
+   list the draw reads), a generator for triangle lists (anything that isn't a grid), and pages taken as needed
+   instead of fixed ranges per generator.
+4. **`[Shared]` resources:** any graph declaring `[Shared] Image<T> name;` or `[Shared] [Size(n)] List<T> name;` gets
+   the one frame-wide resource of that name and type, whatever its material. Writers run before readers across
+   materials (ordered as UE5's RDG would). A shared image is screen-sized or fixed.
+5. **`[View]` images:** `[View] Image<float4> name;` is filled before the frame by drawing a canvas subtree the game
+   names for that material, with its own transform (zoom, offset, flip): reflections, a minimap, a second camera.
+   Built on the offscreen roots.
+6. **A renderer post list:** the host lists post materials on the renderer; each runs after the tree as a full-screen
+   item, in order, reading `screen`.
+
+### Stage F, where it stands (2026-11-26, uncommitted)
+
+- **1, values: done.** `StackBuild.MaxArguments` is 16: a pass takes up to 16 uints (`uint4 args[4]` in its wrapper,
+  `PassUniforms.Arguments` the `RunValues` inline array), and a call carries up to 16 draw targets.
+- **2, packing: done.** `Slang/Texels.cs` is the one table of image types and formats; images now also hold `uint2`,
+  `uint4`, `int`, `int2`, `int4`, and a `[Precise]` (rg32f) or `[Compact]` (rg8) `float2`. A draw may return up to 16
+  outputs: `DrawLayout` keeps four or fewer a target each, and past four packs narrow outputs of one kind into shared
+  targets, first fit. `ImagePacking` turns the images a call names for one shared target into one texture (named
+  `a+b+c+d` on the board, cleared channel by channel), reached in code through a struct per member (`name[pixel]`,
+  `name.GetDimensions`). It refuses with a message where packing would change what the graph does: different sizes or
+  lives, a history on either side, a member passed on whole, or another draw writing part of a pack. Tests:
+  `Slang/Tests/ImagePackingTests.cs`.
+- **3, the mesh pool: done.** `Meshlet` carries bounds (a ball, and a normal cone); `pool.bound(n)` works them out after
+  building; `pool.cull(n, placed, camera, halfView, seen)` / `pool.sees` keep the pages a camera sees in a
+  `Gathered<uint>` the draw counts by (`copies: seen`, `pool.pulled(..., page)`); `oneSided` also drops pages facing
+  away. `pool.list(ITriangles, …)` builds any triangle list (`CornerList`, `IndexedList`), 42 triangles a page. Pages are
+  taken as needed: `pool.clear()`, `pool.take(n)`, `pool.place(object, first)`, `pool.taken(i, most)`, and `copies:
+  pool` draws the pages taken; the counts live in the pool's own cached `book` list, so a cached pool's claims stay
+  fills. Lab: `Lab/culled_meshes`.
+  - **Watch:** the user saw flicker while testing it with `VIEW` shrunk to 300×200 (the cull boundary inside the
+    window). With `VIEW` back at the stage's 960×540 it "seems better"; a still scene gives identical frames across runs
+    and the cached fill runs only twice, so no race or reshuffle was found. If pages blink well inside the screen,
+    look at the cull test against the draw's projection first. A material-scope cull pass can't know the item's box,
+    so `halfView` is the author's.
+- **4, `[Shared]`: done.** `[Shared] Image<T> name;` and `[Shared] [Size(n)] List<T> name;` are the frame's: every
+  graph declaring one of that name and format (an image) or element type (a list) gets the same.
+  - **Images** are the screen's size (`[Scale(s)]` scales the screen, `[Size(w, h)]` is fixed), taken from the image
+    pool and cleared at their first use in the frame (`ItemImages.FrameShared`), read and written at `i.pixel`, not
+    `group.pixel`. Any pass may touch one, a `[Pass]` too, whatever its size. A draw can't render into one (its depth is
+    the box's) and `over:` a screen-sized one is refused; `present` reads one at the pixel. A later declaration with
+    another size or clear gets its own texture and says so under PROBLEMS (`CanvasRenderer.GraphProblem`).
+  - **Lists** are kept from frame to frame like any list, zeroed when made, as big as the biggest declaration: a bigger
+    one makes it again and the materials holding the old one move over (`BuildBuffers.SharedGeneration`). They stay when a
+    material goes. Neither kind can be `[Kept]`, `[Cached]`, `[Host]` or a history.
+  - **Writers before readers:** `SharedUse` (Slang) lists each graph's shared writes and reads over all its passes, from
+    the code (`CompiledPass.ImageAccess` now carries each image's scanned access, which the board reads too).
+    `SharedOrder` runs the frame's preludes level by level, a material one past the writers it reads from, tree order
+    within a level and in a cycle. Exits run after every prelude, so they see every writer. An exit that reads images
+    takes its item's set in the prelude, so a graph that only reads a shared image at its exit draws.
+  - **The board** says `screen · shared` on an image and `shared` on a list.
+  - **The tool:** `--beside=<stack>` draws a second stack after the open one over the same quad (two materials).
+  - **Checked:** `Lab/shared_look` opened with `--beside=Lab/shared_paint`: the reader comes first in tree order, yet
+    shows the writer's heat and rings round its blobs the same frame. Alone, its heat is dark (cleared). Its rings
+    stay from whatever wrote `spots` last (the writer's card), as a list keeps its contents. Tests:
+    `Slang/Tests/SharedResourceTests.cs`. Suites after it: Slang 402 pass (1 skipped), game 209 (14 skipped), UI 456.
+  - **Not yet:** a mid-frame writer is not ordered against other materials' preludes; a shared image is never drawn
+    into (it would need a screen-sized draw depth).
+- **5, `[View]`: done.** `[View] Image<float4> name;` takes nothing else: it is rgba8 (the canvas's own format, so the
+  view draws straight into it), the screen's size and read at `i.pixel` like a shared image (`BuildImage.Screen`). The
+  graph only reads it: a pass writing it or a draw into it is refused. The game names it per material with
+  `CanvasMaterial.SetView(name, root, transform)`: the subtree under `root`, placed by the tree's transforms above it, then
+  by `transform` on the screen; a view nothing names is clear.
+  - **The frame:** `MaterialViews` looks through the collected jobs for materials naming views, collects a job per
+    (material, name) into a held screen-sized texture, views inside views first, each once a frame, and puts them before
+    the other jobs. The view's preludes run, the views draw, then everyone else's preludes and jobs
+    (`GraphRunner.Begin` / `Prelude(from, end)`), so any node may read a view, a `[Pass]` too. The viewing material's
+    own items are left out of its views (`Job.Viewer`). An item drawn in a view keeps its own effect mesh and held
+    images there (`MeshOf` is keyed by `Job.View` too), since it is placed differently.
+  - **The tool** names every `[View]` of the open stack: the backdrop's subtree, flipped about the preview's middle.
+  - **Checked:** `Lab/view_mirror` opened with `--beside=Lab/view_scene`: the sun and hills show mirrored in the water,
+    rippled. Tests: `Slang/Tests/ViewImageTests.cs` (which caught `present(view)` being refused as a write).
+  - **Not yet:** a view draws single-sampled at the screen's size (no `[Scale]`); a material that only shows inside
+    another view runs its preludes before its own views draw; particles step once, after the views' preludes.
+- **6, the post list: done.** `CanvasRenderer.AddPost(material)` / `RemovePost` keep a full-screen rect per post material
+  (an item of the tree with no parent), put after everything else in the main job each frame, in the order they were
+  added (`CanvasCollect.Last`). It is an ordinary item, so a post stack is any stack: a shade reading `sampleScreen`
+  costs one screen copy, a graph runs like any other, its views too.
+  - **The tool:** `--post=<stack>` puts a stack on the list. `Lab/post_grade` grades, vignettes and scanlines the window.
+  - **Checked:** a shot of `Lab/view_mirror --beside=Lab/view_scene --post=Lab/post_grade`: the grade covers the whole
+    window, editor and all, from one screen copy. Suites: Slang 413 (1 skipped), game 209 (14 skipped), UI 456.
+  - **Not yet:** the game puts nothing on the list yet; a post item is always the window's size.
+- **Stage F is done.**
+
+### Sampled reads (2026-11-26, uncommitted)
+
+- `sampled(image, at, size)` reads a float4 image between its texels like `filtered` (`at` in texels, clamped inside
+  `size`). In a `[Pixels]` pass it goes through the GPU's bilinear filter: the rewrite (`StackBuild.Rewrite`, `sampled:`)
+  gives each float4 image a `Sampler2D` companion in set 0 and points the calls naming it there; the ones a pass uses get
+  samplers after the canvas's two (`CompiledPass.Sampled`), the globals after them, and the runner binds them
+  (`ComputeNodes.Pixels`). Anywhere else `sampled` is the library's, which is `filtered`.
+- A pass can't read an image through `sampled` and touch it as an image too. The board, shared ordering and cache fills
+  count a sampled image as read.
+- **Checked:** `Lab/dual_kawase --under=Lab/test_card` looks the same as with `filtered`, at half the GPU time (chain
+  0.163 → 0.078 ms, the last step 0.120 → 0.063 ms, full screen). Tests: `Slang/Tests/SampledImageTests.cs`.
+- **Handles:** `sampled(glow)` hands out a `Sampled` a helper can take (`float4 blur(Sampled image, …)`, read with
+  `image.at(texel, size)`), so a chain of steps shares its taps (`Lab/dual_kawase`). In a `[Pixels]` pass it is the
+  image's sampler; anywhere else, or on something that isn't one of the graph's float4 images, it is a stand-in on no
+  sampler (`StackBuild.NoSampler`), and any stage reaching it is refused with a message. Reflection leaves samplers
+  parked at 159 and up out of a stage's count: declared in every stage, they had made a draw's vertex pipeline ask for
+  160 samplers and crash the driver.
+- **Not yet:** draws and `[Pass]`es filter by hand (`sampled(image, at, size)`); float4 images only; a packed one can't
+  be sampled.

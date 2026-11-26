@@ -32,8 +32,6 @@ screenshots/
 # MoonWorks native libraries: fetched by External/fetch-moonlibs.sh
 External/moonlibs/
 
-# Xanadu Labs: the shader playground's working copy is yours to scribble on
-Tools/Labs/Playground/spawner.slang
 
 # Vulkan headers for the GPU timing layer: fetched by External/fetch-vulkan-headers.sh
 External/vulkan-headers/

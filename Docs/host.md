@@ -551,13 +551,13 @@ host fills; tests leave the headless defaults.
   - **Shader editor** (`ShaderCodeEditor`; the start of the in-game shader
     editor): lives in the shader tool (`./run.sh shaders`, where NEW makes a
     stack, a shade brick from its template, under `Assets/Shaders/` and
-    opens it) and the lab's Spawner tab. In the tool it edits a stack: the
+    opens it). It edits a stack: the
     pipeline strip over the code (`BrickStrip`: UPDATE → STEP → DEFORM →
     SHADE → blend) opens a brick, adds a missing one from
     `ShaderStack.Template` and removes the open one, each brick with its
     problem count; the editor composes the bricks for every compile, and each
     problem goes to its brick by label (other bricks' are listed named by
-    theirs). The lab keeps one text. Compiled 0.3 s after typing stops. Code left with
+    theirs). Compiled 0.3 s after typing stops. Code left with
     a status bar under it, a 16:9 preview top right (the playfield's shape;
     the pointer counts only over it), problems and a key guide under that.
     Linting is Slang's own errors: the line tinted, the word underlined, the
@@ -613,10 +613,9 @@ host fills; tests leave the headless defaults.
     target, each writing depth per pixel through `SV_Depth`; depth and stencil
     state all open.
   - **Transparency:** order-dependent against order-independent transparency.
-  - **Indirect draw:** up to a million GPU-only shapes.
-  - **Spawner:** the shader editor with a different preview: `count` and
-    `Thing spawn(uint i)` (optionally `shade(Thing t, Canvas canvas)`) become a
-    compute pass that spawns, culls and packs, plus one indirect draw.
+  - **Indirect draw** and **Spawner** are gone (2026-11-26): a stack does both, a `[Pass]` culling into a `Gathered`
+    list and a `[Draw]` counted by it (`Lab/copies`, `Lab/culled_meshes`). The Labs shader examples went too: plain
+    shades, which any stack is.
   - **Pointer history:** the pointer's path as a ring of keys on the GPU.
   - **RTS:** an RTS that lives on the GPU.
   - **BVH march** (raymarcher four; the stacks in `Assets/Shaders/Lab/raymarch_*` are one to three) is no longer a Labs tab: it is the stack `Assets/Shaders/Lab/bvh_march` in the shader tool (moved 2026-11-24). Up to 262,144 melting blobs. BUILD animates them, radix sorts their Morton codes, builds a Karras LBVH and refits it with atomics, and fills a sun-space grid (count, scan, fill). TRACE (compute, 8×8 tiles) lists what each tile sees (thread 0 opens the BVH into up to 64 subtrees, every thread walks one, inside the tile's side planes and nearer than the floor), bitonic sorts the list in groupshared memory, and each ray gathers the 8 blobs it enters first, bounded by the first plain blob it hits, and marches only those; floor and pillars are analytic. Soft shadows read the sun grid or walk the BVH. DEFORM/SHADE draw 6,144 `[Translucent]` sparks after it, depth-tested against the march. The lab's timings (~3.4 ms GPU at 16k blobs, ~9.4 ms at 262k, RTX 4060 laptop, vsync off) haven't been taken again on the stack.

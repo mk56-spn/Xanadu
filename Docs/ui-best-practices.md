@@ -77,7 +77,7 @@ it directly.
 | Look (roles) | `.Primary()` `.Secondary()` `.Quiet()` `.Danger()` `.Chosen(on)` `.Solid()` `.Backing()` `.AccentText()` `.DimText()` `.CategoryTone(i)` `.CategoryFill(i)` `.CategoryText(i)` `.Theme(roles)` |
 | Text | `.SetText(s)` `.Fit()` `.WrapText()` `.Align(...)` `.Bold()` `.Mono()` |
 | Geometry and flex | `.Size(w, h)` `.Width(w)` `.Height(h)` `.Grow(w)` `.Stretch()` `.IgnoreLayout()` `.Anchor(UiEdge)` |
-| Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` |
+| Behaviour | `.Tooltip(s)` `.Input()` `.Disabled()` `.Hidden()` `.With(UiCommand.Of(...))` `.Menu(new MenuItem("RENAME"), new MenuItem("DELETE", Confirm: true))` (right-click menu on the node and anything under it; `.OnMenuPicked(i => …)`) |
 | Lists, lines, meters | `UiLists.SetCount / Reveal / Row / Pool / OnChanged`, the `UiList` component (`First`, `Shown`, `Count`), `UiConnectors.Join`, `UiMeters.Set` |
 | More structure | `.Grid(n)` `.Edge(UiEdge.X)` `.Collapsible(...)` `.Dropdown(...)` `.TabbedPicker(tabs, width)` (long lists in categories) `.IconButton` `.Image` `.Shape` (no spec yet: use `Custom`) |
 

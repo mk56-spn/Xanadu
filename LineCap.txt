@@ -35,7 +35,7 @@
 485 Slang/SlangCompletions.Library.cs
 443 Slang/SlangLint.Cost.cs
 502 Slang/SlangLint.cs
-939 Slang/SlangShaders.cs
+895 Slang/SlangShaders.cs
 993 Slang/Tests/SlangEditorLanguageTests.cs
 604 Tests/VisualTests/Harness/VisualTestMain.cs
 469 Tools/Animator/AnimatorTool.cs
@@ -46,9 +46,7 @@
 672 Tools/Labs/Experiments/DepthLab.cs
 466 Tools/Labs/Experiments/OrbLab.cs
 406 Tools/Labs/Experiments/PointerHistoryLab.cs
-461 Tools/Labs/Experiments/SpawnerPreview.cs
 453 Tools/Labs/Experiments/TransparencyLab.cs
-442 Tools/Shaders/ShaderToolApp.cs
 424 UI/Ecs/Ui/TextEditorComponents.cs
 423 UI/Ecs/Ui/UiBuilder.cs
 559 UI/Editing/TextBuffer.cs
