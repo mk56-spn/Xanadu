@@ -73,7 +73,7 @@ public sealed class NoteCopies(string use)
         Span<Shown> shown = CollectionsMarshal.AsSpan(_shown)[..count];
         for (int i = 0; i < shown.Length; i++)
             shown[i] = shown[i] with { Corner = shown[i].Corner - area.Position };
-        _material.SetBuffer<Shown>("looks", shown);
+        _material.Lists.Set<Shown>("looks", shown);
         _material.Set("lookCount", count);
         _material.Set("area", area.Size);
         _shown.Clear();

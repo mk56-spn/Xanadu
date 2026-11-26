@@ -63,7 +63,7 @@ internal sealed class GraphUnderlay
             }
         }
 
-        _material.SetBuffer<Wire>("wires", _wires.AsSpan(0, wires));
+        _material.Lists.Set<Wire>("wires", _wires.AsSpan(0, wires));
         _material.Set("wireCount", wires);
         _material.Set("area", state.Area.Size);
         _material.Set("zoom", state.Zoom);

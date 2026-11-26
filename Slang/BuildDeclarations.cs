@@ -11,6 +11,8 @@ namespace Xanadu.Slang;
 /// [Size(256)] List&lt;Part&gt; parts;               // 256 parts, kept from frame to frame
 /// [Cached] [Size(RING)] List&lt;Meshlet&gt; meshlets; // filled only when the values change
 /// [Host] [Size(WIRES)] List&lt;Wire&gt; wires;         // the host fills it
+/// [Host] List&lt;Wire&gt; wires;                      // the host sizes and fills it at run time
+/// List&lt;Placed&gt; placed;                         // the host sizes it at run time, the passes fill it
 /// Counter drawn;                                // one uint to count with: drawn.add(1)
 /// Image&lt;float4&gt; shown;                          // the item's box, colour
 /// [Clear(1e30)] Image&lt;float&gt; depth;
@@ -35,7 +37,7 @@ namespace Xanadu.Slang;
 internal static partial class BuildDeclarations
 {
     private const string Forms =
-        "[Size(n)] List<T> name; (with [Cached], [Host], [Shared] or [Reported] before it if wanted), [History(list)] List<T> name;, Stored<T> name; "
+        "[Size(n)] List<T> name; (with [Cached], [Host], [Shared] or [Reported] before it if wanted), List<T> name; (sized by the host, [Host] before it if wanted), [History(list)] List<T> name;, Stored<T> name; "
         + "(with [Cached], [Host], [Shared] or [Reported] before it if wanted), Counter name;, or Image<T> name; "
         + "(T float, float2, float4, uint, uint2, uint4, int, int2 or int4; with [Kept], [Cached], [History(image)] or [Shared], [Scale(s)] or [Size(w, h)], "
         + "[Clear(value)], and [Precise] or [Compact] before it if wanted; or [View] Image<float4> name; alone), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
@@ -98,20 +100,20 @@ internal static partial class BuildDeclarations
         List<BuildBundle> bundles = [];
         long book = 0;
         string? keeper = null;
-        List<(Match Match, Dictionary<string, Argument?> Said)> histories = [], listHistories = [];
+        List<(Match Match, Dictionary<string, DeclaredArgument?> Said)> histories = [], listHistories = [];
         foreach (Match match in Declaration().Matches(code))
         {
             string name = match.Groups["name"].Value, kind = match.Groups["kind"].Value;
             if (name == BundleKinds.Bookkeeping || buffers.Any(buffer => buffer.Name == name || buffer.Bundle == name)
                 || images.Any(image => image.Name == name) || bundles.Any(bundle => bundle.Name == name))
                 throw new BuildProblem(match.Index, $"{name} is declared twice.");
-            Dictionary<string, Argument?> said = Said(match, kind);
+            Dictionary<string, DeclaredArgument?> said = Said(match, kind);
             if (kind == "Image" && said.ContainsKey("History"))
                 histories.Add((match, said));
             else if (kind == "List" && said.ContainsKey("History"))
                 listHistories.Add((match, said));
             else if (kind == "Image")
-                images.Add(ReadImage(match, said, constant));
+                images.Add(ImageDeclarations.Read(match, said, constant));
             else if (BundleKinds.Kinds.ContainsKey(kind))
             {
                 bundles.Add(ReadBundle(match, said, kind, buffers, ref book, constant));
@@ -141,10 +143,10 @@ internal static partial class BuildDeclarations
 
         // After every image, so a history may come before its source.
         int sources = images.Count;
-        foreach ((Match match, Dictionary<string, Argument?> said) in histories)
-            images.Add(ReadHistory(match, said, images, sources));
+        foreach ((Match match, Dictionary<string, DeclaredArgument?> said) in histories)
+            images.Add(ImageDeclarations.ReadHistory(match, said, images, sources));
         int lists = buffers.Count;
-        foreach ((Match match, Dictionary<string, Argument?> said) in listHistories)
+        foreach ((Match match, Dictionary<string, DeclaredArgument?> said) in listHistories)
             buffers.Add(ReadListHistory(match, said, buffers, lists));
         // The bookkeeping is declared with the first bundle that keeps anything in it.
         if (keeper is not null)
@@ -193,7 +195,7 @@ internal static partial class BuildDeclarations
     }
 
     /// <summary>A declaration's attributes, by word, with their arguments; throws for one that doesn't belong on its kind.</summary>
-    private static Dictionary<string, Argument?> Said(Match match, string kind)
+    private static Dictionary<string, DeclaredArgument?> Said(Match match, string kind)
     {
         string[] allowed = kind switch
         {
@@ -203,7 +205,7 @@ internal static partial class BuildDeclarations
             "Gathered" or "Slots" => [BundleKinds.Kinds[kind].SizeWord],
             _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact", "Shared", "View"],
         };
-        Dictionary<string, Argument?> said = [];
+        Dictionary<string, DeclaredArgument?> said = [];
         Group attributes = match.Groups["attributes"];
         foreach (Match attribute in Attribute().Matches(attributes.Value))
         {
@@ -213,7 +215,7 @@ internal static partial class BuildDeclarations
                     ? "a Counter takes no attributes: Counter name;."
                     : $"[{word}] doesn't go on a{(kind == "Image" ? "n" : "")} {kind}: {Forms}.");
             if (!said.TryAdd(word, attribute.Groups["arguments"].Success
-                    ? new Argument(attribute.Groups["arguments"].Value, attributes.Index + attribute.Groups["arguments"].Index)
+                    ? new DeclaredArgument(attribute.Groups["arguments"].Value, attributes.Index + attribute.Groups["arguments"].Index)
                     : null))
                 throw new BuildProblem(attributes.Index + attribute.Index, $"[{word}] is said twice.");
         }
@@ -278,12 +280,12 @@ internal static partial class BuildDeclarations
         return (sizes, cached);
     }
 
-    private static BuildBundle ReadBundle(Match match, Dictionary<string, Argument?> said, string kind, List<BuildBuffer> buffers,
+    private static BuildBundle ReadBundle(Match match, Dictionary<string, DeclaredArgument?> said, string kind, List<BuildBuffer> buffers,
         ref long book, System.Func<string, BuildValue?> constant)
     {
         string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
         string word = BundleKinds.Kinds[kind].SizeWord;
-        if (!said.TryGetValue(word, out Argument? size) || size is null)
+        if (!said.TryGetValue(word, out DeclaredArgument? size) || size is null)
             throw new BuildProblem(match.Index, $"say how big {name} is: [{word}(n)] {kind}{(type == "" ? "" : $"<{type}>")} {name};.");
         BuildValue value = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, constant);
         if (!value.Whole || value.Long < 1)
@@ -291,14 +293,22 @@ internal static partial class BuildDeclarations
         return BundleKinds.Lay(kind, name, type, value.Long, match.Index, match.Index + match.Length, buffers, ref book);
     }
 
-    private static BuildBuffer ReadBuffer(Match match, Dictionary<string, Argument?> said, string kind, System.Func<string, BuildValue?> constant)
+    private static BuildBuffer ReadBuffer(Match match, Dictionary<string, DeclaredArgument?> said, string kind, System.Func<string, BuildValue?> constant)
     {
         string name = match.Groups["name"].Value;
         long count = 1;
         if (kind == "List")
         {
-            if (!said.TryGetValue("Size", out Argument? size) || size is null)
-                throw new BuildProblem(match.Index, $"say how many {name} holds: [Size(n)] List<{match.Groups["type"].Value}> {name};.");
+            // No size: the host sizes it at run time (CanvasMaterial.SizeBuffer), so nothing that keeps a copy of it applies.
+            if (!said.TryGetValue("Size", out DeclaredArgument? size) || size is null)
+            {
+                if (said.Keys.Any(word => word != "Host"))
+                    throw new BuildProblem(match.Index,
+                        $"a list with no [Size] is sized by the host at run time, so it takes nothing but [Host]: [Size(n)] List<{match.Groups["type"].Value}> {name}; or List<{match.Groups["type"].Value}> {name};.");
+                return new BuildBuffer(name, match.Groups["type"].Value, 0, match.Groups["coherent"].Success, match.Index,
+                    match.Index + match.Length, Host: said.ContainsKey("Host"));
+            }
+
             BuildValue value = BuildPasses.Evaluate(BuildPasses.ParseAt(size.Value, size.Index), size.Index, constant);
             if (!value.Whole || value.Long < 1)
                 throw new BuildProblem(size.Index, $"a list's size is a whole number of elements, at least 1 ({name} has {value}).");
@@ -311,7 +321,7 @@ internal static partial class BuildDeclarations
     }
 
     /// <summary><c>[History(list)] List&lt;T&gt; name;</c>: the list's other half, as big and of the same type, swapped with it each frame.</summary>
-    private static BuildBuffer ReadListHistory(Match match, Dictionary<string, Argument?> said, List<BuildBuffer> buffers, int lists)
+    private static BuildBuffer ReadListHistory(Match match, Dictionary<string, DeclaredArgument?> said, List<BuildBuffer> buffers, int lists)
     {
         string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
         if (said.Keys.Any(word => word != "History") || match.Groups["coherent"].Success)
@@ -323,6 +333,8 @@ internal static partial class BuildDeclarations
         BuildBuffer of = buffers[source];
         if (of.Stored)
             throw new BuildProblem(match.Index, $"{from} is one stored value, not a List: only a List or Counter keeps a history.");
+        if (of.HostSized)
+            throw new BuildProblem(match.Index, $"{from} is sized by the host, so it keeps no history.");
         if (of.Host || of.Cached || of.Shared)
             throw new BuildProblem(match.Index, $"{from} is [{(of.Host ? "Host" : of.Cached ? "Cached" : "Shared")}], so it keeps no history.");
         if (buffers.Any(buffer => buffer.Source == source))
@@ -332,69 +344,7 @@ internal static partial class BuildDeclarations
         return new BuildBuffer(name, type, of.Count, of.Coherent, match.Index, match.Index + match.Length, Source: source);
     }
 
-    private static BuildImage ReadImage(Match match, Dictionary<string, Argument?> said, System.Func<string, BuildValue?> constant)
-    {
-        string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
-        string? precision = said.ContainsKey("Precise") ? "Precise" : said.ContainsKey("Compact") || said.ContainsKey("View") ? "Compact" : null;
-        string format = Texel.Of(type, precision)?.Format ?? throw new BuildProblem(match.Index, Texel.Of(type, null) is null
-            ? $"an image holds {string.Join(", ", Texel.Types)}; not {type}."
-            : $"an Image<{type}> can't be [{precision}]: that's for {string.Join(", ", Texel.All.Where(texel => texel.Precision == precision).Select(texel => texel.Type))}.");
-        float clear = said.TryGetValue("Clear", out Argument? value) && value is not null
-            ? (float)BuildPasses.Evaluate(BuildPasses.ParseAt(value.Value, value.Index), value.Index, constant).Number
-            : 0f;
-        ImageLife life = said.ContainsKey("Kept") ? ImageLife.Kept : said.ContainsKey("Cached") ? ImageLife.Cached : ImageLife.Frame;
-        return new BuildImage(name, format, type, clear, match.Index, match.Index + match.Length, life,
-            Size: SizeOf(match, said, name, constant), Shared: said.ContainsKey("Shared"), View: said.ContainsKey("View"));
-    }
-
-    private static BuildImage ReadHistory(Match match, Dictionary<string, Argument?> said, List<BuildImage> images, int sources)
-    {
-        string name = match.Groups["name"].Value, type = match.Groups["type"].Value;
-        if (said.Keys.Any(word => word != "History"))
-            throw new BuildProblem(match.Index, $"a history is its source's copy, so it takes nothing but [History(image)]: [History(image)] Image<T> {name};.");
-        string from = said["History"]?.Value.Trim() ?? "";
-        int source = images.FindIndex(0, sources, image => image.Name == from);
-        if (source < 0)
-            throw new BuildProblem(match.Index, $"{name} is the history of {from}, which isn't an Image this graph declares.");
-        BuildImage of = images[source];
-        if (of.Screen)
-            throw new BuildProblem(match.Index, $"{from} is [{(of.View ? "View" : "Shared")}], the frame's, so it keeps no history.");
-        if (of.Life is ImageLife.Kept or ImageLife.Cached)
-            throw new BuildProblem(match.Index, $"{from} is [{of.Life}]: it already holds last frame's texels, so it needs no history.");
-        if (images.Any(image => image.Source == source))
-            throw new BuildProblem(match.Index, $"{from} has a history already.");
-        if (type != of.Type)
-            throw new BuildProblem(match.Index, $"{from} holds {of.Type}, so its history does too: [History({from})] Image<{of.Type}> {name};.");
-        return new BuildImage(name, of.Format, of.Type, of.Clear, match.Index, match.Index + match.Length, ImageLife.History, source, of.Size);
-    }
-
-    /// <summary>An image's size as its declaration gives it: a scale of the box, a fixed size, or neither.</summary>
-    private static ImageSize SizeOf(Match match, Dictionary<string, Argument?> said, string name, System.Func<string, BuildValue?> constant)
-    {
-        double Number(string text, int at) => BuildPasses.Evaluate(BuildPasses.ParseAt(text, at), at, constant).Number;
-        said.TryGetValue("Scale", out Argument? scaled);
-        said.TryGetValue("Size", out Argument? sized);
-        if (scaled is not null && sized is not null)
-            throw new BuildProblem(match.Index, $"{name} has a scale or a size, not both.");
-        if (scaled is not null)
-        {
-            double scale = Number(scaled.Value, scaled.Index);
-            if (scale is <= 0 or > 4)
-                throw new BuildProblem(scaled.Index, $"a scale is above 0 and at most 4 ({name} has {scale}).");
-            return new ImageSize((float)scale);
-        }
-
-        if (sized is null)
-            return default;
-        string[] sides = sized.Value.Split(',');
-        if (sides.Length != 2)
-            throw new BuildProblem(sized.Index, $"an image's size is its width and height: [Size(256, 256)] Image<T> {name};.");
-        double width = Number(sides[0], sized.Index), height = Number(sides[1], sized.Index + sides[0].Length + 1);
-        if (width != System.Math.Floor(width) || height != System.Math.Floor(height) || width is < 1 or > 8192 || height is < 1 or > 8192)
-            throw new BuildProblem(sized.Index, $"a fixed size is whole texels, 1 to 8192 each way ({name} is {width} × {height}).");
-        return new ImageSize(0, (int)width, (int)height);
-    }
-
-    /// <summary>An attribute's argument text and where it starts in the code.</summary>
-    private sealed record Argument(string Value, int Index);
 }
+
+/// <summary>An attribute's argument text and where it starts in the code.</summary>
+internal sealed record DeclaredArgument(string Value, int Index);

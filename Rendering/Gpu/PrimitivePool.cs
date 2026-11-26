@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using MoonWorks.Graphics;
 using Xanadu.Rendering.Text;
 using Xanadu.Ui.Systems.Canvas;
-using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Rendering.Gpu;
 
@@ -12,9 +10,9 @@ namespace Xanadu.Rendering.Gpu;
 /// Every recording's primitives in its own space, in ranges that stay while it does: an item's
 /// primitives are sent again only when they changed, into the same range while they fit. When
 /// the pool fills with old ranges, a bigger empty one starts and everything drawn goes up again
-/// (<see cref="Overflowed"/>, then <see cref="Grow"/>).
+/// (<see cref="Overflowed"/>, then <see cref="Grow"/>). The GPU side is the canvas stack's <c>pool</c> list.
 /// </summary>
-internal sealed class PrimitivePool(GraphicsDevice device) : IDisposable
+internal sealed class PrimitivePool
 {
     /// <summary>A primitive's texture slot when it reads none.</summary>
     private const uint NoTexture = 0xFFFF;
@@ -25,8 +23,6 @@ internal sealed class PrimitivePool(GraphicsDevice device) : IDisposable
     /// <summary>Redraws in a row that differed before an item stops hashing its primitives, and how often it checks again.</summary>
     private const int HashMissesBeforeSkipping = 8, HashRecheck = 32;
 
-    private readonly GpuArray<GpuPrimitive> _gpu = new(device, "primitive pool", BufferUsageFlags.ComputeStorageRead);
-    private readonly GpuStaging<GpuPrimitive> _staging = new(device, "pool upload");
     private uint _capacity = 1 << 16;
     private int _used;
 
@@ -46,9 +42,6 @@ internal sealed class PrimitivePool(GraphicsDevice device) : IDisposable
     /// <summary>Primitives sent up this frame because they changed.</summary>
     public int ChangedCount { get; private set; }
 
-    /// <summary>The pool buffer, made at the size the frame needs.</summary>
-    public Buffer? Buffer => _gpu.Buffer;
-
     /// <summary>Forgets this frame's changes: the build starts again.</summary>
     public void Clear()
     {
@@ -61,7 +54,6 @@ internal sealed class PrimitivePool(GraphicsDevice device) : IDisposable
     public void Grow()
     {
         _capacity = Math.Max(_capacity * 2, (uint)_used * 2);
-        _gpu.Reset();
         _used = 0;
         Epoch++;
     }
@@ -139,24 +131,11 @@ internal sealed class PrimitivePool(GraphicsDevice device) : IDisposable
         ChangedCount += count;
     }
 
-    /// <summary>Makes the pool at this frame's size and sends the changed recordings into their ranges.</summary>
-    public void Upload(CopyPass copy)
+    /// <summary>Sizes the canvas stack's <c>pool</c> and writes the changed recordings into their ranges.</summary>
+    public void Send(HostLists lists)
     {
-        Buffer pool = _gpu.Ensure((int)_capacity);
-        if (ChangedCount == 0)
-            return;
-
-        TransferBuffer staging = _staging.Fill(_changed.AsSpan(0, ChangedCount));
+        lists.Size("pool", (int)_capacity);
         foreach ((int from, int to, int count) in _uploads)
-        {
-            if (count > 0)
-                copy.UploadToBuffer<GpuPrimitive>(staging, pool, (uint)from, (uint)to, (uint)count, cycle: false);
-        }
-    }
-
-    public void Dispose()
-    {
-        _gpu.Dispose();
-        _staging.Dispose();
+            lists.Write("pool", to, _changed.AsSpan(from, count));
     }
 }

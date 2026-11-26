@@ -1,16 +1,10 @@
 using System.Collections.Generic;
-using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Friflo.Engine.ECS;
-using MoonWorks.Graphics;
-using Xanadu.Rendering.Compute;
 using Xanadu.Rendering.Gpu;
-using Xanadu.Rendering.Passes;
-using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
-using Buffer = MoonWorks.Graphics.Buffer;
 using Color = Xanadu.Core.Maths.Color;
-using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using Rect = MoonWorks.Graphics.Rect;
 
 namespace Xanadu.Rendering.Kept;
@@ -24,76 +18,74 @@ internal struct ResidentOf(ICanvasMount owner) : IIndexedComponent<object>
     public readonly object GetIndexedValue() => Owner;
 }
 
-/// <summary>A resident tree's GPU side: its buffers, and where it draws this frame.</summary>
-internal struct ResidentGpu(HostResidentTree tree, GraphicsDevice device) : IComponent
+/// <summary>A run of one of the canvas stack's shared lists a tree holds: where it starts, and room for how many.</summary>
+internal struct StoreRange
 {
-    private const BufferUsageFlags Read = BufferUsageFlags.ComputeStorageRead;
+    public uint Base, Capacity;
+}
 
+/// <summary>A resident tree's GPU side: its ranges in the canvas stack's lists, and where it draws this frame.</summary>
+internal struct ResidentGpu(HostResidentTree tree) : IComponent
+{
     public HostResidentTree Tree = tree;
-    public GpuArray<GpuResidentNode> Nodes = new(device, "resident nodes", Read | BufferUsageFlags.ComputeStorageWrite);
-    public GpuArray<GpuResidentEntry> Entries = new(device, "resident entries", Read);
-    public GpuArray<uint> RunSlots = new(device, "resident run slots", Read);
-    public GpuArray<ResidentTrees.Piece> Pieces = new(device, "resident pieces", Read);
-    public GpuArray<ResidentTrees.Patch> Patches = new(device, "resident patches", Read);
-    public int PatchCount;
+    public StoreRange Nodes, Entries, RunSlots;
 
     public Transform2D Transform;
     public Color Modulate;
     public Rect Clip;
-    public uint InstanceBase;
+    public uint InstanceBase, PieceBase;
 
-    /// <summary>The frame it was last drawn; only trees drawn this frame are sent, resolved and expanded.</summary>
+    /// <summary>The frame it was last drawn; only trees drawn this frame are sent and resolved.</summary>
     public long DrawnFrame = -1;
-
-    public readonly void Dispose()
-    {
-        Nodes.Dispose();
-        Entries.Dispose();
-        RunSlots.Dispose();
-        Pieces.Dispose();
-        Patches.Dispose();
-    }
 }
 
 /// <summary>
-/// Resident trees (Docs/host.md §5.3): a mount's items kept on the GPU, placed by
-/// resident_resolve.slang from their records, so the CPU neither walks nor places them. A tree
-/// is an entity per mount; each frame the ones drawn send what changed, then resolve into
-/// instances after the CPU's.
+/// Resident trees (Docs/host.md §5.3): a mount's items kept on the GPU, placed by the canvas stack's <c>resolve</c>
+/// pass from their records, so the CPU neither walks nor places them. A tree is an entity per mount; every tree is
+/// a range of the stack's shared lists (nodes, entries, run slots), as recordings are of the pool, so one dispatch
+/// resolves them all. Each frame the trees drawn send what changed and resolve into instances after the CPU's.
 /// </summary>
-internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, EntityStore store) : IDisposable
+internal sealed class ResidentTrees(CanvasTree canvas, EntityStore store)
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal struct Patch
+    private struct Patch
     {
         public uint Slot, Pad0, Pad1, Pad2;
         public GpuResidentNode Node;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct Piece
+    private struct Piece
     {
         public uint OutBase, DepthBase, OpaqueBase, Unused;
     }
 
+    /// <summary>The stack's <c>TreeMount</c>: the mount's place, tint and clip, and the tree's ranges.</summary>
     [StructLayout(LayoutKind.Sequential)]
-    private struct PatchUniforms
+    private struct Mount
     {
-        public uint Count, Pad0, Pad1, Pad2;
+        public Vector4 Basis, Origin, Tint, Clip;
+        public uint NodeBase, EntryBase, EntryCount, InstanceBase;
+        public uint PieceBase, RunSlotBase, Drawn, Unused;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct ResolveUniforms
-    {
-        public Vector4 MountBasis, MountOrigin, MountTint, MountClip;
-        public uint Count, InstanceBase, Pad0, Pad1;
-    }
+    /// <summary>Wasted room a store may hold, and its share of the store, before every tree takes fresh ranges.</summary>
+    private const uint WasteFloor = 1 << 14;
 
     private readonly ArchetypeQuery<ResidentGpu> _trees = store.Query<ResidentGpu>();
     private readonly List<Patch> _patches = [];
     private readonly List<Piece> _pieces = [];
-    private ComputePipeline? _patch, _resolve;
+    private readonly List<Mount> _mounts = [];
+    private readonly Stack<uint> _freeIndices = [];
+    private uint _nextIndex;
+    private Stores _stores;
     private long _frame;
+
+    /// <summary>How far each shared list is taken, and how much of that is no tree's any more.</summary>
+    private struct Stores
+    {
+        public uint Nodes, Entries, RunSlots, Waste;
+    }
 
     /// <summary>A new frame: tells each tree which of its items changed since the last.</summary>
     public void BeginFrame()
@@ -115,12 +107,12 @@ internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, En
         if (!entity.IsNull)
             return entity.GetComponent<ResidentGpu>().Tree;
 
-        var tree = new HostResidentTree(canvas);
-        tree.Gpu = store.CreateEntity(new ResidentOf(owner), new ResidentGpu(tree, device));
+        var tree = new HostResidentTree(canvas) { Index = _freeIndices.Count > 0 ? _freeIndices.Pop() : _nextIndex++ };
+        tree.Gpu = store.CreateEntity(new ResidentOf(owner), new ResidentGpu(tree));
         return tree;
     }
 
-    /// <summary>A mount taken down takes its tree with it.</summary>
+    /// <summary>A mount taken down takes its tree with it; its ranges are waste until the stores start again.</summary>
     public void Drop(ICanvasMount owner)
     {
         Entity entity = Find(owner);
@@ -129,7 +121,8 @@ internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, En
 
         ResidentGpu gpu = entity.GetComponent<ResidentGpu>();
         gpu.Tree.ForgetAll();
-        gpu.Dispose();
+        _stores.Waste += gpu.Nodes.Capacity + gpu.Entries.Capacity + gpu.RunSlots.Capacity;
+        _freeIndices.Push(gpu.Tree.Index);
         entity.DeleteEntity();
     }
 
@@ -158,62 +151,77 @@ internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, En
     /// </summary>
     public void Prepare(PrimitivePool pool) => _trees.Each(new PrepareTrees(_frame, pool));
 
-    /// <summary>Sends each drawn tree's changed records, and its entries and run slots when the layout moved; notes where its instances go.</summary>
-    public void Upload(CommandBuffer commands, int cpuInstances)
+    /// <summary>
+    /// Hands the canvas stack each drawn tree's changed records (as patches), its entries and run slots when its layout
+    /// or range moved, and this frame's pieces and mounts; sets the counts its passes run over.
+    /// </summary>
+    public void Send(CanvasMaterial canvasStack, int cpuInstances)
     {
-        if (!AnyDrawn)
-            return;
+        // Mostly waste: every tree takes a fresh range and sends everything again.
+        uint taken = _stores.Nodes + _stores.Entries + _stores.RunSlots;
+        if (_stores.Waste > WasteFloor && _stores.Waste * 2 > taken)
+        {
+            _stores = default;
+            _trees.Each(new ForgetRanges());
+        }
 
-        CopyPass copy = commands.BeginCopyPass();
-        _trees.Each(new SendTrees(_frame, copy, (uint)cpuInstances, _patches, _pieces));
-        commands.EndCopyPass(copy);
+        HostLists lists = canvasStack.Lists;
+        _patches.Clear();
+        _pieces.Clear();
+        _mounts.Clear();
+        CollectionsMarshal.SetCount(_mounts, (int)_nextIndex);
+        CollectionsMarshal.AsSpan(_mounts).Clear();
+        var send = new SendTrees(_frame, lists, (uint)cpuInstances, _patches, _pieces, _mounts, _stores);
+        _stores = _trees.Each(send).Stores;
+
+        lists.Size("nodes", (int)_stores.Nodes);
+        lists.Size("entries", (int)_stores.Entries);
+        lists.Size("runSlots", (int)_stores.RunSlots);
+        Set(lists, "patches", CollectionsMarshal.AsSpan(_patches));
+        Set(lists, "pieces", CollectionsMarshal.AsSpan(_pieces));
+        Set(lists, "trees", CollectionsMarshal.AsSpan(_mounts));
+        canvasStack.Set("patchCount", _patches.Count);
+        canvasStack.Set("entryCount", (int)_stores.Entries);
+        canvasStack.Set("treeCount", _mounts.Count);
     }
 
-    private bool AnyDrawn => _trees.Each(new CountInstances(_frame)).Drawn > 0;
-
-    /// <summary>Applies each drawn tree's patches, then resolves its entries into instances after the CPU's.</summary>
-    public void Resolve(CommandBuffer commands, Buffer instances)
+    /// <summary>A list's data set whole, and its length to match.</summary>
+    private static void Set<T>(HostLists lists, string name, ReadOnlySpan<T> data) where T : unmanaged
     {
-        _patch ??= Compute("resident_patch.slang", "applyPatches", readOnly: 1);
-        _resolve ??= Compute("resident_resolve.slang", "resolve", readOnly: 3);
-        _trees.Each(new ResolveTrees(_frame, commands, instances, _patch, _resolve));
+        lists.Size(name, data.Length);
+        lists.Set(name, data);
     }
 
-    /// <summary>Each drawn tree's instances expanded in the open pass, reading its own run slots.</summary>
-    public void Expand(CommandBuffer commands, ComputePass pass, Buffer pool, Buffer instances, Buffer slots, float depthStep) =>
-        _trees.Each(new ExpandTrees(_frame, commands, pass, pool, instances, slots, depthStep));
-
-    private ComputePipeline Compute(string file, string entry, uint readOnly) =>
-        ComputePipelines.Create(device,
-            SlangShaders.Compile(Path.Combine(AppContext.BaseDirectory, "Shaders", file), entry, "compute"),
-            entry, new ComputePipelineCreateInfo
-            {
-                Format = ShaderFormat.SPIRV,
-                NumReadonlyStorageBuffers = readOnly,
-                NumReadWriteStorageBuffers = 1,
-                NumUniformBuffers = 1,
-                ThreadCountX = 64,
-                ThreadCountY = 1,
-                ThreadCountZ = 1,
-            });
-
-    public void Dispose()
+    /// <summary>A range with room for <paramref name="needed"/>, at the store's end when it has too little; true when it moved.</summary>
+    private static bool Fit(ref StoreRange range, int needed, ref uint end, ref uint waste)
     {
-        _trees.Each(new DisposeTrees());
-        _patch?.Dispose();
-        _resolve?.Dispose();
+        if (needed <= range.Capacity && range.Capacity > 0)
+            return false;
+        waste += range.Capacity;
+        range.Capacity = BitOperations.RoundUpToPowerOf2((uint)Math.Max(needed, 16));
+        range.Base = end;
+        end += range.Capacity;
+        return true;
     }
 
     private struct CountInstances(long frame) : IEach<ResidentGpu>
     {
-        public int Total, Drawn;
+        public int Total;
 
         public void Execute(ref ResidentGpu gpu)
         {
-            if (gpu.DrawnFrame != frame)
-                return;
-            Drawn++;
-            Total += gpu.Tree.Entries.Count;
+            if (gpu.DrawnFrame == frame)
+                Total += gpu.Tree.Entries.Count;
+        }
+    }
+
+    private struct ForgetRanges : IEach<ResidentGpu>
+    {
+        public void Execute(ref ResidentGpu gpu)
+        {
+            gpu.Nodes = default;
+            gpu.Entries = default;
+            gpu.RunSlots = default;
         }
     }
 
@@ -248,8 +256,11 @@ internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, En
         }
     }
 
-    private struct SendTrees(long frame, CopyPass copy, uint instanceBase, List<Patch> patches, List<Piece> pieces) : IEach<ResidentGpu>
+    private struct SendTrees(long frame, HostLists lists, uint instanceBase, List<Patch> patches, List<Piece> pieces, List<Mount> mounts,
+        Stores stores) : IEach<ResidentGpu>
     {
+        public Stores Stores = stores;
+
         public void Execute(ref ResidentGpu gpu)
         {
             if (gpu.DrawnFrame != frame)
@@ -259,98 +270,46 @@ internal sealed class ResidentTrees(GraphicsDevice device, CanvasTree canvas, En
             gpu.InstanceBase = instanceBase;
             instanceBase += (uint)tree.Entries.Count;
 
-            // A bigger node buffer starts empty: every record goes up again.
-            if (gpu.Nodes.Buffer is null || tree.SlotCount > gpu.Nodes.Capacity)
-            {
-                gpu.Nodes.Ensure(tree.SlotCount);
+            // A new node range starts empty: every record goes up again.
+            if (Fit(ref gpu.Nodes, tree.SlotCount, ref Stores.Nodes, ref Stores.Waste))
                 for (int slot = 0; slot < tree.SlotCount; slot++)
                     tree.Set(slot, tree.NodeAt(slot));
-            }
 
             tree.WriteRecords();
-            patches.Clear();
             foreach (int slot in tree.DirtySlots)
-                patches.Add(new Patch { Slot = (uint)slot, Node = tree.Records[slot] });
+                patches.Add(new Patch { Slot = gpu.Nodes.Base + (uint)slot, Node = tree.Records[slot] });
             tree.DirtySlots.Clear();
-            gpu.PatchCount = patches.Count;
-            gpu.Patches.Upload(copy, CollectionsMarshal.AsSpan(patches));
 
-            if (tree.LayoutChanged)
+            bool entriesMoved = Fit(ref gpu.Entries, tree.Entries.Count, ref Stores.Entries, ref Stores.Waste);
+            bool slotsMoved = Fit(ref gpu.RunSlots, tree.RunSlots.Count, ref Stores.RunSlots, ref Stores.Waste);
+            if (tree.LayoutChanged || entriesMoved || slotsMoved)
             {
                 tree.LayoutChanged = false;
-                gpu.Entries.Ensure(tree.Entries.Count);
-                gpu.RunSlots.Ensure(tree.RunSlots.Count);
-                gpu.Entries.Upload(copy, CollectionsMarshal.AsSpan(tree.Entries));
-                gpu.RunSlots.Upload(copy, CollectionsMarshal.AsSpan(tree.RunSlots));
+                lists.Write("entries", (int)gpu.Entries.Base, CollectionsMarshal.AsSpan(tree.Entries));
+                lists.Write("runSlots", (int)gpu.RunSlots.Base, CollectionsMarshal.AsSpan(tree.RunSlots));
             }
 
-            pieces.Clear();
+            gpu.PieceBase = (uint)pieces.Count;
             foreach (ResidentPiece piece in tree.Pieces)
                 pieces.Add(new Piece { OutBase = piece.OutBase, DepthBase = piece.DepthBase, OpaqueBase = piece.OpaqueBase });
-            gpu.Pieces.Ensure(pieces.Count);
-            gpu.Pieces.Upload(copy, CollectionsMarshal.AsSpan(pieces));
-        }
-    }
 
-    private readonly struct ResolveTrees(long frame, CommandBuffer commands, Buffer instances, ComputePipeline patch, ComputePipeline resolve)
-        : IEach<ResidentGpu>
-    {
-        public void Execute(ref ResidentGpu gpu)
-        {
-            if (gpu.DrawnFrame != frame)
-                return;
-
-            if (gpu.PatchCount > 0)
-            {
-                ComputePass patching = commands.BeginComputePass([], [new StorageBufferReadWriteBinding(gpu.Nodes.Buffer!, cycle: false)]);
-                patching.BindComputePipeline(patch);
-                patching.BindStorageBuffers(gpu.Patches.Buffer!);
-                commands.PushComputeUniformData(new PatchUniforms { Count = (uint)gpu.PatchCount });
-                patching.Dispatch(((uint)gpu.PatchCount + 63) / 64, 1, 1);
-                commands.EndComputePass(patching);
-            }
-
-            int count = gpu.Tree.Entries.Count;
-            if (count == 0)
-                return;
-
-            ComputePass resolving = commands.BeginComputePass([], [new StorageBufferReadWriteBinding(instances, cycle: false)]);
-            resolving.BindComputePipeline(resolve);
-            resolving.BindStorageBuffers(gpu.Nodes.Buffer!, gpu.Entries.Buffer!, gpu.Pieces.Buffer!);
             Transform2D t = gpu.Transform;
             Color m = gpu.Modulate;
             Rect c = gpu.Clip;
-            commands.PushComputeUniformData(new ResolveUniforms
+            mounts[(int)tree.Index] = new Mount
             {
-                MountBasis = new Vector4(t.X.X, t.X.Y, t.Y.X, t.Y.Y),
-                MountOrigin = new Vector4(t.Origin.X, t.Origin.Y, 0, 0),
-                MountTint = new Vector4(m.R, m.G, m.B, m.A),
-                MountClip = new Vector4(c.X, c.Y, c.X + c.W, c.Y + c.H),
-                Count = (uint)count,
+                Basis = new Vector4(t.X.X, t.X.Y, t.Y.X, t.Y.Y),
+                Origin = new Vector4(t.Origin.X, t.Origin.Y, 0, 0),
+                Tint = new Vector4(m.R, m.G, m.B, m.A),
+                Clip = new Vector4(c.X, c.Y, c.X + c.W, c.Y + c.H),
+                NodeBase = gpu.Nodes.Base,
+                EntryBase = gpu.Entries.Base,
+                EntryCount = (uint)tree.Entries.Count,
                 InstanceBase = gpu.InstanceBase,
-            });
-            resolving.Dispatch(((uint)count + 63) / 64, 1, 1);
-            commands.EndComputePass(resolving);
+                PieceBase = gpu.PieceBase,
+                RunSlotBase = gpu.RunSlots.Base,
+                Drawn = 1,
+            };
         }
-    }
-
-    private readonly struct ExpandTrees(long frame, CommandBuffer commands, ComputePass pass, Buffer pool, Buffer instances, Buffer slots,
-        float depthStep) : IEach<ResidentGpu>
-    {
-        public void Execute(ref ResidentGpu gpu)
-        {
-            uint count = (uint)gpu.Tree.Entries.Count;
-            if (gpu.DrawnFrame != frame || count == 0)
-                return;
-
-            pass.BindStorageBuffers(pool, instances, slots, gpu.RunSlots.Buffer!);
-            commands.PushComputeUniformData(new ExpandUniforms { Instances = count, DepthStep = depthStep, First = gpu.InstanceBase });
-            pass.Dispatch(count, 1, 1);
-        }
-    }
-
-    private struct DisposeTrees : IEach<ResidentGpu>
-    {
-        public void Execute(ref ResidentGpu gpu) => gpu.Dispose();
     }
 }

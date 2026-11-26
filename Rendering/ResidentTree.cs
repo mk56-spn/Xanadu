@@ -4,55 +4,6 @@ using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Rendering;
 
-/// <summary>One slot's record on the GPU (resident_tree.slang's <c>Node</c>): its node, its item's own place and look, and its pool range.</summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuResidentNode
-{
-    public Vector4 Basis;
-    public Vector4 Origin;      // xy, opacity, unused
-    public Vector4 Clip;        // its children's cut in its own space: min x, y, max x, y
-    public Vector4 ItemBasis;
-    public Vector4 ItemOrigin;
-    public Vector4 ItemTint;    // the item's modulate times its self modulate
-    public Vector4 ItemClip;    // the item's own cut in its space
-    public uint Parent, Flags, PoolStart, Count;
-
-    public const uint Clips = 1, ItemClips = 2, Hidden = 4;
-    public const uint NoParent = 0xFFFFFFFF;
-}
-
-/// <summary>One drawn slot in draw order: which slot, where its primitives land in its piece, its run slots and its piece.</summary>
-[StructLayout(LayoutKind.Sequential)]
-internal struct GpuResidentEntry
-{
-    public uint Slot, Out, SlotBase, Piece;
-}
-
-/// <summary>
-/// A run of a resident tree's draw order the frame treats as one: a
-/// <b>segment</b> of plain items sharing a z, drawn from the GPU records, or a
-/// <b>foreign</b> item the CPU places itself (one with a material, shaded runs,
-/// children, mounts or particles).
-/// </summary>
-internal sealed class ResidentPiece
-{
-    public required HostResidentTree Tree;
-    public bool Foreign;
-    public int Z;
-
-    /// <summary>A segment's range in <see cref="HostResidentTree.Sorted"/>; a foreign piece's slot.</summary>
-    public int Start, Count, Slot;
-
-    public int Index;
-    public uint Primitives;
-
-    /// <summary>A segment's draws: each a start and count within the piece and its first texture in the tree's run textures.</summary>
-    public readonly List<(uint Start, uint Count, int FirstTexture)> Runs = [];
-
-    /// <summary>This frame's place in the job's output, depth and pre-pass list.</summary>
-    public uint OutBase, DepthBase, OpaqueBase;
-}
-
 /// <summary>
 /// A mount's tree kept on the GPU (Docs/host.md §5.3): what the mount
 /// sent, the items behind its slots, and what follows from them, worked out
@@ -99,8 +50,11 @@ internal sealed class HostResidentTree(CanvasTree canvas) : IResidentTree
 
     public int SlotCount => _slotCount;
 
-    /// <summary>Its buffers and frame place, kept by the renderer.</summary>
+    /// <summary>Its ranges in the canvas stack's lists and its frame place, kept by the renderer.</summary>
     public Friflo.Engine.ECS.Entity Gpu;
+
+    /// <summary>Its place in the canvas stack's <c>trees</c>, which every entry names.</summary>
+    public uint Index;
 
     public CanvasItem? ItemAt(int slot) => _items[slot];
 
@@ -360,7 +314,7 @@ internal sealed class HostResidentTree(CanvasTree canvas) : IResidentTree
                 int slotBase = RunSlots.Count;
                 foreach (ulong texture in textures)
                     RunSlots.Add((uint)Math.Max(0, SlotIn(runFirst, ref runUsed, texture)));
-                Entries.Add(new GpuResidentEntry { Slot = (uint)slot, Out = at, SlotBase = (uint)slotBase, Piece = (uint)piece.Index });
+                Entries.Add(new GpuResidentEntry { Slot = (uint)slot, Out = at, SlotBase = (uint)slotBase, Piece = (uint)piece.Index, Tree = Index });
                 at += (uint)item.Primitives.Count;
             }
 

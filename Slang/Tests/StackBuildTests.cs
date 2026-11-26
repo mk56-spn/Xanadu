@@ -162,6 +162,26 @@ public sealed class StackBuildTests
     }
 
     [Test]
+    public void AListWithNoSizeIsTheHostsToSizeAndStartsAtOneElement()
+    {
+        string sized = Sort.Replace("[Size(2 * N)] List<uint> keys;", "[Host] List<uint> keys;");
+        CompiledBuild build = SlangShaders.CompileEffectBody("s", Body(sized)).Build!;
+
+        Assert.That(build.Shape.Buffers[0].HostSized, Is.True);
+        Assert.That(build.Bytes[0], Is.EqualTo(4));
+        Assert.That(build.Shape.Buffers[1].HostSized, Is.False);
+    }
+
+    [Test]
+    public void AListWithNoSizeTakesNothingButHost()
+    {
+        string cached = Sort.Replace("[Size(2 * N)] List<uint> keys;", "[Cached] List<uint> keys;");
+        var error = Assert.Throws<InvalidOperationException>(() => SlangShaders.CompileEffectBody("s", Body(cached)))!;
+
+        Assert.That(error.Message, Does.Contain("sized by the host at run time"));
+    }
+
+    [Test]
     public void AFunctionNamedLikeAListIsRefused()
     {
         const string graph = "import xanadu;\n[Size(64)] List<float> heights;\nfloat heights(uint i) { return i; }\n"

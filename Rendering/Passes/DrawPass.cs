@@ -14,7 +14,7 @@ namespace Xanadu.Rendering.Passes;
 /// pass for them and starts it again, and a screen read ends it to copy the target.
 /// </summary>
 internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, PrimitivePipelines primitives,
-    CanvasPipelines pipelines, PlacedPrimitives placed, PrimitivePool pool, Dictionary<ulong, Texture> textures,
+    CanvasPipelines pipelines, CanvasStack canvas, PrimitivePool pool, Dictionary<ulong, Texture> textures,
     CanvasParticles particles, GraphRunner graphs, ExitDraws exits, CopyDraws copies)
 {
     private const int Slots = PrimitivePipelines.Slots;
@@ -31,7 +31,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
     private readonly FrameTargets _targets = targets;
     private readonly PrimitivePipelines _primitives = primitives;
     private readonly CanvasPipelines _pipelines = pipelines;
-    private readonly PlacedPrimitives _placed = placed;
+    private readonly CanvasStack _canvas = canvas;
     private readonly PrimitivePool _pool = pool;
     private readonly CanvasParticles _particles = particles;
     private readonly GraphRunner _graphs = graphs;
@@ -44,7 +44,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
     private void DrawPrimitives(CommandBuffer commands, RenderPass pass, SampleCount samples, bool opaque, uint first, uint count, int firstTexture)
     {
         pass.BindGraphicsPipeline(_primitives.Get(opaque, samples));
-        pass.BindVertexStorageBuffers(opaque ? _placed.Opaque : _placed.Placed);
+        pass.BindVertexStorageBuffers(opaque ? _canvas.Opaque : _canvas.Placed);
         pass.SetScissor(_targets.FullClip);
         if (!opaque)
         {
@@ -91,7 +91,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
         if (job.OpaqueReserved > 0)
         {
             pass.BindGraphicsPipeline(_primitives.DepthOnly);
-            pass.BindVertexStorageBuffers(_placed.Opaque);
+            pass.BindVertexStorageBuffers(_canvas.Opaque);
             pass.SetScissor(_targets.FullClip);
             commands.PushVertexUniformData(new DrawUniforms { Width = _targets.Width, Height = _targets.Height, First = job.OpaqueStart });
             pass.DrawPrimitives(job.OpaqueReserved * 6, 1, 0, 0);

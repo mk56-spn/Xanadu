@@ -21,7 +21,6 @@
 504 Model/Animation/XifDrawer.cs
 446 Model/Animator/AnimatorTimelineModel.cs
 402 Rendering/CanvasPipelines.cs
-439 Rendering/ResidentTree.cs
 440 Screens/Animator/AnimatorLayout.cs
 495 Screens/Animator/AnimatorLayout.Menus.cs
 863 Screens/Play/HudLayoutSystem.cs

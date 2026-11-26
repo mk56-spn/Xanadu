@@ -146,7 +146,8 @@ public static partial class SlangShaders
             BuildBuffer buffer = build.Buffers[k];
             if (!fragment.BufferBytes.TryGetValue(buffer.Name, out int element) || element <= 0)
                 throw new InvalidOperationException($"{Where(name, source, buffer.Start)}: error: {buffer.Type} has no size Slang reports.");
-            bytes[k] = element * buffer.Count;
+            // A list the host sizes starts at one element; its bytes are its stride.
+            bytes[k] = element * Math.Max(buffer.Count, 1);
             if (bytes[k] > MaxBufferBytes)
                 throw new InvalidOperationException(
                     $"{Where(name, source, buffer.Start)}: error: {buffer.Name} takes {bytes[k]:N0} bytes; a buffer takes at most {MaxBufferBytes:N0}.");

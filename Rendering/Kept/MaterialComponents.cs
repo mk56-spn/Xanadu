@@ -17,13 +17,16 @@ internal struct MaterialOf(CanvasMaterial material) : IIndexedComponent<CanvasMa
 
 /// <summary>
 /// A graph's buffers, the material's own, made for one compile of its effect. Its images are each item's (ItemImages).
-/// <see cref="HostVersion"/> is the material's <see cref="CanvasMaterial.BufferVersion"/> its <c>[Host]</c> buffers hold.
+/// <see cref="HostVersion"/> is the material's <see cref="CanvasMaterial.Lists"/> version its <c>[Host]</c> buffers hold.
 /// </summary>
 internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
 {
     public CanvasEffect Effect = effect;
     public Buffer[] Buffers = buffers;
     public int HostVersion = -1;
+
+    /// <summary>By buffer: the version of the whole <c>[Host]</c> data it holds (<see cref="Xanadu.Ui.Systems.Canvas.HostLists.TryGetWhole"/>); 0 for none.</summary>
+    public int[] WholeVersions = new int[buffers.Length];
 
     /// <summary>The material's stamp when its <c>[Cached]</c> buffers were last filled; -1 until they are.</summary>
     public long Filled = -1;

@@ -367,7 +367,7 @@ internal struct GpuPrimitive
     public float Depth, Pad0, Pad1, Pad2;
 }
 
-/// <summary>One recording drawn this frame, as the expand stage reads it: <c>Instance</c> in primitive_expand.slang, 96 bytes.</summary>
+/// <summary>One recording drawn this frame, as the expand stage reads it: <c>Placing</c> in the canvas stack (Assets/Shaders/Engine/canvas), 96 bytes.</summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct GpuInstance
 {

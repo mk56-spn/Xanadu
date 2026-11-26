@@ -62,7 +62,6 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Vector4> _values = [];
     private readonly Dictionary<string, Handle> _textures = [];
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
-    private readonly Dictionary<string, byte[]> _buffers = [];
     private readonly Dictionary<string, MaterialView> _views = [];
     private readonly Dictionary<string, byte[]> _reports = [];
 
@@ -153,25 +152,10 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     }
 
     /// <summary>
-    /// Data for the stack's <c>[Host(size)] RWStructuredBuffer&lt;T&gt; name;</c>, by name, as bytes laid out as the
-    /// shader's <c>T</c> (std430). The host uploads them when <see cref="BufferVersion"/> moves; past the buffer's
-    /// size is cut off, and what isn't covered keeps what was there.
+    /// What the host hands the stack's lists: <c>[Host]</c> data, set whole or written in ranges, and the lengths of the
+    /// lists it sizes at run time (<see cref="HostLists"/>).
     /// </summary>
-    public IReadOnlyDictionary<string, byte[]> Buffers => _buffers;
-
-    /// <summary>Goes up whenever a buffer's data is set.</summary>
-    public int BufferVersion { get; private set; }
-
-    /// <summary>Sets a host buffer's data (see <see cref="Buffers"/>); data the same as last time changes nothing.</summary>
-    public void SetBuffer<T>(string name, ReadOnlySpan<T> data) where T : unmanaged
-    {
-        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(data);
-        if (_buffers.TryGetValue(name, out byte[]? old) && bytes.SequenceEqual(old))
-            return;
-
-        _buffers[name] = bytes.ToArray();
-        BufferVersion++;
-    }
+    public HostLists Lists { get; } = new();
 
     /// <summary>
     /// What the graph's <c>[Reported]</c> lists and stored values last held, by name, as bytes laid out as the shader's

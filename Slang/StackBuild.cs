@@ -8,9 +8,9 @@ namespace Xanadu.Slang;
 /// <summary>
 /// A list a graph declares: <c>[Size(n)] List&lt;T&gt; name;</c>, kept on the GPU from frame to frame (a
 /// <c>Counter name;</c> is a list of one uint), or <c>[Host]</c> before it: the same, filled by the host from the material's buffer of that name
-/// (<c>CanvasMaterial.SetBuffer</c>) whenever that changes, for the passes to read.
+/// (<c>CanvasMaterial.Lists</c>) whenever that changes, for the passes to read.
 /// </summary>
-/// <param name="Count">Elements, from the size expression.</param>
+/// <param name="Count">Elements, from the size expression; 0 for a list the host sizes at run time (<see cref="HostSized"/>).</param>
 /// <param name="Start">Where its declaration starts in the body (the attribute), for the rewrite.</param>
 /// <param name="End">Just past its <c>;</c>.</param>
 /// <param name="Host">Marked <c>[Host]</c>: the host writes it.</param>
@@ -24,7 +24,11 @@ namespace Xanadu.Slang;
 /// <param name="Reported">Marked <c>[Reported]</c>: the host reads it back each frame, a few frames late, into the material's
 /// <c>Reports</c> (no wait on the GPU): a count the CPU sizes something by, never data it draws from.</param>
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false,
-    string? Bundle = null, bool Shared = false, bool Stored = false, int Source = -1, bool Reported = false);
+    string? Bundle = null, bool Shared = false, bool Stored = false, int Source = -1, bool Reported = false)
+{
+    /// <summary>Declared with no <c>[Size]</c>: the host sets its length at run time (<c>CanvasMaterial.SizeBuffer</c>); its compiled bytes are one element's.</summary>
+    public bool HostSized => Count == 0;
+}
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the

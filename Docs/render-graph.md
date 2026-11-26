@@ -812,3 +812,89 @@ Two graph features the editor's timeline needed, usable by any graph:
   that runs the draw's own vertex function at sampled times into the shared list `xanaduProbes`. Lowered like
   `present`: source in, source out, then the graph is read as usual, so it shows on the board, binds like any pass and
   orders against its readers through `[Shared]`. Details and what's left: Docs/gpu-clips.md.
+
+## The resident UI on the graph (plan, 2026-11-26)
+
+The resident UI (Docs/host.md §5.3) is the biggest GPU path left outside the graph: hand-ordered compute and draws in
+`CanvasRenderer` / `StepBuilder` / `PlacedPrimitives` / `ResidentTrees` / `DrawPass`, not a stack. Putting it on the graph
+is dogfooding: the graph running the one thing drawn every frame on every screen, at the 20,000-cell CJK lab's scale
+(18.7 → 0.5 ms today, the bar to hold).
+
+### What it was (before stage 1)
+
+One plain-primitive path, shared by the resident trees and every CPU-placed item:
+
+- **Kept:** the primitive pool (`PrimitivePool`: every recording's primitives in its own space, ranges sent when their
+  hash moves); per tree, its nodes, entries, run slots, pieces and patches (`ResidentGpu`).
+- **Each frame, compute:** `resident_patch` (changed slots into the nodes), `resident_resolve` (each drawn slot's
+  ancestors → an instance after the CPU's), `primitive_expand` (an instance a workgroup → placed primitives in pixels
+  and order, plus the pre-pass list).
+- **Each job, draws:** the opaque pre-pass (one draw over the job's pre-pass slots, depth written), then each run
+  (`StepKind.Primitives`: a range of placed primitives and its eight texture slots) at its place among the job's
+  other steps, depth tested.
+
+### The shape on the graph
+
+The canvas becomes **one engine stack** (`Assets/Shaders/Engine/canvas/`, shown on the board like any other) that the
+renderer owns a material for:
+
+- **Lists:** `pool`, `instances` (the CPU's), `slots`, the trees' `nodes` / `entries` / `runSlots` / `pieces` /
+  `patches` as `[Host]` lists; `placed`, `opaque` as frame lists. All sized at run time.
+- **Passes:** `patch`, `resolve`, `expand` as `[Pass]`es, ordered by what they read and write.
+- **Draws:** `opaque` (copies over the job's pre-pass range, depth written) and `ordered` (copies over a run's range,
+  eight textures by slot plus the glyph layers), each an exit drawn at many places in the frame.
+- **Trees in one store** (decided 2026-11-26, with the whole plain path as the scope): every tree's nodes, entries and run slots are ranges of the same lists, as
+  recordings are of the pool, and an entry names its tree's mount. One resolve dispatch for all trees instead of one
+  per tree, and no need for several blocks of one kind.
+
+### What the graph grows for it
+
+1. **Host lists sized at run time, with ranged writes.** `[Host] List<T> name;` with no `[Size]`: the host sets its
+   length (it grows, kept contents copied) and writes ranges into it (`material.WriteBuffer(name, at, span)`), kept
+   between frames, so a pool range sent once stays. Frame lists sized by a value (`[Size(placedCount)]`).
+2. **Exits with no item quad.** A draw of copies in target pixels, drawn from the canvas material's steps, not an
+   item's kept mesh.
+3. **One exit drawn at many places.** A step names a range of the exit's copies (first, count) and the draw covers
+   only that range; the canvas's runs become steps of its material.
+4. **Textures by slot.** A draw samples up to eight textures each step names, plus a layer array (the glyph pages).
+5. **Depth writes from an exit** (`[Draw(…, depth: write)]`), drawn first in its job.
+
+### Stages
+
+- **1. The compute half.** The engine stack holds the lists and the three passes; the renderer fills its host lists
+  and runs them through `GraphRunner` / `ComputeNodes` (feature 1), the trees in one store. `ResidentTrees.Resolve`, `PlacedPrimitives.Expand`
+  and their pipelines are deleted; `DrawPass` still draws, reading the stack's `placed` / `opaque` buffers.
+- **2. The draws.** `opaque` and `ordered` become the stack's exits (features 2–5); `PrimitivePipelines`,
+  `primitives.slang`'s hand pipeline and `StepKind.Primitives` go.
+- **3. The CPU side (`UiResidentSync`, pieces, the hash) moved wherever the
+  graph gives it a better shape.
+
+The bar: frame times on the CJK lab and the editor no worse than today, and the old hand-written path deleted, not
+kept beside it.
+
+### Stage 1, where it stands (2026-11-26, uncommitted)
+
+- **Lists the host sizes** (feature 1): a `List<T>` with no `[Size]` (`[Host]` before it or nothing) is sized at run
+  time (`BuildBuffer.HostSized`; its compiled bytes are one element's). The host side is `CanvasMaterial.Lists`
+  (`UI/Systems/Canvas/HostLists.cs`, replacing `SetBuffer`): `Set` (whole data from the start), `Write` (a range,
+  kept on the GPU) and `Size` (a length; the buffer grows ×2, copying what it held). `GraphResources.Upload` grows
+  first, then sends whole data whose version moved and the writes, from one transfer piece.
+- **A material the host runs:** `GraphRunner.RunHosted` sends its lists and runs its graph's compute nodes now, for a
+  material no item shows.
+- **The canvas stack** (`Assets/Shaders/Engine/canvas`): `lists.slang` (the records and lists), `trees.slang`
+  (`patchNodes`, `resolve`), `expand.slang`, `graph.slang`. The renderer owns it as `CanvasStack`
+  (`Rendering/Passes`), runs it after the globals upload and hands `DrawPass` its `placed` and `opaque`.
+- **Trees in one store:** `ResidentTrees` gives each tree ranges of `nodes`, `entries` and `runSlots` (a bump store;
+  when more than half is waste, every tree takes a fresh range and sends everything) and an index into `trees`
+  (`TreeMount`: the mount's place and the tree's bases) that its entries name. One `resolve` over every entry; a
+  tree not drawn, or an entry past its tree's count, is skipped.
+- **Gone:** `resident_patch.slang`, `resident_resolve.slang`, `primitive_expand.slang` and their pipelines, the
+  pool's and the instances' own GPU buffers, per-tree buffers.
+- **Checked:** song select, the editor and the CJK lab at 20,000 cells look as before (the CJK shot is the same as the
+  old path's). CJK lab, mean GPU canvas 0.407 ms (stack 0.239 of it: expand 0.084, resolve 0.030, the rest its
+  uploads) against 0.399 ms on the old path (uploads 0.126, expand 0.108); record + submit 1.38 against 1.29 ms.
+  Suites: Slang 483 (37 skipped), UI 473, game 209 (14 skipped).
+- **Not yet:** graph lists are bound without cycling, so a frame's `placed` and `opaque` wait for the last frame's
+  draws (the old path cycled them); a host-sized list never shrinks; the stack recompiled live (the shader tool) starts
+  on fresh lists, so what was only written in ranges (the pool, the trees) would need sending again. Stage 2 (the
+  draws) is next.

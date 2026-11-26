@@ -243,10 +243,12 @@ host fills; tests leave the headless defaults.
     as the walk did. Segments join the frame as one entry each; their runs
     and each entry's place are kept and worked out again only when a size,
     texture set or the order moves.
-  - *The GPU side*: `resident_patch.slang` writes the changed slots;
-    `resident_resolve.slang` walks each drawn slot's ancestors (transform,
-    fade, clips, the mount's place) and writes its instance after the CPU's;
-    the expand stage reads a tree's run slots through its instance flag.
+  - *The GPU side* is the canvas stack (`Assets/Shaders/Engine/canvas`,
+    run by the render graph, Docs/render-graph.md "The resident UI on the
+    graph"): every tree is a range of its shared lists; `patchNodes` writes
+    the changed slots; `resolve` walks each drawn slot's ancestors
+    (transform, fade, clips, the mount's place) and writes its instance after
+    the CPU's; `expand` reads a tree's run slots through its instance flag.
   - On the 20,000-cell CJK lab (2026-11-24): draw 18.7 ms → 0.5 ms still,
     collect and build 0.13 ms; churn costs what changes.
 - **Pool.** Every recording's primitives live on the GPU in its own space, in a
@@ -254,12 +256,13 @@ host fills; tests leave the headless defaults.
   when its content changes: a hash of the primitives means a drawer that
   clears and redraws the same picture every frame sends nothing. Settled
   screens send 0 primitives a frame. A full pool starts a bigger empty one and
-  everything drawn is sent once.
+  everything drawn is sent once. The pool is the canvas stack's `pool` list,
+  written in ranges (`HostLists.Write`).
 - **Instances and the expand stage.** Per frame the CPU walks the canvas tree, puts
   the entries in order (`SortByZ`: a counting sort on z, ties in walk order)
   and sends one `GpuInstance` per drawn range: transform, tint, clip,
   depth base, its place in the output and its texture slots.
-  `primitive_expand.slang` (compute, one workgroup an instance) writes each
+  The canvas stack's `expand` pass (64 threads an instance) writes each
   primitive in pixels, in order: placed, tinted, clipped, its depth, its run
   slot. A primitive outside its clip becomes a skip (folded away by the vertex
   stage), so order needs no scan.

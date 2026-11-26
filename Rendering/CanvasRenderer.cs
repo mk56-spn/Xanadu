@@ -30,8 +30,8 @@ namespace Xanadu.Rendering;
 /// (a deform) can't, so once one has drawn, no later rect may join the pre-pass.
 /// <para>
 /// The frame runs as passes over one <see cref="CanvasFrame"/>: collect
-/// (<see cref="CanvasCollect"/>, then the materials' views, <see cref="MaterialViews"/>), build (<see cref="StepBuilder"/>), upload, expand
-/// (<see cref="PlacedPrimitives"/>), grids, globals, graph preludes (<see cref="GraphRunner"/>),
+/// (<see cref="CanvasCollect"/>, then the materials' views, <see cref="MaterialViews"/>), build (<see cref="StepBuilder"/>), upload, the
+/// canvas stack (<see cref="CanvasStack"/>: the pool, instances and resident trees placed on the GPU), grids, globals, graph preludes (<see cref="GraphRunner"/>),
 /// particles, then each job's draw (<see cref="DrawPass"/>); the views' preludes run and their jobs draw before the rest. What is kept between frames
 /// lives in one entity store: materials, kept meshes, resident trees and globals.
 /// </para>
@@ -69,6 +69,7 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly CopiesPipelines _copiesPipelines;
     private readonly CopiedMeshes _copiedMeshes;
     private readonly CopyDraws _copies;
+    private readonly CanvasStack _canvas;
     private readonly DrawPass _draw;
 
     private float _lastTime = float.NaN;
@@ -80,14 +81,14 @@ internal sealed class CanvasRenderer : IDisposable
         _primitives = new PrimitivePipelines(device, format, _targets.DepthFormat);
         Pipelines = new CanvasPipelines(device, format) { DepthFormat = _targets.DepthFormat, MainSamples = _targets.Samples };
         Particles = new CanvasParticles(device, tree, format) { DepthFormat = _targets.DepthFormat };
-        _pool = new PrimitivePool(device);
-        _placed = new PlacedPrimitives(device);
+        _pool = new PrimitivePool();
+        _placed = new PlacedPrimitives();
         _vertices = new GpuArray<CanvasVertex>(device, "canvas vertices", BufferUsageFlags.Vertex);
 
         _materials = new MaterialStore(_cache);
         _globals = new GlobalBindings(device, _cache);
         _keptMeshes = new KeptMeshes(device, _cache);
-        _residents = new ResidentTrees(device, tree, _cache);
+        _residents = new ResidentTrees(tree, _cache);
         tree.Unmounted += _residents.Drop;
         Pipelines.Forgotten += _materials.Forget;
 
@@ -101,7 +102,8 @@ internal sealed class CanvasRenderer : IDisposable
         _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals, _views);
         _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices);
         _copies = new CopyDraws(device, _frame, _targets, Pipelines, _copiesPipelines, _globals, _exits);
-        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits, _copies);
+        _canvas = new CanvasStack(_graphs, Pipelines);
+        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _canvas, _pool, Textures, Particles, _graphs, _exits, _copies);
     }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
@@ -185,31 +187,35 @@ internal sealed class CanvasRenderer : IDisposable
 
         _frame.Number++;
         _builder.Build();
+        int residentInstances = _residents.Instances;
+        _pool.Send(_canvas.Material.Lists);
+        _placed.Send(_canvas.Material, residentInstances);
+        _residents.Send(_canvas.Material, _placed.Instances.Count);
         phases?.Lap(HostFramePhases.Phase.Build, ref lap);
         using (commands.Scope("upload primitives"))
         {
             Upload(commands);
             _keptMeshes.Upload(commands, _frame.Number);
             _copiedMeshes.Upload(commands, _frame.Number);
-            _residents.Upload(commands, _placed.Instances.Count);
         }
-        using (commands.Scope("expand primitives"))
-            _placed.Expand(commands, _pool, _residents);
+
+        // The frame's clocks, for the canvas stack's passes as for every graph's.
+        _frame.Dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
+        _frame.Time = time;
+        _lastTime = time;
+        _graphs.Begin();
         using (commands.Scope("cut grids"))
             _grids.Cut(commands);
         using (commands.Scope("upload globals"))
             _globals.Upload(commands);
+        using (commands.Scope("canvas stack"))
+            _canvas.Run(commands);
         phases?.Lap(HostFramePhases.Phase.Upload, ref lap);
 
-        // The particles and kept state move by the frame's time, before any pass draws them.
-        _frame.Dt = float.IsNaN(_lastTime) ? 0f : Math.Clamp(time - _lastTime, 0f, 0.1f);
-        _frame.Time = time;
-        _lastTime = time;
         _draw.BatchCount = 0;
         _draw.CopyCount = 0;
         // The views draw first, their own preludes before them, so every other graph's nodes may read them.
         int viewSteps = views == 0 ? 0 : _frame.Jobs[views - 1].FirstStep + _frame.Jobs[views - 1].StepCount;
-        _graphs.Begin();
         using (commands.Scope("shader graphs"))
             _graphs.Prelude(commands, 0, viewSteps);
         using (commands.Scope("particles step"))
@@ -234,12 +240,10 @@ internal sealed class CanvasRenderer : IDisposable
         phases?.Lap(HostFramePhases.Phase.DrawPasses, ref lap);
     }
 
-    /// <summary>Sends what changed: recordings into their pool ranges, the frame's instances, slots and effect vertices.</summary>
+    /// <summary>Sends what changed outside the canvas stack: effect vertices and copies.</summary>
     private void Upload(CommandBuffer commands)
     {
         CopyPass copy = commands.BeginCopyPass();
-        _pool.Upload(copy);
-        _placed.Upload(copy, _residents.Instances);
         _vertices.Upload(copy, CollectionsMarshal.AsSpan(_frame.Vertices));
         _copies.Upload(copy);
         commands.EndCopyPass(copy);
@@ -259,9 +263,6 @@ internal sealed class CanvasRenderer : IDisposable
         _graphs.Dispose();
         _views.Dispose();
         _vertices.Dispose();
-        _pool.Dispose();
-        _placed.Dispose();
-        _residents.Dispose();
         _grids.Dispose();
         _globals.Dispose();
     }

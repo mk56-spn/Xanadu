@@ -8,6 +8,7 @@ using Xanadu.Rendering.Kept;
 using Xanadu.Slang;
 using Xanadu.Ui.Systems.Canvas;
 using Entity = Friflo.Engine.ECS.Entity;
+using Buffer = MoonWorks.Graphics.Buffer;
 using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Rendering.Passes;
@@ -120,6 +121,24 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         }
     }
 
+    /// <summary>
+    /// A material the host runs itself, showing on no item (the canvas stack, <see cref="CanvasStack"/>): its host lists
+    /// sent, then its graph's compute nodes, now. Its buffers, or null when its stack has no graph.
+    /// </summary>
+    public Buffer[]? RunHosted(CommandBuffer commands, CanvasMaterial material)
+    {
+        CanvasEffect effect = pipelines.Effect(material);
+        if (effect.Compiled.Build is not { } build || !materials.FirstRun(material, frame.Number))
+            return materials.Built(material);
+        GraphPlan plan = Lower(material, effect);
+        BuildBuffers? kept = _resources.For(commands, material, effect);
+        GraphResources.Turn(kept.Value, build);
+        foreach (GraphNode node in plan.Nodes)
+            if (node.Kind == NodeKind.Compute)
+                _compute.Pass(commands, effect, kept.Value, null, node.Call, material, frame.Dt, frame.Time);
+        return kept.Value.Buffers;
+    }
+
     /// <summary>The <c>[Reported]</c> buffers of every material whose graph ran this frame, read back (<see cref="GraphReports"/>): after the frame's last draw.</summary>
     public void Report(CommandBuffer commands)
     {
@@ -205,7 +224,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     }
 
     /// <summary>What a cache is filled against: the material's values and host buffers, as their versions.</summary>
-    private static long Stamp(CanvasMaterial material) => ((long)material.Version << 32) | (uint)material.BufferVersion;
+    private static long Stamp(CanvasMaterial material) => ((long)material.Version << 32) | (uint)material.Lists.Version;
 
     /// <summary>The material's plan for this frame: a schedule lowered with its values, kept on its entity.</summary>
     private GraphPlan Lower(CanvasMaterial material, CanvasEffect effect)

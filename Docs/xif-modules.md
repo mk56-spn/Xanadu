@@ -358,3 +358,30 @@ The general path, so a user's Xif with any shader batches without the shader bei
 - **Not yet:** decos of the same look but separate geometry objects are separate draws (the demo's grass is 8); sharing
   a mesh between equal geometries would make it one. Pads, orbs, pops, the puppet and the animator are still on
   `XifDrawer`. A copied fragment reading the screen gets the pass's copy as an effect does, never a fresh one.
+
+### Easy wins left (noted 2026-11-26, not started)
+
+What still draws on the CPU and could move onto copies or a stack cheaply. `XifBatch.Add` reads a node's shader
+values when it is added, so the drawers that set state on a shared look and then draw it keep their per-item state
+as copies with no new graph features.
+
+1. **Pads, dash stops, rifts and the rift flare** (`PlayfieldRendererPads.cs`, `PlayfieldRendererDashStops.cs`,
+   `PlayfieldRendererEntrance.cs`): `SetState` then `XifDrawer.Shared.DrawNode` becomes `batch.Add`, one `Draw` per
+   target, as `PlayfieldRendererDecos` does.
+2. **Pops and beams** (`PlayfieldRendererPops.cs`, `PlayfieldRendererTrails.cs`): the same; pops matter most, a chord
+   burst makes many at once.
+3. **The orb look** (`PlayfieldRendererOrbs.cs`): the same.
+   - For 1–3: selection borders move after the batch; check each look has a common shader, or `XifBatch` quietly
+     hands it back to `XifDrawer`.
+4. **The hit bar** (`PlayfieldRendererPops.cs`, `DrawHitBar`): a new run per pop with `hit_note` set by hand; becomes
+   copies of one quad, `hit_note` a value per copy (the copied form makes every `uniform` one).
+5. **Shared meshes for equal geometries**: key `XifBatch`'s meshes by content, not by object, so the demo's 8 grass
+   draws become one; pads and pops gain the same.
+6. **The player body and its effects** (`PlayfieldRendererPlayer.cs`): the body polygon, afterimages, dash rings and
+   burst flashes are CPU rects and outlines; one small stack fed a `[Host]` list draws them in one draw. The work is
+   writing the shapes as SDFs.
+7. **Orb paths and entrance key dots** (`PlayfieldRendererOrbs.cs`, `PlayfieldRendererEntrance.cs`): a `DrawCircle`
+   per key becomes copies of one dot. Editor only, so small.
+
+Not easy: the puppet (GPU skinning, step 3) and the animator (step 4). Editor chrome, timelines and the speed graph
+are UI and stay on its resident path. After 1–3 only the puppet and the animator are left on `XifDrawer`.
