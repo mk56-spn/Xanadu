@@ -23,7 +23,7 @@
 402 Rendering/CanvasPipelines.cs
 585 Rendering/CanvasTree.cs
 439 Rendering/ResidentTree.cs
-449 Screens/Animator/AnimatorLayout.cs
+447 Screens/Animator/AnimatorLayout.cs
 495 Screens/Animator/AnimatorLayout.Menus.cs
 863 Screens/Play/HudLayoutSystem.cs
 421 Screens/Play/PlayHudBuilder.cs

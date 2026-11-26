@@ -7,7 +7,7 @@ namespace Xanadu.Screens.Animator;
 /// <summary>
 /// The timeline header's EASING button. It opens the shared ease picker
 /// (<see cref="EasePickerPanel"/>), which the animator hosts
-/// through <see cref="AnimatorEasePickerHost"/>.
+/// through <see cref="AnimatorEasePicker"/>.
 /// </summary>
 public static partial class AnimatorLayout
 {

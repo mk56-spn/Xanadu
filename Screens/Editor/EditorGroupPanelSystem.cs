@@ -2,14 +2,12 @@ using System.Collections.Generic;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using Xanadu.Core;
-using Xanadu.Core.Timeline;
 using Xanadu.Logic.Editor;
 using Xanadu.Model.Ecs.Components;
 using Xanadu.Model.Editor;
 using Xanadu.Model.Editor.Intents;
 using Xanadu.Model.Levels;
 using Xanadu.Ui.Ecs.Ui;
-using Position = Xanadu.Core.Position;
 
 namespace Xanadu.Screens.Editor;
 
@@ -47,7 +45,7 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
         if (_picker.IsNull && !editor.Parent.IsNull)
         {
             UiNode layer = UiNode.Layer(_entities, editor.Parent, UiLayers.EditorEasePicker, null, UiStage.Full);
-            _picker = EasePickerPanel.Build(layer, new EaseHost(_entities));
+            _picker = EditorEasePicker.Build(layer, _entities);
         }
 
         LevelGroups groups = editor.GetComponent<LevelGroups>();
@@ -138,7 +136,7 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
     }
 
     /// <summary>The editor the panel belongs to; null when the scene has none.</summary>
-    private static Entity Editor(EntityStore store) => EditorSceneQuery.First<Playhead, EditorGroupEdit>(store);
+    internal static Entity Editor(EntityStore store) => EditorSceneQuery.First<Playhead, EditorGroupEdit>(store);
 
     /// <summary>The name shows the group's own while unfocused; letting go of focus renames it.</summary>
     private void ShowName(Entity entity, GroupDocument group)
@@ -197,54 +195,5 @@ public sealed class EditorGroupPanelSystem : QuerySystem<UiCommand>
             return;
         entity.GetComponent<Text>().Value = label;
         buffer.AddTag<Dirty>(entity.Id);
-    }
-
-    /// <summary>
-    /// The shared ease picker for the group keys at the playhead: open while EASE
-    /// is lit, above the EASE button, showing the curve the keys there leave with.
-    /// </summary>
-    private sealed class EaseHost(EntityStore store) : IEasePickerHost
-    {
-        private Entity Editor => EditorGroupPanelSystem.Editor(store);
-
-        public bool Open => Editor is { IsNull: false } editor && editor.GetComponent<EditorGroupEdit>().Easing &&
-                            EditorGroupTarget.Picked(editor) is not null;
-
-        public Rect2 Anchor
-        {
-            get
-            {
-                Entity button = UiCommand.Find(store, EditorButtonKind.GroupEase);
-                if (button.IsNull || !button.HasComponent<Rectangle>() || !button.HasComponent<Position>())
-                    return new Rect2();
-                Vector2 centre = Xanadu.Ui.Ecs.UiTransform.WorldPosition(button, button.GetComponent<Position>().Value);
-                Vector2 size = button.GetComponent<Rectangle>().Bounds.Size;
-                return new Rect2(centre - size / 2, size);
-            }
-        }
-
-        public Rect2 Bounds => Editor is { IsNull: false } editor
-            ? new Rect2(Vector2.Zero, editor.GetComponent<PlayfieldView>().ScreenSize)
-            : new Rect2();
-
-        public EasePreset? Current
-        {
-            get
-            {
-                Entity editor = Editor;
-                if (editor.IsNull)
-                    return null;
-                (GroupDocument? group, string? node) = EditorGroupTarget.Of(editor);
-                return group is null || node is null
-                    ? null
-                    : group.Clip.ReadEase(group.ClipTime(EditorGroupCommands.PlayheadBeat(editor)), node);
-            }
-        }
-
-        public string EmptyHint => "Move the playhead onto a key";
-
-        public void Pick(EasePreset preset) => Editor.EmitOnEditor(new EaseGroupKeys(preset));
-
-        public void Close() => Editor.EmitOnEditor(new ShowGroupEase(false));
     }
 }

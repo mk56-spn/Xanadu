@@ -9,9 +9,9 @@ using Position = Xanadu.Core.Position;
 namespace Xanadu.Ui.Systems.Ui;
 
 /// <summary>
-/// Runs every ease picker: shows it while its host has it open, above the
-/// control it opens from, lights the selection's curve, hands pressed curves
-/// and the × to the host, and runs the preview: the curve under the pointer,
+/// Runs every ease picker: shows it while its frame says it is open, above the
+/// control it opens from, lights the selection's curve, emits pressed curves
+/// and the × to its owner, and runs the preview: the curve under the pointer,
 /// else the selection's, drawn with a dot travelling it and a second dot on a
 /// rail showing the value alone.
 /// </summary>
@@ -28,7 +28,7 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
 
     private readonly ButtonPress _presses = new();
 
-    // A hidden picker still has to notice its host opening it.
+    // A hidden picker still has to notice its owner opening it.
     public EasePickerSystem() => Filter.WithDisabled();
 
     protected override void OnUpdate()
@@ -40,12 +40,11 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
 
     private void Update(Entity panel, float delta)
     {
-        ref EasePicker picker = ref panel.GetComponent<EasePicker>();
-        IEasePickerHost host = picker.Host;
+        EasePickerParts parts = panel.GetComponent<EasePicker>().Parts;
         List<(Entity Entity, EasePreset Id, UiCommand Command)> cells = UiCommand.All<EasePreset>(Query.Store, panel);
 
         // Presses first, hidden or not, so one landing as the picker hides is still let go.
-        bool closed = _presses.Started(picker.Parts.Close);
+        bool closed = _presses.Started(parts.Close);
         EasePreset? pressed = null;
         foreach ((Entity cell, EasePreset cellPreset, _) in cells)
         {
@@ -53,12 +52,18 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
                 pressed = cellPreset;
         }
 
-        if (host.Open && pressed is { } preset)
-            host.Pick(preset);
-        if (host.Open && closed)
-            host.Close();
+        if (EasePickerFrame.Refresh(panel).Open)
+        {
+            if (pressed is { } preset)
+                panel.EmitSignal(new EasePicked(preset));
+            if (closed)
+                panel.EmitSignal(new EasePickerCloseAsked());
+        }
 
-        if (!host.Open)
+        // The owner's handlers may change the panel's tags, so its component is read after them.
+        EasePickerFrame frame = EasePickerFrame.Refresh(panel);
+        ref EasePicker picker = ref panel.GetComponent<EasePicker>();
+        if (!frame.Open)
         {
             Hide(panel, picker.Parts);
             picker.Shown = null;
@@ -66,10 +71,10 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
         }
 
         Vector2 size = EasePickerPanel.Size;
-        Place(panel, Corner(host.Anchor, host.Bounds, size) + size / 2);
+        Place(panel, Corner(frame.Anchor, frame.Bounds, size) + size / 2);
         UiLayout.SetHidden(panel, false);
 
-        EasePreset? current = host.Current;
+        EasePreset? current = frame.Current;
         Light(cells, current);
 
         EasePreset? hovered = Hovered(cells);
@@ -77,7 +82,7 @@ public sealed class EasePickerSystem : QuerySystem<EasePicker>
         UiText.Set(picker.Parts.Name, EaseNames.Label(shown));
         UiText.Set(picker.Parts.Description, EaseNames.Describe(shown));
         UiText.Set(picker.Parts.Hint, current is null
-            ? host.EmptyHint
+            ? frame.EmptyHint
             : hovered is null
                 ? "The selection's curve"
                 : "Click to set it on the selection");

@@ -21,7 +21,7 @@ public sealed class AnimatorEasingWindowSystem : QuerySystem<AnimatorUi>
         foreach (Entity session in Query.ToEntityList())
         {
             AnimatorUi ui = session.GetComponent<AnimatorUi>();
-            EasePreset? current = AnimatorEasePickerHost.CurrentPreset(session);
+            EasePreset? current = AnimatorEasePicker.CurrentPreset(session);
             UiText.Set(ui.EasingButton, current is { } set ? $"EASE: {EaseNames.Label(set)}" : "EASING");
 
             if (AnimatorPreviewMode.IsOn(session))

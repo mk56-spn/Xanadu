@@ -24,26 +24,36 @@ public sealed class EasePickerTests : EcsSystemTest
     private FakeHost _host = null!;
     private Entity _panel;
 
-    private sealed class FakeHost : IEasePickerHost
+    /// <summary>An owner that answers the picker's signals the way a tool would.</summary>
+    private sealed class FakeHost
     {
         public bool Open { get; set; }
         public Rect2 Anchor { get; set; } = new(1500, 900, 100, 28);
-        public Rect2 Bounds => Screen;
         public EasePreset? Current { get; set; }
-        public string EmptyHint => "Select something";
-        public List<EasePreset> Picks { get; } = new();
+        public List<EasePreset> Picks { get; } = [];
         public int Closes { get; private set; }
 
-        public void Pick(EasePreset preset)
+        public void Listen(Entity picker)
         {
-            Picks.Add(preset);
-            Current = preset;
-        }
-
-        public void Close()
-        {
-            Closes++;
-            Open = false;
+            picker.AddSignalHandler<EasePickerFrameDue>(signal =>
+            {
+                ref EasePickerFrame frame = ref signal.Entity.GetComponent<EasePickerFrame>();
+                frame.Open = Open;
+                frame.Anchor = Anchor;
+                frame.Bounds = Screen;
+                frame.Current = Current;
+                frame.EmptyHint = "Select something";
+            });
+            picker.AddSignalHandler<EasePicked>(signal =>
+            {
+                Picks.Add(signal.Event.Preset);
+                Current = signal.Event.Preset;
+            });
+            picker.AddSignalHandler<EasePickerCloseAsked>(_ =>
+            {
+                Closes++;
+                Open = false;
+            });
         }
     }
 
@@ -53,7 +63,8 @@ public sealed class EasePickerTests : EcsSystemTest
         Root.Add(new ContainerLayoutSystem());
         Root.Add(new EasePickerSystem());
         UiNode layer = UiNode.Layer(Store, default, 5, new FakeVisualRidFactory());
-        _panel = EasePickerPanel.Build(layer, _host);
+        _panel = EasePickerPanel.Build(layer);
+        _host.Listen(_panel);
         Frame(2);
     }
 

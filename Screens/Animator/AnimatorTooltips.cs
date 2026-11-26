@@ -172,7 +172,7 @@ public static class AnimatorTooltips
         SelectPart => "Select this part",
         MoveLayer { By: > 0 } => "Draw this art in front of the one above it (Ctrl+Shift+])",
         MoveLayer { By: < 0 } => "Draw this art behind the one below it (Ctrl+Shift+[)",
-        SetEase e => $"{EaseNames.Label(e.Ease)}: {EaseNames.Describe(e.Ease)}{AnimatorEasePickerHost.Shortcut(e.Ease)}",
+        SetEase e => $"{EaseNames.Label(e.Ease)}: {EaseNames.Describe(e.Ease)}{AnimatorEasePicker.Shortcut(e.Ease)}",
         ToggleEasingWindow => "Choose how the selected keys ease into the next ones, from every curve (Ctrl+E)",
         ToggleMode m => m.Mode switch
         {

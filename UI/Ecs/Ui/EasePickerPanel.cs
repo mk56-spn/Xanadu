@@ -7,7 +7,7 @@ namespace Xanadu.Ui.Ecs.Ui;
 /// <summary>
 /// Builds the shared ease picker: a live preview of a curve at the left, and
 /// every curve at the right as a thumbnail, one row per family and one column
-/// per direction. Any tool can host one through <see cref="IEasePickerHost"/>;
+/// per direction. Any tool can own one through <see cref="EasePickerFrame"/> and its signals;
 /// <see cref="Xanadu.Systems.Ui.EasePickerSystem"/> runs it. The animator's keys and
 /// the level editor's group effects and shader keys all pick from it.
 /// </summary>
@@ -60,8 +60,12 @@ public static class EasePickerPanel
         Pad * 2 + PreviewSize.X + Spacing + GridWidth,
         Pad * 2 + TitleHeight + Spacing + GridHeight);
 
-    /// <summary>Builds the picker hidden on <paramref name="layer"/>; it shows while the host says it is open.</summary>
-    public static Entity Build(UiNode layer, IEasePickerHost host)
+    /// <summary>
+    /// Builds the picker hidden on <paramref name="layer"/>; it shows while its
+    /// frame says it is open. <paramref name="tooltipNote"/> adds to a curve's
+    /// tooltip, such as its shortcut key.
+    /// </summary>
+    public static Entity Build(UiNode layer, Func<EasePreset, string>? tooltipNote = null)
     {
         UiNode panel = layer.Panel().Size(Size).Hidden()
             .Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start);
@@ -82,7 +86,7 @@ public static class EasePickerPanel
         parts.Description = preview.Text("", UiType.Caption, UiTheme.TextDim).Size(PreviewSize.X, 18);
         parts.Hint = preview.Text("", UiType.Caption, UiTheme.TextDim).Size(PreviewSize.X, 18);
 
-        BuildGrid(body, picker, host);
+        BuildGrid(body, picker, tooltipNote ?? (_ => ""));
 
         // The preview's drawing floats over its box, placed by the system, so
         // the box's own layout never moves it.
@@ -93,12 +97,12 @@ public static class EasePickerPanel
         parts.Dot = Float(floating.Shape(Circle(DotRadius), DotColor));
         parts.RailDot = Float(floating.Shape(Circle(DotRadius), DotColor));
 
-        panel.With(new EasePicker { Host = host, Parts = parts });
+        panel.With(new EasePicker { Parts = parts }).With(new EasePickerFrame { EmptyHint = "" });
         return picker;
     }
 
     /// <summary>Column labels, the basic row, then one row per family.</summary>
-    private static void BuildGrid(UiNode body, Entity picker, IEasePickerHost host)
+    private static void BuildGrid(UiNode body, Entity picker, Func<EasePreset, string> note)
     {
         UiNode grid = body.Column().Size(GridWidth, GridHeight).Gap(Gap)
             .Cross(StackCrossAlignment.Start).Main(StackMainAlignment.Start);
@@ -114,14 +118,14 @@ public static class EasePickerPanel
         UiNode basics = Row(grid, CellSize.Y);
         RowLabel(basics, "BASIC");
         foreach (EasePreset preset in EaseNames.Basics)
-            CellButton(basics, preset, picker, host);
+            CellButton(basics, preset, picker, note);
 
         foreach (CurveFamily family in EaseNames.Families)
         {
             UiNode row = Row(grid, CellSize.Y);
             RowLabel(row, EaseNames.Label(family));
             foreach (CurveDirection direction in EaseNames.Directions)
-                CellButton(row, EasePresets.Preset(family, direction), picker, host);
+                CellButton(row, EasePresets.Preset(family, direction), picker, note);
         }
     }
 
@@ -132,12 +136,12 @@ public static class EasePickerPanel
         row.Text(label, UiType.Caption, UiTheme.TextDim).Size(RowLabelWidth, CellSize.Y);
 
     /// <summary>A thumbnail of the curve that picks it when pressed.</summary>
-    private static void CellButton(UiNode row, EasePreset preset, Entity picker, IEasePickerHost host)
+    private static void CellButton(UiNode row, EasePreset preset, Entity picker, Func<EasePreset, string> note)
     {
         UiNode cell = row.Row().Size(CellSize).Fill(Cell).Input()
             .With(ButtonVisual.Create(Cell))
             .With(UiCommand.Of(preset, owner: picker))
-            .Tooltip($"{EaseNames.Label(preset)}: {EaseNames.Describe(preset)}{host.TooltipNote(preset)}");
+            .Tooltip($"{EaseNames.Label(preset)}: {EaseNames.Describe(preset)}{note(preset)}");
 
         Entity thumb = cell.Shape(CurvePoints(preset, ThumbSize, 24), Clear, Stroke, 1.5f, closed: false);
         thumb.GetComponent<Rectangle>().Bounds = new Rect2(-ThumbSize / 2, ThumbSize);

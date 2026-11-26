@@ -122,9 +122,7 @@ public static partial class AnimatorLayout
         BuildNewClipDialog(menu, screen, ref refs);
         BuildInfoPanel(menu, screen, ref refs);
         BuildShortcutsPanel(menu, screen, ref refs);
-        refs.Ui.EasePicker = EasePickerPanel.Build(
-            UiNode.Wrap(refs.Ui.MenuLayer, visuals),
-            new AnimatorEasePickerHost(store));
+        refs.Ui.EasePicker = AnimatorEasePicker.Build(UiNode.Wrap(refs.Ui.MenuLayer, visuals), store);
         UiBuilder xif = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXif);
         UiBuilder xifLines = UiBuilder.Begin(store, visuals).Layer(UiLayers.AnimatorXifLines);
         refs.Ui.XifEditor = XifEditorPanel.Build(

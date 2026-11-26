@@ -4,44 +4,51 @@ using Xanadu.Core.Timeline;
 namespace Xanadu.Ui.Ecs.Ui;
 
 /// <summary>
-/// What a tool tells the shared ease picker: whether it is open, what it opens
-/// from, and the selection's curve. Picking and closing go back to the tool,
-/// which applies the curve as one undo step its own way.
+/// The shared ease picker as its owner describes it this frame: whether it is
+/// open, what it opens from, and the selection's curve. The owner writes it
+/// whenever <see cref="EasePickerFrameDue"/> is emitted on the picker; the
+/// picker only reads it. Picks and the × come back as <see cref="EasePicked"/>
+/// and <see cref="EasePickerCloseAsked"/>, which the owner applies its own way.
 /// </summary>
-public interface IEasePickerHost
+public struct EasePickerFrame : IComponent
 {
     /// <summary>Whether the picker shows.</summary>
-    bool Open { get; }
+    public bool Open;
 
     /// <summary>The control it opens from, on screen: it sits above it, or below where there is no room.</summary>
-    Rect2 Anchor { get; }
+    public Rect2 Anchor;
 
     /// <summary>The area it must stay inside.</summary>
-    Rect2 Bounds { get; }
+    public Rect2 Bounds;
 
     /// <summary>The selection's curve, lit in the grid; null when nothing that eases is selected.</summary>
-    EasePreset? Current { get; }
+    public EasePreset? Current;
 
     /// <summary>The hint shown while nothing that eases is selected, such as "Select keys to set their curve".</summary>
-    string EmptyHint { get; }
+    public string EmptyHint;
 
-    /// <summary>Sets the curve on the selection. The picker stays open, so the selection can change in turn.</summary>
-    void Pick(EasePreset preset);
-
-    /// <summary>The picker's × was pressed.</summary>
-    void Close();
-
-    /// <summary>Anything a tool adds to a curve's tooltip, such as its shortcut key.</summary>
-    string TooltipNote(EasePreset preset) => "";
+    /// <summary>Asks <paramref name="picker"/>'s owner to describe it now, and reads what it wrote.</summary>
+    public static ref EasePickerFrame Refresh(Entity picker)
+    {
+        picker.EmitSignal(new EasePickerFrameDue());
+        return ref picker.GetComponent<EasePickerFrame>();
+    }
 }
 
+/// <summary>Write <see cref="EasePickerFrame"/> now.</summary>
+public readonly record struct EasePickerFrameDue;
+
+/// <summary>A curve was pressed: set it on the selection. The picker stays open.</summary>
+public readonly record struct EasePicked(EasePreset Preset);
+
+/// <summary>The picker's × was pressed.</summary>
+public readonly record struct EasePickerCloseAsked;
+
 /// <summary>
-/// An ease picker, carried by its panel: the host it picks for, its parts and
-/// the running preview.
+/// An ease picker, carried by its panel: its parts and the running preview.
 /// </summary>
 public struct EasePicker : IComponent
 {
-    public IEasePickerHost Host;
     public EasePickerParts Parts;
 
     /// <summary>Seconds the preview has run, which moves its dots.</summary>
