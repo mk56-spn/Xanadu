@@ -34,7 +34,7 @@ public sealed class ProbeNodeTests
         string source = ShaderStack.Compose(folder, ShaderStack.Read(folder)) + "\nuniform float4 xanaduProbe;\n";
         StackBuild build = SlangShaders.CompileEffectBody("hit_bar", source).Build!.Shape;
 
-        Assert.That(build.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "xanaduProbe_clips", "xanaduColour_shade" }));
+        Assert.That(build.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "xanaduProbe_clips", "xanaduColour_shade", "xanaduRecord_begin" }));
         Assert.That(build.Buffers.Single(buffer => buffer.Name == ClipProbes.List).Shared, Is.True);
     }
 
@@ -68,6 +68,19 @@ public sealed class ProbeNodeTests
         Assert.That(clip.Start, Is.EqualTo(0.2).Within(1e-6));
         Assert.That(clip.StaggerStep, Is.EqualTo(0.1).Within(1e-6));
         Assert.That(clip.Keys, Is.EqualTo(new[] { 0.5 }));
+    }
+
+    [Test]
+    public void AStackWithStateRecordsWhatItKeeps()
+    {
+        string folder = Path.Combine(Path.GetDirectoryName(ShippedLibrary.Path)!, "Lab/particles");
+        string source = ShaderStack.Compose(folder, ShaderStack.Read(folder));
+        StackBuild build = SlangShaders.CompileEffectBody("particles", source + "\nuniform float4 xanaduProbe;\n").Build!.Shape;
+
+        Assert.That(build.Passes.Select(pass => pass.Name), Does.Contain("xanaduRecord_book").And.Contain("xanaduRecord_pool").And.Contain("xanaduRecord_end"));
+        Assert.That(build.Buffers.Single(buffer => buffer.Name == RecordProbes.List).Shared, Is.True);
+        Assert.That(RecordProbes.Labels(source), Is.SupersetOf(new[] { "book.frame", "book.first[3]", "book.owed[0]", "pool.count", "deaths.heard", "trailed.count", "drawn" }));
+        Assert.That(RecordProbes.Labels(source), Has.None.StartsWith("book.pad").And.None.EqualTo("pool.capacity"));
     }
 
     [Test]

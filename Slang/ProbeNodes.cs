@@ -8,7 +8,7 @@ namespace Xanadu.Slang;
 
 /// <summary>
 /// Probe nodes: a tool's way to see what a stack's code does over time, whatever way it is written; the clips half is
-/// <see cref="ClipProbes"/>. This half shows how a graph's draws move. A body declaring
+/// <see cref="ClipProbes"/>, the colour half <see cref="ColourProbes"/>, what a stack keeps <see cref="RecordProbes"/>. This half shows how a graph's draws move. A body declaring
 /// <c>uniform float4 xanaduProbe;</c> (from, span in seconds, beats a second) gets, for each of its draws, a generated
 /// <c>[Pass]</c> that runs the draw's own vertex function at <see cref="Samples"/> times through that window, on three
 /// corners of each copy, and writes how the copy moved since the window's start (<c>probeMotion</c>: offset, turn, scale)
@@ -59,7 +59,9 @@ public static partial class ProbeNodes
         var passes = new StringBuilder(ClipProbes.Pass(ShadeSignature.Arguments(source, out _), SlangShaders.Deforms(source), draws));
         (string colourPasses, string colourCalls) = ColourProbes.Of(source, build);
         passes.Append(colourPasses);
-        var calls = new StringBuilder(" xanaduProbe_clips();" + colourCalls);
+        (string recordPasses, string recordCalls) = RecordProbes.Of(source, build);
+        passes.Append(recordPasses);
+        var calls = new StringBuilder(" xanaduProbe_clips();" + colourCalls + recordCalls);
         long lanes = 0;
         foreach ((BuildPass draw, long first, long copies) in draws)
         {

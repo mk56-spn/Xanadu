@@ -1,4 +1,4 @@
-# Clips on the GPU (proposed 2026-11-26; slices 1 to 3 built the same day)
+# Clips on the GPU (proposed 2026-11-26; slices 1 to 4 built the same day)
 
 Clips have fallen behind the render graph. Outside the library, one shader uses them (`Game/hit_bar/shade.slang`); no
 stack does. The timeline only knows what `Slang/SlangClips.cs` can read out of the text with regexes: explicit
@@ -93,6 +93,30 @@ and what it lacks is added to it):
   ring passes a place; `Lab/flat_meshes` shows its six motion rows and no colour rows (its look doesn't change in time).
 - **Not yet:** four places see only what passes them (a small shape elsewhere on the quad is missed); a draw's shade
   sees the probe quad's uv, not its mesh's (`i.world`, `drawnTriangle` are zero).
+
+**Slice 4 is built** (2026-11-26): the recording ring.
+
+- **`Slang/RecordProbes.cs`:** a probing stack's kept numbers, found from its declarations: every scalar of a
+  `Stored<T>` (a struct's fields in turn, array items over the body's constants, vector parts; `pad` fields skipped),
+  each `Counter`, a `Gathered`/`Slots` count, and a block's public `uint` properties but `capacity` (`pool.count`,
+  `deaths.heard`). Generated passes: `xanaduRecord_begin` (records this frame only when `time` moved; new code, by a
+  stamp of the labels, starts the ring over), one a declaration (one thread, binding only what it reads, writing
+  `[Shared] List<float> xanaduRecords[lane × 256 + frame % 256]`), `xanaduRecord_end` (moves the ring on).
+  `[Shared] Stored<uint4> xanaduRecordHead` is (frames recorded, last time, stamp, lanes | recording << 16). A stack
+  with nothing kept gets `begin` alone, which zeroes the lane count. 64 lanes, 256 frames.
+- **The lanes stack** measures recorded lanes in their own pass (`measureRecords`), copying the ring oldest-first into
+  `range` after the ranges, so the draw never binds the ring (SDL_GPU's 8 buffers: the draw was at 10). Kept like the
+  other kinds (changing, unlike earlier recorded lanes; a number moves by more than 1e-5 of its size). Drawn as one
+  line, the held frames right-aligned (newest at the right edge), with no playhead: recorded rows replay, they don't
+  scrub. Rows carry bit 32.
+- **Host:** `ProbeLanes` labels recorded rows from `RecordProbes.Labels` in the warning orange, and shows "recorded:
+  last 256 frames" in the header when one is up.
+- **Checked:** `Lab/particles` shows `pool.count`, `book.frame`, `book.total`, `book.first[1]`, `book.count[3]`,
+  `book.owed[0]`, `book.owed[3]`, `trailed.count`, `deaths.heard`, `drawn`; `Lab/flat_meshes` keeps its six motion rows
+  and no recorded ones. Test: `ProbeNodeTests.AStackWithStateRecordsWhatItKeeps`.
+- **Not yet:** event fires as marks (only `heard` counts are recorded, not where in the frame or what they carried);
+  lists' contents (a pool's particles) aren't recorded, only counts; frames are recorded while the clock moves, not
+  against song time, so a recorded row doesn't line up with the window above it; no value readout at the cursor.
 
 ## Idea: probe, don't parse
 
