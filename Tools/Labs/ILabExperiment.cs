@@ -48,5 +48,6 @@ internal static class LabExperiments
         new Experiments.BoosterLab(),
         new Experiments.BeamLab(),
         new Experiments.OrbLab(),
+        new Experiments.Chess.ChessLab(),
     ];
 }
