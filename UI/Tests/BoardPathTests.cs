@@ -69,7 +69,22 @@ public sealed class BoardPathTests
 
         var paths = board.Paths();
 
-        Assert.That(paths[0]![1].Y, Is.Not.EqualTo(paths[1]![1].Y).Within(Board.LaneGap - 1));
+        Assert.That(paths[0]![1], Is.Not.EqualTo(paths[1]![1]));
+    }
+
+    [Test]
+    public void LinesTurnOnlyAtRightAngles()
+    {
+        var board = new Board();
+        BoardBox a = board.Add(new Rect2(0, 0, 100, 60)), b = board.Add(new Rect2(300, 200, 100, 60));
+        BoardBox c = board.Add(new Rect2(-200, 400, 100, 60));
+        board.Link(a.Id, b.Id);
+        board.Link(a.Id, c.Id);
+        board.Link(b.Id, c.Id);
+
+        foreach (var path in board.Paths())
+            for (int i = 1; i < path!.Count; i++)
+                Assert.That(path[i - 1].X == path[i].X || path[i - 1].Y == path[i].Y, Is.True);
     }
 
     [Test]

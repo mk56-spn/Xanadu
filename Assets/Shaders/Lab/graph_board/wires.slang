@@ -23,11 +23,24 @@ float4 wireLook(ItemInput i)
     // Round at both ends, so the pieces of a bent wire join.
     float d = distance(float2(clamp(x, 0, run), 0), i.local);
     float s = w.along + clamp(x, 0, run);
-    float beat = pulses(s);
-    if (w.both > 0.5)
-        beat = max(beat, pulses(w.total - s));
     float core = saturate(1.5 * zoom + 0.5 - d);
-    float head = beat * exp(-d * d / (16 * zoom * zoom));
-    float light = saturate(0.15 * exp(-d / (6 * zoom)) + head);
-    return float4(lerp(pulse.rgb, wireTone.rgb, core * (1 - head)), max(core, light));
+    float3 tone = lerp(w.from.rgb, w.to.rgb, w.total > 0 ? saturate(s / w.total) : 0);
+
+    // The dot nearest here, drawn by the piece its centre is on (its quad reaches past its ends for the rest).
+    float dot = 1e9;
+    float ahead = nearestDot(w.along + x) - w.along;
+    if (ahead >= 0 && ahead < run)
+        dot = distance(i.local, float2(ahead, 0));
+    if (w.both > 0.5)
+    {
+        float back = w.total - nearestDot(w.total - (w.along + x)) - w.along;
+        if (back >= 0 && back < run)
+            dot = min(dot, distance(i.local, float2(back, 0)));
+    }
+    float r = DOT * zoom;
+    float disc = saturate(r + 0.5 - dot);
+    float glow = 0.12 * exp(-max(dot - r, 0) / (DOT_GLOW * zoom));
+    float3 bright = lerp(tone, 1, 0.5);
+    float3 rgb = lerp(tone, bright, saturate(disc + glow));
+    return float4(rgb, saturate(max(max(core, disc), glow)));
 }

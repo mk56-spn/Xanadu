@@ -136,3 +136,6 @@ public static class UiBoards
         return board;
     }
 }
+
+/// <summary>A board whose lines end in arrowheads, pointing the way each goes; without it they are plain lines.</summary>
+public struct Arrowheads : ITag;

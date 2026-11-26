@@ -41,7 +41,7 @@ internal sealed class ArchStage(string root) : IToolStage
         });
         body.Add(new Label(Keys, UiType.Caption, ink: Ink.Dim, align: TextAlign.Left));
 
-        UiNode node = body.Board(board).Grow().Stretch();
+        UiNode node = body.Board(board).Grow().Stretch().Tag<Arrowheads>();
         node.Entity.OnBoardChanged(Save);
     }
 

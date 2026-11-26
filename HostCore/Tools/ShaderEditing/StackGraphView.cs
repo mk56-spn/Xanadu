@@ -8,21 +8,24 @@ using Xanadu.Ui.Editing;
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// A stack's render graph (<see cref="StackGraph"/>) on a read-only board, laid out top to bottom as data flows: each
-/// pass a layer below what it reads, each resource a layer below the pass that first writes it (inputs nothing writes
-/// at the top, the frame at the bottom), and each layer ordered by its neighbours so wires cross little.
-/// Boxes are coloured by what they are: compute, pixels, draws, the item's quad; buffers, images and the targets. An
-/// arrow for every way data goes: pass to resource for a write, resource to pass for a read, both for read-write.
+/// A stack's render graph (<see cref="StackGraph"/>) on a read-only board, laid out top to bottom as data flows, so
+/// every arrow points down. Each write makes a new version of what it writes, a box of its own in the layer below the
+/// writer; a pass reads the latest version and sits a layer below it. What is read before anything writes it (a host
+/// buffer, last frame's) starts at the top, the targets every draw lands on wait at the bottom, and each layer is
+/// ordered by its neighbours so wires cross little.
+/// Each box is headed by its name and what it is, in its kind's colour (compute, pixels, draws, the item's quad;
+/// buffers, images and the targets), with its value under them: a pass's threads, a buffer's size, an image's format.
+/// An arrow for every way data goes: pass to the version it makes, version to the pass that reads it.
 /// Remade on every compile that changes it; pans and zooms, and fits itself to its box when remade. Under it a stack
-/// (<see cref="GraphUnderlay"/>) sends pulses along the wires and glows under costly passes and the ones that break
-/// the item's pass.
+/// (<see cref="GraphUnderlay"/>) sends dots along the wires; a pass that breaks the item's pass, or runs a lot of
+/// threads, carries a flag.
 /// </summary>
 internal sealed class StackGraphView
 {
-    private const float Width = 210, Height = 50;
+    private const float Width = 230, Height = 62;
 
     /// <summary>Between two boxes of a layer, and from one layer to the next: room for the wires to fan out.</summary>
-    private const float Gap = 30, Step = Height + 56;
+    private const float Gap = 80, Step = Height + 56;
 
     /// <summary>The share of the box the graph may fill when fitted, leaving a margin round it.</summary>
     private const float Fill = 0.9f;
@@ -31,8 +34,8 @@ internal sealed class StackGraphView
     private const int TargetCategory = 0, ComputeCategory = 2, DrawCategory = 3, PixelsCategory = 4, ImageCategory = 5,
         ShadeCategory = 6, BufferCategory = 7;
 
-    /// <summary>The key's size: its width, its title's height, a row, and the space round each.</summary>
-    private const float KeyWidth = 150, KeyTitle = 44, KeyRow = 30, KeyGap = 8;
+    /// <summary>Threads a frame from which a BUILD pass is flagged heavy.</summary>
+    private const long HeavyThreads = 1_000_000;
 
     /// <summary>How many times each column is reordered by its neighbours.</summary>
     private const int Sweeps = 4;
@@ -65,72 +68,49 @@ internal sealed class StackGraphView
         _board.Links.Clear();
         _board.NextId = 1;
         _underlay.Rebuilt();
-        UiThemeRoles roles = UiThemes.Of(_node.Entity);
 
-        (int[] passColumn, int[] resourceColumn) = Columns(graph);
+        (int[] passColumn, (int Resource, int Column)[] versions, List<Wire> wires) = Versions(graph);
         var columns = new SortedDictionary<int, List<(bool Pass, int Index)>>();
         for (int i = 0; i < passColumn.Length; i++)
             Column(columns, passColumn[i]).Add((true, i));
-        for (int r = 0; r < resourceColumn.Length; r++)
-            if (resourceColumn[r] >= 0)
-                Column(columns, resourceColumn[r]).Add((false, r));
-        Order(graph, columns);
-        // Layers nothing landed in (a resource written again later keeps its first place) close up.
+        for (int v = 0; v < versions.Length; v++)
+            Column(columns, versions[v].Column).Add((false, v));
+        Order(wires, columns);
         int[] used = [.. columns.Keys];
 
         int[] passes = new int[graph.Passes.Count];
-        int[] resources = new int[graph.Resources.Count];
-        foreach ((int column, List<(bool Pass, int Index)> boxes) in columns)
+        int[] boxes = new int[versions.Length];
+        foreach ((int column, List<(bool Pass, int Index)> layer) in columns)
         {
-            float left = -boxes.Count * (Width + Gap) / 2;
-            for (int k = 0; k < boxes.Count; k++)
+            float left = -layer.Count * (Width + Gap) / 2;
+            for (int k = 0; k < layer.Count; k++)
             {
                 var rect = new Rect2(left + k * (Width + Gap), Array.IndexOf(used, column) * Step, Width, Height);
-                (bool isPass, int index) = boxes[k];
+                (bool isPass, int index) = layer[k];
                 if (isPass)
                 {
                     GraphPass pass = graph.Passes[index];
-                    passes[index] = _board.Add(rect, $"{Title(pass)}\n{Says(pass)}", Category(pass)).Id;
-                    if (Heat(pass, roles) is { } tone)
-                        _underlay.Mark(passes[index], tone);
+                    BoardBox box = _board.Add(rect, Title(pass), Category(pass), Kind(pass), Value(pass));
+                    passes[index] = box.Id;
+                    (box.Flag, box.FlagTone) = Flag(pass);
                 }
                 else
                 {
-                    GraphResource resource = graph.Resources[index];
-                    resources[index] = _board.Add(rect, $"{resource.Name}\n{Says(resource)}", Category(resource)).Id;
+                    GraphResource resource = graph.Resources[versions[index].Resource];
+                    boxes[index] = _board.Add(rect, resource.Name, Category(resource), Kind(resource), Value(resource)).Id;
                 }
             }
         }
 
-        foreach (GraphEdge edge in graph.Edges)
-        {
-            if (resources[edge.Resource] == 0)
-                continue;
-            if (edge.Access.HasFlag(GraphAccess.Write))
-                _board.Link(passes[edge.Pass], resources[edge.Resource]);
-            if (edge.Access.HasFlag(GraphAccess.Read))
-                _board.Link(resources[edge.Resource], passes[edge.Pass]);
-        }
+        foreach (Wire wire in wires)
+            if (wire.Write)
+                _board.Link(passes[wire.Pass], boxes[wire.Version]);
+            else
+                _board.Link(boxes[wire.Version], passes[wire.Pass]);
 
         if (graph.ScheduleProblem is { } problem)
             _board.Add(new Rect2(-Width * 1.5f, -Step * 1.5f, Width * 3, Height * 1.5f),
                 $"graph() can't run: {problem}", TargetCategory);
-        Key();
-    }
-
-    /// <summary>What the colours mean: a framed column of one small box per kind, left of the graph.</summary>
-    private void Key()
-    {
-        (string Name, int Category)[] kinds =
-        [
-            ("compute", ComputeCategory), ("pixels", PixelsCategory), ("draw", DrawCategory), ("item quad", ShadeCategory),
-            ("buffer", BufferCategory), ("image", ImageCategory), ("target", TargetCategory),
-        ];
-        float left = _board.Boxes.Min(box => box.Rect.Position.X) - KeyWidth - Gap * 3;
-        float top = _board.Boxes.Min(box => box.Rect.Position.Y);
-        _board.Add(new Rect2(left, top, KeyWidth, KeyTitle + kinds.Length * (KeyRow + KeyGap) + KeyGap), "key", BufferCategory);
-        for (int k = 0; k < kinds.Length; k++)
-            _board.Add(new Rect2(left + KeyGap, top + KeyTitle + k * (KeyRow + KeyGap), KeyWidth - KeyGap * 2, KeyRow), kinds[k].Name, kinds[k].Category);
     }
 
     /// <summary>Each frame: fits a newly made graph to the box once the box has its size, and feeds the underlay.</summary>
@@ -152,56 +132,75 @@ internal sealed class StackGraphView
     public void Delete() => UiLayout.DeleteSubtree(_node.Entity);
 
     /// <summary>
-    /// How a pass glows under its box: a pass break strongly, in the bad tone; a BUILD pass by how many threads it
-    /// runs, from a faint glow at a thousand to full at ten million; nothing for the rest.
+    /// What is wrong with a pass, if anything: breaking the item's pass (bad), or a BUILD pass running a million threads
+    /// or more a frame (worth a look).
     /// </summary>
-    private static Color? Heat(GraphPass pass, UiThemeRoles roles)
-    {
-        if (pass.Place == NodePlace.MidFrame)
-            return roles.Bad with { A = 0.7f };
-        if (pass.Threads < 1000 || pass.Fills)
-            return null;
-        return roles.Warn with { A = 0.15f + 0.5f * Math.Clamp((MathF.Log10(pass.Threads) - 3) / 4, 0, 1) };
-    }
+    private static (string, FlagTone) Flag(GraphPass pass) =>
+        pass.Place == NodePlace.MidFrame ? ("breaks pass", FlagTone.Bad)
+        : !pass.Fills && pass.Threads >= HeavyThreads ? ("heavy", FlagTone.Warn)
+        : ("", FlagTone.Warn);
+
+    /// <summary>A pass reading a version of a resource, or writing (making) one.</summary>
+    private readonly record struct Wire(int Pass, int Version, bool Write);
 
     /// <summary>
-    /// Each pass's column (odd) and each resource's (even; -1 for one nothing touches). A pass goes one past the latest
-    /// write of what it reads, so it lands after the passes it waits on; a resource sits one past its first writer, or
-    /// at 0 when it is read before anything writes it (a host buffer, last frame's).
+    /// Each pass's layer, each version's (which resource, which layer) and the wires between them, in run order. A pass
+    /// goes a layer below the latest version of each thing it reads; each write makes a version a layer below the pass.
+    /// A read of something nothing has written yet makes its first version at the top. The targets keep one version,
+    /// in the last layer, and every pass touching them writes it: draws land on them whatever their order.
     /// </summary>
-    private static (int[] Passes, int[] Resources) Columns(StackGraph graph)
+    private static (int[] Passes, (int Resource, int Column)[] Versions, List<Wire> Wires) Versions(StackGraph graph)
     {
         int[] passes = new int[graph.Passes.Count];
-        int[] resources = Enumerable.Repeat(-1, graph.Resources.Count).ToArray();
-        int[] ready = new int[graph.Resources.Count];
-        bool[] touched = new bool[graph.Resources.Count];
+        List<(int Resource, int Column)> versions = [];
+        List<Wire> wires = [];
+        var latest = new Dictionary<int, int>();
+        var targets = new Dictionary<int, int>();
+        int Make(int resource, int column)
+        {
+            versions.Add((resource, column));
+            return versions.Count - 1;
+        }
+
         for (int p = 0; p < passes.Length; p++)
         {
-            // The targets wait at the bottom: draws onto the frame all land there, whatever their order.
-            GraphEdge[] edges = [.. graph.Edges.Where(e => e.Pass == p && !Target(graph.Resources[e.Resource]))];
+            var access = new Dictionary<int, GraphAccess>();
+            foreach (GraphEdge edge in graph.Edges)
+                if (edge.Pass == p)
+                    access[edge.Resource] = access.GetValueOrDefault(edge.Resource) | edge.Access;
+
             int column = 1;
-            foreach (GraphEdge edge in edges)
-                if (edge.Access.HasFlag(GraphAccess.Read))
-                    column = Math.Max(column, ready[edge.Resource] + 1);
-            passes[p] = column;
-            foreach (GraphEdge edge in edges)
+            foreach ((int resource, GraphAccess how) in access)
             {
-                touched[edge.Resource] = true;
-                if (!edge.Access.HasFlag(GraphAccess.Write))
+                if (Target(graph.Resources[resource]) || !how.HasFlag(GraphAccess.Read))
                     continue;
-                if (resources[edge.Resource] < 0)
-                    resources[edge.Resource] = column + 1;
-                ready[edge.Resource] = Math.Max(ready[edge.Resource], column + 1);
+                if (!latest.ContainsKey(resource))
+                    latest[resource] = Make(resource, 0);
+                column = Math.Max(column, versions[latest[resource]].Column + 1);
+                wires.Add(new Wire(p, latest[resource], false));
+            }
+
+            passes[p] = column;
+            foreach ((int resource, GraphAccess how) in access)
+            {
+                if (Target(graph.Resources[resource]))
+                {
+                    if (!targets.ContainsKey(resource))
+                        targets[resource] = Make(resource, -1);
+                    wires.Add(new Wire(p, targets[resource], true));
+                }
+                else if (how.HasFlag(GraphAccess.Write))
+                {
+                    latest[resource] = Make(resource, column + 1);
+                    wires.Add(new Wire(p, latest[resource], true));
+                }
             }
         }
 
-        int last = passes.DefaultIfEmpty(0).Max() + 1;
-        for (int r = 0; r < resources.Length; r++)
-            if (Target(graph.Resources[r]))
-                resources[r] = graph.Edges.Any(e => e.Resource == r) ? last : -1;
-            else if (resources[r] < 0 && touched[r])
-                resources[r] = 0;
-        return (passes, resources);
+        int last = Math.Max(passes.DefaultIfEmpty(0).Max(), versions.Select(v => v.Column).DefaultIfEmpty(0).Max() - 1) + 1;
+        foreach (int target in targets.Values)
+            versions[target] = (versions[target].Resource, last);
+        return (passes, [.. versions], wires);
     }
 
     private static bool Target(GraphResource resource) => resource.Kind is GraphResourceKind.Frame or GraphResourceKind.Depth;
@@ -217,7 +216,7 @@ internal sealed class StackGraphView
     /// Reorders each column by where its neighbours sit (the barycentre heuristic), sweeping left to right then back, so
     /// a box lines up with what it joins and wires cross little. Ties keep run order.
     /// </summary>
-    private static void Order(StackGraph graph, SortedDictionary<int, List<(bool Pass, int Index)>> columns)
+    private static void Order(List<Wire> wires, SortedDictionary<int, List<(bool Pass, int Index)>> columns)
     {
         var place = new Dictionary<(bool, int), float>();
         void Remember()
@@ -227,9 +226,9 @@ internal sealed class StackGraphView
                     place[column[k]] = k - (column.Count - 1) / 2f;
         }
 
-        IEnumerable<(bool, int)> Neighbours((bool Pass, int Index) box) => graph.Edges
-            .Where(e => box.Pass ? e.Pass == box.Index : e.Resource == box.Index)
-            .Select(e => box.Pass ? (false, e.Resource) : (true, e.Pass));
+        IEnumerable<(bool, int)> Neighbours((bool Pass, int Index) box) => wires
+            .Where(w => box.Pass ? w.Pass == box.Index : w.Version == box.Index)
+            .Select(w => box.Pass ? (false, w.Version) : (true, w.Pass));
 
         Remember();
         int[] keys = [.. columns.Keys];
@@ -254,22 +253,37 @@ internal sealed class StackGraphView
     /// <summary>A pass's name as the code has it; the generated present draw is just "present".</summary>
     private static string Title(GraphPass pass) => pass.Name.StartsWith("present_", StringComparison.Ordinal) ? "present" : pass.Name;
 
-    /// <summary>What a pass is and what it costs, in a few words.</summary>
-    private static string Says(GraphPass pass)
+    private static string Kind(GraphPass pass) => pass.Kind switch
     {
-        string calls = pass.Calls > 1 ? $"×{pass.Calls} · " : "";
-        string what = pass.Kind switch
-        {
-            NodeKind.Pixels => "pixels",
-            NodeKind.Draw => "draw",
-            NodeKind.Shade => "the item's quad",
-            _ => pass.Fills ? "cached" : Threads(pass.Threads),
-        };
-        return calls + what + (pass.Place == NodePlace.MidFrame ? " · breaks pass" : "");
+        NodeKind.Pixels => "pixels",
+        NodeKind.Draw => "draw",
+        NodeKind.Shade => "item quad",
+        _ => "compute",
+    };
+
+    /// <summary>What a pass costs: how often it runs, its threads (compute), and whether it breaks the item's pass.</summary>
+    private static string Value(GraphPass pass)
+    {
+        List<string> parts = [];
+        if (pass.Calls > 1)
+            parts.Add($"×{pass.Calls}");
+        if (pass.Kind is not (NodeKind.Pixels or NodeKind.Draw or NodeKind.Shade))
+            parts.Add(pass.Fills ? "cached" : Threads(pass.Threads));
+        if (pass.Place == NodePlace.MidFrame)
+            parts.Add("breaks pass");
+        return parts.Count == 0 ? "–" : string.Join(" · ", parts);
     }
 
-    /// <summary>What a resource is, in a few words: a buffer's size, an image's format and size, or which target.</summary>
-    private static string Says(GraphResource resource) => resource.Kind switch
+    private static string Kind(GraphResource resource) => resource.Kind switch
+    {
+        GraphResourceKind.Buffer => "buffer",
+        GraphResourceKind.Image => "image",
+        GraphResourceKind.Depth => "depth",
+        _ => "target",
+    };
+
+    /// <summary>What a resource holds: a buffer's size, an image's format and size, or which target.</summary>
+    private static string Value(GraphResource resource) => resource.Kind switch
     {
         GraphResourceKind.Buffer => resource.Detail == "" ? Bytes(resource.Bytes) : $"{Bytes(resource.Bytes)} · {resource.Detail}",
         GraphResourceKind.Image => resource.Detail,

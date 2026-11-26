@@ -11,17 +11,17 @@ namespace Xanadu.Ui.Systems.Ui;
 /// <summary>
 /// Draws every <see cref="UiBoard"/> into a canvas item of its own under its node,
 /// clipped to the node's box: a dot grid, frames behind the boxes they hold
-/// (titled top-left), the lines between boxes with an arrowhead (over frames, under
+/// (titled top-left), the lines between boxes (with an arrowhead on an <see cref="Arrowheads"/> board; over frames, under
 /// boxes, bent round the boxes in their way), boxes with their text wrapped and
-/// centred, the selection, the link dot and resize corner under the
-/// pointer, a line being dragged, and the caret while a box is typed into. Colours
+/// centred (or, with a kind or value, a header of text and kind over a value box),
+/// the selection, the link dot and resize corner under the pointer, a line being dragged, and the caret while a box is typed into. Colours
 /// are the theme's roles and categories. Redrawn whole every frame. A board with an
 /// <see cref="BoardState.Underlay"/> draws it over its box between its backing and its
-/// boxes, and leaves its lines to it, drawing only their arrowheads.
+/// boxes, and leaves its lines to it, drawing only their arrowheads (if any).
 /// </summary>
 public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 {
-    private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7;
+    private const float GridStep = 50, MinGridGap = 24, Pad = 14, LineWidth = 3, LineGap = 1.3f, MinFont = 7, FadeStep = 16;
 
     /// <summary>A line's bridge over another, in pixels: its radius, the half circle's steps, and how far (in radii) from a segment's ends a crossing must be to get one.</summary>
     private const float HopRadius = 6, HopClear = 1.5f;
@@ -75,12 +75,13 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
         }
 
         List<List<Vector2>?> paths = board.Paths();
+        bool heads = entity.Tags.Has<Arrowheads>();
         // Each line hops over the lines drawn before it where they cross.
         List<List<LineHop>> hops = LineHops.Of(paths, HopRadius * HopClear / state.Zoom);
         for (int i = 0; i < paths.Count; i++)
         {
             if (paths[i] is { } path)
-                Link(item, board, state, board.Links[i], path, hops[i], roles);
+                Link(item, board, state, board.Links[i], path, hops[i], heads, roles);
         }
 
         foreach (BoardBox box in _boxes)
@@ -134,6 +135,13 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             return;
 
         float pad = Pad * state.Zoom;
+        if (!frame && box.Labelled && !editing)
+        {
+            Labelled(item, local, box, (int)MathF.Round(UiType.Small * state.Zoom), pad, colour, roles);
+            Flag(item, local, box, (int)MathF.Round(UiType.Caption * state.Zoom), pad, roles);
+            return;
+        }
+
         Wrap(box.Text, size, local.Size.X - pad * 2);
         float lineHeight = size * LineGap;
         float top = frame ? local.Position.Y + pad : local.Position.Y + (local.Size.Y - _lines.Count * lineHeight) / 2;
@@ -148,6 +156,40 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
 
         if (editing && (state.SinceCaretMove < 0.5f || (int)(state.Clock * 2) % 2 == 0))
             Caret(item, local, frame, top, lineHeight, size, pad, roles);
+        Flag(item, local, box, (int)MathF.Round(UiType.Caption * state.Zoom), pad, roles);
+    }
+
+    /// <summary>
+    /// A box that says what it is: a header of its colour with its text left and its kind right, dark on it, and its
+    /// value in an inset box under them.
+    /// </summary>
+    private void Labelled(Handle item, Rect2 local, BoardBox box, int size, float pad, Color colour, UiThemeRoles roles)
+    {
+        float inner = pad * 0.6f, header = size * LineGap + inner * 0.6f;
+        var head = new Rect2(local.Position, new Vector2(local.Size.X, header));
+        canvas.DrawRect(item, head, colour);
+        var text = new Rect2(head.Position.X + inner, head.Position.Y, head.Size.X - inner * 2, header);
+        canvas.DrawTextStyledLeft(item, text, box.Text, roles.Inset, size);
+        canvas.DrawTextStyledRight(item, text, box.Kind, roles.Inset with { A = 0.7f }, size);
+        if (box.Value.Length == 0)
+            return;
+
+        var value = new Rect2(local.Position.X + inner, head.End.Y + inner, local.Size.X - inner * 2, local.End.Y - head.End.Y - inner * 2);
+        canvas.DrawRect(item, value, roles.Inset);
+        Outline(item, value, colour with { A = 0.5f }, 1);
+        canvas.DrawTextStyledLeft(item, new Rect2(value.Position.X + inner, value.Position.Y, value.Size.X - inner * 2, value.Size.Y), box.Value, roles.Text, size);
+    }
+
+    /// <summary>A box's flag: a square tag of its tone sitting on the box's top edge at the right, its word dark on it.</summary>
+    private void Flag(Handle item, Rect2 local, BoardBox box, int size, float pad, UiThemeRoles roles)
+    {
+        if (box.Flag.Length == 0 || size < MinFont)
+            return;
+        float height = size * 1.6f, width = UiTextMetrics.Width(box.Flag, size) + height * 0.8f;
+        Color tone = box.FlagTone == FlagTone.Bad ? roles.Bad : roles.Warn;
+        var tag = new Rect2(local.End.X - pad - width, local.Position.Y - height + height * 0.25f, width, height);
+        canvas.DrawRect(item, tag, tone);
+        canvas.DrawTextStyled(item, tag, box.Flag, roles.Inset, size);
     }
 
     private void Caret(Handle item, Rect2 local, bool frame, float top, float lineHeight, int size, float pad, UiThemeRoles roles)
@@ -187,27 +229,48 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             _lines.Clear();
     }
 
-    private void Link(Handle item, Board board, BoardState state, BoardLink link, List<Vector2> path, List<LineHop> hops, UiThemeRoles roles)
+    /// <summary>A line's colours: its start box's at the start, its end box's at the end, over its length on screen.</summary>
+    private readonly record struct Fade(Color From, Color To, float Total)
     {
-        Color colour = state.SelectedLink == link ? roles.Accent : roles.TextDim;
-        float width = state.SelectedLink == link ? LineWidth + 1 : LineWidth;
+        public Color At(float s) => From.Lerp(To, Total > 0 ? Math.Clamp(s / Total, 0, 1) : 0);
+    }
+
+    private void Link(Handle item, Board board, BoardState state, BoardLink link, List<Vector2> path, List<LineHop> hops, bool heads, UiThemeRoles roles)
+    {
+        bool picked = state.SelectedLink == link;
+        float width = picked ? LineWidth + 1 : LineWidth;
+        float total = 0;
+        for (int i = 1; i < path.Count; i++)
+            total += Vector2.Distance(path[i - 1], path[i]) * state.Zoom;
+        var fade = new Fade(picked ? roles.Accent : Tone(board, link.From, roles), picked ? roles.Accent : Tone(board, link.To, roles), total);
+
         int next = 0;
+        float along = 0;
         for (int i = 1; i < path.Count && state.Underlay is null; i++)
         {
             Vector2 from = state.Local(state.ToScreen(path[i - 1])), to = state.Local(state.ToScreen(path[i]));
             int first = next;
             while (next < hops.Count && hops[next].Segment == i - 1)
                 next++;
-            Segment(item, from, to, hops, first, next, state.Zoom, colour, width);
+            Segment(item, from, to, hops, first, next, state.Zoom, fade, along, width);
+            along += Vector2.Distance(from, to);
         }
 
-        Arrow(item, state.Local(state.ToScreen(path[^2])), state.Local(state.ToScreen(path[^1])), colour);
+        if (!heads)
+            return;
+        Arrow(item, state.Local(state.ToScreen(path[^2])), state.Local(state.ToScreen(path[^1])), fade.To);
         if (board.TwoWay(link))
-            Arrow(item, state.Local(state.ToScreen(path[1])), state.Local(state.ToScreen(path[0])), colour);
+            Arrow(item, state.Local(state.ToScreen(path[1])), state.Local(state.ToScreen(path[0])), fade.From);
     }
 
-    /// <summary>A straight piece of a line, bridged over each hop (hops[first..end], board distances along it) by a half circle.</summary>
-    private void Segment(Handle item, Vector2 from, Vector2 to, List<LineHop> hops, int first, int end, float zoom, Color colour, float width)
+    private static Color Tone(Board board, int box, UiThemeRoles roles) =>
+        board.Find(box) is { } found ? roles.Category(found.Category) : roles.TextDim;
+
+    /// <summary>
+    /// A straight piece of a line, <paramref name="start"/> along it on screen, bridged over each hop (hops[first..end],
+    /// board distances along it) by a half circle, its colour fading along the whole line.
+    /// </summary>
+    private void Segment(Handle item, Vector2 from, Vector2 to, List<LineHop> hops, int first, int end, float zoom, Fade fade, float start, float width)
     {
         Vector2 along = to - from;
         float length = along.Length();
@@ -227,7 +290,7 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
             // Two crossings closer than a bridge run straight through the second.
             if (middle - HopRadius < at)
                 continue;
-            canvas.DrawLine(item, from + along * at, from + along * (middle - HopRadius), colour, width);
+            Faded(item, from, along, at, middle - HopRadius, fade, start, width);
             Vector2 centre = from + along * middle;
             for (int step = 0; step <= HopSteps; step++)
             {
@@ -235,11 +298,22 @@ public sealed class BoardDrawSystem(IRectCanvas canvas) : QuerySystem<UiBoard>
                 arc[step] = centre - along * (HopRadius * MathF.Cos(angle)) + up * (HopRadius * MathF.Sin(angle));
             }
 
-            canvas.DrawPolyline(item, arc, colour, width);
+            canvas.DrawPolyline(item, arc, fade.At(start + middle), width);
             at = middle + HopRadius;
         }
 
-        canvas.DrawLine(item, from + along * at, to, colour, width);
+        Faded(item, from, along, at, length, fade, start, width);
+    }
+
+    /// <summary>A straight run from <paramref name="a"/> to <paramref name="b"/> along a piece, in short steps of its fading colour.</summary>
+    private void Faded(Handle item, Vector2 from, Vector2 along, float a, float b, Fade fade, float start, float width)
+    {
+        int steps = Math.Max(1, (int)MathF.Ceiling((b - a) / FadeStep));
+        for (int k = 0; k < steps; k++)
+        {
+            float s0 = a + (b - a) * k / steps, s1 = a + (b - a) * (k + 1) / steps;
+            canvas.DrawLine(item, from + along * s0, from + along * s1, fade.At(start + (s0 + s1) / 2), width);
+        }
     }
 
     private void Arrow(Handle item, Vector2 from, Vector2 to, Color colour)
