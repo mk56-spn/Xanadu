@@ -703,6 +703,11 @@ No hurry; none of this is parity.
     entities under the first only (the old walk drew them under each).
   - The slot lives in `UiResidentSync`'s arrays by entity id; a name, if it
     ever becomes data.
+  - A canvas run's CPU cost since the draws became graph exits (2026-11-26):
+    record + submit 1.38 → 1.55 ms on the 20,000-cell CJK lab, likely because
+    each run binds as any graph draw does (`ImageDraws.Hosted` → `Bind`: frame
+    and params pushes, globals, every sampler). Bind the canvas draw's fixed
+    state once a job and push only the range and textures per run.
 
 ---
 
