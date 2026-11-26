@@ -128,12 +128,3 @@ uint generate(Pos p, uint at0, bool tactical)
         castlings(p, at0, n);
     return min(n, MOST_MOVES);
 }
-
-/// How promising `m` looks before searching it: the most valuable victim by the least valuable attacker, queenings next.
-int orderOf(uint m)
-{
-    uint taken = moveTaken(m);
-    if (taken != 0)
-        return 100 + int(taken) * 8 - int(moveMover(m));
-    return movePromo(m) == QUEEN ? 90 : 0;
-}

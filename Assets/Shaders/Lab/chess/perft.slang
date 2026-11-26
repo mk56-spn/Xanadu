@@ -47,10 +47,7 @@ void startCount()
     game.result = 0;
     uint roots = min(listLegal(game.pos), ROOTS);
     for (uint k = 0; k < roots; k++)
-    {
-        rootMoves[k] = legal[1 + k];
-        searches[k] = idleSearch();
-    }
+        searches[k] = idleSearch(legal[1 + k]);
     game.roots = roots;
     game.phase = PERFT;
     game.nodes = 0;
@@ -62,12 +59,17 @@ void startCounting(uint g, uint ply, Pos pos)
 {
     Ply f;
     f.pos = pos;
+    f.hash = uint2(0);
     f.alpha = 0;
     f.beta = 0;
     f.best = 0;
+    f.alpha0 = 0;
     f.next = 0;
     f.legal = 0;
     f.tactical = 0;
+    f.left = 0;
+    f.bestMove = 0;
+    f.hashMove = 0;
     f.pad = 0;
     f.count = generate(pos, listAt(g, ply), false);
     plies[plyAt(g, ply)] = f;
@@ -95,7 +97,7 @@ void count(uint g)
         else
         {
             Pos child = game.pos;
-            make(child, rootMoves[g]);
+            make(child, s.move);
             startCounting(g, 0, child);
         }
     }

@@ -14,7 +14,7 @@ internal readonly struct ChessReport
 
     // Game's layout: the position (eight uints of squares, side, castling, en passant, kings), then the game's own.
     private const int SideAt = 8, PhaseAt = 12, StartedAt = 13, HeardAt = 14, LastAt = 16, ResultAt = 17, RootsAt = 18,
-        PlaysAt = 19, ScoreAt = 20, NodesAt = 21, FramesAt = 22, DepthAt = 23, Length = 25;
+        PlaysAt = 19, ScoreAt = 20, NodesAt = 21, FramesAt = 22, DepthAt = 23, CompletedAt = 25, Length = 29;
 
     /// <summary>The test positions perft counts from, and their published counts by depth (1 on).</summary>
     public static readonly string[] TestNames = ["THE START", "KIWIPETE", "POSITION 3", "POSITION 4"];
@@ -49,6 +49,13 @@ internal readonly struct ChessReport
     public int Started => (int)_game[StartedAt];
     public int Heard => (int)_game[HeardAt];
     public uint Phase => _game[PhaseAt];
+    public int Plays => (int)_game[PlaysAt];
+    public uint Last => _game[LastAt];
+    public uint Result => _game[ResultAt];
+    public int Side => (int)_game[SideAt];
+
+    /// <summary>The position as the stack keeps it (squares, side, castling, en passant), for spotting a repetition.</summary>
+    public string PositionKey => string.Join(',', _game.AsSpan(0, 11).ToArray());
 
     /// <summary>The piece on <paramref name="square"/>: its kind 1 pawn .. 6 king, plus 8 when black; 0 for none.</summary>
     public uint PieceAt(int square) => (_game[square >> 3] >> ((square & 7) * 4)) & 15;
@@ -113,8 +120,8 @@ internal readonly struct ChessReport
         string side = _game[SideAt] == 0 ? "White" : "Black";
         float score = (int)_game[ScoreAt] / 100f;
         return Phase == Thinking
-            ? $"{_game[RootsAt]} root moves, a workgroup each, {_game[DepthAt]} plies deep: {_game[NodesAt]:N0} positions so far, frame {_game[FramesAt]}."
-            : $"{side} to move, move {_game[PlaysAt] / 2 + 1}. Last search: {_game[NodesAt]:N0} positions in {_game[FramesAt]} frames, "
-              + $"the GPU rated its move {score:+0.00;-0.00}.";
+            ? $"{_game[RootsAt]} root moves, a workgroup each, searching {_game[DepthAt]} plies deep: {_game[NodesAt]:N0} positions so far, frame {_game[FramesAt]}."
+            : $"{side} to move, move {_game[PlaysAt] / 2 + 1}. Last search: {_game[CompletedAt]} plies deep, {_game[NodesAt]:N0} positions in "
+              + $"{_game[FramesAt]} frames; the GPU rated its move {score:+0.00;-0.00}.";
     }
 }

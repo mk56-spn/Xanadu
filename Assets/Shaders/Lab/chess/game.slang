@@ -1,6 +1,6 @@
 // CHESS: the game. Each frame `play` takes a new game or the player's move (checked against the legal moves, all
-// worked out here) or a perft request, `think` steps the AI's searches (`count` a perft's) and `choose` plays the best root move once every search is done.
-// The host reads `game` and `legal` back a few frames late to show the board; it sends only values.
+// worked out here) or a perft request, `think` steps the AI's searches (`count` a perft's) and `choose` deepens them
+// a ply at a time while time is left, then plays the best root move of the deepest search it finished. The host reads `game` and `legal` back a few frames late to show the board; it sends only values.
 
 static const uint PLAYER = 0, THINKING = 1, OVER = 2;
 /// How a finished game ended.
@@ -20,8 +20,12 @@ struct Game
     int score;          // the AI's last move's worth to it, in centipawns
     uint nodes;         // positions searched for it
     uint frames;        // frames it took
-    uint depth;         // plies searched before captures only, or counted
+    uint depth;         // plies being searched before captures only, or counted
     uint tested;        // the perftCount it last took
+    uint completed;     // the deepest search finished this turn
+    uint bestMove;      // its best root move
+    uint spent;         // positions the finished depths searched
+    float began;        // when the turn's thinking started, s
 };
 
 [Reported] Stored<Game> game;
@@ -31,11 +35,13 @@ struct Game
 /// A new game whenever this changes, the AI playing `aiPlays` (0 white, 1 black).
 [Default(1)] uniform uint newGame;
 [Default(1)] uniform uint aiPlays;
-/// The player's move, from | to << 6, taken when `moveCount` goes up; a pawn reaching the end becomes a queen.
+/// The player's move, from | to << 6 | the kind a pawn becomes << 12 (none: a queen), taken when `moveCount` goes up.
 [Default(0)] uniform uint move;
 [Default(0)] uniform uint moveCount;
-/// Plies the AI looks ahead before it follows captures only.
+/// Plies perft counts.
 [Default(4)] uniform uint depth;
+/// Seconds the AI thinks a move: it starts no new depth past half of it, and stops a depth that runs past all of it.
+[Default(0.5)] uniform float thinkTime;
 
 static const uint GAME_LIST = ROOTS * PLIES * MOST_MOVES;
 
@@ -57,7 +63,7 @@ uint listLegal(Pos p)
     return kept;
 }
 
-Search idleSearch()
+Search idleSearch(uint move)
 {
     Search s;
     s.state = IDLE;
@@ -66,8 +72,8 @@ Search idleSearch()
     s.value = 0;
     s.score = 0;
     s.nodes = 0;
-    s.pad0 = 0;
-    s.pad1 = 0;
+    s.move = move;
+    s.pad = 0;
     return s;
 }
 
@@ -89,16 +95,28 @@ void turn()
     }
 
     uint roots = min(n, ROOTS);
-    for (uint k = 0; k < roots; k++)
-    {
-        rootMoves[k] = legal[1 + k];
-        searches[k] = idleSearch();
-    }
+    // Cuts from last turn still say something, but less.
+    for (uint h = 0; h < 2 * 64 * 64; h++)
+        history[h] /= 4;
     game.roots = roots;
     game.phase = THINKING;
     game.nodes = 0;
+    game.spent = 0;
     game.frames = 0;
-    game.depth = clamp(depth, 1, PLIES / 2);
+    game.began = time;
+    game.completed = 0;
+    game.bestMove = legal[1];
+    for (uint k = 0; k < roots; k++)
+        searches[k] = idleSearch(legal[1 + k]);
+    deepen(1);
+}
+
+/// Starts every root move's search again, `deep` plies deep.
+void deepen(uint deep)
+{
+    game.depth = deep;
+    for (uint k = 0; k < game.roots; k++)
+        searches[k] = idleSearch(searches[k].move);
 }
 
 [Pass(1, over: 1)]
@@ -128,7 +146,9 @@ void play(uint i)
     for (uint k = 0; k < legal[0]; k++)
     {
         uint m = legal[1 + k];
-        if (moveFrom(m) != moveFrom(move) || moveTo(m) != moveTo(move) || (movePromo(m) != 0 && movePromo(m) != QUEEN))
+        // No piece named: a pawn reaching the end becomes a queen.
+        uint promo = movePromo(move) != 0 ? movePromo(move) : QUEEN;
+        if (moveFrom(m) != moveFrom(move) || moveTo(m) != moveTo(move) || (movePromo(m) != 0 && movePromo(m) != promo))
             continue;
         Pos p = game.pos;
         make(p, m);
@@ -138,6 +158,18 @@ void play(uint i)
         turn();
         return;
     }
+}
+
+/// Plays the AI's move and hands the turn on.
+void playBest()
+{
+    uint m = game.bestMove;
+    Pos p = game.pos;
+    make(p, m);
+    game.pos = p;
+    game.last = m;
+    game.plays++;
+    turn();
 }
 
 [Pass(1, over: 1)]
@@ -160,24 +192,34 @@ void choose(uint i)
             best = k;
         }
     }
-    game.nodes = nodes;
-    if (!done)
-        return;
+    game.nodes = game.spent + nodes;
     if (game.phase == PERFT)
     {
-        game.phase = OVER;
-        game.result = COUNTED;
+        if (done)
+        {
+            game.phase = OVER;
+            game.result = COUNTED;
+        }
         return;
     }
 
-    uint m = rootMoves[best];
-    Pos p = game.pos;
-    make(p, m);
-    game.pos = p;
-    game.last = m;
+    float spentTime = time - game.began;
+    if (!done)
+    {
+        // Out of time mid-depth: the deepest finished depth's move stands.
+        if (spentTime >= thinkTime && game.completed > 0)
+            playBest();
+        return;
+    }
+
+    game.completed = game.depth;
+    game.bestMove = searches[best].move;
     game.score = most;
-    game.plays++;
-    turn();
+    game.spent += nodes;
+    if (game.depth >= MOST_DEPTH || spentTime >= thinkTime * 0.5 || abs(most) > MATE_BOUND || game.roots == 1)
+        playBest();
+    else
+        deepen(game.depth + 1);
 }
 
 void build()

@@ -34,9 +34,9 @@ internal sealed class ChessLab : ILabExperiment
 
     public IToolStage CreateStage(LabContext context, Handle parent, Rect2 area) => new Stage();
 
-    private enum ChessCommand { Square, NewGame, Depth, Perft }
+    private enum ChessCommand { Square, NewGame, Depth, Time, Perft }
 
-    private sealed class Stage : IToolStage
+    internal sealed class Stage : IToolStage
     {
         private const string Shader = "Assets/Shaders/Lab/chess";
         private const float BoardSize = 840;
@@ -45,9 +45,10 @@ internal sealed class ChessLab : ILabExperiment
 
         private readonly CanvasMaterial _material = new(Shader);
         private readonly Label[] _pieces = new Label[64];
-        private Label _status = null!, _detail = null!, _depthLabel = null!;
+        private Label _status = null!, _detail = null!, _timeLabel = null!, _depthLabel = null!;
+        private static readonly float[] Times = [0.25f, 0.5f, 1, 2, 4];
         private IDisposable? _presses;
-        private int _newGame = 1, _aiPlays = 1, _depth = 4, _moveCount, _selected = NoSquare, _tested, _perftCount;
+        private int _newGame = 1, _aiPlays = 1, _depth = 4, _time = 1, _moveCount, _selected = NoSquare, _tested, _perftCount;
         private bool _flipped;
 
         public void Build(UiNode body)
@@ -63,13 +64,19 @@ internal sealed class ChessLab : ILabExperiment
                     (_detail = new Label("", UiType.Body, ink: Ink.Dim, wrap: true, stretch: true)),
                     new Button("NEW GAME AS WHITE", cmd: Cmd(ChessCommand.NewGame, 1), stretch: true),
                     new Button("NEW GAME AS BLACK", cmd: Cmd(ChessCommand.NewGame, 0), stretch: true),
+                    (_timeLabel = new Label("", UiType.Body, ink: Ink.Dim, wrap: true, stretch: true)),
+                    new Row(gap: Space.Sm)
+                    {
+                        new Button("LESS TIME", cmd: Cmd(ChessCommand.Time, -1), grow: 1),
+                        new Button("MORE TIME", cmd: Cmd(ChessCommand.Time, 1), grow: 1),
+                    },
+                    new Label("PERFT: CHECK THE RULES", UiType.Label, ink: Ink.Accent),
                     (_depthLabel = new Label("", UiType.Body, ink: Ink.Dim, wrap: true, stretch: true)),
                     new Row(gap: Space.Sm)
                     {
                         new Button("FEWER PLIES", cmd: Cmd(ChessCommand.Depth, -1), grow: 1),
                         new Button("MORE PLIES", cmd: Cmd(ChessCommand.Depth, 1), grow: 1),
                     },
-                    new Label("PERFT: CHECK THE RULES", UiType.Label, ink: Ink.Accent),
                     new Row(gap: Space.Sm)
                     {
                         new Button(ChessReport.TestNames[0], cmd: Cmd(ChessCommand.Perft, 0), grow: 1),
@@ -118,6 +125,9 @@ internal sealed class ChessLab : ILabExperiment
                 case ChessCommand.Depth:
                     _depth = Math.Clamp(_depth + press.Arg, 1, 6);
                     break;
+                case ChessCommand.Time:
+                    _time = Math.Clamp(_time + press.Arg, 0, Times.Length - 1);
+                    break;
                 case ChessCommand.Perft:
                     _tested = press.Arg;
                     _material.Set("perftPosition", _tested);
@@ -156,14 +166,36 @@ internal sealed class ChessLab : ILabExperiment
             _material.Set("newGame", _newGame);
             _material.Set("aiPlays", _aiPlays);
             _material.Set("depth", _depth);
+            _material.Set("thinkTime", Times[_time]);
             _material.Set("selected", _selected);
             _material.Set("flipped", _flipped ? 1 : 0);
+        }
+
+        private ChessMatch? _match = ChessMatch.FromEnvironment();
+
+        public int NewGameId => _newGame;
+        public int MovesSent => _moveCount;
+
+        public void StartGame(int aiPlays)
+        {
+            _aiPlays = aiPlays;
+            _flipped = aiPlays == 0;
+            _newGame++;
+            Send();
+        }
+
+        public void SendMove(int move)
+        {
+            _material.Set("move", move);
+            _material.Set("moveCount", ++_moveCount);
         }
 
         public void Update(in ToolFrame frame)
         {
             ChessReport report = ChessReport.Read(_material);
-            _depthLabel.Node.SetText($"The AI looks {_depth} plies ahead, then follows captures; perft counts {_depth} plies.");
+            _match?.Step(report, this);
+            _timeLabel.Node.SetText($"The AI thinks {Times[_time]:0.##} s a move, a ply deeper at a time.");
+            _depthLabel.Node.SetText($"Perft counts {_depth} plies.");
             if (!report.Valid || report.Started != _newGame)
             {
                 _status.Node.SetText("Setting up the board on the GPU...");
@@ -176,6 +208,10 @@ internal sealed class ChessLab : ILabExperiment
             _detail.Node.SetText(report.Detail());
         }
 
-        public void Dispose() => _presses?.Dispose();
+        public void Dispose()
+        {
+            _presses?.Dispose();
+            _match?.Dispose();
+        }
     }
 }
