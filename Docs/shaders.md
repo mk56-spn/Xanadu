@@ -1201,7 +1201,11 @@ triangles. `[MeshDraw(corners, triangles, shade: fn)]` (up to 256 of each; `blen
 `[Draw]`'s) on `MeshPart name(MeshPart m)`: thread `m.thread` places corner `m.thread` and joins triangle
 `m.thread`, each only while it is under the count. The corner comes on the item's middle with its quad as
 `m.corner.rest`; `m.at(uv)` puts it on the quad, and everything else a deform sets (`position`, `colour`,
-`depth`, `world`, `normal`) works as in a `[Draw]`. The shade is a `[Draw]`'s. Needs the device layer
+`depth`, `world`, `normal`) works as in a `[Draw]`. The shade is a `[Draw]`'s. `counts: fn` (after
+`blend:`, before `copies:`) gives each workgroup its own counts: `uint2 fn()`, corners then triangles, at
+most the draw's, the same for every thread (it may read `copy`). The mesh pool draws this way, a page a
+workgroup: `uint2 parts() { return pool.counts(); }` with `[MeshDraw(128, 128, shade: look, counts: parts,
+copies: PAGES)] MeshPart shown(MeshPart m) { return pool.pulled(m, placed, camera()); }` (`pool.flat` for 2D). Needs the device layer
 (SDL_GPU has no mesh shaders; Docs/host.md §6). `Lab/mesh_shader` is the smallest one.
 
 ```slang

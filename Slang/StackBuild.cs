@@ -109,8 +109,11 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// </summary>
     public (int Across, int Down, string Shade, DrawOutput[] Outputs)? Draw { get; init; }
 
-    /// <summary>A mesh draw (<c>[MeshDraw(corners, triangles, …)]</c>): what each workgroup makes; its <see cref="Draw"/> is 1 × 1.</summary>
-    public (int Corners, int Triangles)? Mesh { get; init; }
+    /// <summary>
+    /// A mesh draw (<c>[MeshDraw(corners, triangles, …)]</c>): the most each workgroup makes, and the function giving a
+    /// workgroup its own counts (<c>counts:</c>, null for the most); its <see cref="Draw"/> is 1 × 1.
+    /// </summary>
+    public (int Corners, int Triangles, string? Counts)? Mesh { get; init; }
 
     /// <summary>A pixel pass's parameters as written, for its call.</summary>
     public string Signature { get; init; } = "";

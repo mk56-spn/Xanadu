@@ -1,5 +1,5 @@
 // The mesh core (xanadu.mesh's pool): seven surfaces built once into [Cached] pages and drawn
-// by one counted draw, a page a copy, each turned live by its placement; an ocean whose shape
+// by one mesh draw, a page a workgroup, each turned live by its placement; an ocean whose shape
 // moves every frame, rebuilt each frame into plain buffers and drawn the same way. Change a
 // value and the cached seven are built again; otherwise their [Pass] never runs.
 import xanadu;
@@ -61,11 +61,14 @@ void sea(uint i)
     seaPool.grid(Ocean(float2(280, 240), 18, 120, 0.6, 0.3), i, uint2(48), 0, 0);
 }
 
-[Draw(64, 1, shade: look, copies: PAGES)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+uint2 seaParts() { return seaPool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+MeshPart shown(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
-    return pool.pulled(v, placed(pool.objectOf(copy), scale), camera());
+    float scale = m.corner.rest.size.y / 810;
+    return pool.pulled(m, placed(pool.objectOf(copy), scale), camera());
 }
 
 float4 look(ItemInput i)
@@ -76,15 +79,15 @@ float4 look(ItemInput i)
     return mesh.lit(i, camera(), base);
 }
 
-[Draw(64, 1, shade: water, copies: SEA)]
-ItemVertex waves(ItemVertex v)
+[MeshDraw(128, 128, shade: water, counts: seaParts, copies: SEA)]
+MeshPart waves(MeshPart m)
 {
-    float scale = v.rest.size.y / 810;
+    float scale = m.corner.rest.size.y / 810;
     Placement3 p;
     p.offset = slot(7) * scale + float3(0, 30, 0) * scale;
     p.angles = float3(0.45, 0, 0);
     p.scale = scale;
-    return seaPool.pulled(v, p, camera());
+    return seaPool.pulled(m, p, camera());
 }
 
 float4 water(ItemInput i) { return mesh.lit(i, camera(), colours.oklch(0.55, 0.12, 0.62), 80); }

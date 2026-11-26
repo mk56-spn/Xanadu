@@ -724,13 +724,39 @@ globals' bindings (plain `SlangShaders.Compile`) leaves modules declaring global
 **Checked:** Labs CHESS (two games against Stockfish 1500, both won by mate), PARTICLES, the shader tool on
 `Lab/scene_room` and `Lab/bvh_march`, the game demo and the editor, with pointers on; Slang tests pass.
 
-**Next, in order:**
+**Next, in order** (split 2026-11-26; meshes, then generated commands, then chess):
+
+*A. Meshlets on mesh shaders*
 1. ~~Graph lists as pointers~~ (above).
-2. Device-generated commands with indirect execution sets, recorded by the layer from an `xdv:` label (it reads the
-   `VkPipeline` out of SDL's compute pipeline as it reads buffers): the GPU writes which pass runs and how much. Test
-   case: the chess search, each workgroup picking its next operation.
-3. Later candidates: async compute queue, task shaders and xanadu.mesh pages drawn by `[MeshDraw]` (mesh draws exist), ray queries (SDF/mesh scenes, radiance).
-4. Windows: build the layer there too (the graph will depend on it).
+2. ~~Pool pages through `[MeshDraw]`~~ (done 2026-11-26): a workgroup a page, each corner placed once and shared by its triangles, the page's
+   own counts (`counts:`) so no folded triangles. `Lab/meshes`, `Lab/culled_meshes`, `Lab/flat_meshes` first.
+3. Every other pool draw onto it (`Lab/scene_room`, light.slang's shadow draw, the Learn tours), then the vertex-pulled
+   pool path (`corner`, `pulled`, `flat` on `ItemVertex`) deleted.
+4. Triangles culled in the mesh stage: facing away (one-sided), zero area, too small to touch a pixel centre.
+5. Task stage in the layer: a module with `TaskEXT` and `MeshEXT` entry points gets both stages at
+   `vkCreateGraphicsPipelines`; the draw's count is task workgroups. `[TaskDraw]` (or a `task:` on `[MeshDraw]`) in the
+   stack DSL with a payload struct.
+6. Page culling moves into the task stage (`pool.sees`, survivors packed by wave ops into the payload): `seen`, its
+   clear pass, the count copy and the barrier go.
+7. Level of detail chosen in the task stage (pages per level, picked by projected size).
+8. Amplification lab: one task workgroup a patch, many generated blades/sprites, nothing stored.
+
+*B. Device-generated commands*
+9. Layer: reach the `VkPipeline` inside SDL's compute pipeline; build an indirect execution set and commands layout from
+   an `xdv:` label; preprocess + execute generated commands.
+10. Stack DSL: a pass that writes commands (which of a listed set of passes runs next, and how big); smallest lab first
+    (a pass that picks between two passes).
+11. Loops on the GPU: a generated sequence that re-issues itself until a condition, bounded per frame.
+
+*C. Chess on it* (Labs CHESS)
+12. Draw rules: repetition and fifty moves.
+13. Pruning: null move, late-move reductions, futility, aspiration windows; measured at equal time against Stockfish.
+14. The search on generated commands: no `budget` steps a frame, it runs until its think time is used.
+15. A parallel search: many threads on one tree (Lazy SMP style on the shared table), not one thread a root move.
+16. Undecided, the user's call: a neural-net evaluation (cooperative matrix in the layer first; NNUE or Lc0-style).
+
+*Others:* async compute queue, ray queries (SDF/mesh scenes, radiance); Windows build of the layer (the graph will
+depend on it).
 
 **Measuring the chess bot** (Labs CHESS, tab 16): `ChessMatch` plays it against a UCI engine when
 `XANADU_CHESS_MATCH="engine path|elo|games|results file"` is set; run with `XANADU_SHOW_SHOTS=1 --shot=<p>

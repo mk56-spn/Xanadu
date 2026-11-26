@@ -76,7 +76,7 @@ public static partial class SlangShaders
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
         CompiledShader Vertex(string placed, string[]? more = null) => CompileWrapped(pass.Mesh is { } mesh
-                ? WrapMeshDraw(name, placed, pass.Name, mesh.Corners, mesh.Triangles, pass.OrderDepth)
+                ? WrapMeshDraw(name, placed, pass.Name, mesh, pass.OrderDepth)
                 : WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
             pass.Mesh is null ? "xanaduDrawVertex" : "xanaduMeshDraw", pass.Mesh is null ? "vertex" : "mesh", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", .. more ?? []]);
@@ -212,9 +212,12 @@ public static partial class SlangShaders
     /// <summary>
     /// A mesh draw's workgroup: each thread calls the draw's function once per corner and triangle it owns, the corner
     /// starting on the item's middle with its quad as <c>rest</c>; corners leave as a [Draw]'s vertex stage hands them on.
+    /// With <c>counts:</c> the workgroup makes only as many as that function gives (copy set, the same for every thread).
     /// </summary>
-    private static string WrapMeshDraw(string name, string source, string make, int corners, int triangles, bool orderDepth)
+    private static string WrapMeshDraw(string name, string source, string make, (int Corners, int Triangles, string? Counts) mesh, bool orderDepth)
     {
+        (int corners, int triangles, string? counts) = mesh;
+        string counted = counts is null ? $"uint2({corners}, {triangles})" : $"min(effect0::{counts}(), uint2({corners}, {triangles}))";
         string z = orderDepth ? "d.depth" : "(0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0))";
         int most = Math.Max(corners, triangles), threads = Math.Min(most, 128);
         (string imports, string code, string label) = Split(name, source);
@@ -240,7 +243,8 @@ public static partial class SlangShaders
                 // A workgroup a copy: as instances, or one after another drawn flat.
                 copy = xanaduDrawQuad.firstCopy + group.y + group.x;
                 {{TimelineClock(source, shading: false)}}
-                SetMeshOutputCounts({{corners}}, {{triangles}});
+                uint2 xanaduCounts = {{counted}};
+                SetMeshOutputCounts(xanaduCounts.x, xanaduCounts.y);
                 XanaduDrawQuad q = xanaduDrawQuad;
                 float2 middle = q.corner + 0.5 * (q.xAxis + q.yAxis);
                 for (uint k = thread; k < {{most}}; k += {{threads}})
@@ -251,7 +255,7 @@ public static partial class SlangShaders
                         canvasFrom(q.xAxis, q.yAxis, q.corner, float2(0.5)), k, 0.0, float3(0.0), float3(0.0) };
                     m.triangle = uint3(0);
                     MeshPart made = effect0::{{make}}(m);
-                    if (k < {{corners}})
+                    if (k < xanaduCounts.x)
                     {
                         ItemVertex d = made.corner;
                         ItemVaryings o = varyings(d);
@@ -261,8 +265,8 @@ public static partial class SlangShaders
                         XanaduDrawVaryings drawn = { o, d.world, d.normal, k };
                         corners[k] = drawn;
                     }
-                    if (k < {{triangles}})
-                        triangles[k] = min(made.triangle, uint3({{corners - 1}}));
+                    if (k < xanaduCounts.y)
+                        triangles[k] = min(made.triangle, uint3(xanaduCounts.x - 1));
                 }
             }
             """;

@@ -72,7 +72,7 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
     private static partial Regex DrawDeclaration();
 
-    [GeneratedRegex(@"(?<attribute>\[\s*MeshDraw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*MeshPart\s+(?<name>\w+)\s*\(\s*MeshPart\s+\w+\s*\)")]
+    [GeneratedRegex(@"(?<attribute>\[\s*MeshDraw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*counts\s*:\s*(?<counts>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*MeshPart\s+(?<name>\w+)\s*\(\s*MeshPart\s+\w+\s*\)")]
     private static partial Regex MeshDrawDeclaration();
 
     /// <summary>The most corners, and the most triangles, a mesh draw's workgroup makes.</summary>
@@ -193,7 +193,7 @@ internal static partial class BuildPasses
         var meshes = MeshDrawDeclaration().Matches(code);
         foreach (Match marker in Regex.Matches(code, @"\[\s*MeshDraw\s*\("))
             if (!meshes.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a mesh draw as [MeshDraw(corners, triangles, shade: name)] MeshPart name(MeshPart m); blend: and copies: as a [Draw]'s.");
+                throw new BuildProblem(marker.Index, "write a mesh draw as [MeshDraw(corners, triangles, shade: name)] MeshPart name(MeshPart m); blend: as a [Draw]'s, then counts: fn (uint2 fn(): this workgroup's corners and triangles, at most the draw's), then copies: as a [Draw]'s.");
 
         foreach (Match match in declared.Concat(meshes))
         {
@@ -213,7 +213,7 @@ internal static partial class BuildPasses
                 throw new BuildProblem(match.Index, $"{name} is marked both [Opaque] (writes the depth) and [Translucent] (never writes it); keep one.");
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
-                Mesh = mesh ? (across, down) : null,
+                Mesh = mesh ? (across, down, match.Groups["counts"] is { Success: true } counts ? counts.Value : null) : null,
                 Draw = (mesh ? 1 : across, mesh ? 1 : down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index, out string? depth)),
                 DepthField = depth,
                 CoversBox = Marked(code, match.Index, "CoversBox"),

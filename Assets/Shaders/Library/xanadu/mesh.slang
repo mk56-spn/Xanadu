@@ -1046,8 +1046,8 @@ public namespace lights
 // A graph keeps its meshes in a pool of pages (meshlets): each page holds up to mesh.PAGE
 // corners and mesh.PAGE triangles of one object, its triangles three corner numbers inside the
 // page. A generator is a [Pass] writing pages; on [Cached] buffers it runs only when the
-// material's values move, so a mesh is built once and every frame only draws it. One counted
-// draw shows every page, a page a copy, its corners pulled from the pool by their numbers:
+// material's values move, so a mesh is built once and every frame only draws it. One mesh
+// draw shows every page, a page a workgroup: each corner placed once, the page's own counts:
 //
 //     static const uint PAGES = 2 * 16;                  // two objects, a 32 x 32 grid each (mesh.pagesFor)
 //     [Cached] [Size(PAGES)] Meshes pool;
@@ -1060,8 +1060,9 @@ public namespace lights
 //         else pool.grid(Torus(90, 30), p, uint2(32));
 //     }
 //
-//     [Draw(64, 1, shade: look, copies: PAGES)]                // 64 cells: a page's 128 triangles
-//     ItemVertex shown(ItemVertex v) { return pool.pulled(v, placed(pool.objectOf(copy)), camera()); }
+//     uint2 parts() { return pool.counts(); }                // this page's corners and triangles
+//     [MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+//     MeshPart shown(MeshPart m) { return pool.pulled(m, placed(pool.objectOf(copy)), camera()); }
 //
 //     float4 look(ItemInput i) { return colour(mesh.lit(i, camera(), colours.gold), 1); }
 //
@@ -1466,6 +1467,59 @@ public struct Meshes
         uint packed = triangles[n * mesh.PAGE + t];
         c = corners[n * mesh.PAGE + ((packed >> (8 * (v.index % 3))) & 0xFF)];
         return true;
+    }
+
+    /// How many corners and triangles page `page` holds (the draw's `copy` when -1): a mesh draw's
+    /// counts, `[MeshDraw(128, 128, shade: fn, counts: fn, copies: …)]` with `uint2 fn() { return pool.counts(); }`.
+    public uint2 counts(int page = -1)
+    {
+        uint n = page < 0 ? copy : uint(page);
+        if (n >= most)
+            return uint2(0);
+        Meshlet m = pages[n];
+        return uint2(m.corners, m.triangles);
+    }
+
+    /// Thread `m.thread` of a mesh draw of page `page` (or the draw's `copy` when -1): the page's corner of that number,
+    /// as it was built, with the page's triangle of that number set on `m`.
+    public MeshPart part(MeshPart m, out MeshVertex c, int page = -1)
+    {
+        uint n = page < 0 ? copy : uint(page);
+        uint k = n * mesh.PAGE + min(m.thread, mesh.PAGE - 1);
+        c = corners[k];
+        uint packed = triangles[k];
+        m.triangle = uint3(packed & 0xFFu, (packed >> 8) & 0xFFu, (packed >> 16) & 0xFFu);
+        return m;
+    }
+
+    /// A 3D mesh draw of the pool, a workgroup a page: thread `m.thread`'s corner placed by `placed` and seen through
+    /// `camera` (world point, normal and uv set for the shade), and its triangle. Each corner is placed once, whatever
+    /// shares it. Page `page`, or the draw's `copy` when -1 (a culled draw passes seen[copy]).
+    public MeshPart pulled(MeshPart m, Placement3 placed, Camera camera, int page = -1)
+    {
+        MeshVertex c;
+        m = part(m, c, page);
+        float3 p = placed.toWorld(c.position);
+        m.corner.place(p, camera);
+        m.corner.uv = c.uv;
+        m.corner.world = p;
+        m.corner.normal = rotate3(c.normal, placed.angles);
+        return m;
+    }
+
+    /// A 2D mesh draw of the pool, as `flat` reads a corner (x and y pixels from the item's middle, z its layer).
+    public MeshPart flat(MeshPart m, float2 offset, float angle, float scale, int page = -1)
+    {
+        MeshVertex c;
+        m = part(m, c, page);
+        float2 xy = rotate(c.position.xy * scale, angle) + offset;
+        m.corner.position = m.corner.rest.position + xy;
+        m.corner.depth = c.position.z;
+        m.corner.uv = c.uv;
+        m.corner.local = xy;
+        m.corner.world = float3(xy, c.position.z);
+        m.corner.normal = float3(0.0, 0.0, -1.0);
+        return m;
     }
 
     /// A 3D draw of the pool: the corner `v` stands for, placed by `placed` and seen through

@@ -106,11 +106,13 @@ void look(uint i)
         pool.cull(i, placed(pool.objectOf(i)), camera(), VIEW, seen);
 }
 
-[Draw(64, 1, shade: paint, copies: seen)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(int(seen[copy])); }
+
+[MeshDraw(128, 128, shade: paint, counts: parts, copies: seen)]
+MeshPart shown(MeshPart m)
 {
     uint n = seen[copy];
-    return pool.pulled(v, placed(pool.objectOf(n)), camera(), int(n));
+    return pool.pulled(m, placed(pool.objectOf(n)), camera(), int(n));
 }
 
 float4 paint(ItemInput i)

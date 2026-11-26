@@ -33,15 +33,17 @@ void make(uint i)
     }
 }
 
-[Draw(64, 1, shade: look, copies: PAGES)]
-ItemVertex shown(ItemVertex v)
+uint2 parts() { return pool.counts(); }
+
+[MeshDraw(128, 128, shade: look, counts: parts, copies: PAGES)]
+MeshPart shown(MeshPart m)
 {
     uint k = pool.objectOf(copy);
-    float scale = v.rest.size.y / 810;
+    float scale = m.corner.rest.size.y / 810;
     // The cards fan out and turn; the strokes sway.
     float2 offset = k < 3 || k == 5 ? float2((float(k % 3) - 1) * 220 + (k == 5 ? 380 : 0), (k == 5 ? -180 : 0)) : float2(0);
     float angle = k < 3 || k == 5 ? (float(k) - 1) * 0.3 + sin(time + k) * 0.2 : sin(time * 0.7 + k) * 0.25;
-    return pool.flat(v, offset * scale, angle, scale);
+    return pool.flat(m, offset * scale, angle, scale);
 }
 
 float4 look(ItemInput i)

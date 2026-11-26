@@ -111,7 +111,8 @@ public static partial class ClipProbes
         {
             (int across, int down, _, _) = draw.Draw!.Value;
             calls.Append($"        if (t >= {2 + first} && t < {2 + first + copies})\n        {{\n            copy = t - {2 + first};\n"
-                         + $"            {draw.Name}(probeCorner(0, {across}, {down}));\n        }}\n");
+                         + (draw.Mesh is null ? $"            {draw.Name}(probeCorner(0, {across}, {down}));\n" : $"            {draw.Name}(probePart(0));\n")
+                         + "        }\n");
         }
 
         return $$"""

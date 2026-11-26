@@ -143,7 +143,10 @@ public static partial class ProbeNodes
     {
         (int across, int down, _, _) = draw.Draw!.Value;
         string corner = $"probeCorner(3 * t + CORNER, {across}, {down})";
-        string Shown(int k) => $"{draw.Name}({corner.Replace("CORNER", k.ToString(CultureInfo.InvariantCulture))}).position";
+        // A mesh draw: triangle t's corners, as the draw's own threads join and place them.
+        string Shown(int k) => draw.Mesh is null
+            ? $"{draw.Name}({corner.Replace("CORNER", k.ToString(CultureInfo.InvariantCulture))}).position"
+            : $"{draw.Name}(probePart({draw.Name}(probePart(t)).triangle[{k}])).corner.position";
         return $$"""
             [Pass(64, over: {{copies}} * {{Samples}})]
             void {{name}}(uint i)

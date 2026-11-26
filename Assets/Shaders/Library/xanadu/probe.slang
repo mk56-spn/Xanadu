@@ -21,6 +21,21 @@ public ItemVertex probeCorner(uint index, uint across, uint down)
     return v;
 }
 
+/// Thread `thread` of a mesh draw (`[MeshDraw]`), its corner on the probe's quad at the middle, as the mesh stage hands it.
+/// @hidden
+public MeshPart probePart(uint thread)
+{
+    MeshPart m;
+    m.thread = thread;
+    m.corner = probeCorner(0, 1, 1);
+    m.corner.position = float2(PROBE_QUAD * 0.5);
+    m.corner.uv = float2(0.5);
+    m.corner.local = float2(PROBE_QUAD * 0.5);
+    m.corner.rest = canvasFrom(float2(PROBE_QUAD, 0), float2(0, PROBE_QUAD), float2(0), float2(0.5));
+    m.triangle = uint3(0);
+    return m;
+}
+
 /// Puts the clock at `at` (0..1) through the window: from `window.x` seconds, `window.y` long, `window.z` beats a second.
 /// @hidden
 public void probeClock(float4 window, float at)
