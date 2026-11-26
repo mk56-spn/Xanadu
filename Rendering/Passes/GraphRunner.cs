@@ -46,6 +46,9 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
     /// <summary>The materials whose <c>[Cached]</c> buffers need filling this frame.</summary>
     private readonly HashSet<CanvasMaterial> _staleBuffers = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>The materials whose graphs ran this frame and report something, for <see cref="Report"/>.</summary>
+    private readonly List<CanvasMaterial> _reporting = [];
+
     /// <summary>Steps whose item has no box to work in (off screen, or its quad cut on the GPU).</summary>
     private readonly HashSet<int> _boxless = [];
 
@@ -72,6 +75,7 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
         _sets.Clear();
         _materialSets.Clear();
         _staleBuffers.Clear();
+        _reporting.Clear();
         CollectionsMarshal.SetCount(_sets, frame.Steps.Count);
         _boxless.Clear();
     }
@@ -95,6 +99,8 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
             BuildBuffers? kept = effect.Compiled.Build is null || !first ? null : _resources.For(commands, material, effect);
             if (kept is { } turning)
                 GraphResources.Turn(turning, effect.Compiled.Build!);
+            if (kept is { Reports: not null })
+                _reporting.Add(material);
             if (kept is not null && effect.Compiled.Build!.Shape.CachesBuffers && _resources.Stale(material, Stamp(material)))
                 _staleBuffers.Add(material);
             // A particle mesh borrows the effect's shade only: its graph runs for the material's own items.
@@ -111,6 +117,16 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
                          && effect.Compiled.Build!.Passes[node.Call.Pass].Drawn is { } drawn && (drawn.Reads.Length > 0 || drawn.CoversBox))
                     Set(commands, effect, step, s);
             }
+        }
+    }
+
+    /// <summary>The <c>[Reported]</c> buffers of every material whose graph ran this frame, read back (<see cref="GraphReports"/>): after the frame's last draw.</summary>
+    public void Report(CommandBuffer commands)
+    {
+        foreach (CanvasMaterial material in _reporting)
+        {
+            ref BuildBuffers kept = ref materials.For(material).GetComponent<BuildBuffers>();
+            GraphReports.Run(commands, material, ref kept, kept.Effect.Compiled.Build!, frame.Number);
         }
     }
 

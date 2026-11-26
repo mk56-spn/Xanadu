@@ -41,3 +41,4 @@ __exported import xanadu.particles;
 __exported import xanadu.field;
 __exported import xanadu.sort;
 __exported import xanadu.bvh;
+__exported import xanadu.probe;

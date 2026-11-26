@@ -800,3 +800,15 @@ void graph() { …; field.spread(fade, spread); }
   Every mesh stack moved over; `Lab/meshes` and `Lab/culled_meshes` shot as before. Tests: `BlockTests` (cached, copies).
 - **Not yet:** a block's pass is called on one block only, by its first parameter; a library schedule can't call block
   passes; block passes can't be generic.
+
+## Probes and reports (2026-11-26, slice 1 of Docs/gpu-clips.md)
+
+Two graph features the editor's timeline needed, usable by any graph:
+
+- **`[Reported]`** on a `List<T>` or `Stored<T>`: the host reads it back a few frames late, without waiting on the GPU,
+  into `CanvasMaterial.Reports` (`Rendering/Passes/GraphReports.cs`: a ring of 4 download buffers a material, copied
+  after the frame's last draw). For counts the CPU sizes something by, never for data it draws from.
+- **Probe nodes** (`Slang/ProbeNodes.cs`): a body declaring `uniform float4 xanaduProbe;` gets a generated pass per draw
+  that runs the draw's own vertex function at sampled times into the shared list `xanaduProbes`. Lowered like
+  `present`: source in, source out, then the graph is read as usual, so it shows on the board, binds like any pass and
+  orders against its readers through `[Shared]`. Details and what's left: Docs/gpu-clips.md.

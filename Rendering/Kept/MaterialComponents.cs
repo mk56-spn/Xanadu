@@ -36,6 +36,15 @@ internal struct BuildBuffers(CanvasEffect effect, Buffer[] buffers) : IComponent
     /// copied in from its count each frame (<c>GraphResources.Count</c>); null when no draw is counted.
     /// </summary>
     public Buffer? DrawArgs;
+
+    /// <summary>
+    /// Where its <c>[Reported]</c> buffers are copied each frame for the host to read (<c>GraphReports</c>): a ring of
+    /// download buffers, each holding every reported buffer back to back; null when it reports nothing.
+    /// </summary>
+    public MoonWorks.Graphics.TransferBuffer[]? Reports;
+
+    /// <summary>The frame each slot of <see cref="Reports"/> was last copied into; 0 while it never was.</summary>
+    public long[]? ReportedAt;
 }
 
 /// <summary>

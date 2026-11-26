@@ -133,11 +133,10 @@ internal sealed class ClipTimeline : IDisposable
     /// <summary>How far round the timeline the clock is, 0..1; 0 when it doesn't go round.</summary>
     public double Progress => _window > 0 ? _seconds / _window : 0;
 
-    public Rect2 Area
-    {
-        get => _area;
-        set => _area = value;
-    }
+    public Rect2 Area { get => _area; set => _area = value; }
+
+    /// <summary>The turn the ruler shows now, in seconds: where it starts and how long it is (0 long with nothing on it).</summary>
+    public (double Start, double Length) Shown => (_view > 0 ? Math.Floor(_seconds / _view) * _view : 0, _view);
 
     /// <summary>The clips from the code as it is now; the window is worked out again from them.</summary>
     public void Use(List<SlangClip> clips)
@@ -262,7 +261,7 @@ internal sealed class ClipTimeline : IDisposable
     {
         get
         {
-            double start = _view > 0 ? Math.Floor(_seconds / _view) * _view : 0;
+            double start = Shown.Start;
             return new TimelineAxis(Ruler, start * 1000, (start + Math.Max(_view, 0.001)) * 1000);
         }
     }

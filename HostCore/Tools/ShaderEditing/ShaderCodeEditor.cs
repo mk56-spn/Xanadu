@@ -63,7 +63,8 @@ internal sealed partial class ShaderCodeEditor : IDisposable
 
     /// <summary>The nodes it made in its slots: the code, and under the preview the clips, the problems, the values' room, the key guide.</summary>
     private readonly StackGraphView _graph;
-    private readonly UiNode _code, _rest, _clipsNode, _problemsNode, _tuningNode, _guideNode;
+    private readonly UiNode _code, _rest, _problemsNode, _tuningNode, _guideNode;
+    private readonly TimelineColumn _column;
     private int _guideLines = -1;
     private readonly PlayStandIns _standIns = new();
     private readonly PreviewHandles _handles;
@@ -147,7 +148,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _graph = new StackGraphView(slots.Code);
         // Under the preview: the clips, then the rest on the column's own background.
         slots.Side.Gap(UnderGap).Cross(StackCrossAlignment.Stretch);
-        _clipsNode = slots.Side.Column().Height(ClipTimeline.MinHeight);
+        _column = new TimelineColumn(slots.Side);
         _rest = slots.Side.Column().Grow().Cross(StackCrossAlignment.Stretch).Fill(EditorChrome.ColumnColour);
         _problemsNode = _rest.Column().Height(EditorChrome.ProblemsHeight);
         _tuningNode = _rest.Column().Grow().Pad(TuningPad).Cross(StackCrossAlignment.Stretch);
@@ -157,8 +158,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _editor = TextEditors.Create(_code, parent, first.Text);
         _view = preview(Expandable(Child(parent), entities));
         _view.Place(_preview);
-        IRectCanvas canvas = HostPlatform.NewCanvas();
-        _timeline = new ClipTimeline(entities, canvas, Child(parent)) { Scrubs = _view.TakesClock };
+        _timeline = _column.Make(entities, parent, _view.TakesClock);
         _timeline.Jump += (line, column) =>
         {
             if (Unjoin(_clipPlaces, line + 1) is not ({ } tab, int own))
@@ -170,7 +170,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Released += Focus;
         _chrome = new EditorChrome(entities, slots.Bar, slots.Divider, _problemsNode, _guideNode);
         _chrome.Help = [.. _view.Help, .. _chrome.Help];
-        _tuning = new EditorTuning(_tuningNode, _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
+        _tuning = new EditorTuning(_tuningNode, _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride).Append(ProbeNodes.Window));
         // Every library folder: the API's (xanadu/) and the game's (rhythm/).
         string library = SlangShaders.LibraryPath ?? "";
         SlangHints hints = SlangHints.FromLibrary(library);
@@ -180,6 +180,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         (_completions, _declarations) = ReadLibrary();
         // Made last, so the boxes draw over the code and everything round it; the list over a hover box, the tabs' question over all.
         Rect2 code = UiLayout.Box(_code.Entity);
+        IRectCanvas canvas = HostPlatform.NewCanvas();
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
         _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) {
@@ -423,7 +424,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             _view.Place(preview);
         }
 
-        _timeline.Area = UiLayout.Box(_clipsNode.Entity);
+        _column.Place();
         _chrome.Place(preview);
         _tuning.Follow();
 
@@ -496,11 +497,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         {
             _clipsVersion = version;
             (string joined, _clipPlaces) = Joined();
-            float height = _timeline.Height;
-            _timeline.Use(SlangClips.Find(joined.Split('\n')));
-            // More clips, more rows: the column under the preview makes room.
-            if (_timeline.Height != height)
-                _clipsNode.Height(_timeline.Height);
+            _column.Use(joined);
             _tuning.UseStandIns(PlayStandIns.Needed(joined));
         }
 
@@ -511,6 +508,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Advance(frame.Delta, _view.TakesClock ? null : frame.Time);
         (float seconds, float beats) = _timeline.Clock;
         _view.UseClock(seconds, beats);
+        _view.UseProbeWindow(_column.ProbeWindow);
 
         // The pointer counts only over the preview; elsewhere the shader keeps where it last was (the middle at first).
         if (_preview.HasPoint(frame.Mouse))
@@ -525,7 +523,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
         laps.Lap("editor: draw chrome (bar, problems, guide)");
-        _timeline.Draw();
+        _column.Draw();
         laps.Lap("editor: draw clips");
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
@@ -570,11 +568,10 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _tuning.Dispose();
         _strip.Dispose();
         DisposeFiles();
-        _timeline.Dispose();
+        _column.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);
         _graph.Delete(); _expand?.Delete(); _handles.Delete(); _chrome.Delete();
-        UiLayout.DeleteSubtree(_clipsNode.Entity);
         UiLayout.DeleteSubtree(_rest.Entity);
     }
 }

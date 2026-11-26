@@ -54,6 +54,12 @@ internal interface IEditorPreview : IDisposable
     void UseClock(float seconds, float beats) { }
 
     /// <summary>
+    /// Every frame: the window the graph's probe nodes sample (<c>Slang.ProbeNodes</c>): from, span in seconds, beats a
+    /// second. A preview that probes declares the window in what it compiles and sets it on its material.
+    /// </summary>
+    void UseProbeWindow(Vector4 window) { }
+
+    /// <summary>
     /// What stops the shown code running, found while it runs rather than when it compiled (a graph whose values make
     /// it impossible); null when nothing does. Read every frame, listed with the problems.
     /// </summary>

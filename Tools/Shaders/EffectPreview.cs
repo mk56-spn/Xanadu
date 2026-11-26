@@ -134,6 +134,9 @@ internal sealed class EffectPreview : IEditorPreview
 
     public PreviewBuild Compile(string source)
     {
+        // A graph is probed: its draws' motion measured for the timeline's lanes (ProbeNodes), the window set each frame.
+        if (Graphs(source))
+            source += $"\nuniform float4 {ProbeNodes.Window};\n";
         CompiledShader compiled = SlangShaders.CompileEffectBody(Label, source);
         PreviewBuild build = new(source, compiled.Params, compiled);
         // Off the frame, so the overlays' first draw finds them in Slang's cache. Graphs have none (yet).
@@ -259,10 +262,19 @@ internal sealed class EffectPreview : IEditorPreview
     private static int TextSize(Rect2 area) =>
         (int)Math.Clamp(Math.Min(area.Size.Y / 3, area.Size.X * 1.6f / Math.Max(1, Text!.Length)), 12, 160);
 
+    /// <summary>The window the probes sample, set on the material each frame.</summary>
+    private Vector4 _probeWindow;
+
+    public void UseProbeWindow(Vector4 window) => _probeWindow = window;
+
     public void Update(in ToolFrame frame, Vector2 pointer, EditorTuning tuning)
     {
         if (_material is not null)
+        {
             tuning.Apply(_material);
+            _material.Set(ProbeNodes.Window, _probeWindow);
+        }
+
         // The overlays' deform reads the same values, so they land where the effect does.
         if (_triangles.Material is not null)
             tuning.Apply(_triangles.Material);

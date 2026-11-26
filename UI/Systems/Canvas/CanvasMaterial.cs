@@ -64,6 +64,7 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
     private readonly Dictionary<string, Matrix4x4> _matrices = [];
     private readonly Dictionary<string, byte[]> _buffers = [];
     private readonly Dictionary<string, MaterialView> _views = [];
+    private readonly Dictionary<string, byte[]> _reports = [];
 
     /// <summary>
     /// The effect's path, such as <c>Assets/Shaders/Game/note_background</c>;
@@ -171,6 +172,25 @@ public sealed class CanvasMaterial(string shader, BlendMode blend = BlendMode.Mi
         _buffers[name] = bytes.ToArray();
         BufferVersion++;
     }
+
+    /// <summary>
+    /// What the graph's <c>[Reported]</c> lists and stored values last held, by name, as bytes laid out as the shader's
+    /// <c>T</c>: read back by the host a few frames after the GPU wrote them, without waiting on it. Empty until the first
+    /// read lands.
+    /// </summary>
+    public IReadOnlyDictionary<string, byte[]> Reports => _reports;
+
+    /// <summary>The host's side of <see cref="Reports"/>: what a <c>[Reported]</c> buffer held when read back.</summary>
+    public void Report(string name, ReadOnlySpan<byte> bytes)
+    {
+        if (!_reports.TryGetValue(name, out byte[]? held) || held.Length != bytes.Length)
+            _reports[name] = held = new byte[bytes.Length];
+        bytes.CopyTo(held);
+    }
+
+    /// <summary>The first uint a <c>[Reported]</c> buffer held (a count), or 0 before anything was read.</summary>
+    public uint ReportedCount(string name) =>
+        _reports.TryGetValue(name, out byte[]? held) && held.Length >= 4 ? MemoryMarshal.Read<uint>(held) : 0;
 
     /// <summary>
     /// The subtrees the graph's <c>[View]</c> images show, by the image's name. A view nothing names here is clear; an

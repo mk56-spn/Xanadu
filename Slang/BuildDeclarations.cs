@@ -35,13 +35,13 @@ namespace Xanadu.Slang;
 internal static partial class BuildDeclarations
 {
     private const string Forms =
-        "[Size(n)] List<T> name; (with [Cached], [Host] or [Shared] before it if wanted), [History(list)] List<T> name;, Stored<T> name; "
-        + "(with [Cached], [Host] or [Shared] before it if wanted), Counter name;, or Image<T> name; "
+        "[Size(n)] List<T> name; (with [Cached], [Host], [Shared] or [Reported] before it if wanted), [History(list)] List<T> name;, Stored<T> name; "
+        + "(with [Cached], [Host], [Shared] or [Reported] before it if wanted), Counter name;, or Image<T> name; "
         + "(T float, float2, float4, uint, uint2, uint4, int, int2 or int4; with [Kept], [Cached], [History(image)] or [Shared], [Scale(s)] or [Size(w, h)], "
         + "[Clear(value)], and [Precise] or [Compact] before it if wanted; or [View] Image<float4> name; alone), [Size(n)] Gathered<T> name;, [Size(n)] Slots name; "
         + "or a library block (with [Cached] before it if it may be)";
 
-    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Shared", "View"];
+    private static readonly string[] Words = ["Size", "Cached", "Host", "Kept", "History", "Scale", "Clear", "Precise", "Compact", "Shared", "View", "Reported"];
 
     [GeneratedRegex(@"(?<attributes>(?:\[\s*\w+\s*(?:\([^\]]*\))?\s*\]\s*)*)(?<coherent>globallycoherent\s+)?\b(?<kind>List|Image|Counter|Stored|Gathered|Slots)\b\s*(?:<\s*(?<type>[\w:.]+)\s*>)?\s*(?<name>\w+)\s*;")]
     private static partial Regex Declaration();
@@ -197,8 +197,8 @@ internal static partial class BuildDeclarations
     {
         string[] allowed = kind switch
         {
-            "List" => ["Size", "Cached", "Host", "Shared", "History"],
-            "Stored" => ["Cached", "Host", "Shared"],
+            "List" => ["Size", "Cached", "Host", "Shared", "History", "Reported"],
+            "Stored" => ["Cached", "Host", "Shared", "Reported"],
             "Counter" => [],
             "Gathered" or "Slots" => [BundleKinds.Kinds[kind].SizeWord],
             _ => ["Kept", "Cached", "History", "Scale", "Size", "Clear", "Precise", "Compact", "Shared", "View"],
@@ -307,7 +307,7 @@ internal static partial class BuildDeclarations
 
         return new BuildBuffer(name, kind == "Counter" ? "uint" : match.Groups["type"].Value, count, match.Groups["coherent"].Success,
             match.Index, match.Index + match.Length, Host: said.ContainsKey("Host"), Cached: said.ContainsKey("Cached"), Shared: said.ContainsKey("Shared"),
-            Stored: kind == "Stored");
+            Stored: kind == "Stored", Reported: said.ContainsKey("Reported"));
     }
 
     /// <summary><c>[History(list)] List&lt;T&gt; name;</c>: the list's other half, as big and of the same type, swapped with it each frame.</summary>

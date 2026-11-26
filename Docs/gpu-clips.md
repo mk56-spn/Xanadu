@@ -1,4 +1,4 @@
-# Clips on the GPU (proposed 2026-11-26, nothing built)
+# Clips on the GPU (proposed 2026-11-26; slice 1 built the same day)
 
 Clips have fallen behind the render graph. Outside the library, one shader uses them (`Game/hit_bar/shade.slang`); no
 stack does. The timeline only knows what `Slang/SlangClips.cs` can read out of the text with regexes: explicit
@@ -9,6 +9,40 @@ timeline shows nothing.
 **Goal (user's challenge):** clips live entirely on the GPU. The CPU only sets things up (plus a few tiny
 peculiarities). The timeline catches everything that moves, whatever way the code writes it, and becomes a general
 view of the shader's state over time.
+
+## Where it stands (2026-11-26)
+
+**Slice 1 is built, as two render graph features** (the user: every GPU-centric design goes through the render graph,
+and what it lacks is added to it):
+
+- **Probe nodes** (`Slang/ProbeNodes.cs`, a lowering beside `PresentDraws`, called from `CompileAsWritten`). A body
+  declaring `uniform float4 xanaduProbe;` (from, span in seconds, beats a second) gets one generated `[Pass]` per draw,
+  `xanaduProbe_<draw>`, called at the end of `graph()`, plus `[Shared] [Size(64 * 256)] List<float4> xanaduProbes` and
+  `[Shared] Stored<uint> xanaduProbeLanes`. A thread is a (copy, sample): it sets `copy`, puts the clock at the window's
+  start, finds the first of 8 triangles of its copy with an area (corners built as the draw's own vertex stage builds
+  them, on a 1024 px square quad: `probeCorner`), then calls the draw's function on those three corners at its sample's
+  time and writes `probeMotion` (the plane map from the start: offset in quads, turn, scale). Library side:
+  `xanadu/probe.slang`. Only draws whose `copies:` the CPU can count from constants are probed; 64 lanes at most.
+  The game never declares the uniform, so it never probes. The shader tool appends it for any stack with a graph
+  (`EffectPreview.Compile`) and sets it each frame (`IEditorPreview.UseProbeWindow`); VALUES hides it.
+- **`[Reported]` lists and stored values** (`Rendering/Passes/GraphReports.cs`): copied each frame, after the last draw,
+  into a ring of 4 download buffers per material, and the slot copied 4 frames ago read into
+  `CanvasMaterial.Reports` (`ReportedCount`). No fence, no wait: 4 frames is past SDL_GPU's frames in flight.
+- **The lanes are a graph** (`Assets/Shaders/Editor/probe_lanes`): it declares the same shared list, so the shared
+  ordering runs it after the preview. Three passes over the lanes: `measure` (low/high per channel, which channels
+  move), `keep` (moving, and unlike every earlier lane: flat_meshes' four pages a thing fold into one lane), `rank`
+  (rows in lane order); then a 1 × 1 draw shades each row's moving channels as curves (x cyan, y pink, turn gold, scale
+  lime) and the playhead. Only `rows` (count, then lane | channels << 8) is `[Reported]`, for the row labels and the
+  panel's height.
+- **Host:** `ProbeLanes` (header with the key and window, labels from `ProbeNodes.Labels`, the curves item) under the
+  clips in `TimelineColumn`, which took the clips' node and timeline out of `ShaderCodeEditor`. The window is the turn
+  the clips show, else 8 s round the clock (`ClipTimeline.Shown`).
+- **Checked:** `./run.sh shaders --open=Lab/flat_meshes`: six MOTION rows (shown 0, 4, 8, 12, 16, 20: the four cards'
+  swing and the two strokes' sway), nothing written in the stack. Tests: `Slang/Tests/ProbeNodeTests.cs`.
+- **Not yet:** draws counted on the GPU (`copies: pool`) and by values aren't probed; brick stacks (deform + shade
+  without `graph()`) aren't either; the probe quad is a fixed square, not the item's; curves of one row overlap when
+  their shapes match (a swing's x and turn); the probes run every frame rather than only when the window or the code
+  changes; clip spans still come from `SlangClips` (slice 2).
 
 ## Idea: probe, don't parse
 

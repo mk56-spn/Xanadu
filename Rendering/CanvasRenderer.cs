@@ -228,6 +228,9 @@ internal sealed class CanvasRenderer : IDisposable
                 _draw.Draw(commands, job, time, job.Target == target && _targets.Msaa is not null);
         }
 
+        using (commands.Scope("graph reports"))
+            _graphs.Report(commands);
+
         phases?.Lap(HostFramePhases.Phase.DrawPasses, ref lap);
     }
 

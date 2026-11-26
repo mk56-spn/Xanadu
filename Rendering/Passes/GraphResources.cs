@@ -45,6 +45,7 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
             kept = new BuildBuffers(effect, effect.Compiled.Build is { } build ? MakeBuffers(commands, build) : [])
             {
                 DrawArgs = effect.Compiled.Build is { } counted ? MakeDrawArgs(commands, counted) : null,
+                Reports = effect.Compiled.Build is { } reporting ? GraphReports.Make(device, reporting) : null,
                 SharedGeneration = _sharedGeneration,
             };
             entity.AddComponent(kept);

@@ -21,8 +21,10 @@ namespace Xanadu.Slang;
 /// <param name="Stored">A <c>Stored&lt;T&gt; name;</c>: one T, kept like a list of one, used by its plain name (<c>book.written</c>).</param>
 /// <param name="Source">For a <c>[History(list)] List&lt;T&gt; name;</c>, the list (its place) it is last frame's of; -1 otherwise.
 /// The runner swaps the two once a frame, before the graph's first node, so the source starts with what it held two frames ago.</param>
+/// <param name="Reported">Marked <c>[Reported]</c>: the host reads it back each frame, a few frames late, into the material's
+/// <c>Reports</c> (no wait on the GPU): a count the CPU sizes something by, never data it draws from.</param>
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false,
-    string? Bundle = null, bool Shared = false, bool Stored = false, int Source = -1);
+    string? Bundle = null, bool Shared = false, bool Stored = false, int Source = -1, bool Reported = false);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the

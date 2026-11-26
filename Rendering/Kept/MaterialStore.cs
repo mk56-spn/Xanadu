@@ -68,6 +68,8 @@ internal sealed class MaterialStore : IDisposable
             if (built.Effect.Compiled.Build?.Shape.Buffers[k].Shared != true)
                 built.Buffers[k].Dispose();
         built.DrawArgs?.Dispose();
+        foreach (MoonWorks.Graphics.TransferBuffer report in built.Reports ?? [])
+            report.Dispose();
     }
 
     public void Dispose()
