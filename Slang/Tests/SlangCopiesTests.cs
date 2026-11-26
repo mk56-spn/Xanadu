@@ -4,6 +4,7 @@ namespace Xanadu.Slang.Tests;
 
 /// <summary>Every shipped stack without a graph has a copied form (SlangCopies) that compiles: its values read per copy.</summary>
 [TestFixture]
+[Parallelizable(ParallelScope.All)]
 public sealed class SlangCopiesTests
 {
     [OneTimeSetUp]

@@ -6,6 +6,7 @@ using Xanadu.Core.Storage;
 namespace Xanadu.Slang.Tests;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class ShaderConstantsTests
 {
     private const string Library = """

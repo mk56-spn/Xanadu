@@ -12,11 +12,12 @@ namespace Xanadu.Slang;
 /// package ships.
 /// </summary>
 /// <remarks>
-/// One session for the whole process, made on first use and kept. Making one takes about
-/// 200 ms and 200 MB (it reads Slang's whole core module), and Slang gives none of that back
-/// when a session is destroyed, so there is never a second one: every call takes a turn on
-/// this one (a session isn't safe to use from two threads). A launch that finds everything in
-/// the shader cache never makes it.
+/// Sessions are made on first use and kept, a few at most (<see cref="MostSessions"/>). Making one
+/// takes about 200 ms and 200 MB (it reads Slang's whole core module), and Slang gives none of that
+/// back when a session is destroyed, so one is made only when every other is busy: a session isn't
+/// safe to use from two threads, so each call borrows one for itself. Compiles from one thread at a
+/// time (the editor's) keep one session; compiles side by side (the tests) get up to
+/// <see cref="MostSessions"/>. A launch that finds everything in the shader cache never makes one.
 /// </remarks>
 internal static class SlangNative
 {
@@ -37,8 +38,15 @@ internal static class SlangNative
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr BufferPointer(IntPtr self);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate UIntPtr BufferSize(IntPtr self);
 
-    private static readonly object Turn = new();
-    private static IntPtr _session;
+    /// <summary>
+    /// The most sessions ever made: compiles past this many at once wait for one. 4 unless the process sets
+    /// <c>XANADU_SLANG_SESSIONS</c> before its first compile (the test suites take more).
+    /// </summary>
+    public static int MostSessions { get; } =
+        int.TryParse(Environment.GetEnvironmentVariable("XANADU_SLANG_SESSIONS"), out int asked) && asked > 0 ? asked : 4;
+
+    private static readonly System.Threading.SemaphoreSlim Free = new(MostSessions, MostSessions);
+    private static readonly Stack<IntPtr> Idle = [];
 
     static SlangNative() => NativeLibrary.SetDllImportResolver(typeof(SlangNative).Assembly, Resolve);
 
@@ -65,25 +73,32 @@ internal static class SlangNative
     }
 
     /// <summary>Makes the session now if it isn't there, so the first compile doesn't wait for it.</summary>
-    public static void Warm()
+    public static void Warm() => Give(Borrow());
+
+    /// <summary>A session for this call alone: an idle one, or a new one while fewer than <see cref="MostSessions"/> exist.</summary>
+    private static IntPtr Borrow()
     {
-        lock (Turn)
-            Session();
+        Free.Wait();
+        lock (Idle)
+            if (Idle.TryPop(out IntPtr idle))
+                return idle;
+        return spCreateSession(IntPtr.Zero);
     }
 
-    private static IntPtr Session()
+    private static void Give(IntPtr session)
     {
-        if (_session == IntPtr.Zero)
-            _session = spCreateSession(IntPtr.Zero);
-        return _session;
+        lock (Idle)
+            Idle.Push(session);
+        Free.Release();
     }
 
     /// <summary>The target code a <c>slangc</c> command line gives; throws with Slang's diagnostics when it refuses.</summary>
     public static byte[] Compile(IReadOnlyList<string> args)
     {
-        lock (Turn)
+        IntPtr session = Borrow();
+        try
         {
-            IntPtr request = spCreateCompileRequest(Session());
+            IntPtr request = spCreateCompileRequest(session);
             IntPtr[] strings = [.. args.Select(Marshal.StringToCoTaskMemUTF8)];
             try
             {
@@ -107,14 +122,19 @@ internal static class SlangNative
                 spDestroyCompileRequest(request);
             }
         }
+        finally
+        {
+            Give(session);
+        }
     }
 
     /// <summary>One module's container (a <c>.slang-module</c>'s bytes), or null with Slang's diagnostics.</summary>
     public static byte[]? BuildModule(IReadOnlyList<string> args, out string diagnostics)
     {
-        lock (Turn)
+        IntPtr session = Borrow();
+        try
         {
-            IntPtr request = spCreateCompileRequest(Session());
+            IntPtr request = spCreateCompileRequest(session);
             IntPtr[] strings = [.. args.Select(Marshal.StringToCoTaskMemUTF8)];
             try
             {
@@ -136,6 +156,10 @@ internal static class SlangNative
                     Marshal.FreeCoTaskMem(text);
                 spDestroyCompileRequest(request);
             }
+        }
+        finally
+        {
+            Give(session);
         }
     }
 

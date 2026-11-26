@@ -10,6 +10,7 @@ namespace Xanadu.Slang.Tests;
 /// read some declarations back wrong from modules before; this is where that shows.
 /// </summary>
 [TestFixture]
+[NonParallelizable]
 public sealed class PrecompiledLibraryTests
 {
     private string _cache = "";
@@ -24,7 +25,7 @@ public sealed class PrecompiledLibraryTests
     [TearDown]
     public void DropTheCache()
     {
-        SlangShaders.CacheFolder = null;
+        SlangShaders.CacheFolder = ShippedLibrary.RunCache;
         SlangShaders.LibraryPath = ShippedLibrary.Path;
         if (Directory.Exists(_cache))
             Directory.Delete(_cache, recursive: true);
@@ -37,7 +38,8 @@ public sealed class PrecompiledLibraryTests
     {
         string[] effects = Effects();
         SlangShaders.CacheFolder = _cache;
-        byte[][] precompiled = effects.Select(folder => ShippedEffectsTests.Compile(folder).Spirv).ToArray();
+        // Side by side: compiles borrow their own Slang session (SlangNative.MostSessions).
+        byte[][] precompiled = effects.AsParallel().AsOrdered().Select(folder => ShippedEffectsTests.Compile(folder).Spirv).ToArray();
         Assert.That(SlangShaders.ModuleProblem, Is.Null);
         Assert.That(Directory.EnumerateFiles(_cache, "*.slang-module", SearchOption.AllDirectories), Is.Not.Empty);
 
@@ -52,11 +54,9 @@ public sealed class PrecompiledLibraryTests
 
         SlangShaders.CacheFolder = null;
         SlangShaders.LibraryPath = copy;
+        byte[][] fromSource = effects.AsParallel().AsOrdered().Select(folder => ShippedEffectsTests.Compile(folder).Spirv).ToArray();
         for (int i = 0; i < effects.Length; i++)
-        {
-            byte[] fromSource = ShippedEffectsTests.Compile(effects[i]).Spirv;
-            Assert.That(precompiled[i], Is.EqualTo(fromSource), Path.GetFileName(effects[i]));
-        }
+            Assert.That(precompiled[i], Is.EqualTo(fromSource[i]), Path.GetFileName(effects[i]));
     }
 
     private string[] Stored(string module) =>

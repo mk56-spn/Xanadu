@@ -17,11 +17,28 @@ internal static class ShippedLibrary
     public static string[] Sources { get; } =
         Directory.EnumerateFiles(Path, "*.slang", SearchOption.AllDirectories).Select(File.ReadAllText).ToArray();
 
+    /// <summary>
+    /// This run's shader cache: fresh each run, so everything is compiled once, but a stack the suites compile again
+    /// (every shipped one is compiled by several fixtures) is read back. Gone when the run ends.
+    /// </summary>
+    public static string RunCache { get; } = MakeRunCache();
+
+    private static string MakeRunCache()
+    {
+        string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "xanadu-slang-tests-" + Guid.NewGuid().ToString("N"));
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            if (Directory.Exists(folder))
+                Directory.Delete(folder, recursive: true);
+        };
+        return folder;
+    }
+
     /// <summary>Points the compiler at the library and loads its constants and chains, as the host does at start.</summary>
     public static void UseForCompiling()
     {
         SlangShaders.LibraryPath = Path;
-        SlangShaders.CacheFolder = null;
+        SlangShaders.CacheFolder = RunCache;
         ShaderConstants.Use(SlangShaders.LoadConstants());
         ShaderChains.Use(SlangShaders.LoadChains());
     }

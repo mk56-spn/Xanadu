@@ -5,6 +5,7 @@ namespace Xanadu.Slang.Tests;
 
 /// <summary>Every stack the game ships (Assets/Shaders, outside the library) compiles as the host builds it: its bricks composed, through the level shader wrapper.</summary>
 [TestFixture]
+[Parallelizable(ParallelScope.All)]
 public sealed class ShippedEffectsTests
 {
     [OneTimeSetUp]
