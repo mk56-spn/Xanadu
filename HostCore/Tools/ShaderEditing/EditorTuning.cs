@@ -5,6 +5,7 @@ using Xanadu.Core.Theme;
 using Xanadu.Rendering;
 using Xanadu.Slang;
 using Xanadu.Ui.Ecs.Ui;
+using Xanadu.Ui.Ecs.Ui.Tree;
 using Xanadu.Ui.Systems.Canvas;
 
 namespace Xanadu.Host.Tools.ShaderEditing;
@@ -20,7 +21,7 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// </summary>
 internal sealed class EditorTuning : IDisposable
 {
-    private readonly UiNode _column;
+    private readonly UiNode _scroll, _column;
     private readonly HashSet<string> _filledByLab;
 
     /// <summary>The shader's own values in declaration order.</summary>
@@ -39,11 +40,14 @@ internal sealed class EditorTuning : IDisposable
     private string _shown = "";
     private bool _holding;
 
-    /// <param name="parent">Where the fields go: a node in the side column's flow, which they fill.</param>
+    /// <param name="parent">Where the fields go: a node in the side column's flow, which they fill, scrolling when they don't fit.</param>
     public EditorTuning(UiNode parent, IEnumerable<string> filledByLab)
     {
         _filledByLab = [.. filledByLab];
-        _column = parent.Column().Gap(UiMetrics.Space.Sm).Cross(StackCrossAlignment.Start).Clip().Grow();
+        var fields = new Column(gap: UiMetrics.Space.Sm, cross: StackCrossAlignment.Start);
+        var scroll = new Scroll(grow: 1) { fields };
+        parent.Add(scroll);
+        (_scroll, _column) = (scroll.Node, fields.Node);
     }
 
     /// <summary>Where the fields are, as laid out.</summary>
@@ -137,7 +141,7 @@ internal sealed class EditorTuning : IDisposable
         return _holding;
     }
 
-    public void Dispose() => UiLayout.DeleteSubtree(_column.Entity);
+    public void Dispose() => UiLayout.DeleteSubtree(_scroll.Entity);
 
     /// <summary>Starts a value on its default the first time it is seen, or when its shape changed.</summary>
     private void Remember(MaterialParam param)
