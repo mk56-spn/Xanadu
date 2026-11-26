@@ -113,7 +113,11 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
             return null;
         uint[] args = new uint[build.Passes.Length * 4];
         for (int p = 0; p < build.Passes.Length; p++)
+        {
             args[p * 4] = build.Passes[p].Drawn?.Vertices ?? 0;
+            // A mesh draw's args are read as mesh tasks (x, y, z): its copies are y, so z is one.
+            args[p * 4 + 2] = build.Passes[p].Drawn is { Mesh: true } ? 1u : 0u;
+        }
         uint bytes = (uint)args.Length * 4;
         Buffer made = Buffer.Create<byte>(device, "stack draw args", BufferUsageFlags.Indirect, bytes);
         using TransferBuffer upload = TransferBuffer.Create<uint>(device, "stack draw args", TransferBufferUsage.Upload, (uint)args.Length);

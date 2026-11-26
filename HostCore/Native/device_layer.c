@@ -13,6 +13,13 @@
 //   vkCmdInsertDebugUtilsLabelEXT
 //                      labels named "xdv:…" are commands to this layer and never reach
 //                      the driver: "xdv:barrier", "xdv:sync on", "xdv:sync off"
+//   mesh shaders       SDL_GPU has none, so a "vertex" shader whose SPIR-V is a mesh entry
+//                      point becomes one: its pipeline's stage is MESH (no vertex input),
+//                      descriptor layouts open the vertex stage's bindings to mesh and task,
+//                      barriers naming the vertex stage name them too, and vkCmdDraw /
+//                      vkCmdDrawIndirect with a mesh pipeline bound draw mesh tasks
+//                      (x = vertices, y = instances, z = 1; indirect reads x, y, z from the
+//                      args as they are, so a mesh draw's first vertex is 1)
 //
 // The app reaches it through the same .so (Rendering/DeviceLayer.cs): xdv_address turns
 // an SDL_GPUBuffer into its GPU address, xdv_report says what was switched on.
@@ -77,6 +84,17 @@ static struct
     PFN_vkCmdCopyBuffer cmd_copy_buffer;
     PFN_vkCmdCopyBufferToImage cmd_copy_buffer_to_image;
     PFN_vkCmdInsertDebugUtilsLabelEXT cmd_insert_label;
+    int mesh;        // mesh shaders are on
+    PFN_vkCreateShaderModule create_shader_module;
+    PFN_vkDestroyShaderModule destroy_shader_module;
+    PFN_vkCreateGraphicsPipelines create_graphics_pipelines;
+    PFN_vkDestroyPipeline destroy_pipeline;
+    PFN_vkCreateDescriptorSetLayout create_set_layout;
+    PFN_vkCmdBindPipeline cmd_bind_pipeline;
+    PFN_vkCmdDraw cmd_draw;
+    PFN_vkCmdDrawIndirect cmd_draw_indirect;
+    PFN_vkCmdDrawMeshTasksEXT cmd_draw_mesh;
+    PFN_vkCmdDrawMeshTasksIndirectEXT cmd_draw_mesh_indirect;
 } device;
 
 static char report[REPORT];
@@ -179,7 +197,8 @@ static void barrier(VkCommandBuffer buffer)
             | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
     };
     VkPipelineStageFlags shaders = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
-        | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+        | (device.mesh ? VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT | VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT : 0);
     device.cmd_barrier(buffer, shaders | VK_PIPELINE_STAGE_TRANSFER_BIT,
         shaders | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &memory, 0, NULL, 0, NULL);
 }
@@ -236,6 +255,215 @@ static VKAPI_ATTR void VKAPI_CALL CmdInsertDebugUtilsLabel(VkCommandBuffer b, co
         device.sync = 1;
     else if (!strcmp(name, "sync off"))
         device.sync = 0;
+}
+
+// ---- mesh shaders: SDL's vertex stage, made a mesh stage ------------------------
+
+#define HANDLES 4096
+
+/// A set of handles (shader modules, pipelines) or a map of command buffer → handle, open addressed.
+typedef struct { uint64_t key, value; } Slot;
+static Slot mesh_modules[HANDLES], mesh_pipelines[HANDLES], bound[HANDLES];
+
+static Slot *slot_of(Slot *table, uint64_t key, int insert)
+{
+    uint32_t at = (uint32_t)((key * 0x9E3779B97F4A7C15ull) >> 52) & (HANDLES - 1);
+    Slot *gone = NULL;
+    for (int i = 0; i < HANDLES; i++, at = (at + 1) & (HANDLES - 1))
+    {
+        if (table[at].key == key)
+            return &table[at];
+        if (table[at].key == GONE && !gone)
+            gone = &table[at];
+        if (table[at].key == 0)
+        {
+            if (!insert)
+                return NULL;
+            Slot *slot = gone ? gone : &table[at];
+            slot->key = key;
+            slot->value = 0;
+            return slot;
+        }
+    }
+    if (insert && gone)
+    {
+        gone->key = key;
+        gone->value = 0;
+    }
+    return insert ? gone : NULL;
+}
+
+static int has(Slot *table, uint64_t key)
+{
+    pthread_mutex_lock(&lock);
+    int found = key && slot_of(table, key, 0) != NULL;
+    pthread_mutex_unlock(&lock);
+    return found;
+}
+
+static void put(Slot *table, uint64_t key, uint64_t value)
+{
+    pthread_mutex_lock(&lock);
+    Slot *slot = slot_of(table, key, 1);
+    if (slot)
+        slot->value = value;
+    pthread_mutex_unlock(&lock);
+}
+
+static void drop(Slot *table, uint64_t key)
+{
+    pthread_mutex_lock(&lock);
+    Slot *slot = slot_of(table, key, 0);
+    if (slot)
+        slot->key = GONE;
+    pthread_mutex_unlock(&lock);
+}
+
+/// Whether SPIR-V declares a mesh entry point (OpEntryPoint, execution model MeshEXT).
+static int is_mesh(const uint32_t *code, size_t bytes)
+{
+    size_t words = bytes / 4;
+    for (size_t at = 5; at < words;)
+    {
+        uint32_t count = code[at] >> 16, op = code[at] & 0xFFFF;
+        if (count == 0)
+            return 0;
+        if (op == 15 && at + 1 < words && code[at + 1] == 5365)
+            return 1;
+        if (op == 54) // OpFunction: entry points are all declared before
+            return 0;
+        at += count;
+    }
+    return 0;
+}
+
+static VKAPI_ATTR VkResult VKAPI_CALL CreateShaderModule(VkDevice d, const VkShaderModuleCreateInfo *info,
+    const VkAllocationCallbacks *allocator, VkShaderModule *out)
+{
+    VkResult result = device.create_shader_module(d, info, allocator, out);
+    if (result == VK_SUCCESS && device.mesh && is_mesh(info->pCode, info->codeSize))
+        put(mesh_modules, (uint64_t)*out, 1);
+    return result;
+}
+
+static VKAPI_ATTR void VKAPI_CALL DestroyShaderModule(VkDevice d, VkShaderModule module, const VkAllocationCallbacks *allocator)
+{
+    drop(mesh_modules, (uint64_t)module);
+    device.destroy_shader_module(d, module, allocator);
+}
+
+static VKAPI_ATTR VkResult VKAPI_CALL CreateGraphicsPipelines(VkDevice d, VkPipelineCache cache, uint32_t count,
+    const VkGraphicsPipelineCreateInfo *infos, const VkAllocationCallbacks *allocator, VkPipeline *out)
+{
+    VkGraphicsPipelineCreateInfo *copies = NULL;
+    VkPipelineShaderStageCreateInfo *stages = NULL;
+    int *meshed = calloc(count ? count : 1, sizeof(int));
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < count; i++)
+        for (uint32_t k = 0; k < infos[i].stageCount; k++)
+            if (has(mesh_modules, (uint64_t)infos[i].pStages[k].module))
+                meshed[i] = 1;
+    for (uint32_t i = 0; i < count; i++)
+        total += meshed[i] ? infos[i].stageCount : 0;
+    if (total)
+    {
+        copies = malloc(count * sizeof(*infos));
+        stages = malloc(total * sizeof(*stages));
+        memcpy(copies, infos, count * sizeof(*infos));
+        uint32_t at = 0;
+        for (uint32_t i = 0; i < count; i++)
+        {
+            if (!meshed[i])
+                continue;
+            memcpy(stages + at, infos[i].pStages, infos[i].stageCount * sizeof(*stages));
+            for (uint32_t k = 0; k < infos[i].stageCount; k++)
+                if (stages[at + k].stage == VK_SHADER_STAGE_VERTEX_BIT)
+                    stages[at + k].stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+            copies[i].pStages = stages + at;
+            copies[i].pVertexInputState = NULL;
+            copies[i].pInputAssemblyState = NULL;
+            at += infos[i].stageCount;
+        }
+    }
+    VkResult result = device.create_graphics_pipelines(d, cache, count, copies ? copies : infos, allocator, out);
+    if (result == VK_SUCCESS)
+        for (uint32_t i = 0; i < count; i++)
+            if (meshed[i])
+                put(mesh_pipelines, (uint64_t)out[i], 1);
+    free(copies);
+    free(stages);
+    free(meshed);
+    return result;
+}
+
+static VKAPI_ATTR void VKAPI_CALL DestroyPipeline(VkDevice d, VkPipeline pipeline, const VkAllocationCallbacks *allocator)
+{
+    drop(mesh_pipelines, (uint64_t)pipeline);
+    device.destroy_pipeline(d, pipeline, allocator);
+}
+
+static VKAPI_ATTR VkResult VKAPI_CALL CreateDescriptorSetLayout(VkDevice d, const VkDescriptorSetLayoutCreateInfo *info,
+    const VkAllocationCallbacks *allocator, VkDescriptorSetLayout *out)
+{
+    if (!device.mesh || info->bindingCount == 0)
+        return device.create_set_layout(d, info, allocator, out);
+    VkDescriptorSetLayoutBinding *bindings = malloc(info->bindingCount * sizeof(*bindings));
+    memcpy(bindings, info->pBindings, info->bindingCount * sizeof(*bindings));
+    for (uint32_t i = 0; i < info->bindingCount; i++)
+        if (bindings[i].stageFlags & VK_SHADER_STAGE_VERTEX_BIT)
+            bindings[i].stageFlags |= VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT;
+    VkDescriptorSetLayoutCreateInfo copy = *info;
+    copy.pBindings = bindings;
+    VkResult result = device.create_set_layout(d, &copy, allocator, out);
+    free(bindings);
+    return result;
+}
+
+static VKAPI_ATTR void VKAPI_CALL CmdBindPipeline(VkCommandBuffer b, VkPipelineBindPoint point, VkPipeline pipeline)
+{
+    if (device.mesh && point == VK_PIPELINE_BIND_POINT_GRAPHICS)
+        put(bound, (uint64_t)b, has(mesh_pipelines, (uint64_t)pipeline));
+    device.cmd_bind_pipeline(b, point, pipeline);
+}
+
+static int mesh_bound(VkCommandBuffer b)
+{
+    if (!device.mesh)
+        return 0;
+    pthread_mutex_lock(&lock);
+    Slot *slot = slot_of(bound, (uint64_t)b, 0);
+    int mesh = slot && slot->value;
+    pthread_mutex_unlock(&lock);
+    return mesh;
+}
+
+static VKAPI_ATTR void VKAPI_CALL CmdDraw(VkCommandBuffer b, uint32_t vertices, uint32_t instances, uint32_t first, uint32_t firstInstance)
+{
+    if (mesh_bound(b))
+        device.cmd_draw_mesh(b, vertices, instances, 1);
+    else
+        device.cmd_draw(b, vertices, instances, first, firstInstance);
+}
+
+static VKAPI_ATTR void VKAPI_CALL CmdDrawIndirect(VkCommandBuffer b, VkBuffer args, VkDeviceSize offset, uint32_t count, uint32_t stride)
+{
+    if (mesh_bound(b))
+        device.cmd_draw_mesh_indirect(b, args, offset, count, stride);
+    else
+        device.cmd_draw_indirect(b, args, offset, count, stride);
+}
+
+static VkPipelineStageFlags with_mesh(VkPipelineStageFlags stages)
+{
+    return device.mesh && (stages & VK_PIPELINE_STAGE_VERTEX_SHADER_BIT)
+        ? stages | VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT | VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT : stages;
+}
+
+static VKAPI_ATTR void VKAPI_CALL CmdPipelineBarrier(VkCommandBuffer b, VkPipelineStageFlags from, VkPipelineStageFlags to,
+    VkDependencyFlags flags, uint32_t memories, const VkMemoryBarrier *memory, uint32_t buffers, const VkBufferMemoryBarrier *buffer,
+    uint32_t images, const VkImageMemoryBarrier *image)
+{
+    device.cmd_barrier(b, with_mesh(from), with_mesh(to), flags, memories, memory, buffers, buffer, images, image);
 }
 
 // ---- device creation: features and extensions ----------------------------------
@@ -442,7 +670,21 @@ static VKAPI_ATTR VkResult VKAPI_CALL CreateDevice(VkPhysicalDevice physical, co
         LOAD(cmd_copy_buffer, "vkCmdCopyBuffer");
         LOAD(cmd_copy_buffer_to_image, "vkCmdCopyBufferToImage");
         LOAD(cmd_insert_label, "vkCmdInsertDebugUtilsLabelEXT");
+        LOAD(create_shader_module, "vkCreateShaderModule");
+        LOAD(destroy_shader_module, "vkDestroyShaderModule");
+        LOAD(create_graphics_pipelines, "vkCreateGraphicsPipelines");
+        LOAD(destroy_pipeline, "vkDestroyPipeline");
+        LOAD(create_set_layout, "vkCreateDescriptorSetLayout");
+        LOAD(cmd_bind_pipeline, "vkCmdBindPipeline");
+        LOAD(cmd_draw, "vkCmdDraw");
+        LOAD(cmd_draw_indirect, "vkCmdDrawIndirect");
+        LOAD(cmd_draw_mesh, "vkCmdDrawMeshTasksEXT");
+        LOAD(cmd_draw_mesh_indirect, "vkCmdDrawMeshTasksIndirectEXT");
 #undef LOAD
+        for (int i = 0; i < EXTRAS; i++)
+            if (!strcmp(extras[i].name, VK_EXT_MESH_SHADER_EXTENSION_NAME) && have[i] && ask->extra[i])
+                device.mesh = ((VkPhysicalDeviceMeshShaderFeaturesEXT *)ask->extra[i])->meshShader == VK_TRUE
+                    && device.cmd_draw_mesh && device.cmd_draw_mesh_indirect;
         if (!device.cmd_insert_label)
             device.cmd_insert_label = (void *)instance.next_gipa(instance.instance, "vkCmdInsertDebugUtilsLabelEXT");
 
@@ -455,6 +697,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL CreateDevice(VkPhysicalDevice physical, co
         say("%s\n", ask->v12.shaderBufferInt64Atomics ? "int64 buffer atomics on" : "int64 buffer atomics OFF");
         for (int i = 0; i < EXTRAS; i++)
             say(have[i] && ask->extra[i] ? "%s on\n" : "%s OFF\n", extras[i].name);
+        say("%s\n", device.mesh ? "mesh draws on" : "mesh draws OFF");
         pthread_mutex_unlock(&lock);
     }
     for (int i = 0; i < EXTRAS; i++)
@@ -471,6 +714,9 @@ static VKAPI_ATTR void VKAPI_CALL DestroyDevice(VkDevice d, const VkAllocationCa
     {
         memset(&device, 0, sizeof(device));
         memset(buffers, 0, sizeof(buffers));
+        memset(mesh_modules, 0, sizeof(mesh_modules));
+        memset(mesh_pipelines, 0, sizeof(mesh_pipelines));
+        memset(bound, 0, sizeof(bound));
     }
     pthread_mutex_unlock(&lock);
     if (destroy)
@@ -542,6 +788,15 @@ static PFN_vkVoidFunction device_hook(const char *name)
     HOOK(CmdBeginRenderPass);
     HOOK(CmdCopyBuffer);
     HOOK(CmdCopyBufferToImage);
+    HOOK(CreateShaderModule);
+    HOOK(DestroyShaderModule);
+    HOOK(CreateGraphicsPipelines);
+    HOOK(DestroyPipeline);
+    HOOK(CreateDescriptorSetLayout);
+    HOOK(CmdBindPipeline);
+    HOOK(CmdDraw);
+    HOOK(CmdDrawIndirect);
+    HOOK(CmdPipelineBarrier);
     if (!strcmp(name, "vkCmdInsertDebugUtilsLabelEXT")) return (PFN_vkVoidFunction)CmdInsertDebugUtilsLabel;
 #undef HOOK
     return NULL;
@@ -615,3 +870,6 @@ EXPORT int xdv_active(void) { return device.key != NULL; }
 
 /// Whether storage buffers have GPU addresses (bufferDeviceAddress is on).
 EXPORT int xdv_addresses(void) { return device.addresses; }
+
+/// Whether mesh shaders are on: a "vertex" shader whose SPIR-V is a mesh entry point runs as one.
+EXPORT int xdv_mesh(void) { return device.mesh; }

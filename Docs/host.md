@@ -700,6 +700,12 @@ both go in the chain through `VulkanLayerChain`, since .NET doesn't see what lib
 - Sync: SDL can't see what a shader reaches through a pointer, so once any address is handed out the layer puts a
   memory barrier (shader and transfer writes → shader, indirect and transfer reads) before every dispatch, render pass
   and buffer copy. `xdv:sync off` / `xdv:sync on` labels switch it from that point in recording.
+- Mesh shaders (SDL_GPU has none): a "vertex" shader whose SPIR-V has a `MeshEXT` entry point is remembered at
+  `vkCreateShaderModule`; its graphics pipeline gets the stage as `MESH` with no vertex input or input assembly;
+  descriptor set layouts open vertex bindings to mesh and task; barriers naming the vertex stage name mesh and task
+  too; `vkCmdDraw` / `vkCmdDrawIndirect` with such a pipeline bound become `vkCmdDrawMeshTasksEXT(vertices, instances,
+  1)` / its indirect form (args read as they are, so a mesh draw's first vertex is 1). Stacks use it through
+  `[MeshDraw]` (Docs/shaders.md, `Lab/mesh_shader`).
 - Commands as debug labels: `vkCmdInsertDebugUtilsLabelEXT` with a name starting `xdv:` goes to the layer, never the
   driver (`DeviceLayer.Barrier`, `DeviceLayer.AutoSync`). SDL forwards labels without debug mode.
 
@@ -723,7 +729,7 @@ globals' bindings (plain `SlangShaders.Compile`) leaves modules declaring global
 2. Device-generated commands with indirect execution sets, recorded by the layer from an `xdv:` label (it reads the
    `VkPipeline` out of SDL's compute pipeline as it reads buffers): the GPU writes which pass runs and how much. Test
    case: the chess search, each workgroup picking its next operation.
-3. Later candidates: async compute queue, mesh/task shaders (xanadu.mesh), ray queries (SDF/mesh scenes, radiance).
+3. Later candidates: async compute queue, task shaders and xanadu.mesh pages drawn by `[MeshDraw]` (mesh draws exist), ray queries (SDF/mesh scenes, radiance).
 4. Windows: build the layer there too (the graph will depend on it).
 
 **Measuring the chess bot** (Labs CHESS, tab 16): `ChessMatch` plays it against a UCI engine when

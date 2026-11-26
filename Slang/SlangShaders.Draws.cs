@@ -35,8 +35,14 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
     /// <summary>Marked <c>[CoversBox]</c>: the host hands it the item's box as its quad, so it covers the box's pixels.</summary>
     public bool CoversBox { get; init; }
 
-    /// <summary>The vertices it draws: two triangles a cell.</summary>
-    public uint Vertices => (uint)(Across * Down * 6);
+    /// <summary>
+    /// A mesh draw (<c>[MeshDraw]</c>): its "vertex" stage is a mesh shader, a workgroup a copy, which the device layer
+    /// (HostCore/Native/device_layer.c) makes a mesh stage and whose draws it issues as mesh tasks.
+    /// </summary>
+    public bool Mesh { get; init; }
+
+    /// <summary>The vertices it draws: two triangles a cell; for a mesh draw, its workgroups a copy (one).</summary>
+    public uint Vertices => Mesh ? 1 : (uint)(Across * Down * 6);
 }
 
 /// <summary>
@@ -69,8 +75,10 @@ public static partial class SlangShaders
         string body = Unbound(build, source);
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
-        CompiledShader Vertex(string placed, string[]? more = null) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
-            "xanaduDrawVertex", "vertex", 0, 1,
+        CompiledShader Vertex(string placed, string[]? more = null) => CompileWrapped(pass.Mesh is { } mesh
+                ? WrapMeshDraw(name, placed, pass.Name, mesh.Corners, mesh.Triangles, pass.OrderDepth)
+                : WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
+            pass.Mesh is null ? "xanaduDrawVertex" : "xanaduMeshDraw", pass.Mesh is null ? "vertex" : "mesh", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", .. more ?? []]);
         CompiledShader vertex = Vertex(body);
         CheckNoImages(name, pass.Name, build, vertex, 1);
@@ -123,7 +131,7 @@ public static partial class SlangShaders
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 Bound(Globals.Count, fragmentBuffers, fragmentReached)) { StackBuffers = fragmentBuffers, Reached = fragmentReached },
             across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, Blend = pass.Blend, CoversBox = pass.CoversBox,
-            Opaque = pass.Opaque, OrderDepth = pass.OrderDepth };
+            Opaque = pass.Opaque, OrderDepth = pass.OrderDepth, Mesh = pass.Mesh is not null };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
@@ -197,6 +205,65 @@ public static partial class SlangShaders
                 o.instance = copy;
                 XanaduDrawVaryings drawn = { o, d.world, d.normal, index / 3 };
                 return drawn;
+            }
+            """;
+    }
+
+    /// <summary>
+    /// A mesh draw's workgroup: each thread calls the draw's function once per corner and triangle it owns, the corner
+    /// starting on the item's middle with its quad as <c>rest</c>; corners leave as a [Draw]'s vertex stage hands them on.
+    /// </summary>
+    private static string WrapMeshDraw(string name, string source, string make, int corners, int triangles, bool orderDepth)
+    {
+        string z = orderDepth ? "d.depth" : "(0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0))";
+        int most = Math.Max(corners, triangles), threads = Math.Min(most, 128);
+        (string imports, string code, string label) = Split(name, source);
+        return $$"""
+            import xanadu.stage;
+            {{imports}}
+            namespace effect0 {
+            #line 1 "{{label}}"
+            {{code}}
+            #line 1 "{{label}} (wrapper)"
+            }
+            #line 1 "{{label}} (wrapper)"
+            struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; uint firstCopy; uint pad0; };
+            [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
+            struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
+            [shader("mesh")]
+            [numthreads({{threads}}, 1, 1)]
+            [outputtopology("triangle")]
+            void xanaduMeshDraw(uint thread : SV_GroupThreadID, uint3 group : SV_GroupID,
+                OutputVertices<XanaduDrawVaryings, {{corners}}> corners, OutputIndices<uint3, {{triangles}}> triangles)
+            {
+                vertexClock();
+                // A workgroup a copy: as instances, or one after another drawn flat.
+                copy = xanaduDrawQuad.firstCopy + group.y + group.x;
+                {{TimelineClock(source, shading: false)}}
+                SetMeshOutputCounts({{corners}}, {{triangles}});
+                XanaduDrawQuad q = xanaduDrawQuad;
+                float2 middle = q.corner + 0.5 * (q.xAxis + q.yAxis);
+                for (uint k = thread; k < {{most}}; k += {{threads}})
+                {
+                    MeshPart m;
+                    m.thread = k;
+                    m.corner = { middle, float2(0.5), float4(1.0), 0.5 * float2(length(q.xAxis), length(q.yAxis)),
+                        canvasFrom(q.xAxis, q.yAxis, q.corner, float2(0.5)), k, 0.0, float3(0.0), float3(0.0) };
+                    m.triangle = uint3(0);
+                    MeshPart made = effect0::{{make}}(m);
+                    if (k < {{corners}})
+                    {
+                        ItemVertex d = made.corner;
+                        ItemVaryings o = varyings(d);
+                        o.position.z = q.slice.x + q.slice.y * {{z}};
+                        o.rest = d.position;
+                        o.instance = copy;
+                        XanaduDrawVaryings drawn = { o, d.world, d.normal, k };
+                        corners[k] = drawn;
+                    }
+                    if (k < {{triangles}})
+                        triangles[k] = min(made.triangle, uint3({{corners - 1}}));
+                }
             }
             """;
     }

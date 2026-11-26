@@ -72,6 +72,12 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
     private static partial Regex DrawDeclaration();
 
+    [GeneratedRegex(@"(?<attribute>\[\s*MeshDraw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*MeshPart\s+(?<name>\w+)\s*\(\s*MeshPart\s+\w+\s*\)")]
+    private static partial Regex MeshDrawDeclaration();
+
+    /// <summary>The most corners, and the most triangles, a mesh draw's workgroup makes.</summary>
+    private const int MostMeshParts = 256;
+
     /// <summary>The most cells a draw's grid has along a side.</summary>
     private const int MostCells = 512;
 
@@ -184,23 +190,31 @@ internal static partial class BuildPasses
         foreach (Match marker in Regex.Matches(code, @"\[\s*Draw\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
                 throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type; blend: mode after the shade blends it (mix, add, sub, mul, premultiplied); copies: n last draws it n times.");
+        var meshes = MeshDrawDeclaration().Matches(code);
+        foreach (Match marker in Regex.Matches(code, @"\[\s*MeshDraw\s*\("))
+            if (!meshes.Any(match => match.Index == marker.Index))
+                throw new BuildProblem(marker.Index, "write a mesh draw as [MeshDraw(corners, triangles, shade: name)] MeshPart name(MeshPart m); blend: and copies: as a [Draw]'s.");
 
-        foreach (Match match in declared)
+        foreach (Match match in declared.Concat(meshes))
         {
+            bool mesh = match.Groups["attribute"].Value.Contains("MeshDraw");
             string name = match.Groups["name"].Value;
             if (name is "build" or "graph" or "present" or "deform")
                 throw new BuildProblem(match.Index, $"{name} is taken; give the draw another name.");
             if (passes.Any(pass => pass.Name == name))
                 throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");
             int across = int.Parse(match.Groups["w"].Value), down = int.Parse(match.Groups["h"].Value);
-            if (across < 1 || down < 1 || across > MostCells || down > MostCells)
+            if (mesh && (across < 1 || down < 1 || across > MostMeshParts || down > MostMeshParts))
+                throw new BuildProblem(match.Index, $"a mesh draw makes 1 to {MostMeshParts} corners and triangles, not {across} and {down}.");
+            if (!mesh && (across < 1 || down < 1 || across > MostCells || down > MostCells))
                 throw new BuildProblem(match.Index, $"a draw's grid has 1 to {MostCells} cells a side, not {across} × {down}.");
             Group copies = match.Groups["copies"];
             if (Marked(code, match.Index, "Opaque") && Marked(code, match.Index, "Translucent"))
                 throw new BuildProblem(match.Index, $"{name} is marked both [Opaque] (writes the depth) and [Translucent] (never writes it); keep one.");
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
-                Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index, out string? depth)),
+                Mesh = mesh ? (across, down) : null,
+                Draw = (mesh ? 1 : across, mesh ? 1 : down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index, out string? depth)),
                 DepthField = depth,
                 CoversBox = Marked(code, match.Index, "CoversBox"),
                 Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,

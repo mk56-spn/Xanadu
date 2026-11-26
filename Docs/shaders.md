@@ -1194,6 +1194,30 @@ and v top to bottom as seen from outside).
 - `Learn/planet.slang` goes from the flat grid to a lit planet in nine steps;
   `Learn/tour_mesh.slang` shows every surface.
 
+### Mesh shaders: `[MeshDraw]`
+
+A draw with no grid: each copy is one workgroup of a mesh shader that makes its own corners and
+triangles. `[MeshDraw(corners, triangles, shade: fn)]` (up to 256 of each; `blend:` and `copies:` as a
+`[Draw]`'s) on `MeshPart name(MeshPart m)`: thread `m.thread` places corner `m.thread` and joins triangle
+`m.thread`, each only while it is under the count. The corner comes on the item's middle with its quad as
+`m.corner.rest`; `m.at(uv)` puts it on the quad, and everything else a deform sets (`position`, `colour`,
+`depth`, `world`, `normal`) works as in a `[Draw]`. The shade is a `[Draw]`'s. Needs the device layer
+(SDL_GPU has no mesh shaders; Docs/host.md §6). `Lab/mesh_shader` is the smallest one.
+
+```slang
+[MeshDraw(13, 12, shade: look, copies: 5)]
+MeshPart star(MeshPart m)
+{
+    uint k = m.thread;
+    float2 middle = float2((copy + 0.5) / 5, 0.5);
+    float turn = time + float(k) * 3.14159265 / 6.0;
+    float2 reach = (k % 2 == 1 ? 60.0 : 25.0) / m.corner.rest.size;
+    m.at(k == 0 ? middle : middle + reach * float2(cos(turn), sin(turn)));
+    m.triangle = uint3(0, 1 + k, 1 + (k + 1) % 12);
+    return m;
+}
+```
+
 ### 3D by marching: `xanadu.march`
 
 The other 3D path. A mesh bends a grid to a surface it can write as uv → point;

@@ -253,6 +253,30 @@ public struct Canvas
             return float2(0.0);
         return float2(d.x * yAxis.y - d.y * yAxis.x, xAxis.x * d.y - xAxis.y * d.x) / det;
     }
+
+    /// The target pixel at a place on the quad (as uv): uvAt the other way.
+    public float2 pixelAt(float2 uv) { return corner + uv.x * xAxis + uv.y * yAxis; }
+};
+
+/// One thread of a mesh draw (`[MeshDraw(corners, triangles, shade: fn)] MeshPart name(MeshPart m)`): the draw's
+/// function places corner `m.thread` and joins triangle `m.thread` (each only while the thread is under the draw's
+/// count of it). `corner` comes on the item's middle with `rest` its quad, so `m.at(uv)` puts it on the quad.
+public struct MeshPart
+{
+    /// Which corner and which triangle this thread makes.
+    public uint thread;
+    /// The corner it places: everything a [Draw]'s deform sees.
+    public ItemVertex corner;
+    /// The triangle it joins, as three of the group's corners.
+    public uint3 triangle;
+
+    /// Puts the corner on the item's quad at `uv` (0..1 across and down), uv and all.
+    [mutating] public void at(float2 uv)
+    {
+        corner.uv = uv;
+        corner.position = corner.rest.pixelAt(uv);
+        corner.local = uv * corner.rest.size;
+    }
 };
 
 /// What a fragment effect sees for its pixel.
