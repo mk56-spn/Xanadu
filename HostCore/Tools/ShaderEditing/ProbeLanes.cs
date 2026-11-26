@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Xanadu.Core.Theme;
 using Xanadu.Slang;
@@ -9,10 +10,10 @@ using Rect2 = Xanadu.Core.Maths.Rect2;
 namespace Xanadu.Host.Tools.ShaderEditing;
 
 /// <summary>
-/// The motion the open stack's probe nodes measured (<see cref="ProbeNodes"/>), under the clips: a row for each copy of a
-/// draw that moves over the window, unlike the rows above it. The rows are a graph of their own
-/// (<see cref="Shader"/>) reading the probes on the GPU and drawing their curves (x cyan, y pink, turn gold, scale lime),
-/// then a row for each shade whose colours change (<see cref="ColourProbes"/>), drawn as strips of what it painted;
+/// The motion the open stack's probe nodes measured (<see cref="ProbeNodes"/>), under the clips: a row for each draw
+/// whose copies move over the window, a band in it for each channel they move, every copy's curve in it. The rows are a
+/// graph of their own (<see cref="Shader"/>) reading the probes on the GPU and drawing their curves (x cyan, y pink, turn
+/// gold, scale lime), then a row for each shade whose colours change (<see cref="ColourProbes"/>), drawn as strips of what it painted;
 /// then a row for each number the stack keeps that changed over the last frames (<see cref="RecordProbes"/>), recorded, so
 /// it replays rather than scrubs; the CPU draws the header and the labels, from the rows the graph reports back a few
 /// frames late.
@@ -21,8 +22,8 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
 {
     private const string Shader = "Assets/Shaders/Editor/probe_lanes";
 
-    private const float HeaderHeight = 22, RowHeight = 18, LabelWidth = 120, Pad = 6;
-    private const int MostRows = 16;
+    /// <summary>A band of a motion row (one a moving channel; a recorded row is one band), a colour row, the tallest the rows get together.</summary>
+    private const float HeaderHeight = 22, BandHeight = 14, RowHeight = 24, MostBody = 360, LabelWidth = 150, Pad = 6;
 
     /// <summary>The channels, by their bit in a row (x 1, y 2, turn 4, scale 8), and their curves' colours; colour 16 is a colour row.</summary>
     private static readonly string[] Channels = ["x", "y", "turn", "scale"];
@@ -37,8 +38,8 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     private string[] _lanes = [], _colourLanes = [], _recordLanes = [];
     private Rect2 _area, _placed;
 
-    /// <summary>The height it wants: the header, and a row for each moving lane the GPU reported (one at least, up to <see cref="MostRows"/>).</summary>
-    public float Height => HeaderHeight + Math.Clamp(Rows.Length, 1, MostRows) * RowHeight + Pad;
+    /// <summary>The height it wants: the header, and the rows the GPU reported that fit in <see cref="MostBody"/> (one row's room at least).</summary>
+    public float Height => HeaderHeight + Body(Rows).Height + Pad;
 
     public Rect2 Area { get => _area; set => _area = value; }
 
@@ -46,8 +47,46 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     /// What each motion, colour and recorded lane stands for in the code as it is now (<see cref="ProbeNodes.Labels"/>,
     /// <see cref="ColourProbes.Labels"/>, <see cref="RecordProbes.Labels"/>).
     /// </summary>
-    public void Use(string[] lanes, string[] colourLanes, string[] recordLanes) =>
+    public void Use(string[] lanes, string[] colourLanes, string[] recordLanes)
+    {
         (_lanes, _colourLanes, _recordLanes) = (lanes, colourLanes, recordLanes);
+        _material.Set("motionStarts", Starts(lanes));
+        _material.Set("colourStarts", Starts(colourLanes));
+    }
+
+    /// <summary>The draw a lane's label names: the label without its copy's number (<c>shown 3</c> is <c>shown</c>).</summary>
+    private static string DrawOf(string label)
+    {
+        int space = label.LastIndexOf(' ');
+        return space > 0 && label.AsSpan(space + 1).ContainsAnyExceptInRange('0', '9') == false ? label[..space] : label;
+    }
+
+    /// <summary>Where each draw's lanes start, a bit a lane, 16 to a component: the lanes' graph folds a draw's copies into one row.</summary>
+    private static Vector4 Starts(string[] labels)
+    {
+        Span<float> bits = stackalloc float[4];
+        for (int k = 1; k < Math.Min(labels.Length, 64); k++)
+            if (DrawOf(labels[k]) != DrawOf(labels[k - 1]))
+                bits[k / 16] += 1 << (k % 16);
+        return new Vector4(bits[0], bits[1], bits[2], bits[3]);
+    }
+
+    /// <summary>A row's height, as the lanes' graph works it out (<c>tall</c>): a band a moving channel, colour rows their own.</summary>
+    private static float Tall(uint row)
+    {
+        uint kind = row >> 8 & 0xFF;
+        return (kind & ColourRow) != 0 ? RowHeight : 4 + Math.Max(BitOperations.PopCount(kind & 15), 1) * BandHeight;
+    }
+
+    /// <summary>How many of the rows fit in <see cref="MostBody"/> (one at least), and their height (a colour row's when there are none).</summary>
+    private static (int Count, float Height) Body(ReadOnlySpan<uint> rows)
+    {
+        float height = 0;
+        int count = 0;
+        while (count < rows.Length && (count == 0 || height + Tall(rows[count]) <= MostBody))
+            height += Tall(rows[count++]);
+        return (count, count == 0 ? RowHeight : height);
+    }
 
     private bool Probing => _lanes.Length + _colourLanes.Length + _recordLanes.Length > 0;
 
@@ -105,18 +144,25 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
 
         if (rows.IsEmpty)
             canvas.DrawTextStyledLeft(labels, Under(header), "Nothing moves or changes colour over this window.", Palette.TextMuted, 13);
-        for (int r = 0; r < Math.Min(rows.Length, MostRows); r++)
+        (int shown, float body) = Body(rows);
+        float top = _area.Position.Y + HeaderHeight;
+        for (int r = 0; r < shown; r++)
         {
-            uint lane = rows[r] & 0xFF, kind = rows[r] >> 8;
+            uint lane = rows[r] & 0xFF, kind = rows[r] >> 8 & 0xFF, folded = rows[r] >> 24;
             bool recorded = (kind & RecordedRow) != 0;
             string[] named = recorded ? _recordLanes : (kind & ColourRow) != 0 ? _colourLanes : _lanes;
-            var label = new Rect2(_area.Position.X + 8, _area.Position.Y + HeaderHeight + r * RowHeight, LabelWidth - 12, RowHeight);
-            canvas.DrawTextMono(labels, label, lane < named.Length ? named[lane] : $"lane {lane}", recorded ? RecordColour : Palette.Text, 12, TextAlign.Left);
+            string name = lane < named.Length ? named[lane] : $"lane {lane}";
+            // A draw's copies folded into one row: the draw, and how many of its copies change.
+            if (folded > 0)
+                name = recorded ? $"{name} +{folded}" : $"{DrawOf(name)} ×{folded + 1}";
+            canvas.DrawTextMono(labels, new Rect2(_area.Position.X + 8, top, LabelWidth - 12, Math.Min(Tall(rows[r]), RowHeight)), name,
+                recorded ? RecordColour : Palette.Text, 12, TextAlign.Left);
+            top += Tall(rows[r]);
         }
 
-        Place(new Rect2(_area.Position.X + LabelWidth, _area.Position.Y + HeaderHeight, _area.Size.X - LabelWidth - 4,
-            Math.Clamp(rows.Length, 1, MostRows) * RowHeight));
+        Place(new Rect2(_area.Position.X + LabelWidth, _area.Position.Y + HeaderHeight, _area.Size.X - LabelWidth - 4, body));
         _material.Set("rowHeight", RowHeight);
+        _material.Set("bandHeight", BandHeight);
         _material.Set("now", (float)Math.Clamp((seconds - window.Start) / Math.Max(window.Length, 1e-3), 0, 1));
     }
 

@@ -40,8 +40,7 @@ and what it lacks is added to it):
 - **Checked:** `./run.sh shaders --open=Lab/flat_meshes`: six MOTION rows (shown 0, 4, 8, 12, 16, 20: the four cards'
   swing and the two strokes' sway), nothing written in the stack. Tests: `Slang/Tests/ProbeNodeTests.cs`.
 - **Not yet:** draws counted on the GPU (`copies: pool`) and by values aren't probed; brick stacks (deform + shade
-  without `graph()`) aren't either; the probe quad is a fixed square, not the item's; curves of one row overlap when
-  their shapes match (a swing's x and turn); the probes run every frame rather than only when the window or the code
+  without `graph()`) aren't either; the probe quad is a fixed square, not the item's; the probes run every frame rather than only when the window or the code
   changes; clip spans still come from `SlangClips` (slice 2).
 
 **Slice 2 is built** (2026-11-26): clips report themselves and the regex scanner is gone.
@@ -117,6 +116,18 @@ and what it lacks is added to it):
 - **Not yet:** event fires as marks (only `heard` counts are recorded, not where in the frame or what they carried);
   lists' contents (a pool's particles) aren't recorded, only counts; frames are recorded while the clock moves, not
   against song time, so a recorded row doesn't line up with the window above it; no value readout at the cursor.
+
+**Readability pass** (2026-11-26, after the user found 16 copies × 4 crossing curves in 18 px rows unreadable):
+
+- **A row is a draw, not a copy.** The editor marks where each draw's lanes start (`motionStarts` / `colourStarts`, bit
+  masks from the labels); a draw's changing lanes fold into its first, labelled `shown ×64`. Folding by similarity was
+  tried first and barely fired: over a window shorter than the period, phased copies have different spans.
+- **A band per moving channel**, 14 px each, the curve scaled to the band over the whole row's range, so curves never
+  cross; every other copy drawn faint (0.35) behind the first, so a stagger shows as a spread. Rows are as tall as their
+  bands; the panel shows rows up to 360 px.
+- **The turn is unwrapped** in `measure` (a spin is a ramp, no jump at a half turn); the samples go into `range` with
+  it, so the draw no longer binds the probe list.
+- Recorded lanes still fold only when they change alike (`book.first[1] +2`).
 
 ## Idea: probe, don't parse
 
