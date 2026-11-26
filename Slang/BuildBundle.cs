@@ -20,7 +20,14 @@ namespace Xanadu.Slang;
 /// <param name="Made">The type's constructor arguments: its lists by name, its places in the bookkeeping, its capacity.</param>
 /// <param name="CountAt">Where its count sits in <paramref name="CountIn"/>, for a draw's <c>copies:</c>; -1 when it has none to draw by.</param>
 /// <param name="CountIn">The list holding its count: the bookkeeping, or a list of its own (a mesh pool's pages taken).</param>
-public sealed record BuildBundle(string Name, string Type, int Start, int End, string Made, long CountAt, string CountIn = BundleKinds.Bookkeeping);
+public sealed record BuildBundle(string Name, string Type, int Start, int End, string Made, long CountAt, string CountIn = BundleKinds.Bookkeeping)
+{
+    /// <summary>The library block it declares (<see cref="BlockType"/>); null for the built-in kinds.</summary>
+    public BlockType? Block { get; init; }
+
+    /// <summary>A block's sizes by name, as its declaration gave them: what its passes' <c>over:</c> reads.</summary>
+    public IReadOnlyDictionary<string, BuildValue> Sizes { get; init; } = new Dictionary<string, BuildValue>();
+}
 
 /// <summary>The kinds of <see cref="BuildBundle"/>: the attribute that sizes each, and how it is laid out.</summary>
 internal static class BundleKinds

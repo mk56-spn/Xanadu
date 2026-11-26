@@ -93,6 +93,8 @@ internal sealed class GraphRunner(GraphicsDevice device, CanvasFrame frame, Fram
             GraphPlan plan = first ? Lower(material, effect) : Plan(material, effect);
             // A schedule's buffers exist from its first frame, whether or not its values call anything yet.
             BuildBuffers? kept = effect.Compiled.Build is null || !first ? null : _resources.For(commands, material, effect);
+            if (kept is { } turning)
+                GraphResources.Turn(turning, effect.Compiled.Build!);
             if (kept is not null && effect.Compiled.Build!.Shape.CachesBuffers && _resources.Stale(material, Stamp(material)))
                 _staleBuffers.Add(material);
             // A particle mesh borrows the effect's shade only: its graph runs for the material's own items.

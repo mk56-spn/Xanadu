@@ -108,17 +108,22 @@ public sealed partial class StackBuild
             throw new BuildProblem(call.Index, $"build() runs more than {MaxCalls} passes a frame.");
         BuildPass pass = Passes[call.Pass];
         Span<uint> args = stackalloc uint[MaxArguments];
+        Span<BuildValue> values = stackalloc BuildValue[MaxArguments];
         for (int k = 0; k < call.Arguments.Length; k++)
-            args[k] = (uint)BuildPasses.Evaluate(call.Arguments[k], call.Index, lookup).Long;
+        {
+            values[k] = BuildPasses.Evaluate(call.Arguments[k], call.Index, lookup);
+            // A float goes as its bits, read back with asfloat; a number as its whole part.
+            args[k] = k < pass.Floats.Length && pass.Floats[k] ? BitConverter.SingleToUInt32Bits((float)values[k].Number) : (uint)values[k].Long;
+        }
 
-        // A library's pass sizes itself from its own parameters and constants, never the brick's names.
+        // A library's pass sizes itself from its own parameters and constants (and a block's from its sizes), never the brick's names.
         Func<string, BuildValue?> sizes = lookup;
         int at = pass.Start;
         if (pass.Library is { } library)
         {
-            var given = new Dictionary<string, BuildValue>();
+            var given = new Dictionary<string, BuildValue>(pass.Instance?.Sizes ?? new Dictionary<string, BuildValue>());
             for (int k = 0; k < pass.Arguments.Length; k++)
-                given[pass.Arguments[k]] = BuildValue.Of(args[k]);
+                given[pass.Arguments[k]] = values[k];
             sizes = name => given.TryGetValue(name, out BuildValue value) ? value : library.Constant(name);
             at = call.Index;
         }

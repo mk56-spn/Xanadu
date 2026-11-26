@@ -12,6 +12,20 @@
 //     uint slot = drawn.add(1);              // the counter's one number
 //     uint top = lists.add(ALIVE, 1);        // the number at lists[ALIVE]
 //
+// One value the graph keeps, a struct of its own, is Stored: read and written by its plain name,
+// from any pass or draw, zero when made. Its uint fields take InterlockedAdd and friends.
+//
+//     struct Book { uint written; uint frame; float owed[4]; };
+//     Stored<Book> book;
+//     book.frame += 1;                       // from one thread
+//     InterlockedAdd(book.written, 1, slot); // from many
+//
+// A list's last frame is its [History]: the two swap once a frame, before the graph's first node,
+// so the list starts each frame with what it held two frames ago and the history with last frame's.
+//
+//     [Size(CELLS)] List<float> field;       // this frame's, written whole
+//     [History(field)] List<float> fieldBefore;  // last frame's, read
+//
 // Two more keep a list and its bookkeeping under one name, so no header slots are numbered by hand:
 //
 //     [Size(CAP)] Slots free;                // the free places in a pool of CAP, all free at first
@@ -33,6 +47,9 @@ module store;
 
 /// A list of T the graph keeps on the GPU: [Size(n)] List<T> name;.
 public typealias List<T> = RWStructuredBuffer<T>;
+
+/// One T the graph keeps on the GPU, used by its plain name: Stored<T> name;.
+public typealias Stored<T> = RWStructuredBuffer<T>;
 
 /// One uint many threads count with at once: Counter name;.
 public typealias Counter = RWStructuredBuffer<uint>;
@@ -176,4 +193,101 @@ public struct Slots
         book[at] = 0;
         book[at + 1] = 0;
     }
+};
+
+/// How many events a frame wrote and how many last frame's holds: an Events' own count.
+public struct EventTally
+{
+    public uint written;    // this frame's, counted as they're written (may pass the room)
+    public uint heard;      // last frame's that were kept
+};
+
+/// Things that happen in one frame, read the next: [Size(n)] Events<T> name;. Many threads add
+/// this frame's; every thread can read last frame's. Turn it once a frame, from one thread,
+/// before anything adds (in the pass that plans the frame): this frame's become last frame's.
+///
+///     deaths.turn();                         // one thread, first
+///     deaths.add(d);                         // many threads; false when the frame's room is full
+///     for (uint k = 0; k < deaths.heard; k++) Death d = deaths[k];   // last frame's
+[Block(n)]
+public struct Events<T>
+{
+    public uint n;
+    [Size(n)] List<T> items;                  // this frame's
+    [History(items)] List<T> last;            // last frame's
+    Stored<EventTally> tally;
+
+    /// The most a frame keeps.
+    public property uint capacity { get { return n; } }
+
+    /// How many of last frame's there are to read.
+    public property uint heard { get { return tally.heard; } }
+
+    /// Adds e to this frame's; false when the frame's room is full.
+    public bool add(T e)
+    {
+        uint slot;
+        InterlockedAdd(tally.written, 1, slot);
+        if (slot >= n)
+            return false;
+        items[slot] = e;
+        return true;
+    }
+
+    /// Last frame's i-th.
+    public __subscript(uint i) -> T { get { return last[i]; } }
+
+    /// From one thread, before anything adds: this frame's become last frame's to read.
+    public void turn()
+    {
+        tally.heard = min(tally.written, n);
+        tally.written = 0;
+    }
+};
+
+/// A pool of n things, each in a place of its own from birth to death, and the live ones this
+/// frame: [Size(n)] Pool<T> name;. Take a place for a birth, give it back at a death; list a
+/// thing as live each frame it lives, after the frame's turn (one thread, first).
+///
+///     pool.turn();                           // one thread, first: no live ones listed yet
+///     uint slot;
+///     if (pool.take(slot)) pool.put(slot, born); // a birth, if a place is free
+///     T now = pool[i];                       // thing i
+///     pool.give(i);                          // a death: place i free from the next pass on
+///     pool.live(i);                          // thing i lives this frame
+///     uint i = pool.living(k);               // the k-th live one, k < pool.count
+[Block(n)]
+public struct Pool<T>
+{
+    public uint n;
+    [Size(n)] List<T> items;
+    [Size(n)] Slots places;                   // the free places
+    [Size(n)] Gathered<uint> alive;           // this frame's live ones
+
+    /// The places in the pool.
+    public property uint capacity { get { return n; } }
+
+    /// How many are listed as live this frame.
+    public property uint count { get { return alive.count; } }
+
+    /// A free place into slot; false (slot 0) when none is.
+    public bool take(out uint slot) { return places.take(slot); }
+
+    /// Hands place i back.
+    public void give(uint i) { places.give(i); }
+
+    /// Lists thing i as live this frame.
+    public void live(uint i) { alive.add(i); }
+
+    /// The k-th live one's place.
+    public uint living(uint k) { return alive[k]; }
+
+    /// From one thread, before anything lists: no live ones yet this frame.
+    public void turn() { alive.clear(); }
+
+    /// Thing i.
+    public __subscript(uint i) -> T { get { return items[i]; } }
+
+    /// Puts value in place i. (A block reaches a stack as a value, so it is put, never assigned.)
+    public void put(uint i, T value) { items[i] = value; }
 };

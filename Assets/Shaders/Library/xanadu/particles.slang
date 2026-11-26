@@ -14,6 +14,7 @@
 // (the frame's seconds) and `time` themselves. Lab/particles runs all of them.
 module particles;
 import xanadu.math;
+import xanadu.store;
 import xanadu.stage;
 import xanadu.shape;
 import xanadu.noise;
@@ -233,3 +234,55 @@ public namespace particles
         }
     }
 }
+
+/// A Trails' clock: the newest place in every ring, and whether this frame records into it.
+public struct TrailClock
+{
+    public uint head;
+    public uint sampled;
+    public uint frame;
+    public uint pad;
+};
+
+/// A ring of past positions for each of `count` things, `length` long, sampled every few frames:
+/// [Size(CAP, 12)] Trails trails;. Turn it once a frame from one thread; start a ring where a
+/// thing is born, record into it each frame, and read it back from the newest.
+///
+///     trails.turn(dt > 0, 2);                // one thread, first: a sample every 2 frames
+///     trails.start(slot, p.position);        // a new thing's ring is where it starts
+///     trails.record(i, p.position);          // every frame: kept only on a sampled one
+///     float2 then = trails.back(i, k);       // k samples back from the newest
+[Block(count, length)]
+public struct Trails
+{
+    public uint count, length;
+    [Size(count * length)] List<float2> ring;
+    Stored<TrailClock> clock;
+
+    /// From one thread, once a frame: whether this frame records, every `every` frames while time moves.
+    public void turn(bool moving, uint every)
+    {
+        clock.frame += moving ? 1 : 0;
+        bool sample = moving && clock.frame % max(every, 1u) == 0;
+        if (sample)
+            clock.head = (clock.head + 1) % length;
+        clock.sampled = sample ? 1 : 0;
+    }
+
+    /// Thing i's whole ring at `at`, so its trail grows out of where it starts.
+    public void start(uint i, float2 at)
+    {
+        for (uint t = 0; t < length; t++)
+            ring[i * length + t] = at;
+    }
+
+    /// Thing i is at `at` this frame: kept when the frame samples.
+    public void record(uint i, float2 at)
+    {
+        if (clock.sampled != 0)
+            ring[i * length + clock.head] = at;
+    }
+
+    /// Thing i's position k samples back from the newest (0 the newest, up to length).
+    public float2 back(uint i, uint k) { return ring[i * length + (clock.head + length - min(k, length)) % length]; }
+};

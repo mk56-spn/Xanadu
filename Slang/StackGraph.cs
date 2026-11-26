@@ -96,7 +96,7 @@ public sealed class StackGraph
         int frame = graph.Resource(GraphResourceKind.Frame, "frame", 0);
         int depth = graph.Resource(GraphResourceKind.Depth, "depth", 0);
         int[] buffers = fragment.Build is { } built
-            ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i], buffer.Shared ? "shared" : ""))]
+            ? [.. built.Shape.Buffers.Select((buffer, i) => graph.Resource(GraphResourceKind.Buffer, buffer.Name, built.Bytes[i], buffer.Shared ? "shared" : buffer.Source >= 0 ? "last frame" : buffer.Stored ? "one value" : ""))]
             : [];
         int[] images = [.. GraphPlan.Images(fragment).Select(image => graph.Resource(GraphResourceKind.Image, image.Name, 0, Detail(image)))];
         int screen = fragment.ReadsScreen || fragment.Build?.Passes.Any(pass => pass.ReadsScreen) == true

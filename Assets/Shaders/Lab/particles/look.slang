@@ -1,7 +1,8 @@
 // One copy of a quad for each thing drawn, in the order they stack: copy 0 is the field under
 // it all (the item's own quad), then every trail segment, then every live particle, a quad
 // round it stretched along its velocity. All in world pixels, `zoom` onto the item. The shade:
-// the field over the background, a trail segment's soft line, or a particle in its look.
+// the field over the background, a trail segment's soft line, or a particle in its look,
+// premultiplied: its emitter's glow takes the alpha away, so 1 adds its light and 0 lays it over.
 import xanadu;
 
 static const uint FIELD = 0, SEGMENT = 1, PARTICLE = 2;
@@ -28,7 +29,7 @@ Drawn drawnOf(uint c)
         return d;
     }
     d.kind = PARTICLE;
-    d.slot = alive[c - 1 - segments];
+    d.slot = pool.living(c - 1 - segments);
     return d;
 }
 
@@ -51,17 +52,16 @@ float sizeOf(Emitter e, Particle p) { return lerp(e.grows.x, e.grows.y, lived(p)
 /// its ends, half width and fade. False when there's none (too few samples, or a wrap's jump).
 bool segmentOf(uint slot, Particle p, Emitter e, uint k, out float2 from, out float2 to, out float width, out float fade)
 {
-    uint head = lists[HEAD];
     uint samples = min(e.trail, TRAIL);
-    from = k == 0 ? p.position : trails[slot * TRAIL + (head + TRAIL - k) % TRAIL];
-    to = trails[slot * TRAIL + (head + TRAIL - k - 1) % TRAIL];
+    from = k == 0 ? p.position : trails.back(slot, k);
+    to = trails.back(slot, k + 1);
     fade = 1 - (float(k) + 0.5) / float(samples);
     width = max(sizeOf(e, p) * e.trailWidth * fade * 0.5, 0.35);
     float2 span = to - from;
     return k + 1 < samples && dot(span, span) <= WORLD.x * WORLD.x * 0.0625;
 }
 
-[Draw(1, 1, shade: particleLook, copies: drawn)]
+[Draw(1, 1, shade: particleLook, blend: premultiplied, copies: drawn)]
 ItemVertex particle(ItemVertex v)
 {
     Drawn d = drawnOf(copy);
@@ -119,13 +119,15 @@ float4 particleLook(ItemInput i)
     Drawn d = drawnOf(copy);
     if (d.kind == FIELD)
     {
-        float shown = 1 - exp(-fieldIn(lists[PARITY] * CELLS, i.local) * gain);
+        float shown = 1 - exp(-field.shown(uvOf(i.local)) * gain);
         return float4(background.rgb + tint.rgb * shown * tint.a, 1);
     }
 
+    Emitter e = emitterOf(pool[d.slot].emitter);
     float a = d.kind == SEGMENT
         ? sdf.filled(abs(i.local.y) - i.uv.y, 1.2)
-        : particles.cover(emitterOf(pool[d.slot].emitter).look, i.local, i.uv.x, i.uv.y);
+        : particles.cover(e.look, i.local, i.uv.x, i.uv.y);
     // The vertex colour alone: uv carries the sizes here, not a place on the item's texture.
-    return float4(i.vertexColour.rgb, i.vertexColour.a * a);
+    a *= i.vertexColour.a;
+    return float4(i.vertexColour.rgb * a, a * (1 - e.glow));
 }

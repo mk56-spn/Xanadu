@@ -92,9 +92,11 @@ internal sealed class CanvasEffect(
         var key = (pass, Format(targets, 0), Format(targets, 1), Format(targets, 2), Format(targets, 3), z);
         if (_drawPipelines.TryGetValue(key, out GraphicsPipeline? made))
             return made;
+        BlendMode? blend = Compiled.Build!.Passes[pass].Drawn!.Blend;
+        ColorTargetBlendState state = blend is { } mode ? CanvasPipelines.Blend(mode) : ColorTargetBlendState.NoBlend;
         var descriptions = new ColorTargetDescription[targets.Length];
         for (int k = 0; k < descriptions.Length; k++)
-            descriptions[k] = new ColorTargetDescription { Format = targets[k], BlendState = ColorTargetBlendState.NoBlend };
+            descriptions[k] = new ColorTargetDescription { Format = targets[k], BlendState = state };
         (Shader vertexStage, Shader fragmentStage) = Draws[pass]!.Value;
         made = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
         {
@@ -119,14 +121,16 @@ internal sealed class CanvasEffect(
     private readonly Dictionary<(int Pass, BlendMode Blend, CustomBlend? Custom, SampleCount Samples), GraphicsPipeline> _exitPipelines = [];
 
     /// <summary>
-    /// Draw <paramref name="pass"/>'s pipeline onto the frame (an exit): blended as <paramref name="material"/> says, depth
+    /// Draw <paramref name="pass"/>'s pipeline onto the frame (an exit): blended as its <c>blend:</c> says, else as
+    /// <paramref name="material"/> says, depth
     /// tested and written as a deforming effect's is, at the job's sample count. Made the first time, kept with the effect.
     /// </summary>
     public GraphicsPipeline ExitPipeline(GraphicsDevice device, int pass, CanvasMaterial? material, SampleCount samples, TextureFormat format,
         TextureFormat z)
     {
-        BlendMode blend = material?.Blend ?? BlendMode.Mix;
-        CustomBlend? custom = material?.Custom?.PipelineKey;
+        BlendMode? own = Compiled.Build!.Passes[pass].Drawn!.Blend;
+        BlendMode blend = own ?? material?.Blend ?? BlendMode.Mix;
+        CustomBlend? custom = own is null ? material?.Custom?.PipelineKey : null;
         if (_exitPipelines.TryGetValue((pass, blend, custom, samples), out GraphicsPipeline? made))
             return made;
         (Shader vertexStage, Shader fragmentStage) = Draws[pass]!.Value;

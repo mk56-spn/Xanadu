@@ -5,9 +5,11 @@
 // from, fading and spreading each frame. The moves come from xanadu.particles; which ones run
 // on which emitter is `move` below, and the emitters are `emitterOf`: edit those to make it yours.
 //
-// A frame: plan → burst → emit → simulate → finish → spread. `particle` (look.slang) draws the
-// field under it all, then every trail segment, then every live particle, as copies of a quad,
-// as many as `drawn` says (counted on the GPU).
+// A frame: plan → burst → emit → simulate → finish → field.spread (the Field block's pass).
+// `particle` (look.slang) draws the field under it all, then every trail segment, then every
+// live particle, as copies of a quad, as many as `drawn` says (counted on the GPU). Each
+// emitter's `glow` picks normal or additive, or between: the draw is premultiplied, so one
+// draw holds both.
 import xanadu;
 
 static const uint CAP = 262144;             // particles the pool holds
@@ -16,16 +18,10 @@ static const uint TRAIL = 12;               // past positions each one keeps
 static const uint TRAIL_EVERY = 2;          // frames between them: longer trails from the same samples
 static const uint EVENTS = 16384;           // deaths a frame that can burst
 static const uint MOST_SPAWNS = 65536;      // births a frame
-static const uint FIELD_W = 640;
+static const uint FIELD_W = 640;           // the field's cells across and down
 static const uint FIELD_H = 360;
-static const uint CELLS = FIELD_W * FIELD_H;
-static const float DEPOSIT_SCALE = 1024;    // deposits sum as whole numbers: this many a unit of field
 static const float2 WORLD = float2(1280, 720);   // px, centred, y down
 
-// What the frame keeps in `lists`.
-static const uint STARTED = 0, WRITTEN = 4, TO_READ = 5, PARITY = 6,
-                  FRAME = 7, HEAD = 8, SAMPLED = 9, TOTAL = 10, FIRST = 12, COUNT = 16, OWED = 20, QUEUED = 24;
-static const uint HEADER = 32;
 
 // Item pixels a world pixel: the world is the lab's 1280 x 720, drawn this much smaller or bigger.
 [Default(0.53)] uniform float zoom;
@@ -67,15 +63,24 @@ struct Death
     uint pad;
 };
 
-[Size(CAP)] List<Particle> pool;
-[Size(CAP * TRAIL)] List<float2> trails;     // each slot's past positions, a ring from the head
-[Size(HEADER)] List<uint> lists;             // the frame's bookkeeping
-[Size(CAP)] Slots free;                      // the pool's free places
-[Size(CAP)] Gathered<uint> alive;            // the live ones, this frame
+/// The frame's bookkeeping, kept from frame to frame.
+struct Book
+{
+    uint started;           // the emitters' bursts are queued
+    uint frame;             // frames run while time moves
+    uint total;             // the emitters' births this frame
+    uint first[EMITTERS];   // where each emitter's births start among them
+    uint count[EMITTERS];   // and how many
+    float owed[EMITTERS];   // births carried to the next frame, a fraction of one
+    uint queued[EMITTERS];  // a burst's births still to come
+};
+
+[Size(CAP)] Pool<Particle> pool;            // the particles, their free places and the live ones
+[Size(CAP, TRAIL)] Trails trails;           // each slot's past positions
+Stored<Book> book;
 [Size(CAP)] Gathered<uint> trailed;          // the live ones with a trail
-[Size(2 * EVENTS)] List<Death> deaths;       // last frame's half, this frame's half
-[Size(2 * CELLS)] List<float> field;         // the half read, the half written
-[Size(CELLS)] List<uint> deposits;
+[Size(EVENTS)] Events<Death> deaths;         // this frame's, and last frame's, which burst now
+[Size(FIELD_W, FIELD_H)] Field field;       // particles read last frame's and deposit into this one
 Counter drawn;              // the copies `particle` draws
 
 // ---- the emitters ------------------------------------------------------------------
@@ -101,6 +106,7 @@ struct Emitter
     uint look;              // particles.GLOW, DOT, RINGED, SPARK, SQUARE
     colour born;
     colour dies;
+    float glow;             // 0 laid over what's behind (normal) .. 1 adding its light (additive)
     float hueJitter;        // turns
     float fadeIn;           // s
     uint trail;             // samples of trail drawn, 0 none
@@ -118,7 +124,7 @@ Emitter plain()
     e.heading = -PI / 2; e.spread = radians(30); e.outward = 0; e.tangent = 0; e.inherit = 0;
     e.speed = float2(80, 160); e.life = float2(1, 2);
     e.grows = float2(6, 2); e.jitter = 0; e.stretch = 0; e.look = particles.GLOW;
-    e.born = colour(1, 1, 1, 1); e.dies = colour(1, 1, 1, 0); e.hueJitter = 0; e.fadeIn = 0;
+    e.born = colour(1, 1, 1, 1); e.dies = colour(1, 1, 1, 0); e.glow = 1; e.hueJitter = 0; e.fadeIn = 0;
     e.trail = 0; e.trailWidth = 0.8; e.deposit = 0; e.child = -1; e.children = 40;
     return e;
 }
@@ -149,7 +155,7 @@ Emitter emitterOf(uint k)
         e.at = float2(-300, 300); e.rate = 1200; e.spread = radians(18); e.speed = float2(520, 640);
         e.life = float2(2.2, 3); e.grows = float2(5, 2); e.stretch = 0.01;
         e.born = colour(0.5, 0.8, 1, 1); e.dies = colour(0.1, 0.3, 1, 0); e.hueJitter = 0.04;
-        e.trail = 6; e.trailWidth = 0.6; e.deposit = 1;
+        e.trail = 6; e.trailWidth = 0.6; e.deposit = 1; e.glow = 0;
         break;
     }
     return e;
@@ -164,7 +170,7 @@ void move(uint e, inout float2 position, inout float2 velocity, inout bool kille
     {
         velocity = particles.forced(velocity, float2(0, 520));
         velocity = particles.dragged(velocity, 0.15);
-        velocity += fieldSlope(position, 6) * slope * dt;
+        velocity += field.slope(uvOf(position), 6 / WORLD) * slope * dt;
         particles.bounce(position, velocity, low, high, bool4(true), 0.35, 0.2);
     }
     else
@@ -181,35 +187,8 @@ void move(uint e, inout float2 position, inout float2 velocity, inout bool kille
 
 // ---- the field ---------------------------------------------------------------------
 
-/// The half of `field` this frame reads (last frame's spread), and the half it writes.
-uint fieldRead() { return (1 - lists[PARITY]) * CELLS; }
-
-uint cellOf(float2 position)
-{
-    uint2 c = uint2(clamp((position / WORLD + 0.5) * float2(FIELD_W, FIELD_H), 0, float2(FIELD_W, FIELD_H) - 1));
-    return c.y * FIELD_W + c.x;
-}
-
-/// The field at a position, from half `from`, blended between its four nearest cells.
-float fieldIn(uint from, float2 position)
-{
-    float2 g = (position / WORLD + 0.5) * float2(FIELD_W, FIELD_H) - 0.5;
-    float2 f = frac(g);
-    int2 most = int2(FIELD_W, FIELD_H) - 1;
-    int2 c0 = clamp(int2(floor(g)), 0, most), c1 = clamp(int2(floor(g)) + 1, 0, most);
-    float a = field[from + c0.y * FIELD_W + c0.x], b = field[from + c0.y * FIELD_W + c1.x];
-    float d = field[from + c1.y * FIELD_W + c0.x], e = field[from + c1.y * FIELD_W + c1.x];
-    return lerp(lerp(a, b, f.x), lerp(d, e, f.x), f.y);
-}
-
-float fieldAt(float2 position) { return fieldIn(fieldRead(), position); }
-
-/// The field's slope at a position, `probe` px either side: up it gathers, down it spreads.
-float2 fieldSlope(float2 position, float probe)
-{
-    return float2(fieldAt(position + float2(probe, 0)) - fieldAt(position - float2(probe, 0)),
-                  fieldAt(position + float2(0, probe)) - fieldAt(position - float2(0, probe)));
-}
+/// Where a world position falls on the field, 0..1 across the world.
+float2 uvOf(float2 position) { return position / WORLD + 0.5; }
 
 // ---- births ------------------------------------------------------------------------
 
@@ -219,7 +198,7 @@ float rnd(uint seed, uint salt) { return random(uint3(seed, salt, 0x2545f491u));
 bool spawn(uint k, float2 origin, float2 parentVelocity, uint seed)
 {
     uint slot;
-    if (!free.take(slot))
+    if (!pool.take(slot))
         return false;
     Emitter e = emitterOf(k);
     float2 local = rotate(particles.onShape(e.shape, e.size, rnd(seed, 11), rnd(seed, 12)), e.turn);
@@ -237,66 +216,58 @@ bool spawn(uint k, float2 origin, float2 parentVelocity, uint seed)
     p.emitter = k;
     p.seed = seed;
     p.pad = 0;
-    // A new particle's history is where it starts, so its trail grows out of it.
-    pool[slot] = p;
-    for (uint t = 0; t < TRAIL; t++)
-        trails[slot * TRAIL + t] = p.position;
+    pool.put(slot, p);
+    trails.start(slot, p.position);
     return true;
 }
 
 // ---- the frame ---------------------------------------------------------------------
 
-/// One thread: the frame's halves swap, last frame's deaths become this frame's bursts, and
-/// each emitter's births this frame (its rate's share, the fraction carried, and its burst).
+/// One thread: last frame's deaths become this frame's bursts, and each emitter's births this
+/// frame (its rate's share, the fraction carried, and its burst).
 [Pass(1, over: 1)]
 void plan(uint i)
 {
-    if (lists[STARTED] == 0)
+    if (book.started == 0)
     {
-        lists[STARTED] = 1;
+        book.started = 1;
         for (uint k = 0; k < EMITTERS; k++)
-            lists[QUEUED + k] = emitterOf(k).burst;
+            book.queued[k] = emitterOf(k).burst;
     }
 
-    lists[PARITY] = 1 - lists[PARITY];
-    lists[TO_READ] = min(lists[WRITTEN], EVENTS);
-    lists[WRITTEN] = 0;
-    alive.clear();
+    deaths.turn();
+    pool.turn();
     trailed.clear();
     bool moving = dt > 0;
-    uint frame = lists[FRAME] + (moving ? 1 : 0);
-    lists[FRAME] = frame;
-    bool sample = moving && frame % TRAIL_EVERY == 0;
-    if (sample)
-        lists[HEAD] = (lists[HEAD] + 1) % TRAIL;
-    lists[SAMPLED] = sample ? 1 : 0;
+    book.frame += moving ? 1 : 0;
+    trails.turn(moving, TRAIL_EVERY);
 
     uint total = 0;
     for (uint k = 0; k < EMITTERS; k++)
     {
-        float owed = asfloat(lists[OWED + k]) + emitterOf(k).rate * dt;
+        float owed = book.owed[k] + emitterOf(k).rate * dt;
         uint room = MOST_SPAWNS - total;
         uint fromRate = uint(min(owed, float(room)));
         // A rate the pool can't take never piles up into one huge frame later.
-        lists[OWED + k] = asuint(min(owed - fromRate, float(MOST_SPAWNS)));
-        uint fromBurst = moving ? min(lists[QUEUED + k], room - fromRate) : 0;
-        lists[QUEUED + k] -= fromBurst;
-        lists[FIRST + k] = total;
-        lists[COUNT + k] = fromRate + fromBurst;
+        book.owed[k] = min(owed - fromRate, float(MOST_SPAWNS));
+        uint fromBurst = moving ? min(book.queued[k], room - fromRate) : 0;
+        book.queued[k] -= fromBurst;
+        book.first[k] = total;
+        book.count[k] = fromRate + fromBurst;
         total += fromRate + fromBurst;
     }
-    lists[TOTAL] = total;
+    book.total = total;
 }
 
 /// Every death of last frame that bursts: its children, where it died.
 [Pass(64, over: EVENTS)]
 void burst(uint i)
 {
-    if (i >= lists[TO_READ])
+    if (i >= deaths.heard)
         return;
-    Death d = deaths[(1 - lists[PARITY]) * EVENTS + i];
+    Death d = deaths[i];
     for (uint k = 0; k < min(d.children, 4096u); k++)
-        if (!spawn(d.emitter, d.position, d.velocity, randomBits(uint3(d.seed, k, lists[FRAME]))))
+        if (!spawn(d.emitter, d.position, d.velocity, randomBits(uint3(d.seed, k, book.frame))))
             return;
 }
 
@@ -304,13 +275,13 @@ void burst(uint i)
 [Pass(64, over: MOST_SPAWNS)]
 void emit(uint i)
 {
-    if (i >= lists[TOTAL])
+    if (i >= book.total)
         return;
     for (uint k = 0; k < EMITTERS; k++)
     {
-        if (i < lists[FIRST + k] + lists[COUNT + k])
+        if (i < book.first[k] + book.count[k])
         {
-            spawn(k, emitterOf(k).at, float2(0, 0), randomBits(uint3(i, lists[FRAME], k * 7919u)));
+            spawn(k, emitterOf(k).at, float2(0, 0), randomBits(uint3(i, book.frame, k * 7919u)));
             return;
         }
     }
@@ -333,34 +304,30 @@ void simulate(uint i)
 
     if (killed || p.age >= p.life || any(isnan(p.position)))
     {
-        pool[i].alive = 0;
-        free.give(i);
+        p.alive = 0;
+        pool.put(i, p);
+        pool.give(i);
         if (e.child >= 0 && !killed)
         {
-            uint slot = lists.add(WRITTEN, 1);
-            if (slot < EVENTS)
-            {
-                Death d;
-                d.position = p.position;
-                d.velocity = p.velocity;
-                d.emitter = uint(e.child);
-                d.children = e.children;
-                d.seed = p.seed * 747796405u + 1u;
-                d.pad = 0;
-                deaths[lists[PARITY] * EVENTS + slot] = d;
-            }
+            Death d;
+            d.position = p.position;
+            d.velocity = p.velocity;
+            d.emitter = uint(e.child);
+            d.children = e.children;
+            d.seed = p.seed * 747796405u + 1u;
+            d.pad = 0;
+            deaths.add(d);
         }
         return;
     }
 
-    if (lists[SAMPLED] != 0)
-        trails[i * TRAIL + lists[HEAD]] = p.position;
-    pool[i] = p;
+    trails.record(i, p.position);
+    pool.put(i, p);
 
     if (e.deposit > 0)
-        deposits.add(cellOf(p.position), uint(e.deposit * dt * DEPOSIT_SCALE));
+        field.deposit(uvOf(p.position), e.deposit * dt);
 
-    alive.add(i);
+    pool.live(i);
     if (e.trail >= 2)
         trailed.add(i);
 }
@@ -369,26 +336,7 @@ void simulate(uint i)
 [Pass(1, over: 1)]
 void finish(uint i)
 {
-    drawn[0] = 1 + trailed.count * (TRAIL - 1) + alive.count;
-}
-
-/// The field fades, spreads into its neighbours and takes this frame's deposits.
-[Pass(64, over: CELLS)]
-void spreadField(uint i)
-{
-    uint from = fieldRead(), to = CELLS - from;
-    uint row = i / FIELD_W;
-    int2 c = int2(i % FIELD_W, row);
-    float sum = 0;
-    for (int y = -1; y <= 1; y++)
-        for (int x = -1; x <= 1; x++)
-        {
-            int2 n = clamp(c + int2(x, y), 0, int2(FIELD_W, FIELD_H) - 1);
-            sum += field[from + n.y * FIELD_W + n.x];
-        }
-    float spreadOut = lerp(field[from + i], sum / 9, saturate(spread));
-    field[to + i] = spreadOut * exp(-fade * dt) + float(deposits[i]) / DEPOSIT_SCALE;
-    deposits[i] = 0;
+    drawn[0] = 1 + trailed.count * (TRAIL - 1) + pool.count;
 }
 
 void graph()
@@ -398,6 +346,6 @@ void graph()
     emit();
     simulate();
     finish();
-    spreadField();
+    field.spread(fade, spread);
     particle(frame);
 }

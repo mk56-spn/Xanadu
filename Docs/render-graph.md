@@ -240,6 +240,23 @@ float4 rgba16f, uint r32ui); `[Precise]` and `[Compact]` change it. Atomics on u
 `take`, `keepLarger`, `keepSmaller` (`xanadu.store`). Reader: `Slang/BuildDeclarations.cs`. The design sections
 above keep the older `[Image(format, …)]` spelling as written at the time.
 
+### Stored values and list histories (2026-11-26, uncommitted)
+
+- **`Stored<T> name;`** is one T the graph keeps, zero when made, used by its plain name from any pass or draw:
+  `book.frame += 1`, `InterlockedAdd(book.written, 1, slot)`. It is a list of one underneath (`BuildBuffer.Stored`); the
+  rewrite turns every use of the name into `name[0]` (`StackBuild.Rewrite`). It takes `[Cached]`, `[Host]` or `[Shared]`
+  like a list, never `[Size]`. It replaces header lists with numbered slots and `[Size(1)]` flags.
+- **`[History(list)] List<T> name;`** is a list's last frame: a buffer of its own, as big, swapped with its list once a
+  frame before the graph's first node (`GraphResources.Turn`, `BuildBuffer.Source`). Not cleared, so the list starts
+  each frame with what it held two frames ago. A list or counter can have one; not a stored, host, cached or shared one.
+- **The board** says `one value` on a stored and `last frame` on a history.
+- **`Lab/particles`** is on both: its 32-uint `lists` header (offsets, `asfloat`/`asuint`) is a `Book` struct, and the
+  halves of `deaths` and `field` with their parity flips are `lastDeaths` and `fieldBefore`. Shots at frames 240 and 600
+  match the old stack (rockets, shells bursting from last frame's deaths, the fountain pooling in the field). Tests:
+  `Slang/Tests/StoredAndHistoryListTests.cs`. Slang suite 429 pass (1 skipped).
+- **Not yet:** swarm, klein_swarm (`made`) and raymarch_tiled (`tiles[0]`) still use one-element lists; a stored value
+  can't be lent to a library pass as itself (it goes as its list); lists have no `[Clear]` or frame lifetime yet.
+
 ## Decisions (2026-11-25)
 
 1. **Scope** is inferred from what a node binds.
@@ -347,6 +364,10 @@ Stage C, first half (2026-11-25):
   order with the other exits, blended as the material says, its z in the item's slice of the canvas depth (the
   vertex stage's `slice`), and still reads the item's images (`group.pixel` from the box's corner). Image draws and
   exits are one compile; `ImageDraws.Draw` / `Exit` share their binding.
+- **A draw's own blend (2026-11-26):** `[Draw(…, shade: fn, blend: add)]` (mix, add, sub, mul, premultiplied) blends
+  that draw onto its targets: an exit over its material's blend, an image draw instead of overwriting. With
+  `premultiplied` one draw holds normal and additive pixels together: `float4(rgb * a, a * (1 - glow))`, glow 1
+  adding light; its empty pixels (discarded) are all-zero ones, not alpha-0 ones. `Lab/particles` does it per emitter.
 - **Checked:** `Lab/sizes`' band is drawn onto the frame over the present, reading the glow; scene_room with a still
   torus matches the previous commit's shot.
 
@@ -704,3 +725,71 @@ The user's picks, in the order they're built:
   160 samplers and crash the driver.
 - **Not yet:** draws and `[Pass]`es filter by hand (`sampled(image, at, size)`); float4 images only; a packed one can't
   be sampled.
+
+## Blocks (proposed and first slice built 2026-11-26, uncommitted)
+
+A stack's files compose into one body: every global is everyone's, nothing is used twice, so splitting a big stack into
+files is partial classes, not structure. The library holds no state ("the library owns no buffer"), so machinery that
+needs lists (a field, a pool, events) can't live there either. A **block** is the layer between: a struct in a library
+module that owns its lists, its passes and its functions, used by declaring it.
+
+```hlsl
+// Library/xanadu/field.slang
+[Block(w, h)]
+public struct Field
+{
+    uint w, h;                                // the declaration's size: [Size(640, 360)] Field name;
+    [Size(w * h)] List<float> cells;          // this frame's
+    [History(cells)] List<float> before;      // last frame's
+    [Size(w * h)] List<uint> deposits;
+
+    public float at(float2 uv) { … }          // reads before
+    public void deposit(float2 uv, float amount) { … }
+}
+
+[Pass(64, over: w * h)]
+public void spread(uint i, Field f, float fade, float amount) { … }
+
+// a stack
+[Size(640, 360)] Field field;
+field.deposit(uv, 1);                         // in any pass or draw
+void graph() { …; field.spread(fade, spread); }
+```
+
+- **Lowering:** a declaration lays out the block's lists as `name_part` (as bundles do today), with its histories and
+  stored values, and a property by its name that builds the struct from them. Methods are the struct's own.
+- **A block's passes** take the block as a parameter; `field.spread(…)` in graph() calls the pass with that instance,
+  its lists bound, its size names (`w`, `h`) in scope for `over:`.
+- **Pass arguments take floats**, not only uints: `fade` is a uniform passed straight through.
+- **Where:** library modules first; a stack's own folder later (a file marked as a block, not composed into the body).
+- **Bundles move onto it:** `Slots`, `Gathered` and `Meshes` become blocks written in Slang; `BundleKinds` goes.
+- **First user:** `Lab/particles`, as `Field`, then `Pool`, `Events` (deaths) and `Trails`.
+
+### Where blocks are (2026-11-26)
+
+- **Built:** a library struct marked `[Block(sizes…)]` (`BuildBlocks`) holds `uint` sizes, then `[Size(n)] List<T>`,
+  `[History(list)] List<T>`, `Stored<T>` and `Counter` parts, then its functions. Slang sees a plain struct: the marks are
+  blanked and a constructor taking every field is added (`BuildBlocks.Prepared`, through `StackLibrary.Prepared`); a
+  Stored part is read as its one element inside the body. Generic over one type: `Events<T>`, declared `Events<Death>`.
+- **A stack declares one** at its top level, `[Size(640, 360)] Field field;` (`BuildDeclarations.Blocks`; the type found in
+  any library module, `StackLibrary.Block`). It lays out as `name_part` lists, histories and stored values, and a property
+  by its name that builds the struct (the bundle machinery: `BuildBundle.Block`, `.Sizes`).
+- **A block's pass** takes the block first after `i`; `field.spread(fade, spread)` in graph() runs it on that declaration
+  (`StackBuild.BlockCall`), the block's sizes in sight of `over:`, one pass per declaration (`BuildPass.Instance`;
+  the board calls it `field.spread`).
+- **Pass arguments take floats and ints** (`BuildParameter.Scalar`): a float goes as its bits and the wrapper reads it with
+  `asfloat`. Brick passes too.
+- **Shipped blocks:** `Field` (`xanadu.field`: deposit, at, slope, shown; pass `spread`), `Events<T>` (`xanadu.store`:
+  turn, add, heard, `[i]` last frame's), `Trails` (`xanadu.particles`: turn, start, record, back).
+- **`Lab/particles`** runs on all three: no field cells, deposit scale, death counts or trail head left in the stack, and
+  its `Book` is down to the emitters' plan. Shots at 240 and 600 look as before (fountain pooling in the field, shells
+  bursting from last frame's deaths and crackling, trails on rockets, shells and drops). Tests: `Slang/Tests/BlockTests.cs`.
+- **Blocks hold bundles** (user's pick, 2026-11-26): a block's `[Size(n)] Slots` and `[Size(n)] Gathered<T>` parts are
+  laid out in the stack's shared bookkeeping list as a stack's own are (`BundleKinds.Lay` from `BuildBlocks.Lay`), so
+  every count still costs one binding against SDL_GPU's 8 a pass. Slots and Gathered stay built in; `BundleKinds` stays.
+- **`Pool<T>`** (`xanadu.store`): items, free places (Slots) and the frame's live ones (Gathered<uint>); take, give,
+  live, living, count, turn, `[i]` and `put(i, value)`. A block reaches the stack through a read-only property, so a
+  subscript setter can't be called on it: blocks write with methods. `Lab/particles` runs on it (shot at 600 as before).
+- **Not yet:** `Meshes` as a block (it needs `[Cached]` and a count for `copies:`, which blocks don't have); a block's
+  pass is called on one block only, by its first parameter; a library schedule can't call block passes; block passes
+  can't be generic.

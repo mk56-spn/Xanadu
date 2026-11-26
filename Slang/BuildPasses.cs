@@ -1,14 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Xanadu.Core.Rendering;
 
 namespace Xanadu.Slang;
 
-/// <summary>A pass's parameter after its thread: a uint its calls pass, or (in a library) a buffer the call lends it.</summary>
-/// <param name="BufferType">The element type of a <c>List&lt;T&gt;</c> parameter; null for a uint.</param>
-public sealed record BuildParameter(string Name, string? BufferType)
+/// <summary>
+/// A pass's parameter after its thread: a number its calls pass (uint, int or float), or (in a library) a buffer the call
+/// lends it, or the block it is called on.
+/// </summary>
+/// <param name="BufferType">The element type of a <c>List&lt;T&gt;</c> parameter; null for a number or a block.</param>
+/// <param name="Scalar">A number's type: uint, int or float.</param>
+/// <param name="Block">A block parameter's type (<see cref="BlockType"/>): the pass is called on a declared block.</param>
+public sealed record BuildParameter(string Name, string? BufferType, string Scalar = "uint", string? Block = null)
 {
     public bool IsBuffer => BufferType is not null;
+
+    public bool IsNumber => BufferType is null && Block is null;
 }
 
 /// <summary>The <c>static const</c>s of a brick or library module, worked out on demand.</summary>
@@ -61,7 +69,7 @@ internal static partial class BuildPasses
     [GeneratedRegex(@"(?<attribute>\[\s*Pixels\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*(?:,\s*over\s*:\s*(?<over>\w+)\s*)?\)\s*\])\s*void\s+(?<name>\w+)\s*\((?<params>[^)]*)\)")]
     private static partial Regex PixelsDeclaration();
 
-    [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
+    [GeneratedRegex(@"(?<attribute>\[\s*Draw\s*\(\s*(?<w>\d+)\s*,\s*(?<h>\d+)\s*,\s*shade\s*:\s*(?<shade>\w+)\s*(?:,\s*blend\s*:\s*(?<blend>\w+)\s*)?(?:,\s*copies\s*:\s*(?<copies>[^\]]+?)\s*)?\)\s*\])\s*ItemVertex\s+(?<name>\w+)\s*\(\s*ItemVertex\s+\w+\s*\)")]
     private static partial Regex DrawDeclaration();
 
     /// <summary>The most cells a draw's grid has along a side.</summary>
@@ -102,7 +110,8 @@ internal static partial class BuildPasses
     /// their thread; a library's (<paramref name="library"/>) may take buffers too, the calls lending
     /// it the brick's, and its <c>over:</c> and <c>groups:</c> may name its own parameters.
     /// </summary>
-    public static List<BuildPass> Read(string code, System.Func<string, BuildValue?> constant, bool library)
+    /// <param name="blocks">A library's block types: a pass may take one first, after its thread, and is called on it.</param>
+    public static List<BuildPass> Read(string code, System.Func<string, BuildValue?> constant, bool library, IReadOnlyCollection<string>? blocks = null)
     {
         var passes = new List<BuildPass>();
         var declared = PassDeclaration().Matches(code);
@@ -118,7 +127,7 @@ internal static partial class BuildPasses
             if (passes.Any(pass => pass.Name == name))
                 throw new BuildProblem(match.Index, $"the pass {name} is declared twice.");
             (int threads, BuildExpression? over, BuildExpression? groups) = Shape(name, match.Groups["args"], constant);
-            BuildParameter[] parameters = Parameters(name, match.Groups["params"], library);
+            BuildParameter[] parameters = Parameters(name, match.Groups["params"], library, blocks ?? []);
             passes.Add(new BuildPass(name, threads, over, groups, parameters, match.Index, match.Index + match.Groups["attribute"].Length));
         }
 
@@ -163,7 +172,9 @@ internal static partial class BuildPasses
     /// <summary>
     /// The brick's draws: <c>[Draw(cells across, cells down, shade: fn)] ItemVertex name(ItemVertex v)</c>, a grid of
     /// triangles over the item's quad moved by <c>name</c> as a deform moves corners and coloured by <c>fn</c> as shade
-    /// colours pixels, drawn into the images its call names. <c>copies: n</c> last draws the grid n times, each copy
+    /// colours pixels, drawn into the images its call names. <c>blend: mode</c> after the shade blends it onto its
+    /// targets (a <see cref="BlendMode"/> by name; without it an exit blends as its material says and an image draw
+    /// overwrites). <c>copies: n</c> last draws the grid n times, each copy
     /// seeing its number as <c>copy</c>: n a number, a constant or a value, or a uint buffer whose first element the
     /// graph's passes write (drawn indirectly, the count never coming back to the CPU).
     /// </summary>
@@ -172,7 +183,7 @@ internal static partial class BuildPasses
         var declared = DrawDeclaration().Matches(code);
         foreach (Match marker in Regex.Matches(code, @"\[\s*Draw\s*\("))
             if (!declared.Any(match => match.Index == marker.Index))
-                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type; copies: n last draws it n times.");
+                throw new BuildProblem(marker.Index, "write a draw as [Draw(64, 64, shade: name)] ItemVertex name(ItemVertex v), with float4 name(ItemInput i) for its shade, or a struct of outputs as its return type; blend: mode after the shade blends it (mix, add, sub, mul, premultiplied); copies: n last draws it n times.");
 
         foreach (Match match in declared)
         {
@@ -193,9 +204,16 @@ internal static partial class BuildPasses
                 Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,
                 CopiesName = copies.Success && Regex.IsMatch(copies.Value, @"^\w+$") ? copies.Value : null,
                 Translucent = Marked(code, match.Index, "Translucent"),
+                Blend = match.Groups["blend"] is { Success: true } blend ? BlendOf(blend) : null,
             });
         }
     }
+
+    /// <summary>A draw's <c>blend:</c>, one of <see cref="BlendMode"/>'s names in any case.</summary>
+    private static BlendMode BlendOf(Group blend) =>
+        System.Enum.TryParse(blend.Value, ignoreCase: true, out BlendMode mode) && System.Enum.IsDefined(mode)
+            ? mode
+            : throw new BuildProblem(blend.Index, $"blend: is one of mix, add, sub, mul or premultiplied, not {blend.Value}.");
 
     /// <summary>Whether the attributes just before <paramref name="at"/> include <c>[marker]</c>, in any order.</summary>
     private static bool Marked(string code, int at, string marker) =>
@@ -236,30 +254,32 @@ internal static partial class BuildPasses
         return (threads, over, groups);
     }
 
-    private static BuildParameter[] Parameters(string name, Group parameters, bool library)
+    private static BuildParameter[] Parameters(string name, Group parameters, bool library, IReadOnlyCollection<string> blocks)
     {
         string[] declared = parameters.Value.Split(',', System.StringSplitOptions.TrimEntries);
         var read = new List<BuildParameter>();
         for (int k = 0; k < declared.Length; k++)
         {
             string text = Regex.Replace(declared[k], @"\s+", " ");
-            Match uint32 = Regex.Match(text, @"^uint (\w+)$");
+            Match number = Regex.Match(text, @"^(?<scalar>uint|int|float) (?<name>\w+)$");
             Match buffer = BufferParameter().Match(text);
+            Match block = Regex.Match(text, @"^(?<type>\w+) (?<name>\w+)$");
+            if (k == 0 && text.StartsWith("uint "))
+                continue;
             if (k > 0 && library && buffer.Success)
                 read.Add(new BuildParameter(buffer.Groups["name"].Value, buffer.Groups["type"].Value));
-            else if (uint32.Success)
-            {
-                if (k > 0)
-                    read.Add(new BuildParameter(uint32.Groups[1].Value, null));
-            }
+            else if (k > 0 && number.Success)
+                read.Add(new BuildParameter(number.Groups["name"].Value, null, number.Groups["scalar"].Value));
+            else if (k == 1 && block.Success && blocks.Contains(block.Groups["type"].Value))
+                read.Add(new BuildParameter(block.Groups["name"].Value, null, Block: block.Groups["type"].Value));
             else
                 throw new BuildProblem(parameters.Index, library
-                    ? $"a library pass takes uint i (its thread), then uints and List<T>s its calls pass it: {name}(uint i, uint n, List<uint> keys)."
-                    : $"a pass takes uint i (its thread), then up to {StackBuild.MaxArguments} uints its calls in build() pass it: {name}(uint i, uint round).");
+                    ? $"a library pass takes uint i (its thread), then maybe the block it is called on, then numbers (uint, int, float) and List<T>s its calls pass it: {name}(uint i, uint n, List<uint> keys)."
+                    : $"a pass takes uint i (its thread), then up to {StackBuild.MaxArguments} numbers (uint, int, float) its calls in graph() pass it: {name}(uint i, uint round, float fade).");
         }
 
-        if (read.Count(parameter => !parameter.IsBuffer) > StackBuild.MaxArguments)
-            throw new BuildProblem(parameters.Index, $"a pass takes at most {StackBuild.MaxArguments} uints after i.");
+        if (read.Count(parameter => parameter.IsNumber) > StackBuild.MaxArguments)
+            throw new BuildProblem(parameters.Index, $"a pass takes at most {StackBuild.MaxArguments} numbers after i.");
         return [.. read];
     }
 }

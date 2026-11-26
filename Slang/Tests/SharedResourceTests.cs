@@ -90,7 +90,7 @@ public sealed class SharedResourceTests
     }
 
     [TestCase("[Shared] [Kept] Image<float> mask;", "can't be [Kept]")]
-    [TestCase("[Shared] [Host] [Size(4)] List<uint> hits;", "can't be [Cached] or [Host]")]
+    [TestCase("[Shared] [Host] [Size(4)] List<uint> hits;", "can't be [Cached], [Host]")]
     [TestCase("[Shared] Counter hits;", "takes no attributes")]
     public void SharedTakesNoLifeOfItsOwn(string declaration, string says)
     {

@@ -5,7 +5,6 @@ using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
 using MoonWorks;
 using MoonWorks.Graphics;
-using MoonWorks.Input;
 using SDL3;
 using Xanadu.Core.Storage;
 using Xanadu.Core.Theme;
@@ -397,9 +396,7 @@ internal abstract class HostApp : Game
         long lap = started;
         _probe?.BeginPhase();
         TextInput.Update(Inputs.Keyboard, delta);
-        // While a code editor has the keys, F12 is its go-to-declaration.
-        if (Inputs.Keyboard.IsPressed(KeyCode.F12) && !TextInput.Claimed)
-            _screenshotRequested = true;
+        HostKeys.Poll(this, Inputs.Keyboard, TextInput.Claimed);
         FollowWindowSize();
         Pointer.Poll();
         float time = (float)(now - _started).TotalSeconds;

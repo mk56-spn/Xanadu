@@ -254,9 +254,14 @@ public static partial class SlangShaders
         string guard = pass.Over is null ? "" : "if (id.x >= xanaduPassFrame.over) return;";
         // A brick's pass takes its uints; a library's takes them and the brick buffers the call lent, in the order declared.
         int number = 0, lent = 0;
-        string arguments = string.Concat(pass.Parameters.Select(parameter => parameter.IsBuffer
-            ? $", effect0::{build.Buffers[pass.Bound[lent++]].Name}"
-            : $", xanaduPassFrame.args[{number / 4}][{number++ % 4}]"));
+        string arguments = string.Concat(pass.Parameters.Select(parameter => parameter switch
+        {
+            { IsBuffer: true } => $", effect0::{build.Buffers[pass.Bound[lent++]].Name}",
+            { Block: not null } => $", effect0::{pass.Instance!.Name}",
+            { Scalar: "float" } => $", asfloat(xanaduPassFrame.args[{number / 4}][{number++ % 4}])",
+            { Scalar: "int" } => $", int(xanaduPassFrame.args[{number / 4}][{number++ % 4}])",
+            _ => $", xanaduPassFrame.args[{number / 4}][{number++ % 4}]",
+        }));
         string called = pass.Library is { } library ? $"{library.Name}.{pass.Name}" : $"effect0::{pass.Name}";
         string module = pass.Library is { } from ? $"import {from.Module};" : "";
         return $$"""

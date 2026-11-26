@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Xanadu.Core.Rendering;
 
 namespace Xanadu.Slang;
 
@@ -17,8 +18,11 @@ namespace Xanadu.Slang;
 /// the material's values moved), so a mesh built from values is built once, not every frame.</param>
 /// <param name="Bundle">The <see cref="BuildBundle"/> it is a part of, by name; null for a list of its own.</param>
 /// <param name="Shared">Marked <c>[Shared]</c>: the frame's one list of this name and type, whatever material declares it.</param>
+/// <param name="Stored">A <c>Stored&lt;T&gt; name;</c>: one T, kept like a list of one, used by its plain name (<c>book.written</c>).</param>
+/// <param name="Source">For a <c>[History(list)] List&lt;T&gt; name;</c>, the list (its place) it is last frame's of; -1 otherwise.
+/// The runner swaps the two once a frame, before the graph's first node, so the source starts with what it held two frames ago.</param>
 public sealed record BuildBuffer(string Name, string Type, long Count, bool Coherent, int Start, int End, bool Host = false, bool Cached = false,
-    string? Bundle = null, bool Shared = false);
+    string? Bundle = null, bool Shared = false, bool Stored = false, int Source = -1);
 
 /// <summary>
 /// A pass a BUILD brick declares: <c>[Pass(threads, over: n)]</c> (a thread per element of n, the
@@ -33,8 +37,14 @@ public sealed record BuildBuffer(string Name, string Type, long Count, bool Cohe
 public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, BuildExpression? Groups, BuildParameter[] Parameters,
     int Start, int End)
 {
-    /// <summary>The uint parameters after <c>i</c>, by name, in order: what the pass frame's arguments carry.</summary>
-    public string[] Arguments { get; } = [.. Parameters.Where(parameter => !parameter.IsBuffer).Select(parameter => parameter.Name)];
+    /// <summary>The number parameters after <c>i</c>, by name, in order: what the pass frame's arguments carry.</summary>
+    public string[] Arguments { get; } = [.. Parameters.Where(parameter => parameter.IsNumber).Select(parameter => parameter.Name)];
+
+    /// <summary>Which of <see cref="Arguments"/> are floats, carried as their bits.</summary>
+    public bool[] Floats { get; } = [.. Parameters.Where(parameter => parameter.IsNumber).Select(parameter => parameter.Scalar == "float")];
+
+    /// <summary>For a block's pass, the declared block it is called on (<c>field</c> in <c>field.spread(…)</c>); null otherwise.</summary>
+    public BuildBundle? Instance { get; init; }
 
     /// <summary>A draw's <c>copies:</c>, worked out when lowered; null for one copy, or when <see cref="CopiesBuffer"/> counts them.</summary>
     public BuildExpression? Copies { get; init; }
@@ -44,6 +54,9 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
 
     /// <summary>A draw marked <c>[Translucent]</c> just before its <c>[Draw]</c>: it tests the depth and never writes it.</summary>
     public bool Translucent { get; init; }
+
+    /// <summary>A draw's <c>blend:</c>; null when it has none.</summary>
+    public BlendMode? Blend { get; init; }
 
     /// <summary>A draw marked <c>[CoversBox]</c>: its grid covers the item's box on the target instead of its quad.</summary>
     public bool CoversBox { get; init; }
@@ -85,7 +98,7 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     public string Signature { get; init; } = "";
 
     /// <summary>What build() calls it: <c>link</c>, or <c>bvh.link</c> for a library's.</summary>
-    public string Called => Library is null ? Name : $"{Library.Name}.{Name}";
+    public string Called => Instance is { } block ? $"{block.Name}.{Name}" : Library is null ? Name : $"{Library.Name}.{Name}";
 }
 
 /// <summary>One step of a <c>build()</c> schedule.</summary>
@@ -335,6 +348,12 @@ public sealed partial class StackBuild
         foreach (BuildPass pass in _passes.Where(pass => pass.Library is null))
             spans.Add((pass.Start, pass.End, ""));
         spans.Add((_schedule.Start, _schedule.End, ""));
+        // A Stored value is its buffer's one element wherever the code names it: book.written is book[0].written.
+        string blank = BuildText.Blank(source);
+        foreach (BuildBuffer stored in Buffers.Where(buffer => buffer.Stored))
+            foreach (Match use in Regex.Matches(blank, $@"(?<![\w.:]){stored.Name}\b(?!\s*::)"))
+                if (!spans.Exists(span => use.Index < span.End && span.Start < use.Index + use.Length))
+                    spans.Add((use.Index, use.Index + use.Length, $"{stored.Name}[0]"));
         if (sampled is not null)
             foreach (Match call in SampledCall().Matches(source))
                 if (Images.ToList().FindIndex(declared => declared.Name == call.Groups["name"].Value) is var k and >= 0 && Sampleable(k)

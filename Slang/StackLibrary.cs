@@ -37,13 +37,17 @@ public sealed partial class StackLibrary
 
     public IReadOnlyList<LibrarySchedule> Schedules { get; }
 
+    /// <summary>The blocks it declares (<see cref="BlockType"/>): structs that own their lists, declared in a stack to use.</summary>
+    public IReadOnlyList<BlockType> Blocks { get; }
+
     private StackLibrary(string module, string code)
     {
         Module = module;
         Name = module[(module.LastIndexOf('.') + 1)..];
         Code = code;
         _constants = new BuildConstants(code);
-        Passes = BuildPasses.Read(code, _constants.Of, library: true);
+        Blocks = BuildBlocks.Read(code, this);
+        Passes = BuildPasses.Read(code, _constants.Of, library: true, blocks: [.. Blocks.Select(block => block.Name)]);
         Schedules = ReadSchedules(code);
     }
 
@@ -57,18 +61,28 @@ public sealed partial class StackLibrary
     public static StackLibrary? Of(string module, string source)
     {
         string code = BuildText.Blank(source);
-        return BuildPasses.PassMarker().IsMatch(code) || ScheduleDeclaration().IsMatch(code) ? new StackLibrary(module, code) : null;
+        return Ships(code) ? new StackLibrary(module, code) : null;
     }
+
+    /// <summary>Whether a module's code (comments blanked) has passes, schedules or blocks for graphs.</summary>
+    private static bool Ships(string code) =>
+        BuildPasses.PassMarker().IsMatch(code) || ScheduleDeclaration().IsMatch(code) || BuildBlocks.BlockDeclaration().IsMatch(code);
 
     /// <summary>
     /// The module as Slang builds it: every <c>[Pass(…)]</c> attribute and every <c>[Schedule]</c>
-    /// function blanked, lines kept. A module without either comes back as it was.
+    /// function blanked and its blocks made plain structs (<see cref="BuildBlocks.Prepared"/>), lines kept. A module
+    /// without any comes back as it was.
     /// </summary>
     public static string Prepared(string source)
     {
         string code = BuildText.Blank(source);
-        if (!BuildPasses.PassMarker().IsMatch(code) && !ScheduleDeclaration().IsMatch(code))
+        if (!Ships(code))
             return source;
+        if (BuildBlocks.BlockDeclaration().IsMatch(code))
+        {
+            source = BuildBlocks.Prepared(source, code);
+            code = BuildText.Blank(source);
+        }
         var spans = new List<(int, int, string)>();
         foreach (Match pass in Regex.Matches(code, @"\[\s*Pass\s*\([^\]]*\)\s*\]"))
             spans.Add((pass.Index, pass.Index + pass.Length, ""));
@@ -136,6 +150,23 @@ public sealed partial class StackLibrary
                 if (known.Read is not null)
                     return known.Read;
             }
+        }
+
+        return null;
+    }
+
+    /// <summary>The block a stack declares by <paramref name="type"/>, from whichever library module ships it; null when none does.</summary>
+    public static BlockType? Block(string type)
+    {
+        if (SlangShaders.LibraryPath is not { } library || !Directory.Exists(library))
+            return null;
+        foreach (string file in Directory.EnumerateFiles(library, "*.slang", SearchOption.AllDirectories).Order(System.StringComparer.Ordinal))
+        {
+            string text = File.ReadAllText(file);
+            if (!text.Contains(type, System.StringComparison.Ordinal) || !text.Contains("Block", System.StringComparison.Ordinal))
+                continue;
+            if (Named(Path.GetFileNameWithoutExtension(file))?.Blocks.FirstOrDefault(block => block.Name == type) is { } found)
+                return found;
         }
 
         return null;

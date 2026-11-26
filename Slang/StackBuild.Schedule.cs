@@ -82,6 +82,8 @@ public sealed partial class StackBuild
         StackLibrary? library = scope.Library;
         if (tokens.Take("."))
         {
+            if (scope.Library is null && Bundles.FirstOrDefault(bundle => bundle.Name == name && bundle.Block is not null) is { } block)
+                return [BlockCall(tokens, scope, block, tokens.ExpectName(), first)];
             library = Library(name, first.Index);
             name = tokens.ExpectName();
         }
@@ -222,7 +224,7 @@ public sealed partial class StackBuild
         if (library.Passes.FirstOrDefault(pass => pass.Name == name) is { } declared)
         {
             BuildExpression[] arguments = Arguments(tokens, scope, called, declared.Parameters, first.Index, out int[] bound);
-            int at = _passes.FindIndex(pass => pass.Library == library && pass.Name == name && pass.Bound.SequenceEqual(bound));
+            int at = _passes.FindIndex(pass => pass.Library == library && pass.Instance is null && pass.Name == name && pass.Bound.SequenceEqual(bound));
             if (at < 0)
             {
                 at = _passes.Count;
@@ -257,6 +259,30 @@ public sealed partial class StackBuild
         }
 
         throw new BuildProblem(first.Index, $"the library {library.Name} has no pass or schedule {name}.");
+    }
+
+    /// <summary>
+    /// A pass of a declared block's, called on it: <c>field.spread(fade, spread)</c>. The block goes in as the pass's first
+    /// parameter; its sizes are in sight of the pass's <c>over:</c>. Each declared block runs a pass of its own.
+    /// </summary>
+    private BuildCall BlockCall(BuildTokens tokens, Scope scope, BuildBundle block, string name, BuildToken first)
+    {
+        BlockType type = block.Block!;
+        string called = $"{block.Name}.{name}";
+        BuildPass declared = type.Library.Passes.FirstOrDefault(pass => pass.Name == name && pass.Parameters is [{ Block: var of }, ..] && of == type.Name)
+            ?? throw new BuildProblem(first.Index, $"{block.Name} is a {type.Name}, which has no pass {name}"
+                + (type.Library.Passes.Where(pass => pass.Parameters is [{ Block: var of }, ..] && of == type.Name).Select(pass => pass.Name).ToList() is { Count: > 0 } passes
+                    ? $": it has {string.Join(", ", passes)}."
+                    : "; it has no passes."));
+        BuildExpression[] arguments = Arguments(tokens, scope, called, declared.Parameters[1..], first.Index, out int[] bound);
+        int at = _passes.FindIndex(pass => pass.Instance == block && pass.Name == name && pass.Bound.SequenceEqual(bound));
+        if (at < 0)
+        {
+            at = _passes.Count;
+            _passes.Add(declared with { Library = type.Library, Bound = bound, Instance = block, Start = first.Index, End = first.Index });
+        }
+
+        return new BuildCall(first.Index, at, arguments);
     }
 
     /// <summary>

@@ -28,6 +28,9 @@ public static class DebugKeys
     /// <summary>Ctrl+`: the text terminal, dropped down over any screen (plain ` is the game's docs).</summary>
     public const Key Terminal = Key.Quoteleft;
 
+    /// <summary>F11: the window between borderless fullscreen and a window (the app's band's top slot, in every app).</summary>
+    public const Key Fullscreen = Key.F11;
+
     /// <summary>F12: save a screenshot.</summary>
     public const Key Screenshot = Key.F12;
 

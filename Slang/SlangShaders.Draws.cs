@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Xanadu.Core.Rendering;
 
 namespace Xanadu.Slang;
 
@@ -12,6 +13,12 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
 
     /// <summary>Marked <c>[Translucent]</c> before its <c>[Draw]</c>: its triangles test the depth and never write it (glows).</summary>
     public bool Translucent { get; init; }
+
+    /// <summary>
+    /// Its <c>blend:</c>: how it goes onto its targets, over its material's blend when it is an exit; null for the
+    /// material's (an exit) or none (an image draw overwrites).
+    /// </summary>
+    public BlendMode? Blend { get; init; }
 
     /// <summary>The uint buffer counting its copies on the GPU (its place in the graph's buffers), or -1: its call says how many.</summary>
     public int CopiesBuffer { get; init; } = -1;
@@ -73,7 +80,7 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField),
+        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend),
             "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
@@ -101,7 +108,7 @@ public static partial class SlangShaders
                 storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
-            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, CoversBox = pass.CoversBox };
+            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, Blend = pass.Blend, CoversBox = pass.CoversBox };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
@@ -176,12 +183,15 @@ public static partial class SlangShaders
     }
 
     /// <summary>
-    /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where the alpha is 0, or
+    /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where it adds nothing (the
+    /// alpha 0, or every channel 0 when it is premultiplied, where a 0 alpha is light added), or
     /// each field of the struct it returns, in order. The input's depth is the pixel's, pixels into the screen; a
     /// <paramref name="depth"/> field puts its own back into the slice as the vertex stage puts a corner's.
     /// </summary>
-    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth)
+    private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth,
+        BlendMode? blend)
     {
+        string empty = blend == BlendMode.Premultiplied ? "all(shown == 0.0)" : "shown.a <= 0.0";
         (string imports, string code, string label) = Split(name, source);
         DrawLayout layout = DrawLayout.Of(outputs);
         string fields = string.Join(" ", layout.Targets.Select((type, t) => $"{type} o{t} : SV_Target{t};"))
@@ -198,13 +208,13 @@ public static partial class SlangShaders
             : outputs[0].Field is null
             ? """
               float4 shown = effect0::SHADE(ARGUMENTS);
-                  if (shown.a <= 0.0)
+                  if (EMPTY)
                       discard;
                   o.o0 = shown;
               """
             : "let made = effect0::SHADE(ARGUMENTS);\n" + string.Join("\n", outputs.Select((output, k) => $"    o.o{k} = made.{output.Field};"))
               + (depth is null ? "" : $"\n    o.xanaduDepth = xanaduDrawBox.slice.x + xanaduDrawBox.slice.y * (0.5 + 0.5 * made.{depth} / (abs(made.{depth}) + 1024.0));");
-        written = written.Replace("SHADE", shade).Replace("ARGUMENTS", arguments);
+        written = written.Replace("SHADE", shade).Replace("ARGUMENTS", arguments).Replace("EMPTY", empty);
         return $$"""
             import xanadu.stage;
             {{imports}}

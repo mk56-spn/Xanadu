@@ -11,7 +11,7 @@
 // 3D scenes of solids recorded in a BUILD pass and shot in TRACE: Solid (Block, Orb, Plane, Pillar, Pill, Hoop, Cone),
 // Scene, scene.shot, scene.shoot and scene.shadows (scene), what 3D producers and the lighting share:
 // Material, Lighting, Surface, Visibility, Seen, makers and IShadows (light),
-// a particle system's shapes, moves and looks under particles. (particles), and for BUILD bricks, GPU sorts and
+// a particle system's shapes, moves and looks under particles. (particles), Field (field: a grid that fades and spreads, a block), and for BUILD bricks, GPU sorts and
 // prefix sums under sort. (sort) and a BVH rebuilt every frame, with its walk, under bvh. (bvh).
 // Nothing here knows the game: its play state and chart are `import rhythm;`.
 module xanadu;
@@ -38,5 +38,6 @@ __exported import xanadu.march;
 __exported import xanadu.light;
 __exported import xanadu.scene;
 __exported import xanadu.particles;
+__exported import xanadu.field;
 __exported import xanadu.sort;
 __exported import xanadu.bvh;

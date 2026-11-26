@@ -14,7 +14,8 @@ namespace Xanadu.Rendering.Passes;
 /// The buffers a material's graph keeps (<see cref="BuildBuffers"/> on its entity): made, zeroed, the first time the
 /// graph runs after its effect compiled, and its <c>[Host]</c> buffers filled from the material's data whenever that moves.
 /// A <c>[Shared]</c> list is the frame's, not the material's: one buffer for every graph declaring that name and type,
-/// zeroed when made, as big as the biggest declaration (made again, zeroed, when a bigger one comes). Images are each
+/// zeroed when made, as big as the biggest declaration (made again, zeroed, when a bigger one comes). A list's
+/// <c>[History]</c> is a buffer of its own, swapped with it each frame (<see cref="Turn"/>). Images are each
 /// item's, from <see cref="ItemImages"/>.
 /// </summary>
 internal sealed class GraphResources(GraphicsDevice device, MaterialStore materials) : IDisposable
@@ -77,6 +78,14 @@ internal sealed class GraphResources(GraphicsDevice device, MaterialStore materi
             return false;
         kept.Filled = stamp;
         return true;
+    }
+
+    /// <summary>Each <c>[History(list)]</c> swapped with its list: once a frame, before the graph's first node.</summary>
+    public static void Turn(BuildBuffers kept, CompiledBuild build)
+    {
+        for (int k = 0; k < kept.Buffers.Length; k++)
+            if (build.Shape.Buffers[k].Source is >= 0 and var source)
+                (kept.Buffers[k], kept.Buffers[source]) = (kept.Buffers[source], kept.Buffers[k]);
     }
 
     /// <summary>
