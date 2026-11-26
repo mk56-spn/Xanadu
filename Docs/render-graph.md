@@ -868,6 +868,14 @@ renderer owns a material for:
   `primitives.slang`'s hand pipeline and `StepKind.Primitives` go.
 - **3. The CPU side (`UiResidentSync`, pieces, the hash) moved wherever the
   graph gives it a better shape.
+- **Maybe later: other stacks drawing UI** (parked 2026-11-26, not planned). With the canvas a stack, a stack that
+  writes `Placing` / `Drawn` records the canvas expands draws exactly as UI does (boxes, text from the glyph pages,
+  clip and depth order), with no input: hit testing, `TakesInput` and focus stay on the CPU's entities. What it would
+  take: the canvas's lists `[Shared]` (writers ordered before the canvas, which runs ahead of every prelude today); a
+  range a run sets aside for them with a count the GPU writes (the draws' indirect copies), since `instanceCount`,
+  each run's range, its texture slots and its depth band are the CPU's now; textures limited to slots already bound and
+  the glyph pages. Uses: HUD bits, debug overlays, particles that spell text, no CPU entity each; user-made UI
+  (Xif) drawing through the same records, input left to the engine's tree.
 
 The bar: frame times on the CJK lab and the editor no worse than today, and the old hand-written path deleted, not
 kept beside it.
