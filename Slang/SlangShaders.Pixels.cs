@@ -146,7 +146,7 @@ public static partial class SlangShaders
         $"time = {time}; beat = {beat}; dt = {dt};";
 
     /// <summary>The shader tool's timeline, when it drives the clock, over the frame's: set after the input is built.</summary>
-    private static string TimelineClock(string source, bool shading) => !DrivesClock(source)
+    internal static string TimelineClock(string source, bool shading) => !DrivesClock(source)
         ? ""
         : $"time = effect0::{ClockOverride}.x; beat = effect0::{ClockOverride}.y;" + (shading ? " i.time = time; shading.time = time;" : "");
 }

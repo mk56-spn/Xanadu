@@ -7,105 +7,6 @@ using System.Threading;
 
 namespace Xanadu.Slang;
 
-/// <summary>One value an effect reads from its <c>Params</c> block: where it sits, how big, and its default.</summary>
-/// <param name="IsBool">A <c>uniform bool</c>: an on/off switch, held as 0 or 1 (and written as an int, like <paramref name="IsInt"/>).</param>
-/// <param name="Rows">A matrix's rows (1 for a scalar or vector); each row takes 16 bytes of the block, as Slang lays them out.</param>
-/// <param name="Columns">A vector's channels or a matrix's columns (1 for a scalar).</param>
-/// <param name="IsUnsigned">A <c>uint</c> (or uint vector): never below zero.</param>
-public sealed record ShaderParam(string Name, int Offset, int Size, bool IsInt, Vector4 Default, bool IsBool = false,
-    int Rows = 1, int Columns = 1, bool IsUnsigned = false)
-{
-    /// <summary>Tagged <c>[Fit]</c>: an item fitting its shader fills x and y with its shape's half size.</summary>
-    public bool Fit { get; init; }
-
-    /// <summary>Tagged <c>[Options("a|b|c")]</c>: the names of a whole-number value's choices, 0 first; null when untagged.</summary>
-    public string[]? Options { get; init; }
-
-    /// <summary>A <c>floatRxC</c>: rows of <see cref="Columns"/>, 16 bytes apart.</summary>
-    public bool IsMatrix => Rows > 1;
-}
-
-/// <summary>
-/// A compiled entry point and what reflection says it binds: how many
-/// samplers and uniform buffers (for <c>ShaderCreateInfo</c>), the sampler
-/// names by binding, and the layout of uniform buffer 1 (an effect's values).
-/// </summary>
-public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniformBuffers, ShaderParam[] parameters, int paramsSize, int storageBuffers = 0)
-{
-    public byte[] Spirv { get; } = spirv;
-
-    /// <summary>Sampler names by binding index in the stage's sampler set; a gap is null.</summary>
-    public string[] Samplers { get; } = samplers;
-
-    public uint UniformBuffers { get; } = uniformBuffers;
-
-    public ShaderParam[] Params { get; } = parameters;
-
-    /// <summary>Read-only storage buffers: every library global (after the samplers in a fragment stage), then the stack's buffers it reads.</summary>
-    public int StorageBuffers { get; } = storageBuffers;
-
-    /// <summary>Bytes in one element of every structured buffer it declares, by name: a BUILD brick's buffers are sized from it.</summary>
-    public IReadOnlyDictionary<string, int> BufferBytes { get; init; } = new Dictionary<string, int>();
-
-    /// <summary>
-    /// The stack's BUILD buffers this stage binds, by their place in <see cref="StackBuild.Buffers"/>,
-    /// in binding order after its own storage buffers (counted in <see cref="StorageBuffers"/>).
-    /// </summary>
-    public int[] StackBuffers { get; init; } = [];
-
-    /// <summary>A stack's graph, compiled: its resources, its passes and draws, and their schedule; null without one. Set on the fragment.</summary>
-    public CompiledBuild? Build { get; init; }
-
-    /// <summary>
-    /// An effect's own vertex stage, from its <c>deform</c>; null for the host's standard one.
-    /// Its values block is the fragment's, as vertex uniform buffer 1; the frame is buffer 2,
-    /// and the globals, the storage buffers of set 0.
-    /// </summary>
-    public CompiledShader? Vertex { get; init; }
-
-    /// <summary>
-    /// A deforming effect's <c>[Grid(columns, rows)]</c>: the cells each rect it draws is cut into;
-    /// null for four corners. Set on <see cref="Vertex"/>.
-    /// </summary>
-    public (int Columns, int Rows)? Grid { get; init; }
-
-    /// <summary>Whether a deform is <c>[Translucent]</c>: its triangles test the depth and never write it. Set on <see cref="Vertex"/>.</summary>
-    public bool Translucent { get; init; }
-
-    /// <summary>Bytes in the values block, padded to 16; 0 when the effect has none.</summary>
-    public int ParamsSize { get; } = paramsSize;
-
-    /// <summary>
-    /// Whether the compiled code really samples the screen copy (fragment
-    /// sampler 1). Reflection lists every declared global, used or not; the
-    /// SPIR-V keeps only what the entry point reaches.
-    /// </summary>
-    public bool ReadsScreen { get; } = SpirvScan.Binds(spirv, set: 2, binding: 1);
-
-    /// <summary>
-    /// A uniform as a BUILD schedule reads it: <paramref name="set"/> when the material sets it,
-    /// else its default, whole for an int; null for a name that isn't one of its values.
-    /// </summary>
-    public BuildValue? ScheduleValue(string name, Vector4? set)
-    {
-        foreach (ShaderParam param in Params)
-        {
-            if (param.Name != name)
-                continue;
-            Vector4 value = set ?? param.Default;
-            return param.IsInt ? BuildValue.Of((long)MathF.Round(value.X)) : new BuildValue(value.X, false);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Whether the compiled code really samples the depth: fragment sampler 2, or, for a
-    /// deforming effect's vertex stage, vertex sampler 0 (set when it is compiled).
-    /// </summary>
-    public bool ReadsDepth { get; init; }
-}
-
 /// <summary>
 /// Slang to SPIR-V at runtime (<see cref="SlangNative"/>), one entry point at a time,
 /// with the shipped library (<c>Assets/Shaders/Library</c>: <c>xanadu.stage</c>,
@@ -265,14 +166,14 @@ public static partial class SlangShaders
     }
 
     /// <summary>The defines placing every global from binding <paramref name="first"/> of descriptor set <paramref name="set"/>.</summary>
-    private static string[] GlobalDefines(int first, int set) =>
+    internal static string[] GlobalDefines(int first, int set) =>
         [.. Globals.Select((name, i) => $"{SlangModules.GlobalBindingDefine(name)}={first + i}"), $"{SlangModules.GlobalSetDefine}={set}"];
 
     /// <summary>
     /// Throws when the compiled stage reads a global nothing in this run declares
     /// (<see cref="Xanadu.Core.Rendering.ShaderGlobals"/>): the host it runs in doesn't have that data.
     /// </summary>
-    private static void CheckDeclared(string name, CompiledShader compiled, int set, int first)
+    internal static void CheckDeclared(string name, CompiledShader compiled, int set, int first)
     {
         for (int i = 0; i < Globals.Count; i++)
         {
@@ -396,6 +297,7 @@ public static partial class SlangShaders
             Vertex = Deforms(source) ? CompileVertex(name, source, build) : null,
             StackBuffers = buffers,
             Build = build is null ? null : CompileBuild(name, source, build, fragment),
+            CopiedSource = build is null ? source : null,
         };
     }
 
@@ -469,7 +371,7 @@ public static partial class SlangShaders
     /// SDL_GPU puts storage buffers after the samplers, which are the host's three
     /// plus the effect's own <c>[[vk::binding(n, 2)]]</c> textures.
     /// </summary>
-    private static int StorageBinding(string source)
+    internal static int StorageBinding(string source)
     {
         int next = 3;
         foreach (Match match in Regex.Matches(
@@ -479,7 +381,7 @@ public static partial class SlangShaders
     }
 
 
-    private static CompiledShader CompileWrapped(
+    internal static CompiledShader CompileWrapped(
         string code, string entry, string stage, int samplerSpace, int uniformSpace, string[]? defines = null, bool bindGlobals = true)
     {
         defines ??= [];

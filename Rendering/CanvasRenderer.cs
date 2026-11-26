@@ -66,6 +66,9 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly MaterialViews _views;
     private readonly GraphRunner _graphs;
     private readonly ExitDraws _exits;
+    private readonly CopiesPipelines _copiesPipelines;
+    private readonly CopiedMeshes _copiedMeshes;
+    private readonly CopyDraws _copies;
     private readonly DrawPass _draw;
 
     private float _lastTime = float.NaN;
@@ -90,11 +93,15 @@ internal sealed class CanvasRenderer : IDisposable
 
         _grids = new GridCutter(device, _frame.Steps);
         _collect = new CanvasCollect(tree, _residents, _targets.FullClip);
-        _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids);
+        _copiesPipelines = new CopiesPipelines(device, format, _targets.DepthFormat);
+        _copiedMeshes = new CopiedMeshes(device, _cache);
+        _builder = new StepBuilder(_frame, Pipelines, _pool, _placed, _residents, _keptMeshes, _grids,
+            new CopySteps(_frame, Pipelines, _copiesPipelines, _copiedMeshes));
         _views = new MaterialViews(device, _targets, tree);
         _graphs = new GraphRunner(device, _frame, _targets, Pipelines, _materials, _globals, _views);
         _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices);
-        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits);
+        _copies = new CopyDraws(device, _frame, _targets, Pipelines, _copiesPipelines, _globals, _exits);
+        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _placed, _pool, Textures, Particles, _graphs, _exits, _copies);
     }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
@@ -183,6 +190,7 @@ internal sealed class CanvasRenderer : IDisposable
         {
             Upload(commands);
             _keptMeshes.Upload(commands, _frame.Number);
+            _copiedMeshes.Upload(commands, _frame.Number);
             _residents.Upload(commands, _placed.Instances.Count);
         }
         using (commands.Scope("expand primitives"))
@@ -230,12 +238,16 @@ internal sealed class CanvasRenderer : IDisposable
         _pool.Upload(copy);
         _placed.Upload(copy, _residents.Instances);
         _vertices.Upload(copy, CollectionsMarshal.AsSpan(_frame.Vertices));
+        _copies.Upload(copy);
         commands.EndCopyPass(copy);
     }
 
     public void Dispose()
     {
         _keptMeshes.Dispose();
+        _copiedMeshes.Dispose();
+        _copies.Dispose();
+        _copiesPipelines.Dispose();
         Pipelines.Dispose();
         Particles.Dispose();
         _primitives.Dispose();

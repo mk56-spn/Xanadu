@@ -15,7 +15,7 @@ namespace Xanadu.Rendering.Frame;
 /// resident tree's segments join as their runs; each takes its depth from its place.
 /// </summary>
 internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, PrimitivePool pool, PlacedPrimitives placed,
-    ResidentTrees residents, KeptMeshes keptMeshes, GridCutter grids)
+    ResidentTrees residents, KeptMeshes keptMeshes, GridCutter grids, CopySteps copies)
 {
     private const int Slots = PrimitivePipelines.Slots;
     private const float DepthStep = PlacedPrimitives.DepthStep;
@@ -24,7 +24,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
     /// Depth steps a deforming effect takes, so the depths its <c>deform</c> sets spread over its own
     /// slice (about 65 thousand levels in a 24-bit buffer) and never reach the next draw.
     /// </summary>
-    private const uint DeformSlice = 1 << 14;
+    public const uint DeformSlice = 1 << 14;
 
     private readonly CanvasFrame _frame = frame;
     private readonly CanvasPipelines _pipelines = pipelines;
@@ -45,6 +45,8 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
             _steps.Clear();
             _stepTextures.Clear();
             _vertices.Clear();
+            _frame.Copies.Clear();
+            _frame.CopyValues.Clear();
             _pool.Clear();
             _placed.Clear();
             _grids.Clear();
@@ -182,6 +184,19 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
                 continue;
             }
 
+            // Copy draws sit among the primitives, each before the one it was added ahead of.
+            List<CopyDraw>? draws = item.Copies is { Count: > 0 } added ? added : null;
+            int nextDraw = 0;
+
+            void AddCopies(int upTo)
+            {
+                for (; draws is not null && nextDraw < draws.Count && draws[nextDraw].At <= upTo; nextDraw++)
+                {
+                    CloseRun();
+                    sequence += copies.Add(item, entry, draws[nextDraw], sequence);
+                }
+            }
+
             if (item.Material is not null)
             {
                 CloseRun();
@@ -190,12 +205,14 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
             else if (total > 0)
             {
                 _pool.Send(item);
-                // The item's draws in order, cut where a shaded run starts or ends.
+                // The item's draws in order, cut where a shaded run starts or ends, or a copy draw sits.
                 for (int from = 0; from < total;)
                 {
+                    AddCopies(from);
                     int run = item.Primitives[from].Run;
                     int to = from + 1;
-                    while (to < total && item.Primitives[to].Run == run)
+                    int cut = draws is not null && nextDraw < draws.Count ? draws[nextDraw].At : total;
+                    while (to < total && to < cut && item.Primitives[to].Run == run)
                         to++;
 
                     if (run > 0)
@@ -213,6 +230,8 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
                     from = to;
                 }
             }
+
+            AddCopies(int.MaxValue);
 
             // Particles draw after the item's own draws, at the next depth.
             if (item.Particles is { Live: true } particles)

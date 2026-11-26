@@ -21,7 +21,6 @@
 504 Model/Animation/XifDrawer.cs
 446 Model/Animator/AnimatorTimelineModel.cs
 402 Rendering/CanvasPipelines.cs
-585 Rendering/CanvasTree.cs
 439 Rendering/ResidentTree.cs
 440 Screens/Animator/AnimatorLayout.cs
 495 Screens/Animator/AnimatorLayout.Menus.cs
@@ -35,7 +34,7 @@
 485 Slang/SlangCompletions.Library.cs
 443 Slang/SlangLint.Cost.cs
 502 Slang/SlangLint.cs
-895 Slang/SlangShaders.cs
+797 Slang/SlangShaders.cs
 993 Slang/Tests/SlangEditorLanguageTests.cs
 604 Tests/VisualTests/Harness/VisualTestMain.cs
 464 Tools/Animator/AnimatorTool.cs

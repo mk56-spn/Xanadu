@@ -161,6 +161,14 @@ public class ServerRectCanvas : IRectCanvas
         Server.AddCurveTriangles(canvas, points[..count].ToArray(), colors[..count].ToArray(), uvs[..count].ToArray(), curves.ToArray());
     }
 
+    public void DrawCopies(Handle canvas, CanvasMesh mesh, ReadOnlySpan<CanvasCopy> copies, ReadOnlySpan<Vector4> values)
+    {
+        if (copies.IsEmpty || mesh.Points.Length < 3)
+            return;
+        Route(canvas);
+        Server.AddCopies(canvas, mesh, copies, values);
+    }
+
     public void DrawRectOutlines(Handle canvas, ReadOnlySpan<Rect2> rects, Color color)
     {
         Route(canvas);

@@ -15,7 +15,7 @@ namespace Xanadu.Rendering.Passes;
 /// </summary>
 internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, PrimitivePipelines primitives,
     CanvasPipelines pipelines, PlacedPrimitives placed, PrimitivePool pool, Dictionary<ulong, Texture> textures,
-    CanvasParticles particles, GraphRunner graphs, ExitDraws exits)
+    CanvasParticles particles, GraphRunner graphs, ExitDraws exits, CopyDraws copies)
 {
     private const int Slots = PrimitivePipelines.Slots;
 
@@ -148,7 +148,16 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
                 clocked = false;
             }
 
-            // A particle mesh borrows the effect's shade only; its graph ran with the material's own items.
+            // Copies draw through the effect's copied form: no graph, every value per copy.
+            if (step.Kind == StepKind.Copies)
+            {
+                if (copies.Draw(commands, pass, step, samples, frame))
+                    BatchCount++;
+                clocked = false;
+                continue;
+            }
+
+                        // A particle mesh borrows the effect's shade only; its graph ran with the material's own items.
             if (step.Kind == StepKind.MeshParticles)
             {
                 if (_exits.Shade(commands, pass, step, effect, samples, frame, ref clocked))

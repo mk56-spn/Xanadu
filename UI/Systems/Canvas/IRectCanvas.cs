@@ -93,6 +93,14 @@ public interface IRectCanvas
         DrawTriangles(canvas, kept, keptColors, keptUvs);
     }
 
+    /// <summary>
+    /// Draws every copy of <paramref name="mesh"/> in one go, in order, through the selected shader
+    /// (<see cref="SelectCommonShader"/>, <see cref="SelectMaterial"/>), each copy with its own place, colour and
+    /// values (<see cref="CanvasCopy"/>): the shader's every value is read per copy, so copies of one look with
+    /// different settings still share the draw. Canvases with no shaders ignore it.
+    /// </summary>
+    void DrawCopies(Handle canvas, CanvasMesh mesh, ReadOnlySpan<CanvasCopy> copies, ReadOnlySpan<Vector4> values) { }
+
     /// <summary>Fills a rectangle with a smooth ramp between two colours, along its width or its height.</summary>
     void DrawGradientRect(Handle canvas, Rect2 bounds, Color start, Color end, bool horizontal) { }
 

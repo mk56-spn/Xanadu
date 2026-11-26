@@ -23,6 +23,9 @@ internal enum StepKind
     Effect,
     Particles,
 
+    /// <summary>Copies of a kept mesh (<see cref="CopySteps"/>): <see cref="Step.Start"/> is the first in <see cref="CanvasFrame.Copies"/>, <see cref="Step.Count"/> how many.</summary>
+    Copies,
+
     /// <summary>An item's triangles drawn once per particle of its field (<see cref="CanvasItem.ParticleMesh"/>), through their effect.</summary>
     MeshParticles,
 }
@@ -87,6 +90,10 @@ internal sealed class CanvasFrame
     public readonly List<ulong> StepTextures = [];
 
     public readonly List<CanvasVertex> Vertices = [];
+
+    /// <summary>Every copy drawn this frame, placed on its target, and their values (each at its <see cref="GpuCopy.ValuesAt"/>).</summary>
+    public readonly List<GpuCopy> Copies = [];
+    public readonly List<byte> CopyValues = [];
 
     /// <summary>Counts frames built, for what is kept between them.</summary>
     public long Number;

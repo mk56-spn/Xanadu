@@ -330,3 +330,31 @@ piece; it is deleted at the end, not kept beside the graph.
   playfield's chords and notes, the editor's ghost.
 - What moved: notes draw together after the note loop, so an orb note or entrance marker in between now sits under
   them; selection outlines draw after the notes.
+
+### Step 2a, copies: any stack, every value per copy (2026-11-26)
+
+The general path, so a user's Xif with any shader batches without the shader being written for it.
+
+- **Compiler** (`Slang/SlangCopies.cs`): any stack without a graph has a *copied form*, compiled the first time
+  copies are drawn through it. Nothing is marked in the stack: each `uniform` becomes a plain variable the entries
+  fill per copy, read from bytes laid out exactly as the values block, so the host packs a copy's values the way it
+  packs a run's (`ShaderParams.Pack`). The vertex entry places a corner of a mesh kept in its own space by the copy's
+  record (origin, axes, unit, uv shift, tint and flash), runs the stack's `deform` if it has one, and the fragment runs
+  `shade` with the copy's `unit`. Bindings after the globals: `xanaduCopies`, then `xanaduCopyValues`. Refused for a
+  graph (it draws its own copies), a stack reading a stack's buffers, and a deform `[Grid]`. 44 shipped stacks have
+  one (`SlangCopiesTests`).
+- **Canvas seam** (UI): `CanvasMesh` (triangles in their own space, sent again only after `Edited`), `CanvasCopy`
+  (place, tint, unit, uv shift, where its values start) and `IRectCanvas.DrawCopies` / `ICanvasServer.AddCopies`,
+  through the selected shader. A copy's values are one per value the shader declares, in `DescribeMaterial`'s order.
+- **Renderer:** a copy draw sits among its item's primitives (`CopyDraw`, `CanvasItem.Copies`). `CopySteps` places
+  every copy on the target and packs its values into the frame's lists, `CopiedMeshes` keeps each mesh's vertices
+  (dropped after 120 undrawn frames), `CopiesPipelines` compiles copied forms and their pipelines, and `CopyDraws`
+  draws each step as one instanced draw. An item with copies is drawn by the CPU walk, not the resident tree.
+- **Xif:** `XifBatch` (Model) takes a node, its placement, unit and tint, makes a copy per instancer copy, and draws
+  each (shader, geometry) pair once. Nodes with no shader still go through `XifDrawer`. Decos draw through it; the
+  editor's selection outlines draw after them.
+- **Checked:** demo shots against the last commit at the same frame: grass and the flare look the same. Suites: game
+  209, UI 469, Slang 477 (35 skipped: the graph stacks, and the known one).
+- **Not yet:** decos of the same look but separate geometry objects are separate draws (the demo's grass is 8); sharing
+  a mesh between equal geometries would make it one. Pads, orbs, pops, the puppet and the animator are still on
+  `XifDrawer`. A copied fragment reading the screen gets the pass's copy as an effect does, never a fresh one.

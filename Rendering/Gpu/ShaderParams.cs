@@ -16,25 +16,7 @@ internal static class ShaderParams
         IReadOnlyDictionary<string, Vector4>? instance, ParamsStage stage = ParamsStage.Fragment)
     {
         Span<byte> bytes = stackalloc byte[compiled.ParamsSize];
-        bytes.Clear();
-        foreach (ShaderParam param in compiled.Params)
-        {
-            if (param.IsMatrix)
-            {
-                PackMatrix(bytes, param, material);
-                continue;
-            }
-
-            Vector4 value = param.Default;
-            if (material?.Values.TryGetValue(param.Name, out Vector4 set) == true)
-                value = set;
-            if (instance?.TryGetValue(param.Name, out Vector4 own) == true)
-                value = own;
-
-            Span<float> floats = [value.X, value.Y, value.Z, value.W];
-            for (int i = 0; i < Math.Min(4, param.Size / 4); i++)
-                Write(bytes.Slice(param.Offset + i * 4, 4), floats[i], param.IsInt);
-        }
+        Pack(bytes, compiled, material, instance, []);
 
         fixed (byte* data = bytes)
         {
@@ -50,6 +32,41 @@ internal static class ShaderParams
                     commands.PushFragmentUniformData(data, (uint)bytes.Length, 1);
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// The values block as bytes: each value's default, then the material's, then <paramref name="instance"/>'s; when
+    /// <paramref name="own"/> has a value for every one of them (in the block's order), those instead.
+    /// </summary>
+    public static void Pack(Span<byte> bytes, CompiledShader compiled, CanvasMaterial? material,
+        IReadOnlyDictionary<string, Vector4>? instance, ReadOnlySpan<Vector4> own)
+    {
+        bytes.Clear();
+        bool owned = own.Length >= compiled.Params.Length;
+        for (int k = 0; k < compiled.Params.Length; k++)
+        {
+            ShaderParam param = compiled.Params[k];
+            if (param.IsMatrix)
+            {
+                PackMatrix(bytes, param, material);
+                continue;
+            }
+
+            Vector4 value = param.Default;
+            if (owned)
+                value = own[k];
+            else
+            {
+                if (material?.Values.TryGetValue(param.Name, out Vector4 set) == true)
+                    value = set;
+                if (instance?.TryGetValue(param.Name, out Vector4 run) == true)
+                    value = run;
+            }
+
+            Span<float> floats = [value.X, value.Y, value.Z, value.W];
+            for (int i = 0; i < Math.Min(4, param.Size / 4); i++)
+                Write(bytes.Slice(param.Offset + i * 4, 4), floats[i], param.IsInt);
         }
     }
 

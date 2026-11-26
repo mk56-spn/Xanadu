@@ -119,6 +119,12 @@ public interface ICanvasServer
     /// The same material and values object keep the run going.
     /// </summary>
     void SelectRun(Handle item, CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values) { }
+
+    /// <summary>
+    /// Adds a draw of every copy of <paramref name="mesh"/> in <paramref name="copies"/> at once, at this point of the
+    /// item's draws, through the current run's material (<see cref="IRectCanvas.DrawCopies"/>).
+    /// </summary>
+    void AddCopies(Handle item, CanvasMesh mesh, ReadOnlySpan<CanvasCopy> copies, ReadOnlySpan<Vector4> values) { }
 }
 
 /// <summary>Something that lists, each frame, the items it wants drawn where it is mounted.</summary>

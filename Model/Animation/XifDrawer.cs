@@ -447,7 +447,7 @@ public sealed partial class XifDrawer
     /// The common shader a node draws with, when it names one the game knows, with its
     /// known layers stacked over it (<see cref="ShaderLayersKey"/>); empty for plain.
     /// </summary>
-    private static string ShaderOf(Xif node)
+    internal static string ShaderOf(Xif node)
     {
         if (node.Get<XifShader>() is not { } module)
             return "";

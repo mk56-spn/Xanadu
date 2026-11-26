@@ -263,7 +263,7 @@ internal sealed class HostResidentTree(CanvasTree canvas) : IResidentTree
     /// <summary>An item the GPU records can't draw: the CPU places it, its children and mounts as before.</summary>
     private static bool IsForeign(CanvasItem item) =>
         item.Material is not null || item.Runs.Count > 0 || item.Children.Count > 0 || item.Mounts is { Count: > 0 } ||
-        item.Particles is not null || item.ParticleMesh;
+        item.Particles is not null || item.ParticleMesh || item.Copies is { Count: > 0 };
 
     // ---- Plan and layout ----------------------------------------------------
 

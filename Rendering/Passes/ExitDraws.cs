@@ -120,7 +120,7 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
     }
 
     /// <summary>The shade's samplers: the item's texture, then by name the screen copy, the canvas depth or the material's textures.</summary>
-    private void BindSamplers(RenderPass pass, Step step, string[] names)
+    internal void BindSamplers(RenderPass pass, Step step, string[] names)
     {
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[8];
         int count = Math.Clamp(names.Length, 1, samplers.Length);
