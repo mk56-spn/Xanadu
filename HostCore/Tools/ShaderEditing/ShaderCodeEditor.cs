@@ -452,7 +452,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         var laps = TickLaps.Start();
         Follow();
         if (_showsGraph && _compiledStack is { } stack)
-            _graph.Show(StackGraph.Of(stack, name => stack.ScheduleValue(name, _tuning.Value(name))));
+            _graph.Show(stack, _tuning.Version, name => stack.ScheduleValue(name, _tuning.Value(name)));
         _graph.Update();
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;

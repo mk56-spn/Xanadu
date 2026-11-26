@@ -54,8 +54,24 @@ internal sealed class StackGraphView
         _underlay = new GraphUnderlay(_board);
     }
 
+    /// <summary>The compile and the tuned values the shown graph was worked out from.</summary>
+    private (CompiledShader? Stack, int Tuning) _from;
+
+    /// <summary>
+    /// Each frame while shown: the graph of <paramref name="stack"/> with its schedule read through
+    /// <paramref name="uniform"/>, worked out again only for a new compile or a tuned value changed
+    /// (<paramref name="tuning"/> moves then).
+    /// </summary>
+    public void Show(CompiledShader stack, int tuning, Func<string, BuildValue?> uniform)
+    {
+        if (_from == (stack, tuning))
+            return;
+        _from = (stack, tuning);
+        Show(StackGraph.Of(stack, uniform));
+    }
+
     /// <summary>Shows a compile's graph; a graph like the one shown changes nothing, so the view keeps its pan and zoom.</summary>
-    public void Show(StackGraph graph)
+    private void Show(StackGraph graph)
     {
         string key = Key(graph);
         if (key == _shown)
