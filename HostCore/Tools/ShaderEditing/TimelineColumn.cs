@@ -55,7 +55,7 @@ internal sealed class TimelineColumn(UiNode side) : IDisposable
     {
         _sites = ClipProbes.Sites(joined);
         _usedReport = [];
-        _motion!.Use(ProbeNodes.Labels(joined));
+        _motion!.Use(ProbeNodes.Labels(joined), ColourProbes.Labels(joined));
     }
 
     public void Draw()

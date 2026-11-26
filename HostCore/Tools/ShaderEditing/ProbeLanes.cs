@@ -11,7 +11,8 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// <summary>
 /// The motion the open stack's probe nodes measured (<see cref="ProbeNodes"/>), under the clips: a row for each copy of a
 /// draw that moves over the window, unlike the rows above it. The rows are a graph of their own
-/// (<see cref="Shader"/>) reading the probes on the GPU and drawing their curves (x cyan, y pink, turn gold, scale lime);
+/// (<see cref="Shader"/>) reading the probes on the GPU and drawing their curves (x cyan, y pink, turn gold, scale lime),
+/// then a row for each shade whose colours change (<see cref="ColourProbes"/>), drawn as strips of what it painted;
 /// the CPU draws the header and the labels, from the rows the graph reports back a few frames late.
 /// </summary>
 internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curves) : IDisposable
@@ -21,12 +22,14 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     private const float HeaderHeight = 22, RowHeight = 18, LabelWidth = 120, Pad = 6;
     private const int MostRows = 12;
 
-    /// <summary>The channels, by their bit in a row (x 1, y 2, turn 4, scale 8), and their curves' colours.</summary>
+    /// <summary>The channels, by their bit in a row (x 1, y 2, turn 4, scale 8), and their curves' colours; colour 16 is a colour row.</summary>
     private static readonly string[] Channels = ["x", "y", "turn", "scale"];
     private static readonly Color[] ChannelColours = [Palette.Cyan, Palette.Pink, Palette.Gold, Palette.Lime];
 
     private readonly CanvasMaterial _material = new(Shader);
-    private string[] _lanes = [];
+    private const uint ColourRow = 16;
+
+    private string[] _lanes = [], _colourLanes = [];
     private Rect2 _area, _placed;
 
     /// <summary>The height it wants: the header, and a row for each moving lane the GPU reported (one at least, up to <see cref="MostRows"/>).</summary>
@@ -34,8 +37,10 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
 
     public Rect2 Area { get => _area; set => _area = value; }
 
-    /// <summary>What each probe lane stands for in the code as it is now (<see cref="ProbeNodes.Labels"/>); none when nothing is probed.</summary>
-    public void Use(string[] lanes) => _lanes = lanes;
+    /// <summary>What each motion and colour lane stands for in the code as it is now (<see cref="ProbeNodes.Labels"/>, <see cref="ColourProbes.Labels"/>).</summary>
+    public void Use(string[] lanes, string[] colourLanes) => (_lanes, _colourLanes) = (lanes, colourLanes);
+
+    private bool Probing => _lanes.Length + _colourLanes.Length > 0;
 
     /// <summary>What the clip probe last reported (<see cref="ClipProbes.Read"/>), as bytes; empty before the first report.</summary>
     public ReadOnlySpan<byte> ClipReport => _material.Reports.TryGetValue(ClipProbes.List, out byte[]? bytes) ? bytes : [];
@@ -45,7 +50,7 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     {
         get
         {
-            if (_lanes.Length == 0 || !_material.Reports.TryGetValue("rows", out byte[]? bytes))
+            if (!Probing || !_material.Reports.TryGetValue("rows", out byte[]? bytes))
                 return [];
             ReadOnlySpan<uint> rows = MemoryMarshal.Cast<byte, uint>(bytes);
             return rows.Length == 0 ? [] : rows.Slice(1, (int)Math.Min(rows[0], (uint)rows.Length - 1));
@@ -57,7 +62,7 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
     {
         canvas.Clear(labels);
         // The lanes' graph runs whenever there is room, even with no lanes: it reports the clips too.
-        bool room = _area.Size.X > LabelWidth, probing = _lanes.Length > 0 && room;
+        bool room = _area.Size.X > LabelWidth, probing = Probing && room;
         CanvasServer.Current.SetVisible(curves, room);
         if (_area.Size.X <= 0)
             return;
@@ -67,7 +72,7 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
         canvas.DrawTextStyledLeft(labels, header, "MOTION", Palette.TextDim, 12);
         if (!probing)
         {
-            canvas.DrawTextStyledLeft(labels, Under(header), "Motion shows for a graph's draws; this code draws none.", Palette.TextMuted, 13);
+            canvas.DrawTextStyledLeft(labels, Under(header), "Nothing to probe: no shade or draw the probe can run.", Palette.TextMuted, 13);
             if (room)
                 Place(new Rect2(_area.Position.X + LabelWidth, _area.Position.Y + _area.Size.Y - 1, _area.Size.X - LabelWidth - 4, 1));
             return;
@@ -81,12 +86,13 @@ internal sealed class ProbeLanes(IRectCanvas canvas, Handle labels, Handle curve
             $"{window.Start:0.#} to {window.Start + window.Length:0.#} s", Palette.TextMuted, 12);
         ReadOnlySpan<uint> rows = Rows;
         if (rows.IsEmpty)
-            canvas.DrawTextStyledLeft(labels, Under(header), "Nothing drawn moves over this window.", Palette.TextMuted, 13);
+            canvas.DrawTextStyledLeft(labels, Under(header), "Nothing moves or changes colour over this window.", Palette.TextMuted, 13);
         for (int r = 0; r < Math.Min(rows.Length, MostRows); r++)
         {
             uint lane = rows[r] & 0xFF;
+            string[] named = (rows[r] >> 8 & ColourRow) != 0 ? _colourLanes : _lanes;
             var label = new Rect2(_area.Position.X + 8, _area.Position.Y + HeaderHeight + r * RowHeight, LabelWidth - 12, RowHeight);
-            canvas.DrawTextMono(labels, label, lane < _lanes.Length ? _lanes[lane] : $"lane {lane}", Palette.Text, 12, TextAlign.Left);
+            canvas.DrawTextMono(labels, label, lane < named.Length ? named[lane] : $"lane {lane}", Palette.Text, 12, TextAlign.Left);
         }
 
         Place(new Rect2(_area.Position.X + LabelWidth, _area.Position.Y + HeaderHeight, _area.Size.X - LabelWidth - 4,

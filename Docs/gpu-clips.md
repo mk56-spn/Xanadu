@@ -1,4 +1,4 @@
-# Clips on the GPU (proposed 2026-11-26; slices 1 and 2 built the same day)
+# Clips on the GPU (proposed 2026-11-26; slices 1 to 3 built the same day)
 
 Clips have fallen behind the render graph. Outside the library, one shader uses them (`Game/hit_bar/shade.slang`); no
 stack does. The timeline only knows what `Slang/SlangClips.cs` can read out of the text with regexes: explicit
@@ -75,6 +75,24 @@ and what it lacks is added to it):
   `SlangClipsTests` deleted with the scanner.
 - **Not yet:** clips only inside a draw's shade (not its vertex function) or a pass aren't reported; per-pixel stagger
   shows only what the middle of the quad sees; a run where the window had focus caught stray keystrokes in the editor.
+
+**Slice 3 is built** (2026-11-26): colour samples.
+
+- **`Slang/ColourProbes.cs`:** a generated pass per shade (`xanaduColour_<fn>`): the stack's own `shade`, then each probed
+  draw's shade that returns one colour (a lane per copy). A thread is (copy, sample, place): it puts the clock at its
+  sample, builds the input at one of four places on the probe quad (`probeInput`) and writes the shade's colour into
+  `[Shared] List<float4> xanaduProbeColours`; `xanaduColourLanes` counts the lanes. A stack with nothing to sample runs
+  a one-thread pass zeroing the count, so the lanes never show a stack that's gone.
+- **The places** are one per quarter, off the halves, thirds and quarters (0.37/0.29, 0.71/0.41, 0.29/0.69, 0.63/0.77):
+  at exact thirds, `Learn/fire`'s six panels put every place on a gap and its colour row came out still.
+- **The lanes stack** classifies colour lanes beside motion lanes (`moving`, `kept` and `rows` cover both, motion
+  first): a colour lane shows when any place changes over time (not when places differ: a checker is still), unlike
+  every colour lane before it, and draws as four strips, one a place. Rows carry a colour bit (16) so the CPU picks the
+  label from `ColourProbes.Labels`.
+- **Checked:** `Learn/fire` shows a `shade` row flickering with its noise; `Learn/tour_clips` a `shade` row where a
+  ring passes a place; `Lab/flat_meshes` shows its six motion rows and no colour rows (its look doesn't change in time).
+- **Not yet:** four places see only what passes them (a small shape elsewhere on the quad is missed); a draw's shade
+  sees the probe quad's uv, not its mesh's (`i.world`, `drawnTriangle` are zero).
 
 ## Idea: probe, don't parse
 

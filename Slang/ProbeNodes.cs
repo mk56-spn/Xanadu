@@ -57,7 +57,9 @@ public static partial class ProbeNodes
 
         List<(BuildPass Draw, long First, long Copies)> draws = build is null ? [] : [.. Probed(build)];
         var passes = new StringBuilder(ClipProbes.Pass(ShadeSignature.Arguments(source, out _), SlangShaders.Deforms(source), draws));
-        var calls = new StringBuilder(" xanaduProbe_clips();");
+        (string colourPasses, string colourCalls) = ColourProbes.Of(source, build);
+        passes.Append(colourPasses);
+        var calls = new StringBuilder(" xanaduProbe_clips();" + colourCalls);
         long lanes = 0;
         foreach ((BuildPass draw, long first, long copies) in draws)
         {
@@ -103,7 +105,7 @@ public static partial class ProbeNodes
     }
 
     /// <summary>The draws probed, in order, with their first lane and copies: those whose copies the CPU can count, while lanes last.</summary>
-    private static IEnumerable<(BuildPass Draw, long First, long Copies)> Probed(StackBuild build)
+    internal static IEnumerable<(BuildPass Draw, long First, long Copies)> Probed(StackBuild build)
     {
         long lanes = 0;
         foreach (BuildPass draw in build.Passes.Where(pass => pass is { Draw: not null, Library: null, CopiesBuffer: < 0 }))

@@ -55,3 +55,12 @@ public float4 probeMotion(float2 q0, float2 q1, float2 q2, float2 p0, float2 p1,
     float2 d = p - float2(m00 * q.x + m01 * q.y, m10 * q.x + m11 * q.y);
     return float4(d / PROBE_QUAD, atan2(m10 - m01, m00 + m11), sqrt(abs(m00 * m11 - m01 * m10)));
 }
+
+/// Where a colour probe looks: point `p` of four, one in each quarter of the probe's quad, off the halves, thirds and
+/// quarters a layout tends to put its seams on.
+/// @hidden
+public ItemInput probeInput(uint p)
+{
+    float2 uv = float2[4](float2(0.37, 0.29), float2(0.71, 0.41), float2(0.29, 0.69), float2(0.63, 0.77))[p];
+    return tracedInput(uv * PROBE_QUAD, float2(0), float2(PROBE_QUAD, 0), float2(0, PROBE_QUAD));
+}

@@ -22,7 +22,7 @@ public sealed class ProbeNodeTests
     {
         StackBuild build = Compile(FlatMeshes() + "\nuniform float4 xanaduProbe;\n").Build!.Shape;
 
-        Assert.That(build.Passes.Select(pass => pass.Name), Does.Contain("xanaduProbe_shown"));
+        Assert.That(build.Passes.Select(pass => pass.Name), Does.Contain("xanaduProbe_shown").And.Contain("xanaduColour_look"));
         Assert.That(build.Buffers.Single(buffer => buffer.Name == ProbeNodes.List).Shared, Is.True);
         Assert.That(build.Buffers.Single(buffer => buffer.Name == ProbeNodes.Count).Stored, Is.True);
     }
@@ -34,7 +34,7 @@ public sealed class ProbeNodeTests
         string source = ShaderStack.Compose(folder, ShaderStack.Read(folder)) + "\nuniform float4 xanaduProbe;\n";
         StackBuild build = SlangShaders.CompileEffectBody("hit_bar", source).Build!.Shape;
 
-        Assert.That(build.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "xanaduProbe_clips" }));
+        Assert.That(build.Passes.Select(pass => pass.Name), Is.EqualTo(new[] { "xanaduProbe_clips", "xanaduColour_shade" }));
         Assert.That(build.Buffers.Single(buffer => buffer.Name == ClipProbes.List).Shared, Is.True);
     }
 
