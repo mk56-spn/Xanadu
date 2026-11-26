@@ -149,6 +149,9 @@ internal sealed partial class ShaderCodeEditor
     }
 
     /// <summary>The roles the stack's files take now.</summary>
+    /// <summary>The stack's files other than the one in the editor, as they are now.</summary>
+    private IEnumerable<string> OtherFiles() => _files.Where(file => file.Buffer != _editor.GetComponent<TextEditor>().Buffer).Select(file => file.Buffer.Text);
+
     private HashSet<StackRole> Roles() => [.. _files.SelectMany(file => ShaderStack.RolesOf(file.Buffer.Text))];
 
     /// <summary>Puts up the kinds of file to add, over the code; the code lets go of the keys meanwhile.</summary>

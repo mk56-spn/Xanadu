@@ -106,6 +106,33 @@ public sealed class InputSystem : QuerySystem<Rectangle, Drawable, Position>
         _wasSecondary = input.SecondaryPressed;
     }
 
+    /// <summary>
+    /// Whether this frame's press went to something other than <paramref name="entity"/>, what holds it or what it
+    /// holds: a control over it (a menu's entry), so a reader of the raw pointer such as a text editor leaves it alone.
+    /// Called on a press only: the press can land on a control that hides itself that frame, so hidden ones count.
+    /// </summary>
+    public static bool PressedElsewhere(Entity entity)
+    {
+        foreach (Entity pressed in entity.Store.Query().AllTags(Tags.Get<Pressed>()).WithDisabled().ToEntityList())
+        {
+            if (!Holds(pressed, entity) && !Holds(entity, pressed))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool Holds(Entity outer, Entity inner)
+    {
+        for (Entity at = inner; !at.IsNull; at = at.Parent)
+        {
+            if (at.Id == outer.Id)
+                return true;
+        }
+
+        return false;
+    }
+
     private static void Release(ref Entity? held)
     {
         if (held is { IsNull: false } entity)

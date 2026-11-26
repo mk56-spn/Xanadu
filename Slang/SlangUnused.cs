@@ -15,8 +15,9 @@ public readonly record struct Faded(int Line, int Column, int Length, string Rea
 /// (unless the struct is built whole somewhere: <c>State(…)</c>, an <c>__init</c>);</item>
 /// <item>a local or a field given values that nothing reads.</item>
 /// </list>
-/// The places of a name are <see cref="SlangRename"/>'s. shade and update, which the host calls,
-/// never fade, and neither do parameters for being written only (an <c>out</c> is meant to be).
+/// The places of a name are <see cref="SlangRename"/>'s. What the host calls (shade, deform, graph, build,
+/// present, update) never fades, nor does a name the stack's other files use (a pass in one file, run by
+/// graph in another), nor a parameter for being written only (an <c>out</c> is meant to be).
 /// </summary>
 public static partial class SlangUnused
 {
@@ -25,7 +26,7 @@ public static partial class SlangUnused
     public const string NeverRead = "given values that nothing reads";
 
     /// <summary>What the host calls: used though the code never names them again.</summary>
-    private static readonly HashSet<string> Entries = ["shade", "update", "deform"];
+    private static readonly HashSet<string> Entries = ["shade", "update", "deform", "graph", "build", "present"];
 
     private static readonly HashSet<string> NotTypes =
     [
@@ -42,8 +43,13 @@ public static partial class SlangUnused
     [GeneratedRegex(@"\bstruct\s+([A-Za-z_]\w*)[^{;]*\{")]
     private static partial Regex Struct();
 
-    public static List<Faded> Find(IReadOnlyList<string> lines)
+    /// <param name="elsewhere">The stack's other files: a name declared here and named there is used.</param>
+    public static List<Faded> Find(IReadOnlyList<string> lines, IEnumerable<string>? elsewhere = null)
     {
+        var named = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string other in elsewhere ?? [])
+            foreach (Match word in Regex.Matches(Regex.Replace(other, @"/\*.*?\*/|//[^\n]*", " ", RegexOptions.Singleline), @"[A-Za-z_]\w*"))
+                named.Add(word.Value);
         string text = string.Join('\n', lines);
         string code = Regex.Replace(text, @"/\*.*?\*/|//[^\n]*|""(?:[^""\\\n]|\\.)*""",
             m => Regex.Replace(m.Value, @"[^\n]", " "), RegexOptions.Singleline);
@@ -79,7 +85,7 @@ public static partial class SlangUnused
             if (inStruct && (param || depth[at] != depth[owner.Open] + 1))
                 continue;
             bool function = code.AsSpan(at + name.Length).TrimStart().StartsWith("(");
-            if (function && depth[at] == 0 && Entries.Contains(name))
+            if (function && depth[at] == 0 && Entries.Contains(name) || (depth[at] == 0 || inStruct) && named.Contains(name))
                 continue;
 
             (int line, int column) = Place(code, at);

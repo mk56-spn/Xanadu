@@ -33,27 +33,6 @@ namespace Xanadu.Host.Tools.ShaderEditing;
 /// </summary>
 internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours colourConstants, CompletionPopup popup) : ITextEditorHost
 {
-    /// <summary>A fixed colour per kind of token (not editable yet).</summary>
-    private static readonly Dictionary<TokenKind, Color> Colours = new()
-    {
-        [TokenKind.Plain] = TextEditorDrawSystem.Plain,
-        [TokenKind.Keyword] = new("#c792ea"),
-        [TokenKind.Type] = new("#7fb8e6"),
-        // Same blue, brighter as the width grows.
-        [TokenKind.Width2] = new("#a3cdf2"),
-        [TokenKind.Width3] = new("#c4e0fa"),
-        [TokenKind.Width4] = new("#eaf5ff"),
-        [TokenKind.LibraryType] = new("#ffcb6b"),
-        [TokenKind.Namespace] = new("#89ddcb"),
-        [TokenKind.Function] = new("#82aaff"),
-        [TokenKind.Number] = new("#f78c6c"),
-        [TokenKind.Text] = new("#c3e88d"),
-        [TokenKind.Attribute] = new("#4fa35e"),
-        // Ours stand apart from Slang's: [Default], [Instance] and any the library adds.
-        [TokenKind.LibraryAttribute] = new("#ff9cac"),
-        [TokenKind.Comment] = new("#6b7a99"),
-    };
-
     /// <summary>Each letter of a colour swizzle (<c>.rgb</c>, <c>.a</c>, <c>.bgra</c>) in its own channel's colour.</summary>
     private static readonly Dictionary<char, Color> Channels = new()
     {
@@ -89,6 +68,9 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
 
     [GeneratedRegex(@"^\s*[\w:<>]+\s+(\w+)\s*\(")]
     private static partial Regex Declared();
+
+    /// <summary>The stack's other files as they are now: what they name isn't faded here as never used.</summary>
+    public Func<IEnumerable<string>>? Elsewhere { get; init; }
 
     /// <summary>Go to the declaration of the name at the caret when this text doesn't declare it; true when there is one.</summary>
     public Func<TextBuffer, bool>? GoElsewhere { get; init; }
@@ -163,6 +145,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     private List<Faded> _faded = [];
     private List<LoopIndex> _loopIndexes = [];
     private Dictionary<string, System.Numerics.Vector4> _declaredColours = [];
+    private SlangDeclared _declared = SlangDeclared.None;
     private int _fadedVersion = -1;
 
     /// <summary>Why the name at a place is faded, or null when it isn't.</summary>
@@ -177,7 +160,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         return null;
     }
 
-    private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases, hints.Attributes);
+    private List<Token> Tokens(string line) => SlangSyntax.Tokens(line, hints.Types, hints.Namespaces, hints.Aliases, hints.Attributes, _declared, hints);
 
     public void Prepare(TextBuffer buffer, List<TextCell> boxed)
     {
@@ -186,9 +169,10 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         if (_fadedVersion != buffer.Version)
         {
             _fadedVersion = buffer.Version;
-            _faded = SlangUnused.Find(buffer.Lines);
+            _faded = SlangUnused.Find(buffer.Lines, Elsewhere?.Invoke());
             _loopIndexes = SlangLoops.Find(buffer.Lines);
             _declaredColours = SlangColours.Declared(buffer.Lines);
+            _declared = SlangDeclared.Find(buffer.Lines);
         }
 
         List<Bracket> brackets = SlangBrackets.Find(buffer.Lines, Tokens);
@@ -202,7 +186,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         for (int i = 0; i < brackets.Count; i++)
         {
             Bracket bracket = brackets[i];
-            Color full = !bracket.Matched ? Palette.DangerBright : bracket.Owner is { } owner ? Colours[owner] : TextEditorDrawSystem.Plain;
+            Color full = !bracket.Matched ? Palette.DangerBright : bracket.Owner is { } owner ? SlangTokenColours.Of(owner) : TextEditorDrawSystem.Plain;
             bool lit = bracket.Matched && (i == active || i == partner);
             _brackets[(bracket.Line, bracket.Column)] = lit || !bracket.Matched ? full : Background.Lerp(full, BracketStrength);
         }
@@ -222,7 +206,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         foreach (Token token in Tokens(text))
         {
             for (int c = token.Start; c < token.End && c < text.Length; c++)
-                colours[c] = Colours[token.Kind];
+                colours[c] = SlangTokenColours.Of(token.Kind);
         }
 
         // A stack entry where it is declared (a type, the name, then its bracket), in its role's colour.
@@ -314,10 +298,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
             return GoToDeclaration(buffer);
 
         if (key == Key.F2)
-        {
-            StartRename(buffer);
-            return _rename is not null;
-        }
+            return StartRename(buffer);
 
         if (_rename is not null && key is Key.Escape or Key.Enter or Key.KpEnter)
         {
@@ -475,7 +456,7 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
     public string LineComment => "//";
 
     /// <summary>Puts the caret at the start of the declaration of the name at (or just before) it; false when the code doesn't declare one.</summary>
-    private bool GoToDeclaration(TextBuffer buffer)
+    public bool GoToDeclaration(TextBuffer buffer)
     {
         (int Line, int Column)? found = SlangRename.Declaration(buffer.Lines, buffer.Line, buffer.Column);
         if (found is null && buffer.Column > 0)
@@ -488,25 +469,23 @@ internal sealed partial class SlangEditorHost(SlangHints hints, SlangColours col
         return true;
     }
 
-    /// <summary>Starts renaming the name at (or just before) the caret, if the code declares it.</summary>
-    private void StartRename(TextBuffer buffer)
+    /// <summary>Starts renaming the name at (or just before) the caret, if the code declares it; true when it did.</summary>
+    public bool StartRename(TextBuffer buffer)
     {
         _rename = null;
-        if (ReadOnly)
-            return;
-        (string Name, List<(int Line, int Column)> Places)? found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column);
-        if (found is null && buffer.Column > 0)
-            found = SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column - 1);
+        var found = ReadOnly ? null : SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column)
+            ?? (buffer.Column > 0 ? SlangRename.Find(buffer.Lines, buffer.Line, buffer.Column - 1) : null);
         if (found is not { } rename)
-            return;
+            return false;
         // The place the caret is in goes first: it is the one typed into.
         int mine = rename.Places.FindIndex(p => p.Line == buffer.Line && p.Column <= buffer.Column && buffer.Column <= p.Column + rename.Name.Length);
         if (mine < 0)
-            return;
+            return false;
         var places = new List<(int Line, int Column)>(rename.Places);
         (places[0], places[mine]) = (places[mine], places[0]);
         _rename = new Renaming(rename.Name, places);
         popup.Dismiss(buffer);
+        return true;
     }
 
     /// <summary>

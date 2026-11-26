@@ -47,6 +47,7 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     private readonly HeldKeys _keys = new(keyboard, Watched);
 
     private bool _wasHeld;
+    private bool _wasSecondary;
     private bool _claimed;
     private float _clock;
 
@@ -59,6 +60,8 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
         PointerInput input = _pointer.Read();
         bool pressed = input.Pressed && !_wasHeld;
         _wasHeld = input.Pressed;
+        bool secondary = input.SecondaryPressed && !_wasSecondary;
+        _wasSecondary = input.SecondaryPressed;
 
         bool anyFocused = false;
         foreach (Entity entity in Query.ToEntityList())
@@ -72,7 +75,9 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
 
             bool focused = entity.Tags.Has<TextEditorFocused>();
             // Focus changes are tags, so they wait for the command buffer: a tag moves the component.
-            if (Point(ref editor, input, pressed, ref breaksRun) is { } focus && focus != focused)
+            // A press on something over the editor (a menu's entry) isn't the editor's; one beside it still unfocuses it.
+            bool over = pressed && editor.Layout.Area.HasPoint(input.Position) && InputSystem.PressedElsewhere(entity);
+            if (Point(ref editor, input, pressed && !over, secondary, ref breaksRun) is { } focus && focus != focused)
             {
                 if (focus)
                     CommandBuffer.AddTag<TextEditorFocused>(entity.Id);
@@ -109,12 +114,21 @@ public sealed class TextEditorInputSystem(IPointerInputSource pointer, IKeyboard
     }
 
     /// <summary>The pointer's part; returns whether a press focused (true) or unfocused (false) the editor.</summary>
-    private bool? Point(ref TextEditor editor, PointerInput input, bool pressed, ref bool breaksRun)
+    private bool? Point(ref TextEditor editor, PointerInput input, bool pressed, bool secondary, ref bool breaksRun)
     {
         TextBuffer buffer = editor.Buffer;
         TextEditorLayout layout = editor.Layout;
         if (!input.Pressed)
             editor.Dragging = false;
+
+        // A right press puts the caret where it lands (a selection it lands in stays), so a menu on the editor acts there.
+        if (secondary && layout.Area.HasPoint(input.Position) && layout.Hit(buffer, editor.Host, input.Position) is { } spot)
+        {
+            if (!buffer.HasSelection || spot.CompareTo(buffer.Selection.Start) < 0 || spot.CompareTo(buffer.Selection.End) > 0)
+                buffer.Place(spot.Line, spot.Column);
+            breaksRun = true;
+            return true;
+        }
 
         if (pressed)
         {

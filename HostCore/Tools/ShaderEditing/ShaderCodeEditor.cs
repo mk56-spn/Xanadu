@@ -232,13 +232,12 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _hover = new HoverPopup(canvas, Child(parent), code);
         _popup = new CompletionPopup(canvas, Child(parent), code);
         _host = new SlangEditorHost(hints, SlangColours.FromLibrary(library), _popup) {
-            Save = Save,
-            GoElsewhere = GoElsewhere,
+            Save = Save, GoElsewhere = GoElsewhere, Elsewhere = OtherFiles,
             EntryColours = ShaderStack.Roles.SelectMany(role => ShaderStack.Entries(role).Select(name => (name, role)))
                 .ToDictionary(entry => entry.name, entry => FileStrip.Colour(entry.role)),
         };
+        CodeMenu.Attach(_editor, _host, Focus);
         ref TextEditor editor = ref _editor.GetComponent<TextEditor>();
-        editor.Host = _host;
         MakeFiles(files, first, editor.Buffer, editor.History);
     }
 

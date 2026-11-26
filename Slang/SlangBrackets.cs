@@ -26,6 +26,8 @@ public static class SlangBrackets
         var open = new Stack<(int Index, char Close)>();
         // The last character that isn't space, outside comments: lets a '{' after ')' take the ')''s owner.
         (int Line, int Column, int Bracket) last = (-1, -1, -1);
+        // The kind of the word that last character ends, so a struct's '{' on the next line takes its name's colour.
+        TokenKind? lastWord = null;
 
         for (int line = 0; line < lines.Count; line++)
         {
@@ -43,17 +45,19 @@ public static class SlangBrackets
                 if (inside is not null && !attribute)
                 {
                     last = (line, column, -1);
+                    lastWord = inside.Value.Kind;
                     continue;
                 }
 
                 if (c is '(' or '[' or '{')
                 {
                     TokenKind? owner = attribute ? inside!.Value.Kind
-                        : c == '{' ? BraceOwner(brackets, last, tokens, text, column)
+                        : c == '{' ? BraceOwner(brackets, last, lastWord, tokens, text, column)
                         : Before(tokens, text, column);
                     open.Push((brackets.Count, c == '(' ? ')' : c == '[' ? ']' : '}'));
                     brackets.Add(new Bracket(line, column, owner, -1));
                     last = (line, column, brackets.Count - 1);
+                    lastWord = null;
                 }
                 else if (c is ')' or ']' or '}')
                 {
@@ -80,9 +84,13 @@ public static class SlangBrackets
                     else
                         brackets.Add(new Bracket(line, column, null, -1));
                     last = (line, column, brackets.Count - 1);
+                    lastWord = null;
                 }
                 else if (!char.IsWhiteSpace(c))
+                {
                     last = (line, column, -1);
+                    lastWord = null;
+                }
             }
         }
 
@@ -102,16 +110,23 @@ public static class SlangBrackets
         return word?.Kind switch
         {
             TokenKind.Width2 or TokenKind.Width3 or TokenKind.Width4 or TokenKind.Type => TokenKind.Type,
-            TokenKind.LibraryType or TokenKind.Function or TokenKind.Keyword or TokenKind.Attribute or TokenKind.LibraryAttribute => word.Value.Kind,
+            TokenKind.LibraryType or TokenKind.Function or TokenKind.Keyword or TokenKind.Attribute or TokenKind.LibraryAttribute
+                or TokenKind.CodeType or TokenKind.Global or TokenKind.Member => word.Value.Kind,
             _ => null,
         };
     }
 
-    /// <summary>A brace takes the owner of the ')' just before it (a function's body, an if's block), or of a keyword (else, do).</summary>
-    private static TokenKind? BraceOwner(List<Bracket> brackets, (int Line, int Column, int Bracket) last, List<Token> tokens, string text, int column)
+    /// <summary>
+    /// A brace takes the owner of the ')' just before it (a function's body, an if's block), the type it
+    /// follows (a struct's body), or a keyword's (else, do).
+    /// </summary>
+    private static TokenKind? BraceOwner(
+        List<Bracket> brackets, (int Line, int Column, int Bracket) last, TokenKind? lastWord, List<Token> tokens, string text, int column)
     {
         if (last.Bracket >= 0 && brackets[last.Bracket] is { Matched: true } close && Closes(brackets, last.Bracket))
             return close.Owner;
+        if (lastWord is TokenKind.CodeType or TokenKind.LibraryType)
+            return lastWord;
 
         return Before(tokens, text, column) == TokenKind.Keyword ? TokenKind.Keyword : null;
     }

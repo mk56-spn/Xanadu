@@ -54,6 +54,12 @@ public sealed partial class SlangHints
     /// <summary>The library's namespaces (<c>color</c>, <c>ease</c>, …), for colouring.</summary>
     public HashSet<string> Namespaces { get; } = [];
 
+    /// <summary>The library's constants outside any namespace or struct (<c>PI</c>, <c>TAU</c>), coloured wherever they are named.</summary>
+    public HashSet<string> Constants { get; } = [];
+
+    /// <summary>The library's constants inside a namespace or struct (<c>particles.LINE</c>, <c>Blend.normal</c>), coloured after a dot.</summary>
+    public HashSet<string> MemberConstants { get; } = [];
+
     /// <summary>
     /// What working out each shape costs a pixel, from the library's <c>/// @cost n</c> tags: by
     /// struct for a shape (<c>Circle</c> is 1, the unit) and by method for a change that adds its
@@ -69,6 +75,9 @@ public sealed partial class SlangHints
 
     [GeneratedRegex(@"public\s+namespace\s+(\w+)")]
     private static partial Regex NamespaceDeclaration();
+
+    [GeneratedRegex(@"public\s+static\s+const\s+[\w<>]+\s+(\w+)")]
+    private static partial Regex ConstantDeclaration();
 
     /// <summary>Every signature in the <c>.slang</c> files under a folder.</summary>
     public static SlangHints FromLibrary(string folder)
@@ -104,6 +113,13 @@ public sealed partial class SlangHints
             Aliases.Add(alias.Groups[1].Value);
         foreach (Match name in NamespaceDeclaration().Matches(source))
             Namespaces.Add(name.Groups[1].Value);
+        int depth = 0, at = 0;
+        foreach (Match constant in ConstantDeclaration().Matches(source))
+        {
+            for (; at < constant.Index; at++)
+                depth += source[at] == '{' ? 1 : source[at] == '}' ? -1 : 0;
+            (depth == 0 ? Constants : MemberConstants).Add(constant.Groups[1].Value);
+        }
         foreach (Match match in Constructor().Matches(source))
         {
             string? owner = structs.LastOrDefault(s => s.Index < match.Index).Name;

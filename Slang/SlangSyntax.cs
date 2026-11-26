@@ -23,6 +23,18 @@ public enum TokenKind
     /// <summary>An attribute the library declares (<c>[Default]</c>, <c>[Instance]</c>), apart from Slang's own.</summary>
     LibraryAttribute,
     Comment,
+
+    /// <summary>A type the code declares itself (<c>struct Death</c>), apart from the library's.</summary>
+    CodeType,
+
+    /// <summary>A name the code declares outside any body: a constant, a uniform, a stack's state (<see cref="SlangDeclared"/>).</summary>
+    Global,
+
+    /// <summary>A constant the library declares (<c>PI</c>, <c>particles.LINE</c>).</summary>
+    LibraryConstant,
+
+    /// <summary>A name right after a dot: a field, or a namespace's value (<c>d.position</c>, <c>particles.LINE</c>).</summary>
+    Member,
 }
 
 /// <summary>A run of one kind in a line: columns [Start, End).</summary>
@@ -58,7 +70,7 @@ public static class SlangSyntax
 
     public static List<Token> Tokens(
         string line, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases = null,
-        IReadOnlySet<string>? attributes = null)
+        IReadOnlySet<string>? attributes = null, SlangDeclared? code = null, SlangHints? hints = null)
     {
         var tokens = new List<Token>();
         int i = 0;
@@ -116,7 +128,7 @@ public static class SlangSyntax
                 while (i < line.Length && (char.IsLetterOrDigit(line[i]) || line[i] == '_'))
                     i++;
                 string word = line[start..i];
-                TokenKind kind = Classify(word, line, i, libraryTypes, namespaces, aliases);
+                TokenKind kind = Classify(word, line, start, i, libraryTypes, namespaces, aliases, code ?? SlangDeclared.None, hints);
                 int digits = kind == TokenKind.Type ? WidthStart(word) : -1;
                 if (digits > 0)
                 {
@@ -151,7 +163,9 @@ public static class SlangSyntax
         _ => TokenKind.Width4,
     };
 
-    private static TokenKind Classify(string word, string line, int end, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases)
+    private static TokenKind Classify(
+        string word, string line, int start, int end, IReadOnlySet<string> libraryTypes, IReadOnlySet<string> namespaces, IReadOnlySet<string>? aliases,
+        SlangDeclared code, SlangHints? hints)
     {
         if (Keywords.Contains(word))
             return TokenKind.Keyword;
@@ -160,14 +174,26 @@ public static class SlangSyntax
             return TokenKind.Type;
         if (libraryTypes.Contains(word))
             return TokenKind.LibraryType;
+        if (code.Types.Contains(word))
+            return TokenKind.CodeType;
 
         int next = end;
         while (next < line.Length && line[next] == ' ')
             next++;
-        if (next < line.Length && line[next] == '.' && namespaces.Contains(word))
+        // The code's own global wins over a library namespace of the same name (Field field; field.spread).
+        if (next < line.Length && line[next] == '.' && namespaces.Contains(word) && !code.Globals.Contains(word))
             return TokenKind.Namespace;
         if (next < line.Length && line[next] == '(')
             return TokenKind.Function;
-        return TokenKind.Plain;
+
+        int before = start - 1;
+        while (before >= 0 && line[before] == ' ')
+            before--;
+        bool member = before >= 0 && line[before] == '.';
+        if (hints is not null && (member ? hints.MemberConstants : hints.Constants).Contains(word))
+            return TokenKind.LibraryConstant;
+        if (member)
+            return TokenKind.Member;
+        return code.Globals.Contains(word) ? TokenKind.Global : TokenKind.Plain;
     }
 }
