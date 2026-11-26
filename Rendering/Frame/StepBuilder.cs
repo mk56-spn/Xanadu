@@ -10,14 +10,14 @@ namespace Xanadu.Rendering.Frame;
 
 /// <summary>
 /// Building: turns the frame's jobs into steps in draw order. Plain primitives become instances
-/// in runs that share up to <see cref="PrimitivePipelines.Slots"/> textures; an effect range is
+/// in runs that share up to <see cref="CanvasStack.Slots"/> textures; an effect range is
 /// kept (<see cref="KeptMeshes"/>), cut on the GPU (<see cref="GridCutter"/>) or cut here; a
 /// resident tree's segments join as their runs; each takes its depth from its place.
 /// </summary>
 internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, PrimitivePool pool, PlacedPrimitives placed,
     ResidentTrees residents, KeptMeshes keptMeshes, GridCutter grids, CopySteps copies)
 {
-    private const int Slots = PrimitivePipelines.Slots;
+    private const int Slots = CanvasStack.Slots;
     private const float DepthStep = PlacedPrimitives.DepthStep;
 
     /// <summary>
@@ -73,7 +73,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
         void CloseRun()
         {
             if (runStart >= 0 && _placed.PlacedCount > runStart)
-                _steps.Add(new Step(StepKind.Primitives, (uint)runStart, (uint)(_placed.PlacedCount - runStart), _stepTextures.Count - Slots));
+                _steps.Add(new Step(StepKind.Canvas, (uint)runStart, (uint)(_placed.PlacedCount - runStart), _stepTextures.Count - Slots));
             runStart = -1;
         }
 
@@ -336,7 +336,7 @@ internal sealed class StepBuilder(CanvasFrame frame, CanvasPipelines pipelines, 
             int first = _stepTextures.Count;
             for (int i = 0; i < Slots; i++)
                 _stepTextures.Add(textures[firstTexture + i]);
-            _steps.Add(new Step(StepKind.Primitives, piece.OutBase + start, count, first));
+            _steps.Add(new Step(StepKind.Canvas, piece.OutBase + start, count, first));
         }
 
         _placed.PlacedCount += (int)piece.Primitives;

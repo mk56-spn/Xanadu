@@ -40,6 +40,9 @@ internal struct DrawQuad
 
     /// <summary>Where z lands: (0, 1) for the item's own draw depth, its slice of the canvas depth onto the frame.</summary>
     public Vector2 Slice;
+
+    /// <summary>The first copy drawn: 0, or where a call drawing a range of its copies starts.</summary>
+    public uint FirstCopy, Pad;
 }
 
 /// <summary>

@@ -64,6 +64,15 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// <summary>A draw's <c>blend:</c>; null when it has none.</summary>
     public BlendMode? Blend { get; init; }
 
+    /// <summary>
+    /// A draw marked <c>[Opaque]</c>: it writes the depth, overwrites its target and never discards, so nothing it covers
+    /// costs a pixel after it (the canvas's pre-pass); it can be drawn depth only.
+    /// </summary>
+    public bool Opaque { get; init; }
+
+    /// <summary>A draw marked <c>[OrderDepth]</c>: its deform's <c>depth</c> is its z in the slice, 0..1 nearer first, kept exactly.</summary>
+    public bool OrderDepth { get; init; }
+
     /// <summary>A draw marked <c>[CoversBox]</c>: its grid covers the item's box on the target instead of its quad.</summary>
     public bool CoversBox { get; init; }
 

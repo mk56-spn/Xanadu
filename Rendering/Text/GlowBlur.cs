@@ -6,7 +6,7 @@ namespace Xanadu.Rendering.Text;
 /// <c>max(1, radius / 8)</c> pixels apart), then alpha scaled by the intensity
 /// and clamped. The tint comes from the vertex colour when it is drawn.
 /// </summary>
-/// <remarks>Text glows are blurred on the GPU instead (<c>KindHalo</c> in primitives.slang).</remarks>
+/// <remarks>Text glows are blurred on the GPU instead (<c>KindHalo</c> in the canvas stack's draws.slang).</remarks>
 internal static class GlowBlur
 {
     private const int Taps = 16;

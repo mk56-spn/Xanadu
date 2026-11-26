@@ -357,7 +357,7 @@ internal readonly record struct BoxCorners(
     Vector2 U0, Vector2 U1, Vector2 U2, Vector2 U3,
     Color C0, Color C1, Color C2, Color C3);
 
-/// <summary>A <see cref="Primitive"/> as the GPU reads it: <c>Primitive</c> in primitives.slang, 112 bytes.</summary>
+/// <summary>A <see cref="Primitive"/> as the GPU reads it: <c>Drawn</c> in the canvas stack's lists.slang, 112 bytes.</summary>
 [StructLayout(LayoutKind.Sequential)]
 internal struct GpuPrimitive
 {

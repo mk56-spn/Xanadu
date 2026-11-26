@@ -277,8 +277,9 @@ host fills; tests leave the headless defaults.
   squashed into the slice, LessOrEqual so flat ties keep their order), so its
   nearest triangle wins per pixel and it still layers among the rest; rects
   after it may join the pre-pass.
-- **Drawing.** One pipeline (`primitives.slang`) pulls records by vertex id
-  (six a record) and shapes them by signed distance (`xanadu.shape`), so edges
+- **Drawing.** The canvas stack's two draws (`Assets/Shaders/Engine/canvas/draws.slang`:
+  `prepass` and `ordered`, exits drawn over a range of copies) pull records by copy
+  (six vertices a record) and shape them by signed distance (`xanadu.shape`), so edges
   are smooth at any turn or scale; up to eight textures a draw (glyph pages,
   images). The editor is two draw calls.
 - **Material runs.** `SelectCommonShader` / `SetShaderValue` / `NewRun` on a

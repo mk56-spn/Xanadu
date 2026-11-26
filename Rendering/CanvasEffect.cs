@@ -128,7 +128,8 @@ internal sealed class CanvasEffect(
     public GraphicsPipeline ExitPipeline(GraphicsDevice device, int pass, CanvasMaterial? material, SampleCount samples, TextureFormat format,
         TextureFormat z)
     {
-        BlendMode? own = Compiled.Build!.Passes[pass].Drawn!.Blend;
+        CompiledDraw drawn = Compiled.Build!.Passes[pass].Drawn!;
+        BlendMode? own = drawn.Blend;
         BlendMode blend = own ?? material?.Blend ?? BlendMode.Mix;
         CustomBlend? custom = own is null ? material?.Custom?.PipelineKey : null;
         if (_exitPipelines.TryGetValue((pass, blend, custom, samples), out GraphicsPipeline? made))
@@ -142,7 +143,7 @@ internal sealed class CanvasEffect(
             PrimitiveType = PrimitiveType.TriangleList,
             RasterizerState = RasterizerState.CCW_CullNone,
             MultisampleState = new MultisampleState { SampleCount = samples },
-            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = !Compiled.Build!.Passes[pass].Drawn!.Translucent, CompareOp = CompareOp.LessOrEqual },
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = !drawn.Translucent, CompareOp = CompareOp.LessOrEqual },
             TargetInfo = new GraphicsPipelineTargetInfo
             {
                 ColorTargetDescriptions =
@@ -150,7 +151,8 @@ internal sealed class CanvasEffect(
                     new ColorTargetDescription
                     {
                         Format = format,
-                        BlendState = custom is { } state ? CanvasPipelines.Blend(state) : CanvasPipelines.Blend(blend),
+                        BlendState = drawn.Opaque ? ColorTargetBlendState.NoBlend
+                            : custom is { } state ? CanvasPipelines.Blend(state) : CanvasPipelines.Blend(blend),
                     },
                 ],
                 HasDepthStencilTarget = true,
@@ -161,8 +163,35 @@ internal sealed class CanvasEffect(
         return made;
     }
 
+    private readonly Dictionary<int, GraphicsPipeline> _depthPipelines = [];
+
+    /// <summary>An <c>[Opaque]</c> draw <paramref name="pass"/> with no colour: its depth alone, single sampled, for the depth effects read.</summary>
+    public GraphicsPipeline DepthPipeline(GraphicsDevice device, int pass, TextureFormat z)
+    {
+        if (_depthPipelines.TryGetValue(pass, out GraphicsPipeline? made))
+            return made;
+        if (!Compiled.Build!.Passes[pass].Drawn!.Opaque)
+            throw new InvalidOperationException($"{Compiled.Build.Passes[pass].Name} isn't [Opaque], so it can't be drawn depth only.");
+        (Shader vertexStage, Shader fragmentStage) = Draws[pass]!.Value;
+        made = GraphicsPipeline.Create(device, new GraphicsPipelineCreateInfo
+        {
+            VertexShader = vertexStage,
+            FragmentShader = fragmentStage,
+            VertexInputState = VertexInputState.Empty,
+            PrimitiveType = PrimitiveType.TriangleList,
+            RasterizerState = RasterizerState.CCW_CullNone,
+            MultisampleState = MultisampleState.None,
+            DepthStencilState = new DepthStencilState { EnableDepthTest = true, EnableDepthWrite = true, CompareOp = CompareOp.LessOrEqual },
+            TargetInfo = new GraphicsPipelineTargetInfo { ColorTargetDescriptions = [], HasDepthStencilTarget = true, DepthStencilFormat = z },
+        });
+        _depthPipelines[pass] = made;
+        return made;
+    }
+
     public void Dispose()
     {
+        foreach (GraphicsPipeline pipeline in _depthPipelines.Values)
+            pipeline.Dispose();
         foreach (GraphicsPipeline pipeline in _drawPipelines.Values)
             pipeline.Dispose();
         foreach (GraphicsPipeline pipeline in _exitPipelines.Values)

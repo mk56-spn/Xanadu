@@ -196,6 +196,8 @@ internal static partial class BuildPasses
             if (across < 1 || down < 1 || across > MostCells || down > MostCells)
                 throw new BuildProblem(match.Index, $"a draw's grid has 1 to {MostCells} cells a side, not {across} × {down}.");
             Group copies = match.Groups["copies"];
+            if (Marked(code, match.Index, "Opaque") && Marked(code, match.Index, "Translucent"))
+                throw new BuildProblem(match.Index, $"{name} is marked both [Opaque] (writes the depth) and [Translucent] (never writes it); keep one.");
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
                 Draw = (across, down, match.Groups["shade"].Value, DrawOutput.Of(code, match.Groups["shade"].Value, match.Index, out string? depth)),
@@ -204,6 +206,8 @@ internal static partial class BuildPasses
                 Copies = copies.Success ? ParseAt(copies.Value, copies.Index) : null,
                 CopiesName = copies.Success && Regex.IsMatch(copies.Value, @"^\w+$") ? copies.Value : null,
                 Translucent = Marked(code, match.Index, "Translucent"),
+                Opaque = Marked(code, match.Index, "Opaque"),
+                OrderDepth = Marked(code, match.Index, "OrderDepth"),
                 Blend = match.Groups["blend"] is { Success: true } blend ? BlendOf(blend) : null,
             });
         }

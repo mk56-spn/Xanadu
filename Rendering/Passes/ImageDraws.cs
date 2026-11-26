@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Numerics;
 using MoonWorks.Graphics;
 using Xanadu.Core.Rendering;
@@ -5,6 +6,7 @@ using Xanadu.Rendering.Frame;
 using Xanadu.Rendering.Gpu;
 using Xanadu.Rendering.Kept;
 using Xanadu.Slang;
+using Xanadu.Ui.Systems.Canvas;
 using Texture = MoonWorks.Graphics.Texture;
 
 namespace Xanadu.Rendering.Passes;
@@ -19,6 +21,9 @@ namespace Xanadu.Rendering.Passes;
 /// </summary>
 internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, GlobalBindings globals, MaterialStore materials)
 {
+    /// <summary>Where a shade's own samplers start, after the item's texture, the screen and the depth.</summary>
+    public const int OwnSamplers = 3;
+
     /// <summary>The images a draw's shade reads, gathered for binding; grown as needed, never shrunk.</summary>
     private Texture[] _read = new Texture[4];
 
@@ -59,7 +64,7 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         // The vertex stage places the grid on the target; the target moved by the box's corner lands the box on the images.
         pass.SetViewport(new Viewport(-set.Box.X, -set.Box.Y, targets.Width, targets.Height));
         var corner = new Vector2(set.Box.X, set.Box.Y);
-        Bind(commands, pass, draw, kept, set, rest, step, time, corner, new Vector2(0, 1));
+        Bind(commands, pass, draw, kept, set, rest, step.Material, step.Values, time, corner, new Vector2(0, 1));
         Issue(pass, draw, kept, call);
         commands.EndRenderPass(pass);
     }
@@ -75,8 +80,32 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         pass.BindGraphicsPipeline(effect.ExitPipeline(device, call.Pass, step.Material, samples, targets.Format, targets.DepthFormat));
         pass.SetViewport(new Viewport(0, 0, targets.Width, targets.Height));
         pass.SetScissor(step.Clip);
-        Bind(commands, pass, draw, kept, set, rest, step, time, Vector2.Zero, new Vector2(step.Depth - step.Span, step.Span));
+        Bind(commands, pass, draw, kept, set, rest, step.Material, step.Values, time, Vector2.Zero, new Vector2(step.Depth - step.Span, step.Span));
         Issue(pass, draw, kept, call);
+        return true;
+    }
+
+    /// <summary>
+    /// A draw of a material the host runs itself (the canvas stack's): copies <paramref name="first"/> on, <paramref name="count"/>
+    /// of them, over the whole target and the whole depth, inside the job's pass; <paramref name="own"/> binds its shade's own
+    /// samplers (from 3) and <paramref name="depthOnly"/> draws an <c>[Opaque]</c> one with no colour. False when the
+    /// material hasn't run.
+    /// </summary>
+    public bool Hosted(CommandBuffer commands, RenderPass pass, CanvasEffect effect, CanvasMaterial material, int drawPass, uint first, uint count,
+        ReadOnlySpan<TextureSamplerBinding> own, SampleCount samples, float time, bool depthOnly = false)
+    {
+        CompiledDraw draw = effect.Compiled.Build!.Passes[drawPass].Drawn!;
+        if (count == 0 || materials.Find(material) is not { IsNull: false } entity || !entity.TryGetComponent(out BuildBuffers kept))
+            return false;
+        pass.BindGraphicsPipeline(depthOnly
+            ? effect.DepthPipeline(device, drawPass, targets.DepthFormat)
+            : effect.ExitPipeline(device, drawPass, material, samples, targets.Format, targets.DepthFormat));
+        pass.SetViewport(new Viewport(0, 0, targets.Width, targets.Height));
+        pass.SetScissor(targets.FullClip);
+        var whole = new RestFrame(Vector2.Zero, new Vector2(targets.Width, 0), new Vector2(0, targets.Height));
+        Bind(commands, pass, draw, kept, null, whole, material, null, time, Vector2.Zero, new Vector2(0, 1), first, own);
+        // Small grids drawn flat, one copy after another in the vertex index, as GPUs pack them best.
+        pass.DrawPrimitives(draw.Vertices * count, 1, 0, 0);
         return true;
     }
 
@@ -93,21 +122,22 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
     }
 
     /// <summary>Both stages' uniforms, samplers, read images and globals: the grid moved by <paramref name="shift"/>, its z in <paramref name="slice"/>.</summary>
-    private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, BuildBuffers kept, ItemSet? set, RestFrame rest, Step step, float time,
-        Vector2 shift, Vector2 slice)
+    private void Bind(CommandBuffer commands, RenderPass pass, CompiledDraw draw, BuildBuffers kept, ItemSet? set, RestFrame rest,
+        CanvasMaterial? material, IReadOnlyDictionary<string, Vector4>? values, float time, Vector2 shift, Vector2 slice, uint firstCopy = 0,
+        ReadOnlySpan<TextureSamplerBinding> own = default)
     {
-        FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time).For(step.Values);
+        FrameUniforms frame = FrameUniforms.Now(targets.Width, targets.Height, time).For(values);
         // A draw that covers the box is handed the box as its quad.
         DrawQuad quad = draw.CoversBox && set is { Box: var box }
             ? new DrawQuad { Corner = new Vector2(box.X, box.Y), XAxis = new Vector2(box.Width, 0), YAxis = new Vector2(0, box.Height), Slice = slice }
-            : new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis, Slice = slice };
+            : new DrawQuad { Corner = rest.Corner, XAxis = rest.XAxis, YAxis = rest.YAxis, Slice = slice, FirstCopy = firstCopy };
         commands.PushVertexUniformData(quad);
         commands.PushVertexUniformData(frame, SlangShaders.VertexFrameSlot);
         if (draw.Vertex.ParamsSize > 0)
-            ShaderParams.Push(commands, draw.Vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
+            ShaderParams.Push(commands, draw.Vertex, material, values, stage: ParamsStage.Vertex);
         commands.PushFragmentUniformData(frame);
         if (draw.Fragment.ParamsSize > 0)
-            ShaderParams.Push(commands, draw.Fragment, step.Material, step.Values);
+            ShaderParams.Push(commands, draw.Fragment, material, values);
         var origin = set is null ? Vector2.Zero : new Vector2(set.Box.X, set.Box.Y);
         commands.PushFragmentUniformData(new DrawBox
         {
@@ -115,10 +145,10 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
             pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, kept.Buffers));
-        // Neither stage gets a texture of its own yet: any sampler it declares sees white.
+        // Every sampler sees white but the shade's own a host hands it (the canvas's run textures), from 3 on.
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Math.Max(draw.Vertex.Samplers.Length, draw.Fragment.Samplers.Length)];
         for (int k = 0; k < samplers.Length; k++)
-            samplers[k] = new TextureSamplerBinding(targets.White, targets.Sampler);
+            samplers[k] = k >= OwnSamplers && k - OwnSamplers < own.Length ? own[k - OwnSamplers] : new TextureSamplerBinding(targets.White, targets.Sampler);
         if (draw.Vertex.Samplers.Length > 0)
             pass.BindVertexSamplers(samplers[..draw.Vertex.Samplers.Length]);
         if (draw.Fragment.Samplers.Length > 0)

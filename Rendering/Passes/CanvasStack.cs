@@ -14,6 +14,9 @@ internal sealed class CanvasStack(GraphRunner graphs, CanvasPipelines pipelines)
 {
     public const string Path = "Assets/Shaders/Engine/canvas";
 
+    /// <summary>Textures one run of the canvas's <c>ordered</c> draw reads; a run starts again when it needs a ninth.</summary>
+    public const int Slots = 8;
+
     private Buffer? _placed, _opaque;
 
     /// <summary>The material the renderer runs the stack with: what its passes get from the host.</summary>
@@ -33,6 +36,29 @@ internal sealed class CanvasStack(GraphRunner graphs, CanvasPipelines pipelines)
         Xanadu.Slang.StackBuild shape = pipelines.Effect(Material).Compiled.Build!.Shape;
         _placed = buffers[Index(shape, "placed")];
         _opaque = buffers[Index(shape, "opaque")];
+    }
+
+    /// <summary>
+    /// The job's opaque rects (<c>prepass</c>, copies <paramref name="first"/> on), depth written; with no colour when
+    /// <paramref name="depthOnly"/>, into the depth effects read.
+    /// </summary>
+    public bool Prepass(CommandBuffer commands, RenderPass pass, SampleCount samples, uint first, uint count, float time, bool depthOnly = false) =>
+        graphs.Draws.Hosted(commands, pass, Effect, Material, DrawIndex("prepass"), first, count, [], samples, time, depthOnly);
+
+    /// <summary>A run of placed primitives (<c>ordered</c>, copies <paramref name="first"/> on), its textures by slot then the glyph pages.</summary>
+    public bool Run(CommandBuffer commands, RenderPass pass, SampleCount samples, uint first, uint count, ReadOnlySpan<TextureSamplerBinding> textures,
+        float time) =>
+        graphs.Draws.Hosted(commands, pass, Effect, Material, DrawIndex("ordered"), first, count, textures, samples, time);
+
+    private CanvasEffect Effect => pipelines.Effect(Material);
+
+    private int DrawIndex(string name)
+    {
+        var passes = Effect.Compiled.Build!.Passes;
+        for (int k = 0; k < passes.Length; k++)
+            if (passes[k].Name == name && passes[k].Drawn is not null)
+                return k;
+        throw new InvalidOperationException($"{Path} declares no draw {name}.");
     }
 
     private static int Index(Xanadu.Slang.StackBuild shape, string name)

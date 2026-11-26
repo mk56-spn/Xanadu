@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Xanadu.Rendering.Passes;
 using Xanadu.Rendering.Text;
 using Xanadu.Ui.Systems.Canvas;
 
@@ -114,7 +115,7 @@ internal sealed class PrimitivePool
             else if (p.Texture != 0)
             {
                 int at = item.LocalTextures.IndexOf(p.Texture);
-                if (at < 0 && item.LocalTextures.Count < PrimitivePipelines.Slots)
+                if (at < 0 && item.LocalTextures.Count < CanvasStack.Slots)
                 {
                     at = item.LocalTextures.Count;
                     item.LocalTextures.Add(p.Texture);

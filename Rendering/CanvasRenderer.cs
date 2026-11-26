@@ -15,8 +15,8 @@ namespace Xanadu.Rendering;
 /// <summary>
 /// Draws a <see cref="CanvasTree"/> (Docs/host.md §5.3). Each frame it walks
 /// the tree in order and turns every visible item's primitives into GPU
-/// records in pixels; one pipeline pulls them by vertex id and shapes them in
-/// the fragment stage (primitives.slang), so plain content is a handful of
+/// records in pixels; the canvas stack's draws pull them by copy and shape them in
+/// the fragment stage (Assets/Shaders/Engine/canvas/draws.slang), so plain content is a handful of
 /// draws however much there is.
 /// </summary>
 /// <remarks>
@@ -52,7 +52,6 @@ internal sealed class CanvasRenderer : IDisposable
     private readonly EntityStore _cache = new();
 
     private readonly FrameTargets _targets;
-    private readonly PrimitivePipelines _primitives;
     private readonly PrimitivePool _pool;
     private readonly PlacedPrimitives _placed;
     private readonly GpuArray<CanvasVertex> _vertices;
@@ -78,7 +77,6 @@ internal sealed class CanvasRenderer : IDisposable
     {
         _tree = tree;
         _targets = new FrameTargets(device, format, width, height);
-        _primitives = new PrimitivePipelines(device, format, _targets.DepthFormat);
         Pipelines = new CanvasPipelines(device, format) { DepthFormat = _targets.DepthFormat, MainSamples = _targets.Samples };
         Particles = new CanvasParticles(device, tree, format) { DepthFormat = _targets.DepthFormat };
         _pool = new PrimitivePool();
@@ -103,7 +101,7 @@ internal sealed class CanvasRenderer : IDisposable
         _exits = new ExitDraws(device, _targets, Pipelines, Textures, Particles, _materials, _globals, _grids, _vertices);
         _copies = new CopyDraws(device, _frame, _targets, Pipelines, _copiesPipelines, _globals, _exits);
         _canvas = new CanvasStack(_graphs, Pipelines);
-        _draw = new DrawPass(_frame, _targets, _primitives, Pipelines, _canvas, _pool, Textures, Particles, _graphs, _exits, _copies);
+        _draw = new DrawPass(_frame, _targets, Pipelines, _canvas, _pool, Textures, Particles, _graphs, _exits, _copies);
     }
 
     /// <summary>Textures the game can draw by id, minted from the tree so they never clash with items.</summary>
@@ -257,7 +255,6 @@ internal sealed class CanvasRenderer : IDisposable
         _copiesPipelines.Dispose();
         Pipelines.Dispose();
         Particles.Dispose();
-        _primitives.Dispose();
         _targets.Dispose();
         _materials.Dispose();
         _graphs.Dispose();

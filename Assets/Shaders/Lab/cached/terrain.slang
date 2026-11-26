@@ -5,7 +5,7 @@
 // range is still and the light isn't: the frame costs the lighting, not the march.
 import xanadu;
 
-[Cached] [Clear(1e30)] Image<float> far;
+[Cached] [Clear(130)] Image<float> far;
 [Cached] Image<float4> facing;
 Image<float4> shown;
 

@@ -26,6 +26,12 @@ public sealed record CompiledDraw(CompiledShader Vertex, CompiledShader Fragment
     /// <summary>Where in <see cref="CopiesBuffer"/> the count sits, in uints.</summary>
     public long CopiesAt { get; init; }
 
+    /// <summary>Marked <c>[Opaque]</c>: writes the depth, overwrites its target, never discards; drawable depth only.</summary>
+    public bool Opaque { get; init; }
+
+    /// <summary>Marked <c>[OrderDepth]</c>: its deform's depth is its z in the slice, 0..1, kept exactly.</summary>
+    public bool OrderDepth { get; init; }
+
     /// <summary>Marked <c>[CoversBox]</c>: the host hands it the item's box as its quad, so it covers the box's pixels.</summary>
     public bool CoversBox { get; init; }
 
@@ -63,7 +69,7 @@ public static partial class SlangShaders
         string body = Unbound(build, source);
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
-        CompiledShader Vertex(string placed) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down),
+        CompiledShader Vertex(string placed) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
             "xanaduDrawVertex", "vertex", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]);
         CompiledShader vertex = Vertex(body);
@@ -80,7 +86,7 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend),
+        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend, pass.Opaque, pass.OrderDepth),
             "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
@@ -108,7 +114,8 @@ public static partial class SlangShaders
                 storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
                 storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
-            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, Blend = pass.Blend, CoversBox = pass.CoversBox };
+            across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, Blend = pass.Blend, CoversBox = pass.CoversBox,
+            Opaque = pass.Opaque, OrderDepth = pass.OrderDepth };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };
     }
 
@@ -138,8 +145,10 @@ public static partial class SlangShaders
         layout.In(layout.Slots[k].Target).Count() == 1 ? "" : "." + DrawLayout.Swizzle(layout.Slots[k].Channel, output.Texel.Channels);
 
     /// <summary>The grid's corners, from the vertex index, each moved by the draw's deform and put in the graph's depth.</summary>
-    private static string WrapDrawVertex(string name, string source, string deform, int across, int down)
+    private static string WrapDrawVertex(string name, string source, string deform, int across, int down, bool orderDepth)
     {
+        // The deform's depth as the canvas squashes it (pixels into the screen), or as it is (its place in the order).
+        string z = orderDepth ? "d.depth" : "(0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0))";
         (string imports, string code, string label) = Split(name, source);
         return $$"""
             import xanadu.stage;
@@ -150,9 +159,10 @@ public static partial class SlangShaders
             #line 1 "{{label}} (wrapper)"
             }
             #line 1 "{{label}} (wrapper)"
-            // The item's quad on the target: its corner and sides; and the slice of depth it lands in, 0..1 for
-            // the item's own draw depth, the item's slice of the canvas depth for a draw onto the frame.
-            struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; };
+            // The item's quad on the target: its corner and sides; the slice of depth it lands in, 0..1 for
+            // the item's own draw depth, the item's slice of the canvas depth for a draw onto the frame; and the first
+            // copy drawn, a call drawing a range of its copies.
+            struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; uint firstCopy; uint pad0; };
             [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
             // What a draw hands its shade beyond an item's: the 3D point and facing its deform set.
             struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
@@ -160,7 +170,9 @@ public static partial class SlangShaders
             XanaduDrawVaryings xanaduDrawVertex(uint index : SV_VertexID, uint instance : SV_InstanceID)
             {
                 vertexClock();
-                copy = instance;
+                // Copies come as instances or, drawn flat, one after another in the vertex index.
+                copy = xanaduDrawQuad.firstCopy + instance + index / {{across * down * 6}};
+                index %= {{across * down * 6}};
                 {{TimelineClock(source, shading: false)}}
                 uint cell = index / 6, k = index % 6;
                 float2 corner = float2((0x1A >> k) & 1, (0x34 >> k) & 1);
@@ -171,11 +183,10 @@ public static partial class SlangShaders
                 ItemVertex v = { position, uv, float4(1.0), uv * size, canvasFrom(q.xAxis, q.yAxis, q.corner, uv), index, 0.0, float3(0.0), float3(0.0) };
                 ItemVertex d = effect0::{{deform}}(v);
                 ItemVaryings o = varyings(d);
-                // The deform's depth squashed into 0..1 as the canvas does it, nearer smaller (tested less-or-equal),
-                // then into the slice.
-                o.position.z = q.slice.x + q.slice.y * (0.5 + 0.5 * d.depth / (abs(d.depth) + 1024.0));
+                // The deform's depth in 0..1, nearer smaller (tested less-or-equal), then into the slice.
+                o.position.z = q.slice.x + q.slice.y * {{z}};
                 o.rest = position;
-                o.instance = instance;
+                o.instance = copy;
                 XanaduDrawVaryings drawn = { o, d.world, d.normal, index / 3 };
                 return drawn;
             }
@@ -189,8 +200,10 @@ public static partial class SlangShaders
     /// <paramref name="depth"/> field puts its own back into the slice as the vertex stage puts a corner's.
     /// </summary>
     private static string WrapDrawFragment(string name, string source, string shade, string arguments, DrawOutput[] outputs, string? depth,
-        BlendMode? blend)
+        BlendMode? blend, bool opaque, bool orderDepth)
     {
+        // Pixels into the screen from z (out of the slice, then z = 0.5 + 0.5 d / (|d| + 1024) undone), or z in the slice as it is.
+        string unsquash = orderDepth ? "i.depth = r * 0.5 + 0.5;" : "i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);";
         string empty = blend == BlendMode.Premultiplied ? "all(shown == 0.0)" : "shown.a <= 0.0";
         (string imports, string code, string label) = Split(name, source);
         DrawLayout layout = DrawLayout.Of(outputs);
@@ -204,6 +217,8 @@ public static partial class SlangShaders
                   $"    o.o{layout.Slots[k].Target}{Channels(layout, k, output)} = made.{output.Field};"))
               + (depth is null ? "" : $"\n    o.xanaduDepth = xanaduDrawBox.slice.x + xanaduDrawBox.slice.y * (0.5 + 0.5 * made.{depth} / (abs(made.{depth}) + 1024.0));")
             : outputs[0] is { Field: null, Type: not "float4" }
+            ? "o.o0 = effect0::SHADE(ARGUMENTS);"
+            : outputs[0].Field is null && opaque
             ? "o.o0 = effect0::SHADE(ARGUMENTS);"
             : outputs[0].Field is null
             ? """
@@ -243,9 +258,8 @@ public static partial class SlangShaders
                 // The texel under the pixel in the item's images, as a pixel pass has it.
                 group.pixel = uint2(max(v.position.xy - xanaduDrawBox.origin, 0.0));
                 ItemInput i = input(v);
-                // Pixels into the screen, from z: out of the slice, then z = 0.5 + 0.5 d / (|d| + 1024) undone.
                 float r = (v.position.z - xanaduDrawBox.slice.x) / max(xanaduDrawBox.slice.y, 1e-9) * 2.0 - 1.0;
-                i.depth = r * 1024.0 / max(1.0 - abs(r), 1e-6);
+                {{unsquash}}
                 Canvas quad = canvasFrom(xanaduDrawBox.xAxis, xanaduDrawBox.yAxis, xanaduDrawBox.corner, float2(0.0));
                 i.rest = canvasFrom(quad.xAxis, quad.yAxis, quad.corner, quad.uvAt(v.position.xy));
                 i.world = drawn.world;

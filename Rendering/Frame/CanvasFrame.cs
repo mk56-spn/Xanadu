@@ -19,7 +19,8 @@ internal readonly record struct Entry(int Z, int Sequence, CanvasItem Item, Tran
 
 internal enum StepKind
 {
-    Primitives,
+    /// <summary>A run of the canvas stack's placed primitives (<see cref="Passes.CanvasStack"/>): its <c>ordered</c> draw over <see cref="Step.Count"/> copies from <see cref="Step.Start"/>.</summary>
+    Canvas,
     Effect,
     Particles,
 
@@ -31,7 +32,7 @@ internal enum StepKind
 }
 
 /// <summary>
-/// One draw, in order: a run of primitives (with up to <see cref="PrimitivePipelines.Slots"/>
+/// One draw, in order: a run of primitives (with up to <see cref="Passes.CanvasStack.Slots"/>
 /// textures, from <see cref="FirstTexture"/> in the texture list), an effect's
 /// vertices, or a particle field. A kept effect range's step carries the entity keeping it (<see cref="Kept"/>): the
 /// item's range from frame to frame, where its graph holds the images that outlive a frame.
@@ -86,7 +87,7 @@ internal sealed class CanvasFrame
     public readonly List<Job> Jobs = [];
     public readonly List<Step> Steps = [];
 
-    /// <summary>Each primitive run's texture slots, <see cref="PrimitivePipelines.Slots"/> a run, from its step's <see cref="Step.FirstTexture"/>.</summary>
+    /// <summary>Each primitive run's texture slots, <see cref="Passes.CanvasStack.Slots"/> a run, from its step's <see cref="Step.FirstTexture"/>.</summary>
     public readonly List<ulong> StepTextures = [];
 
     public readonly List<CanvasVertex> Vertices = [];

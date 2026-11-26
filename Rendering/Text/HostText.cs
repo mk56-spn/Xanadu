@@ -101,7 +101,7 @@ internal sealed unsafe class HostText : IDisposable
     /// <summary>
     /// A glyph placed on the canvas: its atlas image and the top-left pixel it
     /// goes at. A glow is the plain glyph with <see cref="Glow"/> set: the GPU
-    /// blurs it into its halo where it is drawn (<c>KindHalo</c> in primitives.slang).
+    /// blurs it into its halo where it is drawn (<c>KindHalo</c> in the canvas stack's draws.slang).
     /// </summary>
     public readonly record struct Placed(AtlasGlyph Glyph, float X, float Y, GlyphGlow? Glow = null);
 

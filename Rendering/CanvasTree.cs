@@ -265,7 +265,7 @@ internal sealed class CanvasTree : ICanvasServer
         item.Points = first + points.Length;
     }
 
-    /// <summary>Triangles with curve tags: a tagged one keeps its corners (start, control, end) and is trimmed to the curve in primitives.slang.</summary>
+    /// <summary>Triangles with curve tags: a tagged one keeps its corners (start, control, end) and is trimmed to the curve in the canvas stack's draws.slang.</summary>
     public void AddCurveTriangles(Handle rid, Vector2[] points, Color[] colors, Vector2[] uvs, byte[] curves)
     {
         if (Find(rid) is not { } item || colors.Length == 0)

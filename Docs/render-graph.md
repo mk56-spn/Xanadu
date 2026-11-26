@@ -872,7 +872,7 @@ renderer owns a material for:
 The bar: frame times on the CJK lab and the editor no worse than today, and the old hand-written path deleted, not
 kept beside it.
 
-### Stage 1, where it stands (2026-11-26, uncommitted)
+### Stage 1, where it stands (2026-11-26, committed)
 
 - **Lists the host sizes** (feature 1): a `List<T>` with no `[Size]` (`[Host]` before it or nothing) is sized at run
   time (`BuildBuffer.HostSized`; its compiled bytes are one element's). The host side is `CanvasMaterial.Lists`
@@ -896,5 +896,29 @@ kept beside it.
   Suites: Slang 483 (37 skipped), UI 473, game 209 (14 skipped).
 - **Not yet:** graph lists are bound without cycling, so a frame's `placed` and `opaque` wait for the last frame's
   draws (the old path cycled them); a host-sized list never shrinks; the stack recompiled live (the shader tool) starts
-  on fresh lists, so what was only written in ranges (the pool, the trees) would need sending again. Stage 2 (the
-  draws) is next.
+  on fresh lists, so what was only written in ranges (the pool, the trees) would need sending again.
+
+### Stage 2, where it stands (2026-11-26)
+
+- **The draws are the stack's exits** (`draws.slang`): `prepass` (`[Opaque] [OrderDepth]`, the job's opaque rects)
+  and `ordered` (`[Translucent] [OrderDepth]`, a run of placed primitives), both `[Draw(1, 1, …)]` whose deform places
+  a copy's corners from `placed` / `opaque` and whose shade reads the record back by `copy` (the old varyings' shape,
+  kind and clip come from the list, not interpolants). `graph()` calls them onto the frame; the host draws them.
+- **What the graph grew** (features 2–5, every draw has them):
+  - **A range of copies:** `XanaduDrawQuad.firstCopy`, and a copy is also `index / vertices` so a host can draw copies
+    flat in one instance (`ImageDraws.Hosted`: small grids pack better that way than as tiny instances).
+  - **No item quad:** `ImageDraws.Hosted` draws a hosted material's draw over the whole target and depth.
+  - **Textures by slot:** a shade's own samplers (from 3: `ImageDraws.OwnSamplers`) take what the host hands; the
+    canvas's eight run textures and the glyph pages' layer array.
+  - **`[Opaque]`:** writes the depth, no blend, never discards (early depth stays on), and drawable depth only
+    (`CanvasEffect.DepthPipeline`, the job's depth for effects that read it). Not with `[Translucent]`.
+  - **`[OrderDepth]`:** the deform's `depth` is its z in the slice as it is, not pixels squashed, so the canvas keeps
+    each primitive's exact place.
+- **Steps:** a run is `StepKind.Canvas` (copies `Start`..`Count` of `ordered`, eight textures from `FirstTexture`);
+  `CanvasStack.Prepass` / `Run` draw them. `PrimitivePipelines`, `primitives.slang` and `StepKind.Primitives` are gone.
+- **Checked:** song select, the editor, the depth lab (GPU validation on) and the CJK lab at 20,000 cells look as
+  before. CJK lab, mean GPU canvas 0.331 ms (main target 0.138, stack 0.188: expand 0.070, resolve 0.028) against
+  0.407 at stage 1; record + submit 1.55 against 1.38 ms (each run now binds as a graph draw does). Suites: Slang 483
+  (37 skipped), UI 473, game 209 (14 skipped).
+- **Not yet:** the stage-1 leftovers (lists bound without cycling, never shrinking, a live recompile starting on
+  fresh lists); a run's binding cost on the CPU. Stage 3 (the CPU side) is next.

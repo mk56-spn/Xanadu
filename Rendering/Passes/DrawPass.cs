@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
 using Xanadu.Rendering.Frame;
 using Xanadu.Rendering.Gpu;
@@ -13,23 +12,14 @@ namespace Xanadu.Rendering.Passes;
 /// effect's step runs its graph's exits (<see cref="ExitDraws"/>) at its place; a graph with mid-frame nodes ends the
 /// pass for them and starts it again, and a screen read ends it to copy the target.
 /// </summary>
-internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, PrimitivePipelines primitives,
-    CanvasPipelines pipelines, CanvasStack canvas, PrimitivePool pool, Dictionary<ulong, Texture> textures,
-    CanvasParticles particles, GraphRunner graphs, ExitDraws exits, CopyDraws copies)
+internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, CanvasPipelines pipelines, CanvasStack canvas, PrimitivePool pool,
+    Dictionary<ulong, Texture> textures, CanvasParticles particles, GraphRunner graphs, ExitDraws exits, CopyDraws copies)
 {
-    private const int Slots = PrimitivePipelines.Slots;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DrawUniforms
-    {
-        public float Width, Height;
-        public uint First, Pad;
-    }
+    private const int Slots = CanvasStack.Slots;
 
     private readonly List<Step> _steps = frame.Steps;
     private readonly List<ulong> _stepTextures = frame.StepTextures;
     private readonly FrameTargets _targets = targets;
-    private readonly PrimitivePipelines _primitives = primitives;
     private readonly CanvasPipelines _pipelines = pipelines;
     private readonly CanvasStack _canvas = canvas;
     private readonly PrimitivePool _pool = pool;
@@ -41,27 +31,19 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
     /// <summary>Draw calls and screen copies since the counts were last cleared.</summary>
     public int BatchCount, CopyCount;
 
-    private void DrawPrimitives(CommandBuffer commands, RenderPass pass, SampleCount samples, bool opaque, uint first, uint count, int firstTexture)
+    /// <summary>A run of the canvas's placed primitives, its eight textures by slot and the glyph pages.</summary>
+    private void DrawRun(CommandBuffer commands, RenderPass pass, SampleCount samples, Step step, float time)
     {
-        pass.BindGraphicsPipeline(_primitives.Get(opaque, samples));
-        pass.BindVertexStorageBuffers(opaque ? _canvas.Opaque : _canvas.Placed);
-        pass.SetScissor(_targets.FullClip);
-        if (!opaque)
+        Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Slots + 1];
+        for (int i = 0; i < Slots; i++)
         {
-            Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Slots + 1];
-            for (int i = 0; i < Slots; i++)
-            {
-                ulong id = _stepTextures[firstTexture + i];
-                samplers[i] = new TextureSamplerBinding(id != 0 ? _textures.GetValueOrDefault(id) ?? _targets.White : _targets.White, _targets.Sampler);
-            }
-
-            samplers[Slots] = new TextureSamplerBinding(_pool.Glyphs?.Layers ?? _targets.NoLayers, _targets.Sampler);
-            pass.BindFragmentSamplers(samplers);
+            ulong id = _stepTextures[step.FirstTexture + i];
+            samplers[i] = new TextureSamplerBinding(id != 0 ? _textures.GetValueOrDefault(id) ?? _targets.White : _targets.White, _targets.Sampler);
         }
 
-        commands.PushVertexUniformData(new DrawUniforms { Width = _targets.Width, Height = _targets.Height, First = first });
-        pass.DrawPrimitives(count * 6, 1, 0, 0);
-        BatchCount++;
+        samplers[Slots] = new TextureSamplerBinding(_pool.Glyphs?.Layers ?? _targets.NoLayers, _targets.Sampler);
+        if (_canvas.Run(commands, pass, samples, step.Start, step.Count, samplers, time))
+            BatchCount++;
     }
 
     /// <summary>Whether any effect the job draws samples the depth, in its shade or its deform.</summary>
@@ -70,7 +52,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
         for (int s = job.FirstStep; s < job.FirstStep + job.StepCount; s++)
         {
             Step step = _steps[s];
-            if (step.Kind is StepKind.Primitives or StepKind.Particles)
+            if (step.Kind is StepKind.Canvas or StepKind.Particles)
                 continue;
             CanvasEffect effect = _pipelines.Effect(step.Material);
             if (effect.Compiled.ReadsDepth || effect.Compiled.Vertex?.ReadsDepth == true || effect.Compiled.Build?.Passes.Any(pass => pass.ReadsDepth) == true)
@@ -84,19 +66,11 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
     /// The job's opaque pre-pass again, depth only, into <see cref="FrameTargets.DepthRead"/>: the depth the
     /// main pass tests against, in a texture effects can sample (MSAA depth can't be resolved).
     /// </summary>
-    private void FillDepth(CommandBuffer commands, Job job)
+    private void FillDepth(CommandBuffer commands, Job job, float time)
     {
         using GpuScope scope = commands.Scope("depth for reads");
         RenderPass pass = _targets.BeginDepthReadPass(commands);
-        if (job.OpaqueReserved > 0)
-        {
-            pass.BindGraphicsPipeline(_primitives.DepthOnly);
-            pass.BindVertexStorageBuffers(_canvas.Opaque);
-            pass.SetScissor(_targets.FullClip);
-            commands.PushVertexUniformData(new DrawUniforms { Width = _targets.Width, Height = _targets.Height, First = job.OpaqueStart });
-            pass.DrawPrimitives(job.OpaqueReserved * 6, 1, 0, 0);
-        }
-
+        _canvas.Prepass(commands, pass, SampleCount.One, job.OpaqueStart, job.OpaqueReserved, time, depthOnly: true);
         commands.EndRenderPass(pass);
     }
 
@@ -104,7 +78,7 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
     {
         SampleCount samples = msaa ? _targets.Samples : SampleCount.One;
         if (job.StepCount > 0 && ReadsDepth(job))
-            FillDepth(commands, job);
+            FillDepth(commands, job, time);
         RenderPass pass = _targets.BeginPass(commands, job.Target, job.Clear, msaa, load: false);
         if (job.StepCount == 0)
         {
@@ -112,8 +86,8 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
             return;
         }
 
-        if (job.OpaqueReserved > 0)
-            DrawPrimitives(commands, pass, samples, opaque: true, job.OpaqueStart, job.OpaqueReserved, 0);
+        if (_canvas.Prepass(commands, pass, samples, job.OpaqueStart, job.OpaqueReserved, time))
+            BatchCount++;
 
         var frame = FrameUniforms.Now(_targets.Width, _targets.Height, time);
         bool copied = false, clocked = false;
@@ -122,8 +96,8 @@ internal sealed class DrawPass(CanvasFrame frame, FrameTargets targets, Primitiv
             Step step = _steps[s];
             switch (step.Kind)
             {
-                case StepKind.Primitives:
-                    DrawPrimitives(commands, pass, samples, opaque: false, step.Start, step.Count, step.FirstTexture);
+                case StepKind.Canvas:
+                    DrawRun(commands, pass, samples, step, time);
                     clocked = false;
                     continue;
 
