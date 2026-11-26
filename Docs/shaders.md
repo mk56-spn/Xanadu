@@ -1294,6 +1294,12 @@ particles.bounce(position, velocity, -world / 2, world / 2, bool4(true), 0.5, 0.
     (`Slang/SlangHandleTags.cs`, `SlangShapeChains.cs`, `ShapePlacement.cs`,
     `SlangHandles.cs`, `SlangHandleDrag.cs`, `PreviewHandles.cs`; the grips are
     the UI's `UiGrip`)
+  - **shape switches:** a step's bools tagged as flags
+    (`/// @handle x flag true MIRROR X` on `mirrored`) are buttons along the
+    bottom of the preview, on its right, while a shape is selected; bright
+    while on. A press writes the step, after the shape's own placement, its
+    arguments only as far as they differ from the defaults, and takes it out
+    with every flag off (`Slang/SlangShapeSwitches.cs`, `PreviewSwitches.cs`)
   - completion follows a few rules, so a new wish is a new rule (or a tag in
     the library), never a special case (`Slang/SlangCompletions*.cs`; each rule
     is a row in `SlangCompletionsTests.Rules`):

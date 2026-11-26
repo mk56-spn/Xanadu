@@ -47,6 +47,7 @@ internal sealed class PreviewHandles
         _frame = _layer.Column().IgnoreLayout();
         _outline = _frame.Shape([Vector2.Zero, Vector2.One], default, Guide, 1.5f).IgnoreLayout();
         _arm = _frame.Shape([Vector2.Zero, Vector2.One], default, Guide, 1.5f, closed: false).IgnoreLayout();
+        _switches = new PreviewSwitches(_frame);
     }
 
     public bool Dragging => _drag is not null;
@@ -54,8 +55,19 @@ internal sealed class PreviewHandles
     /// <summary>Where the caret starts in the shader's text (the shader tool's <c>--caret</c>), for a shot of a shape's handles.</summary>
     public static (int Line, int Column)? StartCaret { get; set; }
 
-    /// <summary>The library's handle tags, read again with the library.</summary>
-    public SlangHandleTags Tags { get; set; } = SlangHandleTags.FromSources([]);
+    /// <summary>The library's handle tags, read again with the library; the switches' buttons are made from them.</summary>
+    public SlangHandleTags Tags
+    {
+        get => _tags;
+        set
+        {
+            _tags = value;
+            _switches.Use(value);
+        }
+    }
+
+    private SlangHandleTags _tags = SlangHandleTags.FromSources([]);
+    private readonly PreviewSwitches _switches;
 
     private Vector2 Canvas => _framed.Size;
 
@@ -82,7 +94,7 @@ internal sealed class PreviewHandles
 
         if (buffer is not null)
         {
-            int caret = Offset(buffer.Lines, buffer.Line, buffer.Column);
+            int caret = TextPlaces.Offset(buffer.Lines, buffer.Line, buffer.Column);
             foreach (ShapeChain chain in SlangShapeChains.Find(buffer.Text, Tags, _values))
             {
                 if (SlangHandles.Of(chain, Tags, _parameterNames, Canvas) is not { } shape)
@@ -98,9 +110,14 @@ internal sealed class PreviewHandles
         foreach (ChainHandle handle in selected?.Handles ?? [])
             _slots.Add((selected!, handle));
         Show(selected);
+        _switches.Show(selected?.Chain, buffer, history, done);
     }
 
-    public void Delete() => UiLayout.DeleteSubtree(_layer.Entity);
+    public void Delete()
+    {
+        _switches.Dispose();
+        UiLayout.DeleteSubtree(_layer.Entity);
+    }
 
     private void Show(ChainHandles? selected)
     {
@@ -178,7 +195,7 @@ internal sealed class PreviewHandles
         (ChainHandles shape, ChainHandle? handle) = _slots[slot];
         if (handle is null)
         {
-            (int line, int column) = Place(_buffer.Lines, shape.Chain.Start);
+            (int line, int column) = TextPlaces.Place(_buffer.Lines, shape.Chain.Start);
             _buffer.Place(line, column);
             int move = shape.Handles.FindIndex(own => own.Kind == HandleKind.Move);
             handle = move < 0 ? null : shape.Handles[move];
@@ -204,8 +221,8 @@ internal sealed class PreviewHandles
             return;
         }
 
-        (int line, int from) = Place(buffer.Lines, edit.From);
-        (int endLine, int to) = Place(buffer.Lines, edit.To);
+        (int line, int from) = TextPlaces.Place(buffer.Lines, edit.From);
+        (int endLine, int to) = TextPlaces.Place(buffer.Lines, edit.To);
         if (endLine == line && buffer.Lines[line][from..to] != edit.Text)
             buffer.Edit(line, from, to, edit.Text);
     }
@@ -217,26 +234,5 @@ internal sealed class PreviewHandles
         _drag = null;
         _history?.LetGo();
         _done();
-    }
-
-    /// <summary>A line and column as an offset into the lines joined by '\n'.</summary>
-    private static int Offset(IReadOnlyList<string> lines, int line, int column)
-    {
-        int offset = 0;
-        for (int i = 0; i < line && i < lines.Count; i++)
-            offset += lines[i].Length + 1;
-        return offset + column;
-    }
-
-    private static (int Line, int Column) Place(IReadOnlyList<string> lines, int offset)
-    {
-        for (int line = 0; line < lines.Count; line++)
-        {
-            if (offset <= lines[line].Length)
-                return (line, offset);
-            offset -= lines[line].Length + 1;
-        }
-
-        return (lines.Count - 1, lines[^1].Length);
     }
 }

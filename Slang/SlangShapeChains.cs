@@ -14,8 +14,8 @@ public sealed record ChainArgument(int Start, int End, string Text, float[]? Val
     public bool Writable => Value is not null && (Literal || Uniform is not null);
 }
 
-/// <summary>One <c>.method(…)</c> after a shape: its name, its brackets' close and arguments, and the handle its tag gives (moved: Move).</summary>
-public sealed record ChainStep(string Name, int Close, IReadOnlyList<ChainArgument> Arguments, HandleKind? Kind);
+/// <summary>One <c>.method(…)</c> after a shape: its name, where its dot is, its brackets' close and arguments, and the handle its tag gives (moved: Move).</summary>
+public sealed record ChainStep(string Name, int Start, int Close, IReadOnlyList<ChainArgument> Arguments, HandleKind? Kind);
 
 /// <summary>
 /// A shape made in the code and what is done to it: <c>Circle(60).moved(float2(40, 0)).rotated(0.3)</c>.
@@ -156,7 +156,7 @@ public static partial class SlangShapeChains
             string method = code[nameStart..nameEnd];
             IReadOnlyList<HandleTag> stepTags = tags.Of(method);
             HandleKind? kind = stepTags.Count > 0 && stepTags[0].Kind is HandleKind.Move or HandleKind.Turn or HandleKind.Scale ? stepTags[0].Kind : null;
-            chain.Steps.Add(new ChainStep(method, stepClose, Arguments(code, stepOpen, stepClose, values), kind));
+            chain.Steps.Add(new ChainStep(method, dot, stepClose, Arguments(code, stepOpen, stepClose, values), kind));
             at = stepClose + 1;
         }
 

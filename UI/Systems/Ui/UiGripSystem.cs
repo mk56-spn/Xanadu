@@ -9,7 +9,7 @@ namespace Xanadu.Ui.Systems.Ui;
 /// <summary>
 /// Takes, drags and lets go of grips (<see cref="UiGrip"/>): marks the one the pointer could
 /// take <see cref="Hovered"/>, takes it on a press, and tells it each move until the button is
-/// up, wherever the pointer goes. The signals go out after the walk over the grips, so their
+/// up, wherever the pointer goes. A press a control took (<see cref="TakesInput"/>) takes no grip. The signals go out after the walk over the grips, so their
 /// owners may build or hide grips as they hear them.
 /// </summary>
 public sealed class UiGripSystem : QuerySystem<UiGrip>
@@ -54,6 +54,9 @@ public sealed class UiGripSystem : QuerySystem<UiGrip>
         }
 
         Entity near = input.Pressed && !pressed ? default : Query.EachEntity(new Nearest(Query.Store, input.Position)).Found;
+        // A press on a control over the grips (a button on the same canvas) is the control's.
+        if (pressed && ControlPressed())
+            near = default;
         Hover(near);
         if (pressed && !near.IsNull)
         {
@@ -63,6 +66,9 @@ public sealed class UiGripSystem : QuerySystem<UiGrip>
             near.EmitSignal(new GripTaken(input.Position));
         }
     }
+
+    /// <summary>Whether the input system gave this frame's press to a control (it runs first in the group).</summary>
+    private bool ControlPressed() => Query.Store.Query().AllTags(Tags.Get<Pressed, TakesInput>()).Count > 0;
 
     private void Hover(Entity near)
     {

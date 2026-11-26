@@ -136,5 +136,32 @@ public sealed class SlangHandlesTests
         Assert.That(Apply(code, edit), Is.EqualTo("Circle(20).rotated(1.57)"));
     }
 
+    [Test]
+    public void MirrorIsTwoSwitchesOnItsStep()
+    {
+        (string method, IReadOnlyList<HandleTag> flags) = _tags.Switches().Single();
+        Assert.That(method, Is.EqualTo("mirrored"));
+        Assert.That(flags.Select(flag => (flag.Parameter, flag.On, flag.Label)), Is.EqualTo(new[] { ("x", true, "MIRROR X"), ("y", false, "MIRROR Y") }));
+    }
+
+    [Test]
+    public void SwitchingMirrorWritesAddsAndTakesOutItsStep()
+    {
+        IReadOnlyList<HandleTag> flags = _tags.Of("mirrored");
+        string Flip(string code, int flag) => Apply(code, SlangShapeSwitches.Flip(Find(code)[0], "mirrored", flags, flag)!.Value);
+
+        string on = Flip("Circle(20).moved(float2(30, 0)).filled()", 0);
+        Assert.That(on, Is.EqualTo("Circle(20).moved(float2(30, 0)).mirrored().filled()"), "after the shape's own placement, defaults left out");
+        Assert.That(SlangShapeSwitches.IsOn(Find(on)[0], "mirrored", flags, 0), Is.True);
+        string both = Flip(on, 1);
+        Assert.That(both, Is.EqualTo("Circle(20).moved(float2(30, 0)).mirrored(true, true).filled()"));
+        Assert.That(Flip(both, 0), Is.EqualTo("Circle(20).moved(float2(30, 0)).mirrored(false, true).filled()"));
+        Assert.That(Flip(on, 0), Is.EqualTo("Circle(20).moved(float2(30, 0)).filled()"), "every switch off takes the step out");
+    }
+
+    [Test]
+    public void AWorkedOutSwitchIsLeftAlone() =>
+        Assert.That(SlangShapeSwitches.Flip(Find("Circle(20).mirrored(wide)")[0], "mirrored", _tags.Of("mirrored"), 1), Is.Null);
+
     private static string Apply(string code, HandleEdit edit) => code[..edit.From] + edit.Text + code[edit.To..];
 }

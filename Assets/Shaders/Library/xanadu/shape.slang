@@ -1388,6 +1388,8 @@ public extension<S : IShape> S
     public Tiled<S> tiled(float2 spacing, float2 count) { Tiled<S> r = tiled(spacing); r.count = max(count, float2(1e-3)); return r; }
 
     /// Folded about its centre: the right half copied over the left (`x`), the bottom over the top (`y`).
+    /// @handle x flag true MIRROR X
+    /// @handle y flag false MIRROR Y
     public Mirrored<S> mirrored(bool x = true, bool y = false) { Mirrored<S> r; r.placement = Placement(); r.shape = this; r.x = x; r.y = y; return r; }
 
     /// Pulled apart from its middle by `amount` on each axis, the gap filled straight.

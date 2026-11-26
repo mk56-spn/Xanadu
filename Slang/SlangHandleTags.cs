@@ -22,10 +22,15 @@ public enum HandleKind
     Turn,
     /// <summary>A placement's <c>float</c> scale factor: a square out on the diagonal, pulled away from the centre or in.</summary>
     Scale,
+    /// <summary>A step's <c>bool</c> (mirrored's x): a switch on the preview's strip, not a handle (<see cref="SlangShapeSwitches"/>).</summary>
+    Flag,
 }
 
-/// <summary>One <c>/// @handle parameter kind</c> tag: a constructor's or a method's parameter, and what its handle does.</summary>
-public readonly record struct HandleTag(string Parameter, HandleKind Kind);
+/// <summary>
+/// One <c>/// @handle parameter kind</c> tag: a constructor's or a method's parameter, and what its
+/// handle does. A flag also gives its default and its switch's label: <c>@handle x flag true MIRROR X</c>.
+/// </summary>
+public readonly record struct HandleTag(string Parameter, HandleKind Kind, bool On = false, string Label = "");
 
 /// <summary>
 /// The library's handle tags. A shape struct tags its constructor's parameters
@@ -39,7 +44,7 @@ public sealed partial class SlangHandleTags
     private readonly Dictionary<string, List<HandleTag>> _tags = [];
     private readonly HashSet<string> _shapes = [];
 
-    [GeneratedRegex(@"^\s*///\s*@handle\s+(\w+)\s+(\w+)")]
+    [GeneratedRegex(@"^\s*///\s*@handle\s+(\w+)\s+(\w+)(?:\s+(true|false))?(?:\s+(.*?))?\s*$")]
     private static partial Regex Tag();
 
     [GeneratedRegex(@"^\s*public\s+struct\s+(\w+)\s*:\s*([^{]*)")]
@@ -66,6 +71,16 @@ public sealed partial class SlangHandleTags
     /// <summary>The tags on a struct (its constructor's) or a method; empty for one with none.</summary>
     public IReadOnlyList<HandleTag> Of(string name) => _tags.TryGetValue(name, out List<HandleTag>? found) ? found : [];
 
+    /// <summary>Every step whose parameters are switches, with its flags in parameter order (mirrored: x, y).</summary>
+    public IEnumerable<(string Method, IReadOnlyList<HandleTag> Flags)> Switches()
+    {
+        foreach ((string name, List<HandleTag> tags) in _tags)
+        {
+            if (!_shapes.Contains(name) && tags.Exists(tag => tag.Kind == HandleKind.Flag))
+                yield return (name, tags.FindAll(tag => tag.Kind == HandleKind.Flag));
+        }
+    }
+
     /// <summary>The placement method whose tag is <paramref name="kind"/> (<c>moved</c> for Move), or null.</summary>
     public string? MethodFor(HandleKind kind)
     {
@@ -87,7 +102,7 @@ public sealed partial class SlangHandleTags
             if (tag.Success)
             {
                 if (Enum.TryParse(tag.Groups[2].Value, ignoreCase: true, out HandleKind kind))
-                    pending.Add(new HandleTag(tag.Groups[1].Value, kind));
+                    pending.Add(new HandleTag(tag.Groups[1].Value, kind, tag.Groups[3].Value == "true", tag.Groups[4].Value));
                 continue;
             }
 
