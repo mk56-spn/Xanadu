@@ -122,8 +122,37 @@ internal sealed class EditorTabs : IDisposable
     }
 
     /// <summary>A press while asking: true on yes, false on cancel, null elsewhere.</summary>
-    public bool? AnswerAt(Vector2 point) =>
+    private bool? AnswerAt(Vector2 point) =>
         UiLayout.Box(_yes).HasPoint(point) ? true : UiLayout.Box(_no).HasPoint(point) ? false : null;
+
+    /// <summary>
+    /// Answers the open question from a press or Enter / Esc: yes runs it, no gives the code its
+    /// focus back (<paramref name="focus"/>). True while one is open (the pointer is its).
+    /// </summary>
+    public bool Answer(in ToolFrame frame, bool pressed, Action focus)
+    {
+        if (Question is not { } question)
+            return false;
+        bool? answer = pressed ? AnswerAt(frame.Mouse) : null;
+        if (frame.Inputs is { } inputs)
+        {
+            if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Return) || inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.KeypadEnter))
+                answer = true;
+            else if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Escape))
+                answer = false;
+        }
+
+        if (answer is { } yes)
+        {
+            Question = null;
+            if (yes)
+                question.OnYes();
+            else
+                focus();
+        }
+
+        return true;
+    }
 
     public void Dispose()
     {

@@ -339,32 +339,6 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             });
     }
 
-    /// <summary>Answers the open question from a press or Enter / Esc; true while one is open (the pointer is its).</summary>
-    private bool Ask(in ToolFrame frame, bool pressed)
-    {
-        if (_strip.Question is not { } question)
-            return false;
-        bool? answer = pressed ? _strip.AnswerAt(frame.Mouse) : null;
-        if (frame.Inputs is { } inputs)
-        {
-            if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Return) || inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.KeypadEnter))
-                answer = true;
-            else if (inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.Escape))
-                answer = false;
-        }
-
-        if (answer is { } yes)
-        {
-            _strip.Question = null;
-            if (yes)
-                question.OnYes();
-            else
-                Focus();
-        }
-
-        return true;
-    }
-
     /// <summary>The one text as it is now, whichever tab is open (a stack's first file; see <see cref="Files"/>).</summary>
     public string Text => _files[0].Buffer.Text;
 
@@ -483,7 +457,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         bool pressed = frame.Held && !_wasHeld;
         _wasHeld = frame.Held;
         TextEditorFrame did = _editor.GetComponent<TextEditor>().Frame;
-        bool asking = Ask(frame, pressed && pointerFree);
+        bool asking = _strip.Answer(frame, pressed && pointerFree, Focus);
         if (!asking && did.Refused && _tabs[_open].ReadOnly)
             AskToEdit();
         if (_goTo is { } place)
@@ -555,12 +529,16 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             PreviewStale: _shownProblems.Exists(problem => !problem.Warning) || !_everCompiled,
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
             _shownProblems));
+        laps.Lap("editor: draw chrome (bar, problems, guide)");
         _timeline.Draw(_canvas, _chromeItem);
+        laps.Lap("editor: draw clips");
         _hover.Draw();
         _popup.Draw(editor.Layout.CaretRect);
+        laps.Lap("editor: draw hover, completion");
         _strip.Draw(_tabs.Select(tab => new TabLook(tab.Label, tab.Dirty, tab.ReadOnly, tab.Path is not null)).ToList(), _open, frame.Mouse);
+        laps.Lap("editor: tabs");
         DrawFiles(frame);
-        laps.Lap("editor: draw chrome, clips, tabs");
+        laps.Lap("editor: files");
     }
 
     /// <summary>The sliders, the tabs (a press opens one, its cross closes it), and a click on a problem jumping the shader's text to it; nothing while a handle is held.</summary>
