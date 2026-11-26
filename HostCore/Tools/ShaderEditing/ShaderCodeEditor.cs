@@ -173,7 +173,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
             Focus();
         };
         _timeline.Released += Focus;
-        _chrome = new EditorChrome(canvas, chromeItem);
+        _chrome = new EditorChrome(entities, slots.Bar, slots.Divider, _problemsNode, _guideNode);
         _chrome.Help = [.. _view.Help, .. _chrome.Help];
         _tuning = new EditorTuning(_tuningNode, _view.Provided.Select(value => value.Name).Append(SlangShaders.ClockOverride));
         // Every library folder: the API's (xanadu/) and the game's (rhythm/).
@@ -429,8 +429,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         }
 
         _timeline.Area = UiLayout.Box(_clipsNode.Entity);
-        _chrome.Place(UiLayout.Box(_slots.Bar.Entity), preview, UiLayout.Box(_problemsNode.Entity), UiLayout.Box(_guideNode.Entity));
-        _chrome.Divider = UiLayout.Box(_slots.Divider.Entity);
+        _chrome.Place(preview);
         _tuning.Follow();
 
         float room = UiLayout.Box(_rest.Entity).Size.Y - EditorChrome.ProblemsHeight - TuningPad * 2
@@ -440,6 +439,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         {
             _guideLines = lines;
             _guideNode.Height(EditorChrome.HelpHeight(lines));
+            _chrome.ShowHelp(lines);
         }
     }
 
@@ -524,7 +524,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         UpdateView(frame);
         laps.Lap("editor: clock, stand-ins, view");
 
-        _chrome.Draw(new EditorState(
+        _chrome.Show(new EditorState(
             buffer.Line, buffer.Column, _status, _statusColour,
             PreviewStale: _shownProblems.Exists(problem => !problem.Warning) || !_everCompiled,
             PreviewNote: _everCompiled ? "showing the last version that compiled" : "nothing has compiled yet",
@@ -578,7 +578,7 @@ internal sealed partial class ShaderCodeEditor : IDisposable
         _timeline.Dispose();
         _view.Dispose();
         UiLayout.DeleteSubtree(_code.Entity);
-        _graph.Delete(); _expand?.Delete(); _handles.Delete();
+        _graph.Delete(); _expand?.Delete(); _handles.Delete(); _chrome.Delete();
         UiLayout.DeleteSubtree(_clipsNode.Entity);
         UiLayout.DeleteSubtree(_rest.Entity);
     }
