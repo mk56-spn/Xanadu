@@ -73,6 +73,9 @@ public sealed record BuildPass(string Name, int Threads, BuildExpression? Over, 
     /// <summary>A draw marked <c>[OrderDepth]</c>: its deform's <c>depth</c> is its z in the slice, 0..1 nearer first, kept exactly.</summary>
     public bool OrderDepth { get; init; }
 
+    /// <summary>A mesh draw marked <c>[OneSided]</c>: triangles facing away from the target are dropped.</summary>
+    public bool OneSided { get; init; }
+
     /// <summary>A draw marked <c>[CoversBox]</c>: its grid covers the item's box on the target instead of its quad.</summary>
     public bool CoversBox { get; init; }
 

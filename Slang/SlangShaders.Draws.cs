@@ -76,7 +76,7 @@ public static partial class SlangShaders
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
         CompiledShader Vertex(string placed, string[]? more = null) => CompileWrapped(pass.Mesh is { } mesh
-                ? WrapMeshDraw(name, placed, pass.Name, mesh, pass.OrderDepth)
+                ? WrapMeshDraw(name, placed, pass.Name, mesh, pass.OrderDepth, pass.OneSided)
                 : WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
             pass.Mesh is null ? "xanaduDrawVertex" : "xanaduMeshDraw", pass.Mesh is null ? "vertex" : "mesh", 0, 1,
             [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", .. more ?? []]);
@@ -213,8 +213,10 @@ public static partial class SlangShaders
     /// A mesh draw's workgroup: each thread calls the draw's function once per corner and triangle it owns, the corner
     /// starting on the item's middle with its quad as <c>rest</c>; corners leave as a [Draw]'s vertex stage hands them on.
     /// With <c>counts:</c> the workgroup makes only as many as that function gives (copy set, the same for every thread).
+    /// Triangles join once every corner is placed, so each can be dropped by where its corners went (<see cref="MeshCulling"/>).
     /// </summary>
-    private static string WrapMeshDraw(string name, string source, string make, (int Corners, int Triangles, string? Counts) mesh, bool orderDepth)
+    private static string WrapMeshDraw(string name, string source, string make, (int Corners, int Triangles, string? Counts) mesh, bool orderDepth,
+        bool oneSided)
     {
         (int corners, int triangles, string? counts) = mesh;
         string counted = counts is null ? $"uint2({corners}, {triangles})" : $"min(effect0::{counts}(), uint2({corners}, {triangles}))";
@@ -233,7 +235,10 @@ public static partial class SlangShaders
             struct XanaduDrawQuad { float2 corner; float2 xAxis; float2 yAxis; float2 slice; uint firstCopy; uint pad0; };
             [[vk::binding(0, 1)]] ConstantBuffer<XanaduDrawQuad> xanaduDrawQuad;
             struct XanaduDrawVaryings { ItemVaryings item; float3 world : TEXCOORD4; float3 normal : TEXCOORD5; nointerpolation uint triangle : TEXCOORD6; };
-            struct XanaduMeshTriangle { uint id : SV_PrimitiveID; };
+            struct XanaduMeshTriangle { uint id : SV_PrimitiveID; bool culled : SV_CullPrimitive; };
+            groupshared float2 xanaduSpots[{{corners}}];
+            groupshared uint3 xanaduJoined[{{triangles}}];
+            {{MeshCulling(oneSided)}}
             [shader("mesh")]
             [numthreads({{threads}}, 1, 1)]
             [outputtopology("triangle")]
@@ -266,17 +271,41 @@ public static partial class SlangShaders
                         o.instance = copy;
                         XanaduDrawVaryings drawn = { o, d.world, d.normal, k };
                         corners[k] = drawn;
+                        xanaduSpots[k] = d.position;
                     }
                     if (k < xanaduCounts.y)
-                    {
-                        triangles[k] = min(made.triangle, uint3(xanaduCounts.x - 1));
-                        XanaduMeshTriangle face = { k };
-                        faces[k] = face;
-                    }
+                        xanaduJoined[k] = min(made.triangle, uint3(xanaduCounts.x - 1));
+                }
+
+                // Every corner placed: each triangle is dropped where it can show nothing (cull()).
+                GroupMemoryBarrierWithGroupSync();
+                for (uint k = thread; k < xanaduCounts.y; k += {{threads}})
+                {
+                    uint3 t = xanaduJoined[k];
+                    triangles[k] = t;
+                    XanaduMeshTriangle face = { k, xanaduCulled(xanaduSpots[t.x], xanaduSpots[t.y], xanaduSpots[t.z]) };
+                    faces[k] = face;
                 }
             }
             """;
     }
+
+    /// <summary>
+    /// What a mesh draw drops, from its corners in target pixels: a triangle of no area, one whose box misses every
+    /// eighth of a pixel along x or along y (no pixel centre and no 4× MSAA sample can fall in it: those sit on
+    /// eighths), and with <c>[OneSided]</c> one facing away (wound anticlockwise on the y-down target, as the
+    /// shade's <c>frontFacing</c> reads it).
+    /// </summary>
+    private static string MeshCulling(bool oneSided) => $$"""
+        bool xanaduCulled(float2 a, float2 b, float2 c)
+        {
+            float area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+            if (area == 0.0{{(oneSided ? " || area < 0.0" : "")}})
+                return true;
+            float2 low = min(a, min(b, c)) * 8.0, high = max(a, max(b, c)) * 8.0;
+            return any(floor(high) < ceil(low));
+        }
+        """;
 
     /// <summary>
     /// The draw's shade, one target an output (<see cref="DrawOutput"/>): its colour, discarded where it adds nothing (the

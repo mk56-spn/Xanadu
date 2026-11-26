@@ -211,6 +211,8 @@ internal static partial class BuildPasses
             Group copies = match.Groups["copies"];
             if (Marked(code, match.Index, "Opaque") && Marked(code, match.Index, "Translucent"))
                 throw new BuildProblem(match.Index, $"{name} is marked both [Opaque] (writes the depth) and [Translucent] (never writes it); keep one.");
+            if (!mesh && Marked(code, match.Index, "OneSided"))
+                throw new BuildProblem(match.Index, $"[OneSided] drops triangles facing away in a mesh draw; {name} is a [Draw].");
             passes.Add(new BuildPass(name, 1, null, null, [], match.Index, match.Index + match.Groups["attribute"].Length)
             {
                 Mesh = mesh ? (across, down, match.Groups["counts"] is { Success: true } counts ? counts.Value : null) : null,
@@ -222,6 +224,7 @@ internal static partial class BuildPasses
                 Translucent = Marked(code, match.Index, "Translucent"),
                 Opaque = Marked(code, match.Index, "Opaque"),
                 OrderDepth = Marked(code, match.Index, "OrderDepth"),
+                OneSided = Marked(code, match.Index, "OneSided"),
                 Blend = match.Groups["blend"] is { Success: true } blend ? BlendOf(blend) : null,
             });
         }

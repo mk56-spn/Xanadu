@@ -108,6 +108,7 @@ void look(uint i)
 
 uint2 parts() { return pool.counts(int(seen[copy])); }
 
+[OneSided]
 [MeshDraw(128, 128, shade: paint, counts: parts, copies: seen)]
 MeshPart shown(MeshPart m)
 {

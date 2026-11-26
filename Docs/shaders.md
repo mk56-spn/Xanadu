@@ -1207,6 +1207,9 @@ most the draw's, the same for every thread (it may read `copy`). The mesh pool d
 workgroup: `uint2 parts() { return pool.counts(); }` with `[MeshDraw(128, 128, shade: look, counts: parts,
 copies: PAGES)] MeshPart shown(MeshPart m) { return pool.pulled(m, placed, camera()); }` (`pool.flat` for 2D). Needs the device layer
 (SDL_GPU has no mesh shaders; Docs/host.md §6). `Lab/mesh_shader` is the smallest one.
+Triangles are joined once every corner is placed, and the stage drops those that can show nothing: no
+area, or a box between the eighths of a pixel (where pixel centres and 4× MSAA samples sit). `[OneSided]`
+before the draw also drops those facing away (wound anticlockwise on the y-down target).
 
 ```slang
 [MeshDraw(13, 12, shade: look, copies: 5)]

@@ -732,7 +732,7 @@ globals' bindings (plain `SlangShaders.Compile`) leaves modules declaring global
    own counts (`counts:`) so no folded triangles. `Lab/meshes`, `Lab/culled_meshes`, `Lab/flat_meshes` first.
 3. ~~Every other pool draw onto it~~ (done 2026-11-27; triangles reach the shade as `SV_PrimitiveID`) (`Lab/scene_room`, light.slang's shadow draw, the Learn tours), then the vertex-pulled
    pool path (`corner`, `pulled`, `flat` on `ItemVertex`) deleted.
-4. Triangles culled in the mesh stage: facing away (one-sided), zero area, too small to touch a pixel centre.
+4. ~~Triangles culled in the mesh stage~~ (done 2026-11-27, `SV_CullPrimitive`; facing away only with `[OneSided]`): facing away (one-sided), zero area, too small to touch a pixel centre.
 5. Task stage in the layer: a module with `TaskEXT` and `MeshEXT` entry points gets both stages at
    `vkCreateGraphicsPipelines`; the draw's count is task workgroups. `[TaskDraw]` (or a `task:` on `[MeshDraw]`) in the
    stack DSL with a payload struct.
