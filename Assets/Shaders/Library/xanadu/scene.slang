@@ -3,13 +3,15 @@
 //
 //     Image<float4> shown;
 //     Image<float> shownDepth;
-//     [Size(512)] List<scene.Part> parts;       // every solid, as data
-//     [Size(129)] List<scene.Object> objects;   // 0 is the header, then one per object
+//     static const uint PARTS = 512;
+//     static const uint OBJECTS = 129;
+//     [Size(PARTS)] List<scene.Part> parts;     // every solid, as data
+//     [Size(OBJECTS)] List<scene.Object> objects; // 0 is the header, then one per object
 //
 //     [Pass(1, over: 1)]
 //     void record(uint i)
 //     {
-//         Scene s = Scene(parts, objects);
+//         Scene s = Scene(parts, PARTS, objects, OBJECTS);
 //         s.add(Block(float3(2600, 1000, 2600)).inverted(), Material(colours.slateGray, 0));   // a room
 //         s.add(Block(170, 14).turned(float3(0, beat, 0)).scaled(1 + 0.3 * beats.pulse()), colours.hotPink);
 //         s.melt(Orb(55).moved(float3(0, -130, 0)), colours.gold, 40);    // melts into the box
@@ -158,15 +160,13 @@ public struct Scene
     scene.Object open;
     bool isOpen;
 
-    public __init(List<scene.Part> parts, List<scene.Object> objects)
+    /// Into `parts` and `objects`, which hold `mostParts` and `mostObjects` (their [Size]s; the last object is the header).
+    public __init(List<scene.Part> parts, uint mostParts, List<scene.Object> objects, uint mostObjects)
     {
         this.parts = parts;
         this.objects = objects;
-        uint n, stride;
-        parts.GetDimensions(n, stride);
-        mostParts = n;
-        objects.GetDimensions(n, stride);
-        mostObjects = n > 0 ? n - 1 : 0;
+        this.mostParts = mostParts;
+        this.mostObjects = mostObjects > 0 ? mostObjects - 1 : 0;
         partCount = 0;
         objectCount = 0;
         open = {};

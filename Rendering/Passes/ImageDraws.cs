@@ -145,6 +145,8 @@ internal sealed class ImageDraws(GraphicsDevice device, FrameTargets targets, Gl
         }, SlangShaders.DrawBoxSlot);
         if (draw.Vertex.StorageBuffers > 0)
             pass.BindVertexStorageBuffers(globals.Bound(draw.Vertex, kept.Buffers));
+        ListAddresses.Vertex(commands, draw.Vertex, kept.Buffers);
+        ListAddresses.Fragment(commands, draw.Fragment, kept.Buffers);
         // Every sampler sees white but the shade's own a host hands it (the canvas's run textures), from 3 on.
         Span<TextureSamplerBinding> samplers = stackalloc TextureSamplerBinding[Math.Max(draw.Vertex.Samplers.Length, draw.Fragment.Samplers.Length)];
         for (int k = 0; k < samplers.Length; k++)

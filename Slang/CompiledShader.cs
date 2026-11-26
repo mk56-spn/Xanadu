@@ -43,10 +43,16 @@ public sealed class CompiledShader(byte[] spirv, string[] samplers, uint uniform
     public IReadOnlyDictionary<string, int> BufferBytes { get; init; } = new Dictionary<string, int>();
 
     /// <summary>
-    /// The stack's BUILD buffers this stage binds, by their place in <see cref="StackBuild.Buffers"/>,
-    /// in binding order after its own storage buffers (counted in <see cref="StorageBuffers"/>).
+    /// The stack's BUILD buffers this stage reads, by their place in <see cref="StackBuild.Buffers"/>: bound in
+    /// that order after its own storage buffers (counted in <see cref="StorageBuffers"/>), unless <see cref="Reached"/>.
     /// </summary>
     public int[] StackBuffers { get; init; } = [];
+
+    /// <summary>
+    /// Its lists are pointers (<see cref="ListReach"/>): none of <see cref="StackBuffers"/> is bound, and the host pushes
+    /// every list's address at uniform <see cref="ListReach.Slot"/>.
+    /// </summary>
+    public bool Reached { get; init; }
 
     /// <summary>A stack's graph, compiled: its resources, its passes and draws, and their schedule; null without one. Set on the fragment.</summary>
     public CompiledBuild? Build { get; init; }

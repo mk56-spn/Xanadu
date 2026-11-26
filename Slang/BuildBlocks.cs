@@ -173,10 +173,10 @@ internal static partial class BuildBlocks
                 string type = kind switch
                 {
                     "uint" => "uint",
-                    "Counter" => "RWStructuredBuffer<uint>",
+                    "Counter" => "List<uint>",
                     "Slots" => "Slots",
                     "Gathered" => $"Gathered<{field.Groups["type"].Value}>",
-                    _ => $"RWStructuredBuffer<{field.Groups["type"].Value}>",
+                    _ => $"List<{field.Groups["type"].Value}>",
                 };
                 foreach (string name in field.Groups["names"].Value.Split(',', System.StringSplitOptions.TrimEntries))
                 {

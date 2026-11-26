@@ -69,15 +69,18 @@ public static partial class SlangShaders
         string body = Unbound(build, source);
 
         // The vertex stage: the graph's buffers it reads go after the globals in set 0 (the depth sampler is 0).
-        CompiledShader Vertex(string placed) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
+        CompiledShader Vertex(string placed, string[]? more = null) => CompileWrapped(WrapDrawVertex(name, placed, pass.Name, across, down, pass.OrderDepth),
             "xanaduDrawVertex", "vertex", 0, 1,
-            [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]);
+            [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", .. more ?? []]);
         CompiledShader vertex = Vertex(body);
         CheckNoImages(name, pass.Name, build, vertex, 1);
         int[] vertexBuffers = ReadBuffers(build, vertex);
-        if (vertexBuffers.Length > 0)
+        bool vertexReached = Reaches(vertexBuffers);
+        if (vertexReached)
+            vertex = Reached(build, vertexBuffers, vertex, Vertex(build.Rewrite(source, 0, k => Unplaced + k, reach: 1), [ListReach.Define]));
+        else if (vertexBuffers.Length > 0)
             vertex = Vertex(build.Rewrite(source, 0, k => Array.IndexOf(vertexBuffers, k) is var at and >= 0 ? 1 + Globals.Count + at : Unplaced + k));
-        CheckStageBuffers(name, pass.Name, Globals.Count + vertexBuffers.Length, build, vertexBuffers);
+        CheckStageBuffers(name, pass.Name, Bound(Globals.Count, vertexBuffers, vertexReached), build, vertexBuffers);
         CheckDeclared(name, vertex, 0, 1);
         if (SpirvScan.BindsSet(vertex.Spirv, 2) || SpirvScan.BindsSet(vertex.Spirv, 3) || SpirvScan.Binds(vertex.Spirv, 0, 0))
             throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a draw's {pass.Name} can't read textures or the depth.");
@@ -86,16 +89,21 @@ public static partial class SlangShaders
         // the samplers, read-only storage textures as SDL_GPU binds them in a fragment stage; the globals after them, then
         // the graph's buffers it reads.
         int globalsAt = StorageBinding(source);
-        CompiledShader Fragment(string placed, int globals) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend, pass.Opaque, pass.OrderDepth),
-            "xanaduDrawFragment", "fragment", 2, 3, GlobalDefines(globals, 2));
+        CompiledShader Fragment(string placed, int globals, string[]? more = null) => CompileWrapped(WrapDrawFragment(name, placed, shade, arguments, outputs, pass.DepthField, pass.Blend, pass.Opaque, pass.OrderDepth),
+            "xanaduDrawFragment", "fragment", 2, 3, [.. GlobalDefines(globals, 2), .. more ?? []]);
         CompiledShader fragment = Fragment(body, globalsAt);
         int[] reads = [.. Enumerable.Range(0, build.Images.Count).Where(k => SpirvScan.Binds(fragment.Spirv, 1, StackBuild.UnplacedImage + k))];
         int[] fragmentBuffers = ReadBuffers(build, fragment);
+        bool fragmentReached = Reaches(fragmentBuffers);
         if (reads.Length > 0 || fragmentBuffers.Length > 0)
         {
             int buffersAt = globalsAt + reads.Length + Globals.Count;
-            fragment = Fragment(build.Rewrite(source, 2, k => Array.IndexOf(fragmentBuffers, k) is var at and >= 0 ? buffersAt + at : Unplaced + k,
-                k => Array.IndexOf(reads, k) is var at and >= 0 ? globalsAt + at : StackBuild.UnplacedImage + k, imageSet: 2), globalsAt + reads.Length);
+            CompiledShader scanned = fragment;
+            fragment = Fragment(build.Rewrite(source, 2, k => fragmentReached ? Unplaced + k : Array.IndexOf(fragmentBuffers, k) is var at and >= 0 ? buffersAt + at : Unplaced + k,
+                k => Array.IndexOf(reads, k) is var at and >= 0 ? globalsAt + at : StackBuild.UnplacedImage + k, imageSet: 2, reach: fragmentReached ? 3 : null),
+                globalsAt + reads.Length, fragmentReached ? [ListReach.Define] : null);
+            if (fragmentReached)
+                fragment = Reached(build, fragmentBuffers, scanned, fragment);
             if (SpirvImages.Writes(fragment.Spirv))
                 throw new InvalidOperationException($"{Where(name, source, shadeAt.Index)}: error: a draw's {shade} reads images but can't write them; return what it makes as an output.");
             foreach (int target in DrawTargets(build.Schedule, p))
@@ -104,16 +112,16 @@ public static partial class SlangShaders
                         $"{Where(name, source, shadeAt.Index)}: error: {pass.Name} draws into {build.Images[target].Name}, so its {shade} can't read it too.");
         }
 
-        CheckStageBuffers(name, shade, Globals.Count + fragmentBuffers.Length, build, fragmentBuffers);
+        CheckStageBuffers(name, shade, Bound(Globals.Count, fragmentBuffers, fragmentReached), build, fragmentBuffers);
         CheckDeclared(name, fragment, 2, globalsAt + reads.Length);
         if (SpirvScan.Binds(fragment.Spirv, 2, 1) || SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth))
             throw new InvalidOperationException($"{Where(name, source, shadeAt.Index)}: error: a draw's {shade} can't read the screen or the depth yet.");
 
         var drawn = new CompiledDraw(
             new CompiledShader(vertex.Spirv, vertex.Samplers, vertex.UniformBuffers, vertex.Params, vertex.ParamsSize,
-                storageBuffers: Globals.Count + vertexBuffers.Length) { StackBuffers = vertexBuffers },
+                Bound(Globals.Count, vertexBuffers, vertexReached)) { StackBuffers = vertexBuffers, Reached = vertexReached },
             new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
-                storageBuffers: Globals.Count + fragmentBuffers.Length) { StackBuffers = fragmentBuffers },
+                Bound(Globals.Count, fragmentBuffers, fragmentReached)) { StackBuffers = fragmentBuffers, Reached = fragmentReached },
             across, down) { Reads = reads, CopiesBuffer = pass.CopiesBuffer, CopiesAt = pass.CopiesAt, Translucent = pass.Translucent, Blend = pass.Blend, CoversBox = pass.CoversBox,
             Opaque = pass.Opaque, OrderDepth = pass.OrderDepth };
         return new CompiledPass(Named(build, p), drawn.Fragment, [], 1, []) { Drawn = drawn };

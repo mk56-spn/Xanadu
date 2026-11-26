@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using MoonWorks.Graphics;
+using Xanadu.Slang;
 using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace Xanadu.Rendering;
@@ -22,6 +23,7 @@ internal static unsafe class DeviceLayer
     private static delegate* unmanaged<nint, ulong> _address;
     private static delegate* unmanaged<byte*> _report;
     private static delegate* unmanaged<int> _active;
+    private static delegate* unmanaged<int> _addresses;
     private static bool _print;
 
     /// <summary>True once the layer is in the chain and saw the device made.</summary>
@@ -53,11 +55,19 @@ internal static unsafe class DeviceLayer
         _address = (delegate* unmanaged<nint, ulong>)NativeLibrary.GetExport(handle, "xdv_address");
         _report = (delegate* unmanaged<byte*>)NativeLibrary.GetExport(handle, "xdv_report");
         _active = (delegate* unmanaged<int>)NativeLibrary.GetExport(handle, "xdv_active");
+        _addresses = (delegate* unmanaged<int>)NativeLibrary.GetExport(handle, "xdv_addresses");
     }
 
-    /// <summary>Prints the report when asked for (<c>XANADU_DEVICE_LAYER=1</c>), once the device is made.</summary>
+    /// <summary>True once the device is made with buffer addresses: stacks then reach their lists by pointer.</summary>
+    public static bool Addresses => Active && _addresses() != 0;
+
+    /// <summary>
+    /// Once the device is made: stacks compile their lists as pointers when buffers have addresses
+    /// (<see cref="ListReach"/>), and the report prints when asked for (<c>XANADU_DEVICE_LAYER=1</c>).
+    /// </summary>
     public static void Announce()
     {
+        ListReach.On = Addresses;
         if (!_print)
             return;
         Console.WriteLine(Active ? "Device layer:\n  " + Report.TrimEnd().Replace("\n", "\n  ") : "Device layer: not in the device chain");

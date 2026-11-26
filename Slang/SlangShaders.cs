@@ -281,18 +281,18 @@ public static partial class SlangShaders
         // Storage buffers follow the samplers: every global, then the stack's buffers it reads.
         int globalsAt = StorageBinding(source);
         int own = Globals.Count;
-        (CompiledShader fragment, int[] buffers) = Placed(build, source, 2, globalsAt + own, placed => CompileWrapped(
-            Wrap(name, placed), "xanaduFragment", "fragment", 2, 3, GlobalDefines(globalsAt, 2)));
+        (CompiledShader fragment, int[] buffers, bool reached) = Placed(build, source, 2, globalsAt + own, (placed, more) => CompileWrapped(
+            Wrap(name, placed), "xanaduFragment", "fragment", 2, 3, [.. GlobalDefines(globalsAt, 2), .. more]));
         if (fragment.Samplers.Length != globalsAt)
             throw new InvalidOperationException(
                 $"{name}: expected {globalsAt} samplers before the globals but the shader has {fragment.Samplers.Length}; declare textures as [[vk::binding(n, 2)]] from 3 up, with no gaps.");
         CheckDeclared(name, fragment, 2, globalsAt);
-        CheckStageBuffers(name, "shade", own + buffers.Length, build, buffers);
+        CheckStageBuffers(name, "shade", Bound(own, buffers, reached), build, buffers);
         CheckNoImages(name, "shade", build, fragment, 2);
 
-        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize,
-            storageBuffers: own + buffers.Length)
+        return new CompiledShader(fragment.Spirv, fragment.Samplers, fragment.UniformBuffers, fragment.Params, fragment.ParamsSize, Bound(own, buffers, reached))
         {
+            Reached = reached,
             ReadsDepth = SpirvScan.Binds(fragment.Spirv, 2, FragmentDepth),
             Vertex = Deforms(source) ? CompileVertex(name, source, build) : null,
             StackBuffers = buffers,
@@ -322,19 +322,19 @@ public static partial class SlangShaders
     {
         // Vertex set 0: the depth is sampler 0, so the globals' storage buffers start at 1, then the stack's buffers it reads.
         int own = Globals.Count;
-        (CompiledShader compiled, int[] buffers) = Placed(build, source, 0, 1 + own, placed => CompileWrapped(
+        (CompiledShader compiled, int[] buffers, bool reached) = Placed(build, source, 0, 1 + own, (placed, more) => CompileWrapped(
             WrapVertex(name, placed), "xanaduVertex", "vertex", 0, 1,
-            [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0"]));
-        CheckStageBuffers(name, "deform", own + buffers.Length, build, buffers);
+            [.. GlobalDefines(1, 0), $"XANADU_FRAME_BINDING={VertexFrameSlot}", "XANADU_FRAME_SET=1", "XANADU_DEPTH_BINDING=0", "XANADU_DEPTH_SET=0", .. more]));
+        CheckStageBuffers(name, "deform", Bound(own, buffers, reached), build, buffers);
         CheckNoImages(name, "deform", build, compiled, 0);
         if (SpirvScan.BindsSet(compiled.Spirv, 2) || SpirvScan.BindsSet(compiled.Spirv, 3))
             throw new InvalidOperationException(
                 $"{name}: deform can't read textures (sampleItem, sampleScreen or the effect's own); only shade can, and both can read sampleDepth.");
         CheckDeclared(name, compiled, 0, 1);
         DeformGrid.Check(name, source, build);
-        return new CompiledShader(compiled.Spirv, compiled.Samplers, compiled.UniformBuffers, compiled.Params, compiled.ParamsSize,
-            storageBuffers: own + buffers.Length)
+        return new CompiledShader(compiled.Spirv, compiled.Samplers, compiled.UniformBuffers, compiled.Params, compiled.ParamsSize, Bound(own, buffers, reached))
         {
+            Reached = reached,
             ReadsDepth = SpirvScan.Binds(compiled.Spirv, 0, 0),
             Grid = DeformGrid.Of(source),
             Translucent = Regex.IsMatch(StripComments(source), @"\[\s*Translucent\s*\]"),

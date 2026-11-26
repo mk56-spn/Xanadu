@@ -6,8 +6,10 @@
 // room's shadows; present shows the result on the item.
 import xanadu;
 
-[Size(256)] List<scene.Part> parts;
-[Size(129)] List<scene.Object> objects;
+static const uint PARTS = 256;
+static const uint OBJECTS = 129;
+[Size(PARTS)] List<scene.Part> parts;
+[Size(OBJECTS)] List<scene.Object> objects;
 [Clear(1e30)] Image<float> depth;
 Image<uint> ids;
 Image<float4> shown;
@@ -32,7 +34,7 @@ static const uint RING = 16;                     // pages the torus's 32 x 32 gr
 [Pass(1, over: 1)]
 void record(uint i)
 {
-    Scene s = Scene(parts, objects);
+    Scene s = Scene(parts, PARTS, objects, OBJECTS);
     float hit = beats.pulse();
 
     // Walls, floor and ceiling: the inside of a block.

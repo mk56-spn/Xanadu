@@ -132,7 +132,7 @@ void lightCount(uint i)
     int4 cells = cellsOf(balls[i]);
     for (int y = cells.y; y <= cells.w; y++)
         for (int x = cells.x; x <= cells.z; x++)
-            light.add(y * LIGHT + x, 1);
+            add(light, y * LIGHT + x, 1);
 }
 
 /// The fill cursors start where each cell's entries do (the counts, scanned in place).
@@ -147,7 +147,7 @@ void lightFill(uint i)
     {
         for (int x = cells.x; x <= cells.z; x++)
         {
-            uint slot = light.add(CELLS + y * LIGHT + x, 1);
+            uint slot = add(light, CELLS + y * LIGHT + x, 1);
             if (slot < ENTRIES)
                 light[2 * CELLS + slot] = i;
         }

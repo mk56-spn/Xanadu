@@ -20,7 +20,7 @@ internal static class EffectCompute
             NumSamplers = pass.Tile is null ? 0u : (uint)(SlangShaders.PixelSamplers + pass.Sampled.Length),
             NumReadonlyStorageBuffers = (uint)pass.Shader.StorageBuffers,
             NumReadWriteStorageTextures = (uint)pass.Images.Length,
-            NumReadWriteStorageBuffers = (uint)pass.Buffers.Length,
+            NumReadWriteStorageBuffers = pass.Shader.Reached ? 0u : (uint)pass.Buffers.Length,
             NumUniformBuffers = Math.Max(1, pass.Shader.UniformBuffers),
             ThreadCountX = (uint)(pass.Tile?.Width ?? pass.Threads), ThreadCountY = (uint)(pass.Tile?.Height ?? 1), ThreadCountZ = 1,
         }))]

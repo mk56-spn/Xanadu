@@ -324,11 +324,14 @@ public sealed partial class StackBuild
     /// For a <c>[Pixels]</c> pass: where each float4 image's sampler goes in set 0, and every <c>sampled(name, …)</c>
     /// call reads it there. Without it the calls are the library's <c>sampled</c>, which filters by hand.
     /// </param>
+    /// <param name="reach">The stage's uniform set, to declare every list as a pointer read from there (<see cref="ListReach"/>) instead of at a binding.</param>
     public string Rewrite(string source, int set, Func<int, int> binding, Func<int, int>? image = null, int? imageSet = null,
-        Func<int, int>? sampled = null)
+        Func<int, int>? sampled = null, int? reach = null)
     {
         var spans = new List<(int Start, int End, string Text)>();
-        string Declared(int k) => $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{Buffers[k].Type}> {Buffers[k].Name};";
+        string Declared(int k) => reach is { } uniforms
+            ? (k == 0 ? ListReach.Block(Buffers.Count, uniforms) : "") + ListReach.Declared(Buffers[k].Type, Buffers[k].Name, k)
+            : $"[[vk::binding({binding(k)}, {set})]] RWStructuredBuffer<{Buffers[k].Type}, ScalarDataLayout> {Buffers[k].Name};";
         for (int k = 0; k < Buffers.Count; k++)
             if (Buffers[k].Bundle is null)
                 spans.Add((Buffers[k].Start, Buffers[k].End, Declared(k)));

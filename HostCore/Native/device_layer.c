@@ -612,3 +612,6 @@ EXPORT const char *xdv_report(void) { return report; }
 
 /// Whether the layer is in the device chain (it saw vkCreateDevice).
 EXPORT int xdv_active(void) { return device.key != NULL; }
+
+/// Whether storage buffers have GPU addresses (bufferDeviceAddress is on).
+EXPORT int xdv_addresses(void) { return device.addresses; }

@@ -94,31 +94,60 @@ public static partial class SlangShaders
 
     /// <summary>
     /// One stage compiled with the stack's buffers placed in <paramref name="set"/> from
-    /// <paramref name="first"/>: only the ones it reads, in their order. Without a BUILD brick, just compiled.
+    /// <paramref name="first"/>: only the ones it reads, in their order; or, when it reads any and
+    /// <see cref="ListReach.On"/>, none placed and every list reached through its pointer (<c>Reached</c>).
+    /// <paramref name="compile"/> takes the body and the defines to add. Without a BUILD brick, just compiled.
     /// </summary>
-    private static (CompiledShader Shader, int[] Used) Placed(StackBuild? build, string source, int set, int first, Func<string, CompiledShader> compile)
+    private static (CompiledShader Shader, int[] Used, bool Reached) Placed(StackBuild? build, string source, int set, int first,
+        Func<string, string[], CompiledShader> compile)
     {
-        (CompiledShader shader, int[] used, _) = PlacedWithAccess(build, source, set, first, compile);
-        return (shader, used);
+        (CompiledShader shader, int[] used, _, bool reached) = PlacedWithAccess(build, source, set, first, compile);
+        return (shader, used, reached);
     }
 
     /// <summary>
-    /// <see cref="Placed"/>, with how the stage really uses each buffer it binds (in the order of
+    /// <see cref="Placed"/>, with how the stage really uses each buffer it reads (in the order of
     /// <c>Used</c>): for compute, which binds them read-write whatever it does with them.
     /// </summary>
-    private static (CompiledShader Shader, int[] Used, GraphAccess[] Access) PlacedWithAccess(
-        StackBuild? build, string source, int set, int first, Func<string, CompiledShader> compile)
+    private static (CompiledShader Shader, int[] Used, GraphAccess[] Access, bool Reached) PlacedWithAccess(
+        StackBuild? build, string source, int set, int first, Func<string, string[], CompiledShader> compile)
     {
         if (build is null)
-            return (compile(source), [], []);
+            return (compile(source, []), [], [], false);
         int count = build.Buffers.Count;
-        CompiledShader shader = compile(build.Rewrite(source, set, k => first + k));
+        CompiledShader shader = compile(build.Rewrite(source, set, k => first + k), []);
         int[] used = [.. Enumerable.Range(0, count).Where(k => SpirvScan.Binds(shader.Spirv, set, first + k))];
+        if (Reaches(used))
+        {
+            GraphAccess[] seen = [.. used.Select(k => SpirvScan.Access(shader.Spirv, set, first + k))];
+            return (Reached(build, used, shader, compile(build.Rewrite(source, set, k => Unplaced + k, reach: set + 1), [ListReach.Define])),
+                used, seen, true);
+        }
+
         if (used.Length != count)
-            shader = compile(build.Rewrite(source, set, k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k));
+            shader = compile(build.Rewrite(source, set, k => Array.IndexOf(used, k) is var at and >= 0 ? first + at : Unplaced + k), []);
         int[] coherent = [.. used.Select((k, at) => (k, at)).Where(pair => build.Buffers[pair.k].Coherent).Select(pair => first + pair.at)];
         shader = SpirvCoherence.Applied(shader, set, coherent);
-        return (shader, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, set, first + at))]);
+        return (shader, used, [.. used.Select((_, at) => SpirvScan.Access(shader.Spirv, set, first + at))], false);
+    }
+
+    /// <summary>Storage buffers a stage binds: its <paramref name="own"/>, then the lists it reads unless it reaches them.</summary>
+    private static int Bound(int own, int[] used, bool reached) => own + (reached ? 0 : used.Length);
+
+    /// <summary>Whether a stage reading <paramref name="used"/> reaches its lists through pointers.</summary>
+    private static bool Reaches(int[] used) => ListReach.On && used.Length > 0;
+
+    /// <summary>
+    /// A stage compiled with its lists as pointers (<paramref name="reached"/>): its loads and stores made coherent when any
+    /// list it uses is, and the element sizes the bound compile (<paramref name="bound"/>) reported, as a pointer reports none.
+    /// </summary>
+    private static CompiledShader Reached(StackBuild build, int[] used, CompiledShader bound, CompiledShader reached)
+    {
+        byte[] code = used.Any(k => build.Buffers[k].Coherent) ? SpirvCoherence.Pointers(reached.Spirv) : reached.Spirv;
+        return new CompiledShader(code, reached.Samplers, reached.UniformBuffers, reached.Params, reached.ParamsSize)
+        {
+            BufferBytes = bound.BufferBytes,
+        };
     }
 
     /// <summary>
@@ -169,9 +198,9 @@ public static partial class SlangShaders
                 continue;
             }
 
-            (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, placed =>
+            (CompiledShader compute, int[] images, int[] used, GraphAccess[] access) = PlacedPass(name, source, build, (placed, more) =>
                 CompileWrapped(WrapPass(name, placed, build, pass), "xanaduPass", "compute", 0, 2,
-                    [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={PassDepth}", "XANADU_DEPTH_SET=0"]));
+                    [.. GlobalDefines(0, 0), $"XANADU_DEPTH_BINDING={PassDepth}", "XANADU_DEPTH_SET=0", .. more]));
             CheckDeclared(name, compute, 0, 0);
             if (SpirvScan.Binds(compute.Spirv, 0, PassDepth))
                 throw new InvalidOperationException($"{Where(name, source, pass.Start)}: error: a [Pass] can't read the canvas (sampleDepth): it runs once for the material; a [Pixels] pass can.");
@@ -180,12 +209,12 @@ public static partial class SlangShaders
                 if (!build.Images[image].Size.Fixed && !build.Images[image].Screen)
                     throw new InvalidOperationException(
                         $"{Where(name, source, pass.Start)}: error: {pass.Name} runs once for the material, and {build.Images[image].Name} is sized by each item's box; give it a fixed size ([Size(w, h)]) to make it the material's, or touch it from a [Pixels] pass or a [Draw].");
-            if (used.Length > MaxStageBuffers)
+            if (used.Length > MaxStageBuffers && !Reaches(used))
                 throw new InvalidOperationException(
-                    $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass. Share a buffer between arrays.");
+                    $"{Where(name, source, pass.Start)}: error: {pass.Name} writes {used.Length} buffers; SDL_GPU binds {MaxStageBuffers} a pass (without the device layer, which reaches them by pointer). Share a buffer between arrays.");
             passes[p] = new CompiledPass(Named(build, p),
                 new CompiledShader(compute.Spirv, compute.Samplers, compute.UniformBuffers, compute.Params, compute.ParamsSize,
-                    storageBuffers: Globals.Count),
+                    storageBuffers: Globals.Count) { Reached = Reaches(used) },
                 used, pass.Threads, access) { Images = images, ImageAccess = ImageAccess(compute, images) };
         }
 

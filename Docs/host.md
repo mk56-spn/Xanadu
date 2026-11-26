@@ -706,12 +706,20 @@ both go in the chain through `VulkanLayerChain`, since .NET doesn't see what lib
 **Checked:** song select draws as before with both layers in; Slang (2026.17) compiles `Ptr<T>` lists with 64-bit and
 float atomics through them.
 
+**Graph lists as pointers (built 2026-11-26).** With buffer addresses (`DeviceLayer.Announce` sets `ListReach.On`),
+xanadu.store's `List<T>` is `Ptr<T>` under `XANADU_LIST_POINTERS`, else a bound `RWStructuredBuffer<T,
+ScalarDataLayout>`: one scalar layout both ways. A pointer takes no methods, so counting is free functions
+(`add/take/keepLarger/keepSmaller(list, …)`). Each stage compiles bound first (which lists it uses and how, as before),
+then again with every list a property reading its address from one uniform block at slot 3 (`Slang/ListReach.cs`,
+64 lists at most); the host pushes the addresses (`Rendering/Passes/ListAddresses.cs`) and binds none. Loads and
+stores through pointers get `Volatile` (`SpirvCoherence.Pointers`). Precompiled modules: a define's salt now flows to
+every importer (mesh, scene and the rest kept their `RWStructuredBuffer` builds before), and a define set without the
+globals' bindings (plain `SlangShaders.Compile`) leaves modules declaring globals as sources instead of stopping.
+**Checked:** Labs CHESS (two games against Stockfish 1500, both won by mate), PARTICLES, the shader tool on
+`Lab/scene_room` and `Lab/bvh_march`, the game demo and the editor, with pointers on; Slang tests pass.
+
 **Next, in order:**
-1. Graph lists as pointers: `List<T>` becomes `Ptr<T>` under a define, its addresses pushed in one uniform block, so a
-   pass binds no lists at all (ends the 8 storage buffers a pass cap the chess search hit). Open: a struct's layout
-   through a pointer is natural (`float3` 12 bytes) but std430 in a bound buffer, so lists move to one layout first
-   (scalar for both); coherence through pointers (`Volatile` on loads and stores in `SpirvCoherence`); which lists a
-   pass uses is found by the bound compile, as now.
+1. ~~Graph lists as pointers~~ (above).
 2. Device-generated commands with indirect execution sets, recorded by the layer from an `xdv:` label (it reads the
    `VkPipeline` out of SDL's compute pipeline as it reads buffers): the GPU writes which pass runs and how much. Test
    case: the chess search, each workgroup picking its next operation.

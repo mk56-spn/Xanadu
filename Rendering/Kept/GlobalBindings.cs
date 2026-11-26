@@ -103,11 +103,12 @@ internal sealed class GlobalBindings : IDisposable
     /// <summary>The frame's globals: <paramref name="count"/> of them.</summary>
     public Span<Buffer> Bound(int count) => _bound.AsSpan(0, Math.Min(count, _bound.Length));
 
-    /// <summary>A stage's storage buffers: the globals, then the stack's graph buffers it reads.</summary>
+    /// <summary>A stage's storage buffers: the globals, then the stack's graph buffers it reads (none when it reaches them by address).</summary>
     public Span<Buffer> Bound(CompiledShader stage, Buffer[]? built)
     {
-        int own = stage.StorageBuffers - stage.StackBuffers.Length;
-        for (int k = 0; k < stage.StackBuffers.Length; k++)
+        int stack = stage.Reached ? 0 : stage.StackBuffers.Length;
+        int own = stage.StorageBuffers - stack;
+        for (int k = 0; k < stack; k++)
             _bound[own + k] = built?[stage.StackBuffers[k]] ?? _blank!;
         return _bound.AsSpan(0, stage.StorageBuffers);
     }

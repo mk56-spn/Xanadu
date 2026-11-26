@@ -1110,10 +1110,10 @@ public interface ITriangles
 /// Triangles as three corners each, one after another: [Host] or built lists of MeshVertex.
 public struct CornerList : ITriangles
 {
-    public RWStructuredBuffer<MeshVertex> corners;
+    public List<MeshVertex> corners;
     public uint triangles;
 
-    public __init(RWStructuredBuffer<MeshVertex> corners, uint triangles) { this.corners = corners; this.triangles = triangles; }
+    public __init(List<MeshVertex> corners, uint triangles) { this.corners = corners; this.triangles = triangles; }
     public uint count() { return triangles; }
     public MeshVertex corner(uint t, uint k) { return corners[t * 3 + k]; }
 };
@@ -1121,11 +1121,11 @@ public struct CornerList : ITriangles
 /// Triangles as three corner numbers each into a list of corners, as model files keep them.
 public struct IndexedList : ITriangles
 {
-    public RWStructuredBuffer<MeshVertex> vertices;
-    public RWStructuredBuffer<uint> indices;
+    public List<MeshVertex> vertices;
+    public List<uint> indices;
     public uint triangles;
 
-    public __init(RWStructuredBuffer<MeshVertex> vertices, RWStructuredBuffer<uint> indices, uint triangles)
+    public __init(List<MeshVertex> vertices, List<uint> indices, uint triangles)
     {
         this.vertices = vertices;
         this.indices = indices;

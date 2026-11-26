@@ -76,16 +76,18 @@ internal sealed class ComputeNodes(GraphicsDevice device, FrameTargets targets, 
         }, 2);
     }
 
-    /// <summary>A pass begun with the images and buffers it touches read-write, and the globals read-only.</summary>
+    /// <summary>A pass begun with the images and buffers it touches read-write (or its lists' addresses), and the globals read-only.</summary>
     private ComputePass Begin(CommandBuffer commands, Texture?[] images, int[] imagePlaces, Buffer[] buffers, int[] bufferPlaces,
         ComputePipeline pipeline, CompiledShader shader)
     {
         Span<StorageTextureReadWriteBinding> writtenImages = stackalloc StorageTextureReadWriteBinding[imagePlaces.Length];
         for (int k = 0; k < writtenImages.Length; k++)
             writtenImages[k] = new StorageTextureReadWriteBinding(images[imagePlaces[k]]!);
-        Span<StorageBufferReadWriteBinding> writes = stackalloc StorageBufferReadWriteBinding[bufferPlaces.Length];
+        // A pass reaching its lists through pointers binds none of them: their addresses go in as a uniform.
+        Span<StorageBufferReadWriteBinding> writes = stackalloc StorageBufferReadWriteBinding[shader.Reached ? 0 : bufferPlaces.Length];
         for (int k = 0; k < writes.Length; k++)
             writes[k] = new StorageBufferReadWriteBinding(buffers[bufferPlaces[k]], cycle: false);
+        ListAddresses.Compute(commands, shader, buffers);
         ComputePass compute = commands.BeginComputePass(writtenImages, writes);
         compute.BindComputePipeline(pipeline);
         if (shader.StorageBuffers > 0)

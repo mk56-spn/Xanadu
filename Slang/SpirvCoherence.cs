@@ -72,4 +72,58 @@ public static class SpirvCoherence
         result.AddRange(words.AsSpan(last));
         return System.Runtime.InteropServices.MemoryMarshal.AsBytes<uint>(result.ToArray()).ToArray();
     }
+
+    private const int OpTypePointer = 32, OpFunction = 54, OpLoad = 61, OpStore = 62, StorageClassPhysicalStorageBuffer = 5349;
+    private const uint MemoryAccessVolatile = 1;
+
+    /// <summary>
+    /// The code with every load and store through a buffer pointer (a list reached by address, <see cref="ListReach"/>)
+    /// marked Volatile: what Coherent is for a bound buffer, under the GLSL450 memory model Slang writes. A pointer has no
+    /// variable to decorate, so the accesses carry it.
+    /// </summary>
+    public static byte[] Pointers(byte[] code)
+    {
+        if (code.Length < 20)
+            return code;
+        uint[] words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(code).ToArray();
+        var types = new HashSet<uint>();
+        var pointers = new HashSet<uint>();
+        var result = new List<uint>(words.Length + 64);
+        result.AddRange(words.AsSpan(0, 5));
+        bool body = false;
+        for (int i = 5; i < words.Length;)
+        {
+            int count = (int)(words[i] >> 16), opcode = (int)(words[i] & 0xFFFF);
+            if (count == 0)
+                break;
+            body |= opcode == OpFunction;
+            if (opcode == OpTypePointer && count >= 4 && words[i + 2] == StorageClassPhysicalStorageBuffer)
+                types.Add(words[i + 1]);
+            // In a function body a type id only ever stands at word 1 as a result type: what it makes is a pointer.
+            else if (body && count >= 3 && types.Contains(words[i + 1]))
+                pointers.Add(words[i + 2]);
+
+            int through = opcode == OpLoad ? 3 : opcode == OpStore ? 1 : 0;
+            if (through > 0 && count > through && pointers.Contains(words[i + through]))
+            {
+                int mask = opcode == OpLoad ? 4 : 3;
+                if (count > mask)
+                {
+                    result.AddRange(words.AsSpan(i, count));
+                    result[^(count - mask)] |= MemoryAccessVolatile;
+                }
+                else
+                {
+                    result.Add(((uint)(count + 1) << 16) | (uint)opcode);
+                    result.AddRange(words.AsSpan(i + 1, count - 1));
+                    result.Add(MemoryAccessVolatile);
+                }
+            }
+            else
+                result.AddRange(words.AsSpan(i, count));
+            i += count;
+        }
+
+        return System.Runtime.InteropServices.MemoryMarshal.AsBytes<uint>(result.ToArray()).ToArray();
+    }
 }

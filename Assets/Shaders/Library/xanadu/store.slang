@@ -9,8 +9,8 @@
 // `List<uint> keys`. Many threads can add to one place at once with add, which hands back what
 // it held before: the slot a thread fills when lists grow, or a tally when they don't.
 //
-//     uint slot = drawn.add(1);              // the counter's one number
-//     uint top = lists.add(ALIVE, 1);        // the number at lists[ALIVE]
+//     uint slot = add(drawn, 1);             // the counter's one number
+//     uint top = add(lists, ALIVE, 1);       // the number at lists[ALIVE]
 //
 // One value the graph keeps, a struct of its own, is Stored: read and written by its plain name,
 // from any pass or draw, zero when made. Its uint fields take InterlockedAdd and friends.
@@ -45,52 +45,54 @@
 // before an image change that (Slang/Texels.cs has the table).
 module store;
 
-/// A list of T the graph keeps on the GPU: [Size(n)] List<T> name;.
-public typealias List<T> = RWStructuredBuffer<T>;
+/// A list of T the graph keeps on the GPU: [Size(n)] List<T> name;. With the device layer it is a
+/// pointer (the build pushes every list's address; a pass binds none of them), else a bound buffer.
+/// Either way its layout is scalar: a float3 takes 12 bytes, as on the host.
+#ifdef XANADU_LIST_POINTERS
+public typealias List<T> = Ptr<T>;
+#else
+public typealias List<T> = RWStructuredBuffer<T, ScalarDataLayout>;
+#endif
 
 /// One T the graph keeps on the GPU, used by its plain name: Stored<T> name;.
-public typealias Stored<T> = RWStructuredBuffer<T>;
+public typealias Stored<T> = List<T>;
 
 /// One uint many threads count with at once: Counter name;.
-public typealias Counter = RWStructuredBuffer<uint>;
+public typealias Counter = List<uint>;
 
 /// A picture the graph keeps, a T at each pixel: Image<float4> name;.
 public typealias Image<T : ITexelElement> = RWTexture2D<T>;
 
-public extension RWStructuredBuffer<uint>
+// Counting in a List<uint> (a Counter is one): free functions, as a pointer takes no methods.
+
+/// Adds by to the number at `at`, safely when many threads add at once; what it held before.
+public uint add(List<uint> list, uint at, uint by)
 {
-    /// Adds by to the number at `at`, safely when many threads add at once; what it held before.
-    public uint add(uint at, uint by)
-    {
-        uint before;
-        InterlockedAdd(this[at], by, before);
-        return before;
-    }
+    uint before;
+    InterlockedAdd(list[at], by, before);
+    return before;
+}
 
-    /// Adds by to the first number (a Counter's); what it held before.
-    public uint add(uint by) { return add(0, by); }
+/// Adds by to the first number (a Counter's); what it held before.
+public uint add(List<uint> list, uint by) { return add(list, 0, by); }
 
-    /// Takes by from the number at `at`, safely when many threads take at once; what it held before.
-    public uint take(uint at, uint by) { return add(at, 0u - by); }
+/// Takes by from the number at `at`, safely when many threads take at once; what it held before.
+public uint take(List<uint> list, uint at, uint by) { return add(list, at, 0u - by); }
 
-    /// Keeps the larger of the number at `at` and value; what it held before.
-    public uint keepLarger(uint at, uint value)
-    {
-        uint before;
-        InterlockedMax(this[at], value, before);
-        return before;
-    }
+/// Keeps the larger of the number at `at` and value; what it held before.
+public uint keepLarger(List<uint> list, uint at, uint value)
+{
+    uint before;
+    InterlockedMax(list[at], value, before);
+    return before;
+}
 
-    /// Keeps the smaller of the number at `at` and value; what it held before.
-    public uint keepSmaller(uint at, uint value)
-    {
-        uint before;
-        InterlockedMin(this[at], value, before);
-        return before;
-    }
-
-    /// The first number: a Counter's count.
-    public property uint count { get { return this[0]; } }
+/// Keeps the smaller of the number at `at` and value; what it held before.
+public uint keepSmaller(List<uint> list, uint at, uint value)
+{
+    uint before;
+    InterlockedMin(list[at], value, before);
+    return before;
 }
 
 /// A list many threads add to at once, and how many it holds: [Size(n)] Gathered<T> name;.
@@ -98,13 +100,13 @@ public extension RWStructuredBuffer<uint>
 /// lays it out: its count (and a uint list's items) share the graph's bookkeeping list.
 public struct Gathered<T>
 {
-    RWStructuredBuffer<uint> tally;
+    List<uint> tally;
     uint at;
-    RWStructuredBuffer<T> items;
+    List<T> items;
     uint from;
     uint most;
 
-    public __init(RWStructuredBuffer<uint> tally, uint at, RWStructuredBuffer<T> items, uint from, uint most)
+    public __init(List<uint> tally, uint at, List<T> items, uint from, uint most)
     {
         this.tally = tally;
         this.at = at;
@@ -129,10 +131,10 @@ public struct Gathered<T>
     /// Puts value on the end, at `place`; false when it was full.
     public bool add(T value, out uint place)
     {
-        place = tally.add(at, 1);
+        InterlockedAdd(tally[at], 1, place);
         if (place >= most)
         {
-            tally.take(at, 1);
+            InterlockedAdd(tally[at], 0u - 1u);
             return false;
         }
         items[from + place] = value;
@@ -145,7 +147,7 @@ public struct Gathered<T>
     public __subscript(uint i) -> T
     {
         get { return items[from + i]; }
-        set { items[from + i] = newValue; }
+        [nonmutating] set { items[from + i] = newValue; }
     }
 };
 
@@ -154,11 +156,11 @@ public struct Gathered<T>
 public struct Slots
 {
     // book[at]: places given back, stacked from book[at + 2]; book[at + 1]: places handed out fresh, from 0 up.
-    RWStructuredBuffer<uint> book;
+    List<uint> book;
     uint at;
     uint most;
 
-    public __init(RWStructuredBuffer<uint> book, uint at, uint most) { this.book = book; this.at = at; this.most = most; }
+    public __init(List<uint> book, uint at, uint most) { this.book = book; this.at = at; this.most = most; }
 
     /// The places in the pool.
     public property uint capacity { get { return most; } }
@@ -169,23 +171,29 @@ public struct Slots
     /// A free place into slot; false (slot 0) when none is.
     public bool take(out uint slot)
     {
-        uint back = book.take(at, 1);
+        uint back;
+        InterlockedAdd(book[at], 0u - 1u, back);
         if (int(back) > 0)
         {
             slot = book[at + 2 + back - 1];
             return true;
         }
-        book.add(at, 1);
-        slot = book.add(at + 1, 1);
+        InterlockedAdd(book[at], 1);
+        InterlockedAdd(book[at + 1], 1, slot);
         if (slot < most)
             return true;
-        book.take(at + 1, 1);
+        InterlockedAdd(book[at + 1], 0u - 1u);
         slot = 0;
         return false;
     }
 
     /// Hands place i back.
-    public void give(uint i) { book[at + 2 + book.add(at, 1)] = i; }
+    public void give(uint i)
+    {
+        uint place;
+        InterlockedAdd(book[at], 1, place);
+        book[at + 2 + place] = i;
+    }
 
     /// Every place free again.
     public void reset()

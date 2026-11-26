@@ -85,6 +85,7 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
         Buffer[]? built = effect.Compiled.Build is null ? null : materials.Built(step.Material);
         if (effect.Compiled.StorageBuffers > 0)
             pass.BindFragmentStorageBuffers(globals.Bound(effect.Compiled, built));
+        ListAddresses.Fragment(commands, effect.Compiled, built);
         if (effect.Compiled.ParamsSize > 0)
             ShaderParams.Push(commands, effect.Compiled, step.Material, step.Values);
         if (instanced)
@@ -108,6 +109,7 @@ internal sealed class ExitDraws(GraphicsDevice device, FrameTargets targets, Can
                 pass.BindVertexSamplers(new TextureSamplerBinding(targets.DepthRead, device.PointSampler));
             if (vertex.StorageBuffers > 0)
                 pass.BindVertexStorageBuffers(globals.Bound(vertex, built));
+            ListAddresses.Vertex(commands, vertex, built);
             if (vertex.ParamsSize > 0)
                 ShaderParams.Push(commands, vertex, step.Material, step.Values, stage: ParamsStage.Vertex);
         }

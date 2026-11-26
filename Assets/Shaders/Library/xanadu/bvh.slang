@@ -138,7 +138,7 @@ public namespace bvh
         while (up != NONE)
         {
             AllMemoryBarrier();
-            if (arrivals.add(up, 1) == 0)
+            if (add(arrivals, up, 1) == 0)
                 return;
             AllMemoryBarrier();
             Node a = nodes[nodes[up].left];

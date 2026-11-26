@@ -97,15 +97,27 @@ public static partial class SlangModules
             string[] sorted = [.. defines.Order(StringComparer.Ordinal)];
             string[] defined = [.. sorted.Select(define => define.Split('=')[0])];
             var keys = new Dictionary<string, string>(StringComparer.Ordinal);
+            // Without the globals' bindings (a plain compile) a module declaring globals can't build: it and everything
+            // importing it stay sources, which only a compile that uses them reads (and fails on).
+            bool bound = defined.Contains(GlobalSetDefine);
+            var unbuilt = new HashSet<string>(StringComparer.Ordinal);
             foreach (string name in InOrder(modules))
             {
+                if (!bound && (modules[name].Contains(GlobalSetDefine) || Imports(modules, name).Any(unbuilt.Contains)))
+                {
+                    unbuilt.Add(name);
+                    continue;
+                }
+
                 string source = Path.Combine(staging, name.Replace('.', Path.DirectorySeparatorChar) + ".slang");
                 string target = Path.ChangeExtension(source, ".slang-module");
                 // What the module means: its text and everything it imports, by their own keys.
                 string text = modules[name];
                 keys[name] = Hash($"{salt}\n{name}\n{string.Join('\n', Imports(modules, name).Select(import => keys.GetValueOrDefault(import, "")))}\n{text}");
-                // The defines only reach a module that reads one itself: each module is preprocessed on its own.
+                // The defines only reach a module that reads one itself (each module is preprocessed on its own), but what
+                // they decide is baked into every module importing it: the salted key is the one importers hash.
                 string built = defined.Any(text.Contains) ? Hash($"{keys[name]}\n{string.Join(';', sorted)}") : keys[name];
+                keys[name] = built;
                 string? stored = store is null ? null : Path.Combine(store, $"{name}-{built}.slang-module");
                 if (stored is not null && File.Exists(stored))
                 {

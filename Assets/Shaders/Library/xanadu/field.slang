@@ -36,7 +36,7 @@ public struct Field
     }
 
     /// A list's value at a 0..1 position, blended between its four nearest cells.
-    float blended(RWStructuredBuffer<float> from, float2 uv)
+    float blended(List<float> from, float2 uv)
     {
         float2 g = uv * float2(w, h) - 0.5;
         float2 f = frac(g);
